@@ -1,0 +1,11 @@
+{
+  "extends": [
+    "@nuxtjs/eslint-config-typescript",
+    "@antfu"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": [
+      "off"
+    ]
+  }
+}
