@@ -93,6 +93,10 @@ declare module 'nitropack' {
       name: 'defineOgImage',
       from: resolve('./runtime/composables/defineOgImage'),
     })
+    addImports({
+      name: 'defineOgImageScreenshot',
+      from: resolve('./runtime/composables/defineOgImage'),
+    })
 
     await addComponent({
       name: 'OgImage',
@@ -118,6 +122,9 @@ declare module 'nitropack' {
         let html = ctx.contents
         // we need valid _contents to scan for ogImage payload and know the route is good
         if (!html)
+          return
+
+        if (!html.includes('id="nuxt-og-image-payload"'))
           return
 
         const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
@@ -170,7 +177,7 @@ declare module 'nitropack' {
             })
           })).trim()
           const browser = await createBrowser()
-          nitro.logger.info(`Generating ${entries.length} og:image screenshots`)
+          nitro.logger.info(`Generating ${entries.length} og:images...`)
           try {
             for (const k in entries) {
               const entry = entries[k]
@@ -179,7 +186,7 @@ declare module 'nitropack' {
               await writeFile(entry.outputPath, imgBuffer)
               const generateTimeMS = Date.now() - start
               nitro.logger.log(chalk.gray(
-                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms)`,
+                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(k / (entries.length - 1) * 100)}%`,
               ))
             }
           }

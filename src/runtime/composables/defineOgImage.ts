@@ -15,6 +15,10 @@ export interface OgImagePayload {
   [key: string]: any
 }
 
+export function defineOgImageScreenshot() {
+  defineOgImage()
+}
+
 export function defineOgImage(options: OgImagePayload = {}) {
   if (process.server) {
     const router = useRouter()
