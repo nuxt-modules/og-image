@@ -37,14 +37,14 @@
   "dependencies": {
     "@nuxt/kit": "3.0.0",
     "chalk": "^5.2.0",
+    "chrome-aws-lambda": "^10.1.0",
     "defu": "^6.1.1",
     "execa": "^6.1.0",
     "fast-glob": "^3.2.12",
     "ohash": "^1.0.0",
-    "radix3": "^1.0.0",
-    "ufo": "^1.0.1",
     "playwright-core": "^1.28.1",
-    "chrome-aws-lambda": "^10.1.0"
+    "radix3": "^1.0.0",
+    "ufo": "^1.0.1"
   },
   "unbuild": {
     "externals": [
@@ -62,6 +62,7 @@
     "eslint": "8.29.0",
     "nuxt": "npm:nuxt3@latest",
     "pathe": "^1.0.0",
+    "puppeteer": "^19.4.0",
     "vitest": "^0.25.5"
   }
 }

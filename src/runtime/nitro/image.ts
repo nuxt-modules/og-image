@@ -32,6 +32,8 @@ export async function screenshot(browser: Browser, url: string, options: Screens
 }
 
 export async function createBrowser() {
+  if (!process.env.AWS_LAMBDA_FUNCTION_NAME)
+    process.env.AWS_LAMBDA_FUNCTION_NAME = 'test'
   const playwright = await import('playwright-core')
   const awsChrome = await import('chrome-aws-lambda')
   return await playwright.chromium.launch({

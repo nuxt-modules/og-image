@@ -186,7 +186,7 @@ declare module 'nitropack' {
               await writeFile(entry.outputPath, imgBuffer)
               const generateTimeMS = Date.now() - start
               nitro.logger.log(chalk.gray(
-                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(k / (entries.length - 1) * 100)}%`,
+                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(Number(k) / (entries.length - 1) * 100)}%`,
               ))
             }
           }

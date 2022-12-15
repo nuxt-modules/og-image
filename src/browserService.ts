@@ -1,27 +1,14 @@
-import type { Browser } from 'playwright'
+import type { Browser } from 'playwright-core'
 import type { ScreenshotOptions } from './types'
-
-async function createLambdaBrowser() {
-  try {
-    const playwright = await import('playwright-core')
-    const awsChrome = await import('chrome-aws-lambda')
-    return await playwright.chromium.launch({
-      args: awsChrome.args,
-      executablePath: await awsChrome.executablePath,
-      headless: awsChrome.headless,
-    })
-  }
-  catch (e) {}
-  return false
-}
 export async function createBrowser() {
-  const lambdaBrowser = await createLambdaBrowser()
-  if (lambdaBrowser)
-    return lambdaBrowser
-  // fallback to core playwright
-  const playwright = await import('playwright')
+  if (!process.env.AWS_LAMBDA_FUNCTION_NAME)
+    process.env.AWS_LAMBDA_FUNCTION_NAME = 'test'
+  const playwright = await import('playwright-core')
+  const awsChrome = await import('chrome-aws-lambda')
   return await playwright.chromium.launch({
-    chromiumSandbox: true,
+    args: awsChrome.args,
+    executablePath: await awsChrome.executablePath,
+    headless: awsChrome.headless,
   })
 }
 
