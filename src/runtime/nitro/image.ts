@@ -1,33 +1,9 @@
 import { defineEventHandler, getRequestHeader, setHeader } from 'h3'
-import type { Browser } from 'playwright'
+import type { Browser } from 'playwright-core'
 import type { ScreenshotOptions } from '../../types'
 
 export const HtmlRendererRoute = '__og_image'
 export const RuntimeImageSuffix = 'og-image.png'
-
-async function createLambdaBrowser() {
-  try {
-    const playwright = await import('playwright-core')
-    const awsChrome = await import('chrome-aws-lambda')
-    return await playwright.chromium.launch({
-      args: awsChrome.args,
-      executablePath: await awsChrome.executablePath,
-      headless: awsChrome.headless,
-    })
-  }
-  catch (e) {}
-  return false
-}
-export async function createBrowser() {
-  const lambdaBrowser = await createLambdaBrowser()
-  if (lambdaBrowser)
-    return lambdaBrowser
-  // fallback to core playwright
-  const playwright = await import('playwright')
-  return await playwright.chromium.launch({
-    chromiumSandbox: true,
-  })
-}
 
 export async function screenshot(browser: Browser, url: string, options: ScreenshotOptions): Promise<Buffer> {
   const page = await browser.newPage({
@@ -53,6 +29,16 @@ export async function screenshot(browser: Browser, url: string, options: Screens
     await page.locator(options.selector).screenshot()
 
   return await page.screenshot()
+}
+
+export async function createBrowser() {
+  const playwright = await import('playwright-core')
+  const awsChrome = await import('chrome-aws-lambda')
+  return await playwright.chromium.launch({
+    args: awsChrome.args,
+    executablePath: await awsChrome.executablePath,
+    headless: awsChrome.headless,
+  })
 }
 
 export default defineEventHandler(async (e) => {
