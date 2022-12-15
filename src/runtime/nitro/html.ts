@@ -1,4 +1,4 @@
-import {withoutTrailingSlash, withQuery} from 'ufo'
+import { withQuery, withoutTrailingSlash } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery } from 'h3'
