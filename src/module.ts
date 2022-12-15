@@ -123,7 +123,7 @@ declare module 'nitropack' {
         if (!html)
           return
 
-        if (!html.includes('id="nuxt-og-image-payload"'))
+        if (!html.includes(`id="${PayloadScriptId}"`))
           return
 
         const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
