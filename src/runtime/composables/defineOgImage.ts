@@ -1,9 +1,10 @@
 import { useServerHead } from '@vueuse/head'
-import {
-  HtmlRendererRoute,
-  LinkPrerenderId,
-  MetaOgImageContentPlaceholder, PayloadScriptId, RuntimeImageSuffix,
-} from '../const'
+
+export const HtmlRendererRoute = '__og_image'
+export const RuntimeImageSuffix = 'og-image.png'
+export const PayloadScriptId = 'nuxt-og-image-payload'
+export const MetaOgImageContentPlaceholder = '__NUXT_OG_IMAGE_PLACEHOLDER__'
+export const LinkPrerenderId = 'nuxt-og-image-screenshot-path'
 
 export interface OgImagePayload {
   runtime: boolean

@@ -1,5 +1,6 @@
 import type { Browser } from 'playwright'
-import type { ScreenshotOptions } from './types'
+import type { ScreenshotOptions } from '../types'
+
 
 async function createLambdaBrowser() {
   try {

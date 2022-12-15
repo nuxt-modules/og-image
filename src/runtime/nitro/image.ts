@@ -1,6 +1,8 @@
 import { defineEventHandler, getRequestHeader, setHeader } from 'h3'
-import { HtmlRendererRoute, RuntimeImageSuffix } from '../const'
-import { createBrowser, screenshot } from '../../browserService'
+import { createBrowser, screenshot } from '../browserService'
+
+export const HtmlRendererRoute = '__og_image'
+export const RuntimeImageSuffix = 'og-image.png'
 
 export default defineEventHandler(async (e) => {
   if (!e.path?.endsWith(RuntimeImageSuffix))
