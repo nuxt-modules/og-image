@@ -127,6 +127,9 @@ defineOgImageScreenshot()
 
 ## Generating Template Images
 
+The template image generator is powered by Nuxt Islands. This means that you can use any Vue
+component you want to generate your images.
+
 ```vue
 <script lang="ts" setup>
 defineOgImage({
@@ -142,23 +145,21 @@ defineOgImage({
 </template>
 ```
 
-#### Create a template
+### Creating your own template
 
-The template used to generate the image must be a Nuxt Island component.
+Create a new component with `.island.vue` as the suffix, such as `components/Banner.island.vue`.
 
-It works the same way as a regular Vue component.
-
-For example, create the file at `components/Banner.island.vue`.
+Use the below template to test it works, then modify it how you like.
 
 ```vue
 <script setup lang="ts">
 const props = defineProps({
-  // payload props
+  // these will always be provided
   path: String,
   title: String,
   description: String,
-  // add your own props here
-  myCustomProp: String
+  // anything custom comes here
+  backgroundImage: String
 })
 </script>
 
@@ -181,16 +182,24 @@ const props = defineProps({
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: bold;
-  font-family: sans-serif;
   background: linear-gradient(to bottom, #30e8bf, #ff8235);
 }
 
 h1 {
   font-size: 4rem;
-  margin: 0;
 }
 </style>
+```
+
+Make sure you reference this component when using `defineOgImage` and any props to pass.
+
+```vue
+<script lang="ts" setup>
+defineOgImage({
+  component: 'Banner', 
+  backgroundImage: 'https://example.com/my-background-image.jpg',
+})
+</script>
 ```
 
 ## Previewing Images
