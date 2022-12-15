@@ -92,7 +92,7 @@ declare module 'nitropack' {
       from: resolve('./runtime/composables/defineOgImage'),
     })
 
-    addComponent({
+    await addComponent({
       name: 'OgImage',
       filePath: resolve('./runtime/components/OgImage.vue'),
       // @ts-expect-error need to use @nuxt/kit edge
@@ -130,7 +130,9 @@ declare module 'nitropack' {
           fileName,
           absoluteUrl,
           outputPath: `${nitro.options.output.dir}/public/${config.outputDir}/${fileName}`,
+          linkingHtml: ctx.fileName,
           route: ctx.route,
+          hasPayload: screenshotPath,
           routeRules: routeRules.ogImage || '',
           screenshotPath: screenshotPath || ctx.route,
         }
@@ -168,22 +170,16 @@ declare module 'nitropack' {
           const browser = await createBrowser()
           nitro.logger.info(`Generating ${entries.length} og:image screenshots`)
           try {
-            const imageGenPromises = entries.map(async (entry, index) => {
-              return new Promise<void>((resolve) => {
-                const start = Date.now()
-                screenshot(browser, `${host}${entry.screenshotPath}`, config).then((imgBuffer) => {
-                  writeFile(entry.outputPath, imgBuffer).then(() => {
-                    const generateTimeMS = Date.now() - start
-                    nitro.logger.log(chalk.gray(
-                      `  ${index === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms)`,
-                    ))
-                    resolve()
-                  })
-                })
-              })
-            })
-            // wait for all the promises in process to be finished
-            await Promise.all(imageGenPromises)
+            for (const k in entries) {
+              const entry = entries[k]
+              const start = Date.now()
+              const imgBuffer = await screenshot(browser, `${host}${entry.screenshotPath}`, config)
+              await writeFile(entry.outputPath, imgBuffer)
+              const generateTimeMS = Date.now() - start
+              nitro.logger.log(chalk.gray(
+                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms)`,
+              ))
+            }
           }
           catch (e) {
             console.error(e)
@@ -200,10 +196,9 @@ declare module 'nitropack' {
         }
         // Clean up time
         // 1. post-process HTML, remove meta
-        const htmlFiles = await fg(['**/*.html'], { cwd: nitro.options.output.dir })
-        for (const htmlFile of htmlFiles) {
+        for (const entry of entries.filter(e => e.hasPayload)) {
           // read each html file and remove the payload data from the og generation
-          const html = await readFile(`${nitro.options.output.dir}/${htmlFile}`, 'utf-8')
+          const html = await readFile(`${nitro.options.output.dir}/public${entry.linkingHtml}`, 'utf-8')
           const newHtml = html
             .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
             // remove the script tag with the payload
@@ -212,7 +207,7 @@ declare module 'nitropack' {
             .replace('\n\n', '\n')
           if (html !== newHtml) {
             // write the file back
-            await writeFile(`${nitro.options.output.dir}/${htmlFile}`, newHtml, { encoding: 'utf-8' })
+            await writeFile(`${nitro.options.output.dir}/public${entry.linkingHtml}`, newHtml, { encoding: 'utf-8' })
           }
         }
         // 2. delete all of the _og-image folders

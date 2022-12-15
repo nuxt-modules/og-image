@@ -23,6 +23,9 @@ export interface OgImageRouteEntry {
   fileName: string
   absoluteUrl: string
   outputPath: string
+
+  linkingHtml: string
+  hasPayload: boolean
 }
 
 declare module 'nitropack' {
