@@ -1,4 +1,4 @@
-import { withQuery } from 'ufo'
+import {withoutTrailingSlash, withQuery} from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery } from 'h3'
@@ -33,10 +33,10 @@ export default defineEventHandler(async (req) => {
   if (!req.path?.endsWith(HtmlRendererRoute))
     return
 
-  const path = req.path.replace(`/${HtmlRendererRoute}`, '')
+  const path = req.path.replace(HtmlRendererRoute, '')
 
   // extract the payload from the original path
-  const html = await $fetch(path)
+  const html = await $fetch(withoutTrailingSlash(path))
   const payload = {
     path,
     title: 'Hello World',
@@ -48,7 +48,7 @@ export default defineEventHandler(async (req) => {
   }
 
   // using Nuxt Island, generate the og:image HTML
-  const result = await $fetch(withQuery(`/__nuxt_island/${payload.template || 'OgImage'}`, {
+  const result = await $fetch(withQuery(`/__nuxt_island/${payload.component || 'OgImage'}`, {
     props: JSON.stringify(payload),
   }))
   const head = createHeadCore()
