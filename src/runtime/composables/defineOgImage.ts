@@ -22,11 +22,12 @@ export function defineOgImageScreenshot() {
 export function defineOgImage(options: OgImagePayload = {}) {
   if (process.server) {
     const router = useRouter()
+    const route = router?.currentRoute?.value?.path || ''
     useServerHead({
       meta: [
         {
           property: 'og:image',
-          content: () => options.runtime ? `${router.currentRoute.value.path}/${RuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
+          content: () => options.runtime ? `${route}/${RuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
         },
       ],
       link: options.component
@@ -34,7 +35,7 @@ export function defineOgImage(options: OgImagePayload = {}) {
             {
               id: LinkPrerenderId,
               rel: 'prerender',
-              href: `${router.currentRoute.value.path}/${HtmlRendererRoute}`,
+              href: `${route}/${HtmlRendererRoute}`,
             },
           ]
         : [],
