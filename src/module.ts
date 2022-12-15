@@ -12,7 +12,6 @@ import { createBrowser, screenshot } from './browserService'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
 
 export interface ModuleOptions extends ScreenshotOptions {
-  defaultIslandComponent: string
   /**
    * The directory within `public` where the og images will be stored.
    *

@@ -46,12 +46,6 @@
     "radix3": "^1.0.0",
     "ufo": "^1.0.1"
   },
-  "unbuild": {
-    "externals": [
-      "playwright-core",
-      "chrome-aws-lambda"
-    ]
-  },
   "devDependencies": {
     "@antfu/eslint-config": "^0.33.1",
     "@nuxt/kit": "3.0.0",

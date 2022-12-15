@@ -10,7 +10,7 @@
 
 
 <p align="center">
-Generate social share images for your pre-rendered Nuxt v3 app.
+Generate dynamic social share images for you Nuxt v3 app.
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@ Generate social share images for your pre-rendered Nuxt v3 app.
 <tbody>
 <td align="center">
 <img width="800" height="0" /><br>
-<i>Status:</i> Early Access</b> <br>
+<i>Status:</i> 🤫 Early Access - Active Development 🤫</b> <br>
 <sup> Please report any issues 🐛</sup><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="800" height="0" />
@@ -29,9 +29,9 @@ Generate social share images for your pre-rendered Nuxt v3 app.
 
 ## Features
 
-- 🔄 Configure using route rules
-- 📸 Generates site screenshots
-- 🎨 OR build your own template with Vue (powered by Nuxt islands)
+- 🧙 Generate images for your entire site in minutes with minimal config
+- 🎨 Build your own template with Vue (powered by Nuxt Islands)
+- 📸 OR just generates page screenshots
 
 ## Install
 
@@ -54,7 +54,29 @@ export default defineNuxtConfig({
 })
 ```
 
-To have routes included for og:image creation automatically, they need to be pre-rendered by Nitro.
+### Add your host name
+
+The `og:image` meta tag requires the full URL, so you must provide your site host.
+
+_nuxt.config.ts_
+
+```ts
+export default defineNuxtConfig({
+  // Recommended 
+  runtimeConfig: {
+    siteUrl: 'https://example.com',
+  },
+  // OR
+  ogImage: {
+    host: 'https://example.com',
+  },
+})
+```
+
+### Pre-render routes
+
+While the module is in early access, you should ensure that you pre-render any pages you want to 
+generate images for.
 
 ```ts
 export default defineNuxtConfig({
@@ -71,28 +93,62 @@ export default defineNuxtConfig({
 })
 ```  
 
-## Default Behaviour
+### Recommended: Enable Nuxt Islands
 
-By default, all pre-rendered routes will generate an og:image of a screenshot of the page.
+To be able to preview the image in development and generate template images, you'll need
+to enable Nuxt Islands.
 
-## Using a template
+If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
 
-You can create your own template to use for generating og:image. This is done with 
-Nuxt islands.
+Once that's done, you can enable the flag for islands.
 
-### Requirements
+_nuxt.config.ts_
 
-To use this feature you will need to opt in to the edge channel, see [the instructions](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
+```ts
+export default defineNuxtConfig({
+  experimental: {
+    componentIslands: true
+  },
+})
+```
 
-The `componentIslands` experimental feature is required for this module to work and will is enabled for you.
+## Generating Screenshots
 
-### Setup
+```vue
+<script lang="ts" setup>
+defineOgImageScreenshot()
+</script>
+<template>
+  <div>
+    <!-- Your page / app.vue / layout -->
+  </div>
+</template>
+```
 
-#### Create the Island component
+## Generating Template Images
 
-Firstly, you're going to create the Vue component to be used to render the og:image.
+```vue
+<script lang="ts" setup>
+defineOgImage({
+  component: 'OgImage', // Nuxt Island component
+  // pass in any custom props
+  myCustomTitle: 'My Title'
+})
+</script>
+<template>
+  <div>
+    <!-- Your page / app.vue / layout -->
+  </div>
+</template>
+```
 
-Create the file at `components/islands/OgImageDefault.vue`.
+#### Create a template
+
+The template used to generate the image must be a Nuxt Island component.
+
+It works the same way as a regular Vue component.
+
+For example, create the file at `components/Banner.island.vue`.
 
 ```vue
 <script setup lang="ts">
@@ -137,50 +193,12 @@ h1 {
 </style>
 ```
 
-#### Configure the payload
+## Previewing Images
 
-Within a page 
-
-### Set host
-
-You'll need to provide the host of your site in order to generate the sitemap.xml.
-
-```ts
-export default defineNuxtConfig({
-  // Recommended 
-  runtimeConfig: {
-    siteUrl: 'https://example.com',
-  },
-  // OR 
-  sitemap: {
-    hostname: 'https://example.com',
-  },
-})
-```
-
-
-## Route Rules
-
-To change the behavior of the sitemap, you can use route rules. Route rules are provided as [Nitro route rules](https://v3.nuxtjs.org/docs/directory-structure/nitro/#route-rules).
-
-_nuxt.config.ts_
-
-```ts
-export default defineNuxtConfig({
-  routeRules: {
-    // Don't add any /secret/** URLs to the sitemap  
-    '/secret/**': { index: false },
-    // modify the sitemap entry for specific URLs
-    '/about': { sitemap: { changefreq: 'daily', priority: 0.3 } }
-  }
-})
-```
-
-The following options are available for each route rule:
-
-- `index`: Whether to include the route in the sitemap.xml. Defaults to `true`.
-- `sitemap.changefreq`: The change frequency of the route.
-- `sitemap.priority`: The priority of the route. 
+Once you have defined the og:image using the composable, you can preview the image by visiting
+the following URLs:
+- `/your-path/__og-image` Renders the HTML output
+- `/your-path/og-image.png` Renders the og:image
 
 ## Module Config
 
@@ -192,76 +210,15 @@ If you need further control over the sitemap URLs, you can provide config on the
 - Default: `undefined`
 - Required: `true`
 
-The host of your site. This is required to generate the sitemap.xml.
+The host of your site. This is required to generate the absolute path of the og:image.
 
-### `trailingSlash`
-
-- Type: `boolean`
-- Default: `false`
-
-Whether to add a trailing slash to the URLs in the sitemap.xml.
-
-### `enabled`
+### `runtimeImages`
 
 - Type: `boolean`
-- Default: `true`
+- Default: `process.dev`
 
-Whether to generate the sitemap.xml.
-
-### `include`
-
-- Type: `string[]`
-- Default: `undefined`
-
-Filter routes that match the given rules.
-
-```ts
-export default defineNuxtConfig({
-  sitemap: {
-    include: [
-      '/my-hidden-url'
-    ]
-  }
-})
-```
-
-### `exclude`
-
-- Type: `string[]`
-- Default: `undefined`
-
-Filter routes that match the given rules.
-
-```ts
-export default defineNuxtConfig({
-  sitemap: {
-    exclude: [
-        '/my-secret-section/**'
-    ]
-  }
-})
-```
-
-Additional config extends [sitemap.js](https://github.com/ekalinin/sitemap.js).
-
-## Examples
-
-### Add custom routes without pre-rendering
-
-```ts
-export default defineNuxtConfig({
-  hooks: {
-      'sitemap:generate': (ctx) => {
-          // add custom URLs
-          ctx.urls.push({
-              url: '/my-custom-url',
-              changefreq: 'daily',
-              priority: 0.3
-          })
-      }
-  }
-})
-```
+Allows you to generate images at runtime in production. This uses a headless browser to generate images
+and may have deployment issues.
 
 ## Sponsors
 
