@@ -1,5 +1,5 @@
 import { defineEventHandler, getRequestHeader, setHeader } from 'h3'
-import { HtmlRendererRoute, RuntimeImageSuffix } from '../../const'
+import { HtmlRendererRoute, RuntimeImageSuffix } from '../const'
 import { createBrowser, screenshot } from '../../browserService'
 
 export default defineEventHandler(async (e) => {

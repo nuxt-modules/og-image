@@ -3,7 +3,7 @@ import {
   HtmlRendererRoute,
   LinkPrerenderId,
   MetaOgImageContentPlaceholder, PayloadScriptId, RuntimeImageSuffix,
-} from '../../const'
+} from '../const'
 
 export interface OgImagePayload {
   runtime: boolean

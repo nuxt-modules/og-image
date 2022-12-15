@@ -8,14 +8,14 @@ import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withBase } from 'ufo'
 import fg from 'fast-glob'
-import { createBrowser, screenshot } from './browserService'
+import { createBrowser, screenshot } from './runtime/browserService'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
 import {
   HtmlRendererRoute,
   LinkPrerenderId,
   MetaOgImageContentPlaceholder,
   PayloadScriptId,
-} from './const'
+} from './runtime/const'
 
 export interface ModuleOptions extends ScreenshotOptions {
   defaultIslandComponent: string
