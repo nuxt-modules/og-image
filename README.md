@@ -211,8 +211,6 @@ the following URLs:
 
 ## Module Config
 
-If you need further control over the sitemap URLs, you can provide config on the `sitemap` key.
-
 ### `host`
 
 - Type: `string`
