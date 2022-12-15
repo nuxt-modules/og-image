@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { NitroRouteRules } from 'nitropack'
-import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule, getNuxtVersion } from '@nuxt/kit'
 import { execa } from 'execa'
 import { hash } from 'ohash'
 import chalk from 'chalk'
@@ -10,7 +10,6 @@ import { withBase } from 'ufo'
 import fg from 'fast-glob'
 import { createBrowser, screenshot } from './browserService'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
-import { getNuxtVersion } from '@nuxt/kit'
 
 export interface ModuleOptions extends ScreenshotOptions {
   defaultIslandComponent: string
@@ -103,7 +102,7 @@ declare module 'nitropack' {
     })
 
     nuxt.hooks.hook('nitro:init', async (nitro) => {
-      const entries: OgImageRouteEntry[] = []
+      let entries: OgImageRouteEntry[] = []
 
       const _routeRulesMatcher = toRouteMatcher(
         createRadixRouter({ routes: nitro.options.routeRules }),
@@ -217,6 +216,8 @@ declare module 'nitropack' {
         const ogImageFolders = await fg([`**/${HtmlRendererRoute}`], { cwd: nitro.options.output.dir, onlyDirectories: true })
         for (const ogImageFolder of ogImageFolders)
           await rm(`${nitro.options.output.dir}/${ogImageFolder}`, { recursive: true, force: true })
+
+        entries = []
       }
 
       // SSR mode

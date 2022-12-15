@@ -18,6 +18,10 @@ export default defineNuxtConfig({
     }
   },
 
+  ogImage: {
+    host: 'https://example.com',
+  },
+
   experimental: {
     componentIslands: true,
   },
