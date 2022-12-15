@@ -237,6 +237,11 @@ and may have deployment issues.
   </a>
 </p>
 
+## Credits
+
+- Pooya Parsa [Kachick](https://github.com/unjs/kachik)
+- Nuxt Team
+
 
 ## License
 
