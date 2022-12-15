@@ -1,5 +1,5 @@
 import type { Browser } from 'playwright-core'
-import type { ScreenshotOptions } from './types'
+import type { ScreenshotOptions } from '../types'
 export async function createBrowser() {
   if (!process.env.AWS_LAMBDA_FUNCTION_NAME)
     process.env.AWS_LAMBDA_FUNCTION_NAME = 'test'

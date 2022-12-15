@@ -6,10 +6,19 @@ import { hash } from 'ohash'
 import chalk from 'chalk'
 import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { withBase } from 'ufo'
+import { joinURL, withBase } from 'ufo'
 import fg from 'fast-glob'
-import { createBrowser, screenshot } from './browserService'
+import { join } from 'pathe'
+import type { Browser } from 'playwright-core'
+import { createBrowser, screenshot } from './runtime/browserService'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
+import {
+  Constants,
+  HtmlRendererRoute,
+  LinkPrerenderId,
+  MetaOgImageContentPlaceholder,
+  PayloadScriptId,
+} from './constants'
 
 export interface ModuleOptions extends ScreenshotOptions {
   /**
@@ -27,11 +36,6 @@ export interface ModuleOptions extends ScreenshotOptions {
    */
   runtimeImages: boolean
 }
-
-export const HtmlRendererRoute = '__og_image'
-export const PayloadScriptId = 'nuxt-og-image-payload'
-export const MetaOgImageContentPlaceholder = '__NUXT_OG_IMAGE_PLACEHOLDER__'
-export const LinkPrerenderId = 'nuxt-og-image-screenshot-path'
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -104,6 +108,22 @@ declare module 'nitropack' {
       island: true,
     })
 
+    const runtimeDir = resolve('./runtime')
+    nuxt.options.build.transpile.push(runtimeDir)
+
+    // add constants to app and nitro
+    const constScript = Object.entries(Constants).map(([k, v]) => `export const ${k} = '${v}'`).join('\n')
+    nuxt.options.alias['#nuxt-og-image/constants'] = addTemplate({
+      filename: 'nuxt-og-image-constants.mjs',
+      getContents: () => constScript,
+    }).dst
+    nuxt.hooks.hook('nitro:config', (nitroConfig) => {
+      nitroConfig.externals = defu(nitroConfig.externals || {}, {
+        inline: [runtimeDir],
+      })
+      nitroConfig.virtual!['#nuxt-og-image/constants'] = constScript
+    })
+
     nuxt.hooks.hook('nitro:init', async (nitro) => {
       let entries: OgImageRouteEntry[] = []
 
@@ -111,7 +131,7 @@ declare module 'nitropack' {
         createRadixRouter({ routes: nitro.options.routeRules }),
       )
 
-      const outputPath = `${nitro.options.output.dir}/public/${config.outputDir}`
+      const outputPath = join(nitro.options.output.publicDir, config.outputDir)
       // @ts-expect-error type missing
       nitro.hooks.hook('prerender:generate', async (ctx) => {
         // avoid scanning files and the og:image route itself
@@ -137,8 +157,8 @@ declare module 'nitropack' {
         const entry: OgImageRouteEntry = {
           fileName,
           absoluteUrl,
-          outputPath: `${nitro.options.output.dir}/public/${config.outputDir}/${fileName}`,
-          linkingHtml: ctx.fileName,
+          outputPath: joinURL(nitro.options.output.publicDir, config.outputDir, fileName),
+          linkingHtml: joinURL(nitro.options.output.publicDir, ctx.fileName),
           route: ctx.route,
           hasPayload: screenshotPath,
           routeRules: routeRules.ogImage || '',
@@ -163,7 +183,8 @@ declare module 'nitropack' {
         }
         catch (e) {}
 
-        const previewProcess = execa('npx', ['serve', `${nitro.options.output.dir}/public`])
+        const previewProcess = execa('npx', ['serve', nitro.options.output.publicDir])
+        let browser: Browser | null = null
         try {
           previewProcess.stderr?.pipe(process.stderr)
           // wait until we get a message which says "Accepting connections"
@@ -175,38 +196,38 @@ declare module 'nitropack' {
               }
             })
           })).trim()
-          const browser = await createBrowser()
+          browser = await createBrowser()
           nitro.logger.info(`Generating ${entries.length} og:images...`)
-          try {
-            for (const k in entries) {
-              const entry = entries[k]
-              const start = Date.now()
+          for (const k in entries) {
+            const entry = entries[k]
+            const start = Date.now()
+            let hasError = false
+            try {
               const imgBuffer = await screenshot(browser, `${host}${entry.screenshotPath}`, config)
               await writeFile(entry.outputPath, imgBuffer)
-              const generateTimeMS = Date.now() - start
-              nitro.logger.log(chalk.gray(
-                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(Number(k) / (entries.length - 1) * 100)}%`,
-              ))
             }
-          }
-          catch (e) {
-            console.error(e)
-          }
-          finally {
-            await browser.close()
+            catch (e) {
+              hasError = true
+              console.error(e)
+            }
+            const generateTimeMS = Date.now() - start
+            nitro.logger.log(chalk[hasError ? 'red' : 'gray'](
+              `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(Number(k) / (entries.length - 1) * 100)}%`,
+            ))
           }
         }
         catch (e) {
           console.error(e)
         }
         finally {
+          await browser?.close()
           previewProcess.kill()
         }
         // Clean up time
         // 1. post-process HTML, remove meta
-        for (const entry of entries.filter(e => e.hasPayload)) {
+        for (const entry of entries) {
           // read each html file and remove the payload data from the og generation
-          const html = await readFile(`${nitro.options.output.dir}/public${entry.linkingHtml}`, 'utf-8')
+          const html = await readFile(entry.linkingHtml, 'utf-8')
           const newHtml = html
             .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
             // remove the script tag with the payload
@@ -215,13 +236,13 @@ declare module 'nitropack' {
             .replace('\n\n', '\n')
           if (html !== newHtml) {
             // write the file back
-            await writeFile(`${nitro.options.output.dir}/public${entry.linkingHtml}`, newHtml, { encoding: 'utf-8' })
+            await writeFile(entry.linkingHtml, newHtml, { encoding: 'utf-8' })
           }
         }
         // 2. delete all of the _og-image folders
-        const ogImageFolders = await fg([`**/${HtmlRendererRoute}`], { cwd: nitro.options.output.dir, onlyDirectories: true })
+        const ogImageFolders = await fg([`**/${HtmlRendererRoute}`], { cwd: nitro.options.output.publicDir, onlyDirectories: true })
         for (const ogImageFolder of ogImageFolders)
-          await rm(`${nitro.options.output.dir}/${ogImageFolder}`, { recursive: true, force: true })
+          await rm(join(nitro.options.output.publicDir, ogImageFolder), { recursive: true, force: true })
 
         entries = []
       }

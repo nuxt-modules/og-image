@@ -2,8 +2,7 @@ import { withQuery, withoutTrailingSlash } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery } from 'h3'
-export const HtmlRendererRoute = '__og_image'
-export const PayloadScriptId = 'nuxt-og-image-payload'
+import { HtmlRendererRoute, PayloadScriptId } from '#nuxt-og-image/constants'
 
 export const extractOgPayload = (html: string) => {
   // extract the payload from our script tag

@@ -1,11 +1,6 @@
 import { useServerHead } from '@vueuse/head'
 import { useRouter } from '#imports'
-
-export const HtmlRendererRoute = '__og_image'
-export const RuntimeImageSuffix = 'og-image.png'
-export const PayloadScriptId = 'nuxt-og-image-payload'
-export const MetaOgImageContentPlaceholder = '__NUXT_OG_IMAGE_PLACEHOLDER__'
-export const LinkPrerenderId = 'nuxt-og-image-screenshot-path'
+import { DefaultRuntimeImageSuffix, HtmlRendererRoute, LinkPrerenderId, MetaOgImageContentPlaceholder, PayloadScriptId } from '#nuxt-og-image/constants'
 
 export interface OgImagePayload {
   runtime?: boolean
@@ -27,7 +22,7 @@ export function defineOgImage(options: OgImagePayload = {}) {
       meta: [
         {
           property: 'og:image',
-          content: () => options.runtime ? `${route}/${RuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
+          content: () => options.runtime ? `${route}/${DefaultRuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
         },
       ],
       link: options.component
