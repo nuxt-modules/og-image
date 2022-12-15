@@ -10,12 +10,6 @@ import { withBase } from 'ufo'
 import fg from 'fast-glob'
 import { createBrowser, screenshot } from './runtime/browserService'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
-import {
-  HtmlRendererRoute,
-  LinkPrerenderId,
-  MetaOgImageContentPlaceholder,
-  PayloadScriptId,
-} from './runtime/const'
 
 export interface ModuleOptions extends ScreenshotOptions {
   defaultIslandComponent: string
@@ -34,6 +28,11 @@ export interface ModuleOptions extends ScreenshotOptions {
    */
   runtimeImages: boolean
 }
+
+export const HtmlRendererRoute = '__og_image'
+export const PayloadScriptId = 'nuxt-og-image-payload'
+export const MetaOgImageContentPlaceholder = '__NUXT_OG_IMAGE_PLACEHOLDER__'
+export const LinkPrerenderId = 'nuxt-og-image-screenshot-path'
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
