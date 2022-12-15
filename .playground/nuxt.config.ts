@@ -17,9 +17,11 @@ export default defineNuxtConfig({
       ]
     }
   },
-  sitemap: {
-    hostname: 'https://example.com',
+
+  experimental: {
+    componentIslands: true,
   },
+
   routeRules: {
     '/secret': { index: false },
     '/about': { sitemap: { changefreq: 'daily', priority: 0.3 } }

@@ -1,17 +1,38 @@
-import {defineNuxtModule, addTemplate, createResolver, addServerHandler} from '@nuxt/kit'
-import {Nitro} from "nitropack";
-import { writeFile, mkdir } from 'node:fs/promises'
-import {execa} from "execa";
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import type { NitroRouteRules } from 'nitropack'
+import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { execa } from 'execa'
 import { hash } from 'ohash'
-import { ScreenshotOptions } from './types'
-import {createBrowser, extractOgPayload, screenshot} from "./service";
 import chalk from 'chalk'
-import defu from "defu";
+import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import {withQuery} from "ufo";
+import { withBase } from 'ufo'
+import fg from 'fast-glob'
+import { createBrowser, screenshot } from './browserService'
+import type { OgImageRouteEntry, ScreenshotOptions } from './types'
+import {
+  HtmlRendererRoute,
+  LinkPrerenderId,
+  MetaOgImageContentPlaceholder,
+  PayloadScriptId,
+} from './const'
 
 export interface ModuleOptions extends ScreenshotOptions {
   defaultIslandComponent: string
+  /**
+   * The directory within `public` where the og images will be stored.
+   *
+   * @default "_og-images"
+   */
+  outputDir: string
+  /**
+   * The hostname of your website.
+   */
+  host: string
+  /**
+   * Should images be allowed to generated at runtime.
+   */
+  runtimeImages: boolean
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -23,13 +44,21 @@ export default defineNuxtModule<ModuleOptions>({
     },
     configKey: 'ogImage',
   },
-  defaults: {
-    width: 1200,
-    height: 630,
-    defaultIslandComponent: 'OgImage',
+  defaults(nuxt) {
+    return {
+      host: nuxt.options.runtimeConfig.public?.siteUrl,
+      width: 1200,
+      height: 630,
+      defaultIslandComponent: 'OgImage',
+      outputDir: '_og-images',
+      runtimeImages: nuxt.options.dev,
+    }
   },
   async setup(config, nuxt) {
     const { resolve } = createResolver(import.meta.url)
+
+    // @ts-expect-error need edge schema
+    nuxt.options.experimental.componentIslands = true
 
     // paths.d.ts
     addTemplate({
@@ -51,104 +80,155 @@ declare module 'nitropack' {
 
     // give a warning when accessing sitemap in dev mode
     addServerHandler({
-      route: '/_api/og-image',
-      handler: resolve('./runtime/handler'),
+      handler: resolve('./runtime/nitro/html'),
+    })
+    if (config.runtimeImages) {
+      addServerHandler({
+        handler: resolve('./runtime/nitro/image'),
+      })
+    }
+    addImports({
+      name: 'defineOgImage',
+      from: resolve('./runtime/composables/defineOgImage'),
     })
 
-    nuxt.hooks.hook('nitro:init', async (nitro: Nitro) => {
-      let entries: { route: string, payload: Record<string, any> }[] = []
+    addComponent({
+      name: 'OgImage',
+      filePath: resolve('./runtime/components/OgImage.vue'),
+      // @ts-expect-error need to use @nuxt/kit edge
+      island: true,
+    })
 
-      nitro.hooks.hook('prerender:route', async (ctx) => {
+    nuxt.hooks.hook('nitro:init', async (nitro) => {
+      const entries: OgImageRouteEntry[] = []
+
+      const _routeRulesMatcher = toRouteMatcher(
+        createRadixRouter({ routes: nitro.options.routeRules }),
+      )
+
+      const outputPath = `${nitro.options.output.dir}/public/${config.outputDir}`
+      // @ts-expect-error type missing
+      nitro.hooks.hook('prerender:generate', async (ctx) => {
+        // avoid scanning files and the og:image route itself
+        if (ctx.route.includes('.') || ctx.route.endsWith(HtmlRendererRoute))
+          return
+
+        let html = ctx.contents
+        // we need valid _contents to scan for ogImage payload and know the route is good
+        if (!html)
+          return
+
+        const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
+        if (routeRules.ogImage === false)
+          return
+
         // check if the route path is not for a file
-        // @ts-expect-error untyped
-        if (!ctx.route.includes('.') && ctx._contents && !ctx._contents.includes('og:image')) {
-          // from _contents which is html, we need to extract the title, description and meta
-          const payload = extractOgPayload(ctx._contents)
-          entries.push({ route: ctx.route, payload })
+        const screenshotPath = ctx._contents.match(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`))?.[1]
+        const fileName = `${hash({ route: ctx.route, time: Date.now() })}.png`
+        const absoluteUrl = withBase(`${config.outputDir}/${fileName}`, config.host)
+        const entry: OgImageRouteEntry = {
+          fileName,
+          absoluteUrl,
+          outputPath: `${nitro.options.output.dir}/public/${config.outputDir}/${fileName}`,
+          route: ctx.route,
+          routeRules: routeRules.ogImage || '',
+          screenshotPath: screenshotPath || ctx.route,
         }
+        // if payload exists, we're using a template and we need to render it now
+        entries.push(entry)
+        // fix placeholder meta
+        html = html.replace(MetaOgImageContentPlaceholder, entry.absoluteUrl)
+        ctx.contents = html
       })
 
-      if (nuxt.options.dev) {
+      if (nuxt.options.dev)
         return
-      }
 
-      nitro.hooks.hook('close', async () => {
+      const outputOgImages = async () => {
         if (entries.length === 0)
           return
 
-        console.log(entries, nitro.options.output.dir)
-        const _routeRulesMatcher = toRouteMatcher(
-          createRadixRouter({ routes: nitro.options.routeRules }),
-        )
-
-        const previewProcess = execa(`nuxi`, ['preview', nitro.options.output.dir])
         try {
-          previewProcess.stderr.pipe(process.stderr)
+          await mkdir(outputPath, { recursive: true })
+        }
+        catch (e) {}
+
+        const previewProcess = execa('npx', ['serve', `${nitro.options.output.dir}/public`])
+        try {
+          previewProcess.stderr?.pipe(process.stderr)
           // wait until we get a message which says "Accepting connections"
-          const host = await new Promise<string>((resolve) => {
-            previewProcess.stdout.on('data', (data) => {
+          const host = (await new Promise<string>((resolve) => {
+            previewProcess.stdout?.on('data', (data) => {
               if (data.includes('Accepting connections at')) {
                 // get the url from data and return it as the promise
                 resolve(data.toString().split('Accepting connections at ')[1])
               }
             })
-          })
-          const browser = await createBrowser(config)
+          })).trim()
+          const browser = await createBrowser()
           nitro.logger.info(`Generating ${entries.length} og:image screenshots`)
           try {
-            const outputDir = `${nitro.options.output.dir}/public/_og-images`
-            // check if dir exists first
-            try {
-              await mkdir(outputDir, {recursive: true})
-            } catch (e) {
-              // fine if it already exists
-            }
             const imageGenPromises = entries.map(async (entry, index) => {
-              return new Promise<{ path: string; route: string } | false>(async (resolve) => {
-
-                const routeRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
-                // @ts-expect-error untyped
-                if (routeRules.ogImage === false) {
-                  resolve(false)
-                  return
-                }
-
+              return new Promise<void>((resolve) => {
                 const start = Date.now()
-                // screenshot path
-                let url = `${host}${entry}`
-                // @ts-expect-error untyped
-                if (routeRules.ogImage !== 'screenshot') {
-                  // we're using a template
-                  url = withQuery(`${host}/_api/og-image`, {
-                    // @ts-expect-error untyped
-                    template: routeRules.ogImage || config.defaultIslandComponent,
-                    ...entry.payload
+                screenshot(browser, `${host}${entry.screenshotPath}`, config).then((imgBuffer) => {
+                  writeFile(entry.outputPath, imgBuffer).then(() => {
+                    const generateTimeMS = Date.now() - start
+                    nitro.logger.log(chalk.gray(
+                      `  ${index === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms)`,
+                    ))
+                    resolve()
                   })
-                  console.log('url', url)
-                }
-                const imgBuffer = await screenshot(browser, url, config)
-                const fileName = hash({ route: entry, time: Date.now() })
-                const path = `${outputDir}/${fileName}.png`
-                await writeFile(path, imgBuffer)
-                const generateTimeMS = Date.now() - start
-                nitro.logger.log(chalk.gray(
-                  `  ${index === entries.length - 1 ? '└─' : '├─'} /og-images/${fileName}.png (${generateTimeMS}ms)`,
-                ))
-                resolve({path, route: entry.route })
+                })
               })
             })
             // wait for all the promises in process to be finished
-            const screenshots = await Promise.all(imageGenPromises)
-          } catch (e) {
+            await Promise.all(imageGenPromises)
+          }
+          catch (e) {
             console.error(e)
-          } finally {
+          }
+          finally {
             await browser.close()
           }
-        } catch (e) {
+        }
+        catch (e) {
           console.error(e)
-        } finally {
+        }
+        finally {
           previewProcess.kill()
         }
+        // Clean up time
+        // 1. post-process HTML, remove meta
+        const htmlFiles = await fg(['**/*.html'], { cwd: nitro.options.output.dir })
+        for (const htmlFile of htmlFiles) {
+          // read each html file and remove the payload data from the og generation
+          const html = await readFile(`${nitro.options.output.dir}/${htmlFile}`, 'utf-8')
+          const newHtml = html
+            .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
+            // remove the script tag with the payload
+            .replace(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.*?)</script>`), '')
+            // remove any empty lines introduced
+            .replace('\n\n', '\n')
+          if (html !== newHtml) {
+            // write the file back
+            await writeFile(`${nitro.options.output.dir}/${htmlFile}`, newHtml, { encoding: 'utf-8' })
+          }
+        }
+        // 2. delete all of the _og-image folders
+        const ogImageFolders = await fg([`**/${HtmlRendererRoute}`], { cwd: nitro.options.output.dir, onlyDirectories: true })
+        for (const ogImageFolder of ogImageFolders)
+          await rm(`${nitro.options.output.dir}/${ogImageFolder}`, { recursive: true, force: true })
+      }
+
+      // SSR mode
+      nitro.hooks.hook('rollup:before', async () => {
+        await outputOgImages()
+      })
+
+      // SSG mode
+      nitro.hooks.hook('close', async () => {
+        await outputOgImages()
       })
     })
   },

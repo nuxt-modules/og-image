@@ -10,7 +10,7 @@
 
 
 <p align="center">
-A simple sitemap module for pre-rendered Nuxt v3 apps.
+Generate social share images for your pre-rendered Nuxt v3 app.
 </p>
 
 <p align="center">
@@ -29,9 +29,9 @@ A simple sitemap module for pre-rendered Nuxt v3 apps.
 
 ## Features
 
-- 🔄 Route config using route rules
-- 🪝 Easily hook into the sitemap generation
-- 📦 Uses [sitemap.js](https://github.com/ekalinin/sitemap.js/)
+- 🔄 Configure using route rules
+- 📸 Generates site screenshots
+- 🎨 OR build your own template with Vue (powered by Nuxt islands)
 
 ## Install
 
@@ -54,7 +54,7 @@ export default defineNuxtConfig({
 })
 ```
 
-To have routes included in the sitemap.xml automatically, they need to be pre-rendered by Nitro.
+To have routes included for og:image creation automatically, they need to be pre-rendered by Nitro.
 
 ```ts
 export default defineNuxtConfig({
@@ -71,8 +71,75 @@ export default defineNuxtConfig({
 })
 ```  
 
-Note: The sitemap.xml will only be generated once you build your site.
+## Default Behaviour
 
+By default, all pre-rendered routes will generate an og:image of a screenshot of the page.
+
+## Using a template
+
+You can create your own template to use for generating og:image. This is done with 
+Nuxt islands.
+
+### Requirements
+
+To use this feature you will need to opt in to the edge channel, see [the instructions](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
+
+The `componentIslands` experimental feature is required for this module to work and will is enabled for you.
+
+### Setup
+
+#### Create the Island component
+
+Firstly, you're going to create the Vue component to be used to render the og:image.
+
+Create the file at `components/islands/OgImageDefault.vue`.
+
+```vue
+<script setup lang="ts">
+const props = defineProps({
+  // payload props
+  path: String,
+  title: String,
+  description: String,
+  // add your own props here
+  myCustomProp: String
+})
+</script>
+
+<template>
+  <div class="wrap">
+    <div>
+      <h1>
+        {{ title }}
+      </h1>
+      <p>{{ description }}</p>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-family: sans-serif;
+  background: linear-gradient(to bottom, #30e8bf, #ff8235);
+}
+
+h1 {
+  font-size: 4rem;
+  margin: 0;
+}
+</style>
+```
+
+#### Configure the payload
+
+Within a page 
 
 ### Set host
 

@@ -15,3 +15,19 @@ export interface ScreenshotOptions {
    */
   height: number
 }
+
+export interface OgImageRouteEntry {
+  route: string
+  screenshotPath: string
+  routeRules: string
+  fileName: string
+  absoluteUrl: string
+  outputPath: string
+}
+
+declare module 'nitropack' {
+  interface NitroRouteRules {
+    ogImage?: 'screenshot' | string | false
+    ogImagePayload?: Record<string, any>
+  }
+}
