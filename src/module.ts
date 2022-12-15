@@ -8,8 +8,9 @@ import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withBase } from 'ufo'
 import fg from 'fast-glob'
-import { createBrowser, screenshot } from './runtime/browserService'
+import { createBrowser, screenshot } from './browserService'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
+import { getNuxtVersion } from '@nuxt/kit'
 
 export interface ModuleOptions extends ScreenshotOptions {
   defaultIslandComponent: string
@@ -77,14 +78,17 @@ declare module 'nitropack' {
       references.push({ path: resolve(nuxt.options.buildDir, 'nuxt-og-image.d.ts') })
     })
 
-    // give a warning when accessing sitemap in dev mode
-    addServerHandler({
-      handler: resolve('./runtime/nitro/html'),
-    })
-    if (config.runtimeImages) {
+    // we need edge version or 3.0.1 to use Nuxt Island
+    if (getNuxtVersion(nuxt) !== '3.0.0') {
+      // give a warning when accessing sitemap in dev mode
       addServerHandler({
-        handler: resolve('./runtime/nitro/image'),
+        handler: resolve('./runtime/nitro/html'),
       })
+      if (config.runtimeImages) {
+        addServerHandler({
+          handler: resolve('./runtime/nitro/image'),
+        })
+      }
     }
     addImports({
       name: 'defineOgImage',
