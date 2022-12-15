@@ -35,6 +35,8 @@ Generate dynamic social share images for you Nuxt v3 app.
 
 ## Install
 
+⚠️ This module is still in development. Please get in touch with me over [Twitter](https://twitter.com/harlan_zw) or Discord if you are going to attempt to use this.
+
 ```bash
 npm install --save-dev nuxt-og-image
 
