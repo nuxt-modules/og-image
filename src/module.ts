@@ -138,8 +138,9 @@ declare module 'nitropack' {
 
       if (isEdge) {
         // we need to mock some of the static requires from chrome-aws-lambda, puppeteer-core is okay though
-        nitroConfig.alias.puppeteer = 'unenv/runtime/mock/proxy-cjs'
-        nitroConfig.alias.ws = 'unenv/runtime/mock/proxy-cjs'
+        ['puppeteer', 'bufferutil', 'utf-8-validate'].forEach((name) => {
+          nitroConfig.alias[name] = 'unenv/runtime/mock/proxy'
+        })
       }
     })
 
