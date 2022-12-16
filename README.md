@@ -29,10 +29,12 @@ Generate dynamic social share images for you Nuxt v3 app.
 
 ## Features
 
-- 🧙 Generate images for your entire site in minutes with minimal config
-- 🎨 Build your own template with Vue (powered by Nuxt Islands)
-- 📸 OR just generates page screenshots
-- 📦 Composable and component API
+- 🧙 Pre-render `og:image`'s for your entire site in minutes with minimal config
+- 🎨 Using a Vue component (powered by Nuxt Islands)
+- 📸 OR just generate screenshots
+- 📦 Choose your API: Composition or components
+
+⚠️ SSR runtime rendering is experimental. 
 
 ## Install
 
@@ -44,6 +46,8 @@ npm install --save-dev nuxt-og-image
 # Using yarn
 yarn add --dev nuxt-og-image
 ```
+
+If you don't have a chromium binary installed on your system, run `npx playwright install`.
 
 ### CI Build
 
@@ -111,26 +115,6 @@ export default defineNuxtConfig({
 })
 ```  
 
-
-### Recommended: Enable Nuxt Islands
-
-To be able to preview the image in development and generate template images, you'll need
-to enable Nuxt Islands.
-
-If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
-
-Once that's done, you can enable the flag for islands.
-
-_nuxt.config.ts_
-
-```ts
-export default defineNuxtConfig({
-  experimental: {
-    componentIslands: true
-  },
-})
-```
-
 ## Generating Screenshots
 
 _Your page / app.vue / layout_
@@ -160,6 +144,7 @@ _Your page / app.vue / layout_
 // Choose either Composition API
 defineOgImage({
   component: 'OgImageTemplate', // Nuxt Island component
+  alt: 'My awesome image', // alt text for image
   // pass in any custom props
   myCustomTitle: 'My Title'
 })
@@ -170,6 +155,25 @@ defineOgImage({
     <OgImage component="OgImageTemplate" my-custom-title="My Title" />
   </div>
 </template>
+```
+
+### Requirements
+
+To be able to preview the image in development and generate template images, you'll need
+to enable Nuxt Islands.
+
+If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
+
+Once that's done, you can enable the flag for islands.
+
+_nuxt.config.ts_
+
+```ts
+export default defineNuxtConfig({
+  experimental: {
+    componentIslands: true
+  },
+})
 ```
 
 ### Creating your own template
@@ -253,6 +257,9 @@ The host of your site. This is required to generate the absolute path of the og:
 
 Allows you to generate images at runtime in production. This uses a headless browser to generate images
 and may have deployment issues.
+
+⚠️ This is experimental and will likely not work in all environments.
+
 
 ## Examples
 
