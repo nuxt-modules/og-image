@@ -162,7 +162,7 @@ declare module 'nitropack' {
 
         // check if the route path is not for a file
         const screenshotPath = ctx._contents.match(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`))?.[1]
-        const fileName = `${hash({ route: ctx.route, time: Date.now() })}.png`
+        const fileName = `${hash({ route: ctx.route })}.png`
         const absoluteUrl = withBase(`${config.outputDir}/${fileName}`, config.host)
         const entry: OgImageRouteEntry = {
           fileName,
