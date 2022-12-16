@@ -55,6 +55,7 @@
     "bumpp": "^8.2.1",
     "eslint": "8.29.0",
     "nuxt": "npm:nuxt3@latest",
+    "playwright-core": "^1.28.1",
     "puppeteer": "^19.4.0",
     "vitest": "^0.25.5"
   }

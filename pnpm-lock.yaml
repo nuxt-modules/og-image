@@ -19,6 +19,7 @@ importers:
       nuxt: npm:nuxt3@latest
       ohash: ^1.0.0
       pathe: ^1.0.0
+      playwright-core: ^1.28.1
       puppeteer: ^19.4.0
       radix3: ^1.0.0
       ufo: ^1.0.1
@@ -42,6 +43,7 @@ importers:
       bumpp: 8.2.1
       eslint: 8.29.0
       nuxt: /nuxt3/3.0.1-rc.0-27848798.0cb9a4c_eslint@8.29.0
+      playwright-core: 1.28.1
       puppeteer: 19.4.0
       vitest: 0.25.5
 
@@ -5976,6 +5978,12 @@ packages:
       jsonc-parser: 3.2.0
       mlly: 1.0.0
       pathe: 1.0.0
+
+  /playwright-core/1.28.1:
+    resolution: {integrity: sha512-3PixLnGPno0E8rSBJjtwqTwJe3Yw72QwBBBxNoukIj3lEeBNXwbNiKrNuB1oyQgTBw5QHUhNO3SteEtHaMK6ag==}
+    engines: {node: '>=14'}
+    hasBin: true
+    dev: true
 
   /pluralize/8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}

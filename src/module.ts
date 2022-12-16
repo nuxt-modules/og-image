@@ -10,7 +10,8 @@ import { joinURL, withBase } from 'ufo'
 import fg from 'fast-glob'
 import { join } from 'pathe'
 import type { Browser } from 'playwright-core'
-import { createBrowser, screenshot } from './runtime/browserService'
+import { createBrowser } from './runtime/browsers/default'
+import { screenshot } from './runtime/browserUtil'
 import type { OgImageRouteEntry, ScreenshotOptions } from './types'
 import {
   Constants,
@@ -32,9 +33,9 @@ export interface ModuleOptions extends ScreenshotOptions {
    */
   host: string
   /**
-   * Should images be allowed to generated at runtime.
+   * Are we edge-side rendering images.
    */
-  runtimeImages: boolean
+  edgeSideRender: boolean
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -53,7 +54,7 @@ export default defineNuxtModule<ModuleOptions>({
       height: 630,
       defaultIslandComponent: 'OgImageTemplate',
       outputDir: '_og-images',
-      runtimeImages: nuxt.options.dev || (process.env.NITRO_PRESET || '').includes('edge'),
+      edgeSideRender: nuxt.options.dev || (process.env.NITRO_PRESET || '').includes('edge'),
     }
   },
   async setup(config, nuxt) {
@@ -61,6 +62,8 @@ export default defineNuxtModule<ModuleOptions>({
 
     // @ts-expect-error need edge schema
     nuxt.options.experimental.componentIslands = true
+
+    const isEdge = (process.env.NITRO_PRESET || '').includes('edge')
 
     // paths.d.ts
     addTemplate({
@@ -86,7 +89,7 @@ declare module 'nitropack' {
       addServerHandler({
         handler: resolve('./runtime/nitro/html'),
       })
-      if (config.runtimeImages) {
+      if (config.edgeSideRender) {
         addServerHandler({
           handler: resolve('./runtime/nitro/image'),
         })
@@ -131,6 +134,13 @@ declare module 'nitropack' {
         inline: [runtimeDir],
       })
       nitroConfig.virtual!['#nuxt-og-image/constants'] = constScript
+      nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/browsers/${isEdge ? 'lambda' : 'default'}'`
+
+      if (isEdge) {
+        // we need to mock some of the static requires from chrome-aws-lambda, puppeteer-core is okay though
+        nitroConfig.alias.puppeteer = 'unenv/runtime/mock/proxy-cjs'
+        nitroConfig.alias.ws = 'unenv/runtime/mock/proxy-cjs'
+      }
     })
 
     nuxt.hooks.hook('nitro:init', async (nitro) => {
