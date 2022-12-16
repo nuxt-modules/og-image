@@ -1,6 +1,6 @@
 import { defineEventHandler, getRequestHeader, setHeader } from 'h3'
 import { createBrowser, screenshot } from '../browserService'
-import { HtmlRendererRoute, DefaultRuntimeImageSuffix } from '#nuxt-og-image/constants'
+import { DefaultRuntimeImageSuffix, HtmlRendererRoute } from '#nuxt-og-image/constants'
 
 export default defineEventHandler(async (e) => {
   if (!e.path?.endsWith(DefaultRuntimeImageSuffix))

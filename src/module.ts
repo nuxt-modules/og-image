@@ -197,23 +197,25 @@ declare module 'nitropack' {
             })
           })).trim()
           browser = await createBrowser()
-          nitro.logger.info(`Generating ${entries.length} og:images...`)
-          for (const k in entries) {
-            const entry = entries[k]
-            const start = Date.now()
-            let hasError = false
-            try {
-              const imgBuffer = await screenshot(browser, `${host}${entry.screenshotPath}`, config)
-              await writeFile(entry.outputPath, imgBuffer)
+          if (browser) {
+            nitro.logger.info(`Generating ${entries.length} og:images...`)
+            for (const k in entries) {
+              const entry = entries[k]
+              const start = Date.now()
+              let hasError = false
+              try {
+                const imgBuffer = await screenshot(browser, `${host}${entry.screenshotPath}`, config)
+                await writeFile(entry.outputPath, imgBuffer)
+              }
+              catch (e) {
+                hasError = true
+                console.error(e)
+              }
+              const generateTimeMS = Date.now() - start
+              nitro.logger.log(chalk[hasError ? 'red' : 'gray'](
+                `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(Number(k) / (entries.length - 1) * 100)}%`,
+              ))
             }
-            catch (e) {
-              hasError = true
-              console.error(e)
-            }
-            const generateTimeMS = Date.now() - start
-            nitro.logger.log(chalk[hasError ? 'red' : 'gray'](
-              `  ${Number(k) === entries.length - 1 ? '└─' : '├─'} /${config.outputDir}/${entry.fileName} (${generateTimeMS}ms) ${Math.round(Number(k) / (entries.length - 1) * 100)}%`,
-            ))
           }
         }
         catch (e) {
