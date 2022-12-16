@@ -18,7 +18,7 @@ Generate dynamic social share images for you Nuxt v3 app.
 <tbody>
 <td align="center">
 <img width="800" height="0" /><br>
-<i>Status:</i> 🤫 Early Access - Active Development 🤫</b> <br>
+<i>Status:</i> Early Access</b> <br>
 <sup> Please report any issues 🐛</sup><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="800" height="0" />
@@ -36,25 +36,28 @@ Generate dynamic social share images for you Nuxt v3 app.
 
 ## Install
 
-⚠️ This module is still in development. Please get in touch with me over [Twitter](https://twitter.com/harlan_zw) or Discord if you are going to attempt to use this.
+⚠️ This module is in early access. Please report any issues you find.
 
 ```bash
+# Install module
 npm install --save-dev nuxt-og-image
 # Using yarn
 yarn add --dev nuxt-og-image
 ```
 
-### Chromium Dependency
+### CI Build
 
-By default, this module does not install chromium binaries for you, instead relying on locally
-installed chrome.
+If you are using this module in a CI context and the images aren't being generated,
+you should replace your build script with the following:
 
-If you want to use this module in a CI or SSR environment, you will need the binaries.
+_package.json_
 
-You can either use `puppeteer` or `chrome-aws-lambda`.
-
-```bash
-npm install --save-dev puppeteer # or chrome-aws-lambda
+```json
+{
+  "scripts": {
+    "build": "npx playwright install && nuxt build"
+  }
+}
 ```
 
 ## Setup
@@ -107,6 +110,7 @@ export default defineNuxtConfig({
   }
 })
 ```  
+
 
 ### Recommended: Enable Nuxt Islands
 

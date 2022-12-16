@@ -1,6 +1,13 @@
 import type { Browser } from 'playwright-core'
 import type { ScreenshotOptions } from '../types'
 
+const debugBinaryUsage = (s: string, error: any) => {
+  if (!process.dev) {
+    // eslint-disable-next-line no-console
+    console.log(s, error)
+  }
+}
+
 export async function createBrowser() {
   try {
     // AWS lambda or google cloud functions
@@ -15,8 +22,7 @@ export async function createBrowser() {
     })
   }
   catch (e) {
-    if (!process.dev)
-      console.log('[nuxt-og-image] Skipping chrome-aws-lambda', e)
+    debugBinaryUsage('[nuxt-og-image] Skipping chrome-aws-lambda', e)
   }
   try {
     const playwrightCore = await import('playwright-core')
@@ -29,8 +35,7 @@ export async function createBrowser() {
     })
   }
   catch (e) {
-    if (!process.dev)
-      console.log('[nuxt-og-image] Skipping chrome-launcher', e)
+    debugBinaryUsage('[nuxt-og-image] Skipping chrome-launcher', e)
   }
   try {
     const playwright = await import(String('playwright'))
@@ -40,10 +45,9 @@ export async function createBrowser() {
   }
   catch (e) {
     if (!process.dev)
-      console.log('[nuxt-og-image] Playwright failed', e)
+      debugBinaryUsage('[nuxt-og-image] Playwright failed', e)
     throw new Error(`
-      Missing chromium binary. You need either 'playwright' or 'chrome-aws-lambda'.
-      Please run 'yarn add --dev playwright' or 'npm install --save-dev playwright'
+      Missing chromium binary. Please run "npx playwright install".
     `)
   }
 }

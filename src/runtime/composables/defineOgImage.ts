@@ -7,6 +7,7 @@ export interface OgImagePayload {
   title?: string
   description?: string
   component?: string
+  alt?: string
   [key: string]: any
 }
 
@@ -21,9 +22,19 @@ export function defineOgImage(options: OgImagePayload = {}) {
     useServerHead({
       meta: [
         {
+          property: 'twitter:card',
+          content: 'summary_large_image',
+        },
+        {
           property: 'og:image',
           content: () => options.runtime ? `${route}/${DefaultRuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
         },
+        options.alt
+          ? {
+              property: 'og:image:alt',
+              content: options.alt,
+            }
+          : {},
       ],
       link: options.component
         ? [
