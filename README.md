@@ -32,6 +32,7 @@ Generate dynamic social share images for you Nuxt v3 app.
 - 🧙 Generate images for your entire site in minutes with minimal config
 - 🎨 Build your own template with Vue (powered by Nuxt Islands)
 - 📸 OR just generates page screenshots
+- 📦 Composable and component API
 
 ## Install
 
@@ -128,13 +129,17 @@ export default defineNuxtConfig({
 
 ## Generating Screenshots
 
+_Your page / app.vue / layout_
+
 ```vue
 <script lang="ts" setup>
+// Choose either Composition API
 defineOgImageScreenshot()
 </script>
 <template>
   <div>
-    <!-- Your page / app.vue / layout -->
+    <!-- OR Component API -->
+    <OgImageScreenshot />
   </div>
 </template>
 ```
@@ -144,17 +149,21 @@ defineOgImageScreenshot()
 The template image generator is powered by Nuxt Islands. This means that you can use any Vue
 component you want to generate your images.
 
+_Your page / app.vue / layout_
+
 ```vue
 <script lang="ts" setup>
+// Choose either Composition API
 defineOgImage({
-  component: 'OgImage', // Nuxt Island component
+  component: 'OgImageTemplate', // Nuxt Island component
   // pass in any custom props
   myCustomTitle: 'My Title'
 })
 </script>
 <template>
   <div>
-    <!-- Your page / app.vue / layout -->
+    <!-- OR Component API -->
+    <OgImage component="OgImageTemplate" my-custom-title="My Title" />
   </div>
 </template>
 ```
@@ -240,6 +249,10 @@ The host of your site. This is required to generate the absolute path of the og:
 
 Allows you to generate images at runtime in production. This uses a headless browser to generate images
 and may have deployment issues.
+
+## Examples
+
+- [Unhead Docs](https://github.com/unjs/unhead/tree/main/docs)
 
 ## Sponsors
 

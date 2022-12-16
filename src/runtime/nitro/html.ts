@@ -47,7 +47,7 @@ export default defineEventHandler(async (req) => {
   }
 
   // using Nuxt Island, generate the og:image HTML
-  const result = await $fetch(withQuery(`/__nuxt_island/${payload.component || 'OgImage'}`, {
+  const result = await $fetch(withQuery(`/__nuxt_island/${payload.component || 'OgImageTemplate'}`, {
     props: JSON.stringify(payload),
   }))
   const head = createHeadCore()

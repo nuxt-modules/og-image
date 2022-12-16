@@ -12,7 +12,7 @@ const props = defineProps({
     <div class="bg2" />
     <div>
       <p>This is the default og:image template from <a href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">nuxt-og-image</a>.</p>
-      <p>Create your own at <code>components/islands/OgImage.vue</code>.</p>
+      <p>Create your own at <code>components/islands/OgImageTemplate.vue</code>.</p>
     </div>
     <div>
       <strong>Payload</strong>

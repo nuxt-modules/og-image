@@ -4,16 +4,12 @@ definePageMeta({
   description: 'My description',
   image: 'https://example.com/image.jpg',
 })
-
-defineOgImage({
-  component: 'OgImage',
-  title: 'About',
-  description: 'My description',
-  customSomething: 'custom',
-})
 </script>
 <template>
   <div>
-    About page
+    <div>
+      About page
+    </div>
+    <OgImage component="OgImageTemplate" title="About" description="My Description" random-data="test" />
   </div>
 </template>

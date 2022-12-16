@@ -1,9 +1,7 @@
-<script lang="ts" setup>
-defineOgImageScreenshot()
-</script>
 <template>
 <div>
   <div>
+    <OgImageScreenshot />
     <NuxtPage />
   </div>
 </div>

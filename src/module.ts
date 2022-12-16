@@ -51,7 +51,7 @@ export default defineNuxtModule<ModuleOptions>({
       host: nuxt.options.runtimeConfig.public?.siteUrl,
       width: 1200,
       height: 630,
-      defaultIslandComponent: 'OgImage',
+      defaultIslandComponent: 'OgImageTemplate',
       outputDir: '_og-images',
       runtimeImages: nuxt.options.dev,
     }
@@ -102,10 +102,19 @@ declare module 'nitropack' {
     })
 
     await addComponent({
-      name: 'OgImage',
-      filePath: resolve('./runtime/components/OgImage.vue'),
+      name: 'OgImageTemplate',
+      filePath: resolve('./runtime/components/OgImageTemplate.island.vue'),
       // @ts-expect-error need to use @nuxt/kit edge
       island: true,
+    })
+
+    ;['OgImage', 'OgImageScreenshot'].forEach((name) => {
+      addComponent({
+        name,
+        filePath: resolve(`./runtime/components/${name}.ts`),
+        // @ts-expect-error need to use @nuxt/kit edge
+        island: true,
+      })
     })
 
     const runtimeDir = resolve('./runtime')
