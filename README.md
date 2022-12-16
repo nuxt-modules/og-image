@@ -39,9 +39,21 @@ Generate dynamic social share images for you Nuxt v3 app.
 
 ```bash
 npm install --save-dev nuxt-og-image
-
 # Using yarn
 yarn add --dev nuxt-og-image
+```
+
+### Chromium Dependency
+
+By default, this module does not install chromium binaries for you, instead relying on locally
+installed chrome.
+
+If you want to use this module in a CI or SSR environment, you will need the binaries.
+
+You can either use `puppeteer` or `chrome-aws-lambda`.
+
+```bash
+npm install --save-dev puppeteer # or chrome-aws-lambda
 ```
 
 ## Setup
