@@ -126,6 +126,7 @@ declare module 'nitropack' {
 
     nuxt.hooks.hook('nitro:init', async (nitro) => {
       let entries: OgImageRouteEntry[] = []
+      let cleanupEntries: OgImageRouteEntry[] = []
 
       const _routeRulesMatcher = toRouteMatcher(
         createRadixRouter({ routes: nitro.options.routeRules }),
@@ -225,27 +226,7 @@ declare module 'nitropack' {
           await browser?.close()
           previewProcess.kill()
         }
-        // Clean up time
-        // 1. post-process HTML, remove meta
-        for (const entry of entries) {
-          // read each html file and remove the payload data from the og generation
-          const html = await readFile(entry.linkingHtml, 'utf-8')
-          const newHtml = html
-            .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
-            // remove the script tag with the payload
-            .replace(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.*?)</script>`), '')
-            // remove any empty lines introduced
-            .replace('\n\n', '\n')
-          if (html !== newHtml) {
-            // write the file back
-            await writeFile(entry.linkingHtml, newHtml, { encoding: 'utf-8' })
-          }
-        }
-        // 2. delete all of the _og-image folders
-        const ogImageFolders = await fg([`**/${HtmlRendererRoute}`], { cwd: nitro.options.output.publicDir, onlyDirectories: true })
-        for (const ogImageFolder of ogImageFolders)
-          await rm(join(nitro.options.output.publicDir, ogImageFolder), { recursive: true, force: true })
-
+        cleanupEntries = [...entries]
         entries = []
       }
 
@@ -257,6 +238,33 @@ declare module 'nitropack' {
       // SSG mode
       nitro.hooks.hook('close', async () => {
         await outputOgImages()
+
+        // Clean up time
+        // 1. post-process HTML, remove meta
+        for (const entry of cleanupEntries) {
+          // read each html file and remove the payload data from the og generation
+          try {
+            const html = await readFile(entry.linkingHtml, 'utf-8')
+            const newHtml = html
+              .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
+            // remove the script tag with the payload
+              .replace(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.*?)</script>`), '')
+            // remove any empty lines introduced
+              .replace('\n\n', '\n')
+            if (html !== newHtml) {
+            // write the file back
+              await writeFile(entry.linkingHtml, newHtml, { encoding: 'utf-8' })
+            }
+          }
+          // could fail from 404 links or something
+          catch (e) {
+            console.error(e)
+          }
+        }
+        // 2. delete all of the _og-image folders
+        const ogImageFolders = await fg([`**/${HtmlRendererRoute}`], { cwd: nitro.options.output.publicDir, onlyDirectories: true })
+        for (const ogImageFolder of ogImageFolders)
+          await rm(join(nitro.options.output.publicDir, ogImageFolder), { recursive: true, force: true })
       })
     })
   },
