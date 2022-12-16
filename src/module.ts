@@ -35,7 +35,7 @@ export interface ModuleOptions extends ScreenshotOptions {
   /**
    * Are we edge-side rendering images.
    */
-  edgeSideRender: boolean
+  serverSideRender: boolean
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -54,7 +54,7 @@ export default defineNuxtModule<ModuleOptions>({
       height: 630,
       defaultIslandComponent: 'OgImageTemplate',
       outputDir: '_og-images',
-      edgeSideRender: nuxt.options.dev || (process.env.NITRO_PRESET || '').includes('edge'),
+      serverSideRender: nuxt.options.dev || (process.env.NITRO_PRESET || '').includes('edge'),
     }
   },
   async setup(config, nuxt) {
@@ -89,7 +89,7 @@ declare module 'nitropack' {
       addServerHandler({
         handler: resolve('./runtime/nitro/html'),
       })
-      if (config.edgeSideRender) {
+      if (config.serverSideRender) {
         addServerHandler({
           handler: resolve('./runtime/nitro/image'),
         })

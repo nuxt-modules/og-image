@@ -34,7 +34,7 @@ Generate dynamic social share images for you Nuxt v3 app.
 - 📸 OR just generate screenshots
 - 📦 Choose your API: Composition or components
 
-⚠️ SSR runtime rendering is experimental. 
+🔨 Edge rendering is coming soon!
 
 ## Install
 
@@ -97,8 +97,7 @@ export default defineNuxtConfig({
 
 ### Pre-render routes
 
-While the module is in early access, you should ensure that you pre-render any pages you want to 
-generate images for.
+While the module is in early access, only pre-rendered routes are supported.
 
 ```ts
 export default defineNuxtConfig({
@@ -250,7 +249,7 @@ the following URLs:
 
 The host of your site. This is required to generate the absolute path of the og:image.
 
-### `runtimeImages`
+### `serverSideRender`
 
 - Type: `boolean`
 - Default: `process.dev`
