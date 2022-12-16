@@ -53,7 +53,7 @@ export default defineNuxtModule<ModuleOptions>({
       height: 630,
       defaultIslandComponent: 'OgImageTemplate',
       outputDir: '_og-images',
-      runtimeImages: nuxt.options.dev,
+      runtimeImages: nuxt.options.dev || (process.env.NITRO_PRESET || '').includes('edge'),
     }
   },
   async setup(config, nuxt) {
@@ -256,12 +256,12 @@ declare module 'nitropack' {
             const html = await readFile(entry.linkingHtml, 'utf-8')
             const newHtml = html
               .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
-            // remove the script tag with the payload
+              // remove the script tag with the payload
               .replace(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.*?)</script>`), '')
-            // remove any empty lines introduced
+              // remove any empty lines introduced
               .replace('\n\n', '\n')
             if (html !== newHtml) {
-            // write the file back
+              // write the file back
               await writeFile(entry.linkingHtml, newHtml, { encoding: 'utf-8' })
             }
           }
