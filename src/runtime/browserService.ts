@@ -14,7 +14,10 @@ export async function createBrowser() {
       headless: awsChrome.headless,
     })
   }
-  catch (e) {}
+  catch (e) {
+    if (!process.dev)
+      console.log('[nuxt-og-image] Skipping chrome-aws-lambda', e)
+  }
   try {
     const playwrightCore = await import('playwright-core')
     // try use a local chrome instance over downloading binaries
@@ -25,7 +28,10 @@ export async function createBrowser() {
       executablePath: chromePath,
     })
   }
-  catch (e) {}
+  catch (e) {
+    if (!process.dev)
+      console.log('[nuxt-og-image] Skipping chrome-launcher', e)
+  }
   try {
     const playwright = await import(String('playwright'))
     return await playwright.chromium.launch({
@@ -33,6 +39,8 @@ export async function createBrowser() {
     })
   }
   catch (e) {
+    if (!process.dev)
+      console.log('[nuxt-og-image] Playwright failed', e)
     throw new Error(`
       Missing chromium binary. You need either 'playwright' or 'chrome-aws-lambda'.
       Please run 'yarn add --dev playwright' or 'npm install --save-dev playwright'
