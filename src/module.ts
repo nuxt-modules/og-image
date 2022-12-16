@@ -111,7 +111,7 @@ declare module 'nitropack' {
     ;['OgImage', 'OgImageScreenshot'].forEach((name) => {
       addComponent({
         name,
-        filePath: resolve(`./runtime/components/${name}.ts`),
+        filePath: resolve(`./runtime/components/${name}`),
         // @ts-expect-error need to use @nuxt/kit edge
         island: true,
       })
