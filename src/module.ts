@@ -238,6 +238,9 @@ declare module 'nitropack' {
               ))
             }
           }
+          else {
+            nitro.logger.log(chalk.red('Failed to create browser to create og:images.'))
+          }
         }
         catch (e) {
           console.error(e)
