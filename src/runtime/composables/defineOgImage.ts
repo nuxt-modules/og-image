@@ -12,31 +12,36 @@ export interface OgImagePayload {
 }
 
 export function defineOgImageScreenshot() {
-  defineOgImage()
+  defineOgImage({
+    alt: '__OG_IMAGE_SCREENSHOT_ALT',
+  })
 }
 
 export function defineOgImage(options: OgImagePayload = {}) {
   if (process.server) {
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
+
+    const meta = [
+      {
+        property: 'twitter:card',
+        content: 'summary_large_image',
+      },
+      {
+        property: 'og:image',
+        content: () => options.runtime ? `${route}/${DefaultRuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
+      },
+    ]
+    if (options.alt) {
+      meta.push({
+        property: 'og:image:alt',
+        content: options.alt,
+      })
+    }
+
     useServerHead({
-      meta: [
-        {
-          property: 'twitter:card',
-          content: 'summary_large_image',
-        },
-        {
-          property: 'og:image',
-          content: () => options.runtime ? `${route}/${DefaultRuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
-        },
-        options.alt
-          ? {
-              property: 'og:image:alt',
-              content: options.alt,
-            }
-          : {},
-      ],
-      link: options.component
+      meta,
+      link: !options.runtime && options.component
         ? [
             {
               id: LinkPrerenderId,

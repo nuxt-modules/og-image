@@ -266,6 +266,7 @@ declare module 'nitropack' {
           try {
             const html = await readFile(entry.linkingHtml, 'utf-8')
             const newHtml = html
+              .replace('__OG_IMAGE_SCREENSHOT_ALT', `Web page screenshot of ${entry.route}.`)
               .replace(new RegExp(`<link id="${LinkPrerenderId}" rel="prerender" href="(.*?)">`), '')
               // remove the script tag with the payload
               .replace(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.*?)</script>`), '')
