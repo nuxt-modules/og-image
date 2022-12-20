@@ -52,7 +52,8 @@ If you don't have a chromium binary installed on your system, run `npx playwrigh
 ### CI Build
 
 If you are using this module in a CI context and the images aren't being generated,
-you should replace your build script with the following:
+you should may need to install a chromium binary. You can do this by running `npx playwright install` or
+`npm install playwright`.
 
 _package.json_
 
