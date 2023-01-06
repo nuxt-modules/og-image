@@ -27,6 +27,9 @@ Generate dynamic social share images for you Nuxt 3 app.
 </table>
 </p>
 
+ℹ️ Looking for a complete SEO solution? Check out [nuxt-seo-kit](https://github.com/harlan-zw/nuxt-seo-kit).
+
+
 ## Features
 
 - 🧙 Pre-render `og:image`'s for your entire site in minutes with minimal config
