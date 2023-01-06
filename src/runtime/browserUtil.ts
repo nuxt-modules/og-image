@@ -15,6 +15,9 @@ export async function screenshot(browser: Browser, url: string, options: Screens
     waitUntil: 'networkidle',
   })
 
+  if (options.delay)
+    await page.waitForTimeout(options.delay)
+
   if (options.mask) {
     await page.evaluate((mask) => {
       for (const el of document.querySelectorAll(mask) as any as HTMLElement[])
@@ -22,8 +25,7 @@ export async function screenshot(browser: Browser, url: string, options: Screens
     }, options.mask)
   }
   if (options.selector)
-    await page.locator(options.selector).screenshot()
+    return await page.locator(options.selector).screenshot()
 
   return await page.screenshot()
 }
-

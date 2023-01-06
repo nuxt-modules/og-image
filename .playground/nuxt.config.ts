@@ -13,7 +13,8 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: [
         '/',
-        '/hidden-path-but-in-sitemap'
+        '/hidden-path-but-in-sitemap',
+        '/custom-screenshot'
       ]
     }
   },

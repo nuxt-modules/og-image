@@ -38,6 +38,16 @@ export interface ModuleOptions extends ScreenshotOptions {
   serverSideRender: boolean
 }
 
+function extractOgPayload(html: string) {
+  // extract the payload from our script tag
+  const payload = html.match(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.+?)</script>`))?.[1]
+  if (payload) {
+    // convert html encoded characters to utf8
+    return JSON.parse(payload)
+  }
+  return false
+}
+
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
@@ -181,7 +191,7 @@ declare module 'nitropack' {
           outputPath: joinURL(nitro.options.output.publicDir, config.outputDir, fileName),
           linkingHtml: joinURL(nitro.options.output.publicDir, ctx.fileName),
           route: ctx.route,
-          hasPayload: screenshotPath,
+          payload: extractOgPayload(ctx._contents),
           routeRules: routeRules.ogImage || '',
           screenshotPath: screenshotPath || ctx.route,
         }
@@ -225,7 +235,10 @@ declare module 'nitropack' {
               const start = Date.now()
               let hasError = false
               try {
-                const imgBuffer = await screenshot(browser, `${host}${entry.screenshotPath}`, config)
+                const imgBuffer = await screenshot(browser, `${host}${entry.screenshotPath}`, {
+                  ...config,
+                  ...(entry.payload || {}),
+                })
                 await writeFile(entry.outputPath, imgBuffer)
               }
               catch (e) {
@@ -239,7 +252,7 @@ declare module 'nitropack' {
             }
           }
           else {
-            nitro.logger.log(chalk.red('Failed to create browser to create og:images.'))
+            nitro.logger.log(chalk.red('Failed to create a browser to create og:images.'))
           }
         }
         catch (e) {

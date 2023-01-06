@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {defineOgImageScreenshot} from "#imports";
+
 definePageMeta({
   title: 'About',
   description: 'My description',
@@ -6,7 +8,7 @@ definePageMeta({
 })
 </script>
 <template>
-  <div>
+  <div class="about-page">
     <div>
       About page
     </div>

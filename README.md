@@ -10,7 +10,7 @@
 
 
 <p align="center">
-Generate dynamic social share images for you Nuxt v3 app.
+Generate dynamic social share images for you Nuxt 3 app.
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@ Generate dynamic social share images for you Nuxt v3 app.
 - 🧙 Pre-render `og:image`'s for your entire site in minutes with minimal config
 - 🎨 Using a Vue component (powered by Nuxt Islands)
 - 📸 OR just generate screenshots
-- 📦 Choose your API: Composition or components
+- ⚙️ Screenshot options to hide elements, wait for animations, and more
 
 🔨 Edge rendering is coming soon!
 
@@ -255,11 +255,119 @@ The host of your site. This is required to generate the absolute path of the og:
 - Type: `boolean`
 - Default: `process.dev`
 
-Allows you to generate images at runtime in production. This uses a headless browser to generate images
+It allows you to generate images at runtime in production.
+This uses a headless browser to generate images
 and may have deployment issues.
 
 ⚠️ This is experimental and will likely not work in all environments.
 
+## Screenshot Options
+
+These can be provided as module options to set defaults
+or set individually on the `OgImageScreenshot` or `OgImage` components or the `defineOgImage` or `defineOgImageScreenshot` composables.
+
+```ts
+// optionally set defaults globally
+export default defineNuxtConfig({
+  ogImage: {
+    colorScheme: 'dark',
+    mask: '.screenshot-hidden'
+  }
+})
+```
+
+### `colorScheme`
+
+- Type: `'dark' | 'light'`
+- Default: `undefined`
+- Required: `false`
+
+The color scheme to use when generating the image. This is useful for generating dark mode images.
+
+```ts
+defineOgImageScreenshot({
+  colorScheme: 'dark'
+})
+```
+
+### `selector`
+
+- Type: `string`
+- Default: `undefined`
+- Required: `false`
+
+The selector to take a screenshot of. This is useful if you want to exclude header / footer elements.
+
+```ts
+defineOgImageScreenshot({
+  mask: '.page-content'
+})
+```
+
+### `mask`
+
+- Type: `string`
+- Default: `undefined`
+- Required: `false`
+
+HTML selectors that should be removed from the image. Useful for removing popup banners or other elements that may be in the way. 
+
+```ts
+defineOgImageScreenshot({
+  mask: '.popup-banner, .cookie-banner'
+})
+```
+
+### `delay`
+
+- Type: `number`
+- Default: `undefined`
+- Required: `false`
+
+The delay to wait before taking the screenshot. This is useful if you want to wait for animations to complete.
+
+```ts
+defineOgImageScreenshot({
+  // wait 2 seconds
+  delay: 2000
+})
+```
+
+### `alt`
+
+- Type: `string`
+- Default: `Web page screenshot of {route}.`
+- Required: `false`
+
+Used to generate the `og:image:alt` meta.
+
+### `width`
+
+- Type: `number`
+- Default: `1200`
+- Required: `true`
+
+The default width of the image. This is useful if you want to generate a specific size image.
+
+```ts
+defineOgImageScreenshot({
+  width: 1500
+})
+```
+
+### `height`
+
+- Type: `number`
+- Default: `630`
+- Required: `true`
+
+The default height of the image. This is useful if you want to generate a specific size image.
+
+```ts
+defineOgImageScreenshot({
+  height: 700
+})
+```
 
 ## Examples
 
@@ -278,7 +386,6 @@ and may have deployment issues.
 - Pooya Parsa [Kachick](https://github.com/unjs/kachik)
 - Nuxt Team
 
-
 ## License
 
-MIT License © 2022-PRESENT [Harlan Wilton](https://github.com/harlan-zw)
+MIT License © 2023-PRESENT [Harlan Wilton](https://github.com/harlan-zw)

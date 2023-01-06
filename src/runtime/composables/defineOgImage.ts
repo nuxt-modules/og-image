@@ -1,19 +1,12 @@
 import { useServerHead } from '@vueuse/head'
+import type { OgImagePayload, OgImageScreenshotPayload } from '../../types'
 import { useRouter } from '#imports'
 import { DefaultRuntimeImageSuffix, HtmlRendererRoute, LinkPrerenderId, MetaOgImageContentPlaceholder, PayloadScriptId } from '#nuxt-og-image/constants'
 
-export interface OgImagePayload {
-  runtime?: boolean
-  title?: string
-  description?: string
-  component?: string
-  alt?: string
-  [key: string]: any
-}
-
-export function defineOgImageScreenshot() {
+export function defineOgImageScreenshot(options: OgImageScreenshotPayload = {}) {
   defineOgImage({
     alt: '__OG_IMAGE_SCREENSHOT_ALT',
+    ...options,
   })
 }
 

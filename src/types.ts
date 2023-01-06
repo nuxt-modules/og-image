@@ -14,7 +14,22 @@ export interface ScreenshotOptions {
    * @default 630
    */
   height: number
+  /**
+   * How long to wait before taking the screenshot. Useful for waiting for animations.
+   */
+  delay?: number
 }
+
+export interface OgImagePayload extends Partial<ScreenshotOptions> {
+  runtime?: boolean
+  title?: string
+  description?: string
+  component?: string
+  alt?: string
+  [key: string]: any
+}
+
+export type OgImageScreenshotPayload = Omit<OgImagePayload, 'component' | 'runtime'>
 
 export interface OgImageRouteEntry {
   route: string
@@ -25,7 +40,7 @@ export interface OgImageRouteEntry {
   outputPath: string
 
   linkingHtml: string
-  hasPayload: boolean
+  payload: OgImageScreenshotPayload | OgImagePayload
 }
 
 declare module 'nitropack' {
