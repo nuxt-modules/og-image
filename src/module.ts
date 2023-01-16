@@ -85,6 +85,7 @@ declare module 'nitropack' {
     ogImage?: 'screenshot' | string | false
   }
 }
+export {}
 `
       },
     })
