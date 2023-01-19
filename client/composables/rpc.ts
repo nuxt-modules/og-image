@@ -3,6 +3,8 @@ import { parse, stringify } from 'flatted'
 import { ref } from 'vue'
 import type { PlaygroundClientFunctions, PlaygroundServerFunctions } from '../../src/types'
 
+// copied from nuxt/devtools, credits @antfu
+
 const RECONNECT_INTERVAL = 2000
 let onMessage: Function = () => {}
 

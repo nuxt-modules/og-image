@@ -86,24 +86,10 @@ export default defineNuxtConfig({
 })
 ```
 
-### Prerender routes
+## Guides
 
-While the module is in early access, only pre-rendered routes are supported.
+### Create your first og:image
 
-```ts
-export default defineNuxtConfig({
-  nitro: {
-    prerender: {
-      crawlLinks: true,
-      routes: [
-        '/',
-        // any URLs that can't be discovered by crawler
-        '/my-hidden-url'
-      ]
-    }
-  }
-})
-```  
 
 ## Generating Screenshots
 
@@ -250,6 +236,25 @@ the following URLs:
 - `/your-path/__og-image` Renders the HTML output
 - `/your-path/og-image.png` Renders the og:image
 
+### Prerender routes
+
+While the module is in early access, only pre-rendered routes are supported.
+
+```ts
+export default defineNuxtConfig({
+  nitro: {
+    prerender: {
+      crawlLinks: true,
+      routes: [
+        '/',
+        // any URLs that can't be discovered by crawler
+        '/my-hidden-url'
+      ]
+    }
+  }
+})
+```  
+
 ## Module Config
 
 ### `host`
@@ -259,17 +264,6 @@ the following URLs:
 - Required: `true`
 
 The host of your site. This is required to generate the absolute path of the og:image.
-
-### `serverSideRender`
-
-- Type: `boolean`
-- Default: `process.dev`
-
-It allows you to generate images at runtime in production.
-This uses a headless browser to generate images
-and may have deployment issues.
-
-⚠️ This is experimental and will likely not work in all environments.
 
 ## Screenshot Options
 

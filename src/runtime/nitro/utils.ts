@@ -14,7 +14,6 @@ export function renderIsland(island: string, payload: Record<string, any>) {
 }
 
 export function useHostname(e: H3Event) {
-  console.log(getRequestHeader(e, 'host'), getRequestHeaders(e))
   const host = getRequestHeader(e, 'host') || 'localhost:3000'
   const protocol = getRequestHeader(e, 'x-forwarded-proto') || 'http'
   if (protocol.startsWith('http'))

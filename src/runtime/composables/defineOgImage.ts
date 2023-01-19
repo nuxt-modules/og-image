@@ -1,5 +1,6 @@
 import { useServerHead } from '@vueuse/head'
 import { withBase } from 'ufo'
+import { useRequestEvent } from '#app'
 import type { OgImagePayload, OgImageScreenshotPayload } from '../../types'
 import { useRouter } from '#imports'
 import { PayloadScriptId } from '#nuxt-og-image/constants'
