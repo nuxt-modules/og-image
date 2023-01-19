@@ -1,4 +1,4 @@
-import {parseURL, withBase, withoutTrailingSlash} from 'ufo'
+import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, sendRedirect } from 'h3'

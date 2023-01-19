@@ -1,6 +1,6 @@
 import { joinURL, withQuery } from 'ufo'
 import type { H3Event } from 'h3'
-import { getRequestHeader, getRequestHeaders } from 'h3'
+import { getRequestHeader } from 'h3'
 import type { OgImagePayload } from '../../types'
 
 export function fetchPayload(path: string) {

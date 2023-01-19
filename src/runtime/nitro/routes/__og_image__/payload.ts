@@ -2,7 +2,7 @@ import { parseURL, withoutTrailingSlash } from 'ufo'
 import { defineEventHandler, getQuery } from 'h3'
 import type { OgImagePayload } from '../../../../types'
 import { PayloadScriptId } from '#nuxt-og-image/constants'
-import { getRouteRules, useRuntimeConfig } from '#internal/nitro'
+import { getRouteRules } from '#internal/nitro'
 
 export const extractOgPayload = (html: string) => {
   // extract the payload from our script tag
@@ -20,11 +20,16 @@ export const inferOgPayload = (html: string) => {
   const title = html.match(/<meta property="og:title" content="(.*?)">/)?.[1]
   if (title)
     payload.title = title
+  else
+    // allow inferences from title
+    payload.title = html.match(/<title>(.*?)<\/title>/)?.[1]
 
   // extract the og:description from the html
   const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
   if (description)
     payload.description = description
+  else
+    payload.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
   return payload
 }
 
@@ -52,21 +57,15 @@ export default defineEventHandler(async (e) => {
   if (routeRules === false)
     return false
 
-  let payload = {
+  return {
     path: basePath,
-    ...extractOgPayload(html),
+    // use inferred data
     ...inferOgPayload(html),
+    // use route rules
     ...(routeRules || {}),
+    // use provided data
+    ...extractOgPayload(html),
+    // use query data
     ...getQuery(e),
   } as OgImagePayload
-  // provider defaults for satori payload
-  if (payload.provider === 'satori') {
-    payload = {
-      title: 'Hello World',
-      description: 'Example description',
-      image: 'https://example.com/image.png',
-      ...payload,
-    }
-  }
-  return payload
 })

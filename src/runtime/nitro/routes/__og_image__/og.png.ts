@@ -1,5 +1,5 @@
 import { defineEventHandler, setHeader } from 'h3'
-import {joinURL, parseURL, withBase, withoutTrailingSlash} from 'ufo'
+import { joinURL, parseURL, withBase, withoutTrailingSlash } from 'ufo'
 import { fetchPayload, useHostname } from '../../utils'
 import { useProvider } from '#nuxt-og-image/provider'
 
