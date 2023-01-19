@@ -1,14 +1,14 @@
 import { joinURL, withQuery } from 'ufo'
 import type { H3Event } from 'h3'
 import { getRequestHeader } from 'h3'
-import type { OgImagePayload } from '../../types'
+import type { OgImageOptions } from '../../types'
 
-export function fetchPayload(path: string) {
-  return $fetch<OgImagePayload>(joinURL(path, '__og_image__/payload'))
+export function fetchOptions(path: string) {
+  return $fetch<OgImageOptions>(joinURL(path, '__og_image__/options'))
 }
 
-export function renderIsland(island: string, payload: Record<string, any>) {
-  return $fetch<{ html: string; head: any }>(withQuery(`/__nuxt_island/${island}`, {
+export function renderIsland(payload: OgImageOptions) {
+  return $fetch<{ html: string; head: any }>(withQuery(`/__nuxt_island/${payload.component}`, {
     props: JSON.stringify(payload),
   }))
 }

@@ -20,6 +20,10 @@ export default defineNuxtConfig({
 
   ogImage: {
     host: 'https://example.com',
+    defaults: {
+      component: 'BannerTemplate',
+      appName: 'My App',
+    }
   },
 
   experimental: {

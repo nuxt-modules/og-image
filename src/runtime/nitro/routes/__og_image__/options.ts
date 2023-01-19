@@ -1,48 +1,39 @@
 import { parseURL, withoutTrailingSlash } from 'ufo'
 import { defineEventHandler, getQuery } from 'h3'
-import type { OgImagePayload } from '../../../../types'
-import { PayloadScriptId } from '#nuxt-og-image/constants'
+import type { OgImageOptions } from '../../../../types'
+import { extractOgImageOptions } from '../../../../utils'
 import { getRouteRules } from '#internal/nitro'
+import { defaults } from '#nuxt-og-image/config'
 
-export const extractOgPayload = (html: string) => {
-  // extract the payload from our script tag
-  const payload = html.match(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.+?)</script>`))?.[1]
-  if (payload) {
-    // convert html encoded characters to utf8
-    return JSON.parse(payload)
-  }
-  return false
-}
-
-export const inferOgPayload = (html: string) => {
-  const payload: Record<string, any> = {}
+export const inferOgImageOptions = (html: string) => {
+  const options: OgImageOptions = {}
   // extract the og:title from the html
   const title = html.match(/<meta property="og:title" content="(.*?)">/)?.[1]
   if (title)
-    payload.title = title
+    options.title = title
   else
     // allow inferences from title
-    payload.title = html.match(/<title>(.*?)<\/title>/)?.[1]
+    options.title = html.match(/<title>(.*?)<\/title>/)?.[1]
 
   // extract the og:description from the html
   const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
   if (description)
-    payload.description = description
+    options.description = description
   else
-    payload.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
-  return payload
+    options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
+  return options
 }
 
 export default defineEventHandler(async (e) => {
   const path = parseURL(e.path).pathname
-  if (!path.endsWith('__og_image__/payload'))
+  if (!path.endsWith('__og_image__/options'))
     return
 
-  const basePath = withoutTrailingSlash(path.replace('__og_image__/payload', ''))
+  const basePath = withoutTrailingSlash(path.replace('__og_image__/options', ''))
   // extract the payload from the original path
   const html = await $fetch<string>(basePath)
 
-  const extractedPayload = extractOgPayload(html)
+  const extractedPayload = extractOgImageOptions(html)
   // not supported
   if (!extractedPayload)
     return false
@@ -59,13 +50,14 @@ export default defineEventHandler(async (e) => {
 
   return {
     path: basePath,
+    ...defaults,
     // use inferred data
-    ...inferOgPayload(html),
+    ...inferOgImageOptions(html),
     // use route rules
     ...(routeRules || {}),
     // use provided data
-    ...extractOgPayload(html),
+    ...extractedPayload,
     // use query data
     ...getQuery(e),
-  } as OgImagePayload
+  } as OgImageOptions
 })

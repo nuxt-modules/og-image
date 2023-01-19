@@ -29,7 +29,7 @@
     "build": "pnpm dev:prepare && pnpm build:module && pnpm build:client",
     "build:client": "nuxi generate client",
     "build:module": "nuxt-build-module",
-    "lint": "eslint \"**/*.{ts,vue,json,yml}\"",
+    "lint": "eslint \"**/*.{ts,vue,json,yml}\" --fix",
     "dev": "nuxi dev .playground",
     "dev:build": "nuxi build .playground",
     "dev:prepare": "nuxt-module-build --stub && nuxi prepare .playground",

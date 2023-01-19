@@ -388,6 +388,7 @@ defineOgImageScreenshot({
 ## Credits
 
 - Pooya Parsa [Kachick](https://github.com/unjs/kachik)
+- Anthony Fu (Nuxt Devtools)
 - Nuxt Team
 
 ## License

@@ -8,6 +8,8 @@ import {
   addTemplate,
   createResolver,
   defineNuxtModule,
+  getNuxtVersion,
+  useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
 import chalk from 'chalk'
@@ -18,35 +20,23 @@ import { join, relative } from 'pathe'
 import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
+import type { SatoriOptions } from 'satori'
 import { createBrowser } from './runtime/nitro/browsers/default'
 import { screenshot } from './runtime/browserUtil'
-import type { OgImagePayload, ScreenshotOptions } from './types'
-import {
-  Constants,
-  PayloadScriptId,
-} from './constants'
-import { exposeConfig } from './utils'
+import type { OgImageOptions, ScreenshotOptions } from './types'
+import { exposeConfig, extractOgImageOptions, stripOgImageOptions } from './utils'
 import { setupPlaygroundRPC } from './rpc'
 
-export interface ModuleOptions extends ScreenshotOptions {
+export interface ModuleOptions {
   /**
    * The hostname of your website.
    */
   host: string
-
+  defaults: OgImageOptions
   experimentalNitroBrowser: boolean
-
+  satoriFonts: Array<Partial<SatoriOptions['fonts'][number]> & { publicPath: string }>
+  satoriOptions: Partial<SatoriOptions>
   forcePrerender: boolean
-}
-
-function extractOgPayload(html: string) {
-  // extract the payload from our script tag
-  const payload = html.match(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.+?)</script>`))?.[1]
-  if (payload) {
-    // convert html encoded characters to utf8
-    return JSON.parse(payload)
-  }
-  return false
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -68,8 +58,26 @@ export default defineNuxtModule<ModuleOptions>({
       // when we run `nuxi generate` we need to force prerendering
       forcePrerender: !nuxt.options.dev && nuxt.options._generate,
       host: nuxt.options.runtimeConfig.public?.siteUrl,
-      width: 1200,
-      height: 630,
+      defaults: {
+        component: 'OgImageBasic',
+        width: 1200,
+        height: 630,
+      },
+      satoriFonts: [
+        {
+          name: 'Inter',
+          weight: 400,
+          style: 'normal',
+          publicPath: '/inter-latin-ext-400-normal.woff',
+        },
+        {
+          name: 'Inter',
+          weight: 700,
+          style: 'normal',
+          publicPath: '/inter-latin-ext-700-normal.woff',
+        },
+      ],
+      satoriOptions: {},
     }
   },
   async setup(config, nuxt) {
@@ -86,6 +94,11 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.experimental.componentIslands = true
 
     const isEdge = (process.env.NITRO_PRESET || '').includes('edge')
+    const hasIslandSupport = getNuxtVersion(nuxt) !== '3.0.0'
+
+    const logger = useLogger('nuxt-og-image')
+    if (!hasIslandSupport)
+      logger.warn('You are using Nuxt 3.0.0 with `nuxt-og-image`, which only supports screenshots.\nPlease upgrade to Nuxt 3.0.1 or the edge channel: https://nuxt.com/docs/guide/going-further/edge-channel.')
 
     // paths.d.ts
     addTemplate({
@@ -108,7 +121,7 @@ export {}
       references.push({ path: resolve(nuxt.options.buildDir, 'nuxt-og-image.d.ts') })
     })
 
-    ;['html', 'payload', 'svg', 'og.png']
+    ;['html', 'options', 'svg', 'og.png']
       .forEach((type) => {
         addServerHandler({
           handler: resolve(`./runtime/nitro/routes/__og_image__/${type}`),
@@ -143,8 +156,8 @@ export {}
       })
 
     await addComponent({
-      name: 'OgImageTemplate',
-      filePath: resolve('./runtime/components/OgImageTemplate.island.vue'),
+      name: 'OgImageBasic',
+      filePath: resolve('./runtime/components/OgImageBasic.island.vue'),
       global: true,
       // @ts-expect-error need to use @nuxt/kit edge
       island: true,
@@ -163,8 +176,7 @@ export {}
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
 
-    // add constants to app and nitro
-    exposeConfig('#nuxt-og-image/constants', 'nuxt-og-image-constants.mjs', Constants)
+    // add config to app and nitro
     exposeConfig('#nuxt-og-image/config', 'nuxt-og-image-config.mjs', config)
 
     nuxt.hooks.hook('nitro:config', (nitroConfig) => {
@@ -202,7 +214,7 @@ export {}
     })
 
     nuxt.hooks.hook('nitro:init', async (nitro) => {
-      let screenshotQueue: OgImagePayload[] = []
+      let screenshotQueue: OgImageOptions[] = []
 
       const _routeRulesMatcher = toRouteMatcher(
         createRadixRouter({ routes: nitro.options.routeRules }),
@@ -215,28 +227,26 @@ export {}
 
         const html = ctx.contents
 
-        // we need valid _contents to scan for ogImage payload and know the route is good
+        // we need valid _contents to scan for ogImage options and know the route is good
         if (!html)
           return
 
-        const extractedPayload = extractOgPayload(html)
-        // once we extract the payload we should metadata not needed
-        ctx.contents = html
-          .replace(new RegExp(`<script id="${PayloadScriptId}" type="application/json">(.*?)</script>`), '')
+        const extractedOptions = extractOgImageOptions(html)
+        ctx.contents = stripOgImageOptions(html)
         const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
-        if (!extractedPayload || routeRules.ogImage === false)
+        if (!extractedOptions || routeRules.ogImage === false)
           return
 
-        const payload: OgImagePayload = {
+        const options: OgImageOptions = {
           path: ctx.route,
-          ...extractedPayload,
+          ...extractedOptions,
           ...(routeRules.ogImage || {}),
           ctx,
         }
 
         // if we're running `nuxi generate` we pre-render everything (including dynamic)
-        if ((nuxt.options._generate || payload.prerender) && payload.provider === 'browser')
-          screenshotQueue.push(payload)
+        if ((nuxt.options._generate || options.prerender) && options.provider === 'browser')
+          screenshotQueue.push(options)
       })
 
       if (nuxt.options.dev)
@@ -270,8 +280,8 @@ export {}
               const filename = joinURL(dirname, '/og.png')
               try {
                 const imgBuffer = await screenshot(browser, `${host}${entry.path}`, {
-                  ...config,
-                  ...entry,
+                  ...(config.defaults as ScreenshotOptions || {}),
+                  ...(entry || {}),
                 })
                 try {
                   await mkdir(dirname, { recursive: true })

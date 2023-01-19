@@ -22,7 +22,7 @@ export interface ScreenshotOptions {
   delay?: number
 }
 
-export interface OgImagePayload extends Partial<ScreenshotOptions> {
+export interface OgImageOptions extends Partial<ScreenshotOptions> {
   provider?: 'browser' | 'satori'
 
   prerender?: boolean
@@ -35,17 +35,11 @@ export interface OgImagePayload extends Partial<ScreenshotOptions> {
 
 export interface Provider {
   name: 'browser' | 'satori'
-  createSvg: (path: string) => Promise<string>
-  createPng: (path: string) => Promise<Buffer>
+  createSvg: (path: string, options: OgImageOptions) => Promise<string>
+  createPng: (path: string, options: OgImageOptions) => Promise<Buffer>
 }
 
-export type OgImageScreenshotPayload = Omit<OgImagePayload, 'component'>
-
-declare module 'nitropack' {
-  interface NitroRouteRules {
-    ogImage?: false | OgImageScreenshotPayload | OgImagePayload
-  }
-}
+export type OgImageScreenshotOptions = Omit<OgImageOptions, 'component'>
 
 export interface PlaygroundServerFunctions {
   openInEditor(filepath: string): void

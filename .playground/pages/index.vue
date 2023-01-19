@@ -1,13 +1,17 @@
-<script>
+<script setup>
 definePageMeta({
   title: 'Home',
   description: 'This is the home page',
   breadcrumbTitle: 'Home'
 })
+
+useHead({
+  title: 'Home',
+})
 </script>
 <template>
 <div class="px-5 my-10">
-  <OgImageStatic />
+  <OgImageStatic description="My desc" theme-color="#b5ffd6" />
   <h1 class="text-3xl mb-5">Nuxt OG Image Test</h1>
   <div class="mb-10">
   <h2 class="text-lg font-bold mb-3">Browser Screenshot</h2>

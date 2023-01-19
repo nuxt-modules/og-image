@@ -1,12 +1,11 @@
 import { useServerHead } from '@vueuse/head'
 import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
-import type { OgImagePayload, OgImageScreenshotPayload } from '../../types'
+import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
 import { useRouter } from '#imports'
-import { PayloadScriptId } from '#nuxt-og-image/constants'
-import { forcePrerender, height, host, width } from '#nuxt-og-image/config'
+import { defaults, forcePrerender, host } from '#nuxt-og-image/config'
 
-export function defineOgImageScreenshot(options: OgImageScreenshotPayload = {}) {
+export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
   const route = router?.currentRoute?.value?.path || ''
   defineOgImage({
@@ -17,14 +16,14 @@ export function defineOgImageScreenshot(options: OgImageScreenshotPayload = {}) 
   })
 }
 
-export function defineOgImageDynamic(options: OgImageScreenshotPayload = {}) {
+export function defineOgImageDynamic(options: OgImageOptions = {}) {
   defineOgImage({
     provider: 'satori',
     ...options,
   })
 }
 
-export function defineOgImageStatic(options: OgImageScreenshotPayload = {}) {
+export function defineOgImageStatic(options: OgImageOptions = {}) {
   defineOgImage({
     provider: 'satori',
     prerender: true,
@@ -32,7 +31,7 @@ export function defineOgImageStatic(options: OgImageScreenshotPayload = {}) {
   })
 }
 
-export function defineOgImage(options: OgImagePayload = {}) {
+export function defineOgImage(options: OgImageOptions = {}) {
   if (process.server) {
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
@@ -54,11 +53,11 @@ export function defineOgImage(options: OgImagePayload = {}) {
       },
       {
         property: 'og:image:width',
-        content: width,
+        content: options.width || defaults.width,
       },
       {
         property: 'og:image:height',
-        content: height,
+        content: options.height || defaults.height,
       },
     ]
     if (options.alt) {
@@ -72,9 +71,18 @@ export function defineOgImage(options: OgImagePayload = {}) {
       meta,
       script: [
         {
-          id: PayloadScriptId,
+          id: 'nuxt-og-image-options',
           type: 'application/json',
-          children: () => JSON.stringify(options),
+          children: () => {
+            const payload = {}
+            // options is an object which has keys that may be kebab case, we need to convert the keys to camel case
+            Object.entries(options).forEach(([key, val]) => {
+              // with a simple kebab case conversion
+              // @ts-expect-error untyped
+              payload[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
+            })
+            return payload
+          },
         },
       ],
     })

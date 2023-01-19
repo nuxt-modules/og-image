@@ -1,8 +1,8 @@
 import { defineComponent } from 'vue'
-import type { OgImageScreenshotPayload } from '../../types'
+import type { OgImageScreenshotOptions } from '../../types'
 import { defineOgImageScreenshot } from '#imports'
 
-export default defineComponent<OgImageScreenshotPayload>({
+export default defineComponent<OgImageScreenshotOptions>({
   name: 'OgImageScreenshot',
   setup(_, { attrs }) {
     // get attrs

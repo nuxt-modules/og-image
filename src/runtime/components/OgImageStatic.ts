@@ -1,8 +1,8 @@
 import { defineComponent } from 'vue'
-import type { OgImagePayload } from '../../types'
+import type { OgImageOptions } from '../../types'
 import { defineOgImageStatic } from '#imports'
 
-export default defineComponent<OgImagePayload>({
+export default defineComponent<OgImageOptions>({
   name: 'OgImageStatic',
   setup(_, { attrs }) {
     defineOgImageStatic(attrs)

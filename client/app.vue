@@ -2,14 +2,14 @@
 import { ref } from 'vue'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/vue'
 import { joinURL } from 'ufo'
-import type { OgImagePayload, PlaygroundClientFunctions } from '../src/types'
+import type { OgImageOptions, PlaygroundClientFunctions } from '../src/types'
 
 const refreshTime = ref(Date.now())
 
 const hostname = window.location.host as string
 const host = `${window.location.protocol}//${hostname}`
 const path = ref(useRoute().query.path || '/about')
-const payloadPath = joinURL(path.value as string, '__og_image__/payload')
+const optionsPath = joinURL(path.value as string, '__og_image__/options')
 
 function refreshSources() {
   refreshTime.value = Date.now()
@@ -39,16 +39,16 @@ useHead({
 const width = config.value?.width || 1200
 const height = config.value?.height || 630
 
-const { data: payload } = await useAsyncData<OgImagePayload>(() => {
-  return $fetch(payloadPath, {
+const { data: options } = await useAsyncData<OgImageOptions>(() => {
+  return $fetch(optionsPath, {
     baseURL: host,
     watch: [path, refreshTime],
   })
 })
 
 const absoluteBasePath = `${host}${path.value === '/' ? '' : path.value}`
-const OgImageTemplate = computed(() => resolveComponent(payload.value?.component || 'OgImageTemplate'))
-const hasSatori = computed(() => payload.value?.provider === 'satori')
+const OgImageTemplate = computed(() => resolveComponent(options.value?.component || 'OgImageTemplate'))
+const hasSatori = computed(() => options.value?.provider === 'satori')
 </script>
 
 <template>
@@ -73,9 +73,10 @@ const hasSatori = computed(() => payload.value?.provider === 'satori')
             <div class="text-xs opacity-60  mb-1">
               Path
             </div>
-            <div class="flex items-center space-x-1">
+            <div class="flex items-center space-x-1 mb-1">
               <span>{{ path }}</span>
             </div>
+            <a :href="optionsPath" target="_blank" class="underline text-xs">View options</a>
           </div>
           <div class="text-sm">
             <div class="text-xs opacity-60  mb-1">
@@ -86,13 +87,13 @@ const hasSatori = computed(() => payload.value?.provider === 'satori')
               <span>{{ hasSatori ? 'Satori' : 'Browser' }}</span>
             </div>
           </div>
-          <div v-if="payload?.component" class="text-sm">
+          <div v-if="options?.component" class="text-sm">
             <div class="text-xs opacity-60  mb-1">
               Component
             </div>
             <div class="flex items-center space-x-1">
               <span class="logos-vue" />
-              <span>{{ payload?.component }}</span>
+              <span>{{ options?.component }}</span>
             </div>
           </div>
         </div>
@@ -123,7 +124,7 @@ const hasSatori = computed(() => payload.value?.provider === 'satori')
           <TabGroup>
             <TabList class="p-1 dark:(bg-dark-900/20 border-none) border-2 border-dark-900/30 rounded-xl flex space-x-5">
               <Tab
-                v-for="category in ['HTML', 'SVG - Satori', 'PNG - Satori + Resvg']"
+                v-for="category in ['HTML - Vue', 'SVG - Satori', 'PNG - Satori + Resvg']"
                 :key="category"
                 v-slot="{ selected }"
                 as="template"

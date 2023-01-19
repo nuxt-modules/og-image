@@ -1,6 +1,5 @@
 import { screenshot } from '../../browserUtil'
-import type { Provider } from '../../../types'
-import { height, width } from '#nuxt-og-image/config'
+import type { Provider, ScreenshotOptions } from '../../../types'
 import { createBrowser } from '#nuxt-og-image/browser'
 
 export default <Provider> {
@@ -8,12 +7,8 @@ export default <Provider> {
   createSvg: function createSvg() {
     throw new Error('Browser provider isn\'t able to create SVGs.')
   },
-  createPng: async function createPng(basePath: string) {
-    // extract the payload from the original path
+  createPng: async function createPng(basePath, options) {
     const browser = await createBrowser()
-    return screenshot(browser!, basePath, {
-      width: Number(width),
-      height: Number(height),
-    })
+    return screenshot(browser!, basePath, options as ScreenshotOptions)
   },
 }
