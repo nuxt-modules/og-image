@@ -1,9 +1,14 @@
 import { parseURL, withoutTrailingSlash } from 'ufo'
 import { defineEventHandler, getQuery } from 'h3'
 import type { OgImageOptions } from '../../../../types'
-import { extractOgImageOptions } from '../../../../utils'
 import { getRouteRules } from '#internal/nitro'
 import { defaults } from '#nuxt-og-image/config'
+
+export function extractOgImageOptions(html: string) {
+  // extract the options from our script tag
+  const options = html.match(/<script id="nuxt-og-image-options" type="application\/json">(.+?)<\/script>/)?.[1]
+  return options ? JSON.parse(options) : false
+}
 
 export const inferOgImageOptions = (html: string) => {
   const options: OgImageOptions = {}

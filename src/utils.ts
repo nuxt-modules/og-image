@@ -15,11 +15,7 @@ export function exposeConfig(alias: string, filename: string, config: any) {
 export function extractOgImageOptions(html: string) {
   // extract the options from our script tag
   const options = html.match(/<script id="nuxt-og-image-options" type="application\/json">(.+?)<\/script>/)?.[1]
-  if (options) {
-    // convert html encoded characters to utf8
-    return JSON.parse(options)
-  }
-  return false
+  return options ? JSON.parse(options) : false
 }
 
 export function stripOgImageOptions(html: string) {
