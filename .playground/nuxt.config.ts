@@ -6,6 +6,7 @@ export default defineNuxtConfig({
     'nuxt-og-image': resolve(__dirname, '../src/module'),
   },
   modules: [
+    '@nuxt/ui',
     'nuxt-og-image',
   ],
   nitro: {
@@ -13,8 +14,6 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: [
         '/',
-        '/hidden-path-but-in-sitemap',
-        '/custom-screenshot'
       ]
     }
   },
@@ -27,8 +26,33 @@ export default defineNuxtConfig({
     componentIslands: true,
   },
 
+  app: {
+    head: {
+      style: [
+        {
+          innerHTML: 'body { font-family: \'Inter\', sans-serif; }',
+        },
+      ],
+      link: [
+        {
+          // reset css to match svg output
+          href: 'https://cdn.jsdelivr.net/npm/gardevoir',
+          rel: 'stylesheet',
+        },
+        {
+          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
+          rel: 'stylesheet',
+        },
+      ],
+    }
+  },
+
   routeRules: {
-    '/secret': { index: false },
-    '/about': { sitemap: { changefreq: 'daily', priority: 0.3 } }
+    '/static': {
+      ogImage: {
+        width: 1200,
+        height: 1200
+      }
+    }
   }
 })

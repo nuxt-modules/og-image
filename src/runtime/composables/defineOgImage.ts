@@ -1,11 +1,32 @@
 import { useServerHead } from '@vueuse/head'
+import { withBase } from 'ufo'
 import type { OgImagePayload, OgImageScreenshotPayload } from '../../types'
 import { useRouter } from '#imports'
-import { DefaultRuntimeImageSuffix, HtmlRendererRoute, LinkPrerenderId, MetaOgImageContentPlaceholder, PayloadScriptId } from '#nuxt-og-image/constants'
+import { PayloadScriptId } from '#nuxt-og-image/constants'
+import { forcePrerender, height, host, width } from '#nuxt-og-image/config'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotPayload = {}) {
+  const router = useRouter()
+  const route = router?.currentRoute?.value?.path || ''
   defineOgImage({
-    alt: '__OG_IMAGE_SCREENSHOT_ALT',
+    alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
+    provider: 'browser',
+    prerender: true,
+    ...options,
+  })
+}
+
+export function defineOgImageDynamic(options: OgImageScreenshotPayload = {}) {
+  defineOgImage({
+    provider: 'satori',
+    ...options,
+  })
+}
+
+export function defineOgImageStatic(options: OgImageScreenshotPayload = {}) {
+  defineOgImage({
+    provider: 'satori',
+    prerender: true,
     ...options,
   })
 }
@@ -15,6 +36,12 @@ export function defineOgImage(options: OgImagePayload = {}) {
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
 
+    const e = useRequestEvent()
+
+    // pre-render satori images
+    if ((forcePrerender || options.prerender) && options.provider === 'satori')
+      e.res.setHeader('x-nitro-prerender', `${route === '/' ? '' : route}/__og_image__/og.png`)
+
     const meta = [
       {
         property: 'twitter:card',
@@ -22,7 +49,15 @@ export function defineOgImage(options: OgImagePayload = {}) {
       },
       {
         property: 'og:image',
-        content: () => options.runtime ? `${route}/${DefaultRuntimeImageSuffix}` : MetaOgImageContentPlaceholder,
+        content: () => withBase(`${route}/__og_image__/og.png`, host),
+      },
+      {
+        property: 'og:image:width',
+        content: width,
+      },
+      {
+        property: 'og:image:height',
+        content: height,
       },
     ]
     if (options.alt) {
@@ -34,15 +69,6 @@ export function defineOgImage(options: OgImagePayload = {}) {
 
     useServerHead({
       meta,
-      link: !options.runtime && options.component
-        ? [
-            {
-              id: LinkPrerenderId,
-              rel: 'prerender',
-              href: `${route}/${HtmlRendererRoute}`,
-            },
-          ]
-        : [],
       script: [
         {
           id: PayloadScriptId,

@@ -1,11 +1,11 @@
 import { defineComponent } from 'vue'
 import type { OgImagePayload } from '../../types'
-import { defineOgImage } from '#imports'
+import { defineOgImageDynamic } from '#imports'
 
 export default defineComponent<OgImagePayload>({
-  name: 'OgImage',
+  name: 'OgImageDynamic',
   setup(_, { attrs }) {
-    defineOgImage(attrs)
+    defineOgImageDynamic(attrs)
     return () => null
   },
 })

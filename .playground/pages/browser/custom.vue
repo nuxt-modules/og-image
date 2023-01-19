@@ -1,19 +1,9 @@
 <script setup lang="ts">
-import {defineOgImageScreenshot} from "#imports";
-
 definePageMeta({
   title: 'About',
   description: 'My description',
   image: 'https://example.com/image.jpg',
 })
-//
-// defineOgImageScreenshot({
-//   selector: '.custom-screenshot',
-//   width: 2000,
-//   height: 1000,
-//   mask: '.hidden-element',
-//   delay: 2000,
-// })
 
 const counter = ref(0)
 const increment = () => {

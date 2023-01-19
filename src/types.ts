@@ -1,3 +1,5 @@
+import type { ModuleOptions } from './module'
+
 export interface ScreenshotOptions {
   colorScheme?: 'dark' | 'light'
   selector?: string
@@ -21,7 +23,9 @@ export interface ScreenshotOptions {
 }
 
 export interface OgImagePayload extends Partial<ScreenshotOptions> {
-  runtime?: boolean
+  provider?: 'browser' | 'satori'
+
+  prerender?: boolean
   title?: string
   description?: string
   component?: string
@@ -29,23 +33,25 @@ export interface OgImagePayload extends Partial<ScreenshotOptions> {
   [key: string]: any
 }
 
-export type OgImageScreenshotPayload = Omit<OgImagePayload, 'component' | 'runtime'>
-
-export interface OgImageRouteEntry {
-  route: string
-  screenshotPath: string
-  routeRules: string
-  fileName: string
-  absoluteUrl: string
-  outputPath: string
-
-  linkingHtml: string
-  payload: OgImageScreenshotPayload | OgImagePayload
+export interface Provider {
+  name: 'browser' | 'satori'
+  createSvg: (path: string) => Promise<string>
+  createPng: (path: string) => Promise<Buffer>
 }
+
+export type OgImageScreenshotPayload = Omit<OgImagePayload, 'component'>
 
 declare module 'nitropack' {
   interface NitroRouteRules {
-    ogImage?: 'screenshot' | string | false
-    ogImagePayload?: Record<string, any>
+    ogImage?: false | OgImageScreenshotPayload | OgImagePayload
   }
+}
+
+export interface PlaygroundServerFunctions {
+  openInEditor(filepath: string): void
+  getConfig(): ModuleOptions
+}
+
+export interface PlaygroundClientFunctions {
+  refresh(type: string): void
 }

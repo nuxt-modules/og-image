@@ -10,7 +10,7 @@
 
 
 <p align="center">
-Generate dynamic social share images for you Nuxt 3 app.
+Enlightened OG Image generation for Nuxt 3.
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@ Generate dynamic social share images for you Nuxt 3 app.
 <tbody>
 <td align="center">
 <img width="800" height="0" /><br>
-<i>Status:</i> Early Access</b> <br>
+<i>Status:</i> v1 Released</b> <br>
 <sup> Please report any issues 🐛</sup><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="800" height="0" />
@@ -32,40 +32,25 @@ Generate dynamic social share images for you Nuxt 3 app.
 
 ## Features
 
-- 🧙 Pre-render `og:image`'s for your entire site in minutes with minimal config
-- 🎨 Using a Vue component (powered by Nuxt Islands)
+## 🎨 Designer - Satori & Browser
+
+- 🎨 Design your `og:image` in the Og Image Playground with full HMR
+- Dynamically serve on the edge using Satori
+- Prerender static images using Satori or the browser
+
+## Screenshots - Browser
+
 - 📸 OR just generate screenshots
 - ⚙️ Screenshot options to hide elements, wait for animations, and more
 
-🔨 Edge rendering is coming soon!
 
 ## Install
-
-⚠️ This module is in early access. Please report any issues you find.
 
 ```bash
 # Install module
 npm install --save-dev nuxt-og-image
 # Using yarn
 yarn add --dev nuxt-og-image
-```
-
-If you don't have a chromium binary installed on your system, run `npx playwright install`.
-
-### CI Build
-
-If you are using this module in a CI context and the images aren't being generated,
-you should may need to install a chromium binary. You can do this by running `npx playwright install` or
-`npm install playwright`.
-
-_package.json_
-
-```json
-{
-  "scripts": {
-    "build": "npx playwright install && nuxt build"
-  }
-}
 ```
 
 ## Setup
@@ -99,7 +84,7 @@ export default defineNuxtConfig({
 })
 ```
 
-### Pre-render routes
+### Prerender routes
 
 While the module is in early access, only pre-rendered routes are supported.
 
@@ -134,6 +119,26 @@ defineOgImageScreenshot()
   </div>
 </template>
 ```
+
+
+If you don't have a chromium binary installed on your system, run `npx playwright install`.
+
+### CI Build
+
+If you are using this module in a CI context and the images aren't being generated,
+you should may need to install a chromium binary. You can do this by running `npx playwright install` or
+`npm install playwright`.
+
+_package.json_
+
+```json
+{
+  "scripts": {
+    "build": "npx playwright install && nuxt build"
+  }
+}
+```
+
 
 ## Generating Template Images
 
