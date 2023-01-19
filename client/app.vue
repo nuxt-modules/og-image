@@ -174,7 +174,7 @@ const hasSatori = computed(() => payload.value?.provider === 'satori')
         </div>
         <ImageLoader
           v-else
-          :src="`${absoluteBasePath}/__og_image__/html?timestamp=${refreshTime}`"
+          :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
           :width="width"
           :height="height"
           description="[PNG] Generated in %sms using browser screenshot."
