@@ -25,6 +25,6 @@ export default defineEventHandler(async (e) => {
     height: 100%;
   }
 </style>
-<title>Og Image Playground</title>
+<title>OG Image Playground</title>
 <iframe src="${useHostname(e)}/__nuxt_og_image__/client/?&path=${withoutTrailingSlash(path.replace('__og_image__', ''))}"></iframe>`
 })

@@ -1,5 +1,5 @@
 import { defineEventHandler, setHeader } from 'h3'
-import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
+import {joinURL, parseURL, withBase, withoutTrailingSlash} from 'ufo'
 import { fetchPayload, useHostname } from '../../utils'
 import { useProvider } from '#nuxt-og-image/provider'
 
@@ -29,5 +29,5 @@ export default defineEventHandler(async (e) => {
   }
 
   const provider = await useProvider(providerName!)
-  return provider.createPng(withBase(`${basePath}/__og_image__/html`, useHostname(e)))
+  return provider.createPng(withBase(joinURL(basePath, '/__og_image__/html'), useHostname(e)))
 })

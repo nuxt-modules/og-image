@@ -7,7 +7,8 @@ definePageMeta({
 </script>
 <template>
 <div class="px-5 my-10">
-  <h1 class="text-3xl mb-5">Nuxt Og Image Test</h1>
+  <OgImageStatic />
+  <h1 class="text-3xl mb-5">Nuxt OG Image Test</h1>
   <div class="mb-10">
   <h2 class="text-lg font-bold mb-3">Browser Screenshot</h2>
     <div><NuxtLink to="/browser/custom">custom</NuxtLink></div>
