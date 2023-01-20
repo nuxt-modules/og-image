@@ -6,6 +6,7 @@ import type { Provider } from '../../../../types'
 import { parseFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'
+import flex from './plugins/flex'
 import { satoriFonts, satoriOptions } from '#nuxt-og-image/config'
 
 export default <Provider> {
@@ -33,6 +34,7 @@ export default <Provider> {
       // @todo add user land support
       twClasses(url),
       imageSrc(url),
+      flex(url),
     ])
     return satoriTree
   },

@@ -16,6 +16,17 @@ const theme = computed(() => props.themeColor || '#dbf4ff')
     <p :style="{ fontSize: '60px', fontWeight: 'bold', marginBottom: '20px' }">{{ title }}</p>
     <p :style="{ fontSize: '26px', }">{{ description }}</p>
   </div>
+  <div>
+    <div>
+      <p>a</p>
+      <p>
+        b
+      </p>
+      <h1>
+        c
+      </h1>
+    </div>
+  </div>
   <div :style="{ position: 'absolute', top: '30px', left: '30px', fontSize: '15px', }">{{ appName }}</div>
 </div>
 </template>
