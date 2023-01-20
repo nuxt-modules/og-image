@@ -10,6 +10,7 @@ const hostname = window.location.host as string
 const host = `${window.location.protocol}//${hostname}`
 const path = ref(useRoute().query.path || '/about')
 const optionsPath = joinURL(path.value as string, '__og_image__/options')
+const vnodePath = joinURL(path.value as string, '__og_image__/vnode')
 
 function refreshSources() {
   refreshTime.value = Date.now()
@@ -76,7 +77,6 @@ const hasSatori = computed(() => options.value?.provider === 'satori')
             <div class="flex items-center space-x-1 mb-1">
               <span>{{ path }}</span>
             </div>
-            <a :href="optionsPath" target="_blank" class="underline text-xs">View options</a>
           </div>
           <div class="text-sm">
             <div class="text-xs opacity-60  mb-1">
@@ -95,6 +95,15 @@ const hasSatori = computed(() => options.value?.provider === 'satori')
               <span class="logos-vue" />
               <span>{{ options?.component }}</span>
             </div>
+          </div>
+          <div class="text-sm">
+            <div class="text-xs opacity-60  mb-1">
+              Debug
+            </div>
+            <div class="mb-1">
+              <a :href="optionsPath" target="_blank" class="underline text-xs">Options</a>
+            </div>
+            <div><a :href="vnodePath" target="_blank" class="underline text-xs">vNodes</a></div>
           </div>
         </div>
       </div>

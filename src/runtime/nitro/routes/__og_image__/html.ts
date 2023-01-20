@@ -30,6 +30,19 @@ export default defineEventHandler(async (e) => {
         innerHTML: 'body { font-family: \'Inter\', sans-serif; }',
       },
     ],
+    script: [
+      {
+        src: 'https://cdn.tailwindcss.com',
+      },
+      // @todo merge with users tailwind
+      {
+        innerHTML: `tailwind.config = {
+  corePlugins: {
+    preflight: false,
+  }
+}`,
+      },
+    ],
     link: [
       {
         // reset css to match svg output

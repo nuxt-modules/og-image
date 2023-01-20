@@ -21,5 +21,7 @@ useHead({
   <h2 class="text-lg font-bold mb-3">Satori</h2>
   <div><NuxtLink to="/satori/static">static</NuxtLink></div>
   <div><NuxtLink to="/satori/static">dynamic</NuxtLink></div>
+  <div><NuxtLink to="/satori/image">image</NuxtLink></div>
+  <div><NuxtLink to="/satori/tailwind">tailwind</NuxtLink></div>
 </div>
 </template>

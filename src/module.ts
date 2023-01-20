@@ -121,7 +121,7 @@ export {}
       references.push({ path: resolve(nuxt.options.buildDir, 'nuxt-og-image.d.ts') })
     })
 
-    ;['html', 'options', 'svg', 'og.png']
+    ;['html', 'options', 'svg', 'vnode', 'og.png']
       .forEach((type) => {
         addServerHandler({
           handler: resolve(`./runtime/nitro/routes/__og_image__/${type}`),

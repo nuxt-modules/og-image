@@ -1,3 +1,4 @@
+import type { html } from 'satori-html'
 import type { ModuleOptions } from './module'
 
 export interface ScreenshotOptions {
@@ -37,6 +38,7 @@ export interface Provider {
   name: 'browser' | 'satori'
   createSvg: (path: string, options: OgImageOptions) => Promise<string>
   createPng: (path: string, options: OgImageOptions) => Promise<Buffer>
+  createVNode: (path: string, options: OgImageOptions) => Promise<VNode>
 }
 
 export type OgImageScreenshotOptions = Omit<OgImageOptions, 'component'>
@@ -48,4 +50,11 @@ export interface PlaygroundServerFunctions {
 
 export interface PlaygroundClientFunctions {
   refresh(type: string): void
+}
+
+export type VNode = ReturnType<typeof html>
+
+export interface SatoriTransformer {
+  filter: (node: VNode) => boolean
+  transform: (node: VNode) => Promise<void>
 }
