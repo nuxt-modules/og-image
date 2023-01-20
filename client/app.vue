@@ -17,15 +17,9 @@ function refreshSources() {
 }
 
 const clientFunctions: PlaygroundClientFunctions = {
-  refresh(type) {
-    // @todo this is pretty hacky, we should validate the file being changed is one we care about, not a big deal though
-    // handle page changes
-    if (type.startsWith('pages'))
-      refreshSources()
-
-    // handle component changes
-    if (type.includes('/islands/') || type.endsWith('.island.vue'))
-      refreshSources()
+  refresh() {
+    // @todo this is pretty hacky, we should validate the file being changed is one we care about
+    refreshSources()
   },
 }
 
