@@ -1,7 +1,7 @@
 import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
-import { defineEventHandler, sendRedirect } from 'h3'
+import { defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { fetchOptions, renderIsland, useHostname } from '../../utils'
 import { defaults } from '#nuxt-og-image/config'
 
@@ -12,6 +12,7 @@ export default defineEventHandler(async (e) => {
 
   const basePath = withoutTrailingSlash(path.replace('__og_image__/html', ''))
 
+  const scale = getQuery(e).scale
   // extract the options from the original path
   const options = await fetchOptions(basePath)
 
@@ -27,8 +28,17 @@ export default defineEventHandler(async (e) => {
   head.push({
     style: [
       {
-        innerHTML: 'body { font-family: \'Inter\', sans-serif; }',
+        innerHTML: 'body { font-family: \'Inter\', sans-serif;  }',
       },
+      scale
+        ? {
+            innerHTML: `body {
+    transform: scale(${scale});
+    transform-origin: top left;
+    max-height: 100vh;
+`,
+          }
+        : {},
     ],
     script: [
       {

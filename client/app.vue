@@ -41,153 +41,70 @@ const { data: options } = await useAsyncData<OgImageOptions>(() => {
   })
 })
 
+const containerWidth = ref<number|null>(null)
+
 const absoluteBasePath = `${host}${path.value === '/' ? '' : path.value}`
 const OgImageTemplate = computed(() => resolveComponent(options.value?.component || 'OgImageTemplate'))
 const hasSatori = computed(() => options.value?.provider === 'satori')
 </script>
 
 <template>
-  <div class="2xl:flex-row flex-col flex h-screen">
-    <header class="dark:(bg-dark-900 text-light) 2xl:(px-10 py-7) px-5 py-5 bg-light-200 text-dark-800 flex flex-col justify-between 2xl:h-full">
-      <div>
-        <div class="w-full flex items-start  justify-between space-x-5 2xl:mb-8 mb-3">
-          <h1 class="text-sm">
-            <div>OG Image Playground</div>
-            <a href="https://github.com/harlan-zw/nuxt-og-image" class="underline text-xs opacity-50">nuxt-og-image</a>
-          </h1>
-          <NDarkToggle>
-            <template #default="{ toggle }">
-              <NButton n="borderless lg m-0" p-0 op50 @click="toggle">
-                <NIcon icon="dark:carbon-moon carbon-sun" />
-              </NButton>
-            </template>
-          </NDarkToggle>
+<div class="2xl:flex-row flex-col flex h-screen">
+  <header class="dark:(bg-dark-900 text-light) 2xl:(px-10 py-7) px-5 py-5 bg-light-200 text-dark-800 flex flex-col justify-between 2xl:h-full">
+    <div>
+      <div class="w-full flex items-start  justify-between space-x-5 2xl:mb-8 mb-3">
+        <h1 class="text-sm">
+          <div>OG Image Playground</div>
+          <a href="https://github.com/harlan-zw/nuxt-og-image" class="underline text-xs opacity-50">nuxt-og-image</a>
+        </h1>
+        <NDarkToggle>
+          <template #default="{ toggle }">
+          <NButton n="borderless lg m-0" p-0 op50 @click="toggle">
+            <NIcon icon="dark:carbon-moon carbon-sun" />
+          </NButton>
+          </template>
+        </NDarkToggle>
+      </div>
+      <div class="2xl:(block space-y-4 space-x-0) space-x-6 flex justify-center">
+        <div class="text-sm">
+          <div class="text-xs opacity-60  mb-1">
+            Path
+          </div>
+          <div class="flex items-center space-x-1 mb-1">
+            <span>{{ path }}</span>
+          </div>
         </div>
-        <div class="2xl:(block space-y-4 space-x-0) space-x-6 flex justify-center">
-          <div class="text-sm">
-            <div class="text-xs opacity-60  mb-1">
-              Path
-            </div>
-            <div class="flex items-center space-x-1 mb-1">
-              <span>{{ path }}</span>
-            </div>
+        <div class="text-sm">
+          <div class="text-xs opacity-60  mb-1">
+            Provider
           </div>
-          <div class="text-sm">
-            <div class="text-xs opacity-60  mb-1">
-              Provider
-            </div>
-            <div class="flex items-center space-x-1">
-              <span :class="hasSatori ? 'logos-vercel-icon' : 'logos-chrome'" />
-              <span>{{ hasSatori ? 'Satori' : 'Browser' }}</span>
-            </div>
+          <div class="flex items-center space-x-1">
+            <span :class="hasSatori ? 'logos-vercel-icon' : 'logos-chrome'" />
+            <span>{{ hasSatori ? 'Satori' : 'Browser' }}</span>
           </div>
-          <div v-if="options?.component" class="text-sm">
-            <div class="text-xs opacity-60  mb-1">
-              Component
-            </div>
-            <div class="flex items-center space-x-1">
-              <span class="logos-vue" />
-              <span>{{ options?.component }}</span>
-            </div>
+        </div>
+        <div v-if="options?.component" class="text-sm">
+          <div class="text-xs opacity-60  mb-1">
+            Component
           </div>
-          <div class="text-sm">
-            <div class="text-xs opacity-60  mb-1">
-              Debug
-            </div>
-            <div class="mb-1">
-              <a :href="optionsPath" target="_blank" class="underline text-xs">Options</a>
-            </div>
-            <div><a :href="vnodePath" target="_blank" class="underline text-xs">vNodes</a></div>
+          <div class="flex items-center space-x-1">
+            <span class="logos-vue" />
+            <span>{{ options?.component }}</span>
           </div>
+        </div>
+        <div class="text-sm">
+          <div class="text-xs opacity-60  mb-1">
+            Debug
+          </div>
+          <div class="mb-1">
+            <a :href="optionsPath" target="_blank" class="underline text-xs">Options</a>
+          </div>
+          <div><a :href="vnodePath" target="_blank" class="underline text-xs">vNodes</a></div>
         </div>
       </div>
-      <nav class="text-sm hidden 2xl:block" role="navigation">
-        <ul class="mb-5">
-          <li class="mb-2">
-            <a href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">Docs</a>
-          </li>
-          <li>
-            <a href="https://github.com/sponsors/harlan-zw">Sponsor</a>
-          </li>
-        </ul>
-        <a class="hidden 2xl:flex items-center" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
-          <div class="flex items-center">
-            <img src="https://avatars.githubusercontent.com/u/5326365?v=4" class="rounded-full h-7 w-7 mr-2">
-            <div class="flex flex-col">
-              <span class="opacity-60 text-xs">Created by</span>
-              <h1 class="text-sm opacity-80">harlanzw</h1>
-            </div>
-          </div>
-        </a>
-      </nav>
-    </header>
-    <main class="mx-auto flex-1 w-full py-7 ">
-      <div class="max-h-full flex px-2 sm:px-0 2xl:(w-1205px mx-auto) mx-3">
-        <div v-if="hasSatori" class="flex flex-col w-full">
-          <TabGroup>
-            <TabList class="p-1 dark:(bg-dark-900/20 border-none) border-2 border-dark-900/30 rounded-xl flex space-x-5">
-              <Tab
-                v-for="category in ['HTML - Vue', 'SVG - Satori', 'PNG - Satori + Resvg']"
-                :key="category"
-                v-slot="{ selected }"
-                as="template"
-              >
-                <button
-                  class="w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-dark-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
-                  :class="[
-                    selected
-                      ? 'text-dark-200 bg-light-900 dark:(bg-dark-300 text-light-100) shadow'
-                      : 'dark:(bg-dark-800 text-light-900) text-blue-900/70 hover:(bg-blue-200)',
-                  ]"
-                >
-                  {{ category }}
-                </button>
-              </Tab>
-            </TabList>
-
-            <TabPanels class="mt-2 flex tab-panels">
-              <TabPanel>
-                <IFrameLoader
-                  :src="`${absoluteBasePath}/__og_image__/html?timestamp=${refreshTime}`"
-                  :width="width"
-                  :height="height"
-                  description="[HTML] Generated in %sms."
-                  @refresh="refreshSources"
-                />
-              </TabPanel>
-              <TabPanel>
-                <ImageLoader
-                  :src="`${absoluteBasePath}/__og_image__/svg?timestamp=${refreshTime}`"
-                  :width="width"
-                  :height="height"
-                  description="[SVG] Generated in %sms using Satori."
-                  @refresh="refreshSources"
-                />
-              </TabPanel>
-              <TabPanel>
-                <ImageLoader
-                  :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
-                  :width="width"
-                  :height="height"
-                  description="[PNG] Generated in %sms using Satori & Resvg."
-                  @refresh="refreshSources"
-                />
-              </TabPanel>
-            </TabPanels>
-          </TabGroup>
-        </div>
-        <ImageLoader
-          v-else
-          :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
-          :width="width"
-          :height="height"
-          description="[PNG] Generated in %sms using browser screenshot."
-          @refresh="refreshSources"
-        />
-      </div>
-    </main>
-    <footer class="block 2xl:hidden space-x-5 flex justify-center items-center pb-7">
-      <ul class="flex space-x-5">
+    </div>
+    <nav class="text-sm hidden 2xl:block" role="navigation">
+      <ul class="mb-5">
         <li class="mb-2">
           <a href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">Docs</a>
         </li>
@@ -195,7 +112,7 @@ const hasSatori = computed(() => options.value?.provider === 'satori')
           <a href="https://github.com/sponsors/harlan-zw">Sponsor</a>
         </li>
       </ul>
-      <a class="flex items-center" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
+      <a class="hidden 2xl:flex items-center" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
         <div class="flex items-center">
           <img src="https://avatars.githubusercontent.com/u/5326365?v=4" class="rounded-full h-7 w-7 mr-2">
           <div class="flex flex-col">
@@ -204,8 +121,97 @@ const hasSatori = computed(() => options.value?.provider === 'satori')
           </div>
         </div>
       </a>
-    </footer>
-  </div>
+    </nav>
+  </header>
+  <main class="mx-auto flex-1 w-full py-7 ">
+    <div class="max-h-full flex px-2 sm:px-0 2xl:(w-1205px mx-auto) mx-3 transition-all" :style="containerWidth ? { width: `${containerWidth}px` } : {}">
+      <div v-if="hasSatori" class="flex flex-col w-full">
+        <TabGroup>
+          <TabList class="p-1 dark:(bg-dark-900/20 border-none) border-2 border-dark-900/30 rounded-xl flex space-x-5">
+            <Tab
+              v-for="category in ['HTML - Vue', 'SVG - Satori', 'PNG - Satori + Resvg']"
+              :key="category"
+              v-slot="{ selected }"
+              as="template"
+            >
+              <button
+                class="w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-dark-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2"
+                :class="[
+                    selected
+                      ? 'text-dark-200 bg-light-900 dark:(bg-dark-300 text-light-100) shadow'
+                      : 'dark:(bg-dark-800 text-light-900) text-blue-900/70 hover:(bg-blue-200)',
+                  ]"
+              >
+                {{ category }}
+              </button>
+            </Tab>
+          </TabList>
+
+          <TabPanels class="mt-2 flex tab-panels">
+            <TabPanel>
+              <IFrameLoader
+                :src="`${absoluteBasePath}/__og_image__/html?timestamp=${refreshTime}&scale=${!containerWidth ? 1 : (containerWidth - 12) / 1200}`"
+                :width="width"
+                :height="height"
+                description="[HTML] Generated in %sms."
+                @refresh="refreshSources"
+              />
+            </TabPanel>
+            <TabPanel>
+              <ImageLoader
+                :src="`${absoluteBasePath}/__og_image__/svg?timestamp=${refreshTime}`"
+                :width="width"
+                :height="height"
+                description="[SVG] Generated in %sms using Satori."
+                @refresh="refreshSources"
+              />
+            </TabPanel>
+            <TabPanel>
+              <ImageLoader
+                :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
+                :width="width"
+                :height="height"
+                description="[PNG] Generated in %sms using Satori & Resvg."
+                @refresh="refreshSources"
+              />
+            </TabPanel>
+          </TabPanels>
+        </TabGroup>
+      </div>
+      <ImageLoader
+        v-else
+        :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
+        :width="width"
+        :height="height"
+        description="[PNG] Generated in %sms using browser screenshot."
+        @refresh="refreshSources"
+      />
+    </div>
+    <div class="flex items-center justify-center mt-5">
+      <NButton v-if="containerWidth !== 504" @click="containerWidth = 504">Small</NButton>
+      <NButton v-if="containerWidth !== null" @click="containerWidth = null">Reset width</NButton>
+    </div>
+  </main>
+  <footer class="block 2xl:hidden space-x-5 flex justify-center items-center pb-7">
+    <ul class="flex space-x-5">
+      <li class="mb-2">
+        <a href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">Docs</a>
+      </li>
+      <li>
+        <a href="https://github.com/sponsors/harlan-zw">Sponsor</a>
+      </li>
+    </ul>
+    <a class="flex items-center" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
+      <div class="flex items-center">
+        <img src="https://avatars.githubusercontent.com/u/5326365?v=4" class="rounded-full h-7 w-7 mr-2">
+        <div class="flex flex-col">
+          <span class="opacity-60 text-xs">Created by</span>
+          <h1 class="text-sm opacity-80">harlanzw</h1>
+        </div>
+      </div>
+    </a>
+  </footer>
+</div>
 </template>
 
 <style>
