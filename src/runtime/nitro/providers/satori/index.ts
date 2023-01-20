@@ -2,11 +2,13 @@ import { html as convertHtmlToSatori } from 'satori-html'
 import satori from 'satori'
 import { parseURL } from 'ufo'
 import { Resvg } from '@resvg/resvg-js'
+import twemoji from 'twemoji'
 import type { Provider } from '../../../../types'
 import { parseFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'
 import flex from './plugins/flex'
+import emojis from './plugins/emojis'
 import { satoriFonts, satoriOptions } from '#nuxt-og-image/config'
 
 export default <Provider> {
@@ -24,14 +26,20 @@ export default <Provider> {
     // get the body content of the html
     const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1]
 
+    const emojiedFont = twemoji.parse(body!, {
+      folder: 'svg',
+      ext: '.svg',
+    })
+
     satoriOptions.fonts = satoriOptions.fonts || []
     for (const font of satoriFonts)
       satoriOptions.fonts.push(await parseFont(url, font))
     // scan html for all css links and load them
-    const satoriTree = convertHtmlToSatori(body!)
+    const satoriTree = convertHtmlToSatori(emojiedFont!)
     // process the tree
     await walkSatoriTree(url, satoriTree, [
       // @todo add user land support
+      emojis(url),
       twClasses(url),
       imageSrc(url),
       flex(url),

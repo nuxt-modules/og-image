@@ -36,9 +36,21 @@ export default defineEventHandler(async (e) => {
     transform: scale(${scale});
     transform-origin: top left;
     max-height: 100vh;
+}
+img.emoji {
+   height: 1em;
+   width: 1em;
+   margin: 0 .05em 0 .1em;
+   vertical-align: -0.1em;
+}
 `,
           }
         : {},
+    ],
+    meta: [
+      {
+        charset: 'utf-8',
+      },
     ],
     script: [
       {

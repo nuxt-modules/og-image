@@ -26,11 +26,13 @@ export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: Sator
     return
   // walk tree of nodes
   for (const child of node.props.children || []) {
-    for (const plugin of plugins) {
-      if (plugin.filter(child))
-        await plugin.transform(child, url)
+    if (child) {
+      for (const plugin of plugins) {
+        if (plugin.filter(child))
+          await plugin.transform(child, url)
+      }
+      await walkSatoriTree(url, child, plugins)
     }
-    await walkSatoriTree(url, child, plugins)
   }
 }
 
