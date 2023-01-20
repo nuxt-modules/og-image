@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import { getQuery } from 'h3'
 import { defineCachedEventHandler } from '#internal/nitro'
 
@@ -20,4 +21,9 @@ export default defineCachedEventHandler(async (e) => {
   if (!resource)
     return
   return resource[1]
+}, {
+  getKey: (e: H3Event) => {
+    const { name, weight } = getQuery(e)
+    return `nuxt-og-image:font-url:${name || 'Inter'}:${weight || 400}`
+  },
 })
