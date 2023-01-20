@@ -72,7 +72,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // default font is inter
     if (!config.fonts.length)
-      config.fonts.push('Inter:400', 'Inter:700')
+      config.fonts = ['Inter:400', 'Inter:700']
 
     const distResolve = (p: string) => {
       const cwd = resolve('.')

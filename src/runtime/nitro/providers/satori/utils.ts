@@ -18,13 +18,13 @@ export async function loadFont(url: ParsedURL, font: string) {
   const storageKey = `nuxt-og-image:font:${font}`
   const hasStoredFont = await useStorage().hasItem(storageKey)
   if (!hasStoredFont) {
-    const res = await fetch(fontUrl)
-    // create arraybuffer
-    data = await res.arrayBuffer()
+    data = await $fetch<ArrayBuffer>(fontUrl, {
+      responseType: 'arrayBuffer',
+    })
     await useStorage().setItem(storageKey, data)
   }
   else {
-    data = await useStorage().getItem(storageKey)
+    data = await useStorage().getItem<ArrayBuffer>(storageKey)
   }
   // convert data to string
   return (cachedFonts[font] = { name, weight, data, style: 'normal' })
