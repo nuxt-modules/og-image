@@ -34,7 +34,7 @@ export interface ModuleOptions {
   host: string
   defaults: OgImageOptions
   experimentalNitroBrowser: boolean
-  satoriFonts: Array<Partial<SatoriOptions['fonts'][number]> & { publicPath: string }>
+  fonts: `${string}:${number}`[]
   satoriOptions: Partial<SatoriOptions>
   forcePrerender: boolean
 }
@@ -63,25 +63,16 @@ export default defineNuxtModule<ModuleOptions>({
         width: 1200,
         height: 630,
       },
-      satoriFonts: [
-        {
-          name: 'Inter',
-          weight: 400,
-          style: 'normal',
-          publicPath: '/inter-latin-ext-400-normal.woff',
-        },
-        {
-          name: 'Inter',
-          weight: 700,
-          style: 'normal',
-          publicPath: '/inter-latin-ext-700-normal.woff',
-        },
-      ],
+      fonts: [],
       satoriOptions: {},
     }
   },
   async setup(config, nuxt) {
     const { resolve } = createResolver(import.meta.url)
+
+    // default font is inter
+    if (!config.fonts.length)
+      config.fonts.push('Inter:400', 'Inter:700')
 
     const distResolve = (p: string) => {
       const cwd = resolve('.')
@@ -127,6 +118,11 @@ export {}
           handler: resolve(`./runtime/nitro/routes/__og_image__/${type}`),
         })
       })
+
+    addServerHandler({
+      route: '/api/og-image-font',
+      handler: resolve('./runtime/nitro/routes/__og_image__/font'),
+    })
 
     // Setup playground. Only available in development
     if (nuxt.options.dev) {
@@ -184,9 +180,6 @@ export {}
         inline: [runtimeDir],
       })
 
-      // add satori fonts
-      nitroConfig.publicAssets = nitroConfig.publicAssets || []
-      nitroConfig.publicAssets.push({ dir: resolve('./runtime/public'), maxAge: 31536000 })
       nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
       import satori from '${runtimeDir}/nitro/providers/satori'

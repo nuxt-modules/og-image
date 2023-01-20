@@ -4,12 +4,12 @@ import { parseURL } from 'ufo'
 import { Resvg } from '@resvg/resvg-js'
 import twemoji from 'twemoji'
 import type { Provider } from '../../../../types'
-import { parseFont, walkSatoriTree } from './utils'
+import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'
 import flex from './plugins/flex'
 import emojis from './plugins/emojis'
-import { satoriFonts, satoriOptions } from '#nuxt-og-image/config'
+import { fonts, satoriOptions } from '#nuxt-og-image/config'
 
 export default <Provider> {
   name: 'satori',
@@ -32,8 +32,8 @@ export default <Provider> {
     })
 
     satoriOptions.fonts = satoriOptions.fonts || []
-    for (const font of satoriFonts)
-      satoriOptions.fonts.push(await parseFont(url, font))
+    for (const font of fonts)
+      satoriOptions.fonts.push(await loadFont(url, font))
     // scan html for all css links and load them
     const satoriTree = convertHtmlToSatori(emojiedFont!)
     // process the tree

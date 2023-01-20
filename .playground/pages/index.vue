@@ -11,7 +11,7 @@ useHead({
 </script>
 <template>
 <div class="px-5 my-10">
-  <OgImageStatic description="My desc" theme-color="#b5ffd6" />
+  <OgImageStatic description="My description of the home page." theme-color="#b5ffd6" />
   <h1 class="text-3xl mb-5">Nuxt OG Image Test</h1>
   <div class="mb-10">
   <h2 class="text-lg font-bold mb-3">Browser Screenshot</h2>

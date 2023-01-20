@@ -1,24 +1,33 @@
-import { fileURLToPath } from 'node:url'
-import { promises as fsp } from 'node:fs'
-import type { SatoriOptions } from 'satori'
-import { dirname, resolve } from 'pathe'
 import type { ParsedURL } from 'ufo'
-import { withBase } from 'ufo'
 import type { SatoriTransformer, VNode } from '../../../../types'
-import { getAsset } from '#internal/nitro/virtual/public-assets'
+import { useStorage } from '#internal/nitro'
 
-export async function parseFont(url: ParsedURL, font: SatoriOptions['fonts'][number] & { publicPath?: string }) {
-  if (typeof font.publicPath === 'string') {
-    const file = getAsset(font.publicPath)
-    if (file) {
-      const serverDir = dirname(fileURLToPath(import.meta.url))
-      font.data = await fsp.readFile(resolve(serverDir, file.path))
-    }
-    // fallback to fetch
-    if (!font.data)
-      font.data = await (await $fetch<Blob>(withBase(font.publicPath, `${url.protocol}//${url.host}`))).arrayBuffer()
+const cachedFonts: Record<string, any> = {}
+
+export async function loadFont(url: ParsedURL, font: string) {
+  if (cachedFonts[font])
+    return cachedFonts[font]
+  const [name, weight] = font.split(':')
+
+  const fontUrl = await $fetch<string>('/api/og-image-font', {
+    query: { name, weight },
+  })
+
+  let data
+  // @todo allow custom cache config
+  const storageKey = `nuxt-og-image:font:${font}`
+  const hasStoredFont = await useStorage().hasItem(storageKey)
+  if (!hasStoredFont) {
+    const res = await fetch(fontUrl)
+    // create arraybuffer
+    data = await res.arrayBuffer()
+    await useStorage().setItem(storageKey, data)
   }
-  return font
+  else {
+    data = await useStorage().getItem(storageKey)
+  }
+  // convert data to string
+  return (cachedFonts[font] = { name, weight, data, style: 'normal' })
 }
 
 export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: SatoriTransformer[]) {

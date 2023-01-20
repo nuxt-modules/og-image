@@ -3,7 +3,7 @@ import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { fetchOptions, renderIsland, useHostname } from '../../utils'
-import { defaults } from '#nuxt-og-image/config'
+import { defaults, fonts } from '#nuxt-og-image/config'
 
 export default defineEventHandler(async (e) => {
   const path = parseURL(e.path).pathname
@@ -28,7 +28,8 @@ export default defineEventHandler(async (e) => {
   head.push({
     style: [
       {
-        innerHTML: 'body { font-family: \'Inter\', sans-serif;  }',
+        // default font is the first font family
+        innerHTML: `body { font-family: \'${fonts[0].split(':')[0].replace('+', ' ')}\', sans-serif;  }`,
       },
       scale
         ? {
@@ -71,10 +72,14 @@ img.emoji {
         href: 'https://cdn.jsdelivr.net/npm/gardevoir',
         rel: 'stylesheet',
       },
-      {
-        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
-        rel: 'stylesheet',
-      },
+      // have to add each weight as their own stylesheet
+      ...fonts.map((font) => {
+        const [name, weight] = font.split(':')
+        return {
+          href: `https://fonts.googleapis.com/css2?family=${name}:wght@${weight}&display=swap`,
+          rel: 'stylesheet',
+        }
+      }),
     ],
   })
   const headChunk = await renderSSRHead(head)
