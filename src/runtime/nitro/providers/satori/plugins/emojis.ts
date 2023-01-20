@@ -5,7 +5,7 @@ export default defineSatoriTransformer(() => {
   return {
     filter: (node: VNode) =>
       node.type === 'img'
-      && node.props?.class.includes('emoji'),
+      && node.props?.class?.includes('emoji'),
     transform: async (node: VNode) => {
       node.props.style = node.props.style || {}
       node.props.style.height = '1em'

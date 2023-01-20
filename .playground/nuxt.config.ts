@@ -20,7 +20,6 @@ export default defineNuxtConfig({
 
   ogImage: {
     host: 'https://example.com',
-    fonts: ['Sofia+Sans:400', 'Sofia+Sans:700'],
     defaults: {
       component: 'BannerTemplate',
       appName: 'My App',

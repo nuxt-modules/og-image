@@ -6,8 +6,11 @@ import { defineCachedEventHandler } from '#internal/nitro'
 export default defineCachedEventHandler(async (e) => {
   const { name, weight } = getQuery(e)
 
+  if (!name || !weight)
+    return 'Provide a font name and weight'
+
   const css = await (
-    await $fetch(`https://fonts.googleapis.com/css2?family=${name || 'Inter'}:wght@${weight || 400}`, {
+    await $fetch(`https://fonts.googleapis.com/css2?family=${name}:wght@${weight}`, {
       headers: {
         // Make sure it returns TTF.
         'User-Agent':
@@ -23,7 +26,7 @@ export default defineCachedEventHandler(async (e) => {
   return resource[1]
 }, {
   getKey: (e: H3Event) => {
-    const { name, weight } = getQuery(e)
-    return `nuxt-og-image:font-url:${name || 'Inter'}:${weight || 400}`
+    const query = getQuery(e)
+    return `nuxt-og-image:font-url:${query.name}:${query.weight}`
   },
 })

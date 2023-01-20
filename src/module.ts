@@ -172,14 +172,19 @@ export {}
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
 
+    const fontDir = resolve('./runtime/public')
+    const publicDirs = [`${nuxt.options.rootDir}/public`, fontDir]
+
     // add config to app and nitro
-    exposeConfig('#nuxt-og-image/config', 'nuxt-og-image-config.mjs', config)
+    exposeConfig('#nuxt-og-image/config', 'nuxt-og-image-config.mjs', { ...config, publicDirs })
 
     nuxt.hooks.hook('nitro:config', (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {
         inline: [runtimeDir],
       })
 
+      nitroConfig.publicAssets = nitroConfig.publicAssets || []
+      nitroConfig.publicAssets.push({ dir: fontDir, maxAge: 31536000 })
       nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
       import satori from '${runtimeDir}/nitro/providers/satori'

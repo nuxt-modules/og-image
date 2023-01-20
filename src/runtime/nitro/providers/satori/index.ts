@@ -31,9 +31,6 @@ export default <Provider> {
       ext: '.svg',
     })
 
-    satoriOptions.fonts = satoriOptions.fonts || []
-    for (const font of fonts)
-      satoriOptions.fonts.push(await loadFont(url, font))
     // scan html for all css links and load them
     const satoriTree = convertHtmlToSatori(emojiedFont!)
     // process the tree
@@ -48,9 +45,17 @@ export default <Provider> {
   },
 
   createSvg: async function createSvg(baseUrl, options) {
+    const url = parseURL(baseUrl)
     const vnodes = await this.createVNode(baseUrl, options)
+
+    const satoriFonts = []
+    for (const font of fonts)
+      satoriFonts.push(await loadFont(url, font))
+
     return await satori(vnodes, {
       ...satoriOptions,
+      fonts: satoriFonts,
+      embedFont: true,
       width: options.width!,
       height: options.height!,
     })
