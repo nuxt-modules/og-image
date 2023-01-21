@@ -20,7 +20,7 @@ Enlightened OG Image generation for Nuxt 3.
 <tbody>
 <td align="center">
 <img width="800" height="0" /><br>
-<i>Status:</i> v1 Released</b> <br>
+<i>Status:</i> <a href="https://github.com/harlan-zw/nuxt-og-image/releases/tag/v1.0.0">v1 Released</a></b> <br>
 <sup> Please report any issues 🐛</sup><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="800" height="0" />
