@@ -1,11 +1,27 @@
-<script>
+<script setup>
 definePageMeta({
+  title: 'Home',
+  description: 'This is the home page',
   breadcrumbTitle: 'Home'
+})
+
+useHead({
+  title: 'Home',
 })
 </script>
 <template>
-  <h1>Hello world</h1>
-  <p>Welcome to my website</p>
-  <NuxtLink to="/about">about</NuxtLink>
-  <NuxtLink to="/secret">about</NuxtLink>
+<div class="px-5 my-10">
+  <OgImageStatic description="My description of the home page." theme-color="#b5ffd6" />
+  <h1 class="text-3xl mb-5">Nuxt OG Image Test</h1>
+  <div class="mb-10">
+  <h2 class="text-lg font-bold mb-3">Browser Screenshot</h2>
+    <div><NuxtLink to="/browser/custom">custom</NuxtLink></div>
+    <div><NuxtLink to="/browser/component">component</NuxtLink></div>
+  </div>
+  <h2 class="text-lg font-bold mb-3">Satori</h2>
+  <div><NuxtLink to="/satori/static">static</NuxtLink></div>
+  <div><NuxtLink to="/satori/static">dynamic</NuxtLink></div>
+  <div><NuxtLink to="/satori/image">image</NuxtLink></div>
+  <div><NuxtLink to="/satori/tailwind">tailwind</NuxtLink></div>
+</div>
 </template>

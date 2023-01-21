@@ -1,3 +1,6 @@
+import type { html } from 'satori-html'
+import type { ModuleOptions } from './module'
+
 export interface ScreenshotOptions {
   colorScheme?: 'dark' | 'light'
   selector?: string
@@ -20,8 +23,10 @@ export interface ScreenshotOptions {
   delay?: number
 }
 
-export interface OgImagePayload extends Partial<ScreenshotOptions> {
-  runtime?: boolean
+export interface OgImageOptions extends Partial<ScreenshotOptions> {
+  provider?: 'browser' | 'satori'
+
+  prerender?: boolean
   title?: string
   description?: string
   component?: string
@@ -29,23 +34,27 @@ export interface OgImagePayload extends Partial<ScreenshotOptions> {
   [key: string]: any
 }
 
-export type OgImageScreenshotPayload = Omit<OgImagePayload, 'component' | 'runtime'>
-
-export interface OgImageRouteEntry {
-  route: string
-  screenshotPath: string
-  routeRules: string
-  fileName: string
-  absoluteUrl: string
-  outputPath: string
-
-  linkingHtml: string
-  payload: OgImageScreenshotPayload | OgImagePayload
+export interface Provider {
+  name: 'browser' | 'satori'
+  createSvg: (path: string, options: OgImageOptions) => Promise<string>
+  createPng: (path: string, options: OgImageOptions) => Promise<Buffer>
+  createVNode: (path: string, options: OgImageOptions) => Promise<VNode>
 }
 
-declare module 'nitropack' {
-  interface NitroRouteRules {
-    ogImage?: 'screenshot' | string | false
-    ogImagePayload?: Record<string, any>
-  }
+export type OgImageScreenshotOptions = Omit<OgImageOptions, 'component'>
+
+export interface PlaygroundServerFunctions {
+  openInEditor(filepath: string): void
+  getConfig(): ModuleOptions
+}
+
+export interface PlaygroundClientFunctions {
+  refresh(type: string): void
+}
+
+export type VNode = ReturnType<typeof html>
+
+export interface SatoriTransformer {
+  filter: (node: VNode) => boolean
+  transform: (node: VNode) => Promise<void>
 }
