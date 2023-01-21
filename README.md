@@ -119,7 +119,7 @@ defineOgImageStatic()
 
 ### 2. View your `og:image`
 
-Appending `/__og_image__` to the end of the URL will shows you the playground for that pages `og:image`. This provides
+Appending `/__og_image__` to the end of the URL will show you the playground for that pages `og:image`. This provides
 a live preview of your `og:image` and allows you to edit it in real-time.
 
 For example, if your local site is hosted at `https://localhost:3000`, you can view your `og:image` at `https://localhost:3000/__og_image__`.
@@ -140,7 +140,7 @@ defineOgImageStatic({
 </script>
 ```
 
-Congrats, you've setup your first Satori `og:image`!
+Congrats, you've set up your first Satori `og:image`!
 
 ## Making your own Satori template
 
@@ -376,7 +376,7 @@ The width of the screenshot. Will be used to generate the `og:image:width` meta 
 - Default: `OgImageBasic`
 - Required: `true`
 
-The name of the component to use as the template. By default it uses OgImageBasic provided by the module.
+The name of the component to use as the template. By default, it uses OgImageBasic provided by the module.
 
 ### `provider`
 
