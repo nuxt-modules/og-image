@@ -35,9 +35,9 @@ Enlightened OG Image generation for Nuxt 3.
 ## Features
 
 - 🎨 Design your `og:image` in the Og Image Playground with full HMR
-- ▲ Blazing fast Satori provider: Tailwind classes, Google fonts, emojis
-- 🤖 Alternative Browser provider for painless, complex templates OR just generate screenshots
-- 📸 Feeling lazy? Just generate screenshots, hide elements, wait for animations, and more
+- ▲ Blazing fast Satori provider: Tailwind classes, Google fonts, emoji support and more!
+- 🤖 Browser provider: Supporting painless, complex templates
+- 📸 Feeling lazy? Just generate screenshots with options to hide elements, wait for animations, and more
 
 ## Install
 
@@ -60,6 +60,12 @@ export default defineNuxtConfig({
 })
 ```
 
+#### Requirements
+
+This feature uses Nuxt Islands, which requires Nuxt 3.0.1.
+
+If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
+
 ### Add your host name
 
 The `og:image` meta tag requires the full URL, so you must provide your site host.
@@ -79,36 +85,183 @@ export default defineNuxtConfig({
 })
 ```
 
-## Guides
+# Guides
 
-### Create your first og:image
+## Your first Satori `og:image`
 
+For this guide, you will create your Satori OG image using the default component for your home page.
 
-## Generating Screenshots
+### 1. Define a static OG Image
 
-_Your page / app.vue / layout_
+Within your `pages/index.vue`, use `defineOgImageStatic` or `OgImageStatic` to define your `og:image` component.
+
+Make sure you have defined some metadata for your page with `useHead` as props will be inferred from it.
 
 ```vue
 <script lang="ts" setup>
-// Choose either Composition API
-defineOgImageScreenshot()
+// 1. make sure you have some meta
+useHead({
+  title: 'Home',
+  meta: [
+    { name: 'description', content: 'My awesome home page.' },
+  ],
+})
+// 2a. Use the Composition API
+defineOgImageStatic()
 </script>
 <template>
   <div>
-    <!-- OR Component API -->
-    <OgImageScreenshot />
+    <!-- 2b. OR Component API -->
+    <OgImageStatic />
   </div>
 </template>
 ```
 
+### 2. View your `og:image`
+
+Appending `/__og_image__` to the end of the URL will shows you the playground for that pages `og:image`. This provides
+a live preview of your `og:image` and allows you to edit it in real-time.
+
+For example, if your local site is hosted at `https://localhost:3000`, you can view your `og:image` at `https://localhost:3000/__og_image__`.
+
+You should see something like the following:
+
+<img src="https://repository-images.githubusercontent.com/578125755/59ca1ac4-f032-4576-8179-d968a1631f1e">
+
+### 3. Customize your `og:image`
+
+While you have the playground open, start customising the OG Image by providing options to the `defineOgImageStatic` function.
+
+```vue
+<script lang="ts" setup>
+defineOgImageStatic({
+  title: 'Welcome to my site!'
+})
+</script>
+```
+
+Congrats, you've setup your first Satori `og:image`!
+
+## Making your own Satori template
+
+Templates for OG images are powered by Nuxt Islands, which are just Vue components. In this guide we'll create a new 
+template and use it for our `og:image`.
+
+### 1. Create an island component
+
+Make a folder in your components directory called `islands`. 
+
+Within this directory make a new component called `MyOgImage.vue`, 
+you can use the following template to begin:
+
+```vue
+<script setup lang="ts">
+const props = defineProps({
+  title: String,
+})
+</script>
+<template>
+<div class="w-full h-full flex text-white bg-blue-500 items-center justify-center">
+  <h1 :style="{ fontSize: '70px' }">{{ title }} 👋</h1>
+</div>
+</template>
+```
+
+### 2. Use the new template
+
+Now that you have your template, you can use it in for your `defineOgImageStatic` function.
+
+```vue
+<script lang="ts" setup>
+defineOgImageStatic({
+  component: 'MyOgImage',
+  title: 'Welcome to my site!'
+})
+</script>
+```
+
+View this image in your browser by appending `/__og_image__` to the end of the URL.
+
+### 3. Customize your template
+
+Now that you have your template, you can start customizing it.
+
+Any options you pass to the `defineOgImageStatic` composable will be available in the component. With this in mind, we can
+add support for changing the background color.
+
+```vue
+<script setup lang="ts">
+const props = defineProps({
+  title: String,
+  backgroundColor: String
+})
+</script>
+<template>
+<div :class="[backgroundColor]" class="w-full h-full flex text-white items-center justify-center">
+  <h1 :style="{ fontSize: '70px' }">{{ title }} 👋</h1>
+</div>
+</template>
+```
+
+Now let's customise the background to be green instead.
+
+```vue
+<script lang="ts" setup>
+defineOgImageStatic({
+  component: 'MyOgImage',
+  title: 'Welcome to my site!',
+  backgroundColor: 'bg-green-500'
+})
+</script>
+```
+
+Within the playground, you should now see the background color change to green.
+
+## Using Satori
+
+It's important to familiarize yourself with [Satori](https://github.com/vercel/satori) before you make more complex templates.
+
+Satori has limited capacity for rendering styles;
+you should reference which ones are available within their documentation.
+
+Out of the box, this module provides support for the following:
+- Tailwind classes
+- Google Fonts, default is Inter
+- Emoji support with [Twemoji](https://github.com/twitter/twemoji)
+- Relative image support (you should link images from your public directory `/my-image.png`)
+
+If you find Satori is too limiting for your needs, you can always use the `browser` provider to capture browser screenshots instead.
+
+## Taking screenshots
+
+If you want to simply take a screenshot of your page, you can use the `OgImageScreenshot` component or `defineOgImageScreenshot` composable.
+
+```vue
+<script lang="ts" setup>
+defineOgImageScreenshot()
+</script>
+```
+
+Alternatively you can pass the `{ provider: 'browser' }` option to `defineOgImageStatic`.
+
+```vue
+<script lang="ts" setup>
+defineOgImageStatic({
+  component: 'MyAwesomeOgImage',
+  // this will take a browser screenshot
+  provider: 'browser'
+})
+</script>
+```
+
+### Requirements
 
 If you don't have a chromium binary installed on your system, run `npx playwright install`.
 
-### CI Build
-
 If you are using this module in a CI context and the images aren't being generated,
-you should may need to install a chromium binary. You can do this by running `npx playwright install` or
-`npm install playwright`.
+you may need to install a chromium binary.
+
+You can do this by running `npx playwright install` within your build command.
 
 _package.json_
 
@@ -120,163 +273,161 @@ _package.json_
 }
 ```
 
+# API
 
-## Generating Template Images
+The module exposes a composition and component API to implement your `og:image` generation. You should pick
+whichever one you prefer using.
 
-The template image generator is powered by Nuxt Islands. This means that you can use any Vue
-component you want to generate your images.
+## OgImageStatic / defineOgImageStatic
 
-_Your page / app.vue / layout_
+The `OgImageStatic` component and the `defineOgImageStatic` composable creates a static image
+that will be pre-rendered.
 
-```vue
-<script lang="ts" setup>
-// Choose either Composition API
-defineOgImage({
-  component: 'OgImageTemplate', // Nuxt Island component
-  alt: 'My awesome image', // alt text for image
-  // pass in any custom props
-  myCustomTitle: 'My Title'
-})
-</script>
-<template>
-  <div>
-    <!-- OR Component API -->
-    <OgImage component="OgImageTemplate" my-custom-title="My Title" />
-  </div>
-</template>
-```
+The options follow the [OgImageOptions](#OgImageOptions) interface,
+any additional options will be passed to the `component` as props.
 
-### Requirements
+It is useful for images that do not change at runtime.
 
-To be able to preview the image in development and generate template images, you'll need
-to enable Nuxt Islands.
-
-If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
-
-Once that's done, you can enable the flag for islands.
-
-_nuxt.config.ts_
-
-```ts
-export default defineNuxtConfig({
-  experimental: {
-    componentIslands: true
-  },
-})
-```
-
-### Creating your own template
-
-Create a new component with `.island.vue` as the suffix, such as `components/Banner.island.vue`.
-
-Use the below template to test it works, then modify it how you like.
+### Example
 
 ```vue
 <script setup lang="ts">
-const props = defineProps({
-  // these will always be provided
-  path: String,
-  title: String,
-  description: String,
-  // anything custom comes here
-  backgroundImage: String
+// a. Composition API
+defineOgImageStatic({
+  component: 'MyOgImageTemplate',
+  title: 'Hello world',
+  theme: 'dark'
 })
 </script>
-
 <template>
-  <div class="wrap">
-    <div>
-      <h1>
-        {{ title }}
-      </h1>
-      <p>{{ description }}</p>
-    </div>
-  </div>
+  <!-- b. Component API -->
+  <OgImageStatic
+    component="MyOgImageTemplate"
+    title="Hello world"
+    theme="dark"
+  />
 </template>
-
-<style scoped>
-.wrap {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  background: linear-gradient(to bottom, #30e8bf, #ff8235);
-}
-
-h1 {
-  font-size: 4rem;
-}
-</style>
 ```
 
-Make sure you reference this component when using `defineOgImage` and any props to pass.
+
+## OgImageDynamic / defineOgImageDynamic
+
+The `OgImageDynamic` component and the `defineOgImageDynamic` composable creates a dynamic image. They are not pre-rendered and will
+be generated at runtime.
+
+The options follow the [OgImageOptions](#OgImageOptions) interface,
+any additional options will be passed to the `component` as props.
+
+This feature is not compatible with static sites built using `nuxi generate`.
+
+### Example
 
 ```vue
-<script lang="ts" setup>
-defineOgImage({
-  component: 'Banner', 
-  backgroundImage: 'https://example.com/my-background-image.jpg',
+<script setup lang="ts">
+const dynamicData = await fetch('https://example.com/api') 
+
+// a. Composition API
+defineOgImageDynamic({
+  component: 'MyOgImageTemplate',
+  title: 'Hello world',
+  dynamicData,
 })
 </script>
+<template>
+  <!-- b. Component API -->
+  <OgImageDynamic
+    component="MyOgImageTemplate"
+    title="Hello world"
+    :dynamicData="dynamicData"
+  />
+</template>
 ```
 
-## Previewing Images
 
-Once you have defined the og:image using the composable, you can preview the image by visiting
-the following URLs:
-- `/your-path/__og-image` Renders the HTML output
-- `/your-path/og-image.png` Renders the og:image
+## OgImageOptions
 
-### Prerender routes
-
-While the module is in early access, only pre-rendered routes are supported.
-
-```ts
-export default defineNuxtConfig({
-  nitro: {
-    prerender: {
-      crawlLinks: true,
-      routes: [
-        '/',
-        // any URLs that can't be discovered by crawler
-        '/my-hidden-url'
-      ]
-    }
-  }
-})
-```  
-
-## Module Config
-
-### `host`
+### `alt`
 
 - Type: `string`
-- Default: `undefined`
+- Default: `''`
+- Required: `false`
+
+The `og:image:alt` attribute for the image. It should describe the contents of the image.
+
+### `height`
+
+- Type: `number`
+- Default: `630`
 - Required: `true`
 
-The host of your site. This is required to generate the absolute path of the og:image.
+The height of the screenshot. Will be used to generate the `og:image:height` meta tag.
 
-## Screenshot Options
+### `width`
 
-These can be provided as module options to set defaults
-or set individually on the `OgImageScreenshot` or `OgImage` components or the `defineOgImage` or `defineOgImageScreenshot` composables.
+- Type: `number`
+- Default: `1200`
+- Required: `true`
 
-```ts
-// optionally set defaults globally
-export default defineNuxtConfig({
-  ogImage: {
-    colorScheme: 'dark',
-    mask: '.screenshot-hidden'
-  }
+The width of the screenshot. Will be used to generate the `og:image:width` meta tag.
+
+### `component`
+
+- Type: `string`
+- Default: `OgImageBasic`
+- Required: `true`
+
+The name of the component to use as the template. By default it uses OgImageBasic provided by the module.
+
+### `provider`
+
+- Type: `string`
+- Default: `satori`
+- Required: `false`
+
+The provider to use to generate the image. The default provider is `satori`.
+When you use `browser` it will use Puppeteer to generate the image.
+
+### `prerender`
+
+- Type: `boolean`
+- Default: `true` when static, `false` when dynamic
+
+
+## OgImageScreenshot / defineOgImageScreenshot
+
+The `OgImageScreenshot` component and the `defineOgImageScreenshot` composable creates a screenshot of a page using a browser.
+
+The options follow the [ScreenshotsOptions](#ScreenshotsOptions) interface.
+
+
+### Example
+
+```vue
+<script setup lang="ts">
+// a. Composition API
+defineOgImageScreenshot({
+  // wait for animations
+  delay: 1000,
 })
+</script>
+<template>
+  <!-- b. Component API -->
+  <OgImageScreenshot
+    url="https://example.com"
+    title="Hello world"
+    theme="dark"
+  />
+</template>
 ```
 
-### `colorScheme`
+### ScreenshotsOptions
+
+This interface extends the [OgImageOptions](#OgImageOptions).
+
+#### `colorScheme`
 
 - Type: `'dark' | 'light'`
-- Default: `undefined`
+- Default: `light`
 - Required: `false`
 
 The color scheme to use when generating the image. This is useful for generating dark mode images.
@@ -287,7 +438,36 @@ defineOgImageScreenshot({
 })
 ```
 
-### `selector`
+#### `delay`
+
+- Type: `number`
+- Default: `0`
+- Required: `false`
+
+The delay to wait before taking the screenshot. This is useful if you want to wait for animations to complete.
+
+```ts
+defineOgImageScreenshot({
+  // wait 2 seconds
+  delay: 2000
+})
+```
+
+#### `mask`
+
+- Type: `string`
+- Default: `undefined`
+- Required: `false`
+
+HTML selectors that should be removed from the image. Useful for removing popup banners or other elements that may be in the way.
+
+```ts
+defineOgImageScreenshot({
+  mask: '.popup-banner, .cookie-banner'
+})
+```
+
+#### `selector`
 
 - Type: `string`
 - Default: `undefined`
@@ -301,70 +481,69 @@ defineOgImageScreenshot({
 })
 ```
 
-### `mask`
+## Module Config
+
+### `host`
 
 - Type: `string`
 - Default: `undefined`
-- Required: `false`
-
-HTML selectors that should be removed from the image. Useful for removing popup banners or other elements that may be in the way. 
-
-```ts
-defineOgImageScreenshot({
-  mask: '.popup-banner, .cookie-banner'
-})
-```
-
-### `delay`
-
-- Type: `number`
-- Default: `undefined`
-- Required: `false`
-
-The delay to wait before taking the screenshot. This is useful if you want to wait for animations to complete.
-
-```ts
-defineOgImageScreenshot({
-  // wait 2 seconds
-  delay: 2000
-})
-```
-
-### `alt`
-
-- Type: `string`
-- Default: `Web page screenshot of {route}.`
-- Required: `false`
-
-Used to generate the `og:image:alt` meta.
-
-### `width`
-
-- Type: `number`
-- Default: `1200`
 - Required: `true`
 
-The default width of the image. This is useful if you want to generate a specific size image.
+The host of your site. This is required to generate the absolute path of the `og:image`.
+
+### `defaults`
+
+- Type: `OgImageOptions`
+- Default: `{ component: 'OgImageBasic', width: 1200, height: 630, }`
+- Required: `false`
+
+The default options to use when generating images.
+
+### `forcePrerender`
+
+- Type: `boolean`
+- Default: `false`
+- Required: `false`
+
+This is enabled when you run `nuxi generate`. It forces all OG images to be pre-rendered as the server is not available to generate
+runtime images.
+
+### `fonts`
+
+- Type: ``${string}:${number}`[]`
+- Default: `['Inter:400', 'Inter:700']`
+- Required: `false`
+
+Fonts families to use when generating images with Satori. When not using Inter it will automatically fetch the font from Google Fonts.
+
+For example, if you wanted to add the Roboto font, you would add the following:
 
 ```ts
-defineOgImageScreenshot({
-  width: 1500
+export default defineNuxtConfig({
+  ogImage: {
+    fonts: ['Roboto:400', 'Roboto:700']
+  }
 })
 ```
 
-### `height`
+### `satoriOptions`
 
-- Type: `number`
-- Default: `630`
-- Required: `true`
+- Type: `SatoriOptions`
+- Default: `{}`
+- Required: `false`
 
-The default height of the image. This is useful if you want to generate a specific size image.
+Options to pass to Satori when generating images. See the [Satori docs](https://github.com/vercel/satori).
 
-```ts
-defineOgImageScreenshot({
-  height: 700
-})
-```
+### `experimentalNitroBrowser` (experimental)
+
+- Type: `boolean`
+- Default: `false`
+- Required: `false`
+
+In a server runtime, the default behaviour is to generate images using Satori. If you'd like to generate runtime images using the a browser instance 
+for screenshots, you can enable this setting.
+
+This is experimental and may not work in all environments.
 
 ## Examples
 
