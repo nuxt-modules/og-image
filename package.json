@@ -50,7 +50,7 @@
     "fs-extra": "^11.1.0",
     "launch-editor": "^2.6.0",
     "ohash": "^1.0.0",
-    "pathe": "^1.0.0",
+    "pathe": "^1.1.0",
     "playwright-core": "^1.29.2",
     "radix3": "^1.0.0",
     "satori": "^0.1.1",
