@@ -37,6 +37,7 @@ Enlightened OG Image generation for Nuxt 3.
 - 🎨 Design your `og:image` in the OG Image Playground with full HMR
 - ▲ Blazing fast Satori provider: Tailwind classes, Google fonts, emoji support and more!
 - 🤖 Browser provider: Supporting painless, complex templates
+- ✨ Prerendering enabled for static images
 - 📸 Feeling lazy? Just generate screenshots with options for hiding elements, waiting for animations, and more
 
 ## Install
