@@ -10,7 +10,7 @@ export default defineSatoriTransformer((url) => {
       const src = node.props?.src as string | null
       if (src && src.startsWith('/')) {
         // find the file using getAsset
-        const file = readPublicAssetBase64(src)
+        const file = await readPublicAssetBase64(src)
         if (file)
           node.props.src = file
         else

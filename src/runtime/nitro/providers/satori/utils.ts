@@ -1,45 +1,36 @@
-import { fileURLToPath } from 'node:url'
-import { promises as fsp } from 'node:fs'
+import { existsSync, promises as fsp } from 'fs'
 import type { ParsedURL } from 'ufo'
-import { dirname, resolve } from 'pathe'
+import { join } from 'pathe'
 import type { SatoriTransformer, VNode } from '../../../../types'
 import { useStorage } from '#internal/nitro'
-import { getAsset } from '#internal/nitro/virtual/public-assets'
 import { publicDirs } from '#nuxt-og-image/config'
 
 const cachedFonts: Record<string, any> = {}
 
-export async function readPublicAsset(file: string) {
-  const serverDir = dirname(fileURLToPath(import.meta.url))
-  const meta = getAsset(file)
-  if (meta) {
-    const file = resolve(serverDir, meta.path)
-    return { meta, file: await fsp.readFile(file) }
+const r = (base: string, key: string) => {
+  return join(base!, key.replace(/:/g, '/'))
+}
+
+export async function readPublicAsset(file: string, encoding?: BufferEncoding) {
+  for (const d of publicDirs) {
+    const path = r(d, file)
+    if (existsSync(path))
+      return await fsp.readFile(path, { encoding })
   }
-  for (const dir of publicDirs) {
-    try {
-      return { file: await fsp.readFile(resolve(`${dir}${file}`)) }
-    }
-    catch (e) {}
-  }
-  return null
 }
 export async function readPublicAssetBase64(file: string) {
-  const asset = await readPublicAsset(file)
-  if (asset) {
-    let type = asset.meta.type
-    if (!type) {
-      // guess type from file name
-      const ext = file.split('.').pop()
-      if (ext === 'svg')
-        type = 'image/svg+xml'
-      else if (ext === 'png')
-        type = 'image/png'
-      else if (ext === 'jpg' || ext === 'jpeg')
-        type = 'image/jpeg'
-    }
-    return `data:${type};base64,${asset.file}`
+  const base64 = await readPublicAsset(file, 'base64')
+  if (base64) {
+    let type = 'image/jpeg'
+    // guess type from file name
+    const ext = file.split('.').pop()
+    if (ext === 'svg')
+      type = 'image/svg+xml'
+    else if (ext === 'png')
+      type = 'image/png'
+    return `data:${type};base64,${base64}`
   }
+  // fine if it fails, we fallback elsewhere
 }
 
 export async function loadFont(url: ParsedURL, font: string) {
@@ -52,7 +43,7 @@ export async function loadFont(url: ParsedURL, font: string) {
     const data = await readPublicAsset(`/inter-latin-ext-${weight}-normal.woff`)
     if (data) {
       // something weird going on with 400
-      return (cachedFonts[font] = { name, weight: weight === '400' ? '500' : weight, data: data.file, style: 'normal' })
+      return (cachedFonts[font] = { name, weight: weight === '400' ? '500' : weight, data, style: 'normal' })
     }
   }
 

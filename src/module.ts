@@ -21,6 +21,7 @@ import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
+import { copy } from 'fs-extra'
 import { createBrowser } from './runtime/nitro/browsers/default'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
@@ -172,11 +173,16 @@ export {}
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
 
-    const fontDir = resolve('./runtime/public')
+    const fontDir = resolve(nuxt.options.buildDir, 'nuxt-og-image')
     const publicDirs = [`${nuxt.options.rootDir}/public`, fontDir]
 
     // add config to app and nitro
     exposeConfig('#nuxt-og-image/config', 'nuxt-og-image-config.mjs', { ...config, publicDirs })
+
+    // move the fonts into the build directory so we can access them at runtime
+    nuxt.hooks.hook('build:before', async () => {
+      await copy(resolve('./runtime/public'), resolve(nuxt.options.buildDir, 'nuxt-og-image'))
+    })
 
     nuxt.hooks.hook('nitro:config', (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {
