@@ -29,7 +29,7 @@ Enlightened OG Image generation for Nuxt 3.
 </table>
 </p>
 
-ℹ️ Looking for a complete SEO solution? Check out [nuxt-seo-kit](https://github.com/harlan-zw/nuxt-seo-kit).
+ℹ️ Looking for a complete SEO solution? Check out [Nuxt SEO Kit](https://github.com/harlan-zw/nuxt-seo-kit).
 
 
 ## Features
