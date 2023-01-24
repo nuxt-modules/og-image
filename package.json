@@ -43,7 +43,7 @@
     "birpc": "^0.2.3",
     "chalk": "^5.2.0",
     "chrome-launcher": "^0.15.1",
-    "defu": "^6.1.1",
+    "defu": "^6.1.2",
     "execa": "^6.1.0",
     "fast-glob": "^3.2.12",
     "flatted": "^3.2.7",
@@ -70,7 +70,7 @@
     "bumpp": "^8.2.1",
     "eslint": "8.32.0",
     "nuxt": "npm:nuxt3@latest",
-    "puppeteer": "^19.5.2",
-    "vitest": "^0.27.2"
+    "puppeteer": "^19.6.0",
+    "vitest": "^0.28.1"
   }
 }
