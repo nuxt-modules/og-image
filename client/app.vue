@@ -3,14 +3,18 @@ import { ref } from 'vue'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/vue'
 import { joinURL } from 'ufo'
 import type { OgImageOptions, PlaygroundClientFunctions } from '../src/types'
+import { devtoolsClient } from './composables/devtools-client'
 
 const refreshTime = ref(Date.now())
 
+const clientPath = $computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
+
 const hostname = window.location.host as string
 const host = `${window.location.protocol}//${hostname}`
-const path = ref(useRoute().query.path || '/about')
-const optionsPath = joinURL(path.value as string, '__og_image__/options')
-const vnodePath = joinURL(path.value as string, '__og_image__/vnode')
+const route = useRoute()
+const path = $computed(() => clientPath || route.query.path as string || '/about')
+const optionsPath = $computed(() => joinURL(path as string, '__og_image__/options'))
+const vnodePath = $computed(() => joinURL(path as string, '__og_image__/vnode'))
 
 function refreshSources() {
   refreshTime.value = Date.now()
@@ -43,13 +47,17 @@ const { data: options } = await useAsyncData<OgImageOptions>(() => {
 
 const containerWidth = ref<number | null>(null)
 
-const absoluteBasePath = `${host}${path.value === '/' ? '' : path.value}`
+const absoluteBasePath = $computed(() => `${host}${path === '/' ? '' : path}`)
 const OgImageTemplate = computed(() => resolveComponent(options.value?.component || 'OgImageTemplate'))
 const hasSatori = computed(() => options.value?.provider === 'satori')
 </script>
 
 <template>
   <div class="2xl:flex-row flex-col flex h-screen">
+    <!-- TODO: Remove placeholder -->
+    <div v-if="devtoolsClient">
+      PATH: {{ path }}
+    </div>
     <header class="dark:(bg-dark-900 text-light) 2xl:(px-10 py-7) px-5 py-5 bg-light-200 text-dark-800 flex flex-col justify-between 2xl:h-full">
       <div>
         <div class="w-full flex items-start  justify-between space-x-5 2xl:mb-8 mb-3">

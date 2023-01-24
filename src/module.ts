@@ -131,10 +131,9 @@ export {}
         name: 'ogimage',
         title: 'OG Image',
         icon: 'i-twemoji-framed-picture',
-        builtin: false,
         view: {
           type: 'iframe',
-          src: '/__og_image__',
+          src: '/__nuxt_og_image__/client/',
         },
       })
     })

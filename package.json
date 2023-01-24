@@ -62,6 +62,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.34.1",
+    "@nuxt/devtools-edge": "0.0.0-27909397.4532f72",
     "@nuxt/kit": "3.0.0",
     "@nuxt/module-builder": "^0.2.1",
     "@nuxt/test-utils": "3.0.0",
