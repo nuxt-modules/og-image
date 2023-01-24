@@ -8,6 +8,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/ui',
     'nuxt-og-image',
+    '@nuxt/devtools-edge',
   ],
   nitro: {
     prerender: {

@@ -126,6 +126,19 @@ export {}
       handler: resolve('./runtime/nitro/routes/__og_image__/font'),
     })
 
+    nuxt.hook('devtools:customTabs', (iframeTabs) => {
+      iframeTabs.push({
+        name: 'ogimage',
+        title: 'OG Image',
+        icon: 'i-twemoji-framed-picture',
+        builtin: false,
+        view: {
+          type: 'iframe',
+          src: '/__og_image__',
+        },
+      })
+    })
+
     // Setup playground. Only available in development
     if (nuxt.options.dev) {
       const playgroundDir = distResolve('./client')
