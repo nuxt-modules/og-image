@@ -25,8 +25,9 @@ import { copy } from 'fs-extra'
 import { createBrowser } from './runtime/nitro/browsers/default'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
-import { exposeConfig, extractOgImageOptions, stripOgImageOptions } from './utils'
 import { setupPlaygroundRPC } from './rpc'
+import { exposeModuleConfig } from './nuxt-utils'
+import { extractOgImageOptions, stripOgImageOptions } from './utils'
 
 export interface ModuleOptions {
   /**
@@ -177,7 +178,7 @@ export {}
     const publicDirs = [`${nuxt.options.rootDir}/public`, fontDir]
 
     // add config to app and nitro
-    exposeConfig('#nuxt-og-image/config', 'nuxt-og-image-config.mjs', { ...config, publicDirs })
+    exposeModuleConfig('nuxt-og-image', { ...config, publicDirs })
 
     // move the fonts into the build directory so we can access them at runtime
     nuxt.hooks.hook('build:before', async () => {
