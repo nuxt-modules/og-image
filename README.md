@@ -63,9 +63,7 @@ export default defineNuxtConfig({
 
 #### Requirements
 
-This feature uses Nuxt Islands, which requires Nuxt 3.0.1.
-
-If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
+This feature uses Nuxt Islands, which requires Nuxt 3.1.
 
 ### Add your host name
 
