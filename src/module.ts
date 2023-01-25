@@ -126,6 +126,7 @@ export {}
       handler: resolve('./runtime/nitro/routes/__og_image__/font'),
     })
 
+    // @ts-expect-error untyped
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',
