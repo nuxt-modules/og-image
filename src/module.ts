@@ -8,8 +8,6 @@ import {
   addTemplate,
   createResolver,
   defineNuxtModule,
-  getNuxtVersion,
-  useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
 import chalk from 'chalk'
@@ -83,15 +81,9 @@ export default defineNuxtModule<ModuleOptions>({
       return resolve(`../dist/${p}`)
     }
 
-    // @ts-expect-error need edge schema
     nuxt.options.experimental.componentIslands = true
 
     const isEdge = (process.env.NITRO_PRESET || '').includes('edge')
-    const hasIslandSupport = getNuxtVersion(nuxt) !== '3.0.0'
-
-    const logger = useLogger('nuxt-og-image')
-    if (!hasIslandSupport)
-      logger.warn('You are using Nuxt 3.0.0 with `nuxt-og-image`, which only supports screenshots.\nPlease upgrade to Nuxt 3.0.1 or the edge channel: https://nuxt.com/docs/guide/going-further/edge-channel.')
 
     // paths.d.ts
     addTemplate({
