@@ -18,6 +18,10 @@ export default defineNuxtConfig({
     baseURL: '/__nuxt_og_image__/client',
   },
   vite: {
+    // fixes shiki bug
+    define: {
+      'process.env.VSCODE_TEXTMATE_DEBUG': 'false',
+    },
     build: {
       target: 'esnext',
     },

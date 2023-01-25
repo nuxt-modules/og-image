@@ -39,6 +39,7 @@ Enlightened OG Image generation for Nuxt 3.
 - 🤖 Browser provider: Supporting painless, complex templates
 - ✨ Prerendering enabled for static images
 - 📸 Feeling lazy? Just generate screenshots with options for hiding elements, waiting for animations, and more
+- ⚙️ Edge / WASM compatible
 
 ## Install
 
@@ -63,9 +64,7 @@ export default defineNuxtConfig({
 
 #### Requirements
 
-This feature uses Nuxt Islands, which requires Nuxt 3.0.1.
-
-If you're using Nuxt 3.0.0, you will need to switch to the [edge-release channel](https://nuxt.com/docs/guide/going-further/edge-channel#edge-release-channel).
+This feature uses Nuxt Islands, which requires Nuxt 3.1.
 
 ### Add your host name
 
@@ -96,16 +95,14 @@ For this guide, you will create your Satori OG image using the default component
 
 Within your `pages/index.vue`, use `defineOgImageStatic` or `OgImageStatic` to define your `og:image` component.
 
-Make sure you have defined some metadata for your page with `useHead` as props will be inferred from it.
+Make sure you have defined some metadata as props will be inferred from it.
 
 ```vue
 <script lang="ts" setup>
 // 1. make sure you have some meta
-useHead({
+useSeoMeta({
   title: 'Home',
-  meta: [
-    { name: 'description', content: 'My awesome home page.' },
-  ],
+  description: 'My awesome home page.',
 })
 // 2a. Use the Composition API
 defineOgImageStatic()

@@ -1,7 +1,6 @@
 import { html as convertHtmlToSatori } from 'satori-html'
 import satori from 'satori'
 import { parseURL } from 'ufo'
-import { Resvg } from '@resvg/resvg-js'
 import twemoji from 'twemoji'
 import type { Provider } from '../../../../types'
 import { loadFont, walkSatoriTree } from './utils'
@@ -10,14 +9,13 @@ import twClasses from './plugins/twClasses'
 import flex from './plugins/flex'
 import emojis from './plugins/emojis'
 import { fonts, satoriOptions } from '#nuxt-og-image/config'
+import { resvg } from '#nuxt-og-image/resvg'
 
 export default <Provider> {
   name: 'satori',
   createPng: async function createPng(baseUrl, options) {
     const svg = await this.createSvg(baseUrl, options)
-    const resvg = new Resvg(svg, {})
-    const pngData = resvg.render()
-    return pngData.asPng()
+    return resvg(svg, options)
   },
 
   createVNode: async function createVNode(baseUrl, options) {

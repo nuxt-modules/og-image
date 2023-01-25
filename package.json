@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.2.2",
   "packageManager": "pnpm@7.8.0",
   "license": "MIT",
   "funding": "https://github.com/sponsors/harlan-zw",
@@ -37,8 +37,9 @@
     "test": "pnpm lint"
   },
   "dependencies": {
-    "@nuxt/kit": "3.0.0",
+    "@nuxt/kit": "3.1.0",
     "@resvg/resvg-js": "^2.2.0",
+    "@resvg/resvg-wasm": "^2.2.0",
     "@types/fs-extra": "^11.0.1",
     "birpc": "^0.2.3",
     "chalk": "^5.2.0",
@@ -51,11 +52,12 @@
     "launch-editor": "^2.6.0",
     "ohash": "^1.0.0",
     "pathe": "^1.1.0",
-    "playwright-core": "^1.29.2",
+    "playwright-core": "^1.30.0",
     "radix3": "^1.0.0",
     "satori": "^0.1.1",
     "satori-html": "^0.3.2",
     "sirv": "^2.0.2",
+    "std-env": "^3.3.1",
     "tinyws": "^0.1.0",
     "twemoji": "^14.0.2",
     "ufo": "^1.0.1"
@@ -63,15 +65,14 @@
   "devDependencies": {
     "@antfu/eslint-config": "^0.34.1",
     "@nuxt/devtools-edge": "0.0.0-27909397.4532f72",
-    "@nuxt/kit": "3.0.0",
     "@nuxt/module-builder": "^0.2.1",
-    "@nuxt/test-utils": "3.0.0",
+    "@nuxt/test-utils": "3.1.0",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "@types/ws": "^8.5.4",
     "bumpp": "^8.2.1",
     "eslint": "8.32.0",
     "nuxt": "npm:nuxt3@latest",
     "puppeteer": "^19.6.0",
-    "vitest": "^0.28.1"
+    "vitest": "^0.28.2"
   }
 }

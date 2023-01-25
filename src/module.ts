@@ -8,20 +8,19 @@ import {
   addTemplate,
   createResolver,
   defineNuxtModule,
-  getNuxtVersion,
-  useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
 import chalk from 'chalk'
 import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { joinURL } from 'ufo'
-import { join, relative } from 'pathe'
+import { relative } from 'pathe'
 import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy } from 'fs-extra'
+import { provider } from 'std-env'
 import { createBrowser } from './runtime/nitro/browsers/default'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
@@ -49,7 +48,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '^3.0.0',
+      nuxt: '^3.1.0',
       bridge: false,
     },
     configKey: 'ogImage',
@@ -83,15 +82,9 @@ export default defineNuxtModule<ModuleOptions>({
       return resolve(`../dist/${p}`)
     }
 
-    // @ts-expect-error need edge schema
     nuxt.options.experimental.componentIslands = true
 
-    const isEdge = (process.env.NITRO_PRESET || '').includes('edge')
-    const hasIslandSupport = getNuxtVersion(nuxt) !== '3.0.0'
-
-    const logger = useLogger('nuxt-og-image')
-    if (!hasIslandSupport)
-      logger.warn('You are using Nuxt 3.0.0 with `nuxt-og-image`, which only supports screenshots.\nPlease upgrade to Nuxt 3.0.1 or the edge channel: https://nuxt.com/docs/guide/going-further/edge-channel.')
+    const isEdge = provider === 'stackblitz' || (process.env.NITRO_PRESET || '').includes('edge')
 
     // paths.d.ts
     addTemplate({
@@ -117,6 +110,7 @@ export {}
     ;['html', 'options', 'svg', 'vnode', 'og.png']
       .forEach((type) => {
         addServerHandler({
+          lazy: true,
           handler: resolve(`./runtime/nitro/routes/__og_image__/${type}`),
         })
       })
@@ -170,7 +164,6 @@ export {}
       name: 'OgImageBasic',
       filePath: resolve('./runtime/components/OgImageBasic.island.vue'),
       global: true,
-      // @ts-expect-error need to use @nuxt/kit edge
       island: true,
     })
 
@@ -179,7 +172,6 @@ export {}
         addComponent({
           name,
           filePath: resolve(`./runtime/components/${name}`),
-          // @ts-expect-error need to use @nuxt/kit edge
           island: true,
         })
       })
@@ -205,7 +197,11 @@ export {}
 
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
       nitroConfig.publicAssets.push({ dir: fontDir, maxAge: 31536000 })
-      nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
+      if (isEdge && config.experimentalNitroBrowser)
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
+      else
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/default'`
+      nitroConfig.virtual!['#nuxt-og-image/resvg'] = `import resvg from '${runtimeDir}/nitro/resvg/${isEdge ? 'wasm' : 'node'}'; export { resvg }`
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
       import satori from '${runtimeDir}/nitro/providers/satori'
       import browser from '${runtimeDir}/nitro/providers/browser'
