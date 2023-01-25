@@ -14,7 +14,7 @@ import chalk from 'chalk'
 import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { joinURL } from 'ufo'
-import { join, relative } from 'pathe'
+import { relative } from 'pathe'
 import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
@@ -149,7 +149,6 @@ export {}
       name: 'OgImageBasic',
       filePath: resolve('./runtime/components/OgImageBasic.island.vue'),
       global: true,
-      // @ts-expect-error need to use @nuxt/kit edge
       island: true,
     })
 
@@ -158,7 +157,6 @@ export {}
         addComponent({
           name,
           filePath: resolve(`./runtime/components/${name}`),
-          // @ts-expect-error need to use @nuxt/kit edge
           island: true,
         })
       })
