@@ -110,6 +110,7 @@ export {}
     ;['html', 'options', 'svg', 'vnode', 'og.png']
       .forEach((type) => {
         addServerHandler({
+          lazy: true,
           handler: resolve(`./runtime/nitro/routes/__og_image__/${type}`),
         })
       })
