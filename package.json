@@ -52,7 +52,7 @@
     "launch-editor": "^2.6.0",
     "ohash": "^1.0.0",
     "pathe": "^1.1.0",
-    "playwright-core": "^1.29.2",
+    "playwright-core": "^1.30.0",
     "radix3": "^1.0.0",
     "satori": "^0.1.1",
     "satori-html": "^0.3.2",
@@ -72,6 +72,6 @@
     "eslint": "8.32.0",
     "nuxt": "npm:nuxt3@latest",
     "puppeteer": "^19.6.0",
-    "vitest": "^0.28.1"
+    "vitest": "^0.28.2"
   }
 }
