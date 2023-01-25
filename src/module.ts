@@ -20,6 +20,7 @@ import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy } from 'fs-extra'
+import { provider } from 'std-env'
 import { createBrowser } from './runtime/nitro/browsers/default'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
@@ -83,7 +84,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.experimental.componentIslands = true
 
-    const isEdge = (process.env.NITRO_PRESET || '').includes('edge')
+    const isEdge = provider === 'stackblitz' || (process.env.NITRO_PRESET || '').includes('edge')
 
     // paths.d.ts
     addTemplate({
@@ -182,7 +183,11 @@ export {}
 
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
       nitroConfig.publicAssets.push({ dir: fontDir, maxAge: 31536000 })
-      nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
+      if (isEdge && config.experimentalNitroBrowser)
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
+      else
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/default'`
+      nitroConfig.virtual!['#nuxt-og-image/resvg'] = `import resvg from '${runtimeDir}/nitro/resvg/${isEdge ? 'wasm' : 'node'}'; export { resvg }`
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
       import satori from '${runtimeDir}/nitro/providers/satori'
       import browser from '${runtimeDir}/nitro/providers/browser'

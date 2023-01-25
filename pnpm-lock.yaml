@@ -10,6 +10,7 @@ importers:
       '@nuxt/test-utils': 3.1.0
       '@nuxtjs/eslint-config-typescript': ^12.0.0
       '@resvg/resvg-js': ^2.2.0
+      '@resvg/resvg-wasm': ^2.2.0
       '@types/fs-extra': ^11.0.1
       '@types/ws': ^8.5.4
       birpc: ^0.2.3
@@ -32,6 +33,7 @@ importers:
       satori: ^0.1.1
       satori-html: ^0.3.2
       sirv: ^2.0.2
+      std-env: ^3.3.1
       tinyws: ^0.1.0
       twemoji: ^14.0.2
       ufo: ^1.0.1
@@ -39,6 +41,7 @@ importers:
     dependencies:
       '@nuxt/kit': 3.1.0
       '@resvg/resvg-js': 2.2.0
+      '@resvg/resvg-wasm': 2.2.0
       '@types/fs-extra': 11.0.1
       birpc: 0.2.3
       chalk: 5.2.0
@@ -56,6 +59,7 @@ importers:
       satori: 0.1.1
       satori-html: 0.3.2
       sirv: 2.0.2
+      std-env: 3.3.1
       tinyws: 0.1.0
       twemoji: 14.0.2
       ufo: 1.0.1
@@ -1942,6 +1946,11 @@ packages:
       '@resvg/resvg-js-win32-arm64-msvc': 2.2.0
       '@resvg/resvg-js-win32-ia32-msvc': 2.2.0
       '@resvg/resvg-js-win32-x64-msvc': 2.2.0
+    dev: false
+
+  /@resvg/resvg-wasm/2.2.0:
+    resolution: {integrity: sha512-/+xnLtnCsO/L0oyL/nZMGUvdH4BWlo11O6qiD84JYPoyobJWJWk9e1gciLu5bNDDy70b4n02DW3MNJtjfZ4FDg==}
+    engines: {node: '>= 10'}
     dev: false
 
   /@rollup/plugin-alias/4.0.2_rollup@2.79.1:
