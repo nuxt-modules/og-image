@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { parseURL, withoutTrailingSlash } from 'ufo'
-import { fetchOptions, useHostname } from '../../utils'
+import { fetchOptions } from '../../utils'
 
 export default defineEventHandler(async (e) => {
   const path = parseURL(e.path).pathname
@@ -26,5 +26,5 @@ export default defineEventHandler(async (e) => {
   }
 </style>
 <title>OG Image Playground</title>
-<iframe src="${useHostname(e)}/__nuxt_og_image__/client/?&path=${withoutTrailingSlash(path.replace('__og_image__', ''))}"></iframe>`
+<iframe src="/__nuxt_og_image__/client/?&path=${basePath}"></iframe>`
 })
