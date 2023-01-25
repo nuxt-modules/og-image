@@ -4,10 +4,11 @@ import { resolvePath } from 'mlly'
 import { dirname, join } from 'pathe'
 import { $fetch } from 'ofetch'
 
-let wasm: BufferSource | null = null
+let initialisedWasm = false
 async function useResvgWasm() {
-  if (wasm)
-    return wasm
+  let wasm: BufferSource | null = null
+  if (initialisedWasm)
+    return
   try {
     const path = join(
       dirname(await resolvePath('@resvg/resvg-wasm')),
@@ -21,14 +22,14 @@ async function useResvgWasm() {
       responseType: 'arrayBuffer',
     })
   }
-  return wasm
+  if (wasm) {
+    await initWasm(wasm)
+    initialisedWasm = true
+  }
 }
 
 export default async function (svg: string, options: ResvgRenderOptions) {
-  const resvgWasm = await useResvgWasm()
-  if (!resvgWasm)
-    return false
-  await initWasm(resvgWasm)
+  await useResvgWasm()
   const resvg = new Resvg(svg, options)
   const pngData = resvg.render()
   return pngData.asPng()
