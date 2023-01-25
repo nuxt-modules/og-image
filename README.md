@@ -94,16 +94,14 @@ For this guide, you will create your Satori OG image using the default component
 
 Within your `pages/index.vue`, use `defineOgImageStatic` or `OgImageStatic` to define your `og:image` component.
 
-Make sure you have defined some metadata for your page with `useHead` as props will be inferred from it.
+Make sure you have defined some metadata as props will be inferred from it.
 
 ```vue
 <script lang="ts" setup>
 // 1. make sure you have some meta
-useHead({
+useSeoMeta({
   title: 'Home',
-  meta: [
-    { name: 'description', content: 'My awesome home page.' },
-  ],
+  description: 'My awesome home page.',
 })
 // 2a. Use the Composition API
 defineOgImageStatic()
