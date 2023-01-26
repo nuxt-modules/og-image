@@ -1,4 +1,4 @@
-<h1 align='center'>nuxt-og-image</h1>
+<h1 align='center'>Nuxt OG Image</h1>
 
 <p align="center">
 <a href='https://github.com/harlan-zw/nuxt-og-image/actions/workflows/test.yml'>
