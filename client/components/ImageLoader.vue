@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { description } from '~/util/logic'
+
 const props = defineProps({
   src: String,
-  width: Number,
-  height: Number,
+  aspectRatio: Number,
   description: String,
 })
 
@@ -33,29 +34,21 @@ onMounted(() => {
 })
 
 const loadDescription = computed(() => props.description!.replace('%s', timeTakenMs.value.toString()))
+watch(loadDescription, (d) => {
+  description.value = d
+})
 </script>
 
 <template>
-  <div class="w-full rounded border-2 border-light-700 dark:border-dark-800 shadow">
-    <img ref="image" class="max-h-full" :width="width" :height="height" :style="{ width: `100%`, height: `auto`, margin: '0 auto' }">
-    <div class="bg-light-500 dark:bg-dark-200 px-2 pt-2 pb-1 text-xs opacity-60 flex justify-between">
-      <template v-if="timeTakenMs !== 0">
-        <span>{{ loadDescription }}</span>
-        <button @click="$emit('refresh')">
-          Refresh
-        </button>
-      </template>
-      <span v-else>
-        Loading...
-      </span>
-    </div>
-  </div>
+  <img ref="image" class="max-h-full border-1 border-light-500 rounded" :style="{ aspectRatio }">
 </template>
 
 <style scoped>
 img {
-  max-width: 1200px;
-  aspect-ratio: 40 / 21;
+  height: auto !important;
+  width: auto !important;
+  margin: 0 auto;
+  max-width: 100%;
   transition: 0.4s ease-in-out;
 }
 </style>

@@ -120,6 +120,19 @@ export {}
       handler: resolve('./runtime/nitro/routes/__og_image__/font'),
     })
 
+    // @ts-expect-error untyped
+    nuxt.hook('devtools:customTabs', (iframeTabs) => {
+      iframeTabs.push({
+        name: 'ogimage',
+        title: 'OG Image',
+        icon: 'carbon:image-search',
+        view: {
+          type: 'iframe',
+          src: '/__nuxt_og_image__/client/',
+        },
+      })
+    })
+
     // Setup playground. Only available in development
     if (nuxt.options.dev) {
       const playgroundDir = distResolve('./client')

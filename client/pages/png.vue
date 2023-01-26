@@ -12,13 +12,10 @@ const options = await fetchOptions()
 </script>
 
 <template>
-  <div class="flex h-full w-full">
-    <IFrameLoader
-      :src="`${absoluteBasePath}/__og_image__/html?timestamp=${refreshTime}`"
-      :aspect-ratio="aspectRatio"
-      description="[HTML] Generated in %sms."
-      class="max-h-full"
-      @refresh="refreshSources"
-    />
-  </div>
+  <ImageLoader
+    :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
+    :aspect-ratio="aspectRatio"
+    description="[PNG] Generated in %sms using Satori & Resvg."
+    @refresh="refreshSources"
+  />
 </template>

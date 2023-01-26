@@ -1,11 +1,23 @@
 <script lang="ts" setup>
-import { containerWidth, path, refreshSources, rpc } from './util/logic'
+import { containerWidth, description, path, refreshSources, rpc } from './util/logic'
+import { devtoolsClient } from '~/composables/devtools-client'
 
 useHead({
   title: 'OG Image Playground',
 })
 
-path.value = useRoute().query.path as string || '/'
+const isDevTools = computed(() => !!devtoolsClient.value)
+
+const clientPath = $computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
+path.value = clientPath || useRoute().query.path as string || '/'
+
+watch(() => clientPath, (v) => {
+  path.value = v
+})
+
+const constrainsWidth = computed(() => {
+  return useRoute().path !== '/vnodes' && useRoute().path !== '/options'
+})
 
 const config = await rpc.useServerConfig()
 const options = await fetchOptions()
@@ -15,11 +27,11 @@ const options = await fetchOptions()
   <div class="flex-row flex h-screen">
     <header class="border-r-1 border-light-400 dark:(border-dark-400 bg-dark-900 text-light) bg-white text-dark-800 flex flex-col justify-between h-screen z-5">
       <div class="flex-grow">
-        <div class="py-5 w-full flex items-start px-5 justify-between space-x-5">
-          <h1 class="text-base hidden md:block">
-            <div>OG Image Playground</div>
+        <div class="py-3 w-full flex items-start px-5 justify-between space-x-5">
+          <h1 class="text-base hidden md:block w-40">
+            OG Image Playground
           </h1>
-          <NDarkToggle>
+          <NDarkToggle v-if="!isDevTools">
             <template #default="{ toggle }">
               <NButton n="borderless lg m-0" p-0 op50 @click="toggle">
                 <NIcon icon="dark:carbon-moon carbon-sun" />
@@ -29,19 +41,31 @@ const options = await fetchOptions()
         </div>
         <hr class="border-1 border-light-400 dark:border-dark-400">
         <div class="py-7 px-5 text-sm flex flex-col space-y-3">
-          <NuxtLink v-slot="{ isActive }" to="/" class="transition-all hover:(ml-1)">
+          <NuxtLink v-slot="{ isActive }" to="/" class="transition-all hover:(ml-1) whitespace-nowrap">
             <Icon name="carbon:image-search" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
             <span :class="[isActive ? 'underline' : 'opacity-60']">
-              Preview
+              {{ options.component }}.vue
             </span>
           </NuxtLink>
-          <NuxtLink v-slot="{ isActive }" to="/options" class="transition-all hover:(ml-1)">
+          <NuxtLink v-if="options.provider === 'satori'" v-slot="{ isActive }" to="/svg" class="transition-all hover:(ml-1) whitespace-nowrap">
+            <Icon name="carbon:svg" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
+            <span :class="[isActive ? 'underline' : 'opacity-60']">
+              Preview SVG
+            </span>
+          </NuxtLink>
+          <NuxtLink v-slot="{ isActive }" to="/png" class="transition-all hover:(ml-1) whitespace-nowrap">
+            <Icon name="carbon:png" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
+            <span :class="[isActive ? 'underline' : 'opacity-60']">
+              Preview PNG
+            </span>
+          </NuxtLink>
+          <NuxtLink v-slot="{ isActive }" to="/options" class="transition-all hover:(ml-1) whitespace-nowrap">
             <Icon name="carbon:operations-record" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
             <span :class="[isActive ? 'underline' : 'opacity-60']">
               Options
             </span>
           </NuxtLink>
-          <NuxtLink v-slot="{ isActive }" to="/vnodes" class="transition-all hover:(ml-1)">
+          <NuxtLink v-slot="{ isActive }" to="/vnodes" class="transition-all hover:(ml-1) whitespace-nowrap">
             <Icon name="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
             <span :class="[isActive ? 'underline' : 'opacity-60']">
               vNodes
@@ -49,43 +73,30 @@ const options = await fetchOptions()
           </NuxtLink>
         </div>
         <hr class="border-1 border-light-400 dark:border-dark-400">
-        <div v-if="useRoute().path === '/'" class="py-7 px-5 text-sm flex flex-col space-y-3">
-          <div>
-            <NButton v-if="containerWidth !== 504" @click="containerWidth = 504">
+        <div v-if="constrainsWidth" class="py-7 px-5 text-sm flex flex-col space-y-3">
+          <div v-if="containerWidth !== 504" @click="containerWidth = 504">
+            <NButton>
+              <Icon name="carbon:mobile" />
               Small
             </NButton>
-            <NButton v-if="containerWidth !== null" @click="containerWidth = null">
+          </div>
+          <div v-if="containerWidth !== null" @click="containerWidth = null">
+            <NButton>
+              <Icon name="carbon:laptop" />
               Full width
+            </NButton>
+          </div>
+          <div>
+            <NButton @click="refreshSources">
+              Refresh
             </NButton>
           </div>
         </div>
       </div>
-      <hr class="border-1 2xl:block hidden border-light-400 dark:border-dark-400">
-      <div class="py-7 px-5  2xl:(block space-y-4 space-x-0) space-x-6 hidden justify-center">
-        <nav class="text-sm hidden 2xl:block" role="navigation">
-          <ul class="mb-5">
-            <li class="mb-2">
-              <a href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">Docs</a>
-            </li>
-            <li>
-              <a href="https://github.com/sponsors/harlan-zw">Sponsor</a>
-            </li>
-          </ul>
-          <a class="hidden 2xl:flex items-center" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
-            <div class="flex items-center">
-              <img src="https://avatars.githubusercontent.com/u/5326365?v=4" class="rounded-full h-7 w-7 mr-2">
-              <div class="flex flex-col">
-                <span class="opacity-60 text-xs">Created by</span>
-                <h1 class="text-sm opacity-80">harlanzw</h1>
-              </div>
-            </div>
-          </a>
-        </nav>
-      </div>
     </header>
-    <main class="mx-auto flex-1 w-full bg-white dark:bg-black max-h-screen overflow-hidden">
-      <div class="py-9px dark:(bg-dark-800) bg-light-200 px-10 opacity-80 flex justify-center items-center block space-x-10">
-        <div class="text-sm">
+    <main class="mx-auto flex flex-col w-full bg-white dark:bg-black max-h-screen overflow-hidden dark:bg-dark-700 bg-light-200 ">
+      <div class="py-9px dark:(bg-dark-800) bg-light-200 px-10 opacity-80 flex items-center max-w-full block space-x-5">
+        <div class="text-sm flex items-center space-x-5">
           <div class="text-xs opacity-40">
             Path
           </div>
@@ -93,48 +104,14 @@ const options = await fetchOptions()
             <NTextInput v-model="path" placeholder="Search..." n="primary" @input="refreshSources" />
           </div>
         </div>
-        <div class="text-sm">
-          <div class="text-xs opacity-40  mb-1">
-            Provider
-          </div>
-          <div class="flex items-center space-x-1">
-            <span :class="options.provider === 'satori' ? 'logos-vercel-icon' : 'logos-chrome'" />
-            <span>{{ options.provider === 'satori' ? 'Satori' : 'Browser' }}</span>
-          </div>
-        </div>
-        <div v-if="options.component" class="text-sm">
-          <div class="text-xs opacity-40  mb-1">
-            Component
-          </div>
-          <div class="flex items-center space-x-1">
-            <span class="logos-vue" />
-            <span>{{ options.component }}.vue</span>
-          </div>
+        <div v-if="description" class="text-xs opacity-70">
+          {{ description }}
         </div>
       </div>
       <hr class="border-1 border-light-400 dark:border-dark-400">
-      <div class="h-full max-h-full overflow-auto dark:bg-dark-700 bg-light-200">
+      <div class="h-full max-h-full overflow-hidden lg:p-10 p-3" :style="{ width: containerWidth && constrainsWidth ? `${containerWidth}px` : '100%' }">
         <NuxtPage />
       </div>
-      <footer class="block 2xl:hidden space-x-5 flex justify-center items-center">
-        <ul class="flex space-x-5">
-          <li class="mb-2">
-            <a href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">Docs</a>
-          </li>
-          <li>
-            <a href="https://github.com/sponsors/harlan-zw">Sponsor</a>
-          </li>
-        </ul>
-        <a class="flex items-center" href="https://harlanzw.com" title="View Harlan's site." target="_blank">
-          <div class="flex items-center">
-            <img src="https://avatars.githubusercontent.com/u/5326365?v=4" class="rounded-full h-7 w-7 mr-2">
-            <div class="flex flex-col">
-              <span class="opacity-60 text-xs">Created by</span>
-              <h1 class="text-sm opacity-80">harlanzw</h1>
-            </div>
-          </div>
-        </a>
-      </footer>
     </main>
   </div>
 </template>

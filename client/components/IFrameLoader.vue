@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { useDebounceFn } from '@vueuse/core'
+import { containerWidth, description } from '~/util/logic'
+
 const props = defineProps({
   src: String,
-  width: Number,
-  height: Number,
+  aspectRatio: Number,
   description: String,
 })
 
@@ -11,52 +13,62 @@ defineEmits(['refresh'])
 const iframe = ref()
 const timeTakenMs = ref(0)
 
-function setSource(src: string) {
-  const frame = iframe.value as HTMLImageElement
+const setSource = useDebounceFn(() => {
+  let frame = iframe.value as HTMLImageElement
+  if (!frame)
+    frame = document.querySelector('#iframe-loader')
   const now = Date.now()
   frame.src = ''
+  const parentHeight = frame.offsetHeight
+  const parentWidth = frame.offsetWidth
+  const parentHeightScale = parentHeight > 630 ? 1 : parentHeight / 630
+  const parentWidthScale = parentWidth > 1200 ? 1 : parentWidth / 1200
+  const scale = parentWidthScale > parentHeightScale ? parentHeightScale : parentWidthScale
   timeTakenMs.value = 0
   frame.style.opacity = '0'
   frame.onload = () => {
     frame.style.opacity = '1'
     timeTakenMs.value = Date.now() - now
   }
-  frame.src = src
-}
+  frame.src = `${props.src}&scale=${scale}`
+}, 200)
 
 onMounted(() => {
   watch(() => props.src, (src) => {
-    setSource(src!)
+    setSource()
   }, {
     immediate: true,
   })
+
+  watch(() => containerWidth.value, () => {
+    setSource()
+  })
+})
+
+useHead({
+  bodyAttrs: {
+    onresize: () => {
+      setSource()
+    },
+  },
 })
 
 const loadDescription = computed(() => props.description!.replace('%s', timeTakenMs.value.toString()))
+watch(loadDescription, (d) => {
+  description.value = d
+})
 </script>
 
 <template>
-  <div class="w-full rounded border-2 border-light-700 dark:border-dark-800 shadow">
-    <iframe ref="iframe" class="max-h-full w-full" :width="width" :height="height" :style="{ height: `auto`, margin: '0 auto' }" />
-    <div class="bg-light-500 dark:bg-dark-200 px-2 pt-2 pb-1 text-xs opacity-60 flex justify-between">
-      <template v-if="timeTakenMs !== 0">
-        <span>{{ loadDescription }}</span>
-        <button @click="$emit('refresh')">
-          Refresh
-        </button>
-      </template>
-      <span v-else>
-        Loading...
-      </span>
-    </div>
-  </div>
+  <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" width="1200" height="630" />
 </template>
 
 <style scoped>
 iframe {
-  max-width: 1200px;
-  transition: 0.4s;
-  width: 100%;
-  aspect-ratio: 40 / 21;
+  height: auto;
+  width: auto;
+  margin: 0 auto;
+  transition: 0.4s ease-in-out;
+  max-width: 100%;
 }
 </style>
