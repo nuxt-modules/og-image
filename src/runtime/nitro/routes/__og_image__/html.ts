@@ -37,6 +37,10 @@ export default defineEventHandler(async (e) => {
     transform: scale(${scale});
     transform-origin: top left;
     max-height: 100vh;
+    position: relative;
+    width: ${defaults.width}px;
+    height: ${defaults.height}px;
+    overflow: hidden;
 }
 img.emoji {
    height: 1em;
@@ -86,6 +90,6 @@ img.emoji {
   return `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
-<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="width: ${defaults.width}px; height: ${defaults.height}px; display: flex; margin: 0 auto;">${island.html}</div>${headChunk.bodyTags}</body>
+<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${island.html}</div>${headChunk.bodyTags}</body>
 </html>`
 })

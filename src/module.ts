@@ -125,7 +125,7 @@ export {}
       iframeTabs.push({
         name: 'ogimage',
         title: 'OG Image',
-        icon: 'i-twemoji-framed-picture',
+        icon: 'carbon:image-search',
         view: {
           type: 'iframe',
           src: '/__nuxt_og_image__/client/',
