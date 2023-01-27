@@ -8,7 +8,7 @@ const props = defineProps({
   description: String,
 })
 
-defineEmits(['refresh'])
+const src = ref(props.src)
 
 const iframe = ref()
 const timeTakenMs = ref(0)
@@ -30,11 +30,12 @@ const setSource = useDebounceFn(() => {
     frame.style.opacity = '1'
     timeTakenMs.value = Date.now() - now
   }
-  frame.src = `${props.src}&scale=${scale}`
+  frame.src = `${src.value}&scale=${scale}`
 }, 200)
 
 onMounted(() => {
-  watch(() => props.src, (src) => {
+  watch(() => props.src, (val) => {
+    src.value = val
     setSource()
   }, {
     immediate: true,

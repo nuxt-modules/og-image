@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useDebounceFn } from '@vueuse/core'
 import { containerWidth, description, path, refreshSources, rpc } from './util/logic'
 import { devtoolsClient } from '~/composables/devtools-client'
 
@@ -21,6 +22,11 @@ const constrainsWidth = computed(() => {
 
 const config = await rpc.useServerConfig()
 const options = await fetchOptions()
+
+const setPath = useDebounceFn((e) => {
+  path.value = e.target.value
+  refreshSources()
+}, 1000)
 </script>
 
 <template>
@@ -101,7 +107,7 @@ const options = await fetchOptions()
             Path
           </div>
           <div class="flex items-center space-x-1">
-            <NTextInput v-model="path" placeholder="Search..." n="primary" @input="refreshSources" />
+            <NTextInput :model-value="path" placeholder="Search..." n="primary" @input="setPath" />
           </div>
         </div>
         <div v-if="description" class="text-xs opacity-70">

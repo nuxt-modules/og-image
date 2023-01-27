@@ -7,8 +7,6 @@ const props = defineProps({
   description: String,
 })
 
-defineEmits(['refresh'])
-
 const image = ref()
 const timeTakenMs = ref(0)
 

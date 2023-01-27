@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { absoluteBasePath, refreshSources, refreshTime, rpc } from '~/util/logic'
+import { absoluteBasePath, refreshTime, rpc } from '~/util/logic'
 
 const config = await rpc.useServerConfig()
 
@@ -16,6 +16,5 @@ const options = await fetchOptions()
     :src="`${absoluteBasePath}/__og_image__/og.png?timestamp=${refreshTime}`"
     :aspect-ratio="aspectRatio"
     description="[PNG] Generated in %sms using Satori & Resvg."
-    @refresh="refreshSources"
   />
 </template>
