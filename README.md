@@ -31,6 +31,9 @@ Enlightened OG Image generation for Nuxt 3.
 
 ℹ️ Looking for a complete SEO solution? Check out [Nuxt SEO Kit](https://github.com/harlan-zw/nuxt-seo-kit).
 
+## Demos
+
+- [Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json) (visit `/__og_image__`)
 
 ## Features
 
