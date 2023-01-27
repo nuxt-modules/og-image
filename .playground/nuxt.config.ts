@@ -4,7 +4,8 @@ import { defineNuxtConfig } from 'nuxt/config'
 export default defineNuxtConfig({
   modules: [
     '@nuxt/ui',
-    resolve(__dirname, '../src/module'),
+    'nuxt-og-image',
+    // resolve(__dirname, '../src/module'),
     '@nuxt/devtools-edge',
   ],
   nitro: {
