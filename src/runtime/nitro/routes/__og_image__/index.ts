@@ -3,11 +3,11 @@ import { parseURL, withoutTrailingSlash } from 'ufo'
 import { fetchOptions } from '../../utils'
 
 export default defineEventHandler(async (e) => {
-  const path = parseURL(e.path).pathname
+  const path = withoutTrailingSlash(parseURL(e.path).pathname)
   if (!path.endsWith('/__og_image__'))
     return
 
-  const basePath = withoutTrailingSlash(path.replace('__og_image__', ''))
+  const basePath = path.replace('/__og_image__', '')
   // extract the payload from the original path
   const options = await fetchOptions(basePath)
   if (!options)

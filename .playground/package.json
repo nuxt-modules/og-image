@@ -5,6 +5,7 @@
     "nuxt-og-image": "link:../"
   },
   "scripts": {
+    "build": "nuxi build",
     "prepare": "nuxi prepare"
   }
 }
