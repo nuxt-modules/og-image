@@ -9,8 +9,6 @@ export const description = ref<string | null>(null)
 export const hostname = window.location.host
 export const host = `${window.location.protocol}//${hostname}`
 export const path = ref('/')
-export const optionsPath = computed(() => joinURL(path.value as string, '__og_image__/options'))
-export const vnodePath = computed(() => joinURL(path.value as string, '__og_image__/vnode'))
 
 export const refreshSources = useDebounceFn(() => {
   refreshTime.value = Date.now()
