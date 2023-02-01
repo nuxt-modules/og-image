@@ -10,7 +10,7 @@ export default defineCachedEventHandler(async (e) => {
     return 'Provide a font name and weight'
 
   const css = await (
-    await $fetch(`https://fonts.googleapis.com/css2?family=${name}:wght@${weight}`, {
+    await globalThis.$fetch(`https://fonts.googleapis.com/css2?family=${name}:wght@${weight}`, {
       headers: {
         // Make sure it returns TTF.
         'User-Agent':

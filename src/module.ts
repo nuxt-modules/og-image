@@ -1,5 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import { existsSync } from 'fs'
+import { readFile, writeFile } from 'node:fs/promises'
 import type { NitroRouteRules } from 'nitropack'
 import {
   addComponent,
@@ -19,9 +18,9 @@ import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
-import { copy } from 'fs-extra'
+import { copy, mkdirp, pathExists } from 'fs-extra'
 import { provider } from 'std-env'
-import { createBrowser } from './runtime/nitro/browsers/default'
+import createBrowser from './runtime/nitro/providers/browser/node'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
@@ -34,10 +33,11 @@ export interface ModuleOptions {
    */
   host: string
   defaults: OgImageOptions
-  experimentalNitroBrowser: boolean
   fonts: `${string}:${number}`[]
   satoriOptions: Partial<SatoriOptions>
   forcePrerender: boolean
+  satoriProvider: boolean
+  browserProvider: boolean
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -55,7 +55,6 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults(nuxt) {
     return {
-      experimentalNitroBrowser: false,
       // when we run `nuxi generate` we need to force prerendering
       forcePrerender: !nuxt.options.dev && nuxt.options._generate,
       host: nuxt.options.runtimeConfig.public?.siteUrl,
@@ -64,6 +63,8 @@ export default defineNuxtModule<ModuleOptions>({
         width: 1200,
         height: 630,
       },
+      satoriProvider: true,
+      browserProvider: true,
       fonts: [],
       satoriOptions: {},
     }
@@ -83,8 +84,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     nuxt.options.experimental.componentIslands = true
-
-    const isEdge = provider === 'stackblitz' || (process.env.NITRO_PRESET || '').includes('edge')
 
     // paths.d.ts
     addTemplate({
@@ -107,18 +106,19 @@ export {}
       references.push({ path: resolve(nuxt.options.buildDir, 'nuxt-og-image.d.ts') })
     })
 
-    ;['html', 'options', 'svg', 'vnode', 'og.png']
+    addServerHandler({
+      lazy: true,
+      handler: resolve('./runtime/nitro/middleware/og.png'),
+    })
+
+    ;['html', 'options', 'svg', 'vnode', 'font']
       .forEach((type) => {
         addServerHandler({
           lazy: true,
-          handler: resolve(`./runtime/nitro/routes/__og_image__/${type}`),
+          route: `/api/og-image-${type}`,
+          handler: resolve(`./runtime/nitro/routes/${type}`),
         })
       })
-
-    addServerHandler({
-      route: '/api/og-image-font',
-      handler: resolve('./runtime/nitro/routes/__og_image__/font'),
-    })
 
     // @ts-expect-error untyped
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
@@ -139,16 +139,16 @@ export {}
       const {
         middleware: rpcMiddleware,
       } = setupPlaygroundRPC(nuxt, config)
-      nuxt.hook('vite:serverCreated', (server) => {
+      nuxt.hook('vite:serverCreated', async (server) => {
         server.middlewares.use(PATH_ENTRY, tinyws() as any)
         server.middlewares.use(PATH_ENTRY, rpcMiddleware as any)
         // serve the front end in production
-        if (existsSync(playgroundDir))
+        if (await pathExists(playgroundDir))
           server.middlewares.use(PATH_PLAYGROUND, sirv(playgroundDir, { single: true, dev: true }))
       })
       // allow /__og_image__ to be proxied
       addServerHandler({
-        handler: resolve('./runtime/nitro/routes/__og_image__/index'),
+        handler: resolve('./runtime/nitro/middleware/playground'),
       })
     }
 
@@ -179,56 +179,86 @@ export {}
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
 
-    const fontDir = resolve(nuxt.options.buildDir, 'nuxt-og-image')
-    const publicDirs = [`${nuxt.options.rootDir}/public`, fontDir]
+    // get public dir
+    const moduleAssetDir = resolve('./runtime/public-assets')
+    const assetDirs = [
+      resolve(nuxt.options.rootDir, nuxt.options.dir.public),
+      moduleAssetDir,
+    ]
 
     // add config to app and nitro
-    exposeModuleConfig('nuxt-og-image', { ...config, publicDirs })
+    exposeModuleConfig('nuxt-og-image', { ...config, assetDirs })
 
-    // move the fonts into the build directory so we can access them at runtime
-    nuxt.hooks.hook('build:before', async () => {
-      await copy(resolve('./runtime/public'), resolve(nuxt.options.buildDir, 'nuxt-og-image'))
-    })
+    const nitroPreset: string = process.env.NITRO_PRESET || nuxt.options.nitro.preset as string
+    const isWebWorkerEnv = process.env.NODE_ENV !== 'development' && (provider === 'stackblitz' || ['cloudflare', 'vercel-edge', 'netlify-edge', 'lambda'].includes(nitroPreset))
 
-    nuxt.hooks.hook('nitro:config', (nitroConfig) => {
+    nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {
         inline: [runtimeDir],
       })
 
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
-      nitroConfig.publicAssets.push({ dir: fontDir, maxAge: 31536000 })
-      if (isEdge && config.experimentalNitroBrowser)
-        nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/${isEdge ? 'lambda' : 'default'}'`
-      else
-        nitroConfig.virtual!['#nuxt-og-image/browser'] = `export { createBrowser } from '${runtimeDir}/nitro/browsers/default'`
-      nitroConfig.virtual!['#nuxt-og-image/resvg'] = `import resvg from '${runtimeDir}/nitro/resvg/${isEdge ? 'wasm' : 'node'}'; export { resvg }`
-      nitroConfig.virtual!['#nuxt-og-image/provider'] = `
-      import satori from '${runtimeDir}/nitro/providers/satori'
-      import browser from '${runtimeDir}/nitro/providers/browser'
+      nitroConfig.publicAssets.push({ dir: moduleAssetDir, maxAge: 31536000 })
 
-      export function useProvider(provider) {
+      const providerPath = `${runtimeDir}/nitro/providers`
+
+      if (config.browserProvider) {
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = `
+export default async function() {
+ return (process.env.prerender || process.env.dev === 'true') ? await import('${providerPath}/browser/node').then(m => m.default) : () => {}
+}
+`
+      }
+
+      if (config.satoriProvider) {
+        nitroConfig.virtual!['#nuxt-og-image/satori'] = isWebWorkerEnv
+          // edge envs
+          ? `export default async function() {
+  return (process.env.prerender || process.env.dev === 'true') ? await import('${providerPath}/satori/webworker').then(m => m.default) : await import('${providerPath}/satori/webworker').then(m => m.default)
+}`
+          // node envs
+          : `import node from '${providerPath}/satori/node';
+export default function() {
+ return node
+}
+`
+
+        nitroConfig.virtual!['#nuxt-og-image/svg2png'] = `export default async function() {
+ return await import('${providerPath}/svg2png/universal').then(m => m.default)
+}`
+      }
+
+      nitroConfig.virtual!['#nuxt-og-image/provider'] = `
+      export async function useProvider(provider) {
         if (provider === 'satori')
-          return satori
+          return ${config.satoriProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}').then(m => m.default)` : null}
         if (provider === 'browser')
-          return browser
+          return (process.env.prerender || process.env.dev) ? ${config.browserProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}').then(m => m.default)` : null} : null
       }
       `
-
-      if (config.experimentalNitroBrowser) {
-        nitroConfig.virtual!['#nuxt-og-image/providers/browser'] = `export * from '${runtimeDir}/nitro/providers/browser'`
-
-        if (isEdge) {
-          // we need to mock some of the static requires from chrome-aws-lambda, puppeteer-core is okay though
-          ['puppeteer', 'bufferutil', 'utf-8-validate'].forEach((name) => {
-            // @ts-expect-error untyped
-            nitroConfig.alias[name] = 'unenv/runtime/mock/proxy'
-          })
-        }
-      }
     })
 
     nuxt.hooks.hook('nitro:init', async (nitro) => {
       let screenshotQueue: OgImageOptions[] = []
+
+      nitro.hooks.hook('compiled', async (_nitro) => {
+        if (_nitro.options.preset === 'cloudflare' || _nitro.options.preset === 'vercel-edge') {
+          await copy(resolve('./runtime/public-assets/inter-latin-ext-400-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-400-normal.woff'))
+          await copy(resolve('./runtime/public-assets/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
+          await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
+          await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
+          // need to replace the token in index.mjs
+          const indexFile = resolve(_nitro.options.output.serverDir, 'index.mjs')
+          if (await pathExists(indexFile)) {
+            const indexContents = await readFile(indexFile, 'utf-8')
+            await writeFile(indexFile, indexContents
+              .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', 'import("./svg2png.wasm").then(m => m.default || m)')
+              .replace('"/* NUXT_OG_IMAGE_YOGA_WASM */"', 'import("./yoga.wasm").then(m => m.default || m)')
+              .replace('.cwd(),', '?.cwd || "/",'),
+            )
+          }
+        }
+      })
 
       const _routeRulesMatcher = toRouteMatcher(
         createRadixRouter({ routes: nitro.options.routeRules }),
@@ -259,7 +289,7 @@ export {}
         }
 
         // if we're running `nuxi generate` we pre-render everything (including dynamic)
-        if ((nuxt.options._generate || options.prerender) && options.provider === 'browser')
+        if ((nuxt.options._generate || options.static) && options.provider === 'browser')
           screenshotQueue.push(options)
       })
 
@@ -298,7 +328,7 @@ export {}
                   ...(entry || {}),
                 })
                 try {
-                  await mkdir(dirname, { recursive: true })
+                  await mkdirp(dirname)
                 }
                 catch (e) {}
                 await writeFile(filename, imgBuffer)

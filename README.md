@@ -33,7 +33,8 @@ Enlightened OG Image generation for Nuxt 3.
 
 ## Demos
 
-- [Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json) (visit `/__og_image__`)
+- [Vercel Edge Demo](https://nuxt-og-image-playground.vercel.app/)
+- [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json) (visit `/__og_image__`)
 
 ## Features
 
@@ -42,7 +43,7 @@ Enlightened OG Image generation for Nuxt 3.
 - 🤖 Browser provider: Supporting painless, complex templates
 - ✨ Prerendering enabled for static images
 - 📸 Feeling lazy? Just generate screenshots with options for hiding elements, waiting for animations, and more
-- ⚙️ Edge / WASM compatible
+- ⚙️ Works with Cloudflare Workers, Vercel Edge, Netlify, and more
 
 ## Install
 

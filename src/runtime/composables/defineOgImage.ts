@@ -3,7 +3,7 @@ import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
 import { useRouter } from '#imports'
-import { defaults, forcePrerender, host } from '#nuxt-og-image/config'
+import { defaults, forcePrerender, host, satoriProvider } from '#nuxt-og-image/config'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
@@ -11,22 +11,23 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
   defineOgImage({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
     provider: 'browser',
-    prerender: true,
+    static: true,
     ...options,
   })
 }
 
 export function defineOgImageDynamic(options: OgImageOptions = {}) {
   defineOgImage({
-    provider: 'satori',
+    provider: satoriProvider ? 'satori' : 'browser',
+    static: !!forcePrerender,
     ...options,
   })
 }
 
 export function defineOgImageStatic(options: OgImageOptions = {}) {
   defineOgImage({
-    provider: 'satori',
-    prerender: true,
+    provider: satoriProvider ? 'satori' : 'browser',
+    static: true,
     ...options,
   })
 }
@@ -38,8 +39,8 @@ export function defineOgImage(options: OgImageOptions = {}) {
 
     const e = useRequestEvent()
 
-    // pre-render satori images
-    if ((forcePrerender || options.prerender) && options.provider === 'satori')
+    // prerender satori images, we can't prerender browser screenshots
+    if ((forcePrerender || options.static) && options.provider === 'satori')
       e.res.setHeader('x-nitro-prerender', `${route === '/' ? '' : route}/__og_image__/og.png`)
 
     const meta = [

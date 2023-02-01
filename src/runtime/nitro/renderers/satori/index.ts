@@ -1,26 +1,31 @@
 import { html as convertHtmlToSatori } from 'satori-html'
-import satori from 'satori'
 import { parseURL } from 'ufo'
 import twemoji from 'twemoji'
-import type { Provider } from '../../../../types'
+import type { Renderer } from '../../../../types'
 import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'
 import flex from './plugins/flex'
 import emojis from './plugins/emojis'
 import { fonts, satoriOptions } from '#nuxt-og-image/config'
-import { resvg } from '#nuxt-og-image/resvg'
+import loadSvg2png from '#nuxt-og-image/svg2png'
+import loadSatori from '#nuxt-og-image/satori'
 
-export default <Provider> {
+const satoriFonts: any[] = []
+
+export default <Renderer> {
   name: 'satori',
   createPng: async function createPng(baseUrl, options) {
     const svg = await this.createSvg(baseUrl, options)
-    return resvg(svg, options)
+    const svg2png = await loadSvg2png()
+    return svg2png(svg, { baseUrl, ...options })
   },
 
   createVNode: async function createVNode(baseUrl, options) {
     const url = parseURL(baseUrl)
-    const html = await $fetch<string>(url.pathname)
+    const html = await globalThis.$fetch<string>('/api/og-image-html', {
+      query: { path: url.pathname, options: JSON.stringify(options) },
+    })
     // get the body content of the html
     const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1]
 
@@ -43,15 +48,17 @@ export default <Provider> {
   },
 
   createSvg: async function createSvg(baseUrl, options) {
-    const url = parseURL(baseUrl)
     const vnodes = await this.createVNode(baseUrl, options)
 
-    const satoriFonts = []
-    for (const font of fonts)
-      satoriFonts.push(await loadFont(url, font))
+    if (!satoriFonts.length) {
+      for (const font of fonts)
+        satoriFonts.push(await loadFont(new URL(baseUrl), font))
+    }
 
+    const satori = await loadSatori()
     return await satori(vnodes, {
       ...satoriOptions,
+      baseUrl,
       fonts: satoriFonts,
       embedFont: true,
       width: options.width!,

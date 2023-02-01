@@ -1,24 +1,25 @@
-import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
+import { withBase } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery, sendRedirect } from 'h3'
-import { fetchOptions, renderIsland, useHostname } from '../../utils'
+import { fetchOptions, renderIsland, useHostname } from '../utils'
+import type { OgImageOptions } from '../../../types'
 import { defaults, fonts } from '#nuxt-og-image/config'
 
 export default defineEventHandler(async (e) => {
-  const path = parseURL(e.path).pathname
-  if (!path.endsWith('__og_image__/html'))
-    return
-
-  const basePath = withoutTrailingSlash(path.replace('__og_image__/html', ''))
-
+  const path = getQuery(e).path as string || '/'
   const scale = getQuery(e).scale
   // extract the options from the original path
-  const options = await fetchOptions(basePath)
+  let options: OgImageOptions | undefined
+  if (getQuery(e).options)
+    options = JSON.parse(getQuery(e).options as string) as OgImageOptions
+
+  if (!options)
+    options = await fetchOptions(e, path)
 
   // for screenshots just return the base path
   if (options.provider === 'browser')
-    return sendRedirect(e, withBase(basePath, useHostname(e)))
+    return sendRedirect(e, withBase(path, useHostname(e)))
 
   // using Nuxt Island, generate the og:image HTML
   const island = await renderIsland(options)

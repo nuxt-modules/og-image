@@ -1,4 +1,4 @@
-export async function createBrowser() {
+export default async function createBrowser() {
   try {
     const playwrightCore = await import(String('playwright-core'))
     // try use a local chrome instance over downloading binaries

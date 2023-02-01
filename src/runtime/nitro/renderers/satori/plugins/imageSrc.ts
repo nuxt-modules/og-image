@@ -1,6 +1,7 @@
 import { withBase } from 'ufo'
 import type { VNode } from '../../../../../types'
-import { defineSatoriTransformer, readPublicAssetBase64 } from '../utils'
+import { defineSatoriTransformer } from '../utils'
+import { readPublicAssetBase64 } from '../../../utils'
 
 // for relative links we embed them as base64 input or just fix the URL to be absolute
 export default defineSatoriTransformer((url) => {

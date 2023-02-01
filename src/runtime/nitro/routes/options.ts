@@ -1,6 +1,5 @@
-import { parseURL, withoutTrailingSlash } from 'ufo'
 import { defineEventHandler, getQuery } from 'h3'
-import type { OgImageOptions } from '../../../../types'
+import type { OgImageOptions } from '../../../types'
 import { getRouteRules } from '#internal/nitro'
 import { defaults } from '#nuxt-og-image/config'
 
@@ -30,13 +29,11 @@ export const inferOgImageOptions = (html: string) => {
 }
 
 export default defineEventHandler(async (e) => {
-  const path = parseURL(e.path).pathname
-  if (!path.endsWith('__og_image__/options'))
-    return
+  const query = getQuery(e)
+  const path = query.path as string
 
-  const basePath = withoutTrailingSlash(path.replace('__og_image__/options', ''))
   // extract the payload from the original path
-  const html = await $fetch<string>(basePath)
+  const html = await globalThis.$fetch<string>(path)
 
   const extractedPayload = extractOgImageOptions(html)
   // not supported
@@ -44,7 +41,7 @@ export default defineEventHandler(async (e) => {
     return false
 
   // need to hackily reset the event params so we can access the route rules of the base URL
-  e.node.req.url = basePath
+  e.node.req.url = path
   e.context._nitro.routeRules = undefined
   const routeRules = getRouteRules(e)?.ogImage
   e.node.req.url = e.path
@@ -54,7 +51,7 @@ export default defineEventHandler(async (e) => {
     return false
 
   return {
-    path: basePath,
+    path,
     ...defaults,
     // use inferred data
     ...inferOgImageOptions(html),
@@ -63,6 +60,6 @@ export default defineEventHandler(async (e) => {
     // use provided data
     ...extractedPayload,
     // use query data
-    ...getQuery(e),
+    ...query,
   } as OgImageOptions
 })

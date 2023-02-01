@@ -26,7 +26,7 @@ export interface ScreenshotOptions {
 export interface OgImageOptions extends Partial<ScreenshotOptions> {
   provider?: 'browser' | 'satori'
 
-  prerender?: boolean
+  static?: boolean
   title?: string
   description?: string
   component?: string
@@ -34,7 +34,7 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   [key: string]: any
 }
 
-export interface Provider {
+export interface Renderer {
   name: 'browser' | 'satori'
   createSvg: (path: string, options: OgImageOptions) => Promise<string>
   createPng: (path: string, options: OgImageOptions) => Promise<Buffer>
