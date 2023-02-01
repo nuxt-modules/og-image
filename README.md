@@ -126,10 +126,6 @@ a live preview of your `og:image` and allows you to edit it in real-time.
 
 For example, if your local site is hosted at `https://localhost:3000`, you can view your `og:image` at `https://localhost:3000/__og_image__`.
 
-You should see something like the following:
-
-<img src="https://repository-images.githubusercontent.com/578125755/59ca1ac4-f032-4576-8179-d968a1631f1e">
-
 ### 3. Customize your `og:image`
 
 While you have the playground open, start customising the OG Image by providing options to the `defineOgImageStatic` function.
