@@ -7,8 +7,6 @@ const height = config.value?.height || 630
 const width = config.value?.width || 1200
 
 const aspectRatio = width / height
-
-const options = await fetchOptions()
 </script>
 
 <template>

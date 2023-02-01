@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core'
-import { containerWidth, description, path, refreshSources, rpc } from './util/logic'
+import { containerWidth, description, path, refreshSources } from './util/logic'
 import { devtoolsClient } from '~/composables/devtools-client'
 
 useHead({
@@ -20,7 +20,6 @@ const constrainsWidth = computed(() => {
   return useRoute().path !== '/vnodes' && useRoute().path !== '/options'
 })
 
-const config = await rpc.useServerConfig()
 const options = await fetchOptions()
 
 const setPath = useDebounceFn((e) => {
