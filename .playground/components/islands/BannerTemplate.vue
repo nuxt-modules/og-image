@@ -13,20 +13,9 @@ const theme = computed(() => props.themeColor || '#dbf4ff')
 <template>
 <div :style="{ fontWeight: 400, padding: '0 60px', width: '100%', height: '100%', backgroundColor: '#0c0c0c', backgroundImage: 'linear-gradient(to bottom, ' + theme + ', #fff1f1)', display: 'flex', alignItems: 'center' }">
   <div :style="{ padding: '0 30px', display: 'flex', flexDirection: 'column' }">
-    <p :style="{ fontSize: '60px', fontWeight: 'bold', marginBottom: '20px' }">{{ title }}</p>
-    <p :style="{ fontSize: '26px', fontWeight: 400 }">{{ description }}</p>
+    <p :style="{ fontSize: '75px', fontWeight: 'bold', marginBottom: '20px' }">{{ title }}</p>
+    <p :style="{ fontSize: '35px', fontWeight: 400 }">{{ description }}</p>
   </div>
-  <div>
-    <div>
-      <p>a</p>
-      <p>
-        b
-      </p>
-      <h1>
-        c
-      </h1>
-    </div>
-  </div>
-  <div :style="{ position: 'absolute', top: '30px', left: '30px', fontSize: '15px', fontWeight: 300 }">{{ appName }}</div>
+  <div :style="{ position: 'absolute', top: '50px', left: '50px', fontSize: '40px', fontWeight: 300 }">{{ appName }}</div>
 </div>
 </template>

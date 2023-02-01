@@ -1,6 +1,8 @@
 <script lang="ts" setup>
-useHead({
-  title: 'Nuxt OG Image',
+useServerSeoMeta({
+  title: 'Nuxt OG Image Playground',
+  ogTitle: 'Nuxt OG Image Playground',
+  ogDescription: 'Edge rendered playground for Nuxt OG Image.',
 })
 </script>
 

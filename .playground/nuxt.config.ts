@@ -6,18 +6,26 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     resolve(__dirname, '../src/module'),
     '@nuxt/devtools-edge',
+    function(options, nuxt) {
+      nuxt.hook('components:extend', (components) => {
+        const index = components.findIndex(c => c.name === 'NuxtWelcome')
+        components[index].mode = 'client'
+      })
+    }
   ],
   nitro: {
     prerender: {
       crawlLinks: true,
       routes: [
         '/',
+        '/satori/static',
+        '/satori/image',
       ]
     }
   },
 
   ogImage: {
-    host: 'https://example.com',
+    host: 'https://nuxt-og-image-playground.vercel.app',
     defaults: {
       component: 'BannerTemplate',
       appName: 'My App',
