@@ -63,16 +63,16 @@
     "ufo": "^1.0.1"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.34.1",
-    "@nuxt/devtools-edge": "0.0.0-27912348.8f382d4",
+    "@antfu/eslint-config": "^0.35.1",
+    "@nuxt/devtools-edge": "0.0.0-27920827.b7cf3cc",
     "@nuxt/module-builder": "^0.2.1",
     "@nuxt/test-utils": "3.1.1",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "@types/ws": "^8.5.4",
     "bumpp": "^8.2.1",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "nuxt": "npm:nuxt3@3.1.1-rc.0-27911047.7d812db",
-    "puppeteer": "^19.6.1",
-    "vitest": "^0.28.2"
+    "puppeteer": "^19.6.2",
+    "vitest": "^0.28.3"
   }
 }
