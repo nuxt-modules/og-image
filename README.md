@@ -68,7 +68,7 @@ export default defineNuxtConfig({
 
 #### Requirements
 
-This feature uses Nuxt Islands, which requires Nuxt 3.1.
+This feature uses Nuxt Islands, which requires Nuxt >= 3.1.
 
 ### Add your host name
 
@@ -80,7 +80,7 @@ _nuxt.config.ts_
 export default defineNuxtConfig({
   // Recommended 
   runtimeConfig: {
-    siteUrl: 'https://example.com',
+    siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
   },
   // OR
   ogImage: {
