@@ -80,7 +80,9 @@ _nuxt.config.ts_
 export default defineNuxtConfig({
   // Recommended 
   runtimeConfig: {
-    siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
+   public: {
+     siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
+   }
   },
   // OR
   ogImage: {
