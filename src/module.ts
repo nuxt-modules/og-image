@@ -57,7 +57,7 @@ export default defineNuxtModule<ModuleOptions>({
     return {
       // when we run `nuxi generate` we need to force prerendering
       forcePrerender: !nuxt.options.dev && nuxt.options._generate,
-      host: nuxt.options.runtimeConfig.public?.siteUrl,
+      host: process.env.NUXT_PUBLIC_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl,
       defaults: {
         component: 'OgImageBasic',
         width: 1200,
