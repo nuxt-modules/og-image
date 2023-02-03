@@ -40,6 +40,7 @@ export interface ModuleOptions {
   browserProvider: boolean
   experimentalInlineWasm: boolean
   experimentalRuntimeBrowser: boolean
+  playground: boolean
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -77,6 +78,7 @@ export default defineNuxtModule<ModuleOptions>({
       satoriOptions: {},
       experimentalInlineWasm: process.env.NITRO_PRESET === 'netlify-edge' || nuxt.options.nitro.preset === 'netlify-edge' || false,
       experimentalRuntimeBrowser: false,
+      playground: process.env.NODE_ENV === 'development' || nuxt.options.dev,
     }
   },
   async setup(config, nuxt) {
@@ -144,7 +146,7 @@ export {}
     })
 
     // Setup playground. Only available in development
-    if (nuxt.options.dev) {
+    if (config.playground) {
       const playgroundDir = distResolve('./client')
       const {
         middleware: rpcMiddleware,
@@ -260,7 +262,7 @@ export default function() {
         if (edgeProvidersSupported.includes(_nitro.options.preset)) {
           await copy(resolve('./runtime/public-assets/inter-latin-ext-400-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-400-normal.woff'))
           await copy(resolve('./runtime/public-assets/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
-          if (config.experimentalInlineWasm) {
+          if (!config.experimentalInlineWasm) {
             await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
             await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
           }
@@ -293,7 +295,7 @@ export default function() {
 
       nitro.hooks.hook('prerender:generate', async (ctx) => {
         // avoid scanning files and the og:image route itself
-        if (ctx.route.includes('.') || ctx.route.endsWith('__og_image__/html'))
+        if (ctx.route.includes('.'))
           return
 
         const html = ctx.contents
