@@ -477,7 +477,7 @@ The selector to take a screenshot of. This is useful if you want to exclude head
 
 ```ts
 defineOgImageScreenshot({
-  mask: '.page-content'
+  selector: '.page-content'
 })
 ```
 
