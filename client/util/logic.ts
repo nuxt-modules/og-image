@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import { joinURL } from 'ufo'
 import { useDebounceFn } from '@vueuse/core'
 import type { PlaygroundClientFunctions } from '../../src/types'
 
