@@ -44,6 +44,12 @@ const PATH = '/__nuxt_og_image__'
 const PATH_ENTRY = `${PATH}/entry`
 const PATH_PLAYGROUND = `${PATH}/client`
 
+const edgeProvidersSupported = [
+  'cloudflare',
+  'vercel-edge',
+  'netlify-edge',
+]
+
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
@@ -190,7 +196,7 @@ export {}
     exposeModuleConfig('nuxt-og-image', { ...config, assetDirs })
 
     const nitroPreset: string = process.env.NITRO_PRESET || nuxt.options.nitro.preset as string
-    const isWebWorkerEnv = process.env.NODE_ENV !== 'development' && (provider === 'stackblitz' || ['cloudflare', 'vercel-edge', 'netlify-edge', 'lambda'].includes(nitroPreset))
+    const isWebWorkerEnv = process.env.NODE_ENV !== 'development' && (provider === 'stackblitz' || edgeProvidersSupported.includes(nitroPreset))
 
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {
@@ -242,7 +248,7 @@ export default function() {
       let screenshotQueue: OgImageOptions[] = []
 
       nitro.hooks.hook('compiled', async (_nitro) => {
-        if (_nitro.options.preset === 'cloudflare' || _nitro.options.preset === 'vercel-edge') {
+        if (edgeProvidersSupported.includes(_nitro.options.preset)) {
           await copy(resolve('./runtime/public-assets/inter-latin-ext-400-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-400-normal.woff'))
           await copy(resolve('./runtime/public-assets/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
           await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
