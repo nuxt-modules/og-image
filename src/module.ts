@@ -38,6 +38,8 @@ export interface ModuleOptions {
   forcePrerender: boolean
   satoriProvider: boolean
   browserProvider: boolean
+  experimentalInlineWasm: boolean
+  experimentalRuntimeBrowser: boolean
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -73,6 +75,8 @@ export default defineNuxtModule<ModuleOptions>({
       browserProvider: true,
       fonts: [],
       satoriOptions: {},
+      experimentalInlineWasm: process.env.NITRO_PRESET === 'netlify-edge' || nuxt.options.nitro.preset === 'netlify-edge' || false,
+      experimentalRuntimeBrowser: false,
     }
   },
   async setup(config, nuxt) {
@@ -209,8 +213,12 @@ export {}
       const providerPath = `${runtimeDir}/nitro/providers`
 
       if (config.browserProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/browser'] = `
-export default async function() {
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = config.experimentalRuntimeBrowser
+          ? `export default async function() {
+ return await import('${providerPath}/browser/node').then(m => m.default)
+}
+`
+          : `export default async function() {
  return (process.env.prerender || process.env.dev === 'true') ? await import('${providerPath}/browser/node').then(m => m.default) : () => {}
 }
 `
@@ -239,7 +247,8 @@ export default function() {
         if (provider === 'satori')
           return ${config.satoriProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}').then(m => m.default)` : null}
         if (provider === 'browser')
-          return (process.env.prerender || process.env.dev) ? ${config.browserProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}').then(m => m.default)` : null} : null
+          ${config.experimentalRuntimeBrowser ? `return await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}').then(m => m.default)` : ''}
+          ${!config.experimentalRuntimeBrowser ? `return (process.env.prerender || process.env.dev) ? ${config.browserProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}').then(m => m.default)` : null} : null` : ''}
       }
       `
     })
@@ -251,17 +260,29 @@ export default function() {
         if (edgeProvidersSupported.includes(_nitro.options.preset)) {
           await copy(resolve('./runtime/public-assets/inter-latin-ext-400-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-400-normal.woff'))
           await copy(resolve('./runtime/public-assets/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
-          await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
-          await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
+          if (config.experimentalInlineWasm) {
+            await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
+            await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
+          }
           // need to replace the token in index.mjs
-          const indexFile = resolve(_nitro.options.output.serverDir, 'index.mjs')
+          const indexFile = resolve(_nitro.options.output.serverDir, _nitro.options.preset === 'netlify-edge' ? 'server.mjs' : 'index.mjs')
           if (await pathExists(indexFile)) {
-            const indexContents = await readFile(indexFile, 'utf-8')
-            await writeFile(indexFile, indexContents
-              .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', 'import("./svg2png.wasm").then(m => m.default || m)')
-              .replace('"/* NUXT_OG_IMAGE_YOGA_WASM */"', 'import("./yoga.wasm").then(m => m.default || m)')
-              .replace('.cwd(),', '?.cwd || "/",'),
-            )
+            const indexContents = (await readFile(indexFile, 'utf-8')).replace('.cwd(),', '?.cwd || "/",')
+            if (!config.experimentalInlineWasm) {
+              await writeFile(indexFile, indexContents
+                .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', 'import("./svg2png.wasm").then(m => m.default || m)')
+                .replace('"/* NUXT_OG_IMAGE_YOGA_WASM */"', 'import("./yoga.wasm").then(m => m.default || m)'),
+              )
+            }
+            else {
+              // read the wasm to a base 64 string
+              const svg2pngWasm = await readFile(resolve('./runtime/public-assets/svg2png.wasm'), 'base64')
+              const yogaWasm = await readFile(resolve('./runtime/public-assets/yoga.wasm'), 'base64')
+              await writeFile(indexFile, indexContents
+                .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', `Buffer.from("${svg2pngWasm}", "base64")`)
+                .replace('"/* NUXT_OG_IMAGE_YOGA_WASM */"', `Buffer.from("${yogaWasm}", "base64")`),
+              )
+            }
           }
         }
       })

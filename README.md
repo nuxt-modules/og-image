@@ -43,7 +43,7 @@ Enlightened OG Image generation for Nuxt 3.
 - 🤖 Browser provider: Supporting painless, complex templates
 - ✨ Prerendering enabled for static images
 - 📸 Feeling lazy? Just generate screenshots with options for hiding elements, waiting for animations, and more
-- ⚙️ Works with Cloudflare Workers, Vercel Edge, Netlify, and more
+- ⚙️ Satori support in Vercel Edge and Cloudflare Workers
 
 ## Install
 
