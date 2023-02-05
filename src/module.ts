@@ -19,7 +19,7 @@ import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
-import { provider } from 'std-env'
+import { isCI, provider } from 'std-env'
 import createBrowser from './runtime/nitro/providers/browser/node'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
@@ -328,6 +328,20 @@ export default function() {
       const captureScreenshots = async () => {
         if (screenshotQueue.length === 0)
           return
+
+        // if we're running in CI, avoid problems by installing playwright
+        if (isCI) {
+          nitro.logger.info('Ensuring chromium install for og:image generation...')
+          const process = execa('npx', ['playwright', 'install', 'chromium'])
+          process.stderr?.pipe(process.stderr)
+          await new Promise((resolve) => {
+            process.on('exit', (e) => {
+              if (e !== 0)
+                nitro.logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
+              resolve(true)
+            })
+          })
+        }
 
         const previewProcess = execa('npx', ['serve', nitro.options.output.publicDir])
         let browser: Browser | null = null
