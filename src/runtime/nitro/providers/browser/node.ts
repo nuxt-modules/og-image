@@ -1,14 +1,21 @@
 import { isCI } from 'std-env'
+import playwrightCore from 'playwright-core'
 
 export default async function createBrowser() {
+  // try to use a local chrome instance over downloading binaries
   try {
-    const playwrightCore = await import(String('playwright-core'))
-    // try use a local chrome instance over downloading binaries
     const { Launcher } = await import(String('chrome-launcher'))
     const chromePath = Launcher.getFirstInstallation()
     return await playwrightCore.chromium.launch({
       headless: true,
       executablePath: chromePath,
+    })
+  }
+  catch (e) {}
+  // try just using the core playwright to launch chromium
+  try {
+    return await playwrightCore.chromium.launch({
+      headless: true,
     })
   }
   catch (e) {}
