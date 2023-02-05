@@ -9,6 +9,7 @@ import { defaults, fonts } from '#nuxt-og-image/config'
 export default defineEventHandler(async (e) => {
   const path = getQuery(e).path as string || '/'
   const scale = getQuery(e).scale
+  const mode = getQuery(e).mode || 'light'
   // extract the options from the original path
   let options: OgImageOptions | undefined
   if (getQuery(e).options)
@@ -42,6 +43,7 @@ export default defineEventHandler(async (e) => {
     width: ${defaults.width}px;
     height: ${defaults.height}px;
     overflow: hidden;
+    background-color: ${mode === 'dark' ? '#1b1b1b' : '#fff'};
 }
 img.emoji {
    height: 1em;

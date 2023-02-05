@@ -10,6 +10,8 @@ const props = defineProps({
 
 const src = ref(props.src)
 
+const mode = useColorMode()
+
 const iframe = ref()
 const timeTakenMs = ref(0)
 
@@ -30,7 +32,7 @@ const setSource = useDebounceFn(() => {
     frame.style.opacity = '1'
     timeTakenMs.value = Date.now() - now
   }
-  frame.src = `${src.value}&scale=${scale}`
+  frame.src = `${src.value}&scale=${scale}&mode=${mode.value}`
 }, 200)
 
 onMounted(() => {
@@ -41,7 +43,7 @@ onMounted(() => {
     immediate: true,
   })
 
-  watch(() => containerWidth.value, () => {
+  watch([() => containerWidth.value, mode], () => {
     setSource()
   })
 })
@@ -61,7 +63,9 @@ watch(loadDescription, (d) => {
 </script>
 
 <template>
-  <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" width="1200" height="630" />
+  <div class="w-full mx-auto max-w-1200px h-full max-h-630px justify-center flex" style="max-height: 630px;">
+    <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" width="1200" height="630" />
+  </div>
 </template>
 
 <style scoped>

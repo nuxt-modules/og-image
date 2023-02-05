@@ -31,9 +31,9 @@ const setPath = useDebounceFn((e) => {
 <template>
   <div class="flex-row flex h-screen">
     <header class="border-r-1 border-light-400 dark:(border-dark-400 bg-dark-900 text-light) bg-white text-dark-800 flex flex-col justify-between h-screen z-5">
-      <div class="flex-grow">
+      <div class="flex-grow hidden md:block">
         <div class="py-3 w-full flex items-start px-5 justify-between space-x-5">
-          <h1 class="text-base hidden md:block w-40">
+          <h1 class="text-base w-40">
             OG Image Playground
           </h1>
           <NDarkToggle v-if="!isDevTools">
