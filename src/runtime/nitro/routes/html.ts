@@ -19,7 +19,7 @@ export default defineEventHandler(async (e) => {
     options = await fetchOptions(e, path)
 
   // for screenshots just return the base path
-  if (options.provider === 'browser')
+  if (options.provider === 'browser' && !options.component)
     return sendRedirect(e, withBase(path, useHostname(e)))
 
   // using Nuxt Island, generate the og:image HTML

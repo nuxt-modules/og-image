@@ -1,19 +1,29 @@
 import type { Browser } from 'playwright-core'
 import type { ScreenshotOptions } from '../types'
 
-export async function screenshot(browser: Browser, url: string, options: ScreenshotOptions): Promise<Buffer> {
+export async function screenshot(browser: Browser, options: Partial<ScreenshotOptions> & Record<string, any>): Promise<Buffer> {
   const page = await browser.newPage({
     colorScheme: options.colorScheme,
   })
   await page.setViewportSize({
-    width: options.width,
-    height: options.height,
+    width: options.width || 1200,
+    height: options.height || 630,
   })
 
-  await page.goto(url, {
-    timeout: 10000,
-    waitUntil: 'networkidle',
-  })
+  if (options.path.startsWith('html:')) {
+    await page.evaluate((html) => {
+      document.open('text/html')
+      document.write(html)
+      document.close()
+    }, options.path.substring(5))
+    await page.waitForLoadState('networkidle')
+  }
+  else {
+    await page.goto(`${options.host}${options.path}`, {
+      timeout: 10000,
+      waitUntil: 'networkidle',
+    })
+  }
 
   if (options.delay)
     await page.waitForTimeout(options.delay)

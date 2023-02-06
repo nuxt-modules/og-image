@@ -29,7 +29,7 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   static?: boolean
   title?: string
   description?: string
-  component?: string
+  component?: string | null
   alt?: string
   [key: string]: any
 }

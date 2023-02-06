@@ -310,16 +310,20 @@ export default function() {
         if (!extractedOptions || routeRules.ogImage === false)
           return
 
-        const options: OgImageOptions = {
-          path: ctx.route,
+        const entry: OgImageOptions = {
+          path: extractedOptions.component ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
           ...extractedOptions,
           ...(routeRules.ogImage || {}),
           ctx,
         }
 
-        // if we're running `nuxi generate` we pre-render everything (including dynamic)
-        if ((nuxt.options._generate || options.static) && options.provider === 'browser')
-          screenshotQueue.push(options)
+        // if we're rendering a component let's fetch the html, it will have everything we need
+        if (entry.component)
+          entry.path = `html:${await $fetch(entry.path)}`
+
+        // if we're running `nuxi generate` we prerender everything (including dynamic)
+        if ((nuxt.options._generate || entry.static) && entry.provider === 'browser')
+          screenshotQueue.push(entry)
       })
 
       if (nuxt.options.dev)
@@ -358,7 +362,7 @@ export default function() {
           })).trim()
           browser = await createBrowser()
           if (browser) {
-            nitro.logger.info(`Pre-rendering ${screenshotQueue.length} og:image screenshots...`)
+            nitro.logger.info(`Prerendering ${screenshotQueue.length} og:image screenshots...`)
             for (const k in screenshotQueue) {
               const entry = screenshotQueue[k]
               const start = Date.now()
@@ -366,9 +370,10 @@ export default function() {
               const dirname = joinURL(nitro.options.output.publicDir, `${entry.ctx.fileName.replace('index.html', '')}__og_image__/`)
               const filename = joinURL(dirname, '/og.png')
               try {
-                const imgBuffer = await screenshot(browser, `${host}${entry.path}`, {
+                const imgBuffer = await screenshot(browser, {
                   ...(config.defaults as ScreenshotOptions || {}),
                   ...(entry || {}),
+                  host,
                 })
                 try {
                   await mkdirp(dirname)

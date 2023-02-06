@@ -1,5 +1,5 @@
 import { screenshot } from '../../browserUtil'
-import type { Renderer, ScreenshotOptions } from '../../../types'
+import type { Renderer } from '../../../types'
 import loadBrowser from '#nuxt-og-image/browser'
 
 export default <Renderer> {
@@ -11,10 +11,16 @@ export default <Renderer> {
     throw new Error('Browser provider can\'t create VNodes.')
   },
   createPng: async function createPng(basePath, options) {
+    const url = new URL(basePath)
     const createBrowser = await loadBrowser()
     const browser = await createBrowser()
-    if (browser)
-      return screenshot(browser!, basePath, options as ScreenshotOptions)
+    if (browser) {
+      return screenshot(browser!, {
+        ...options,
+        host: url.origin,
+        path: `/api/og-image-html?path=${url.pathname}`,
+      })
+    }
     return null
   },
 }
