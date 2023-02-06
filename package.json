@@ -52,7 +52,7 @@
     "pathe": "^1.1.0",
     "playwright-core": "^1.30.0",
     "radix3": "^1.0.0",
-    "satori": "^0.2.0",
+    "satori": "0.2.0",
     "satori-html": "^0.3.2",
     "sirv": "^2.0.2",
     "std-env": "^3.3.2",
@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.35.1",
-    "@nuxt/devtools-edge": "0.0.0-27925355.bb05ed5",
+    "@nuxt/devtools-edge": "0.0.0-27928010.c91ffe5",
     "@nuxt/module-builder": "^0.2.1",
     "@nuxt/test-utils": "3.1.2",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",

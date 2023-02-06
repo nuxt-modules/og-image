@@ -5,7 +5,7 @@ importers:
   .:
     specifiers:
       '@antfu/eslint-config': ^0.35.1
-      '@nuxt/devtools-edge': 0.0.0-27925355.bb05ed5
+      '@nuxt/devtools-edge': 0.0.0-27928010.c91ffe5
       '@nuxt/kit': 3.1.2
       '@nuxt/module-builder': ^0.2.1
       '@nuxt/test-utils': 3.1.2
@@ -29,7 +29,7 @@ importers:
       playwright-core: ^1.30.0
       puppeteer: ^19.6.2
       radix3: ^1.0.0
-      satori: ^0.2.0
+      satori: 0.2.0
       satori-html: ^0.3.2
       sirv: ^2.0.2
       std-env: ^3.3.2
@@ -55,7 +55,7 @@ importers:
       pathe: 1.1.0
       playwright-core: 1.30.0
       radix3: 1.0.0
-      satori: 0.2.2
+      satori: 0.2.0
       satori-html: 0.3.2
       sirv: 2.0.2
       std-env: 3.3.2
@@ -66,7 +66,7 @@ importers:
       yoga-wasm-web: 0.3.0
     devDependencies:
       '@antfu/eslint-config': 0.35.1_eslint@8.33.0
-      '@nuxt/devtools-edge': 0.0.0-27925355.bb05ed5_74nfik3rem56pvtj544tzptbci
+      '@nuxt/devtools-edge': 0.0.0-27928010.c91ffe5_74nfik3rem56pvtj544tzptbci
       '@nuxt/module-builder': 0.2.1
       '@nuxt/test-utils': 3.1.2
       '@nuxtjs/eslint-config-typescript': 12.0.0_eslint@8.33.0
@@ -541,11 +541,11 @@ packages:
       mime: 3.0.0
     dev: true
 
-  /@esbuild-kit/cjs-loader/2.4.1:
-    resolution: {integrity: sha512-lhc/XLith28QdW0HpHZvZKkorWgmCNT7sVelMHDj3HFdTfdqkwEKvT+aXVQtNAmCC39VJhunDkWhONWB7335mg==}
+  /@esbuild-kit/cjs-loader/2.4.2:
+    resolution: {integrity: sha512-BDXFbYOJzT/NBEtp71cvsrGPwGAMGRB/349rwKuoxNSiKjPraNNnlK6MIIabViCjqZugu6j+xeMDlEkWdHHJSg==}
     dependencies:
       '@esbuild-kit/core-utils': 3.0.0
-      get-tsconfig: 4.3.0
+      get-tsconfig: 4.4.0
     dev: true
 
   /@esbuild-kit/core-utils/3.0.0:
@@ -555,11 +555,11 @@ packages:
       source-map-support: 0.5.21
     dev: true
 
-  /@esbuild-kit/esm-loader/2.5.4:
-    resolution: {integrity: sha512-afmtLf6uqxD5IgwCzomtqCYIgz/sjHzCWZFvfS5+FzeYxOURPUo4QcHtqJxbxWOMOogKriZanN/1bJQE/ZL93A==}
+  /@esbuild-kit/esm-loader/2.5.5:
+    resolution: {integrity: sha512-Qwfvj/qoPbClxCRNuac1Du01r9gvNOT+pMYtJDapfB1eoGN1YlJ1BixLyL9WVENRx5RXgNLdfYdx/CuswlGhMw==}
     dependencies:
       '@esbuild-kit/core-utils': 3.0.0
-      get-tsconfig: 4.3.0
+      get-tsconfig: 4.4.0
     dev: true
 
   /@esbuild/android-arm/0.15.18:
@@ -1178,8 +1178,8 @@ packages:
     resolution: {integrity: sha512-YBI/6o2EBz02tdEJRBK8xkt3zvOFOWlLBf7WKYGBsSYSRtjjgrqPe2skp6VLLmKx5WbHHDNcW+6oACaurxGzeA==}
     dev: true
 
-  /@nuxt/devtools-edge/0.0.0-27925355.bb05ed5_74nfik3rem56pvtj544tzptbci:
-    resolution: {integrity: sha512-dNwAwDoE7uUQyZf2h+YAD6Dfr5q+X2v4fRM+Yg4voyDVFPpZ4V3TQfLV8zWZ5TIOniy2jJIU8gY4c9+P0Mrz1Q==}
+  /@nuxt/devtools-edge/0.0.0-27928010.c91ffe5_74nfik3rem56pvtj544tzptbci:
+    resolution: {integrity: sha512-iTi+SYaujGsATK7gnEwGVLNRP5q3MklILKWxqqyhViMXPdbDcIDMfprqwoZYpVIyXAvOBdsuuuu9G/2w7nG1Cg==}
     hasBin: true
     peerDependencies:
       nuxt: ^3.1.1
@@ -1478,7 +1478,7 @@ packages:
       is-docker: 3.0.0
       jiti: 1.16.2
       mri: 1.2.0
-      nanoid: 4.0.0
+      nanoid: 4.0.1
       node-fetch: 3.3.0
       ofetch: 1.0.0
       parse-git-config: 3.0.0
@@ -4864,7 +4864,7 @@ packages:
     resolution: {integrity: sha512-6slSBEV1lMKcX13DBifvnDFpNno5WXhw4j/ff7RI0y51BZiDqEe5dNhhjhIQ3iCOQuzsm2MbVzmwqbN78BBhPg==}
     hasBin: true
     dependencies:
-      tsx: 3.12.2
+      tsx: 3.12.3
     dev: true
 
   /espree/9.4.1:
@@ -5248,6 +5248,10 @@ packages:
 
   /get-tsconfig/4.3.0:
     resolution: {integrity: sha512-YCcF28IqSay3fqpIu5y3Krg/utCBHBeoflkZyHj/QcqI2nrLPC3ZegS9CmIo+hJb8K7aiGsuUl7PwWVjNG2HQQ==}
+    dev: true
+
+  /get-tsconfig/4.4.0:
+    resolution: {integrity: sha512-0Gdjo/9+FzsYhXCEFueo2aY1z1tpXrxWZzP7k8ul9qt1U5o8rYJwTJYmaeHdrVosYIVYkOy2iwCJ9FdpocJhPQ==}
     dev: true
 
   /giget/1.0.0:
@@ -6347,8 +6351,8 @@ packages:
     hasBin: true
     dev: true
 
-  /nanoid/4.0.0:
-    resolution: {integrity: sha512-IgBP8piMxe/gf73RTQx7hmnhwz0aaEXYakvqZyE302IXW3HyVNhdNGC+O2MwMAVhLEnvXlvKtGbtJf6wvHihCg==}
+  /nanoid/4.0.1:
+    resolution: {integrity: sha512-udKGtCCUafD3nQtJg9wBhRP3KMbPglUsgV5JVsXhvyBs/oefqb4sqMEhKBBgqZncYowu58p1prsZQBYvAj/Gww==}
     engines: {node: ^14 || ^16 || >=18}
     hasBin: true
     dev: true
@@ -7802,8 +7806,8 @@ packages:
       ultrahtml: 1.2.0
     dev: false
 
-  /satori/0.2.2:
-    resolution: {integrity: sha512-/9A9cMdrkSqFPavObgQAn9737hMnBeKSgf/L5zWm2a6UzwMR2jl5xjrH4LURlJLEXdx/ijOjH0/Q6PUn2Fgpdg==}
+  /satori/0.2.0:
+    resolution: {integrity: sha512-QSqOYYN0A25qO+smoGMXKlTj/B0F6hcfCjjinP2sXO8r3zrZYIovo+PADFF4aegZTMuQGS1/n/8nKd6h62ohDQ==}
     engines: {node: '>=16'}
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
@@ -8355,13 +8359,13 @@ packages:
       tslib: 1.14.1
     dev: true
 
-  /tsx/3.12.2:
-    resolution: {integrity: sha512-ykAEkoBg30RXxeOMVeZwar+JH632dZn9EUJVyJwhfag62k6UO/dIyJEV58YuLF6e5BTdV/qmbQrpkWqjq9cUnQ==}
+  /tsx/3.12.3:
+    resolution: {integrity: sha512-Wc5BFH1xccYTXaQob+lEcimkcb/Pq+0en2s+ruiX0VEIC80nV7/0s7XRahx8NnsoCnpCVUPz8wrqVSPi760LkA==}
     hasBin: true
     dependencies:
-      '@esbuild-kit/cjs-loader': 2.4.1
+      '@esbuild-kit/cjs-loader': 2.4.2
       '@esbuild-kit/core-utils': 3.0.0
-      '@esbuild-kit/esm-loader': 2.5.4
+      '@esbuild-kit/esm-loader': 2.5.5
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
