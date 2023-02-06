@@ -18,6 +18,8 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: [
         '/',
+        '/browser/component',
+        '/browser/custom',
         '/satori/static',
         '/satori/image',
       ]

@@ -209,49 +209,58 @@ export {}
         inline: [runtimeDir],
       })
 
+      if (config.experimentalRuntimeBrowser) {
+        nitroConfig.alias = nitroConfig.alias || {}
+        nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
+        nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'
+        nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
+      }
+
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
       nitroConfig.publicAssets.push({ dir: moduleAssetDir, maxAge: 31536000 })
 
       const providerPath = `${runtimeDir}/nitro/providers`
 
       if (config.browserProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/browser'] = config.experimentalRuntimeBrowser
-          ? `export default async function() {
- return await import('${providerPath}/browser/node').then(m => m.default)
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = (nuxt.options.dev || config.experimentalRuntimeBrowser)
+          ? `
+import node from '${providerPath}/browser/node'
+
+export default async function() {
+  return node
 }
 `
           : `export default async function() {
- return (process.env.prerender || process.env.dev === 'true') ? await import('${providerPath}/browser/node').then(m => m.default) : () => {}
+ return () => {}
 }
 `
       }
 
       if (config.satoriProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/satori'] = isWebWorkerEnv
+        nitroConfig.virtual!['#nuxt-og-image/satori']
           // edge envs
-          ? `export default async function() {
-  return (process.env.prerender || process.env.dev === 'true') ? await import('${providerPath}/satori/webworker').then(m => m.default) : await import('${providerPath}/satori/webworker').then(m => m.default)
+          = `import webworker from '${providerPath}/satori/${isWebWorkerEnv ? 'webworker' : 'node'}'
+export default async function() {
+  return webworker
 }`
-          // node envs
-          : `import node from '${providerPath}/satori/node';
-export default function() {
- return node
-}
-`
 
-        nitroConfig.virtual!['#nuxt-og-image/svg2png'] = `export default async function() {
- return await import('${providerPath}/svg2png/universal').then(m => m.default)
+        nitroConfig.virtual!['#nuxt-og-image/svg2png'] = `
+import svg2png from '${providerPath}/svg2png/universal'
+export default async function() {
+ return svg2png
 }`
       }
 
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
-      export async function useProvider(provider) {
-        if (provider === 'satori')
-          return ${config.satoriProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}').then(m => m.default)` : null}
-        if (provider === 'browser')
-          ${config.experimentalRuntimeBrowser ? `return await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}').then(m => m.default)` : ''}
-          ${!config.experimentalRuntimeBrowser ? `return (process.env.prerender || process.env.dev) ? ${config.browserProvider ? `await import('${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}').then(m => m.default)` : null} : null` : ''}
-      }
+import satori from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}'
+import browser from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}'
+
+export async function useProvider(provider) {
+  if (provider === 'satori')
+    return satori
+  if (provider === 'browser')
+    return browser
+}
       `
     })
 
