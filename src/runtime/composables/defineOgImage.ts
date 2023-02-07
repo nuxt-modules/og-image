@@ -46,8 +46,12 @@ export function defineOgImage(options: OgImageOptions = {}) {
 
     const meta = [
       {
-        property: 'twitter:card',
+        name: 'twitter:card',
         content: 'summary_large_image',
+      },
+      {
+        name: 'twitter:image:src',
+        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, host),
       },
       {
         property: 'og:image',
