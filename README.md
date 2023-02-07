@@ -35,8 +35,8 @@ Enlightened OG Image generation for Nuxt 3.
 
 - ✨ Turn your Vue components into `og:image` templates
 - 🎨 Design them in the OG Image Playground with full HMR
-- ▲ Render them with Blazing fast [Satori](https://github.com/vercel/satori) provider: Tailwind classes, Google fonts, emoji support and more!
-- 🤖 Or use the render using the Browser: Supporting painless, complex templates
+- ▲ Render using [Satori](https://github.com/vercel/satori) provider: Tailwind classes, Google fonts, emoji support and more!
+- 🤖 Or prerender using the Browser: Supporting painless, complex templates
 - 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
 - ⚙️ Works on the edge: Vercel Edge and Cloudflare Workers
 
