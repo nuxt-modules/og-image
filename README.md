@@ -34,6 +34,7 @@ Enlightened OG Image generation for Nuxt 3.
 ## Demos
 
 - [Vercel Edge Demo](https://nuxt-og-image-playground.vercel.app/)
+- [StackBlitz - Minimal Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
 - [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json) (visit `/__og_image__`)
 
 ## Features
