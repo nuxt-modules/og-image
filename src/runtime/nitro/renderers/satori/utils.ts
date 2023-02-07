@@ -5,7 +5,7 @@ import { useStorage } from '#internal/nitro'
 
 const cachedFonts: Record<string, any> = {}
 
-export async function loadFont(url: URL, font: string) {
+export async function loadFont(font: string) {
   if (cachedFonts[font])
     return cachedFonts[font]
 
@@ -25,7 +25,7 @@ export async function loadFont(url: URL, font: string) {
     // check cache first
     const data = await readPublicAsset(`/inter-latin-ext-${weight}-normal.woff`)
     if (data)
-      return (cachedFonts[font] = { name: font, data, style: 'normal' })
+      return (cachedFonts[font] = { name, weight: Number(weight), data, style: 'normal' })
   }
 
   if (!data) {
@@ -38,7 +38,7 @@ export async function loadFont(url: URL, font: string) {
   }
   await useStorage().setItem(storageKey, Buffer.from(data).toString('base64'))
   // convert data to string
-  return (cachedFonts[font] = { name, weight, data, style: 'normal' })
+  return (cachedFonts[font] = { name, weight: Number(weight), data, style: 'normal' })
 }
 
 export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: SatoriTransformer[]) {

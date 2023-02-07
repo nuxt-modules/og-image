@@ -12,6 +12,13 @@ import loadSvg2png from '#nuxt-og-image/svg2png'
 import loadSatori from '#nuxt-og-image/satori'
 
 const satoriFonts: any[] = []
+let fontLoadPromise: Promise<any> | null = null
+function loadFonts(fonts: string[]) {
+  if (fontLoadPromise)
+    return fontLoadPromise
+
+  return (fontLoadPromise = Promise.all(fonts.map(font => loadFont(font))))
+}
 
 export default <Renderer> {
   name: 'satori',
@@ -50,10 +57,8 @@ export default <Renderer> {
   createSvg: async function createSvg(baseUrl, options) {
     const vnodes = await this.createVNode(baseUrl, options)
 
-    if (!satoriFonts.length) {
-      for (const font of fonts)
-        satoriFonts.push(await loadFont(new URL(baseUrl), font))
-    }
+    if (!satoriFonts.length)
+      satoriFonts.push(...await loadFonts(fonts))
 
     const satori = await loadSatori()
     return await satori(vnodes, {
