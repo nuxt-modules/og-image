@@ -31,20 +31,20 @@ Enlightened OG Image generation for Nuxt 3.
 
 ℹ️ Looking for a complete SEO solution? Check out [Nuxt SEO Kit](https://github.com/harlan-zw/nuxt-seo-kit).
 
+## Features
+
+- ✨ Turn your Vue components into `og:image` templates
+- 🎨 Design them in the OG Image Playground with full HMR
+- ▲ Render them with Blazing fast [Satori](https://github.com/vercel/satori) provider: Tailwind classes, Google fonts, emoji support and more!
+- 🤖 Or use the render using the Browser: Supporting painless, complex templates
+- 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
+- ⚙️ Works on the edge: Vercel Edge and Cloudflare Workers
+
 ## Demos
 
 - [Vercel Edge Demo](https://nuxt-og-image-playground.vercel.app/)
 - [StackBlitz - Minimal Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
 - [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json) (visit `/__og_image__`)
-
-## Features
-
-- 🎨 Design your `og:image` in the OG Image Playground with full HMR
-- ▲ Blazing fast [Satori](https://github.com/vercel/satori) provider: Tailwind classes, Google fonts, emoji support and more!
-- 🤖 Browser provider: Supporting painless, complex templates
-- ✨ Prerendering enabled for static images
-- 📸 Feeling lazy? Just generate screenshots with options for hiding elements, waiting for animations, and more
-- ⚙️ Satori support in Vercel Edge and Cloudflare Workers
 
 ## Install
 
