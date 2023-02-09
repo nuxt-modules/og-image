@@ -63,8 +63,8 @@
     "yoga-wasm-web": "^0.3.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.35.1",
-    "@nuxt/devtools-edge": "0.0.0-27928010.c91ffe5",
+    "@antfu/eslint-config": "^0.35.2",
+    "@nuxt/devtools-edge": "0.0.0-27931676.df7cab3",
     "@nuxt/module-builder": "^0.2.1",
     "@nuxt/test-utils": "3.1.2",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
