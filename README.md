@@ -127,7 +127,7 @@ defineOgImageStatic()
 Appending `/__og_image__` to the end of the URL will show you the playground for that pages `og:image`. This provides
 a live preview of your `og:image` and allows you to edit it in real-time.
 
-For example, if your local site is hosted at `https://localhost:3000`, you can view your `og:image` at `https://localhost:3000/__og_image__`.
+For example, if your local site is hosted at `http://localhost:3000`, you can view your `og:image` at `http://localhost:3000/__og_image__`.
 
 ### 3. Customize your `og:image`
 
