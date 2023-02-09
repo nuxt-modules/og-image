@@ -184,7 +184,6 @@ export {}
         addComponent({
           name,
           filePath: resolve(`./runtime/components/${name}`),
-          island: true,
         })
       })
 
