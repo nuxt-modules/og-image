@@ -175,7 +175,6 @@ export {}
     await addComponent({
       name: 'OgImageBasic',
       filePath: resolve('./runtime/components/OgImageBasic.island.vue'),
-      global: true,
       island: true,
     })
 
