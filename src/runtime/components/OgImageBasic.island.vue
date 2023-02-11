@@ -11,6 +11,7 @@ const props = defineProps({
   },
   background: {
     type: String,
+    default: 'linear-gradient(to bottom, #dbf4ff, #fff1f1)',
   },
   color: {
     type: String,
