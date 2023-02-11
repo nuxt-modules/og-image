@@ -1,11 +1,19 @@
 <script setup lang="ts">
-defineProps({
+const props = defineProps({
   path: String,
-  title: String,
-  description: String,
+  title: {
+    type: String,
+    default: 'Og Image Template',
+  },
+  description: {
+    type: String,
+    default: 'Set a description to change me.',
+  },
   background: {
     type: String,
-    default: 'linear-gradient(to bottom, #dbf4ff, #fff1f1)',
+  },
+  color: {
+    type: String,
   },
   padding: {
     type: String,
@@ -20,17 +28,63 @@ defineProps({
     default: '26px',
   },
 })
+
+const containerAttrs = computed(() => {
+  const isBackgroundTw = props.background?.startsWith('bg-')
+  const isColorTw = props.color?.startsWith('text-')
+
+  const classes = [
+    'w-full',
+    'h-full',
+    'items-center',
+    'justify-center',
+  ]
+  const styles: Record<string, any> = {
+    padding: props.padding,
+  }
+
+  if (isBackgroundTw)
+    classes.push(props.background)
+  else
+    styles.backgroundColor = props.background
+
+  if (isColorTw)
+    classes.push(props.color)
+  else
+    styles.color = props.color
+  return { class: classes, style: styles }
+})
+
+const titleAttrs = computed(() => {
+  const classes = []
+  const styles = {
+    fontWeight: 'bold',
+    marginBottom: '20px',
+    fontSize: props.titleFontSize,
+  }
+  return { class: classes, style: styles }
+})
+
+const descriptionAttrs = computed(() => {
+  const classes = []
+  const styles = {
+    fontSize: props.descriptionFontSize,
+  }
+  return { class: classes, style: styles }
+})
 </script>
 
 <template>
-  <div :style="{ padding, width: '100%', height: '100%', background, display: 'flex', alignItems: 'center' }">
-    <div :style="{ display: 'flex', flexDirection: 'column' }">
-      <p :style="{ fontSize: titleFontSize, fontWeight: 'bold', marginBottom: '20px' }">
-        {{ title || 'Og Image Template' }}
-      </p>
-      <p :style="{ fontSize: descriptionFontSize }">
-        {{ description || 'Set a description to change me.' }}
-      </p>
+<div>
+  <div v-bind="containerAttrs">
+    <div class="flex flex-col">
+      <div v-bind="titleAttrs">
+        {{ title }}
+      </div>
+      <div v-bind="descriptionAttrs">
+        {{ description }}
+      </div>
     </div>
   </div>
+</div>
 </template>
