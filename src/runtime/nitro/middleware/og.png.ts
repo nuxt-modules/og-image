@@ -1,4 +1,4 @@
-import { defineEventHandler, setHeader } from 'h3'
+import { createError, defineEventHandler, setHeader } from 'h3'
 import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
 import { fetchOptions, useHostname } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
@@ -22,10 +22,10 @@ export default defineEventHandler(async (e) => {
   const options = await fetchOptions(e, basePath)
   const provider = await useProvider(options.provider!)
   if (!provider) {
-    return {
-      status: 500,
-      body: `Provider ${options.provider} is missing.`,
-    }
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Provider ${options.provider} is missing.`,
+    })
   }
   return provider.createPng(withBase(basePath, useHostname(e)), options)
 })

@@ -38,10 +38,10 @@ export default defineEventHandler(async (e) => {
   const extractedPayload = extractOgImageOptions(html)
   // not supported
   if (!extractedPayload) {
-    return {
-      status: 500,
-      body: `The path ${path} is missing the og-image payload.`,
-    }
+    throw createError({
+      statusCode: 500,
+      statusMessage: `The path ${path} is missing the og-image payload.`,
+    })
   }
 
   // need to hackily reset the event params so we can access the route rules of the base URL
