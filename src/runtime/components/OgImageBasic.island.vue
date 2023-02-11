@@ -37,6 +37,7 @@ const containerAttrs = computed(() => {
   const classes = [
     'w-full',
     'h-full',
+    'flex',
     'items-center',
     'justify-center',
   ]
@@ -46,8 +47,8 @@ const containerAttrs = computed(() => {
 
   if (isBackgroundTw)
     classes.push(props.background)
-  else
-    styles.backgroundColor = props.background
+  else if (props.background)
+    styles.background = props.background
 
   if (isColorTw)
     classes.push(props.color)
@@ -76,15 +77,13 @@ const descriptionAttrs = computed(() => {
 </script>
 
 <template>
-<div>
-  <div v-bind="containerAttrs">
-    <div class="flex flex-col">
-      <div v-bind="titleAttrs">
-        {{ title }}
-      </div>
-      <div v-bind="descriptionAttrs">
-        {{ description }}
-      </div>
+<div v-bind="containerAttrs">
+  <div class="flex flex-col w-full">
+    <div v-bind="titleAttrs">
+      {{ title }}
+    </div>
+    <div v-bind="descriptionAttrs">
+      {{ description }}
     </div>
   </div>
 </div>
