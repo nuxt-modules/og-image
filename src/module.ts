@@ -198,10 +198,7 @@ export {}
 
     // add config to app and nitro
     exposeModuleConfig('nuxt-og-image', { ...config, assetDirs })
-
-    const nitroPreset: string = process.env.NITRO_PRESET || nuxt.options.nitro.preset as string
-    const isWebWorkerEnv = process.env.NODE_ENV !== 'development' && (provider === 'stackblitz' || edgeProvidersSupported.includes(nitroPreset))
-    const useSatoriWasm = isWebWorkerEnv && nitroPreset !== 'cloudflare'
+    const useSatoriWasm = provider === 'stackblitz'
 
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {

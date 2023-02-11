@@ -7,6 +7,7 @@
   "scripts": {
     "build": "nuxi build",
     "prepare": "nuxi prepare",
-    "deploy:cloudflare": "NITRO_PRESET=cloudflare nuxi build && npx wrangler publish"
+    "deploy:cloudflare": "NITRO_PRESET=cloudflare nuxi build && npx wrangler publish",
+    "deploy:vercel-edge": "NITRO_PRESET=vercel-edge nuxi build && vercel --prebuilt -d --prod"
   }
 }
