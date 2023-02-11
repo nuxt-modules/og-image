@@ -6,6 +6,7 @@
   },
   "scripts": {
     "build": "nuxi build",
-    "prepare": "nuxi prepare"
+    "prepare": "nuxi prepare",
+    "deploy:cloudflare": "NITRO_PRESET=cloudflare nuxi build && npx wrangler publish"
   }
 }

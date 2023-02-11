@@ -6,10 +6,11 @@
     <OgImageStatic
       title="Default template"
       description="With a default description here"
-      background="lightblue"
       titleFontSize="100px"
       descriptionFontSize="50px"
       padding="0 140px"
+      background="bg-red-200"
+      color="text-blue-500"
     />
   </div>
   </template>
