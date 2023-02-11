@@ -79,14 +79,14 @@ const descriptionAttrs = computed(() => {
 </script>
 
 <template>
-<div v-bind="containerAttrs">
-  <div class="flex flex-col w-full">
-    <div v-bind="titleAttrs">
-      {{ title }}
-    </div>
-    <div v-bind="descriptionAttrs">
-      {{ description }}
+  <div v-bind="containerAttrs">
+    <div class="flex flex-col w-full">
+      <div v-bind="titleAttrs">
+        {{ title }}
+      </div>
+      <div v-bind="descriptionAttrs">
+        {{ description }}
+      </div>
     </div>
   </div>
-</div>
 </template>

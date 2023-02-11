@@ -1,4 +1,4 @@
-import {createError, defineEventHandler, getQuery, setHeader} from 'h3'
+import { createError, defineEventHandler, getQuery, setHeader } from 'h3'
 import { withBase } from 'ufo'
 import { fetchOptions, useHostname } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
