@@ -30,7 +30,7 @@ export const inferOgImageOptions = (html: string) => {
 
 export default defineEventHandler(async (e) => {
   const query = getQuery(e)
-  const path = query.path as string
+  const path = query.path as string || '/'
 
   // extract the payload from the original path
   const html = await globalThis.$fetch<string>(path)
