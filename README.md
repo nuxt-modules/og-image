@@ -79,11 +79,11 @@ _nuxt.config.ts_
 
 ```ts
 export default defineNuxtConfig({
-  // Recommended 
+  // Recommended
   runtimeConfig: {
-   public: {
-     siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
-   }
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
+    }
   },
   // OR
   ogImage: {
@@ -114,6 +114,7 @@ useSeoMeta({
 // 2a. Use the Composition API
 defineOgImageStatic()
 </script>
+
 <template>
   <div>
     <!-- 2b. OR Component API -->
@@ -136,12 +137,13 @@ While you have the playground open, start customising the OG Image by providing 
 ```vue
 <script lang="ts" setup>
 defineOgImageStatic({
-  title: 'Welcome to my site!'
+  title: 'Welcome to my site!',
+  background: 'lightblue'
 })
 </script>
 ```
 
-Congrats, you've set up your first Satori `og:image`!
+Congrats, you've set up your first Satori `og:image`! You can checkout the [options](./src/runtime/components/OgImageBasic.island.vue) of the default template.
 
 ## Making your own Satori template
 
@@ -161,10 +163,13 @@ const props = defineProps({
   title: String,
 })
 </script>
+
 <template>
-<div class="w-full h-full flex text-white bg-blue-500 items-center justify-center">
-  <h1 :style="{ fontSize: '70px' }">{{ title }} 👋</h1>
-</div>
+  <div class="w-full h-full flex text-white bg-blue-500 items-center justify-center">
+    <h1 :style="{ fontSize: '70px' }">
+      {{ title }} 👋
+    </h1>
+  </div>
 </template>
 ```
 
@@ -197,10 +202,13 @@ const props = defineProps({
   backgroundColor: String
 })
 </script>
+
 <template>
-<div :class="[backgroundColor]" class="w-full h-full flex text-white items-center justify-center">
-  <h1 :style="{ fontSize: '70px' }">{{ title }} 👋</h1>
-</div>
+  <div :class="[backgroundColor]" class="w-full h-full flex text-white items-center justify-center">
+    <h1 :style="{ fontSize: '70px' }">
+      {{ title }} 👋
+    </h1>
+  </div>
 </template>
 ```
 
@@ -300,6 +308,7 @@ defineOgImageStatic({
   theme: 'dark'
 })
 </script>
+
 <template>
   <!-- b. Component API -->
   <OgImageStatic
@@ -325,7 +334,7 @@ This feature is not compatible with static sites built using `nuxi generate`.
 
 ```vue
 <script setup lang="ts">
-const dynamicData = await fetch('https://example.com/api') 
+const dynamicData = await fetch('https://example.com/api')
 
 // a. Composition API
 defineOgImageDynamic({
@@ -334,12 +343,13 @@ defineOgImageDynamic({
   dynamicData,
 })
 </script>
+
 <template>
   <!-- b. Component API -->
   <OgImageDynamic
     component="MyOgImageTemplate"
     title="Hello world"
-    :dynamicData="dynamicData"
+    :dynamic-data="dynamicData"
   />
 </template>
 ```
@@ -411,6 +421,7 @@ defineOgImageScreenshot({
   delay: 1000,
 })
 </script>
+
 <template>
   <!-- b. Component API -->
   <OgImageScreenshot

@@ -30,7 +30,7 @@ export default defineNuxtConfig({
     host: 'https://nuxt-og-image-playground.vercel.app',
     playground: true,
     defaults: {
-      component: 'BannerTemplate',
+      // component: 'BannerTemplate',
       appName: 'My App',
     }
   },
