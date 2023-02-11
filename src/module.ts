@@ -201,6 +201,7 @@ export {}
 
     const nitroPreset: string = process.env.NITRO_PRESET || nuxt.options.nitro.preset as string
     const isWebWorkerEnv = process.env.NODE_ENV !== 'development' && (provider === 'stackblitz' || edgeProvidersSupported.includes(nitroPreset))
+    const useSatoriWasm = isWebWorkerEnv && nitroPreset !== 'cloudflare'
 
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {
@@ -235,7 +236,7 @@ export default async function() {
       }
 
       if (config.satoriProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/satori'] = `import satori from '${providerPath}/satori/${isWebWorkerEnv ? 'webworker' : 'node'}'
+        nitroConfig.virtual!['#nuxt-og-image/satori'] = `import satori from '${providerPath}/satori/${useSatoriWasm ? 'webworker' : 'node'}'
 export default async function() {
   return satori
 }`
@@ -269,7 +270,8 @@ export async function useProvider(provider) {
           await copy(resolve('./runtime/public-assets/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
           if (!config.experimentalInlineWasm) {
             await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
-            await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
+            if (useSatoriWasm)
+              await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
           }
           // need to replace the token in index.mjs
           const indexFile = resolve(_nitro.options.output.serverDir, _nitro.options.preset === 'netlify-edge' ? 'server.mjs' : 'index.mjs')
