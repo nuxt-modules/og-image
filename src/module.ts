@@ -235,11 +235,9 @@ export default async function() {
       }
 
       if (config.satoriProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/satori']
-          // edge envs
-          = `import webworker from '${providerPath}/satori/${isWebWorkerEnv ? 'webworker' : 'node'}'
+        nitroConfig.virtual!['#nuxt-og-image/satori'] = `import satori from '${providerPath}/satori/${isWebWorkerEnv ? 'webworker' : 'node'}'
 export default async function() {
-  return webworker
+  return satori
 }`
 
         nitroConfig.virtual!['#nuxt-og-image/svg2png'] = `

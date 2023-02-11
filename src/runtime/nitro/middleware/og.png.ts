@@ -21,5 +21,11 @@ export default defineEventHandler(async (e) => {
 
   const options = await fetchOptions(e, basePath)
   const provider = await useProvider(options.provider!)
+  if (!provider) {
+    return {
+      status: 500,
+      body: `Provider ${options.provider} is missing.`,
+    }
+  }
   return provider.createPng(withBase(basePath, useHostname(e)), options)
 })

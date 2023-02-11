@@ -9,12 +9,12 @@ export function wasmLoader(key: any, fallback: string, baseUrl: string) {
   let promise: Promise<any>
   let loaded = false
   return {
-    async loaded() {
+    loaded() {
       if (loaded)
         return true
       // is loading
       if (typeof promise !== 'undefined')
-        await promise
+        return promise
       return false
     },
     async load() {
