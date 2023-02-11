@@ -81,6 +81,10 @@ watch([color, title], () => {
           <div class="mb-2">Default template</div>
           <img :src="`${host}satori/static/__og_image__/og.png`" width="400" height="210" class="rounded" />
         </NuxtLink>
+        <NuxtLink external no-prefetch to="/satori/with-options/__og_image__/og.png" target="_blank">
+          <div class="mb-2">Default with options</div>
+          <img :src="`${host}satori/with-options/__og_image__/og.png`" width="400" height="210" class="rounded" />
+        </NuxtLink>
         <NuxtLink external no-prefetch to="/satori/image/__og_image__/og.png" target="_blank">
           <div class="mb-2">Image</div>
           <img :src="`${host}satori/image/__og_image__/og.png`" width="400" height="210" class="rounded" />
