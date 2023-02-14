@@ -1,4 +1,4 @@
-import { defineEventHandler, getQuery } from 'h3'
+import { createError, defineEventHandler, getQuery } from 'h3'
 import type { OgImageOptions } from '../../../types'
 import { getRouteRules } from '#internal/nitro'
 import { defaults } from '#nuxt-og-image/config'
