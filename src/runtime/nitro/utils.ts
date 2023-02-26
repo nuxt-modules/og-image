@@ -58,6 +58,19 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 export function renderIsland(payload: OgImageOptions) {
+  // for the payload, we unencode any html
+  Object.entries(payload).forEach(([key, value]) => {
+    // unescape all html tokens
+    if (typeof value === 'string') {
+      payload[key] = value
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x27;/g, '\'')
+        .replace(/&#x2F;/g, '/')
+    }
+  })
   return globalThis.$fetch<{ html: string; head: any }>(`/__nuxt_island/${payload.component}`, {
     query: { props: JSON.stringify(payload) },
   })
