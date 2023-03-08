@@ -1,4 +1,3 @@
-import { isCI } from 'std-env'
 import playwrightCore from 'playwright-core'
 
 export default async function createBrowser() {
@@ -27,11 +26,12 @@ export default async function createBrowser() {
   }
   catch (e) {
     // doesn't matter if it fails, we fallback to a playwright dependency, unless we're on dev
-    if (process.dev)
+    if (process.dev) {
       console.warn('Failed to load chromium instance. Ensure you have chrome installed, otherwise add the dependency: `npm add -D playwright`.')
-    // throw the error in the CI environment, we will need playwright
-    if (isCI) {
-      console.error('Failed to load browser instance. Please open an issue at: https://github.com/harlan-zw/nuxt-og-image/issues.')
+    }
+    else {
+      // throw the error in the CI environment, we will need playwright
+      console.error('Failed to load browser instance. Please open an issue with the exception: https://github.com/harlan-zw/nuxt-og-image/issues.')
       throw e
     }
   }
