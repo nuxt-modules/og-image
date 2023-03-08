@@ -338,18 +338,18 @@ export async function useProvider(provider) {
           return
 
         // if we're running in CI, avoid problems by installing playwright
-        if (isCI) {
-          nitro.logger.info('Ensuring chromium install for og:image generation...')
-          const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'])
-          installChromeProcess.stderr?.pipe(process.stderr)
-          await new Promise((resolve) => {
-            installChromeProcess.on('exit', (e) => {
-              if (e !== 0)
-                nitro.logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
-              resolve(true)
-            })
+        nitro.logger.info('Ensuring chromium install for og:image generation...')
+        const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
+          stdio: 'inherit'
+        })
+        installChromeProcess.stderr?.pipe(process.stderr)
+        await new Promise((resolve) => {
+          installChromeProcess.on('exit', (e) => {
+            if (e !== 0)
+              nitro.logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
+            resolve(true)
           })
-        }
+        })
 
         const previewProcess = execa('npx', ['serve', nitro.options.output.publicDir])
         let browser: Browser | null = null
