@@ -1,6 +1,6 @@
 import { existsSync, promises as fsp } from 'node:fs'
 import type { H3Event } from 'h3'
-import { getQuery, getRequestHeader} from 'h3'
+import { getQuery, getRequestHeader } from 'h3'
 import { join } from 'pathe'
 import type { OgImageOptions } from '../../types'
 import { assetDirs } from '#nuxt-og-image/config'
@@ -48,8 +48,8 @@ export function fetchOptions(e: H3Event, path: string) {
   const fetchOptions = (process.dev || process.env.prerender)
     ? {}
     : {
-      baseURL: useHostname(e),
-    }
+        baseURL: useHostname(e),
+      }
   return globalThis.$fetch<OgImageOptions>('/api/og-image-options', {
     query: {
       ...getQuery(e),
