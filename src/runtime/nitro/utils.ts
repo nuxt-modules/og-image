@@ -1,6 +1,6 @@
 import { existsSync, promises as fsp } from 'node:fs'
 import type { H3Event } from 'h3'
-import { getQuery, getRequestHeader } from 'h3'
+import { getHeaders, getQuery, getRequestHeader } from 'h3'
 import { join } from 'pathe'
 import type { OgImageOptions } from '../../types'
 import { assetDirs } from '#nuxt-og-image/config'
@@ -46,7 +46,9 @@ export function wasmLoader(key: any, fallback: string, baseUrl: string) {
 export function fetchOptions(e: H3Event, path: string) {
   // extract the payload from the original path
   const fetchOptions = (process.dev || process.env.prerender)
-    ? {}
+    ? {
+        headers: getHeaders(e),
+      }
     : {
         baseURL: useHostname(e),
       }

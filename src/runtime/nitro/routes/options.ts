@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, getQuery } from 'h3'
+import { createError, defineEventHandler, getHeaders, getQuery } from 'h3'
 import type { OgImageOptions } from '../../../types'
 import { useHostname } from '../utils'
 import { getRouteRules } from '#internal/nitro'
@@ -27,7 +27,9 @@ export default defineEventHandler(async (e) => {
 
   // extract the payload from the original path
   const fetchOptions = (process.dev || process.env.prerender)
-    ? {}
+    ? {
+        headers: getHeaders(e),
+      }
     : {
         baseURL: useHostname(e),
       }
