@@ -1,5 +1,6 @@
-import { createError, defineEventHandler, getQuery } from 'h3'
+import { createError, defineEventHandler, getHeaders, getQuery } from 'h3'
 import type { OgImageOptions } from '../../../types'
+import { useHostname } from '../utils'
 import { getRouteRules } from '#internal/nitro'
 import { defaults } from '#nuxt-og-image/config'
 
@@ -33,8 +34,15 @@ export default defineEventHandler(async (e) => {
   const path = query.path as string || '/'
 
   // extract the payload from the original path
-  const html = await globalThis.$fetch<string>(path)
-
+  const fetchOptions = (process.dev || process.env.prerender)
+    ? {}
+    : {
+        headers: getHeaders(e),
+        baseURL: useHostname(e),
+      }
+  const html = await globalThis.$fetch<string>(path, {
+    ...fetchOptions,
+  })
   const extractedPayload = extractOgImageOptions(html)
   // not supported
   if (!extractedPayload) {
