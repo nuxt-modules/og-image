@@ -29,7 +29,6 @@ export default defineEventHandler(async (e) => {
   const fetchOptions = (process.dev || process.env.prerender)
     ? {}
     : {
-        headers: getHeaders(e),
         baseURL: useHostname(e),
       }
   const html = await globalThis.$fetch<string>(path, {
