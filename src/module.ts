@@ -57,7 +57,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '^3.1.0',
+      nuxt: '^3.2.0',
       bridge: false,
     },
     configKey: 'ogImage',

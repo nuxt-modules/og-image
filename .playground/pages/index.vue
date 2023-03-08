@@ -1,12 +1,15 @@
 <script setup>
+import { useServerSeoMeta } from "#head";
+
 definePageMeta({
   title: 'Home',
   description: 'This is the home page',
   breadcrumbTitle: 'Home'
 })
 
-useHead({
-  title: 'Home',
+useServerSeoMeta({
+  title: 'Home & //<"With Encoding">\\\\',
+  ogTitle: 'Home & //<"With Encoding">\\\\',
 })
 
 const host = computed(() => typeof window !== 'undefined' ? window.location.href : '/')

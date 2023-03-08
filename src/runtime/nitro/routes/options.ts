@@ -12,14 +12,6 @@ export function extractOgImageOptions(html: string) {
 
 export const inferOgImageOptions = (html: string) => {
   const options: OgImageOptions = {}
-  // extract the og:title from the html
-  const title = html.match(/<meta property="og:title" content="(.*?)">/)?.[1]
-  if (title)
-    options.title = title
-  else
-    // allow inferences from title
-    options.title = html.match(/<title>(.*?)<\/title>/)?.[1]
-
   // extract the og:description from the html
   const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
   if (description)

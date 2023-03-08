@@ -79,8 +79,10 @@ export function defineOgImage(options: OgImageOptions = {}) {
         {
           id: 'nuxt-og-image-options',
           type: 'application/json',
-          children: () => {
-            const payload = {}
+          innerHTML: () => {
+            const payload = {
+              title: '%s',
+            }
             // options is an object which has keys that may be kebab case, we need to convert the keys to camel case
             Object.entries(options).forEach(([key, val]) => {
               // with a simple kebab case conversion
