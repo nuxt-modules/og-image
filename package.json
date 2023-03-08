@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "1.4.22",
+  "version": "1.5.0",
   "packageManager": "pnpm@7.8.0",
   "license": "MIT",
   "funding": "https://github.com/sponsors/harlan-zw",
