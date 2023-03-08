@@ -19,7 +19,7 @@ import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
-import { isCI, provider } from 'std-env'
+import { provider } from 'std-env'
 import createBrowser from './runtime/nitro/providers/browser/node'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
@@ -340,7 +340,7 @@ export async function useProvider(provider) {
         // if we're running in CI, avoid problems by installing playwright
         nitro.logger.info('Ensuring chromium install for og:image generation...')
         const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
-          stdio: 'inherit'
+          stdio: 'inherit',
         })
         installChromeProcess.stderr?.pipe(process.stderr)
         await new Promise((resolve) => {
