@@ -37,13 +37,13 @@
     "test": "pnpm lint"
   },
   "dependencies": {
-    "@nuxt/kit": "3.2.3",
+    "@nuxt/kit": "3.3.1",
     "@types/fs-extra": "^11.0.1",
-    "birpc": "^0.2.5",
+    "birpc": "^0.2.8",
     "chalk": "^5.2.0",
     "chrome-launcher": "^0.15.1",
     "defu": "^6.1.2",
-    "execa": "^7.0.0",
+    "execa": "^7.1.1",
     "fast-glob": "^3.2.12",
     "flatted": "^3.2.7",
     "fs-extra": "^11.1.0",
@@ -52,7 +52,7 @@
     "pathe": "^1.1.0",
     "playwright-core": "^1.31.2",
     "radix3": "^1.0.0",
-    "satori": "0.4.1",
+    "satori": "0.4.3",
     "satori-html": "^0.3.2",
     "sirv": "^2.0.2",
     "std-env": "^3.3.2",
@@ -60,20 +60,20 @@
     "tinyws": "^0.1.0",
     "twemoji": "^14.0.2",
     "ufo": "^1.1.1",
-    "ws": "^8.12.1",
-    "yoga-wasm-web": "^0.3.2"
+    "ws": "^8.13.0",
+    "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.36.0",
-    "@nuxt/devtools-edge": "0.2.5-27969823.df4a35f",
+    "@nuxt/devtools-edge": "0.2.5-27981287.ed164c8",
     "@nuxt/module-builder": "^0.2.1",
-    "@nuxt/test-utils": "3.2.3",
+    "@nuxt/test-utils": "3.3.1",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "@types/ws": "^8.5.4",
     "bumpp": "^9.0.0",
-    "eslint": "8.35.0",
-    "nuxt": "^3.2.3",
-    "puppeteer": "^19.7.3",
-    "vitest": "^0.29.2"
+    "eslint": "8.36.0",
+    "nuxt": "^3.3.1",
+    "puppeteer": "^19.7.5",
+    "vitest": "^0.29.3"
   }
 }
