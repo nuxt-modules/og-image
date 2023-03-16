@@ -132,7 +132,6 @@ export {}
         })
       })
 
-    // @ts-expect-error untyped
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',
@@ -337,7 +336,7 @@ export async function useProvider(provider) {
         if (screenshotQueue.length === 0)
           return
 
-        // if we're running in CI, avoid problems by installing playwright
+        // avoid problems by installing playwright
         nitro.logger.info('Ensuring chromium install for og:image generation...')
         const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
           stdio: 'inherit',
