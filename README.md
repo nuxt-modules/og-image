@@ -234,7 +234,7 @@ Satori has limited capacity for rendering styles;
 you should reference which ones are available within their documentation.
 
 Out of the box, this module provides support for the following:
-- Tailwind classes
+- Tailwind classes (Note: Satori Tailwind support is experimental, not all classes are supported)
 - Google Fonts, default is Inter
 - Emoji support with [Twemoji](https://github.com/twitter/twemoji)
 - Relative image support (you should link images from your public directory `/my-image.png`)
