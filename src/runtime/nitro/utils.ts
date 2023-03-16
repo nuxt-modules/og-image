@@ -88,11 +88,11 @@ export function renderIsland(payload: OgImageOptions) {
 
 export function useHostname(e: H3Event) {
   const host = getRequestHeader(e, 'host') || process.env.NITRO_HOST || process.env.HOST || 'localhost'
-  const protocol = getRequestHeader(e, 'x-forwarded-proto') || 'http'
+  const protocol = host.includes(':') ? host.split(':').pop() : (getRequestHeader(e, 'x-forwarded-proto') || 'http')
   const useHttp = process.env.NODE_ENV === 'development' || host.includes('127.0.0.1') || host.includes('localhost') || protocol === 'http'
   const port = process.env.NITRO_PORT || process.env.PORT
   const base = useRuntimeConfig().app.baseURL
-  return `http${useHttp ? '' : 's'}://${host}${port ? `:${port}` : ''}${base}`
+  return `http${useHttp ? '' : 's'}://${host.split(':')[0]}${port ? `:${port}` : ''}${base}`
 }
 
 const r = (base: string, key: string) => {
