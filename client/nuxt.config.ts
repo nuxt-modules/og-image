@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 
 export default defineNuxtConfig({
   modules: [
-    '@nuxt/ui',
+    '@nuxt/devtools-ui-kit',
     'nuxt-icon',
   ],
   ssr: false,
