@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useServerSeoMeta } from '#imports'
+
 useServerSeoMeta({
   title: 'Nuxt OG Image Playground',
   ogTitle: 'Nuxt OG Image Playground',
@@ -13,13 +15,6 @@ useServerSeoMeta({
       <h1 class="text-base hidden md:block w-40">
         Nuxt OG Image
       </h1>
-      <NDarkToggle>
-        <template #default="{ toggle }">
-        <NButton n="borderless lg m-0" p-0 op50 @click="toggle">
-          <NIcon icon="dark:carbon-moon carbon-sun" />
-        </NButton>
-        </template>
-      </NDarkToggle>
     </div>
     <hr class="border-1 border-light-400 dark:border-dark-400">
   </header>

@@ -2,7 +2,8 @@
   "private": true,
   "packageManager": "pnpm@7.0.0",
   "dependencies": {
-    "nuxt-og-image": "link:../"
+    "nuxt-og-image": "link:../",
+    "@nuxt/devtools-ui-kit-edge": "^0.2.5-27981287.ed164c8"
   },
   "scripts": {
     "build": "nuxi build",

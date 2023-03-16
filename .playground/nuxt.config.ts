@@ -1,11 +1,13 @@
 import { resolve } from 'pathe'
 import { defineNuxtConfig } from 'nuxt/config'
+import { extendUnocssOptions } from '@nuxt/devtools-ui-kit-edge/unocss'
 
 export default defineNuxtConfig({
   modules: [
-    '@nuxt/ui',
+    '@vueuse/nuxt',
+    '@unocss/nuxt',
     resolve(__dirname, '../src/module'),
-    '@nuxt/devtools-edge',
+    // '@nuxt/devtools-edge',
     function(options, nuxt) {
       nuxt.hook('components:extend', (components) => {
         const index = components.findIndex(c => c.name === 'NuxtWelcome')
@@ -13,6 +15,7 @@ export default defineNuxtConfig({
       })
     }
   ],
+  unocss: extendUnocssOptions({}),
   nitro: {
     prerender: {
       crawlLinks: true,
