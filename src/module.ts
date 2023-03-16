@@ -132,6 +132,7 @@ export {}
         })
       })
 
+    // @ts-expect-error runtime type
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',
