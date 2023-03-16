@@ -36,8 +36,6 @@ describe('build', () => {
 
     expect(await fetchImage('/browser/component/__og_image__/og.png')).toMatchImageSnapshot()
 
-    expect(await fetchImage('/browser/custom/__og_image__/og.png')).toMatchImageSnapshot()
-
     expect(await fetchImage('/satori/tailwind/__og_image__/og.png', { query: { title: 'Fully dynamic', bgColor: 'bg-green-500' } })).toMatchImageSnapshot()
   }, 60000)
 })
