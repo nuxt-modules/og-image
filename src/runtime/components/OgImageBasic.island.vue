@@ -82,9 +82,9 @@ const descriptionAttrs = computed(() => {
   <div v-bind="containerAttrs">
     <div class="flex flex-col w-full">
       <div v-bind="titleAttrs">
-        {{ title }}
+        {{ title || 'Null Title' }}
       </div>
-      <div v-bind="descriptionAttrs">
+      <div v-if="description" v-bind="descriptionAttrs">
         {{ description }}
       </div>
     </div>

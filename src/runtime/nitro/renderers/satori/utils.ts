@@ -44,6 +44,11 @@ export async function loadFont(font: string) {
 export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: SatoriTransformer[]) {
   if (!node.props?.children)
     return
+  // remove empty children
+  if (Array.isArray(node.props.children) && node.props.children.length === 0) {
+    delete node.props.children
+    return
+  }
   // walk tree of nodes
   for (const child of node.props.children || []) {
     if (child) {
