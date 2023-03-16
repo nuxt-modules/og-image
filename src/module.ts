@@ -25,7 +25,7 @@ import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { exposeModuleConfig } from './nuxt-utils'
-import { extractOgImageOptions, stripOgImageOptions } from './utils'
+import { extractOgImageOptions, stripOgImageOptions } from './runtime/nitro/utils-pure'
 
 export interface ModuleOptions {
   /**
@@ -132,7 +132,8 @@ export {}
         })
       })
 
-    // @ts-expect-error runtime type
+    // eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error
+    // @ts-ignore runtime type
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',

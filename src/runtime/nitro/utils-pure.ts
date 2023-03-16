@@ -1,4 +1,4 @@
-import type { OgImageOptions } from './types'
+import type { OgImageOptions } from '../../types'
 
 function decodeHtmlEntities(obj: Record<string, string | any>) {
   Object.entries(obj).forEach(([key, value]) => {

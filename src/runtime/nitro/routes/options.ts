@@ -1,7 +1,6 @@
 import { createError, defineEventHandler, getHeaders, getQuery } from 'h3'
 import type { OgImageOptions } from '../../../types'
-import { useHostname } from '../utils'
-import { extractOgImageOptions } from '../../../utils'
+import { extractOgImageOptions, useHostname } from '../utils'
 import { getRouteRules } from '#internal/nitro'
 import { defaults } from '#nuxt-og-image/config'
 

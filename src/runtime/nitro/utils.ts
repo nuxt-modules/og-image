@@ -108,3 +108,5 @@ export async function readPublicAssetBase64(file: string) {
   }
   // fine if it fails, we fallback elsewhere
 }
+
+export * from './utils-pure'
