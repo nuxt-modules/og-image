@@ -15,11 +15,16 @@ export default <Renderer> {
     const createBrowser = await loadBrowser()
     const browser = await createBrowser()
     if (browser) {
-      return screenshot(browser!, {
-        ...options,
-        host: url.origin,
-        path: `/api/og-image-html?path=${url.pathname}`,
-      })
+      try {
+        return await screenshot(browser!, {
+          ...options,
+          host: url.origin,
+          path: `/api/og-image-html?path=${url.pathname}`,
+        })
+      }
+      finally {
+        browser!.close()
+      }
     }
     return null
   },
