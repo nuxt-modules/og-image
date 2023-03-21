@@ -24,7 +24,6 @@ import createBrowser from './runtime/nitro/providers/browser/node'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
-import { exposeModuleConfig } from './nuxt-utils'
 import { extractOgImageOptions, stripOgImageOptions } from './runtime/nitro/utils-pure'
 
 export interface ModuleOptions {
