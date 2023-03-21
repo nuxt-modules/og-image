@@ -348,7 +348,11 @@ export async function useProvider(provider) {
 
       const captureScreenshots = async () => {
         // call hook
+        // @ts-expect-error runtime hook
         await nuxt.callHook('og-image:prerenderScreenshots', screenshotQueue)
+
+        if (screenshotQueue.length === 0)
+          return
 
         // normalise
         for (const entry of screenshotQueue) {
@@ -358,6 +362,7 @@ export async function useProvider(provider) {
             const extractedOptions = extractOgImageOptions(html)
             const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
             Object.assign(entry, {
+              // @ts-expect-error runtime
               path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route,
               ...extractedOptions,
               ...(routeRules.ogImage || {}),
@@ -367,9 +372,6 @@ export async function useProvider(provider) {
           if (entry.component)
             entry.html = await $fetch(entry.path)
         }
-
-        if (screenshotQueue.length === 0)
-          return
 
         // avoid problems by installing playwright
         nitro.logger.info('Ensuring chromium install for og:image generation...')
@@ -443,15 +445,17 @@ export async function useProvider(provider) {
         screenshotQueue = []
       }
 
-      // SSR mode
-      nitro.hooks.hook('rollup:before', async () => {
-        await captureScreenshots()
-      })
+      if (!nuxt.options._prepare) {
+        // SSR mode
+        nitro.hooks.hook('rollup:before', async () => {
+          await captureScreenshots()
+        })
 
-      // SSG mode
-      nitro.hooks.hook('close', async () => {
-        await captureScreenshots()
-      })
+        // SSG mode
+        nitro.hooks.hook('close', async () => {
+          await captureScreenshots()
+        })
+      }
     })
   },
 })

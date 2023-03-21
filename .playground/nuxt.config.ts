@@ -25,6 +25,9 @@ export default defineNuxtConfig({
         '/browser/custom',
         '/satori/static',
         '/satori/image',
+      ],
+      ignore: [
+        '/not-prerendered/'
       ]
     }
   },
@@ -35,6 +38,14 @@ export default defineNuxtConfig({
     defaults: {
       // component: 'BannerTemplate',
       appName: 'My App',
+    }
+  },
+
+  hooks: {
+    'og-image:prerenderScreenshots'(queue) {
+      queue.push({
+        route: '/not-prerendered/',
+      })
     }
   },
 
