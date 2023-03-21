@@ -53,6 +53,10 @@ const edgeProvidersSupported = [
   'netlify-edge',
 ]
 
+export interface ModuleHooks {
+  'ogImage:config': (config: ModuleOptions) => Promise<void> | void
+}
+
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
@@ -198,9 +202,13 @@ export {}
       resolve(nuxt.options.rootDir, nuxt.options.dir.public),
       moduleAssetDir,
     ]
-
-    // add config to app and nitro
-    exposeModuleConfig('nuxt-og-image', { ...config, assetDirs })
+    nuxt.hooks.hook('modules:done', async () => {
+      // allow other modules to modify runtime data
+      // @ts-expect-error untyped
+      nuxt.hooks.callHook('ogImage:config', config)
+      // @ts-expect-error untyped
+      nuxt.options.runtimeConfig['nuxt-og-image'] = { ...config, assetDirs }
+    })
     const useSatoriWasm = provider === 'stackblitz'
 
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {

@@ -1,8 +1,7 @@
 import { createError, defineEventHandler, getHeaders, getQuery } from 'h3'
 import type { OgImageOptions } from '../../../types'
 import { extractOgImageOptions, useHostname } from '../utils'
-import { getRouteRules } from '#internal/nitro'
-import { defaults } from '#nuxt-og-image/config'
+import { getRouteRules, useRuntimeConfig } from '#internal/nitro'
 
 export default defineEventHandler(async (e) => {
   const query = getQuery(e)
@@ -37,7 +36,7 @@ export default defineEventHandler(async (e) => {
   // has been disabled via route rules
   if (routeRules === false)
     return false
-
+  const { defaults } = useRuntimeConfig()['nuxt-og-image']
   return {
     path,
     ...defaults,

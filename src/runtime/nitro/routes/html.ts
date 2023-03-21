@@ -4,9 +4,10 @@ import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { fetchOptions, renderIsland, useHostname } from '../utils'
 import type { OgImageOptions } from '../../../types'
-import { defaults, fonts } from '#nuxt-og-image/config'
+import { useRuntimeConfig } from '#internal/nitro'
 
 export default defineEventHandler(async (e) => {
+  const { fonts, defaults } = useRuntimeConfig()['nuxt-og-image']
   const path = getQuery(e).path as string || '/'
   const scale = getQuery(e).scale
   const mode = getQuery(e).mode || 'light'

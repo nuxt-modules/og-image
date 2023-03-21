@@ -3,7 +3,6 @@ import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
 import { useRouter } from '#imports'
-import { defaults, forcePrerender, host, satoriProvider } from '#nuxt-og-image/config'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
@@ -18,6 +17,7 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
 }
 
 export function defineOgImageDynamic(options: OgImageOptions = {}) {
+  const { satoriProvider, forcePrerender } = useRuntimeConfig()['nuxt-og-image']
   defineOgImage({
     provider: satoriProvider ? 'satori' : 'browser',
     static: !!forcePrerender,
@@ -26,6 +26,7 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
 }
 
 export function defineOgImageStatic(options: OgImageOptions = {}) {
+  const { satoriProvider } = useRuntimeConfig()['nuxt-og-image']
   defineOgImage({
     provider: satoriProvider ? 'satori' : 'browser',
     static: true,
@@ -35,6 +36,7 @@ export function defineOgImageStatic(options: OgImageOptions = {}) {
 
 export function defineOgImage(options: OgImageOptions = {}) {
   if (process.server) {
+    const { forcePrerender, defaults, host } = useRuntimeConfig()['nuxt-og-image']
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
 

@@ -8,7 +8,6 @@ import twClasses from './plugins/twClasses'
 import flex from './plugins/flex'
 import emojis from './plugins/emojis'
 import encoding from './plugins/encoding'
-import { fonts, satoriOptions } from '#nuxt-og-image/config'
 import loadSvg2png from '#nuxt-og-image/svg2png'
 import loadSatori from '#nuxt-og-image/satori'
 
@@ -57,6 +56,7 @@ export default <Renderer> {
   },
 
   createSvg: async function createSvg(baseUrl, options) {
+    const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
     const vnodes = await this.createVNode(baseUrl, options)
 
     if (!satoriFonts.length)

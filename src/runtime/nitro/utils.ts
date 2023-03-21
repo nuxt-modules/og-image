@@ -3,7 +3,6 @@ import type { H3Event } from 'h3'
 import { getHeaders, getQuery, getRequestHeader } from 'h3'
 import { join } from 'pathe'
 import type { OgImageOptions } from '../../types'
-import { assetDirs } from '#nuxt-og-image/config'
 import { useRuntimeConfig } from '#internal/nitro'
 
 export function wasmLoader(key: any, fallback: string, baseUrl: string) {
@@ -87,6 +86,7 @@ const r = (base: string, key: string) => {
 }
 
 export async function readPublicAsset(file: string, encoding?: BufferEncoding) {
+  const { assetDirs } = useRuntimeConfig()['nuxt-og-image']
   for (const assetDir of assetDirs) {
     const path = r(assetDir, file)
     if (existsSync(path))
