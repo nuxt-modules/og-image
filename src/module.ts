@@ -427,7 +427,7 @@ export async function useProvider(provider) {
               }
               const generateTimeMS = Date.now() - start
               nitro.logger.log(chalk[hasError ? 'red' : 'gray'](
-                `  ${Number(k) === screenshotQueue.length - 1 ? '└─' : '├─'} ${relative(nitro.options.output.publicDir, filename)} (${generateTimeMS}ms) ${Math.round((Number(k) + 1) / (screenshotQueue.length) * 100)}%`,
+                `  ${Number(k) === screenshotQueue.length - 1 ? '└─' : '├─'} /${relative(nitro.options.output.publicDir, filename)} (${generateTimeMS}ms) ${Math.round((Number(k) + 1) / (screenshotQueue.length) * 100)}%`,
               ))
             }
           }

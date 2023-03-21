@@ -18,19 +18,20 @@ export default defineNuxtConfig({
   unocss: extendUnocssOptions({}),
   nitro: {
     prerender: {
-      crawlLinks: true,
-      routes: [
-        '/',
-        '/browser/component',
-        '/browser/custom',
-        '/satori/static',
-        '/satori/image',
-      ],
       ignore: [
-        '/not-prerendered/'
+        '/not-prerendered'
       ]
     }
   },
+
+  hooks: {
+    'og-image:prerenderScreenshots'(queue) {
+      queue.push({
+        route: '/not-prerendered',
+      })
+    }
+  },
+
 
   ogImage: {
     host: 'https://nuxt-og-image-playground.vercel.app',
@@ -38,14 +39,6 @@ export default defineNuxtConfig({
     defaults: {
       // component: 'BannerTemplate',
       appName: 'My App',
-    }
-  },
-
-  hooks: {
-    'og-image:prerenderScreenshots'(queue) {
-      queue.push({
-        route: '/not-prerendered/',
-      })
     }
   },
 
