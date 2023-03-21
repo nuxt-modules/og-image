@@ -55,7 +55,8 @@ const edgeProvidersSupported = [
 ]
 
 export interface ModuleHooks {
-  'ogImage:config': (config: ModuleOptions) => Promise<void> | void
+  'og-image:config': (config: ModuleOptions) => Promise<void> | void
+  'og-image:prerenderScreenshots': (queue: OgImageOptions[]) => Promise<void> | void
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -210,7 +211,7 @@ export {}
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
       // @ts-expect-error untyped
-      nuxt.hooks.callHook('ogImage:config', config)
+      nuxt.hooks.callHook('og-image:config', config)
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = { ...config, assetDirs }
     })
@@ -331,15 +332,11 @@ export async function useProvider(provider) {
           return
 
         const entry: OgImageOptions = {
+          route: ctx.route,
           path: extractedOptions.component ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
           ...extractedOptions,
           ...(routeRules.ogImage || {}),
-          ctx,
         }
-
-        // if we're rendering a component let's fetch the html, it will have everything we need
-        if (entry.component)
-          entry.path = `html:${await $fetch(entry.path)}`
 
         // if we're running `nuxi generate` we prerender everything (including dynamic)
         if ((nuxt.options._generate || entry.static) && entry.provider === 'browser')
@@ -350,6 +347,27 @@ export async function useProvider(provider) {
         return
 
       const captureScreenshots = async () => {
+        // call hook
+        await nuxt.callHook('og-image:prerenderScreenshots', screenshotQueue)
+
+        // normalise
+        for (const entry of screenshotQueue) {
+          // allow inserting items into the queue via hook
+          if (entry.route && Object.keys(entry).length === 1) {
+            const html = await $fetch(entry.route)
+            const extractedOptions = extractOgImageOptions(html)
+            const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
+            Object.assign(entry, {
+              path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route,
+              ...extractedOptions,
+              ...(routeRules.ogImage || {}),
+            })
+          }
+          // if we're rendering a component let's fetch the html, it will have everything we need
+          if (entry.component)
+            entry.html = await $fetch(entry.path)
+        }
+
         if (screenshotQueue.length === 0)
           return
 
@@ -387,7 +405,7 @@ export async function useProvider(provider) {
               const entry = screenshotQueue[k]
               const start = Date.now()
               let hasError = false
-              const dirname = joinURL(nitro.options.output.publicDir, `${entry.ctx.fileName.replace('index.html', '')}__og_image__/`)
+              const dirname = joinURL(nitro.options.output.publicDir, entry.route, '/__og_image__/')
               const filename = joinURL(dirname, '/og.png')
               try {
                 const imgBuffer = await screenshot(browser, {

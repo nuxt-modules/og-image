@@ -10,12 +10,14 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
     height: options.height || 630,
   })
 
-  if (options.path.startsWith('html:')) {
+  const isHtml = options.path.startsWith('html:') || options.html
+  if (isHtml) {
+    const html = options.html || options.path.substring(5)
     await page.evaluate((html) => {
       document.open('text/html')
       document.write(html)
       document.close()
-    }, options.path.substring(5))
+    }, html)
     await page.waitForLoadState('networkidle')
   }
   else {
