@@ -73,6 +73,9 @@ export function renderIsland(payload: OgImageOptions) {
 }
 
 export function useHostname(e: H3Event) {
+  const config = useRuntimeConfig()['nuxt-og-image']
+  if (!process.dev && config.siteUrl)
+    return config.siteUrl
   const host = getRequestHeader(e, 'host') || process.env.NITRO_HOST || process.env.HOST || 'localhost'
   const protocol = getRequestHeader(e, 'x-forwarded-proto') || 'http'
   const useHttp = process.env.NODE_ENV === 'development' || host.includes('127.0.0.1') || host.includes('localhost') || protocol === 'http'
