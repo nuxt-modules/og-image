@@ -39,20 +39,20 @@
   "dependencies": {
     "@nuxt/kit": "3.3.1",
     "@types/fs-extra": "^11.0.1",
-    "birpc": "^0.2.8",
+    "birpc": "^0.2.10",
     "chalk": "^5.2.0",
     "chrome-launcher": "^0.15.1",
     "defu": "^6.1.2",
     "execa": "^7.1.1",
     "fast-glob": "^3.2.12",
     "flatted": "^3.2.7",
-    "fs-extra": "^11.1.0",
+    "fs-extra": "^11.1.1",
     "launch-editor": "^2.6.0",
     "ohash": "^1.0.0",
     "pathe": "^1.1.0",
     "playwright-core": "^1.31.2",
     "radix3": "^1.0.0",
-    "satori": "0.4.3",
+    "satori": "0.4.4",
     "satori-html": "^0.3.2",
     "sirv": "^2.0.2",
     "std-env": "^3.3.2",
@@ -64,8 +64,8 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.36.0",
-    "@nuxt/devtools-edge": "0.2.5-27981287.ed164c8",
+    "@antfu/eslint-config": "^0.37.0",
+    "@nuxt/devtools-edge": "0.2.5-27988848.51397f9",
     "@nuxt/module-builder": "^0.2.1",
     "@nuxt/test-utils": "3.3.1",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
@@ -75,6 +75,6 @@
     "jest-image-snapshot": "^6.1.0",
     "nuxt": "^3.3.1",
     "puppeteer": "^19.7.5",
-    "vitest": "^0.29.3"
+    "vitest": "^0.29.7"
   }
 }

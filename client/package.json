@@ -17,15 +17,15 @@
     "@iconify-json/carbon": "^1.1.14",
     "@iconify-json/logos": "^1.1.22",
     "@iconify-json/ri": "^1.1.4",
-    "@iconify-json/tabler": "^1.1.67",
+    "@iconify-json/tabler": "^1.1.68",
     "@nuxt/devtools-ui-kit": "npm:@nuxt/devtools-ui-kit-edge@0.2.5-27981287.ed164c8",
     "@nuxtjs/color-mode": "^3.2.0",
-    "@unocss/nuxt": "^0.50.4",
-    "@unocss/preset-icons": "^0.50.4",
-    "@unocss/preset-uno": "^0.50.4",
-    "@unocss/runtime": "^0.50.4",
+    "@unocss/nuxt": "^0.50.6",
+    "@unocss/preset-icons": "^0.50.6",
+    "@unocss/preset-uno": "^0.50.6",
+    "@unocss/runtime": "^0.50.6",
     "@vueuse/nuxt": "^9.11.1",
     "nuxt": "^3.3.1",
-    "unocss": "^0.50.4"
+    "unocss": "^0.50.6"
   }
 }
