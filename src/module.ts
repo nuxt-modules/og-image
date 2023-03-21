@@ -30,8 +30,10 @@ import { extractOgImageOptions, stripOgImageOptions } from './runtime/nitro/util
 export interface ModuleOptions {
   /**
    * The hostname of your website.
+   * @deprecated use `siteUrl`
    */
-  host: string
+  host?: string
+  siteUrl: string
   defaults: OgImageOptions
   fonts: `${string}:${number}`[]
   satoriOptions: Partial<SatoriOptions>
@@ -67,10 +69,11 @@ export default defineNuxtModule<ModuleOptions>({
     configKey: 'ogImage',
   },
   defaults(nuxt) {
+    const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl
     return {
       // when we run `nuxi generate` we need to force prerendering
       forcePrerender: !nuxt.options.dev && nuxt.options._generate,
-      host: process.env.NUXT_PUBLIC_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl,
+      siteUrl,
       defaults: {
         component: 'OgImageBasic',
         width: 1200,
@@ -87,6 +90,9 @@ export default defineNuxtModule<ModuleOptions>({
   },
   async setup(config, nuxt) {
     const { resolve } = createResolver(import.meta.url)
+
+    // allow config fallback
+    config.siteUrl = config.siteUrl || config.host!
 
     // default font is inter
     if (!config.fonts.length)
