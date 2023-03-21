@@ -5,7 +5,9 @@ import { defineOgImageDynamic } from '#imports'
 export default defineComponent<OgImageOptions>({
   name: 'OgImageDynamic',
   setup(_, { attrs }) {
-    defineOgImageDynamic(attrs)
+    if (process.server)
+      defineOgImageDynamic(attrs)
+
     return () => null
   },
 })

@@ -57,7 +57,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '^3.2.0',
+      nuxt: '^3.3.1',
       bridge: false,
     },
     configKey: 'ogImage',
@@ -165,12 +165,14 @@ export {}
       })
     }
 
-    ['defineOgImageDynamic', 'defineOgImageStatic', 'defineOgImageScreenshot']
+    nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
+    ;['defineOgImageDynamic', 'defineOgImageStatic', 'defineOgImageScreenshot']
       .forEach((name) => {
         addImports({
           name,
           from: resolve('./runtime/composables/defineOgImage'),
         })
+        nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
       })
 
     await addComponent({

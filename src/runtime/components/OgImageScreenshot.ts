@@ -6,7 +6,9 @@ export default defineComponent<OgImageScreenshotOptions>({
   name: 'OgImageScreenshot',
   setup(_, { attrs }) {
     // get attrs
-    defineOgImageScreenshot(attrs)
+    if (process.server)
+      defineOgImageScreenshot(attrs)
+
     return () => null
   },
 })

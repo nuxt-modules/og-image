@@ -5,7 +5,9 @@ import { defineOgImageStatic } from '#imports'
 export default defineComponent<OgImageOptions>({
   name: 'OgImageStatic',
   setup(_, { attrs }) {
-    defineOgImageStatic(attrs)
+    if (process.server)
+      defineOgImageStatic(attrs)
+
     return () => null
   },
 })
