@@ -1,5 +1,7 @@
 import type { Highlighter, Lang } from 'shiki-es'
 import { getHighlighter } from 'shiki-es'
+import { ref } from 'vue'
+import { useColorMode } from '#imports'
 
 export const shiki = ref<Highlighter>()
 

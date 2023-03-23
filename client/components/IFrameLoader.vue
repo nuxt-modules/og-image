@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
+import { computed, onMounted, ref, useColorMode, useHead, watch } from '#imports'
 import { containerWidth, description } from '~/util/logic'
 
 const props = defineProps({
