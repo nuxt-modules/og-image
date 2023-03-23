@@ -1,5 +1,7 @@
+import { useAsyncData } from '#imports'
 import type { OgImageOptions } from '../../src/types'
 import { host, path, refreshTime } from '~/util/logic'
+
 export async function fetchOptions() {
   const { data: options } = await useAsyncData<OgImageOptions>(() => {
     return $fetch('/api/og-image-options', {

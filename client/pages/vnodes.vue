@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { fetchVNodes, highlight } from '#imports'
+
 const vnodes = await fetchVNodes()
 </script>
 

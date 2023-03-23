@@ -1,5 +1,6 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
+import { connectWS, createBirpcClient } from '#imports'
 import type { PlaygroundClientFunctions } from '../../src/types'
 
 export const refreshTime = ref(Date.now())

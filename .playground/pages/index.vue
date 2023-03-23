@@ -1,5 +1,5 @@
 <script setup>
-import { useServerSeoMeta, computed, ref, definePageMeta, onMounted, onBeforeUnmount } from "#imports";
+import { useServerSeoMeta, computed, ref, definePageMeta, onMounted, onBeforeUnmount, useDebounceFn, watch } from "#imports";
 
 definePageMeta({
   title: 'Home',

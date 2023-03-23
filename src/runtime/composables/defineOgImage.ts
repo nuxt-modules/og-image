@@ -2,7 +2,7 @@ import { useServerHead } from '@vueuse/head'
 import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
-import { useRouter } from '#imports'
+import { useRouter, useRuntimeConfig } from '#imports'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()

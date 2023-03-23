@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { fetchOptions, highlight } from '#imports'
+
 const options = await fetchOptions()
 </script>
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, onMounted, ref, watch } from '#imports'
 import { description } from '~/util/logic'
 
 const props = defineProps({
