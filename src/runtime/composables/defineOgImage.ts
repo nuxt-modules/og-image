@@ -36,7 +36,7 @@ export function defineOgImageStatic(options: OgImageOptions = {}) {
 
 export function defineOgImage(options: OgImageOptions = {}) {
   if (process.server) {
-    const { forcePrerender, defaults, host } = useRuntimeConfig()['nuxt-og-image']
+    const { forcePrerender, defaults, siteUrl } = useRuntimeConfig()['nuxt-og-image']
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
 
@@ -53,11 +53,11 @@ export function defineOgImage(options: OgImageOptions = {}) {
       },
       {
         name: 'twitter:image:src',
-        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, host),
+        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, siteUrl),
       },
       {
         property: 'og:image',
-        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, host),
+        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, siteUrl),
       },
       {
         property: 'og:image:width',

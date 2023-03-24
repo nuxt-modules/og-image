@@ -21,7 +21,7 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
     await page.waitForLoadState('networkidle')
   }
   else {
-    await page.goto(`${options.host}${options.path}`, {
+    await page.goto(`${options.siteUrl}${options.path}`, {
       timeout: 10000,
       waitUntil: 'networkidle',
     })
