@@ -31,12 +31,14 @@ export function extractOgImageOptions(html: string) {
       console.warn('Failed to parse #nuxt-og-image-options', e, options)
   }
   if (options) {
-    // extract the og:description from the html
-    const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
-    if (description)
-      options.description = description
-    else
-      options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
+    if (!options.description) {
+      // extract the og:description from the html
+      const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
+      if (description)
+        options.description = description
+      else
+        options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
+    }
     return decodeHtmlEntities(options)
   }
   return false
