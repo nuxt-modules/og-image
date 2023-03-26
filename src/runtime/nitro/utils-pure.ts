@@ -8,10 +8,20 @@ function decodeHtmlEntities(obj: Record<string, string | any>) {
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&amp;/g, '&')
+        // money symbols
+        .replace(/&cent;/g, '¢')
+        .replace(/&pound;/g, '£')
+        .replace(/&yen;/g, '¥')
+        .replace(/&euro;/g, '€')
+        .replace(/&copy;/g, '©')
+        .replace(/&reg;/g, '®')
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, '\'')
         .replace(/&#x27;/g, '\'')
         .replace(/&#x2F;/g, '/')
+        .replace(/&#([0-9]+);/g, (full, int) => {
+          return String.fromCharCode(parseInt(int))
+        })
     }
   })
   return obj
