@@ -1,28 +1,29 @@
 import type { OgImageOptions } from '../../types'
 
-function decodeHtmlEntities(obj: Record<string, string | any>) {
+export function decodeHtml(html: string) {
+  return html.replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    // money symbols
+    .replace(/&cent;/g, '¢')
+    .replace(/&pound;/g, '£')
+    .replace(/&yen;/g, '¥')
+    .replace(/&euro;/g, '€')
+    .replace(/&copy;/g, '©')
+    .replace(/&reg;/g, '®')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'')
+    .replace(/&#x27;/g, '\'')
+    .replace(/&#x2F;/g, '/')
+    .replace(/&#([0-9]+);/g, (full, int) => {
+      return String.fromCharCode(parseInt(int))
+    })
+}
+function decodeObjectHtmlEntities(obj: Record<string, string | any>) {
   Object.entries(obj).forEach(([key, value]) => {
     // unescape all html tokens
-    if (typeof value === 'string') {
-      obj[key] = value
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        // money symbols
-        .replace(/&cent;/g, '¢')
-        .replace(/&pound;/g, '£')
-        .replace(/&yen;/g, '¥')
-        .replace(/&euro;/g, '€')
-        .replace(/&copy;/g, '©')
-        .replace(/&reg;/g, '®')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, '\'')
-        .replace(/&#x27;/g, '\'')
-        .replace(/&#x2F;/g, '/')
-        .replace(/&#([0-9]+);/g, (full, int) => {
-          return String.fromCharCode(parseInt(int))
-        })
-    }
+    if (typeof value === 'string')
+      obj[key] = decodeHtml(value)
   })
   return obj
 }
@@ -50,7 +51,7 @@ export function extractOgImageOptions(html: string) {
       else
         options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
     }
-    return decodeHtmlEntities(options)
+    return decodeObjectHtmlEntities(options)
   }
   return false
 }

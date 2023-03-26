@@ -1,5 +1,6 @@
 import type { VNode } from '../../../../../types'
 import { defineSatoriTransformer } from '../utils'
+import { decodeHtml } from '../../../utils-pure'
 
 // automatically add missing flex rules
 export default defineSatoriTransformer(() => {
@@ -8,13 +9,7 @@ export default defineSatoriTransformer(() => {
     transform: async (node: VNode) => {
       // for the payload, we unencode any html
       // unescape all html tokens
-      node.props.children = node.props.children
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .replace(/&#x27;/g, '\'')
-        .replace(/&#x2F;/g, '/')
+      node.props.children = decodeHtml(node.props.children as string)
     },
   }
 })
