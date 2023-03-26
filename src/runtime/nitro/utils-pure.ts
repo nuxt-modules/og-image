@@ -9,6 +9,7 @@ function decodeHtmlEntities(obj: Record<string, string | any>) {
         .replace(/&gt;/g, '>')
         .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, '\'')
         .replace(/&#x27;/g, '\'')
         .replace(/&#x2F;/g, '/')
     }
