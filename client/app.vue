@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core'
 import { $computed, computed, fetchOptions, useHead, useRoute, watch } from '#imports'
-import { containerWidth, description, path, refreshSources } from './util/logic'
+import { base, containerWidth, description, path, refreshSources } from './util/logic'
 import { devtoolsClient } from '~/composables/devtools-client'
 
 useHead({
@@ -12,7 +12,7 @@ const isDevTools = computed(() => !!devtoolsClient.value)
 
 const clientPath = $computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
 path.value = clientPath || useRoute().query.path as string || '/'
-
+base.value = useRoute().query.base as string || '/'
 watch(() => clientPath, (v) => {
   path.value = v
 })

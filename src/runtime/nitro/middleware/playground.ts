@@ -1,13 +1,15 @@
 import { defineEventHandler } from 'h3'
-import { parseURL, withoutTrailingSlash } from 'ufo'
+import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
 import { fetchOptions } from '../utils'
+import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
   const path = withoutTrailingSlash(parseURL(e.path).pathname)
   if (!path.endsWith('/__og_image__'))
     return
 
-  const basePath = path.replace('/__og_image__', '')
+  const basePath = withBase(path.replace('/__og_image__', ''), useRuntimeConfig().app.baseURL)
+
   // extract the payload from the original path
   const options = await fetchOptions(e, basePath === '' ? '/' : basePath)
   if (!options)
@@ -26,5 +28,5 @@ export default defineEventHandler(async (e) => {
   }
 </style>
 <title>OG Image Playground</title>
-<iframe src="/__nuxt_og_image__/client/?&path=${basePath}"></iframe>`
+<iframe src="/__nuxt_og_image__/client?&path=${basePath}&base=${useRuntimeConfig().app.baseURL}"></iframe>`
 })

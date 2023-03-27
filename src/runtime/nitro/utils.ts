@@ -2,6 +2,7 @@ import { existsSync, promises as fsp } from 'node:fs'
 import type { H3Event } from 'h3'
 import { getHeaders, getQuery, getRequestHeader } from 'h3'
 import { join } from 'pathe'
+import { withBase } from 'ufo'
 import type { OgImageOptions } from '../../types'
 import { useRuntimeConfig } from '#internal/nitro'
 
@@ -74,14 +75,14 @@ export function renderIsland(payload: OgImageOptions) {
 
 export function useHostname(e: H3Event) {
   const config = useRuntimeConfig()['nuxt-og-image']
+  const base = useRuntimeConfig().app.baseURL
   if (!process.dev && config.siteUrl)
-    return config.siteUrl
+    return withBase(base, config.siteUrl)
   const host = getRequestHeader(e, 'host') || process.env.NITRO_HOST || process.env.HOST || 'localhost'
   const protocol = getRequestHeader(e, 'x-forwarded-proto') || 'http'
   const useHttp = process.env.NODE_ENV === 'development' || host.includes('127.0.0.1') || host.includes('localhost') || protocol === 'http'
   const port = host.includes(':') ? host.split(':').pop() : (process.env.NITRO_PORT || process.env.PORT)
-  const base = useRuntimeConfig().app.baseURL
-  return `http${useHttp ? '' : 's'}://${host.includes(':') ? host.split(':')[0] : host}${port ? `:${port}` : ''}${base}`
+  return withBase(base, `http${useHttp ? '' : 's'}://${host.includes(':') ? host.split(':')[0] : host}${port ? `:${port}` : ''}`)
 }
 
 const r = (base: string, key: string) => {

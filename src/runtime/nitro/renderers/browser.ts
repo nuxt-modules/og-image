@@ -1,6 +1,8 @@
+import { withBase } from 'ufo'
 import { screenshot } from '../../browserUtil'
 import type { Renderer } from '../../../types'
 import loadBrowser from '#nuxt-og-image/browser'
+import { useRuntimeConfig } from '#imports'
 
 export default <Renderer> {
   name: 'browser',
@@ -18,7 +20,7 @@ export default <Renderer> {
       try {
         return await screenshot(browser!, {
           ...options,
-          host: url.origin,
+          host: withBase(useRuntimeConfig().app.baseURL, url.origin),
           path: `/api/og-image-html?path=${url.pathname}`,
         })
       }

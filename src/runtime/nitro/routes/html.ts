@@ -4,24 +4,28 @@ import { createHeadCore } from '@unhead/vue'
 import { defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { fetchOptions, renderIsland, useHostname } from '../utils'
 import type { OgImageOptions } from '../../../types'
-import { useRuntimeConfig } from '#internal/nitro'
+import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
   const { fonts, defaults } = useRuntimeConfig()['nuxt-og-image']
-  const path = getQuery(e).path as string || '/'
-  const scale = getQuery(e).scale
-  const mode = getQuery(e).mode || 'light'
+  const query = getQuery(e)
+  const path = withBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
+  const scale = query.scale
+  const mode = query.mode || 'light'
   // extract the options from the original path
   let options: OgImageOptions | undefined
-  if (getQuery(e).options)
-    options = JSON.parse(getQuery(e).options as string) as OgImageOptions
+  if (query.options)
+    options = JSON.parse(query.options as string) as OgImageOptions
 
   if (!options)
     options = await fetchOptions(e, path)
 
   // for screenshots just return the base path
-  if (options.provider === 'browser' && !options.component)
-    return sendRedirect(e, withBase(path, useHostname(e)))
+  if (options.provider === 'browser' && !options.component) {
+    // need the path without the base url, left trim the base url
+    const pathWithoutBase = path.replace(new RegExp(`^${useRuntimeConfig().app.baseURL}`), '')
+    return sendRedirect(e, withBase(pathWithoutBase, useHostname(e)))
+  }
 
   // using Nuxt Island, generate the og:image HTML
   const island = await renderIsland(options)

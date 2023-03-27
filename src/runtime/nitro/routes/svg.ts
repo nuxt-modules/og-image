@@ -2,9 +2,11 @@ import { createError, defineEventHandler, getQuery, setHeader } from 'h3'
 import { withBase } from 'ufo'
 import { fetchOptions, useHostname } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
+import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
-  const path = getQuery(e).path as string || '/'
+  const query = getQuery(e)
+  const path = withBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
   const options = await fetchOptions(e, path)
   setHeader(e, 'Content-Type', 'image/svg+xml')
   const provider = await useProvider(options.provider!)
