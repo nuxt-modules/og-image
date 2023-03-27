@@ -12,7 +12,7 @@ import { execa } from 'execa'
 import chalk from 'chalk'
 import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { joinURL } from 'ufo'
+import { joinURL, withBase } from 'ufo'
 import { relative } from 'pathe'
 import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
@@ -20,6 +20,7 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { provider } from 'std-env'
+import { $fetch } from 'ofetch'
 import createBrowser from './runtime/nitro/providers/browser/node'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
@@ -354,25 +355,6 @@ export async function useProvider(provider) {
         if (screenshotQueue.length === 0)
           return
 
-        // normalise
-        for (const entry of screenshotQueue) {
-          // allow inserting items into the queue via hook
-          if (entry.route && Object.keys(entry).length === 1) {
-            const html = await $fetch(entry.route)
-            const extractedOptions = extractOgImageOptions(html)
-            const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
-            Object.assign(entry, {
-              // @ts-expect-error runtime
-              path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route,
-              ...extractedOptions,
-              ...(routeRules.ogImage || {}),
-            })
-          }
-          // if we're rendering a component let's fetch the html, it will have everything we need
-          if (entry.component)
-            entry.html = await $fetch(entry.path)
-        }
-
         // avoid problems by installing playwright
         nitro.logger.info('Ensuring chromium install for og:image generation...')
         const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
@@ -403,6 +385,26 @@ export async function useProvider(provider) {
           browser = await createBrowser()
           if (browser) {
             nitro.logger.info(`Prerendering ${screenshotQueue.length} og:image screenshots...`)
+
+            // normalise
+            for (const entry of screenshotQueue) {
+              // allow inserting items into the queue via hook
+              if (entry.route && Object.keys(entry).length === 1) {
+                const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
+                const extractedOptions = extractOgImageOptions(html)
+                const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
+                Object.assign(entry, {
+                  // @ts-expect-error runtime
+                  path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route,
+                  ...extractedOptions,
+                  ...(routeRules.ogImage || {}),
+                })
+              }
+              // if we're rendering a component let's fetch the html, it will have everything we need
+              if (entry.component)
+                entry.html = await $fetch(entry.path, { baseURL: withBase(nuxt.options.app.baseURL, host) })
+            }
+
             for (const k in screenshotQueue) {
               const entry = screenshotQueue[k]
               const start = Date.now()
@@ -445,7 +447,7 @@ export async function useProvider(provider) {
         screenshotQueue = []
       }
 
-      if (!nuxt.options._prepare) {
+      if (nuxt.options._generate) {
         // SSR mode
         nitro.hooks.hook('rollup:before', async () => {
           await captureScreenshots()
