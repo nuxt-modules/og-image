@@ -49,7 +49,7 @@ export function setupPlaygroundRPC(nuxt: Nuxt, config: ModuleOptions) {
 
   nuxt.hook('builder:watch', (e, path) => {
     if (e === 'change')
-      birpc.boardcast.refresh.asEvent(path)
+      birpc.broadcast.refresh.asEvent(path)
   })
 
   const middleware = async (req: NodeIncomingMessage & TinyWSRequest, res: NodeServerResponse) => {
