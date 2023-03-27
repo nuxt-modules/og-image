@@ -1,4 +1,4 @@
-import type { Browser } from 'playwright-core'
+import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import type { ScreenshotOptions } from '../types'
 
 export async function screenshot(browser: Browser, options: Partial<ScreenshotOptions> & Record<string, any>): Promise<Buffer> {
@@ -27,6 +27,10 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
     })
   }
 
+  const screenshotOptions: PageScreenshotOptions = {
+    timeout: 10000,
+  }
+
   if (options.delay)
     await page.waitForTimeout(options.delay)
 
@@ -37,7 +41,7 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
     }, options.mask)
   }
   if (options.selector)
-    return await page.locator(options.selector).screenshot()
+    return await page.locator(options.selector).screenshot(screenshotOptions)
 
-  return await page.screenshot()
+  return await page.screenshot(screenshotOptions)
 }
