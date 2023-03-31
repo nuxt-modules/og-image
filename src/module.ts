@@ -163,6 +163,7 @@ export {}
       const {
         middleware: rpcMiddleware,
       } = setupPlaygroundRPC(nuxt, config)
+      // @ts-ignore schema conflict
       nuxt.hook('vite:serverCreated', async (server) => {
         server.middlewares.use(PATH_ENTRY, tinyws() as any)
         server.middlewares.use(PATH_ENTRY, rpcMiddleware as any)
