@@ -85,7 +85,7 @@ export function useHostname(e: H3Event) {
   return withBase(base, `http${useHttp ? '' : 's'}://${host.includes(':') ? host.split(':')[0] : host}${port ? `:${port}` : ''}`)
 }
 
-const r = (base: string, key: string) => {
+function r(base: string, key: string) {
   return join(base!, key.replace(/:/g, '/'))
 }
 
