@@ -1,6 +1,6 @@
 import { resolve } from 'pathe'
 import { defineNuxtConfig } from 'nuxt/config'
-import { extendUnocssOptions } from '@nuxt/devtools-ui-kit-edge/unocss'
+import { extendUnocssOptions } from '@nuxt/devtools-ui-kit/unocss'
 
 export default defineNuxtConfig({
   modules: [
