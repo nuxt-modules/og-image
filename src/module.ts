@@ -332,10 +332,6 @@ export async function useProvider(provider) {
         if (!extractedOptions || routeRules.ogImage === false)
           return
 
-        // only static satori images lose their payload data
-        if (extractedOptions.static && !config.forcePrerender && extractedOptions.provider !== 'browser')
-          ctx.contents = stripOgImageOptions(html)
-
         const entry: OgImageOptions = {
           route: ctx.route,
           path: extractedOptions.component ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
