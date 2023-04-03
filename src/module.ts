@@ -328,10 +328,13 @@ export async function useProvider(provider) {
           return
 
         const extractedOptions = extractOgImageOptions(html)
-        ctx.contents = stripOgImageOptions(html)
         const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
         if (!extractedOptions || routeRules.ogImage === false)
           return
+
+        // only static satori images lose their payload data
+        if (extractedOptions.static && !config.forcePrerender && extractedOptions.provider !== 'browser')
+          ctx.contents = stripOgImageOptions(html)
 
         const entry: OgImageOptions = {
           route: ctx.route,
