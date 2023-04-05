@@ -4,12 +4,8 @@ import { withBase } from 'ufo'
 import { useRuntimeConfig } from '#imports'
 
 export function useHostname(e: H3Event) {
-  const config = useRuntimeConfig()['nuxt-og-image']
   const base = useRuntimeConfig().app.baseURL
   const host = getRequestHeader(e, 'host') || process.env.NITRO_HOST || process.env.HOST || 'localhost'
-  // avoid bad internal calls if we can't resolve the host
-  if (!process.dev && !process.env.prerender && host.includes('localhost') && config.siteUrl)
-    return withBase(base, config.siteUrl)
   const protocol = getRequestHeader(e, 'x-forwarded-proto') || 'http'
   const useHttp = process.dev || host.includes('127.0.0.1') || host.includes('localhost') || protocol === 'http'
   let port = host.includes(':') ? host.split(':').pop() : false
