@@ -27,7 +27,7 @@ export default defineEventHandler(async (e) => {
     })
   }
   try {
-    const png = provider.createPng(withBase(basePath, useHostname(e)), options)
+    const png = await provider.createPng(withBase(basePath, useHostname(e)), options)
     if (png) {
       setHeader(e, 'Content-Type', 'image/png')
       return png
@@ -43,4 +43,5 @@ export default defineEventHandler(async (e) => {
     statusCode: 500,
     statusMessage: 'Failed to create og image, unknown error.',
   })
+  return false
 })
