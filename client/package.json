@@ -16,8 +16,8 @@
     "@headlessui/vue": "^1.7.7",
     "@iconify-json/carbon": "^1.1.14",
     "@iconify-json/logos": "^1.1.24",
-    "@iconify-json/ri": "^1.1.4",
-    "@iconify-json/tabler": "^1.1.70",
+    "@iconify-json/ri": "^1.1.6",
+    "@iconify-json/tabler": "^1.1.71",
     "@nuxt/devtools-ui-kit": "^0.3.1",
     "@nuxtjs/color-mode": "^3.2.0",
     "@unocss/nuxt": "^0.50.6",
@@ -25,7 +25,7 @@
     "@unocss/preset-uno": "^0.50.6",
     "@unocss/runtime": "^0.50.6",
     "@vueuse/nuxt": "^9.11.1",
-    "nuxt": "^3.3.2",
+    "nuxt": "^3.3.3",
     "unocss": "^0.50.6"
   }
 }
