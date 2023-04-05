@@ -6,6 +6,7 @@ export default async function (svg: string, options: ConvertOptions & { baseUrl:
   const loader = wasmLoader('/* NUXT_OG_IMAGE_SVG2PNG_WASM */', '/svg2png.wasm', options.baseUrl)
   if (!(await loader.loaded())) {
     await initialize(await loader.load()).catch((e) => {
+      // eslint-disable-next-line no-console
       console.log('svg2png wasm failed to load', e)
     })
   }
