@@ -220,7 +220,7 @@ Out of the box, this module provides support for the following:
 
 If you find Satori is too limiting for your needs, you can always use the `browser` provider to capture browser screenshots instead.
 
-## SSG Requirements
+## SSG Images
 
 When using `nuxt generate`, you will need to provide some additional configuration.
 
@@ -258,7 +258,32 @@ export default defineNuxtConfig({
     }
   }
 })
-````
+```
+
+## SSR Images
+
+When using `nuxt build`, you can only use the `browser` provider with the `node` Nitro preset.
+
+You can get around this by prerendering any pages that use `og:image`. Note that dynamic browser generated images are not supported at all,
+you should use the Satori provider.
+
+
+```ts
+export default defineNuxtConfig({
+  nitro: {
+    prerender: {
+      crawlLinks: true, // recommended  
+      routes: [
+        '/',
+        // list all routes that use og:image if you're not using crawlLinks
+        '/about',
+        '/blog',
+        '/blog/my-first-post',
+      ]
+    }
+  }
+})
+```
 
 
 ## Taking screenshots
@@ -586,17 +611,6 @@ export default defineNuxtConfig({
 - Required: `false`
 
 Options to pass to Satori when generating images. See the [Satori docs](https://github.com/vercel/satori).
-
-### `experimentalNitroBrowser` (experimental)
-
-- Type: `boolean`
-- Default: `false`
-- Required: `false`
-
-In a server runtime, the default behaviour is to generate images using Satori. If you'd like to generate runtime images using the a browser instance 
-for screenshots, you can enable this setting.
-
-This is experimental and may not work in all environments.
 
 ## Examples
 

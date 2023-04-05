@@ -41,7 +41,6 @@ export interface ModuleOptions {
   satoriProvider: boolean
   browserProvider: boolean
   experimentalInlineWasm: boolean
-  experimentalRuntimeBrowser: boolean
   playground: boolean
 }
 
@@ -85,7 +84,6 @@ export default defineNuxtModule<ModuleOptions>({
       fonts: [],
       satoriOptions: {},
       experimentalInlineWasm: process.env.NITRO_PRESET === 'netlify-edge' || nuxt.options.nitro.preset === 'netlify-edge' || false,
-      experimentalRuntimeBrowser: false,
       playground: process.env.NODE_ENV === 'development' || nuxt.options.dev,
     }
   },
@@ -224,20 +222,18 @@ export {}
         inline: [runtimeDir],
       })
 
-      if (config.experimentalRuntimeBrowser) {
-        nitroConfig.alias = nitroConfig.alias || {}
-        nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
-        nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'
-        nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
-      }
-
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
       nitroConfig.publicAssets.push({ dir: moduleAssetDir, maxAge: 31536000 })
 
       const providerPath = `${runtimeDir}/nitro/providers`
 
+      const nitroPreset = (nuxt.options.nitro.preset || process.env.NITRO_PRESET)
+
+      const isNodeNitroServer = !nitroPreset || nitroPreset === 'node'
+
       if (config.browserProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/browser'] = (nuxt.options.dev || config.experimentalRuntimeBrowser)
+        // browser can only work in node runtime at the moment
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = (nuxt.options.dev || process.env.prerender || isNodeNitroServer)
           ? `
 import node from '${providerPath}/browser/node'
 

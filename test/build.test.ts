@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils'
@@ -31,11 +33,10 @@ describe('build', () => {
     expect(await fetchImage('/__og_image__/og.png')).toMatchImageSnapshot()
 
     expect(await fetchImage('/satori/image/__og_image__/og.png')).toMatchImageSnapshot()
-
     expect(await fetchImage('/satori/with-options/__og_image__/og.png')).toMatchImageSnapshot()
+    expect(await fetchImage('/satori/tailwind/__og_image__/og.png', { query: { title: 'Fully dynamic', bgColor: 'bg-green-500' } })).toMatchImageSnapshot()
 
     expect(await fetchImage('/browser/component/__og_image__/og.png')).toMatchImageSnapshot()
-
-    expect(await fetchImage('/satori/tailwind/__og_image__/og.png', { query: { title: 'Fully dynamic', bgColor: 'bg-green-500' } })).toMatchImageSnapshot()
+    expect(await fetchImage('/browser/custom/__og_image__/og.png')).toMatchImageSnapshot()
   }, 60000)
 })
