@@ -20,12 +20,11 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { provider } from 'std-env'
-import { $fetch } from 'ofetch'
 import createBrowser from './runtime/nitro/providers/browser/node'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
-import { extractOgImageOptions, stripOgImageOptions } from './runtime/nitro/utils-pure'
+import { extractOgImageOptions } from './runtime/nitro/utils-pure'
 
 export interface ModuleOptions {
   /**
@@ -161,7 +160,6 @@ export {}
       const {
         middleware: rpcMiddleware,
       } = setupPlaygroundRPC(nuxt, config)
-      // @ts-ignore schema conflict
       nuxt.hook('vite:serverCreated', async (server) => {
         server.middlewares.use(PATH_ENTRY, tinyws() as any)
         server.middlewares.use(PATH_ENTRY, rpcMiddleware as any)
@@ -398,7 +396,7 @@ export async function useProvider(provider) {
               }
               // if we're rendering a component let's fetch the html, it will have everything we need
               if (entry.component)
-                entry.html = await $fetch(entry.path, { baseURL: withBase(nuxt.options.app.baseURL, host) })
+                entry.html = await globalThis.$fetch(entry.path)
             }
 
             for (const k in screenshotQueue) {

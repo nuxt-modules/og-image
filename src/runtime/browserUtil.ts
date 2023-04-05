@@ -10,9 +10,9 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
     height: options.height || 630,
   })
 
-  const isHtml = options.path.startsWith('html:') || options.html
+  const isHtml = options.html || options.path?.startsWith('html:')
   if (isHtml) {
-    const html = options.html || options.path.substring(5)
+    const html = options.html || options.path?.substring(5)
     await page.evaluate((html) => {
       document.open('text/html')
       document.write(html)
