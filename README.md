@@ -282,6 +282,27 @@ _package.json_
 }
 ```
 
+## Custom Fonts / Supporting non-english characters
+
+When creating your OG Image, you'll probably want to use a font custom to your project. The module allows you to use any Google font
+with minimal config.
+
+This also lets you support non-english characters by adding the appropriate font to your config.
+
+For example, to support Hebrew characters, you can use the config:
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+      fonts: [
+        // will load this font from Google fonts
+        'Noto+Sans+Hebrew:400'
+      ]
+  }
+})
+````
+
+
 # API
 
 The module exposes a composition and component API to implement your `og:image` generation. You should pick
