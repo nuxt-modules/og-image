@@ -5,7 +5,7 @@
     </div>
     <OgImageStatic
       title="Default template"
-      description="With a default description here"
+      description="options provided description, not inferred"
       titleFontSize="100px"
       descriptionFontSize="50px"
       padding="0 140px"

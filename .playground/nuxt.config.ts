@@ -24,13 +24,13 @@ export default defineNuxtConfig({
     }
   },
 
-  hooks: {
-    'og-image:prerenderScreenshots'(queue) {
-      queue.push({
-        route: '/not-prerendered',
-      })
-    }
-  },
+  // hooks: {
+  //   'og-image:prerenderScreenshots'(queue) {
+  //     queue.push({
+  //       route: '/not-prerendered',
+  //     })
+  //   }
+  // },
 
 
   ogImage: {
