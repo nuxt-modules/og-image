@@ -4,7 +4,10 @@ import { wasmLoader } from '../../utils'
 
 export default async function (svg: string, options: ConvertOptions & { baseUrl: string }) {
   const loader = wasmLoader('/* NUXT_OG_IMAGE_SVG2PNG_WASM */', '/svg2png.wasm', options.baseUrl)
-  if (!(await loader.loaded()))
-    await initialize(await loader.load()).catch(() => {})
+  if (!(await loader.loaded())) {
+    await initialize(await loader.load()).catch((e) => {
+      console.log('svg2png wasm failed to load', e)
+    })
+  }
   return await svg2png(svg, options)
 }
