@@ -13,7 +13,6 @@ export default defineEventHandler(async (e) => {
     .replace('__og_image__/og.png', ''),
   )
 
-  setHeader(e, 'Content-Type', 'image/png')
   // add http headers so the file isn't cached
   setHeader(e, 'Cache-Control', 'no-cache, no-store, must-revalidate')
   setHeader(e, 'Pragma', 'no-cache')
@@ -27,5 +26,21 @@ export default defineEventHandler(async (e) => {
       statusMessage: `Provider ${options.provider} is missing.`,
     })
   }
-  return provider.createPng(withBase(basePath, useHostname(e)), options)
+  try {
+    const png = provider.createPng(withBase(basePath, useHostname(e)), options)
+    if (png) {
+      setHeader(e, 'Content-Type', 'image/png')
+      return png
+    }
+  }
+  catch (err) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Failed to create og image: ${err.message}`,
+    })
+  }
+  throw createError({
+    statusCode: 500,
+    statusMessage: 'Failed to create og image, unknown error.',
+  })
 })

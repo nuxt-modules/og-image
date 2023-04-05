@@ -15,6 +15,10 @@ export default <Renderer> {
   createPng: async function createPng(basePath, options) {
     const url = new URL(basePath)
     const createBrowser = await loadBrowser()
+    if (!createBrowser) {
+      // throw new exception
+      throw new Error('Failed to load browser. Is the `browserProvider` enabled?')
+    }
     const browser = await createBrowser()
     if (browser) {
       try {
