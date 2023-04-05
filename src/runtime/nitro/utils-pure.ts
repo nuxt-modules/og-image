@@ -55,8 +55,3 @@ export function extractOgImageOptions(html: string): OgImageOptions | false {
   }
   return false
 }
-
-export function stripOgImageOptions(html: string) {
-  return html
-    .replace(/<script id="nuxt-og-image-options" type="application\/json">(.*?)<\/script>/, '')
-}
