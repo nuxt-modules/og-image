@@ -264,6 +264,12 @@ export default defineNuxtConfig({
 
 When using `nuxt build`, you can only use the `browser` provider with the `node` Nitro preset.
 
+If you intend to use the `browser` provider in production, make sure you include the `playwright` dependency.
+
+  ```bash
+  npm i playwright
+  ```
+
 You can get around this by prerendering any pages that use `og:image`. Note that dynamic browser generated images are not supported at all,
 you should use the Satori provider.
 
