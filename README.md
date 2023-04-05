@@ -71,27 +71,6 @@ export default defineNuxtConfig({
 
 This feature uses Nuxt Islands, which requires Nuxt >= 3.1.
 
-### Add your host name
-
-The `og:image` meta tag requires the full URL, so you must provide your site host.
-
-_nuxt.config.ts_
-
-```ts
-export default defineNuxtConfig({
-  // Recommended
-  runtimeConfig: {
-    public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
-    }
-  },
-  // OR
-  ogImage: {
-    host: 'https://example.com',
-  },
-})
-```
-
 # Guides
 
 ## Your first Satori `og:image`
@@ -241,6 +220,47 @@ Out of the box, this module provides support for the following:
 
 If you find Satori is too limiting for your needs, you can always use the `browser` provider to capture browser screenshots instead.
 
+## SSG Requirements
+
+When using `nuxt generate`, you will need to provide some additional configuration.
+
+- You must provide a `siteUrl` so that the meta tags can be generated correctly as absolute URLs.
+
+```ts
+export default defineNuxtConfig({
+  // Recommended
+  runtimeConfig: {
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
+    }
+  },
+  // OR
+  ogImage: {
+    host: 'https://example.com',
+  },
+})
+```
+
+- You must prerender all pages that use `og:image`.
+
+```ts
+export default defineNuxtConfig({
+  nitro: {
+    prerender: {
+      crawlLinks: true, // recommended  
+      routes: [
+        '/',
+        // list all routes that use og:image if you're not using crawlLinks
+        '/about',
+        '/blog',
+        '/blog/my-first-post',
+      ]
+    }
+  }
+})
+````
+
+
 ## Taking screenshots
 
 If you want to simply take a screenshot of your page, you can use the `OgImageScreenshot` component or `defineOgImageScreenshot` composable.
@@ -311,7 +331,7 @@ whichever one you prefer using.
 ## OgImageStatic / defineOgImageStatic
 
 The `OgImageStatic` component and the `defineOgImageStatic` composable creates a static image
-that will be pre-rendered.
+that will be prerendered.
 
 The options follow the [OgImageOptions](#OgImageOptions) interface,
 any additional options will be passed to the `component` as props.
@@ -343,7 +363,7 @@ defineOgImageStatic({
 
 ## OgImageDynamic / defineOgImageDynamic
 
-The `OgImageDynamic` component and the `defineOgImageDynamic` composable creates a dynamic image. They are not pre-rendered and will
+The `OgImageDynamic` component and the `defineOgImageDynamic` composable creates a dynamic image. They are not prerendered and will
 be generated at runtime.
 
 The options follow the [OgImageOptions](#OgImageOptions) interface,
@@ -538,7 +558,7 @@ The default options to use when generating images.
 - Default: `false`
 - Required: `false`
 
-This is enabled when you run `nuxi generate`. It forces all OG images to be pre-rendered as the server is not available to generate
+This is enabled when you run `nuxi generate`. It forces all OG images to be prerendered as the server is not available to generate
 runtime images.
 
 ### `fonts`
