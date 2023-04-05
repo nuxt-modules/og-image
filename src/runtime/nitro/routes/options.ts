@@ -1,7 +1,8 @@
 import { createError, defineEventHandler, getHeaders, getQuery } from 'h3'
 import { withoutBase } from 'ufo'
 import type { OgImageOptions } from '../../../types'
-import { extractOgImageOptions, useHostname } from '../utils'
+import { extractOgImageOptions } from '../utils'
+import { useHostname } from '../util-hostname'
 import { getRouteRules } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'
 

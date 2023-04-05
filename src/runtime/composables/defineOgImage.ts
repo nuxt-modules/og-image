@@ -2,6 +2,7 @@ import { useServerHead } from '@vueuse/head'
 import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
+import { useHostname } from '../nitro/util-hostname'
 import { useRouter, useRuntimeConfig } from '#imports'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
@@ -46,6 +47,8 @@ export function defineOgImage(options: OgImageOptions = {}) {
     if ((forcePrerender || options.static) && options.provider === 'satori')
       e.res.setHeader('x-nitro-prerender', `${route === '/' ? '' : route}/__og_image__/og.png`)
 
+    const baseUrl = process.env.prerender ? siteUrl : useHostname(e)
+
     const meta = [
       {
         name: 'twitter:card',
@@ -53,11 +56,11 @@ export function defineOgImage(options: OgImageOptions = {}) {
       },
       {
         name: 'twitter:image:src',
-        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, siteUrl),
+        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl),
       },
       {
         property: 'og:image',
-        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, siteUrl),
+        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl),
       },
       {
         property: 'og:image:width',
