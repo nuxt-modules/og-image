@@ -37,16 +37,11 @@ export function defineOgImageStatic(options: OgImageOptions = {}) {
 
 export function defineOgImage(options: OgImageOptions = {}) {
   if (process.server) {
-    const { forcePrerender, defaults, siteUrl } = useRuntimeConfig()['nuxt-og-image']
+    const { defaults, siteUrl } = useRuntimeConfig()['nuxt-og-image']
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
 
     const e = useRequestEvent()
-
-    // prerender satori images, we can't prerender browser screenshots
-    if ((forcePrerender || options.static) && options.provider === 'satori')
-      e.res.setHeader('x-nitro-prerender', `${route === '/' ? '' : route}/__og_image__/og.png`)
-
     const baseUrl = process.env.prerender ? siteUrl : useHostname(e)
 
     const meta = [

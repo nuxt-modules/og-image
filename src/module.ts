@@ -3,7 +3,7 @@ import type { NitroRouteRules } from 'nitropack'
 import {
   addComponent,
   addImports,
-  addServerHandler,
+  addServerHandler, addServerPlugin,
   addTemplate,
   createResolver,
   defineNuxtModule,
@@ -199,6 +199,8 @@ export {}
 
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
+
+    addServerPlugin(resolve('./runtime/nitro/plugins/prerender'))
 
     // get public dir
     const moduleAssetDir = resolve('./runtime/public-assets')
