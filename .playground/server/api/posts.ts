@@ -1,4 +1,4 @@
-// import { getPosts } from '~/utils/api';
+import { defineEventHandler } from 'h3'
 
 const posts = [
   { title: `10 Tips for Writing Clean JavaScript Code`, slug: `10-tips-for-writing-clean-javascript-code` },
