@@ -54,6 +54,7 @@ export function defineOgImage(options: OgImageOptions = {}) {
         content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl),
       },
       {
+        name: 'image',
         property: 'og:image',
         content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl),
       },
