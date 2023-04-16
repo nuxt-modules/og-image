@@ -1,8 +1,7 @@
-import { useServerHead } from '@vueuse/head'
 import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
-import { useRouter } from '#imports'
+import { useRouter, useServerHead } from '#imports'
 import { defaults, forcePrerender, host, satoriProvider } from '#nuxt-og-image/config'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
