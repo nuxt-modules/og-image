@@ -1,8 +1,7 @@
-import { useServerHead } from '@vueuse/head'
 import { withBase } from 'ufo'
-import { useRequestEvent } from '#app'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
 import { useHostname } from '../nitro/util-hostname'
+import { useRequestEvent } from '#app'
 import { useRouter, useRuntimeConfig } from '#imports'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
