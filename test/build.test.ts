@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { Buffer } from 'node:buffer'
 import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils'
@@ -8,6 +9,7 @@ import { toMatchImageSnapshot } from 'jest-image-snapshot'
 const { resolve } = createResolver(import.meta.url)
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toMatchImageSnapshot(): R

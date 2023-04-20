@@ -1,4 +1,5 @@
 import { existsSync, promises as fsp } from 'node:fs'
+import { Buffer } from 'node:buffer'
 import type { H3Event } from 'h3'
 import { getHeaders, getQuery } from 'h3'
 import { join } from 'pathe'

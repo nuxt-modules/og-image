@@ -1,3 +1,4 @@
+import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import type { ScreenshotOptions } from '../types'
 

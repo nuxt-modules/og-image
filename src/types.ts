@@ -1,3 +1,4 @@
+import type { Buffer } from 'node:buffer'
 import type { html } from 'satori-html'
 import type { ModuleOptions } from './module'
 

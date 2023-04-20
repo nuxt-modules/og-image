@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import type { ParsedURL } from 'ufo'
 import type { SatoriTransformer, VNode } from '../../../../types'
 import { base64ToArrayBuffer, readPublicAsset } from '../../utils'

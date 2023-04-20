@@ -4,6 +4,7 @@ import { buildNuxt, createResolver, loadNuxt } from '@nuxt/kit'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toMatchImageSnapshot(): R
