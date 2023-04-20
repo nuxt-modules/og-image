@@ -1,12 +1,14 @@
 import type { H3Event } from 'h3'
-import { getRequestHeader } from 'h3'
+import { getRequestHost, getRequestProtocol } from 'h3'
 import { withBase } from 'ufo'
 import { useRuntimeConfig } from '#imports'
 
 export function useHostname(e: H3Event) {
   const base = useRuntimeConfig().app.baseURL
-  const host = getRequestHeader(e, 'host') || process.env.NITRO_HOST || process.env.HOST || 'localhost'
-  const protocol = getRequestHeader(e, 'x-forwarded-proto') || 'http'
+  let host = getRequestHost(e)
+  if (host === 'localhost')
+    host = process.env.NITRO_HOST || process.env.HOST || host
+  const protocol = getRequestProtocol(e)
   const useHttp = process.dev || host.includes('127.0.0.1') || host.includes('localhost') || protocol === 'http'
   let port = host.includes(':') ? host.split(':').pop() : false
   // try and avoid adding port if not needed, mainly needed for dev and prerendering
