@@ -69,6 +69,8 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults(nuxt) {
     const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl
+    // @ts-expect-error untyped
+    const isEdgeProvider = edgeProvidersSupported.includes(process.env.NITRO_PRESET || '') || edgeProvidersSupported.includes(nuxt.options.nitro.preset)
     return {
       // when we run `nuxi generate` we need to force prerendering
       forcePrerender: !nuxt.options.dev && nuxt.options._generate,
@@ -79,7 +81,8 @@ export default defineNuxtModule<ModuleOptions>({
         height: 630,
       },
       satoriProvider: true,
-      browserProvider: true,
+      // disable browser in edge environments
+      browserProvider: !isEdgeProvider,
       fonts: [],
       satoriOptions: {},
       experimentalInlineWasm: process.env.NITRO_PRESET === 'netlify-edge' || nuxt.options.nitro.preset === 'netlify-edge' || false,
