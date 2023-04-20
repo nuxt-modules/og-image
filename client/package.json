@@ -7,25 +7,25 @@
     "preview": "nuxt preview"
   },
   "dependencies": {
-    "@nuxt/devtools-kit": "^0.3.1",
+    "@nuxt/devtools-kit": "^0.4.1",
     "flatted": "^3.2.7",
     "nuxt-icon": "^0.3.3",
     "shiki-es": "^0.2.0"
   },
   "devDependencies": {
-    "@headlessui/vue": "^1.7.7",
+    "@headlessui/vue": "^1.7.13",
     "@iconify-json/carbon": "^1.1.14",
-    "@iconify-json/logos": "^1.1.24",
-    "@iconify-json/ri": "^1.1.6",
-    "@iconify-json/tabler": "^1.1.71",
-    "@nuxt/devtools-ui-kit": "^0.3.1",
+    "@iconify-json/logos": "^1.1.25",
+    "@iconify-json/ri": "^1.1.8",
+    "@iconify-json/tabler": "^1.1.73",
+    "@nuxt/devtools-ui-kit": "^0.4.1",
     "@nuxtjs/color-mode": "^3.2.0",
-    "@unocss/nuxt": "^0.50.6",
-    "@unocss/preset-icons": "^0.50.6",
-    "@unocss/preset-uno": "^0.50.6",
-    "@unocss/runtime": "^0.50.6",
-    "@vueuse/nuxt": "^9.11.1",
-    "nuxt": "^3.3.3",
-    "unocss": "^0.50.6"
+    "@unocss/nuxt": "^0.51.5",
+    "@unocss/preset-icons": "^0.51.5",
+    "@unocss/preset-uno": "^0.51.5",
+    "@unocss/runtime": "^0.51.5",
+    "@vueuse/nuxt": "^10.0.2",
+    "nuxt": "^3.4.1",
+    "unocss": "^0.51.5"
   }
 }
