@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@headlessui/vue": "^1.7.13",
-    "@iconify-json/carbon": "^1.1.14",
+    "@iconify-json/carbon": "^1.1.16",
     "@iconify-json/logos": "^1.1.25",
     "@iconify-json/ri": "^1.1.8",
     "@iconify-json/tabler": "^1.1.73",

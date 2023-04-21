@@ -53,7 +53,7 @@
     "pathe": "^1.1.0",
     "playwright-core": "^1.32.3",
     "radix3": "^1.0.1",
-    "satori": "0.4.13",
+    "satori": "0.4.14",
     "satori-html": "^0.3.2",
     "sirv": "^2.0.2",
     "std-env": "^3.3.2",
@@ -75,7 +75,7 @@
     "eslint": "8.38.0",
     "jest-image-snapshot": "^6.1.0",
     "nuxt": "^3.4.2",
-    "puppeteer": "^19.9.1",
+    "puppeteer": "^19.10.1",
     "vitest": "^0.30.1"
   }
 }
