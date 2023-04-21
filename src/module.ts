@@ -289,8 +289,8 @@ export async function useProvider(provider) {
             if (useSatoriWasm)
               await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
           }
-          // need to replace the token in index.mjs
-          const indexFile = resolve(_nitro.options.output.serverDir, _nitro.options.preset === 'netlify-edge' ? 'server.mjs' : 'index.mjs')
+          // need to replace the token in entry
+          const indexFile = resolve(_nitro.options.output.serverDir, nitro.options.rollupConfig?.output.entryFileNames)
           if (await pathExists(indexFile)) {
             const indexContents = (await readFile(indexFile, 'utf-8')).replace('.cwd(),', '?.cwd || "/",')
             if (!config.experimentalInlineWasm) {
