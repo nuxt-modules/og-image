@@ -25,7 +25,7 @@
     "@unocss/preset-uno": "^0.51.5",
     "@unocss/runtime": "^0.51.5",
     "@vueuse/nuxt": "^10.0.2",
-    "nuxt": "^3.4.1",
+    "nuxt": "^3.4.2",
     "unocss": "^0.51.5"
   }
 }
