@@ -1,12 +1,12 @@
-import { resolve } from 'pathe'
 import { defineNuxtConfig } from 'nuxt/config'
 import { extendUnocssOptions } from '@nuxt/devtools-ui-kit/unocss'
+import NuxtOgImage from '../src/module'
 
 export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
     '@unocss/nuxt',
-    resolve(__dirname, '../src/module'),
+    NuxtOgImage,
     // '@nuxt/devtools-edge',
     function(options, nuxt) {
       nuxt.hook('components:extend', (components) => {

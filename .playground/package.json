@@ -1,14 +1,14 @@
 {
   "private": true,
   "dependencies": {
-    "@nuxt/devtools-ui-kit": "^0.3.1",
-    "nuxt-og-image": "link:../"
+    "@nuxt/devtools-ui-kit": "^0.4.1"
   },
   "scripts": {
     "build": "nuxi build",
     "prepare": "nuxi prepare",
     "deploy:netlify": "NITRO_PRESET=netlify-edge nuxi build && npx netlify deploy",
     "deploy:cloudflare": "NITRO_PRESET=cloudflare nuxi build && npx wrangler publish",
+    "deploy:cloudflare-pages": "NITRO_PRESET=cloudflare-pages nuxi build && npx wrangler publish",
     "deploy:vercel-edge": "NITRO_PRESET=vercel-edge nuxi build && vercel --prebuilt -d --prod"
   }
 }
