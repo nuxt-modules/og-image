@@ -291,9 +291,15 @@ export async function useProvider(provider) {
               await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
           }
           // need to replace the token in entry
-          const indexFile = resolve(_nitro.options.output.serverDir, nitro.options.rollupConfig?.output.entryFileNames)
+          const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
+          const entryFile = typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs'
+          const indexFile = resolve(_nitro.options.output.serverDir, entryFile)
           if (await pathExists(indexFile)) {
-            const indexContents = (await readFile(indexFile, 'utf-8')).replace('.cwd(),', '?.cwd || "/",')
+            let indexContents = (await readFile(indexFile, 'utf-8'))
+            if (_nitro.options.preset.includes('vercel')) {
+              // fix for vercel
+              indexContents = indexContents.replace('.cwd(),', '?.cwd || "/",')
+            }
             if (!config.experimentalInlineWasm) {
               await writeFile(indexFile, indexContents
                 .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', 'import("./svg2png.wasm").then(m => m.default || m)')

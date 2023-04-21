@@ -9,7 +9,7 @@ import { useRuntimeConfig } from '#imports'
 
 export * from './util-hostname'
 
-export function wasmLoader(key: any, fallback: string, baseUrl: string) {
+export function wasmLoader(asyncModuleLoad: Promise<any>, fallback: string, baseUrl: string) {
   let promise: Promise<any>
   let loaded = false
   return {
@@ -26,11 +26,12 @@ export function wasmLoader(key: any, fallback: string, baseUrl: string) {
       promise = promise || new Promise(async (resolve) => {
         let wasm
         try {
-          wasm = await key
+          wasm = await asyncModuleLoad
           if (typeof wasm === 'string')
             wasm = undefined
         }
-        catch (e) {}
+        catch (e) {
+        }
         // check cache first
         if (!wasm)
           wasm = await readPublicAsset(fallback)
