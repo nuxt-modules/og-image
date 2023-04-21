@@ -49,6 +49,7 @@ const PATH_PLAYGROUND = `${PATH}/client`
 
 const edgeProvidersSupported = [
   'cloudflare',
+  'cloudflare-pages',
   'vercel-edge',
   'netlify-edge',
 ]
