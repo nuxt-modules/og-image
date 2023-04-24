@@ -5,6 +5,7 @@ import { getHeaders, getQuery } from 'h3'
 import { join } from 'pathe'
 import type { OgImageOptions } from '../../types'
 import { useHostname } from './util-hostname'
+import { optionCacheStorage } from './composables/cache'
 import { useRuntimeConfig } from '#imports'
 
 export * from './util-hostname'
@@ -47,7 +48,13 @@ export function wasmLoader(asyncModuleLoad: Promise<any>, fallback: string, base
     },
   }
 }
-export function fetchOptions(e: H3Event, path: string) {
+export async function fetchOptions(e: H3Event, path: string) {
+  // check the cache first
+  if (await optionCacheStorage.hasItem(path)) {
+    const cachedValue = await optionCacheStorage.getItem(path) as any
+    if (cachedValue && cachedValue.expiresAt < Date.now())
+      return cachedValue.value
+  }
   // extract the payload from the original path
   const fetchOptions = (process.dev || process.env.prerender)
     ? {
@@ -56,13 +63,16 @@ export function fetchOptions(e: H3Event, path: string) {
     : {
         baseURL: useHostname(e),
       }
-  return globalThis.$fetch<OgImageOptions>('/api/og-image-options', {
+
+  const res = await globalThis.$fetch<OgImageOptions>('/api/og-image-options', {
     query: {
       ...getQuery(e),
       path,
     },
     ...fetchOptions,
   })
+  await optionCacheStorage.setItem(path, { value: res, expiresAt: Date.now() + (res.static ? 60 * 60 * 1000 : 5 * 1000) })
+  return res
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
