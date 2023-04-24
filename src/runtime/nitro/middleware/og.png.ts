@@ -29,6 +29,8 @@ export default defineEventHandler(async (e) => {
   try {
     const png = await provider.createPng(withBase(basePath, useHostname(e)), options)
     if (png) {
+      if (!process.dev && options.static)
+        setHeader(e, 'Cache-Control', 'public, max-age=31536000')
       setHeader(e, 'Content-Type', 'image/png')
       return png
     }
