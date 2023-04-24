@@ -32,8 +32,10 @@ export default defineEventHandler(async (e) => {
 
   // need to hackily reset the event params so we can access the route rules of the base URL
   e.node.req.url = path
+  const oldRouteRules = e.context._nitro.routeRules
   e.context._nitro.routeRules = undefined
   const routeRules = getRouteRules(e)?.ogImage
+  e.context._nitro.routeRules = oldRouteRules
   e.node.req.url = e.path
 
   // has been disabled via route rules
