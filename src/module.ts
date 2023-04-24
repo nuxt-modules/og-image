@@ -41,6 +41,10 @@ export interface ModuleOptions {
   browserProvider: boolean
   experimentalInlineWasm: boolean
   playground: boolean
+  /**
+   * Enables debug logs and a debug endpoint.
+   */
+  debug: boolean
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -135,13 +139,15 @@ export {}
       handler: resolve('./runtime/nitro/middleware/og.png'),
     })
 
-    ;['html', 'options', 'svg', 'vnode', 'font']
+    ;['html', 'options', 'svg', 'vnode', 'font', 'debug']
       .forEach((type) => {
-        addServerHandler({
-          lazy: true,
-          route: `/api/og-image-${type}`,
-          handler: resolve(`./runtime/nitro/routes/${type}`),
-        })
+        if (type !== 'debug' || config.debug) {
+          addServerHandler({
+            lazy: true,
+            route: `/api/og-image-${type}`,
+            handler: resolve(`./runtime/nitro/routes/${type}`),
+          })
+        }
       })
 
     // eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error
