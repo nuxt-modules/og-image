@@ -44,5 +44,7 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
   if (options.selector)
     return await page.locator(options.selector).screenshot(screenshotOptions)
 
-  return await page.screenshot(screenshotOptions)
+  const screenshot = await page.screenshot(screenshotOptions)
+  await page.close()
+  return screenshot
 }
