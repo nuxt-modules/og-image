@@ -274,11 +274,11 @@ export default async function() {
   return satori
 }`
 
-        nitroConfig.virtual!['#nuxt-og-image/svg2png'] = `
-import svg2png from '${providerPath}/svg2png/universal'
+        nitroConfig.virtual!['#nuxt-og-image/png'] = `import png from '${providerPath}/png/${nitroCompatibility.png}'
 export default async function() {
- return svg2png
-}`
+ return png
+}
+`
       }
 
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `

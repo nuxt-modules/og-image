@@ -8,7 +8,7 @@ import twClasses from './plugins/twClasses'
 import flex from './plugins/flex'
 import emojis from './plugins/emojis'
 import encoding from './plugins/encoding'
-import loadSvg2png from '#nuxt-og-image/svg2png'
+import loadPngCreator from '#nuxt-og-image/png'
 import loadSatori from '#nuxt-og-image/satori'
 import { useRuntimeConfig } from '#internal/nitro'
 
@@ -25,8 +25,8 @@ export default <Renderer> {
   name: 'satori',
   createPng: async function createPng(baseUrl, options) {
     const svg = await this.createSvg(baseUrl, options)
-    const svg2png = await loadSvg2png()
-    return svg2png(svg, { baseUrl, ...options })
+    const pngCreator = await loadPngCreator()
+    return pngCreator(svg, { baseUrl, ...options })
   },
 
   createVNode: async function createVNode(baseUrl, options) {
