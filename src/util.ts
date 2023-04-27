@@ -8,8 +8,12 @@ import type { RuntimeCompatibilitySchema } from './const'
 import { DefaultRuntimeCompatibility, RuntimeCompatibility } from './const'
 
 export function getNitroProviderCompatibility(nuxt: Nuxt): false | RuntimeCompatibilitySchema {
-  if (nuxt.options.dev || nuxt.options._prepare)
-    return DefaultRuntimeCompatibility
+  if (nuxt.options.dev || nuxt.options._prepare) {
+    return defu({
+      wasm: 'fetch',
+      browser: 'universal',
+    } as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
+  }
 
   if (provider === 'stackblitz')
     return defu(RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)

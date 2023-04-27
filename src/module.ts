@@ -20,7 +20,7 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
-import createBrowser from './runtime/nitro/providers/browser/default'
+import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
@@ -110,7 +110,6 @@ export default defineNuxtModule<ModuleOptions>({
       logger.info('It looks like you\'re deploying to an environment which requires `chrome-aws-lambda`, checking for dependency...')
       await ensureDependency(nuxt, 'chrome-aws-lambda')
     }
-
 
     // allow config fallback
     config.siteUrl = config.siteUrl || config.host!
@@ -270,7 +269,7 @@ export {}
         inline: [runtimeDir],
       })
 
-      if (nitroCompatibility.browser) {
+      if (config.runtimeBrowser) {
         nitroConfig.alias = nitroConfig.alias || {}
         nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
         nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'

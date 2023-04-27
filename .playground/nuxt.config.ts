@@ -35,7 +35,6 @@ export default defineNuxtConfig({
 
   ogImage: {
     playground: true,
-    runtimeBrowser: false,
     runtimeCacheStorage: false,
     defaults: {
       // component: 'BannerTemplate',

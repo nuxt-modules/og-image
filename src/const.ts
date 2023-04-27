@@ -21,7 +21,7 @@ export const Wasms = [
 ] as const
 
 export interface RuntimeCompatibilitySchema {
-  browser: false | 'playwright' | 'lambda'
+  browser: false | 'playwright' | 'lambda' | 'universal'
   satori: false | 'default' | 'yoga-wasm'
   wasm: 'inline' | 'import' | 'fetch'
   png: 'resvg' | 'svg2png'
