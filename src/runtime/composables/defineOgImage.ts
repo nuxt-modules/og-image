@@ -17,10 +17,10 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
 }
 
 export function defineOgImageDynamic(options: OgImageOptions = {}) {
-  const { satoriProvider, forcePrerender } = useRuntimeConfig()['nuxt-og-image']
+  const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
   defineOgImage({
-    provider: satoriProvider ? 'satori' : 'browser',
-    static: !!forcePrerender,
+    provider: runtimeSatori ? 'satori' : 'browser',
+    static: false,
     ...options,
   })
 }

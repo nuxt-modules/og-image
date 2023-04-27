@@ -624,15 +624,6 @@ The host of your site. This is required to generate the absolute path of the `og
 
 The default options to use when generating images.
 
-### `forcePrerender`
-
-- Type: `boolean`
-- Default: `false`
-- Required: `false`
-
-This is enabled when you run `nuxi generate`. It forces all OG images to be prerendered as the server is not available to generate
-runtime images.
-
 ### `fonts`
 
 - Type: ``${string}:${number}`[]`

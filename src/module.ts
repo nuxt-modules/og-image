@@ -36,11 +36,9 @@ export interface ModuleOptions {
   defaults: OgImageOptions
   fonts: `${string}:${number}`[]
   satoriOptions: Partial<SatoriOptions>
-  forcePrerender: boolean
-  satoriProvider: boolean
-  browserProvider: boolean
-  experimentalInlineWasm: boolean
   playground: boolean
+  runtimeSatori: boolean
+  runtimeBrowser: boolean
   /**
    * Enables debug logs and a debug endpoint.
    */
