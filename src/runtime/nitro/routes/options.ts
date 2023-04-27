@@ -49,7 +49,5 @@ export default defineEventHandler(async (e) => {
     ...(routeRules || {}),
     // use provided data
     ...extractedPayload,
-    // use query data
-    ...query,
   } as OgImageOptions
 })

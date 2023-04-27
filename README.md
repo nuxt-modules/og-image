@@ -353,6 +353,47 @@ export default defineNuxtConfig({
 })
 ````
 
+## Caching
+
+It's recommended to cache your images to reduce the load on your server. This can be achieved
+by providing a `runtimeCacheStorage` option to the `ogImage` config.
+
+For example:
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+    // cloudflare kv binding example, set your own config
+    runtimeCacheStorage: {
+      driver: 'cloudflare-kv-binding',
+      binding: 'OG_IMAGE_CACHE'
+    }
+  }
+})
+````
+
+By default, images will be cached for 24 hours. You can change the image TTL by providing `cacheTtl` when defining the image.
+
+```ts
+defineOgImageStatic({
+  // ...
+  cacheTtl: 60 * 60 * 24 * 7 // 7 days
+})
+```
+
+Alternatively, you can change the default cacheTtl time in your nuxt.config.
+
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+    defaults: {
+      cacheTtl: 60 * 60 * 24 * 7 // 7 days
+    }
+  }
+})
+````
+
 
 # API
 

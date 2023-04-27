@@ -45,6 +45,9 @@ export interface ModuleOptions {
    * Enables debug logs and a debug endpoint.
    */
   debug: boolean
+  runtimeCacheStorage: false | (Record<string, any> & {
+    driver: string
+  })
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -84,11 +87,13 @@ export default defineNuxtModule<ModuleOptions>({
         component: 'OgImageBasic',
         width: 1200,
         height: 630,
+        cacheTtl: 24 * 60 * 60 * 1000, // default is to cache the image for 24 hours
       },
       satoriProvider: true,
       // disable browser in edge environments
       browserProvider: !isEdgeProvider,
       fonts: [],
+      runtimeCacheStorage: false,
       satoriOptions: {},
       experimentalInlineWasm: process.env.NITRO_PRESET === 'netlify-edge' || nuxt.options.nitro.preset === 'netlify-edge' || false,
       playground: process.env.NODE_ENV === 'development' || nuxt.options.dev,
@@ -100,6 +105,11 @@ export default defineNuxtModule<ModuleOptions>({
     // allow config fallback
     config.siteUrl = config.siteUrl || config.host!
 
+    // provide cache storage
+    if (config.runtimeCacheStorage && !nuxt.options.dev) {
+      nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
+      nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
+    }
     // default font is inter
     if (!config.fonts.length)
       config.fonts = ['Inter:400', 'Inter:700']
@@ -223,7 +233,15 @@ export {}
       // @ts-expect-error untyped
       nuxt.hooks.callHook('og-image:config', config)
       // @ts-expect-error untyped
-      nuxt.options.runtimeConfig['nuxt-og-image'] = { ...config, assetDirs }
+      nuxt.options.runtimeConfig['nuxt-og-image'] = {
+        ...config,
+        // avoid adding credentials
+        runtimeCacheStorage: Boolean(config.runtimeCacheStorage),
+        assetDirs: [
+          resolve(nuxt.options.rootDir, nuxt.options.dir.public),
+          ...customAssetDirs,
+        ],
+      }
     })
     const useSatoriWasm = provider === 'stackblitz'
 

@@ -32,6 +32,8 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   description?: string
   component?: string | null
   alt?: string
+  cacheKey?: string
+  cacheTtl?: number
   [key: string]: any
 }
 
