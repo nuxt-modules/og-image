@@ -18,11 +18,6 @@ export default defineEventHandler(async (e) => {
     .replace('__og_image__/og.png', ''),
   )
 
-  // add http headers so the file isn't cached
-  setHeader(e, 'Cache-Control', 'no-cache, no-store, must-revalidate')
-  setHeader(e, 'Pragma', 'no-cache')
-  setHeader(e, 'Expires', '0')
-
   const options = await fetchOptions(e, basePath)
   if (process.env.NODE_ENV === 'production' && !process.env.prerender && !runtimeBrowser && options.provider === 'browser')
     return sendRedirect(e, joinURL(useHostname(e), '__nuxt_og_image__/browser-provider-not-supported.png'))
