@@ -1,14 +1,14 @@
 {
   "private": true,
+  "name": "nuxt-og-image-playground-minimal",
   "dependencies": {
-    "@nuxt/devtools-ui-kit": "^0.4.1",
-    "chrome-aws-lambda": "^10.1.0"
+    "@nuxt/devtools-ui-kit": "^0.4.1"
   },
   "scripts": {
     "build": "nuxi build",
     "prepare": "nuxi prepare",
-    "deploy:netlify": "NITRO_PRESET=netlify nuxi build && cd .. && npx netlify deploy",
-    "deploy:netlify-edge": "NITRO_PRESET=netlify-edge nuxi build",
+    "deploy:netlify": "NITRO_PRESET=netlify nuxi build && npx netlify deploy",
+    "deploy:netlify-edge": "NITRO_PRESET=netlify-edge nuxi build && npx netlify deploy --prod",
     "deploy:cloudflare-workers": "NITRO_PRESET=cloudflare nuxi build && npx wrangler publish --config wrangler-workers.toml",
     "deploy:cloudflare-pages": "NITRO_PRESET=cloudflare-pages nuxi build && npx wrangler pages publish dist/ --project-name og-image-pages-demo",
     "deploy:vercel-edge": "NITRO_PRESET=vercel-edge nuxi build && vercel --prebuilt -d --prod"
