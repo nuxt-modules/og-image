@@ -509,7 +509,7 @@ The name of the component to use as the template. By default, it uses OgImageBas
 - Required: `false`
 
 The provider to use to generate the image. The default provider is `satori`.
-When you use `browser` it will use Puppeteer to generate the image.
+When you use `browser` it will use Playwright to generate the image.
 
 ### `prerender`
 
@@ -649,6 +649,22 @@ export default defineNuxtConfig({
 - Required: `false`
 
 Options to pass to Satori when generating images. See the [Satori docs](https://github.com/vercel/satori).
+
+### `runtimeSatori`
+
+- Type: `boolean`
+- Default: `true`
+
+Whether to use Satori at runtime. This is useful to disable if you're prerendering all your images.
+
+### `runtimeBrowser`
+
+- Type: `boolean`
+- Default: `process.dev`
+
+Whether to use Playwright at runtime. You will need to enable this for production environments and ensure you are using 
+a supported nitro preset and have the required dependencies.
+
 
 ## Examples
 

@@ -26,9 +26,9 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
 }
 
 export function defineOgImageStatic(options: OgImageOptions = {}) {
-  const { satoriProvider } = useRuntimeConfig()['nuxt-og-image']
+  const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
   defineOgImage({
-    provider: satoriProvider ? 'satori' : 'browser',
+    provider: runtimeSatori ? 'satori' : 'browser',
     static: true,
     ...options,
   })

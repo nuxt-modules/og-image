@@ -87,9 +87,8 @@ export default defineNuxtModule<ModuleOptions>({
         height: 630,
         cacheTtl: 24 * 60 * 60 * 1000, // default is to cache the image for 24 hours
       },
-      satoriProvider: true,
-      // disable browser in edge environments
-      browserProvider: !isEdgeProvider,
+      runtimeSatori: true,
+      runtimeBrowser: nuxt.options.dev,
       fonts: [],
       runtimeCacheStorage: false,
       satoriOptions: {},
@@ -253,11 +252,7 @@ export {}
 
       const providerPath = `${runtimeDir}/nitro/providers`
 
-      const nitroPreset = (nuxt.options.nitro.preset || process.env.NITRO_PRESET)
-
-      const isNodeNitroServer = !nitroPreset || nitroPreset === 'node'
-
-      if (config.browserProvider) {
+      if (config.runtimeBrowser) {
         // browser can only work in node runtime at the moment
         nitroConfig.virtual!['#nuxt-og-image/browser'] = (nuxt.options.dev || process.env.prerender || isNodeNitroServer)
           ? `
@@ -273,8 +268,8 @@ export default async function() {
 `
       }
 
-      if (config.satoriProvider) {
-        nitroConfig.virtual!['#nuxt-og-image/satori'] = `import satori from '${providerPath}/satori/${useSatoriWasm ? 'webworker' : 'node'}'
+      if (config.runtimeSatori) {
+        nitroConfig.virtual!['#nuxt-og-image/satori'] = `import satori from '${providerPath}/satori/${nitroCompatibility.satori}'
 export default async function() {
   return satori
 }`
@@ -287,14 +282,14 @@ export default async function() {
       }
 
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
-${config.satoriProvider ? `import satori from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}'` : ''}
-${config.browserProvider ? `import browser from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}'` : ''}
+${config.runtimeSatori ? `import satori from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}'` : ''}
+${config.runtimeBrowser ? `import browser from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}'` : ''}
 
 export async function useProvider(provider) {
   if (provider === 'satori')
-    return ${config.satoriProvider ? 'satori' : 'null'}
+    return ${config.runtimeSatori ? 'satori' : 'null'}
   if (provider === 'browser')
-    return ${config.browserProvider ? 'browser' : 'null'}
+    return ${config.runtimeBrowser ? 'browser' : 'null'}
   return null
 }
       `
