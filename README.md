@@ -38,13 +38,30 @@ Enlightened OG Image generation for Nuxt 3.
 - ▲ Render using [Satori](https://github.com/vercel/satori): Tailwind classes, Google fonts, emoji support and more!
 - 🤖 Or prerender using the Browser: Supporting painless, complex templates
 - 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
-- ⚙️ Works on the edge: Vercel Edge and Cloudflare Workers
+- ⚙️ Works on the edge: Vercel Edge, Netlify Edge and Cloudflare Workers
 
 ## Demos
 
 - [Vercel Edge Demo](https://nuxt-og-image-playground.vercel.app/)
 - [StackBlitz - Minimal Playground Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
 - [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json)
+
+## Runtime Provider Compatibility
+
+Both Satori and Browser will work in Node based environments. Prerendering is fully supported.
+
+When you want to generate dynamic images at runtime there are certain nitro runtime limitations.
+
+| Provider | Satori |  Browser |
+| --- |----------------|-----------------| -- |
+| StackBlitz | ✅              | ❌               |
+| Vercel | ✅              | ✅               |
+| Cloudflare Workers (requires paid) | ✅            | ❌               |
+| Cloudflare Pages (requires paid) | ✅            | ❌               |
+| Netlify (TBC) | ❌              | ❌               |
+| Netlify Edge (TBC) | ❌              | ❌               |
+
+Other providers are yet to be tested. Please create an issue if you have tested one.
 
 ## Install
 

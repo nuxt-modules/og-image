@@ -52,13 +52,6 @@ const PATH = '/__nuxt_og_image__'
 const PATH_ENTRY = `${PATH}/entry`
 const PATH_PLAYGROUND = `${PATH}/client`
 
-const edgeProvidersSupported = [
-  'cloudflare',
-  'cloudflare-pages',
-  'vercel-edge',
-  'netlify-edge',
-]
-
 export interface ModuleHooks {
   'og-image:config': (config: ModuleOptions) => Promise<void> | void
   'og-image:prerenderScreenshots': (queue: OgImageOptions[]) => Promise<void> | void
@@ -75,8 +68,6 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults(nuxt) {
     const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl
-    // @ts-expect-error untyped
-    const isEdgeProvider = edgeProvidersSupported.includes(process.env.NITRO_PRESET || '') || edgeProvidersSupported.includes(nuxt.options.nitro.preset)
     return {
       // when we run `nuxi generate` we need to force prerendering
       forcePrerender: !nuxt.options.dev && nuxt.options._generate,
@@ -92,12 +83,29 @@ export default defineNuxtModule<ModuleOptions>({
       fonts: [],
       runtimeCacheStorage: false,
       satoriOptions: {},
-      experimentalInlineWasm: process.env.NITRO_PRESET === 'netlify-edge' || nuxt.options.nitro.preset === 'netlify-edge' || false,
       playground: process.env.NODE_ENV === 'development' || nuxt.options.dev,
     }
   },
   async setup(config, nuxt) {
     const { resolve } = createResolver(import.meta.url)
+
+    const nitroCompatibility = getNitroProviderCompatibility(nuxt)
+    if (!nitroCompatibility) {
+      const target = process.env.NITRO_PRESET || nuxt.options.nitro.preset
+      logger.warn(`It looks like the nitro target ${target} doesn't support \`nuxt-og-image\`.`)
+      return
+    }
+
+    if (!nitroCompatibility.browser && config.runtimeBrowser) {
+      config.runtimeBrowser = false
+      logger.warn('It looks like you\'re using a nitro target that does not support the browser provider, disabling `runtimeBrowser`.')
+    }
+
+    if (nitroCompatibility.browser === 'lambda') {
+      logger.info('It looks like you\'re deploying to an environment which requires `chrome-aws-lambda`, checking for dependency...')
+      await ensureDependency(nuxt, 'chrome-aws-lambda')
+    }
+
 
     // allow config fallback
     config.siteUrl = config.siteUrl || config.host!
@@ -249,7 +257,6 @@ export {}
         ],
       }
     })
-    const useSatoriWasm = provider === 'stackblitz'
 
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       nitroConfig.externals = defu(nitroConfig.externals || {}, {
@@ -308,40 +315,52 @@ export async function useProvider(provider) {
       let screenshotQueue: OgImageOptions[] = []
 
       nitro.hooks.hook('compiled', async (_nitro) => {
-        if (edgeProvidersSupported.includes(_nitro.options.preset)) {
-          await copy(resolve('./runtime/public-assets/inter-latin-ext-400-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-400-normal.woff'))
-          await copy(resolve('./runtime/public-assets/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
-          if (!config.experimentalInlineWasm) {
-            await copy(resolve('./runtime/public-assets/svg2png.wasm'), resolve(_nitro.options.output.serverDir, 'svg2png.wasm'))
-            if (useSatoriWasm)
-              await copy(resolve('./runtime/public-assets/yoga.wasm'), resolve(_nitro.options.output.serverDir, 'yoga.wasm'))
+        if (!config.runtimeSatori || nuxt.options.dev)
+          return
+        // Add WASM's and Satori dependencies to the final build
+        if (config.fonts.includes('Inter:400'))
+          await copy(resolve('./runtime/public-assets-optional/inter-font/inter-latin-ext-400-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-400-normal.woff'))
+        if (config.fonts.includes('Inter:700'))
+          await copy(resolve('./runtime/public-assets-optional/inter-font/inter-latin-ext-700-normal.woff'), resolve(_nitro.options.output.publicDir, 'inter-latin-ext-700-normal.woff'))
+        // need to replace the token in entry
+        const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
+        // .playground/.netlify/functions-internal/server/chunks/rollup/provider.mjs
+        const wasmProviderPath = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs')
+        // we don't know where our wasm code is, need to do some scanning
+        const paths = [wasmProviderPath]
+        const chunks = await globby([`${_nitro.options.output.serverDir}/chunks/**/*.mjs`], { absolute: true })
+        paths.push(...chunks)
+        for (const path of paths) {
+          if (!(await pathExists(path)))
+            continue
+
+          let contents = (await readFile(path, 'utf-8'))
+          let updated = false
+          // fix for vercel
+          if (_nitro.options.preset.includes('vercel') && path === wasmProviderPath) {
+            contents = contents.replace('.cwd(),', '?.cwd || "/",')
+            updated = true
           }
-          // need to replace the token in entry
-          const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
-          const entryFile = typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs'
-          const indexFile = resolve(_nitro.options.output.serverDir, entryFile)
-          if (await pathExists(indexFile)) {
-            let indexContents = (await readFile(indexFile, 'utf-8'))
-            if (_nitro.options.preset.includes('vercel')) {
-              // fix for vercel
-              indexContents = indexContents.replace('.cwd(),', '?.cwd || "/",')
-            }
-            if (!config.experimentalInlineWasm) {
-              await writeFile(indexFile, indexContents
-                .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', 'import("./svg2png.wasm").then(m => m.default || m)')
-                .replace('"/* NUXT_OG_IMAGE_YOGA_WASM */"', 'import("./yoga.wasm").then(m => m.default || m)'),
-              )
-            }
-            else {
-              // read the wasm to a base 64 string
-              const svg2pngWasm = await readFile(resolve('./runtime/public-assets/svg2png.wasm'), 'base64')
-              const yogaWasm = await readFile(resolve('./runtime/public-assets/yoga.wasm'), 'base64')
-              await writeFile(indexFile, indexContents
-                .replace('"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"', `Buffer.from("${svg2pngWasm}", "base64")`)
-                .replace('"/* NUXT_OG_IMAGE_YOGA_WASM */"', `Buffer.from("${yogaWasm}", "base64")`),
-              )
+
+          for (const wasm of Wasms) {
+            if (contents.includes(wasm.placeholder)) {
+              if (nitroCompatibility.wasm === 'import') {
+                // path needs to be relative to the server directory
+                contents = contents.replace(wasm.placeholder, `import("./${wasm.file}${nitroCompatibility.wasmImportQuery || ''}").then(m => m.default || m)`)
+                // add the wasm here
+                await copy(resolve(`./runtime/public-assets-optional/${wasm.path}`), resolve(dirname(path), wasm.file))
+              }
+              else if (nitroCompatibility.wasm === 'inline') {
+                // how do you inline a wasm file in node
+                const wasmBuffer = await readFile(resolve(`./runtime/public-assets-optional/${wasm.path}`), 'base64')
+                // convert base 64 buffer to array buffer
+                contents = contents.replace(wasm.placeholder, `Buffer.from("${wasmBuffer}", "base64")`)
+              }
+              updated = true
             }
           }
+          if (updated)
+            await writeFile(path, contents, { encoding: 'utf-8' })
         }
       })
 
