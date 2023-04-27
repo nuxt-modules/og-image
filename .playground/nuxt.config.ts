@@ -34,12 +34,14 @@ export default defineNuxtConfig({
 
 
   ogImage: {
-    host: 'https://nuxt-og-image-playground.vercel.app',
     playground: true,
+    runtimeBrowser: false,
+    runtimeCacheStorage: false,
     defaults: {
       // component: 'BannerTemplate',
       appName: 'My App',
-    }
+    },
+    debug: true,
   },
 
   experimental: {

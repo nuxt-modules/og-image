@@ -3,29 +3,24 @@ import { Buffer } from 'node:buffer'
 import type { H3Event } from 'h3'
 import { getHeaders, getQuery } from 'h3'
 import { join } from 'pathe'
+import { prefixStorage } from 'unstorage'
 import type { OgImageOptions } from '../../types'
 import { useHostname } from './util-hostname'
-import { optionCacheStorage } from './composables/cache'
-import { useRuntimeConfig } from '#imports'
+import { useRuntimeConfig, useStorage } from '#imports'
 
 export * from './util-hostname'
 
-export function wasmLoader(asyncModuleLoad: Promise<any>, fallback: string, baseUrl: string) {
+export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fallback: string) {
   let promise: Promise<any>
-  let loaded = false
+  let wasm: any
   return {
-    loaded() {
-      if (loaded)
-        return true
-      // is loading
+    async load(options: { baseUrl: string }) {
       if (typeof promise !== 'undefined')
         return promise
-      return false
-    },
-    async load() {
+      if (wasm)
+        return wasm
       // eslint-disable-next-line no-async-promise-executor
       promise = promise || new Promise(async (resolve) => {
-        let wasm
         try {
           wasm = await asyncModuleLoad
           if (typeof wasm === 'string')
@@ -33,15 +28,20 @@ export function wasmLoader(asyncModuleLoad: Promise<any>, fallback: string, base
         }
         catch (e) {
         }
-        // check cache first
-        if (!wasm)
-          wasm = await readPublicAsset(fallback)
+        if (!wasm) {
+          wasm = await readPublicAsset(fallback, 'base64')
+          if (wasm)
+            wasm = Buffer.from(wasm, 'base64')
+        }
+        // console.log('public asset wasm', wasm)
         if (!wasm) {
           // fallback to fetch
-          const url = new URL(baseUrl)
-          wasm = await (await fetch(`${url.origin}${fallback}`)).arrayBuffer()
+          const url = new URL(options.baseUrl)
+          // fetch as base64
+          wasm = await (await globalThis.$fetch(fallback, { baseURL: url.origin })).arrayBuffer()
+          // read body as buffer
+          wasm = Buffer.from(wasm)
         }
-        loaded = true
         resolve(wasm)
       })
       return promise

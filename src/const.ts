@@ -51,9 +51,6 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<RuntimeCom
   'cloudflare': {
     browser: false,
   },
-  'cloudflare-pages': {
-    browser: false,
-  },
   'vercel-edge': {
     browser: false,
     wasmImportQuery: '?module',

@@ -67,11 +67,6 @@
     "ws": "^8.13.0",
     "yoga-wasm-web": "^0.3.3"
   },
-  "resolutions": {
-    "nitropack": "npm:nitropack-edge@2.4.0-28027501.1cf01bf",
-    "unstorage": "^1.5.0",
-    "unenv": "^1.4.1"
-  },
   "devDependencies": {
     "@antfu/eslint-config": "^0.38.5",
     "@nuxt/devtools-edge": "0.4.2-28041905.19fda12",
@@ -84,5 +79,10 @@
     "jest-image-snapshot": "^6.1.0",
     "nuxt": "^3.4.2",
     "vitest": "^0.30.1"
+  },
+  "resolutions": {
+    "nitropack": "npm:nitropack-edge@2.4.0-28027501.1cf01bf",
+    "unstorage": "^1.5.0",
+    "unenv": "^1.4.1"
   }
 }

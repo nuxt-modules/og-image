@@ -6,25 +6,27 @@ import {
   addServerHandler, addServerPlugin,
   addTemplate,
   createResolver,
-  defineNuxtModule,
+  defineNuxtModule, useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
 import chalk from 'chalk'
 import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { joinURL, withBase } from 'ufo'
-import { relative } from 'pathe'
+import { dirname, relative } from 'pathe'
 import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
-import { provider } from 'std-env'
-import createBrowser from './runtime/nitro/providers/browser/node'
+import { globby } from 'globby'
+import createBrowser from './runtime/nitro/providers/browser/default'
 import { screenshot } from './runtime/browserUtil'
 import type { OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
+import { Wasms } from './const'
+import { ensureDependency, getNitroProviderCompatibility } from './util'
 
 export interface ModuleOptions {
   /**
@@ -72,8 +74,6 @@ export default defineNuxtModule<ModuleOptions>({
   defaults(nuxt) {
     const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl
     return {
-      // when we run `nuxi generate` we need to force prerendering
-      forcePrerender: !nuxt.options.dev && nuxt.options._generate,
       siteUrl,
       defaults: {
         component: 'OgImageBasic',
@@ -87,6 +87,7 @@ export default defineNuxtModule<ModuleOptions>({
       runtimeCacheStorage: false,
       satoriOptions: {},
       playground: process.env.NODE_ENV === 'development' || nuxt.options.dev,
+      debug: false,
     }
   },
   async setup(config, nuxt) {
@@ -269,23 +270,27 @@ export {}
         inline: [runtimeDir],
       })
 
+      if (nitroCompatibility.browser) {
+        nitroConfig.alias = nitroConfig.alias || {}
+        nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
+        nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'
+        nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
+      }
+
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
-      nitroConfig.publicAssets.push({ dir: moduleAssetDir, maxAge: 31536000 })
+      customAssetDirs.forEach((dir) => {
+        nitroConfig.publicAssets!.push({ dir, maxAge: 31536000 })
+      })
 
       const providerPath = `${runtimeDir}/nitro/providers`
 
       if (config.runtimeBrowser) {
         // browser can only work in node runtime at the moment
-        nitroConfig.virtual!['#nuxt-og-image/browser'] = (nuxt.options.dev || process.env.prerender || isNodeNitroServer)
-          ? `
-import node from '${providerPath}/browser/node'
-
+        nitroConfig.virtual!['#nuxt-og-image/browser'] = `
+let browser
 export default async function() {
-  return node
-}
-`
-          : `export default async function() {
- return () => {}
+  browser = browser || await import('${providerPath}/browser/${nitroCompatibility.browser}').then((m) => m.default || m)
+  return browser
 }
 `
       }

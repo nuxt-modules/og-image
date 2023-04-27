@@ -60,14 +60,6 @@ const { data: posts } = await useFetch('/api/posts')
 </script>
 <template>
 <div class="px-7 my-5">
-  <div class="py-5" v-if="posts">
-    <div v-for="post in posts" class="text-sm lg:text-xl flex gap-2 my-3">
-      <nuxt-link :to="'/blog/' + post.slug" class="hover:text-green-500">
-        {{ post.title }}
-      </nuxt-link>
-    </div>
-  </div>
-  <div v-else>no posts</div>
   <OgImageStatic component="OgImageBasic" description="My description of the home page." theme-color="#b5ffd6" />
   <div class="mb-10 xl:grid grid-cols-3 gap-10 justify-center max-w-7xl mx-auto">
     <div>
@@ -109,9 +101,9 @@ const { data: posts } = await useFetch('/api/posts')
       <p class="italic opacity-70 text-xs mb-10">Note: These may break as I'm on the free Vercel tier</p>
       <h3 class="text-lg font-bold mb-3">Satori</h3>
       <div class="lg:grid grid-cols-1 gap-5">
-        <NuxtLink external no-prefetch to="/satori/dynamic/__og_image__/og.png" target="_blank">
+        <NuxtLink external no-prefetch to="/satori/time/__og_image__/og.png" target="_blank">
           <div class="mb-2">Current time <span class="text-xs opacity-70">updates every 15 seconds</span></div>
-          <img :src="`${host}satori/dynamic/__og_image__/og.png?description=&title=${time}`" width="800" height="420" class="rounded" />
+          <img :src="`${host}satori/time/__og_image__/og.png?description=Generated+at+runtime&title=The+time+is+${time}`" width="800" height="420" class="rounded" />
         </NuxtLink>
         <div>
           <div class="mb-2">Tailwind - Custom Props Example</div>

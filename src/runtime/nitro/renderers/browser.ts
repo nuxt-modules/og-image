@@ -1,7 +1,7 @@
 import { withBase } from 'ufo'
 import { screenshot } from '../../browserUtil'
 import type { Renderer } from '../../../types'
-import loadBrowser from '#nuxt-og-image/browser'
+import loadBrowserLauncherChunk from '#nuxt-og-image/browser'
 import { useRuntimeConfig } from '#imports'
 
 export default <Renderer> {
@@ -14,15 +14,16 @@ export default <Renderer> {
   },
   createPng: async function createPng(basePath, options) {
     const url = new URL(basePath)
-    const createBrowser = await loadBrowser()
-    if (!createBrowser) {
+    const launchBrowser = await loadBrowserLauncherChunk()
+    if (!launchBrowser) {
       // throw new exception
       throw new Error('Failed to load browser. Is the `browserProvider` enabled?')
     }
-    const browser = await createBrowser()
+    const browser = await launchBrowser()
+    let res = null
     if (browser) {
       try {
-        return await screenshot(browser!, {
+        res = await screenshot(browser!, {
           ...options,
           host: withBase(useRuntimeConfig().app.baseURL, url.origin),
           path: `/api/og-image-html?path=${url.pathname}`,
@@ -32,6 +33,6 @@ export default <Renderer> {
         browser!.close()
       }
     }
-    return null
+    return res
   },
 }

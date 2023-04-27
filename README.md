@@ -528,10 +528,12 @@ The name of the component to use as the template. By default, it uses OgImageBas
 The provider to use to generate the image. The default provider is `satori`.
 When you use `browser` it will use Playwright to generate the image.
 
-### `prerender`
+### `static`
 
 - Type: `boolean`
-- Default: `true` when static, `false` when dynamic
+- Default: `true` when using `defineOgImageStatic`, `false` when dynamic
+
+Controls the prerendering of the image. A non-static image is one that will be generated at runtime and not cached.
 
 
 ## OgImageScreenshot / defineOgImageScreenshot
