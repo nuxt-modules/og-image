@@ -43,6 +43,10 @@ export function defineOgImage(options: OgImageOptions = {}) {
     const e = useRequestEvent()
     const baseUrl = process.env.prerender ? siteUrl : useHostname(e)
 
+    function resolveSrc() {
+      return withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl)
+    }
+
     const meta = [
       {
         name: 'twitter:card',
@@ -50,11 +54,11 @@ export function defineOgImage(options: OgImageOptions = {}) {
       },
       {
         name: 'twitter:image:src',
-        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl),
+        content: resolveSrc,
       },
       {
         property: 'og:image',
-        content: () => withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl),
+        content: resolveSrc,
       },
       {
         property: 'og:image:width',
