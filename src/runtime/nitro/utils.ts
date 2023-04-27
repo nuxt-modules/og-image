@@ -49,11 +49,16 @@ export function wasmLoader(asyncModuleLoad: Promise<any>, fallback: string, base
   }
 }
 export async function fetchOptions(e: H3Event, path: string) {
+  const { runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
+  const cache = runtimeCacheStorage ? prefixStorage(useStorage(), 'og-image:options:cache') : false
+
   // check the cache first
-  if (await optionCacheStorage.hasItem(path)) {
-    const cachedValue = await optionCacheStorage.getItem(path) as any
+  if (cache && await cache.hasItem(path)) {
+    const cachedValue = await cache.getItem(path) as any
     if (cachedValue && cachedValue.expiresAt < Date.now())
       return cachedValue.value
+    else
+      await cache.removeItem(path)
   }
   // extract the payload from the original path
   const fetchOptions = (process.dev || process.env.prerender)
@@ -66,13 +71,21 @@ export async function fetchOptions(e: H3Event, path: string) {
 
   const res = await globalThis.$fetch<OgImageOptions>('/api/og-image-options', {
     query: {
-      ...getQuery(e),
       path,
     },
     ...fetchOptions,
   })
-  await optionCacheStorage.setItem(path, { value: res, expiresAt: Date.now() + (res.static ? 60 * 60 * 1000 : 5 * 1000) })
-  return res
+  if (cache) {
+    await cache.setItem(path, {
+      value: res,
+      expiresAt: Date.now() + (res.static ? 60 * 60 * 1000 : 5 * 1000),
+    })
+  }
+  return {
+    ...res,
+    // use query data
+    ...getQuery(e),
+  }
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
