@@ -32,7 +32,10 @@ export interface ModuleOptions {
    * @deprecated use `siteUrl`
    */
   host?: string
-  siteUrl: string
+  /**
+   * The hostname of your website. Only needed when pre-rendering pages.
+   */
+  siteUrl?: string
   defaults: OgImageOptions
   fonts: `${string}:${number}`[]
   satoriOptions: Partial<SatoriOptions>
@@ -87,6 +90,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
   },
   async setup(config, nuxt) {
+    const logger = useLogger('nuxt-og-image')
     const { resolve } = createResolver(import.meta.url)
 
     const nitroCompatibility = getNitroProviderCompatibility(nuxt)
@@ -109,6 +113,8 @@ export default defineNuxtModule<ModuleOptions>({
 
     // allow config fallback
     config.siteUrl = config.siteUrl || config.host!
+    if (!nuxt.options.dev && nuxt.options._generate && !config.siteUrl)
+      logger.warn('Nuxt is being prerendered but no siteUrl is set. This will result in broken images.')
 
     // provide cache storage
     if (config.runtimeCacheStorage && !nuxt.options.dev) {

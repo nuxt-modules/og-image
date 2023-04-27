@@ -625,13 +625,13 @@ defineOgImageScreenshot({
 
 ## Module Config
 
-### `host`
+### `siteUrl`
 
 - Type: `string`
 - Default: `undefined`
 - Required: `true`
 
-The host of your site. This is required to generate the absolute path of the `og:image`.
+The site URL of your site. This is required when prerendering to generate the absolute path of the `og:image`.
 
 ### `defaults`
 
