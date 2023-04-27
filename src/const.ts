@@ -35,7 +35,7 @@ export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
   png: 'resvg',
 }
 
-export const RuntimeCompatibility: Record<'default' | string, Partial<RuntimeCompatibilitySchema>> = {
+export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
   'stackblitz': {
     browser: false,
     satori: 'yoga-wasm',

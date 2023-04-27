@@ -7,7 +7,7 @@ import defu from 'defu'
 import type { RuntimeCompatibilitySchema } from './const'
 import { DefaultRuntimeCompatibility, RuntimeCompatibility } from './const'
 
-export function getNitroProviderCompatibility(nuxt: Nuxt): RuntimeCompatibilitySchema {
+export function getNitroProviderCompatibility(nuxt: Nuxt): false | RuntimeCompatibilitySchema {
   if (nuxt.options.dev || nuxt.options._prepare)
     return DefaultRuntimeCompatibility
 
@@ -15,8 +15,10 @@ export function getNitroProviderCompatibility(nuxt: Nuxt): RuntimeCompatibilityS
     return defu(RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
 
   const target = process.env.NITRO_PRESET || nuxt.options.nitro.preset
-  const compatibility = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility] || {}
-  return defu(compatibility as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
+  const compatibility = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
+  if (compatibility === false)
+    return false
+  return defu((compatibility || {}) as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
 }
 
 export function ensureDependency(nuxt: Nuxt, dep: string) {
