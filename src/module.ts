@@ -220,11 +220,20 @@ export {}
     addServerPlugin(resolve('./runtime/nitro/plugins/prerender'))
 
     // get public dir
-    const moduleAssetDir = resolve('./runtime/public-assets')
-    const assetDirs = [
-      resolve(nuxt.options.rootDir, nuxt.options.dir.public),
-      moduleAssetDir,
+    const customAssetDirs: string[] = [
+      // allows us to show custom error images
+      resolve('./runtime/public-assets'),
     ]
+    if (config.runtimeSatori) {
+      if (config.fonts.includes('Inter:400'))
+        customAssetDirs.push(resolve('./runtime/public-assets-optional/inter-font'))
+      if (nitroCompatibility.png === 'resvg' && nitroCompatibility.wasm === 'fetch')
+        customAssetDirs.push(resolve('./runtime/public-assets-optional/resvg'))
+      else if (nitroCompatibility.png === 'svg2png' && nitroCompatibility.wasm === 'fetch')
+        customAssetDirs.push(resolve('./runtime/public-assets-optional/svg2png'))
+      if (nitroCompatibility.satori === 'yoga-wasm')
+        customAssetDirs.push(resolve('./runtime/public-assets-optional/yoga'))
+    }
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
       // @ts-expect-error untyped
