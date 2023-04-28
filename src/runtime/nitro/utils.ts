@@ -1,12 +1,12 @@
 import { existsSync, promises as fsp } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import type { H3Event } from 'h3'
-import { getHeaders, getQuery } from 'h3'
+import { getQuery } from 'h3'
 import { join } from 'pathe'
 import { prefixStorage } from 'unstorage'
 import type { OgImageOptions } from '../../types'
-import { useHostname } from './util-hostname'
 import { useRuntimeConfig, useStorage } from '#imports'
+import { useNitroApp } from '#internal/nitro'
 
 export * from './util-hostname'
 
@@ -52,37 +52,28 @@ export async function fetchOptions(e: H3Event, path: string): Promise<OgImageOpt
   const { runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
   const cache = runtimeCacheStorage ? prefixStorage(useStorage(), 'og-image-cache:options') : false
 
+  let options
   // check the cache first
   if (cache && await cache.hasItem(path)) {
     const cachedValue = await cache.getItem(path) as any
-    if (cachedValue && cachedValue.expiresAt < Date.now())
-      return cachedValue.value
+    if (cachedValue && cachedValue.value && cachedValue.expiresAt < Date.now())
+      options = cachedValue.value
     else
       await cache.removeItem(path)
   }
-  // extract the payload from the original path
-  const fetchOptions = (process.dev || process.env.prerender)
-    ? {
-        headers: getHeaders(e),
-      }
-    : {
-        baseURL: useHostname(e),
-      }
+  if (!options) {
+    const nitro = useNitroApp()
+    options = await (await nitro.localFetch(`/api/og-image-options?path=${path}`)).json()
 
-  const res = await globalThis.$fetch<OgImageOptions>('/api/og-image-options', {
-    query: {
-      path,
-    },
-    ...fetchOptions,
-  })
-  if (cache) {
-    await cache.setItem(path, {
-      value: res,
-      expiresAt: Date.now() + (res.static ? 60 * 60 * 1000 : 5 * 1000),
-    })
+    if (cache) {
+      await cache.setItem(path, {
+        value: options,
+        expiresAt: Date.now() + (options.static ? 60 * 60 * 1000 : 5 * 1000),
+      })
+    }
   }
   return {
-    ...res,
+    ...options,
     // use query data
     ...getQuery(e),
   }
@@ -92,12 +83,6 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   // Decode the base64 string into a binary string
   const buffer = Buffer.from(base64, 'base64')
   return new Uint8Array(buffer).buffer
-}
-
-export function renderIsland(payload: OgImageOptions) {
-  return globalThis.$fetch<{ html: string; head: any }>(`/__nuxt_island/${payload.component}`, {
-    query: { props: JSON.stringify(payload) },
-  })
 }
 
 function r(base: string, key: string) {

@@ -1,10 +1,11 @@
 import { withBase } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
-import { defineEventHandler, getQuery, sendRedirect } from 'h3'
-import { fetchOptions, renderIsland, useHostname } from '../utils'
+import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
+import { fetchOptions, useHostname } from '../utils'
 import type { OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
+import { useNitroApp } from '#internal/nitro'
 
 export default defineEventHandler(async (e) => {
   const { fonts, defaults } = useRuntimeConfig()['nuxt-og-image']
@@ -27,8 +28,17 @@ export default defineEventHandler(async (e) => {
     return sendRedirect(e, withBase(pathWithoutBase, useHostname(e)))
   }
 
+  if (!options.component) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Nuxt OG Image trying to render an invalid component. Received options ${JSON.stringify(options)}`,
+    })
+  }
+
+  const nitroApp = useNitroApp()
+
   // using Nuxt Island, generate the og:image HTML
-  const island = await renderIsland(options)
+  const island = await (await nitroApp.localFetch(`/__nuxt_island/${options.component}?props=${encodeURI(JSON.stringify(options))}`)).json()
 
   const head = createHeadCore()
   head.push(island.head)

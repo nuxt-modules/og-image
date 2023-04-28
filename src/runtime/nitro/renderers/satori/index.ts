@@ -10,7 +10,7 @@ import emojis from './plugins/emojis'
 import encoding from './plugins/encoding'
 import loadPngCreator from '#nuxt-og-image/png'
 import loadSatori from '#nuxt-og-image/satori'
-import { useRuntimeConfig } from '#internal/nitro'
+import { useNitroApp, useRuntimeConfig } from '#internal/nitro'
 
 const satoriFonts: any[] = []
 let fontLoadPromise: Promise<any> | null = null
@@ -31,19 +31,22 @@ export default <Renderer> {
 
   createVNode: async function createVNode(baseUrl, options) {
     const url = parseURL(baseUrl)
-    const html = await globalThis.$fetch<string>('/api/og-image-html', {
-      query: { path: url.pathname, options: JSON.stringify(options) },
-    })
-    // get the body content of the html
-    const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1]
 
-    const emojiedFont = twemoji.parse(body!, {
-      folder: 'svg',
-      ext: '.svg',
-    })
+    const nitroApp = useNitroApp()
+    const html = await (await nitroApp.localFetch(`/api/og-image-html?path=${url.pathname}&options=${encodeURI(JSON.stringify(options))}`)).text()
+    // get the body content of the html
+    let body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || ''
+
+    try {
+      body = twemoji.parse(body!, {
+        folder: 'svg',
+        ext: '.svg',
+      })
+    }
+    catch (e) {}
 
     // scan html for all css links and load them
-    const satoriTree = convertHtmlToSatori(emojiedFont!)
+    const satoriTree = convertHtmlToSatori(body)
     // process the tree
     await walkSatoriTree(url, satoriTree, [
       // @todo add user land support

@@ -1,27 +1,28 @@
-import { createError, defineEventHandler, getHeaders, getQuery } from 'h3'
+import { createError, defineEventHandler, getQuery } from 'h3'
 import { withoutBase } from 'ufo'
 import type { OgImageOptions } from '../../../types'
 import { extractOgImageOptions } from '../utils'
-import { useHostname } from '../util-hostname'
-import { getRouteRules } from '#internal/nitro'
+import { getRouteRules, useNitroApp } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
   const query = getQuery(e)
   const path = withoutBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
 
+  const nitro = useNitroApp()
+
   // extract the payload from the original path
-  const fetchOptions = (process.dev || process.env.prerender)
-    ? {
-        headers: getHeaders(e),
-      }
-    : {
-        baseURL: useHostname(e),
-      }
-  const html = await globalThis.$fetch<string>(path, {
-    ...fetchOptions,
-  })
-  const extractedPayload = extractOgImageOptions(html)
+  let html: string
+  try {
+    html = await (await nitro.localFetch(path)).text()
+  }
+  catch (err) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Failed to read the path ${path} for og-image extraction. ${err.message}.`,
+    })
+  }
+  const extractedPayload = extractOgImageOptions(html!)
   // not supported
   if (!extractedPayload) {
     throw createError({
