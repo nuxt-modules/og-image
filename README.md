@@ -52,14 +52,16 @@ Both Satori and Browser will work in Node based environments. Prerendering is fu
 
 When you want to generate dynamic images at runtime there are certain nitro runtime limitations.
 
-| Provider | Satori |  Browser |
-| ----------------|-----------------| -- |
-| StackBlitz | ✅              | ❌               |
-| Vercel | ✅              | ✅               |
-| Cloudflare Workers (requires paid) | ✅            | ❌               |
-| Cloudflare Pages (requires paid) | ✅            | ❌               |
-| Netlify (TBC) | ❌              | ❌               |
-| Netlify Edge (TBC) | ❌              | ❌               |
+| Provider                           | Satori |  Browser |
+|------------------------------------|-----------------| -- |
+| StackBlitz                         | ✅              | ❌             |
+| Node                                  | ✅              | ✅              |
+| Vercel                             | ✅              | ✅             |
+| Vercel Edge                        | ✅              | ❌              |
+| Cloudflare Workers (requires paid) | ✅            | ❌             |
+| Cloudflare Pages (requires paid)   | ✅            | ❌             |
+| Netlify (TBC)                      | ❌              | ❌             |
+| Netlify Edge (TBC)                 | ❌              | ❌             |
 
 Other providers are yet to be tested. Please create an issue if you have tested one.
 
