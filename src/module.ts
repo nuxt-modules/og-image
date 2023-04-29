@@ -116,11 +116,17 @@ export default defineNuxtModule<ModuleOptions>({
     if (!nuxt.options.dev && nuxt.options._generate && !config.siteUrl)
       logger.warn('Missing `ogImage.siteUrl` and site is being prerendered. This will result in broken og images.')
 
-    // provide cache storage
-    if (config.runtimeCacheStorage && !nuxt.options.dev) {
-      nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
+    nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
+    // provide cache storage for prerendering
+    if (nuxt.options._generate) {
+      nuxt.options.nitro.storage['og-image'] = {
+        driver: 'memory',
+      }
+    }
+    else if (config.runtimeCacheStorage && !nuxt.options.dev) {
       nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
     }
+
     // default font is inter
     if (!config.fonts.length)
       config.fonts = ['Inter:400', 'Inter:700']
