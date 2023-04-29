@@ -10,7 +10,8 @@ import emojis from './plugins/emojis'
 import encoding from './plugins/encoding'
 import loadPngCreator from '#nuxt-og-image/png'
 import loadSatori from '#nuxt-og-image/satori'
-import { useNitroApp, useRuntimeConfig } from '#internal/nitro'
+import { useRuntimeConfig } from '#imports'
+import { useNitroApp } from '#internal/nitro'
 
 const satoriFonts: any[] = []
 let fontLoadPromise: Promise<any> | null = null
