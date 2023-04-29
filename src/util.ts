@@ -8,7 +8,7 @@ import type { RuntimeCompatibilitySchema } from './const'
 import { DefaultRuntimeCompatibility, RuntimeCompatibility } from './const'
 
 export function getNitroProviderCompatibility(nuxt: Nuxt): false | RuntimeCompatibilitySchema {
-  if (nuxt.options.dev || nuxt.options._prepare) {
+  if (nuxt.options.dev || nuxt.options._prepare || nuxt.options._generate) {
     return defu({
       wasm: 'fetch',
       browser: 'universal',
