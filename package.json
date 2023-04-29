@@ -37,7 +37,7 @@
     "test": "pnpm lint"
   },
   "dependencies": {
-    "@nuxt/kit": "3.4.2",
+    "@nuxt/kit": "3.4.3",
     "@resvg/resvg-wasm": "^2.4.1",
     "@types/fs-extra": "^11.0.1",
     "birpc": "^0.2.11",
@@ -69,15 +69,15 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.38.5",
-    "@nuxt/devtools-edge": "0.4.2-28041905.19fda12",
+    "@nuxt/devtools-edge": "0.4.2-28045327.c0b4bd6",
     "@nuxt/module-builder": "^0.3.0",
-    "@nuxt/test-utils": "3.4.2",
+    "@nuxt/test-utils": "3.4.3",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "@types/ws": "^8.5.4",
     "bumpp": "^9.1.0",
     "eslint": "8.39.0",
     "jest-image-snapshot": "^6.1.0",
-    "nuxt": "^3.4.2",
+    "nuxt": "^3.4.3",
     "vitest": "^0.30.1"
   },
   "resolutions": {
