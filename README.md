@@ -377,6 +377,9 @@ export default defineNuxtConfig({
 It's recommended to cache your images to reduce the load on your server. This can be achieved
 by providing a `runtimeCacheStorage` option to the `ogImage` config.
 
+This `runtimeCacheStorage` option takes the same configuration as the Nuxt `nitro.storage` option. 
+See the [Nitro Storage Layer](https://nitro.unjs.io/guide/storage) documentation for more details.
+
 For example:
 
 ```ts
@@ -411,6 +414,16 @@ export default defineNuxtConfig({
     }
   }
 })
+````
+
+You can also provide a configuration for the `cacheKey`. This gives you control over the cache bursting of the images.
+
+```vue
+<script lang="ts" setup>
+defineOgImageStatic({
+  cacheKey: `${myData.id}:${myData.updatedAt}`,
+})
+</script>
 ````
 
 
