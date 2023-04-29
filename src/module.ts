@@ -22,7 +22,7 @@ import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
-import type { OgImageOptions, ScreenshotOptions } from './types'
+import type { FontConfig, OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
 import { Wasms } from './const'
@@ -39,7 +39,7 @@ export interface ModuleOptions {
    */
   siteUrl?: string
   defaults: OgImageOptions
-  fonts: `${string}:${number}`[]
+  fonts: FontConfig[]
   satoriOptions: Partial<SatoriOptions>
   playground: boolean
   runtimeSatori: boolean

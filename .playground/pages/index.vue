@@ -94,6 +94,10 @@ const { data: posts } = await useFetch('/api/posts')
           <div class="mb-2">Image</div>
           <img :src="`${host}satori/image/__og_image__/og.png`" width="400" height="210" class="rounded" />
         </NuxtLink>
+        <NuxtLink external no-prefetch to="/satori/custom-font/__og_image__/og.png" target="_blank">
+          <div class="mb-2">Custom Font</div>
+          <img :src="`${host}satori/custom-font/__og_image__/og.png`" width="400" height="210" class="rounded" />
+        </NuxtLink>
       </div>
     </div>
     <div class="col-span-2">

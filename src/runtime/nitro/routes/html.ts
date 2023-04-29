@@ -3,7 +3,7 @@ import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { fetchOptions, useHostname } from '../utils'
-import type { OgImageOptions } from '../../../types'
+import type { FontConfig, OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
 import { useNitroApp } from '#internal/nitro'
 
@@ -42,11 +42,21 @@ export default defineEventHandler(async (e) => {
 
   const head = createHeadCore()
   head.push(island.head)
+
+  let defaultFontFamily = 'sans-serif'
+  const firstFont = fonts[0] as FontConfig
+  if (firstFont) {
+    if (typeof firstFont === 'string')
+      defaultFontFamily = firstFont.split(':')[0]
+    else
+      defaultFontFamily = firstFont.name
+  }
+
   head.push({
     style: [
       {
         // default font is the first font family
-        innerHTML: `body { font-family: \'${fonts[0].split(':')[0].replace('+', ' ')}\', sans-serif;  }`,
+        innerHTML: `body { font-family: \'${defaultFontFamily.replace('+', ' ')}\', sans-serif;  }`,
       },
       scale
         ? {
@@ -69,6 +79,19 @@ img.emoji {
 `,
           }
         : {},
+      ...(fonts as FontConfig[])
+        .filter(font => typeof font === 'object')
+        .map((font) => {
+          const { name, weight, path } = font
+          return `
+          @font-face {
+            font-family: '${name}';
+            font-style: normal;
+            font-weight: ${weight};
+            src: url('${path}') format('truetype');
+          }
+          `
+        }),
     ],
     meta: [
       {
@@ -95,13 +118,15 @@ img.emoji {
         rel: 'stylesheet',
       },
       // have to add each weight as their own stylesheet
-      ...fonts.map((font) => {
-        const [name, weight] = font.split(':')
-        return {
-          href: `https://fonts.googleapis.com/css2?family=${name}:wght@${weight}&display=swap`,
-          rel: 'stylesheet',
-        }
-      }),
+      ...(fonts as FontConfig[])
+        .filter(font => typeof font === 'string')
+        .map((font) => {
+          const [name, weight] = font.split(':')
+          return {
+            href: `https://fonts.googleapis.com/css2?family=${name}:wght@${weight}&display=swap`,
+            rel: 'stylesheet',
+          }
+        }),
     ],
   })
   const headChunk = await renderSSRHead(head)
