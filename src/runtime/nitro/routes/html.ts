@@ -15,8 +15,14 @@ export default defineEventHandler(async (e) => {
   const mode = query.mode || 'light'
   // extract the options from the original path
   let options: OgImageOptions | undefined
-  if (query.options)
-    options = JSON.parse(query.options as string) as OgImageOptions
+  if (query.options) {
+    try {
+      options = JSON.parse(query.options as string) as OgImageOptions
+    }
+    catch {
+      // fallback is okay
+    }
+  }
 
   if (!options)
     options = await fetchOptions(e, path)
