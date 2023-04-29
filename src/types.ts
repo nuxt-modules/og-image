@@ -37,6 +37,7 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   [key: string]: any
 }
 
+export type FontConfig = (`${string}:${number}` | { name: string; weight: number; path: string })
 export interface Renderer {
   name: 'browser' | 'satori'
   createSvg: (path: string, options: OgImageOptions) => Promise<string>

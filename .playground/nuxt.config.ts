@@ -34,6 +34,15 @@ export default defineNuxtConfig({
 
 
   ogImage: {
+    fonts: [
+      'Inter:400',
+      'Inter:700',
+      {
+        name: 'optieinstein',
+        weight: 800,
+        path: '/OPTIEinstein-Black.otf',
+      }
+    ],
     playground: true,
     runtimeCacheStorage: false,
     defaults: {

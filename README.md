@@ -354,8 +354,22 @@ _package.json_
 
 ## Custom Fonts / Supporting non-english characters
 
-When creating your OG Image, you'll probably want to use a font custom to your project. The module allows you to use any Google font
-with minimal config.
+When creating your OG Image, you'll probably want to use a font custom to your project. 
+
+To make this easier for you, Google Fonts are loaded by default with Inter 400 and Inter 700. 
+
+You can easily load different Google Fonts by using their name+weight. For example:
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+    fonts: [
+      // will load the Noto Sans font from Google fonts
+      'Noto+Sans:400'
+    ]
+  }
+})
+```
 
 This also lets you support non-english characters by adding the appropriate font to your config.
 
@@ -371,6 +385,34 @@ export default defineNuxtConfig({
   }
 })
 ````
+
+If you'd like to load a font locally,
+then you can provide the configuration as an object:
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+    fonts: [
+      {
+        name: 'optieinstein',
+        weight: 800,
+        // path must point to a public font file
+        path: '/OPTIEinstein-Black.otf',
+      }
+    ],
+  }
+})
+```
+
+Make sure to set the font family in your component to match the font name.
+
+```vue
+<template>
+<div :style="{ fontFamily: 'optieinstein' }">
+  <!-- Your component  -->
+</div>
+</template>
+```
 
 ## Caching
 

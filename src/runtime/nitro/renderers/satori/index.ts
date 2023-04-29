@@ -1,7 +1,7 @@
 import { html as convertHtmlToSatori } from 'satori-html'
 import { parseURL } from 'ufo'
 import twemoji from 'twemoji'
-import type { Renderer } from '../../../../types'
+import type { FontConfig, Renderer } from '../../../../types'
 import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'
@@ -14,7 +14,7 @@ import { useNitroApp, useRuntimeConfig } from '#internal/nitro'
 
 const satoriFonts: any[] = []
 let fontLoadPromise: Promise<any> | null = null
-function loadFonts(fonts: string[]) {
+function loadFonts(fonts: FontConfig[]) {
   if (fontLoadPromise)
     return fontLoadPromise
 

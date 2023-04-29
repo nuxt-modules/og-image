@@ -1,32 +1,42 @@
 import { Buffer } from 'node:buffer'
 import type { ParsedURL } from 'ufo'
-import type { SatoriTransformer, VNode } from '../../../../types'
+import type { FontConfig, SatoriTransformer, VNode } from '../../../../types'
 import { base64ToArrayBuffer, readPublicAsset } from '../../utils'
 import { useStorage } from '#internal/nitro'
 
 const cachedFonts: Record<string, any> = {}
 
-export async function loadFont(font: string) {
-  if (cachedFonts[font])
-    return cachedFonts[font]
+export async function loadFont(font: FontConfig) {
+  let fontKey = font as string
+  if (typeof font === 'object')
+    fontKey = `${font.name}:${font.weight}`
 
-  let data
-
-  // check cache first
-  const storageKey = `assets:nuxt-og-imagee:font:${font}`
-  if (await useStorage().hasItem(storageKey)) {
-    data = base64ToArrayBuffer(await useStorage().getItem<ArrayBuffer>(storageKey))
-    return (cachedFonts[font] = { name: font, data, style: 'normal' })
-  }
+  if (cachedFonts[fontKey])
+    return cachedFonts[fontKey]
 
   // fetch local inter
-  const [name, weight] = font.split(':')
+  const [name, weight] = fontKey.split(':')
+
+  let data
+  // check cache first
+  const storageKey = `assets:nuxt-og-imagee:font:${fontKey}`
+  if (await useStorage().hasItem(storageKey))
+    data = base64ToArrayBuffer(await useStorage().getItem<ArrayBuffer>(storageKey))
+
   // avoid hitting google fonts api if we don't need to
-  if (name === 'Inter' && ['400', '700'].includes(weight)) {
+  if (!data && name === 'Inter' && ['400', '700'].includes(weight)) {
     // check cache first
-    const data = await readPublicAsset(`/inter-latin-ext-${weight}-normal.woff`)
-    if (data)
-      return (cachedFonts[font] = { name, weight: Number(weight), data, style: 'normal' })
+    data = await readPublicAsset(`/inter-latin-ext-${weight}-normal.woff`)
+  }
+
+  // fetch local fonts
+  if (typeof font === 'object') {
+    data = await readPublicAsset(font.path)
+    if (!data) {
+      data = await globalThis.$fetch<ArrayBuffer>(font.path, {
+        responseType: 'arrayBuffer',
+      })
+    }
   }
 
   if (!data) {
@@ -37,9 +47,11 @@ export async function loadFont(font: string) {
       responseType: 'arrayBuffer',
     })
   }
+
+  cachedFonts[fontKey] = { name, weight: Number(weight), data, style: 'normal' }
   await useStorage().setItem(storageKey, Buffer.from(data).toString('base64'))
   // convert data to string
-  return (cachedFonts[font] = { name, weight: Number(weight), data, style: 'normal' })
+  return cachedFonts[fontKey]
 }
 
 export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: SatoriTransformer[]) {
