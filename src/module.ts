@@ -106,7 +106,7 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('It looks like you\'re using a nitro target that does not support the browser provider, disabling `runtimeBrowser`.')
     }
 
-    if (nitroCompatibility.browser === 'lambda') {
+    if (config.runtimeBrowser && nitroCompatibility.browser === 'lambda') {
       logger.info('It looks like you\'re deploying to an environment which requires `chrome-aws-lambda`, checking for dependency...')
       await ensureDependency(nuxt, 'chrome-aws-lambda')
     }
@@ -114,7 +114,7 @@ export default defineNuxtModule<ModuleOptions>({
     // allow config fallback
     config.siteUrl = config.siteUrl || config.host!
     if (!nuxt.options.dev && nuxt.options._generate && !config.siteUrl)
-      logger.warn('Nuxt is being prerendered but no siteUrl is set. This will result in broken images.')
+      logger.warn('Missing `ogImage.siteUrl` and site is being prerendered. This will result in broken og images.')
 
     // provide cache storage
     if (config.runtimeCacheStorage && !nuxt.options.dev) {
