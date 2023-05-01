@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
     '@unocss/nuxt',
+    'nuxt-icon',
     NuxtOgImage,
     // '@nuxt/devtools-edge',
     function(options, nuxt) {
@@ -32,6 +33,7 @@ export default defineNuxtConfig({
   //   }
   // },
 
+  devtools: true,
 
   ogImage: {
     fonts: [

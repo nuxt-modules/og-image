@@ -50,6 +50,7 @@
     "fs-extra": "^11.1.1",
     "globby": "^13.1.4",
     "launch-editor": "^2.6.0",
+    "nuxt-icon": "^0.4.0",
     "nypm": "^0.2.0",
     "ofetch": "^1.0.1",
     "ohash": "^1.1.2",

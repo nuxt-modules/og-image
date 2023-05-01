@@ -48,6 +48,9 @@ importers:
       launch-editor:
         specifier: ^2.6.0
         version: 2.6.0
+      nuxt-icon:
+        specifier: ^0.4.0
+        version: 0.4.0(rollup@3.20.6)(vue@3.2.47)
       nypm:
         specifier: ^0.2.0
         version: 0.2.0
@@ -5368,7 +5371,7 @@ packages:
     engines: {node: '>= 10.17.0'}
     hasBin: true
     dependencies:
-      debug: 4.3.1
+      debug: 4.3.4
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -5960,7 +5963,7 @@ packages:
     engines: {node: '>= 6'}
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.1
+      debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -7459,7 +7462,7 @@ packages:
         optional: true
     dependencies:
       defu: 6.1.2
-      esbuild: 0.17.17
+      esbuild: 0.17.18
       fs-extra: 11.1.1
       globby: 13.1.4
       jiti: 1.18.2
