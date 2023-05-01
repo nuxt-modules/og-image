@@ -2,6 +2,7 @@ import { withBase } from 'ufo'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
 import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
+import { hash } from 'ohash'
 import { fetchOptions, useHostname } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
@@ -44,7 +45,8 @@ export default defineEventHandler(async (e) => {
   const nitroApp = useNitroApp()
 
   // using Nuxt Island, generate the og:image HTML
-  const island = await (await nitroApp.localFetch(`/__nuxt_island/${options.component}?props=${encodeURI(JSON.stringify(options))}`)).json()
+  const hashId = hash([options.component, options])
+  const island = await (await nitroApp.localFetch(`/__nuxt_island/${options.component}:${hashId}?props=${encodeURI(JSON.stringify(options))}`)).json()
 
   const head = createHeadCore()
   head.push(island.head)
