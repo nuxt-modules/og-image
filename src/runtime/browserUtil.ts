@@ -23,13 +23,13 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
   }
   else {
     await page.goto(`${options.host}${options.path}`, {
-      timeout: (process.env.prerender || process.dev) ? 10000 : 2000,
+      timeout: (process.env.prerender || process.dev) ? 10000 : 3500,
       waitUntil: 'networkidle',
     })
   }
 
   const screenshotOptions: PageScreenshotOptions = {
-    timeout: (process.env.prerender || process.dev) ? 10000 : 2000,
+    timeout: (process.env.prerender || process.dev) ? 10000 : 3500,
   }
 
   if (options.delay)
