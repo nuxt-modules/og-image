@@ -29,9 +29,10 @@ export interface RuntimeCompatibilitySchema {
 }
 
 export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
+  // node-server runtime
   browser: 'playwright',
   satori: 'default',
-  wasm: 'import',
+  wasm: 'fetch',
   png: 'resvg',
 }
 
@@ -47,12 +48,15 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
   },
   'cloudflare-pages': {
     browser: false,
+    wasm: 'import',
   },
   'cloudflare': {
     browser: false,
+    wasm: 'import',
   },
   'vercel-edge': {
     browser: false,
+    wasm: 'import',
     wasmImportQuery: '?module',
   },
 }
