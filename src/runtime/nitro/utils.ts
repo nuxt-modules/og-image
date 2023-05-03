@@ -6,7 +6,6 @@ import { join } from 'pathe'
 import { prefixStorage } from 'unstorage'
 import type { OgImageOptions } from '../../types'
 import { useRuntimeConfig, useStorage } from '#imports'
-import { useNitroApp } from '#internal/nitro'
 
 export * from './util-hostname'
 
@@ -61,8 +60,12 @@ export async function fetchOptions(e: H3Event, path: string): Promise<OgImageOpt
       await cache.removeItem(path)
   }
   if (!options) {
-    const nitro = useNitroApp()
-    options = await (await nitro.localFetch(`/api/og-image-options?path=${path}`)).json()
+    options = await globalThis.$fetch('/api/og-image-options', {
+      query: {
+        path,
+      },
+      responseType: 'json',
+    })
 
     if (cache) {
       await cache.setItem(path, {

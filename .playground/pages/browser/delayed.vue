@@ -26,7 +26,7 @@ onUnmounted(() => {
     :mask="'.hidden-element'"
     :width="2000"
     :height="1000"
-    :delay="2000"
+    :delay="300"
   />
   <div>
     <div>

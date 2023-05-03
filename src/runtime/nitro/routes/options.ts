@@ -2,19 +2,17 @@ import { createError, defineEventHandler, getQuery } from 'h3'
 import { withoutBase } from 'ufo'
 import type { OgImageOptions } from '../../../types'
 import { extractOgImageOptions } from '../utils'
-import { getRouteRules, useNitroApp } from '#internal/nitro'
+import { getRouteRules } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
   const query = getQuery(e)
   const path = withoutBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
 
-  const nitro = useNitroApp()
-
   // extract the payload from the original path
   let html: string
   try {
-    html = await (await nitro.localFetch(path)).text()
+    html = await globalThis.$fetch(path)
   }
   catch (err) {
     throw createError({

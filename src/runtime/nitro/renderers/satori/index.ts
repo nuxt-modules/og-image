@@ -11,7 +11,6 @@ import encoding from './plugins/encoding'
 import loadPngCreator from '#nuxt-og-image/png'
 import loadSatori from '#nuxt-og-image/satori'
 import { useRuntimeConfig } from '#imports'
-import { useNitroApp } from '#internal/nitro'
 
 const satoriFonts: any[] = []
 let fontLoadPromise: Promise<any> | null = null
@@ -33,8 +32,12 @@ export default <Renderer> {
   createVNode: async function createVNode(baseUrl, options) {
     const url = parseURL(baseUrl)
 
-    const nitroApp = useNitroApp()
-    const html = await (await nitroApp.localFetch(`/api/og-image-html?path=${url.pathname}&options=${encodeURI(JSON.stringify(options))}`)).text()
+    const html = await globalThis.$fetch('/api/og-image-html', {
+      params: {
+        path: url.pathname,
+        options: JSON.stringify(options),
+      },
+    })
     // get the body content of the html
     let body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || ''
 

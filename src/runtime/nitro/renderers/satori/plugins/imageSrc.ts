@@ -2,7 +2,6 @@ import { withBase } from 'ufo'
 import type { VNode } from '../../../../../types'
 import { defineSatoriTransformer } from '../utils'
 import { readPublicAssetBase64 } from '../../../utils'
-import { useNitroApp } from '#internal/nitro'
 
 // for relative links we embed them as base64 input or just fix the URL to be absolute
 export default defineSatoriTransformer((url) => {
@@ -28,10 +27,9 @@ export default defineSatoriTransformer((url) => {
           }
         }
         if (!updated) {
-          const nitroApp = useNitroApp()
           // find the file using getAsset
           try {
-            const response = (await nitroApp.localFetch(src)) as Response
+            const response = (await globalThis.$fetch.raw(src)) as Response
             // see if we can fetch it from a kv host if we're using an edge provider
             if (response.status === 200) {
               node.props.src = response.arrayBuffer()
