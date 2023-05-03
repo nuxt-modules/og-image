@@ -33,7 +33,6 @@ export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fall
           if (wasm)
             wasm = Buffer.from(wasm, 'base64')
         }
-        // console.log('public asset wasm', wasm)
         if (!wasm) {
           // fallback to fetch
           const url = new URL(options.baseUrl)
