@@ -10,7 +10,7 @@ importers:
   .:
     dependencies:
       '@nuxt/kit':
-        specifier: 3.4.3
+        specifier: ^3.4.3
         version: 3.4.3(rollup@3.21.3)
       '@resvg/resvg-wasm':
         specifier: ^2.4.1
