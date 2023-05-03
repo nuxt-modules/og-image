@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "2.0.0-beta.30",
+  "version": "2.0.0-beta.31",
   "packageManager": "pnpm@8.1.0",
   "license": "MIT",
   "funding": "https://github.com/sponsors/harlan-zw",
@@ -70,8 +70,8 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^0.38.5",
-    "@nuxt/devtools-edge": "0.4.5-28047419.153f22c",
-    "@nuxt/module-builder": "^0.3.0",
+    "@nuxt/devtools-edge": "0.4.5-28050619.e64dbcd",
+    "@nuxt/module-builder": "^0.3.1",
     "@nuxt/test-utils": "3.4.3",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "@types/ws": "^8.5.4",
