@@ -266,10 +266,11 @@ export {}
         assetDirs: [
           resolve(nuxt.options.rootDir, nuxt.options.dir.public),
           ...customAssetDirs,
-          // always add wasm dirs for prerendering to work
+          // always add runtime dirs for prerendering to work, these are just used as scan roots
+          resolve('./runtime/public-assets-optional/inter-font'),
           resolve('./runtime/public-assets-optional/resvg'),
           resolve('./runtime/public-assets-optional/yoga'),
-          resolve('./runtime/public-assets-optional/svg2png')
+          resolve('./runtime/public-assets-optional/svg2png'),
         ],
       }
     })
