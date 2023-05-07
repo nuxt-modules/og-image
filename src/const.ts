@@ -46,6 +46,9 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     browser: 'lambda',
     wasm: 'inline',
   },
+  'vercel': {
+    browser: 'lambda',
+  },
   'cloudflare-pages': {
     browser: false,
     wasm: 'import',
