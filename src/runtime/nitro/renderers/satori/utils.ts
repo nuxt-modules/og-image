@@ -6,7 +6,7 @@ import { useStorage } from '#internal/nitro'
 
 const cachedFonts: Record<string, any> = {}
 
-export async function loadFont(font: FontConfig) {
+export async function loadFont(baseURL: string, font: FontConfig) {
   let fontKey = font as string
   if (typeof font === 'object')
     fontKey = `${font.name}:${font.weight}`
@@ -33,9 +33,14 @@ export async function loadFont(font: FontConfig) {
   if (typeof font === 'object') {
     data = await readPublicAsset(font.path)
     if (!data) {
-      data = await globalThis.$fetch<ArrayBuffer>(font.path, {
-        responseType: 'arrayBuffer',
-      })
+      try {
+        data = await globalThis.$fetch(font.path, {
+          responseType: 'arrayBuffer',
+          baseURL,
+        }) as Promise<ArrayBuffer>
+      }
+      // it can fail
+      catch {}
     }
   }
 

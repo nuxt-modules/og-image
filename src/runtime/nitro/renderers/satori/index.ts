@@ -14,11 +14,11 @@ import { useRuntimeConfig } from '#imports'
 
 const satoriFonts: any[] = []
 let fontLoadPromise: Promise<any> | null = null
-function loadFonts(fonts: FontConfig[]) {
+function loadFonts(baseURL: string, fonts: FontConfig[]) {
   if (fontLoadPromise)
     return fontLoadPromise
 
-  return (fontLoadPromise = Promise.all(fonts.map(font => loadFont(font))))
+  return (fontLoadPromise = Promise.all(fonts.map(font => loadFont(baseURL, font))))
 }
 
 export default <Renderer> {
@@ -68,7 +68,7 @@ export default <Renderer> {
     const vnodes = await this.createVNode(baseUrl, options)
 
     if (!satoriFonts.length)
-      satoriFonts.push(...await loadFonts(fonts))
+      satoriFonts.push(...await loadFonts(baseUrl, fonts))
 
     const satori = await loadSatori()
     return await satori(vnodes, {
