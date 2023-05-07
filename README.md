@@ -13,7 +13,7 @@
 Enlightened OG Image generation for Nuxt 3.
 </p>
 
-<img src="https://repository-images.githubusercontent.com/578125755/05ce0b00-ef15-48d0-94b5-b999373a20f9">
+<img src="https://repository-images.githubusercontent.com/578125755/90f77ca8-95be-4e06-9600-332afe1ba24f">
 
 <p align="center">
 <table>
