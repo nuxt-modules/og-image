@@ -52,26 +52,28 @@ Both Satori and Browser will work in Node based environments. Prerendering is fu
 
 When you want to generate dynamic images at runtime there are certain Nitro runtime limitations.
 
-| Provider                                               | Satori |  Browser |
-|--------------------------------------------------------|----------------| -- |
-| StackBlitz                                             | ✅             | ❌             |
-| Node                                                   | ✅             | ✅              |
-| [Vercel](https://nuxt-og-image-playground.vercel.app/) | ✅             | ✅             |
+| Provider                                               | Satori | Browser |
+|--------------------------------------------------------|----------------|---------|
+| StackBlitz                                             | ✅             | ❌       |
+| Node                                                   | ✅             | ✅       |
+| [Vercel](https://nuxt-og-image-playground.vercel.app/) | ✅             | Soon    |
 | [Vercel Edge](https://nuxt-og-image-playground-gkdt.vercel.app/) | ✅             | ❌       |
-| Cloudflare Workers (requires paid)                     | ✅            | ❌             |
-| Cloudflare Pages (requires paid)                       | ✅            | ❌             |
-| Netlify                                                | ✅              | ❌             |
-| Netlify Edge (TBC)                                     | ❌             | ❌             |
+| Cloudflare Workers (requires paid)                     | ✅            | ❌       |
+| Cloudflare Pages (requires paid)                       | ✅            | ❌       |
+| Netlify                                                | ✅              | ❌       |
+| Netlify Edge (TBC)                                     | ❌             | ❌       |
 
 Other providers are yet to be tested. Please create an issue if your nitro preset is not listed.
 
 ## Install
 
+Note: The `main` branch is documentation for the beta version, it's recommended to use this version.
+
 ```bash
 # Install module
-npm install --save-dev nuxt-og-image
+npm install --save-dev nuxt-og-image@beta
 # Using yarn
-yarn add --dev nuxt-og-image
+yarn add --dev nuxt-og-image@beta
 ```
 
 ## Setup
