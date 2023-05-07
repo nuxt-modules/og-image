@@ -52,16 +52,16 @@ Both Satori and Browser will work in Node based environments. Prerendering is fu
 
 When you want to generate dynamic images at runtime there are certain Nitro runtime limitations.
 
-| Provider                                               | Satori | Browser |
-|--------------------------------------------------------|----------------|---------|
-| StackBlitz                                             | ✅             | ❌       |
-| Node                                                   | ✅             | ✅       |
-| [Vercel](https://nuxt-og-image-playground.vercel.app/) | ✅             | Soon    |
-| [Vercel Edge](https://nuxt-og-image-playground-gkdt.vercel.app/) | ✅             | ❌       |
-| Cloudflare Workers (requires paid)                     | ✅            | ❌       |
-| Cloudflare Pages (requires paid)                       | ✅            | ❌       |
-| Netlify                                                | ✅              | ❌       |
-| Netlify Edge (TBC)                                     | ❌             | ❌       |
+| Provider                                                                   | Satori | Browser |
+|----------------------------------------------------------------------------|--------|---------|
+| Node                                                                       | ✅      | ✅       |
+| [Vercel](https://nuxt-og-image-playground.vercel.app/)                     | ✅      | Soon    |
+| [Vercel Edge](https://nuxt-og-image-playground-gkdt.vercel.app/)           | ✅      | ❌       |
+| Cloudflare Workers (requires paid)                                         | ✅      | ❌       |
+| [Cloudflare Pages](https://nuxt-og-image-playground.pages.dev/)            | ✅      | ❌       |
+| [Netlify](https://nuxt-og-image-playground-netlify.netlify.app/)           | Soon   | ❌       |
+| [Netlify Edge](https://nuxt-og-image-playground-netlify-edge.netlify.app/) | Soon   | ❌       |
+| StackBlitz                                                                 | ✅      | ❌       |
 
 Other providers are yet to be tested. Please create an issue if your nitro preset is not listed.
 
