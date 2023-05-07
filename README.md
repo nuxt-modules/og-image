@@ -63,7 +63,7 @@ When you want to generate dynamic images at runtime there are certain Nitro runt
 | Netlify                                                | ✅              | ❌             |
 | Netlify Edge (TBC)                                     | ❌             | ❌             |
 
-Other providers are yet to be tested. Please create an issue if you have tested one.
+Other providers are yet to be tested. Please create an issue if your nitro preset is not listed.
 
 ## Install
 
