@@ -48,7 +48,7 @@ export interface ModuleOptions {
    * Enables debug logs and a debug endpoint.
    */
   debug: boolean
-  runtimeCacheStorage: false | (Record<string, any> & {
+  runtimeCacheStorage: boolean | (Record<string, any> & {
     driver: string
   })
 }
@@ -126,7 +126,7 @@ export default defineNuxtModule<ModuleOptions>({
         driver: 'memory',
       }
     }
-    else if (config.runtimeCacheStorage && !nuxt.options.dev) {
+    else if (config.runtimeCacheStorage && !nuxt.options.dev && typeof config.runtimeCacheStorage === 'object') {
       nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
     }
 

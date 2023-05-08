@@ -416,12 +416,14 @@ Make sure to set the font family in your component to match the font name.
 </template>
 ```
 
-## Caching
+## Runtime Caching
 
-It's recommended to cache your images to reduce the load on your server. This can be achieved
-by providing a `runtimeCacheStorage` option to the `ogImage` config.
+When images are generated at runtime, caching is enabled by default to reduce the load on your server. 
 
-This `runtimeCacheStorage` option takes the same configuration as the Nuxt `nitro.storage` option. 
+By default, it will use the default storage engine for your Nitro preset. 
+You can customise the storage engine by providing a `runtimeCacheStorage` option to the `ogImage` config.
+
+The option takes the same configuration as the Nuxt `nitro.storage` option. 
 See the [Nitro Storage Layer](https://nitro.unjs.io/guide/storage) documentation for more details.
 
 For example:
@@ -438,7 +440,7 @@ export default defineNuxtConfig({
 })
 ````
 
-By default, images will be cached for 24 hours. You can change the image TTL by providing `cacheTtl` when defining the image.
+By default, static images will be cached for 24 hours. You can change the image TTL by providing `cacheTtl` when defining the image.
 
 ```ts
 defineOgImageStatic({
@@ -468,8 +470,18 @@ defineOgImageStatic({
   cacheKey: `${myData.id}:${myData.updatedAt}`,
 })
 </script>
-````
+```
 
+If you prefer not to cache your images you can always disable them by providing a `false` value.
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+    // no runtime cache
+    runtimeCacheStorage: false
+  }
+})
+````
 
 # API
 
