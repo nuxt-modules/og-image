@@ -37,6 +37,10 @@ export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
 }
 
 export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
+  'nitro-dev': {
+    wasm: 'fetch',
+    browser: 'universal',
+  },
   'stackblitz': {
     browser: false,
     satori: 'yoga-wasm',

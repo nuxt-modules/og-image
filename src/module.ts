@@ -26,7 +26,7 @@ import type { FontConfig, OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
 import { Wasms } from './const'
-import { ensureDependency, getNitroProviderCompatibility } from './util'
+import { ensureDependency, getNitroPreset, getNitroProviderCompatibility } from './util'
 
 export interface ModuleOptions {
   /**
@@ -95,8 +95,10 @@ export default defineNuxtModule<ModuleOptions>({
     logger.level = config.debug ? 4 : 3
     const { resolve } = createResolver(import.meta.url)
 
+    logger.debug('Using Nitro preset', getNitroPreset(nuxt))
+
     const nitroCompatibility = getNitroProviderCompatibility(nuxt)
-    logger.debug('Nitro compatibility:', nitroCompatibility)
+    logger.debug('Nitro compatibility', nitroCompatibility)
 
     if (!nitroCompatibility) {
       const target = process.env.NITRO_PRESET || nuxt.options.nitro.preset
