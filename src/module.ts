@@ -112,8 +112,8 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     if (config.runtimeBrowser && nitroCompatibility.browser === 'lambda') {
-      logger.info('It looks like you\'re deploying to an environment which requires `chrome-aws-lambda`, checking for dependency...')
-      await ensureDependencies(nuxt, ['puppeteer-core@10.1.0', 'chrome-aws-lambda@10.1.0'])
+      logger.info('It looks like you\'re deploying to an environment that has extra requirements, checking for dependencies...')
+      await ensureDependencies(nuxt, ['puppeteer-core@14.1.1', '@sparticuz/chrome-aws-lambda@14.1.1'])
     }
 
     // allow config fallback

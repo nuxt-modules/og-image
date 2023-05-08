@@ -1,4 +1,4 @@
-import edgeChromium from 'chrome-aws-lambda'
+import edgeChromium from '@sparticuz/chrome-aws-lambda'
 import puppeteer from 'puppeteer-core'
 
 export default async function createBrowser() {
