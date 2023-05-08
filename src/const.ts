@@ -24,7 +24,7 @@ export interface RuntimeCompatibilitySchema {
   browser: false | 'playwright' | 'lambda' | 'universal'
   satori: false | 'default' | 'yoga-wasm'
   wasm: 'inline' | 'import' | 'fetch'
-  png: 'resvg' | 'svg2png'
+  png: 'resvg-wasm' | 'svg2png' | 'resvg-node'
   wasmImportQuery?: string
 }
 
@@ -33,7 +33,7 @@ export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
   browser: 'playwright',
   satori: 'default',
   wasm: 'fetch',
-  png: 'resvg',
+  png: 'resvg-node',
 }
 
 export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
@@ -45,6 +45,7 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     browser: false,
     satori: 'yoga-wasm',
     wasm: 'inline',
+    png: 'resvg-wasm',
   },
   'netlify': {
     browser: 'lambda',
@@ -52,21 +53,25 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
   },
   'netlify-edge': {
     wasm: 'inline',
+    png: 'resvg-wasm',
   },
   'vercel': {
-    browser: 'lambda',
-  },
-  'cloudflare-pages': {
+    // exceeds 50mb limit
     browser: false,
-    wasm: 'import',
-  },
-  'cloudflare': {
-    browser: false,
-    wasm: 'import',
   },
   'vercel-edge': {
     browser: false,
     wasm: 'import',
     wasmImportQuery: '?module',
+    png: 'resvg-wasm',
+  },
+  'cloudflare-pages': {
+    browser: false,
+    wasm: 'import',
+    png: 'resvg-wasm',
+  },
+  'cloudflare': {
+    browser: false,
+    wasm: 'import',
   },
 }

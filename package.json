@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.4.3",
+    "@resvg/resvg-js": "^2.4.1",
     "@resvg/resvg-wasm": "^2.4.1",
     "@types/fs-extra": "^11.0.1",
     "birpc": "^0.2.11",
