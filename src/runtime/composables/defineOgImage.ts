@@ -21,6 +21,7 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
   defineOgImage({
     provider: runtimeSatori ? 'satori' : 'browser',
     static: false,
+    cacheTtl: 0,
     ...options,
   })
 }

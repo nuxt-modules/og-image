@@ -28,10 +28,11 @@ export default defineEventHandler(async (e) => {
       statusMessage: `Provider ${options.provider} is missing.`,
     })
   }
+  const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0
   const cache = prefixStorage(useStorage(), 'og-image-cache:images')
   const key = options.cacheKey || e.node.req.url as string
   let png
-  if (runtimeCacheStorage && await cache.hasItem(key)) {
+  if (useCache && await cache.hasItem(key)) {
     const { value, expiresAt } = await cache.getItem(key) as any
     if (expiresAt > Date.now()) {
       setHeader(e, 'Cache-Control', 'public, max-age=31536000')
@@ -45,7 +46,7 @@ export default defineEventHandler(async (e) => {
   if (!png) {
     try {
       png = await provider.createPng(withBase(basePath, useHostname(e)), options) as Uint8Array
-      if (png && runtimeCacheStorage && options.static) {
+      if (useCache && png) {
         // set cache
         const base64png = Buffer.from(png).toString('base64')
         await cache.setItem(key, { value: base64png, expiresAt: Date.now() + (options.cacheTtl || 0) })
