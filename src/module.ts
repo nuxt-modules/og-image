@@ -26,7 +26,7 @@ import type { FontConfig, OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
 import { Wasms } from './const'
-import { ensureDependency, getNitroPreset, getNitroProviderCompatibility } from './util'
+import { ensureDependencies, getNitroPreset, getNitroProviderCompatibility } from './util'
 
 export interface ModuleOptions {
   /**
@@ -113,7 +113,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (config.runtimeBrowser && nitroCompatibility.browser === 'lambda') {
       logger.info('It looks like you\'re deploying to an environment which requires `chrome-aws-lambda`, checking for dependency...')
-      await ensureDependency(nuxt, 'chrome-aws-lambda')
+      await ensureDependencies(nuxt, ['puppeteer-core@10.1.0', 'chrome-aws-lambda@10.1.0'])
     }
 
     // allow config fallback

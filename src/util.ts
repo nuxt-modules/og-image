@@ -48,6 +48,8 @@ export function getNitroProviderCompatibility(nuxt: Nuxt): false | RuntimeCompat
   return defu((compatibility || {}) as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
 }
 
-export function ensureDependency(nuxt: Nuxt, dep: string) {
-  return addDependency(dep, { cwd: nuxt.options.rootDir })
+export function ensureDependencies(nuxt: Nuxt, dep: string[]) {
+  return Promise.all(dep.map((d) => {
+    return addDependency(d, { cwd: nuxt.options.rootDir })
+  }))
 }
