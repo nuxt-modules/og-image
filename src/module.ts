@@ -92,9 +92,12 @@ export default defineNuxtModule<ModuleOptions>({
   },
   async setup(config, nuxt) {
     const logger = useLogger('nuxt-og-image')
+    logger.level = config.debug ? 4 : 3
     const { resolve } = createResolver(import.meta.url)
 
     const nitroCompatibility = getNitroProviderCompatibility(nuxt)
+    logger.debug('Nitro compatibility:', nitroCompatibility)
+
     if (!nitroCompatibility) {
       const target = process.env.NITRO_PRESET || nuxt.options.nitro.preset
       logger.warn(`It looks like the nitro target ${target} doesn't support \`nuxt-og-image\`.`)
