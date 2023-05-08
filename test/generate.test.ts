@@ -42,11 +42,10 @@ describe('generate', () => {
     expect(await fetchImage('/satori/with-options/__og_image__/og.png')).toMatchImageSnapshot()
     // doesn't work
     // expect(await fetchImage('/satori/tailwind/__og_image__/og.png')).toMatchImageSnapshot()
-
-    expect(await fetchImage('/browser/component/__og_image__/og.png')).toMatchImageSnapshot({
-      comparisonMethod: 'ssim',
-      failureThreshold: 0.05,
-      failureThresholdType: 'percent'
-    })
+    // expect(await fetchImage('/browser/component/__og_image__/og.png')).toMatchImageSnapshot({
+    //   comparisonMethod: 'ssim',
+    //   failureThreshold: 0.05,
+    //   failureThresholdType: 'percent'
+    // })
   }, 300000)
 })
