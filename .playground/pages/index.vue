@@ -69,7 +69,7 @@ const { data: posts } = await useFetch('/api/posts')
         <div>
           <NuxtLink external no-prefetch to="/browser/delayed/__og_image__/og.png" target="_blank">
             <div class="mb-2">Delayed Screenshot</div>
-            <img :src="`${host}browser/custom/__og_image__/og.png`" width="400" height="210" class="rounded" />
+            <img :src="`${host}browser/delayed/__og_image__/og.png`" width="400" height="210" class="rounded" />
           </NuxtLink>
         </div>
         <div>
