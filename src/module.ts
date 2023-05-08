@@ -252,7 +252,7 @@ export {}
     if (config.runtimeSatori) {
       if (config.fonts.includes('Inter:400'))
         customAssetDirs.push(resolve('./runtime/public-assets-optional/inter-font'))
-      if (nitroCompatibility.png === 'resvg' && nitroCompatibility.wasm === 'fetch')
+      if (nitroCompatibility.png === 'resvg-wasm' && nitroCompatibility.wasm === 'fetch')
         customAssetDirs.push(resolve('./runtime/public-assets-optional/resvg'))
       else if (nitroCompatibility.png === 'svg2png' && nitroCompatibility.wasm === 'fetch')
         customAssetDirs.push(resolve('./runtime/public-assets-optional/svg2png'))
@@ -378,7 +378,7 @@ export async function useProvider(provider) {
               }
               else if (nitroCompatibility.wasm === 'inline') {
                 // how do you inline a wasm file in node
-                const wasmBuffer = await readFile(resolve(`./runtime/public-assets-optional/${wasm.path}`), 'base64')
+                const wasmBuffer = await readFile(resolve(`./runtime/public-assets-optional/${wasm.path}`))
                 // convert base 64 buffer to array buffer
                 contents = contents.replace(wasm.placeholder, `Buffer.from("${wasmBuffer}", "base64")`)
               }
