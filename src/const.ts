@@ -46,6 +46,9 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     browser: 'lambda',
     wasm: 'inline',
   },
+  'netlify-edge': {
+    wasm: 'inline',
+  },
   'vercel': {
     browser: 'lambda',
   },
