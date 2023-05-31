@@ -21,7 +21,7 @@ function loadFonts(baseURL: string, fonts: FontConfig[]) {
   return (fontLoadPromise = Promise.all(fonts.map(font => loadFont(baseURL, font))))
 }
 
-export default <Renderer> {
+const SatoriRenderer: Renderer = {
   name: 'satori',
   createPng: async function createPng(baseUrl, options) {
     const svg = await this.createSvg(baseUrl, options)
@@ -81,3 +81,5 @@ export default <Renderer> {
     })
   },
 }
+
+export default SatoriRenderer

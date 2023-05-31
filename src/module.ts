@@ -312,12 +312,12 @@ export default async function() {
 
       if (config.runtimeSatori) {
         nitroConfig.virtual!['#nuxt-og-image/satori'] = `import satori from '${providerPath}/satori/${nitroCompatibility.satori}'
-export default async function() {
+export default function() {
   return satori
 }`
 
         nitroConfig.virtual!['#nuxt-og-image/png'] = `import png from '${providerPath}/png/${nitroCompatibility.png}'
-export default async function() {
+export default function() {
  return png
 }
 `

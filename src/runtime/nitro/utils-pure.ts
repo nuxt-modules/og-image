@@ -16,7 +16,7 @@ export function decodeHtml(html: string) {
     .replace(/&#x27;/g, '\'')
     .replace(/&#x2F;/g, '/')
     .replace(/&#([0-9]+);/g, (full, int) => {
-      return String.fromCharCode(parseInt(int))
+      return String.fromCharCode(Number.parseInt(int))
     })
 }
 function decodeObjectHtmlEntities(obj: Record<string, string | any>) {

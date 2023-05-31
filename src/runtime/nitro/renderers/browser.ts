@@ -4,7 +4,7 @@ import type { Renderer } from '../../../types'
 import loadBrowserLauncherChunk from '#nuxt-og-image/browser'
 import { useRuntimeConfig } from '#imports'
 
-export default <Renderer> {
+const BrowserRenderer: Renderer = {
   name: 'browser',
   createSvg: async function createSvg() {
     throw new Error('Browser provider can\'t create SVGs.')
@@ -36,3 +36,5 @@ export default <Renderer> {
     return res
   },
 }
+
+export default BrowserRenderer
