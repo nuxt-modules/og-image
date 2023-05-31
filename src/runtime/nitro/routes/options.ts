@@ -42,6 +42,6 @@ export default defineEventHandler(async (e) => {
   if (routeRules === false)
     return false
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
-  const result: OgImageOptions = defu({ path }, defaults, routeRules, extractedPayload)
+  const result: OgImageOptions = defu(extractedPayload, routeRules, { path }, defaults)
   return result
 })
