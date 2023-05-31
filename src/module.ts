@@ -368,6 +368,24 @@ export async function useProvider(provider) {
             updated = true
           }
 
+          if (_nitro.options.preset.includes('netlify') && path.endsWith('netlify.mjs')) {
+            // See https://github.com/unjs/nitro/pull/1274
+            const match = '// TODO: handle event.isBase64Encoded\n'
+              + '  });'
+            contents = contents.replace(match, `${match}\n
+  const headers = normalizeOutgoingHeaders(r.headers);
+  // image buffers must be base64 encoded
+  if (Buffer.isBuffer(r.body) && headers["content-type"].startsWith("image/")) {
+    return {
+      statusCode: r.status,
+      headers,
+      body: r.body.toString("base64"),
+      isBase64Encoded: true
+    };
+  }`)
+            updated = true
+          }
+
           for (const wasm of Wasms) {
             if (contents.includes(wasm.placeholder)) {
               if (nitroCompatibility.wasm === 'import') {
