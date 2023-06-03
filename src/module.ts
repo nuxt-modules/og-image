@@ -22,7 +22,7 @@ import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
-import type { FontConfig, OgImageOptions, ScreenshotOptions } from './types'
+import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
 import { Wasms } from './const'
@@ -39,7 +39,7 @@ export interface ModuleOptions {
    */
   siteUrl?: string
   defaults: OgImageOptions
-  fonts: FontConfig[]
+  fonts: InputFontConfig[]
   satoriOptions: Partial<SatoriOptions>
   playground: boolean
   runtimeSatori: boolean
@@ -269,6 +269,16 @@ export {}
         ...config,
         // avoid adding credentials
         runtimeCacheStorage: Boolean(config.runtimeCacheStorage),
+        // convert the fonts to uniform type to fix ts issue
+        fonts: config.fonts.map((f) => {
+          if (typeof f === 'string') {
+            const [name, weight] = f.split(':')
+            return {
+              name, weight,
+            }
+          }
+          return f
+        }),
         assetDirs: [
           resolve(nuxt.options.rootDir, nuxt.options.dir.public),
           ...customAssetDirs,
@@ -488,7 +498,7 @@ export async function useProvider(provider) {
               // allow inserting items into the queue via hook
               if (entry.route && Object.keys(entry).length === 1) {
                 const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
-                const extractedOptions = extractOgImageOptions(html)
+                const extractedOptions = extractOgImageOptions(html as string)
                 const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
                 Object.assign(entry, {
                   // @ts-expect-error runtime

@@ -4,7 +4,8 @@
     "@nuxt/devtools-ui-kit": "^0.5.5",
     "@nuxthq/ui": "^2.2.1",
     "@nuxtjs/i18n": "^8.0.0-beta.12",
-    "chrome-aws-lambda": "^10.1.0"
+    "chrome-aws-lambda": "^10.1.0",
+    "vue-tsc": "^1.6.5"
   },
   "scripts": {
     "build": "nuxi build",

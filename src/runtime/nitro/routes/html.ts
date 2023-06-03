@@ -56,12 +56,8 @@ export default defineEventHandler(async (e) => {
 
   let defaultFontFamily = 'sans-serif'
   const firstFont = fonts[0] as FontConfig
-  if (firstFont) {
-    if (typeof firstFont === 'string')
-      defaultFontFamily = firstFont.split(':')[0]
-    else
-      defaultFontFamily = firstFont.name
-  }
+  if (firstFont)
+    defaultFontFamily = firstFont.name
 
   let html = island.html
   try {
@@ -97,15 +93,14 @@ img.emoji {
 }`,
       },
       ...(fonts as FontConfig[])
-        .filter(font => typeof font === 'object')
+        .filter(font => font.path)
         .map((font) => {
-          const { name, weight, path } = font
           return `
           @font-face {
-            font-family: '${name}';
+            font-family: '${font.name}';
             font-style: normal;
-            font-weight: ${weight};
-            src: url('${path}') format('truetype');
+            font-weight: ${font.weight};
+            src: url('${font.path}') format('truetype');
           }
           `
         }),
@@ -136,11 +131,10 @@ img.emoji {
       },
       // have to add each weight as their own stylesheet
       ...(fonts as FontConfig[])
-        .filter(font => typeof font === 'string')
+        .filter(font => !font.path)
         .map((font) => {
-          const [name, weight] = font.split(':')
           return {
-            href: `https://fonts.googleapis.com/css2?family=${name}:wght@${weight}&display=swap`,
+            href: `https://fonts.googleapis.com/css2?family=${font.name}:wght@${font.weight}&display=swap`,
             rel: 'stylesheet',
           }
         }),
