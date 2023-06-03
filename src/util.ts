@@ -31,16 +31,14 @@ export function getNitroPreset(nuxt: Nuxt) {
 }
 
 export function getNitroProviderCompatibility(nuxt: Nuxt): false | RuntimeCompatibilitySchema {
+  if (provider === 'stackblitz')
+    return defu(RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
   if (nuxt.options.dev || nuxt.options._prepare || nuxt.options._generate) {
     return defu({
       wasm: 'fetch',
       browser: 'universal',
     } as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
   }
-
-  if (provider === 'stackblitz')
-    return defu(RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
-
   const target = getNitroPreset(nuxt)
   const compatibility = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
   if (compatibility === false)
