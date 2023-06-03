@@ -100,23 +100,24 @@ export default defineNuxtModule<ModuleOptions>({
     const nitroCompatibility = getNitroProviderCompatibility(nuxt)
     logger.debug('Nitro compatibility', nitroCompatibility)
 
+    const nitroTarget = process.env.NITRO_PRESET || nuxt.options.nitro.preset
     if (!nitroCompatibility) {
-      const target = process.env.NITRO_PRESET || nuxt.options.nitro.preset
-      logger.warn(`It looks like the nitro target ${target} doesn't support \`nuxt-og-image\`.`)
+      logger.warn(`\`nuxt-og-image\` does not support the nitro target \`${nitroTarget}\`. Please make an issue. `)
       return
     }
 
     if (!nitroCompatibility.browser && config.runtimeBrowser) {
       config.runtimeBrowser = false
-      logger.warn('It looks like you\'re using a nitro target that does not support the browser provider, disabling `runtimeBrowser`.')
+      logger.warn(`\`nuxt-og-image\` does not support the nitro target \`${nitroTarget}\` with the runtime browser. Set runtimeBrowser: false to stop seeing this.`)
     }
 
     if (config.runtimeBrowser && nitroCompatibility.browser === 'lambda') {
-      logger.info('It looks like you\'re deploying to an environment that has extra requirements, checking for dependencies...')
+      logger.info(`\`nuxt-og-image\` is deploying to nitro target \`${nitroTarget}\` that installs extra dependencies.`)
       await ensureDependencies(nuxt, ['puppeteer-core@14.1.1', '@sparticuz/chrome-aws-lambda@14.1.1'])
     }
 
     // allow config fallback
+    // @todo use site config
     config.siteUrl = config.siteUrl || config.host!
     if (!nuxt.options.dev && nuxt.options._generate && !config.siteUrl)
       logger.warn('Missing `ogImage.siteUrl` and site is being prerendered. This will result in broken og images.')
