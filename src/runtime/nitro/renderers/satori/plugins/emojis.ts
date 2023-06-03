@@ -11,7 +11,7 @@ export default defineSatoriTransformer(() => {
     // need to make sure parent div has flex for the emoji to render inline
     {
       filter: (node: VNode) =>
-        node.type === 'div' && (node.props.children as VNode[]).some(isEmojiFilter),
+        node.type === 'div' && Array.isArray(node.props?.children) && (node.props.children as VNode[]).some(isEmojiFilter),
       transform: async (node: VNode) => {
         node.props.style = node.props.style || {}
         node.props.style.display = 'flex'

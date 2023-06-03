@@ -30,7 +30,7 @@ export async function loadFont(baseURL: string, font: FontConfig) {
   }
 
   // fetch local fonts
-  if (typeof font === 'object') {
+  if (font.path) {
     data = await readPublicAsset(font.path)
     if (!data) {
       try {
