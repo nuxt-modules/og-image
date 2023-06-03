@@ -2,6 +2,8 @@
   "private": true,
   "dependencies": {
     "@nuxt/devtools-ui-kit": "^0.5.5",
+    "@nuxthq/ui": "^2.2.1",
+    "@nuxtjs/i18n": "^8.0.0-beta.12",
     "chrome-aws-lambda": "^10.1.0"
   },
   "scripts": {
