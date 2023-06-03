@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "2.0.0-beta.43",
+  "version": "2.0.0-beta.44",
   "packageManager": "pnpm@8.6.0",
   "license": "MIT",
   "funding": "https://github.com/sponsors/harlan-zw",
@@ -52,6 +52,7 @@
     "globby": "^13.1.4",
     "launch-editor": "^2.6.0",
     "nuxt-icon": "^0.4.1",
+    "nuxt-site-config": "^0.2.1",
     "nypm": "^0.2.0",
     "ofetch": "^1.0.1",
     "ohash": "^1.1.2",
