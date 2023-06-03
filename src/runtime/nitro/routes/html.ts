@@ -4,6 +4,7 @@ import { createHeadCore } from '@unhead/vue'
 import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
+import twemoji from 'twemoji'
 import { fetchOptions, useHostname } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
@@ -62,16 +63,24 @@ export default defineEventHandler(async (e) => {
       defaultFontFamily = firstFont.name
   }
 
+  let html = island.html
+  try {
+    html = twemoji.parse(html!, {
+      folder: 'svg',
+      ext: '.svg',
+    })
+  }
+  catch (e) {}
+
   head.push({
     style: [
       {
         // default font is the first font family
         innerHTML: `body { font-family: \'${defaultFontFamily.replace('+', ' ')}\', sans-serif;  }`,
       },
-      scale
-        ? {
-            innerHTML: `body {
-    transform: scale(${scale});
+      {
+        innerHTML: `body {
+    transform: scale(${scale || 1});
     transform-origin: top left;
     max-height: 100vh;
     position: relative;
@@ -85,10 +94,8 @@ img.emoji {
    width: 1em;
    margin: 0 .05em 0 .1em;
    vertical-align: -0.1em;
-}
-`,
-          }
-        : {},
+}`,
+      },
       ...(fonts as FontConfig[])
         .filter(font => typeof font === 'object')
         .map((font) => {
@@ -143,6 +150,6 @@ img.emoji {
   return `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
-<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${island.html}</div>${headChunk.bodyTags}</body>
+<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 })

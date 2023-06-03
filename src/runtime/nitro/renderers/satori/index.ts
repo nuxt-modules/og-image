@@ -1,6 +1,5 @@
 import { html as convertHtmlToSatori } from 'satori-html'
 import { parseURL } from 'ufo'
-import twemoji from 'twemoji'
 import type { FontConfig, Renderer } from '../../../../types'
 import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
@@ -39,15 +38,7 @@ const SatoriRenderer: Renderer = {
       },
     })
     // get the body content of the html
-    let body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || ''
-
-    try {
-      body = twemoji.parse(body!, {
-        folder: 'svg',
-        ext: '.svg',
-      })
-    }
-    catch (e) {}
+    const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || ''
 
     // scan html for all css links and load them
     const satoriTree = convertHtmlToSatori(body)
