@@ -59,7 +59,7 @@ export async function loadFont(baseURL: string, font: FontConfig) {
   return cachedFonts[fontKey]
 }
 
-export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: SatoriTransformer[]) {
+export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[]) {
   if (!node.props?.children)
     return
   // remove empty children
@@ -70,7 +70,7 @@ export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: Sator
   // walk tree of nodes
   for (const child of node.props.children || []) {
     if (child) {
-      for (const plugin of plugins) {
+      for (const plugin of plugins.flat()) {
         if (plugin.filter(child))
           await plugin.transform(child)
       }
@@ -79,6 +79,6 @@ export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: Sator
   }
 }
 
-export function defineSatoriTransformer(transformer: (url: ParsedURL) => SatoriTransformer) {
+export function defineSatoriTransformer(transformer: (url: ParsedURL) => SatoriTransformer | SatoriTransformer[]) {
   return transformer
 }
