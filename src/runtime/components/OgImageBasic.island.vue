@@ -32,6 +32,11 @@ const props = defineProps({
   },
 })
 
+// inherited attrs can mess up the satori parser
+defineOptions({
+  inheritAttrs: false,
+})
+
 const containerAttrs = computed(() => {
   const isBackgroundTw = props.background?.startsWith('bg-')
   const isColorTw = props.color?.startsWith('text-')

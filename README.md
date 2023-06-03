@@ -161,6 +161,11 @@ you can use the following template to begin:
 const props = defineProps({
   title: String,
 })
+
+// inherited attrs can mess up the satori parser
+defineOptions({
+  inheritAttrs: false,
+})
 </script>
 
 <template>
