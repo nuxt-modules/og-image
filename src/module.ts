@@ -280,7 +280,7 @@ export {}
           return f
         }),
         assetDirs: [
-          resolve(nuxt.options.rootDir, nuxt.options.dir.public),
+          resolve(nuxt.options.srcDir, nuxt.options.dir.public),
           ...customAssetDirs,
           // always add runtime dirs for prerendering to work, these are just used as scan roots
           resolve('./runtime/public-assets-optional/inter-font'),
