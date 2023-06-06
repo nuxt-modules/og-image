@@ -5,6 +5,7 @@ import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import twemoji from 'twemoji'
+import inlineCss from 'inline-css'
 import { fetchOptions, useHostname } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
@@ -141,9 +142,41 @@ img.emoji {
     ],
   })
   const headChunk = await renderSSRHead(head)
-  return `<!DOCTYPE html>
+  let htmlTemplate = `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
+
+  // for the tags we extract the stylesheet href and inline them where they are a vue template
+  const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*">/g)
+  if (stylesheets) {
+    for (const stylesheet of stylesheets) {
+      // avoid prefetch
+      const href = stylesheet.match(/<link rel="stylesheet" href="(.*)">/)![1]
+      try {
+        // avoid including error page styles
+        if (stylesheet.includes('@nuxt/ui-templates')) {
+          htmlTemplate = htmlTemplate.replace(stylesheet, '')
+        }
+        else {
+          const css = (await (await $fetch(href, {
+            baseURL: useHostname(e),
+          })).text()).replace(/\/\/# sourceMappingURL=.*/, '')
+          // we remove the last line from the css //# sourceMappingURL=
+          htmlTemplate = htmlTemplate.replace(stylesheet, `<style>${css}</style>`)
+        }
+      }
+      catch {}
+    }
+  }
+  try {
+    htmlTemplate = inlineCss(htmlTemplate, {
+      url: useHostname(e),
+      applyLinkTags: false,
+      removeLinkTags: false,
+    })
+  }
+  catch {}
+  return htmlTemplate
 })
