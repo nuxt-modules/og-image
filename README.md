@@ -87,9 +87,8 @@ export default defineNuxtConfig({
 })
 ```
 
-#### Requirements
-
-This feature uses Nuxt Islands, which requires Nuxt >= 3.1.
+This module requires [Nuxt Server Components](https://nuxt.com/docs/guide/directory-structure/components#standalone-server-components)
+which will be enabled for you.
 
 # Guides
 
