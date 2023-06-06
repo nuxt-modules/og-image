@@ -170,11 +170,16 @@ defineOptions({
 
 <template>
   <div class="w-full h-full flex text-white bg-blue-500 items-center justify-center">
-    <h1 :style="{ fontSize: '70px' }">
+    <h1>
       {{ title }} 👋
     </h1>
   </div>
 </template>
+<style scoped>
+h1 {
+  font-size: 70px;
+}
+</style>
 ```
 
 ### 2. Use the new template
@@ -209,14 +214,19 @@ const props = defineProps({
 
 <template>
   <div :class="[backgroundColor]" class="w-full h-full flex text-white items-center justify-center">
-    <h1 :style="{ fontSize: '70px' }">
+    <h1>
       {{ title }} 👋
     </h1>
   </div>
 </template>
+<style scoped>
+h1 {
+  font-size: 70px;
+}
+</style>
 ```
 
-Now let's customise the background to be green instead.
+Now let's customize the background to be green instead.
 
 ```vue
 <script lang="ts" setup>
