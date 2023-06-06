@@ -175,6 +175,7 @@ img.emoji {
       url: useHostname(e),
       applyLinkTags: false,
       removeLinkTags: false,
+      removeStyleTags: false,
     })
   }
   catch {}
