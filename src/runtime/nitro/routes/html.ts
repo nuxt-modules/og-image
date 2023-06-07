@@ -5,7 +5,6 @@ import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import twemoji from 'twemoji'
-import inlineCss from 'inline-css'
 import { fetchOptions, useHostname } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
@@ -148,35 +147,44 @@ img.emoji {
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 
+  let hasInlineStyles
   // for the tags we extract the stylesheet href and inline them where they are a vue template
-  const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*">/g)
+  const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*?">/g)
   if (stylesheets) {
     for (const stylesheet of stylesheets) {
-      // avoid prefetch
-      const href = stylesheet.match(/<link rel="stylesheet" href="(.*)">/)![1]
-      try {
-        // avoid including error page styles
-        if (stylesheet.includes('@nuxt/ui-templates')) {
-          htmlTemplate = htmlTemplate.replace(stylesheet, '')
-        }
-        else {
-          const css = (await (await $fetch(href, {
-            baseURL: useHostname(e),
-          })).text()).replace(/\/\/# sourceMappingURL=.*/, '')
-          // we remove the last line from the css //# sourceMappingURL=
-          htmlTemplate = htmlTemplate.replace(stylesheet, `<style>${css}</style>`)
-        }
+      if (!stylesheet.includes(`${options.component}.vue`)) {
+        htmlTemplate = htmlTemplate.replace(stylesheet, '')
       }
-      catch {}
+      else {
+        // using regex
+        const href = stylesheet.match(/href="(.*?)"/)![1]
+        try {
+          let css = (await (await $fetch(href, {
+            baseURL: useHostname(e),
+          })).text())
+          // css is in format of const __vite__css = "<css>"
+          if (css.includes('const __vite__css =')) {
+            // decode characters like \n
+            css = css.match(/const __vite__css = "(.*)"/)![1].replace(/\\n/g, '\n')
+          }
+          // we remove the last line from the css //# sourceMappingURL=
+          htmlTemplate = htmlTemplate.replace(stylesheet, `<style>${css.replace(/\/\/# sourceMappingURL=.*/, '')}</style>`)
+          hasInlineStyles = true
+        }
+        catch {}
+      }
     }
   }
   try {
-    htmlTemplate = inlineCss(htmlTemplate, {
-      url: useHostname(e),
-      applyLinkTags: false,
-      removeLinkTags: false,
-      removeStyleTags: false,
-    })
+    if (hasInlineStyles) {
+      const inlineCss = await import('inline-css').then((m) => m?.default || m)
+      htmlTemplate = inlineCss(htmlTemplate, {
+        url: useHostname(e),
+        applyLinkTags: false,
+        removeLinkTags: false,
+        removeStyleTags: false,
+      })
+    }
   }
   catch {}
   return htmlTemplate
