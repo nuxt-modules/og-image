@@ -119,7 +119,7 @@ img.emoji {
   corePlugins: {
     preflight: false,
   },
-  theme: ${JSON.stringify(satoriOptions.tailwindConfig.theme || {})}
+  theme: ${JSON.stringify(satoriOptions?.tailwindConfig?.theme || {})}
 }`,
       },
     ],
