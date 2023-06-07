@@ -54,8 +54,8 @@
     "launch-editor": "^2.6.0",
     "nuxt-icon": "^0.4.1",
     "nuxt-site-config": "^0.2.1",
-    "nypm": "^0.2.0",
-    "ofetch": "^1.0.1",
+    "nypm": "^0.2.1",
+    "ofetch": "^1.1.0",
     "ohash": "^1.1.2",
     "pathe": "^1.1.1",
     "playwright-core": "^1.34.3",
@@ -82,7 +82,8 @@
     "eslint": "8.42.0",
     "jest-image-snapshot": "^6.1.0",
     "nuxt": "^3.5.3",
-    "vitest": "^0.31.4"
+    "sass": "^1.62.1",
+    "vitest": "^0.32.0"
   },
   "resolutions": {
     "nitropack": "npm:nitropack-edge@2.4.0-28027501.1cf01bf",
