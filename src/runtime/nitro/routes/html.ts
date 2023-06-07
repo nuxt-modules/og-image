@@ -10,7 +10,7 @@ import type { FontConfig, OgImageOptions } from '../../../types'
 import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
-  const { fonts, defaults } = useRuntimeConfig()['nuxt-og-image']
+  const { fonts, defaults, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
   const query = getQuery(e)
   const path = withBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
   const scale = query.scale
@@ -114,12 +114,12 @@ img.emoji {
       {
         src: 'https://cdn.tailwindcss.com',
       },
-      // @todo merge with users tailwind
       {
         innerHTML: `tailwind.config = {
   corePlugins: {
     preflight: false,
-  }
+  },
+  theme: ${JSON.stringify(satoriOptions.tailwindConfig.theme || {})}
 }`,
       },
     ],
