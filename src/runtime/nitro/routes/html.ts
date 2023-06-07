@@ -147,7 +147,7 @@ img.emoji {
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 
-  let hasInlineStyles
+  let hasInlineStyles = false
   // for the tags we extract the stylesheet href and inline them where they are a vue template
   const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*?">/g)
   if (stylesheets) {
