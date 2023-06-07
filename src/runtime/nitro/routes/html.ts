@@ -177,7 +177,7 @@ img.emoji {
   }
   try {
     if (hasInlineStyles) {
-      const inlineCss = await import('inline-css').then((m) => m?.default || m)
+      const inlineCss = await import('inline-css').then(m => m?.default || m)
       htmlTemplate = inlineCss(htmlTemplate, {
         url: useHostname(e),
         applyLinkTags: false,
