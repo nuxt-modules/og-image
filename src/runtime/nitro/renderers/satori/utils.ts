@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer'
 import type { ParsedURL } from 'ufo'
 import type { FontConfig, SatoriTransformer, VNode } from '../../../../types'
 import { base64ToArrayBuffer, readPublicAsset } from '../../utils'
-import { useStorage } from '#internal/nitro'
+import { useStorage } from '#imports'
 
 const cachedFonts: Record<string, any> = {}
 

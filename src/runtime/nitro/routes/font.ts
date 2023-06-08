@@ -1,9 +1,9 @@
 import type { H3Event } from 'h3'
 import { getQuery } from 'h3'
-import { defineCachedEventHandler } from '#internal/nitro'
+import { cachedEventHandler } from '#imports'
 
 // copied from vercel/satori
-export default defineCachedEventHandler(async (e) => {
+export default cachedEventHandler(async (e) => {
   const { name, weight } = getQuery(e)
 
   if (!name || !weight)
