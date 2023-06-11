@@ -45,7 +45,7 @@ export default defineEventHandler(async (e) => {
   return defu(
     extractedPayload, routeRules,
     // runtime options
-    { path, requestOrigin: useHostname(e) },
+    { path },
     defaults,
   ) as RuntimeOgImageOptions
 })

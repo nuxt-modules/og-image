@@ -6,6 +6,7 @@ import { join } from 'pathe'
 import { prefixStorage } from 'unstorage'
 import sizeOf from 'image-size'
 import type { RuntimeOgImageOptions } from '../../types'
+import { useHostname } from './util-hostname'
 import { useRuntimeConfig, useStorage } from '#imports'
 
 export * from './util-hostname'
@@ -77,6 +78,7 @@ export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgI
     ...options,
     // use query data
     ...getQuery(e),
+    requestOrigin: useHostname(e),
   }
 }
 
