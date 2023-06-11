@@ -4,7 +4,7 @@ import type { H3Event } from 'h3'
 import { getQuery } from 'h3'
 import { join } from 'pathe'
 import { prefixStorage } from 'unstorage'
-import type { OgImageOptions } from '../../types'
+import type { RuntimeOgImageOptions } from '../../types'
 import { useRuntimeConfig, useStorage } from '#imports'
 
 export * from './util-hostname'
@@ -13,7 +13,7 @@ export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fall
   let promise: Promise<any>
   let wasm: any
   return {
-    async load(options: { baseUrl: string }) {
+    async load(options: RuntimeOgImageOptions) {
       if (typeof promise !== 'undefined')
         return promise
       if (wasm)
@@ -33,10 +33,8 @@ export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fall
             wasm = Buffer.from(wasm, 'base64')
         }
         if (!wasm) {
-          // fallback to fetch
-          const url = new URL(options.baseUrl)
           // fetch as base64
-          wasm = await (await globalThis.$fetch(fallback, { baseURL: url.origin })).arrayBuffer()
+          wasm = await (await globalThis.$fetch(fallback, { baseURL: options.requestOrigin })).arrayBuffer()
           // read body as buffer
           wasm = Buffer.from(wasm)
         }
@@ -46,7 +44,7 @@ export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fall
     },
   }
 }
-export async function fetchOptions(e: H3Event, path: string): Promise<OgImageOptions> {
+export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgImageOptions> {
   const { runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
   const cache = (runtimeCacheStorage || process.env.prerender) ? prefixStorage(useStorage(), 'og-image-cache:options') : false
 
@@ -102,17 +100,20 @@ export async function readPublicAsset(file: string, encoding?: BufferEncoding) {
 
 export async function readPublicAssetBase64(file: string) {
   const base64 = await readPublicAsset(file, 'base64')
-  if (base64) {
-    let type = 'image/jpeg'
-    // guess type from file name
-    const ext = file.split('.').pop()
-    if (ext === 'svg')
-      type = 'image/svg+xml'
-    else if (ext === 'png')
-      type = 'image/png'
-    return `data:${type};base64,${base64}`
-  }
-  // fine if it fails, we fallback elsewhere
+  if (base64)
+    return toBase64Image(file, base64)
+}
+
+export function toBase64Image(fileName: string, data: string | ArrayBuffer) {
+  const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
+  let type = 'image/jpeg'
+  // guess type from file name
+  const ext = fileName.split('.').pop()
+  if (ext === 'svg')
+    type = 'image/svg+xml'
+  else if (ext === 'png')
+    type = 'image/png'
+  return `data:${type};base64,${base64}`
 }
 
 export * from './utils-pure'

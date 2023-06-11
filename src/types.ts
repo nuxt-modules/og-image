@@ -37,15 +37,20 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   [key: string]: any
 }
 
+export interface RuntimeOgImageOptions extends OgImageOptions {
+  path: string
+  requestOrigin: string
+}
+
 export interface FontConfig { name: string; weight: number; path?: string }
 
 export type InputFontConfig = (`${string}:${number}` | FontConfig)
 
 export interface Renderer {
   name: 'browser' | 'satori'
-  createSvg: (path: string, options: OgImageOptions) => Promise<string>
-  createPng: (path: string, options: OgImageOptions) => Promise<Buffer>
-  createVNode: (path: string, options: OgImageOptions) => Promise<VNode>
+  createSvg: (options: RuntimeOgImageOptions) => Promise<string>
+  createPng: (options: RuntimeOgImageOptions) => Promise<Buffer>
+  createVNode: (options: RuntimeOgImageOptions) => Promise<VNode>
 }
 
 export type OgImageScreenshotOptions = Omit<OgImageOptions, 'component'>
@@ -63,5 +68,5 @@ export type VNode = ReturnType<typeof html>
 
 export interface SatoriTransformer {
   filter: (node: VNode) => boolean
-  transform: (node: VNode) => Promise<void>
+  transform: (node: VNode, props: RuntimeOgImageOptions) => Promise<void>
 }

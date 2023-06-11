@@ -1,5 +1,5 @@
 import { html as convertHtmlToSatori } from 'satori-html'
-import { parseURL } from 'ufo'
+import type { SatoriOptions } from 'satori'
 import type { FontConfig, Renderer } from '../../../../types'
 import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
@@ -22,18 +22,16 @@ function loadFonts(baseURL: string, fonts: FontConfig[]) {
 
 const SatoriRenderer: Renderer = {
   name: 'satori',
-  createPng: async function createPng(baseUrl, options) {
-    const svg = await this.createSvg(baseUrl, options)
+  createPng: async function createPng(options) {
+    const svg = await this.createSvg(options)
     const pngCreator = await loadPngCreator()
-    return pngCreator(svg, { baseUrl, ...options })
+    return pngCreator(svg, options)
   },
 
-  createVNode: async function createVNode(baseUrl, options) {
-    const url = parseURL(baseUrl)
-
+  createVNode: async function createVNode(options) {
     const html = await globalThis.$fetch('/api/og-image-html', {
       params: {
-        path: url.pathname,
+        path: options.path,
         options: JSON.stringify(options),
       },
     })
@@ -43,28 +41,28 @@ const SatoriRenderer: Renderer = {
     // scan html for all css links and load them
     const satoriTree = convertHtmlToSatori(body)
     // process the tree
-    await walkSatoriTree(url, satoriTree, [
-      // @todo add user land support
-      emojis(url),
-      twClasses(url),
-      imageSrc(url),
-      flex(url),
-      encoding(url),
-    ])
+    await walkSatoriTree(satoriTree, [
+      emojis,
+      twClasses,
+      imageSrc,
+      flex,
+      encoding,
+    ], options)
+    // @todo allow users to hook into the vnode tree
+
     return satoriTree
   },
 
-  createSvg: async function createSvg(baseUrl, options) {
+  createSvg: async function createSvg(options) {
     const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
-    const vnodes = await this.createVNode(baseUrl, options)
+    const vnodes = await this.createVNode(options)
 
     if (!satoriFonts.length)
-      satoriFonts.push(...await loadFonts(baseUrl, fonts))
+      satoriFonts.push(...await loadFonts(options.requestOrigin, fonts))
 
     const satori = await loadSatori()
-    return await satori(vnodes, {
+    return await satori(vnodes, <SatoriOptions> {
       ...satoriOptions,
-      baseUrl,
       fonts: satoriFonts,
       embedFont: true,
       width: options.width!,

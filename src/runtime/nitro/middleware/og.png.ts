@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { createError, defineEventHandler, sendRedirect, setHeader } from 'h3'
-import { joinURL, parseURL, withBase, withoutTrailingSlash } from 'ufo'
+import { joinURL, parseURL, withoutTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
 import { fetchOptions, useHostname } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
@@ -45,7 +45,7 @@ export default defineEventHandler(async (e) => {
   }
   if (!png) {
     try {
-      png = await provider.createPng(withBase(basePath, useHostname(e)), options) as Uint8Array
+      png = await provider.createPng(options) as Uint8Array
       if (useCache && png) {
         // set cache
         const base64png = Buffer.from(png).toString('base64')

@@ -1,16 +1,13 @@
 import { Buffer } from 'node:buffer'
-import type { ParsedURL } from 'ufo'
-import type { FontConfig, SatoriTransformer, VNode } from '../../../../types'
+import type { FontConfig, RuntimeOgImageOptions, SatoriTransformer, VNode } from '../../../../types'
 import { base64ToArrayBuffer, readPublicAsset } from '../../utils'
 import { useStorage } from '#imports'
 
 const cachedFonts: Record<string, any> = {}
 
-export async function loadFont(baseURL: string, font: FontConfig) {
-  let fontKey = font as string
-  if (typeof font === 'object')
-    fontKey = `${font.name}:${font.weight}`
-
+export async function loadFont(requestOrigin: string, font: FontConfig) {
+  const fontKey = `${font.name}:${font.weight}`
+  const storageKey = `assets:nuxt-og-image:font:${fontKey}`
   if (cachedFonts[fontKey])
     return cachedFonts[fontKey]
 
@@ -19,7 +16,6 @@ export async function loadFont(baseURL: string, font: FontConfig) {
 
   let data
   // check cache first
-  const storageKey = `assets:nuxt-og-imagee:font:${fontKey}`
   if (await useStorage().hasItem(storageKey))
     data = base64ToArrayBuffer(await useStorage().getItem<ArrayBuffer>(storageKey))
 
@@ -36,7 +32,7 @@ export async function loadFont(baseURL: string, font: FontConfig) {
       try {
         data = await globalThis.$fetch(font.path, {
           responseType: 'arrayBuffer',
-          baseURL,
+          baseURL: requestOrigin,
         }) as Promise<ArrayBuffer>
       }
       // it can fail
@@ -59,7 +55,7 @@ export async function loadFont(baseURL: string, font: FontConfig) {
   return cachedFonts[fontKey]
 }
 
-export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[]) {
+export async function walkSatoriTree(node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[], props: RuntimeOgImageOptions) {
   if (!node.props?.children)
     return
   // remove empty children
@@ -72,13 +68,13 @@ export async function walkSatoriTree(url: ParsedURL, node: VNode, plugins: (Sato
     if (child) {
       for (const plugin of plugins.flat()) {
         if (plugin.filter(child))
-          await plugin.transform(child)
+          await plugin.transform(child, props)
       }
-      await walkSatoriTree(url, child, plugins)
+      await walkSatoriTree(child, plugins, props)
     }
   }
 }
 
-export function defineSatoriTransformer(transformer: (url: ParsedURL) => SatoriTransformer | SatoriTransformer[]) {
+export function defineSatoriTransformer(transformer: SatoriTransformer | SatoriTransformer[]) {
   return transformer
 }

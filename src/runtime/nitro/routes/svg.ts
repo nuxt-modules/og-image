@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, getQuery, setHeader } from 'h3'
 import { withBase } from 'ufo'
-import { fetchOptions, useHostname } from '../utils'
+import { fetchOptions } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
 import { useRuntimeConfig } from '#imports'
 
@@ -16,5 +16,5 @@ export default defineEventHandler(async (e) => {
       statusMessage: `Provider ${options.provider} is missing.`,
     })
   }
-  return provider.createSvg(withBase(path, useHostname(e)), options)
+  return provider.createSvg(options)
 })

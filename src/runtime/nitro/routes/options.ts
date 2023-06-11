@@ -1,8 +1,8 @@
 import { createError, defineEventHandler, getQuery } from 'h3'
 import { withoutBase } from 'ufo'
 import { defu } from 'defu'
-import type { OgImageOptions } from '../../../types'
-import { extractOgImageOptions } from '../utils'
+import type { RuntimeOgImageOptions } from '../../../types'
+import { extractOgImageOptions, useHostname } from '../utils'
 import { getRouteRules } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'
 
@@ -42,6 +42,10 @@ export default defineEventHandler(async (e) => {
   if (routeRules === false)
     return false
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
-  const result: OgImageOptions = defu(extractedPayload, routeRules, { path }, defaults)
-  return result
+  return defu(
+    extractedPayload, routeRules,
+    // runtime options
+    { path, requestOrigin: useHostname(e) },
+    defaults,
+  ) as RuntimeOgImageOptions
 })

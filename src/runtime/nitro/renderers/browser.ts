@@ -1,8 +1,6 @@
-import { withBase } from 'ufo'
 import { screenshot } from '../../browserUtil'
 import type { Renderer } from '../../../types'
 import loadBrowserLauncherChunk from '#nuxt-og-image/browser'
-import { useRuntimeConfig } from '#imports'
 
 const BrowserRenderer: Renderer = {
   name: 'browser',
@@ -12,8 +10,7 @@ const BrowserRenderer: Renderer = {
   createVNode: async function createVNode() {
     throw new Error('Browser provider can\'t create VNodes.')
   },
-  createPng: async function createPng(basePath, options) {
-    const url = new URL(basePath)
+  createPng: async function createPng(options) {
     const launchBrowser = await loadBrowserLauncherChunk()
     if (!launchBrowser) {
       // throw new exception
@@ -25,14 +22,15 @@ const BrowserRenderer: Renderer = {
       try {
         res = await screenshot(browser!, {
           ...options,
-          host: withBase(useRuntimeConfig().app.baseURL, url.origin),
-          path: `/api/og-image-html?path=${url.pathname}`,
+          host: options.requestOrigin,
+          path: `/api/og-image-html?path=${options.path}`,
         })
       }
       finally {
         browser!.close()
       }
     }
+    // @todo return placeholder image on failure
     return res
   },
 }
