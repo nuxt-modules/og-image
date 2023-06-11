@@ -50,6 +50,7 @@
     "flatted": "^3.2.7",
     "fs-extra": "^11.1.1",
     "globby": "^13.1.4",
+    "image-size": "^1.0.2",
     "inline-css": "^4.0.2",
     "launch-editor": "^2.6.0",
     "nuxt-icon": "^0.4.1",
