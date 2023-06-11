@@ -102,8 +102,8 @@ export async function readPublicAsset(file: string, encoding?: BufferEncoding) {
 export async function readPublicAssetBase64(file: string): Promise<{ src: string; width?: number; height?: number } | undefined> {
   // we want the data in Uint8Array format
   const base64 = (await readPublicAsset(file, 'base64')) as string
-  const dimensions = await sizeOf(Buffer.from(base64, 'base64'))
   if (base64) {
+    const dimensions = await sizeOf(Buffer.from(base64, 'base64'))
     return {
       src: toBase64Image(file, base64),
       ...dimensions,
