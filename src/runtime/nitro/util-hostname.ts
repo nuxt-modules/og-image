@@ -5,10 +5,10 @@ import { useRuntimeConfig } from '#imports'
 
 export function useHostname(e: H3Event) {
   const base = useRuntimeConfig().app.baseURL
-  let host = getRequestHost(e)
+  let host = getRequestHost(e, { xForwardedHost: true })
   if (host === 'localhost')
     host = process.env.NITRO_HOST || process.env.HOST || host
-  let protocol = getRequestProtocol(e)
+  let protocol = getRequestProtocol(e, { xForwardedProto: true })
   // edge case for supporting the port in development
   if (process.env.NUXT_VITE_NODE_OPTIONS) {
     const envHost = JSON.parse(process.env.NUXT_VITE_NODE_OPTIONS).baseURL.replace('__nuxt_vite_node__', '')
