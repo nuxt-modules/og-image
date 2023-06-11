@@ -161,9 +161,6 @@ importers:
       '@nuxtjs/i18n':
         specifier: ^8.0.0-beta.12
         version: 8.0.0-beta.12(rollup@3.23.0)(vue@3.3.4)
-      '@nuxtjs/tailwindcss':
-        specifier: ^6.7.0
-        version: 6.7.0(rollup@3.23.0)(webpack@5.86.0)
       chrome-aws-lambda:
         specifier: ^10.1.0
         version: 10.1.0(puppeteer-core@10.4.0)
@@ -6633,7 +6630,7 @@ packages:
     engines: {node: '>= 10.17.0'}
     hasBin: true
     dependencies:
-      debug: 4.3.1
+      debug: 4.3.4
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -7407,7 +7404,7 @@ packages:
     engines: {node: '>= 6'}
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.1
+      debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -9257,7 +9254,7 @@ packages:
       std-env: 3.3.3
       ufo: 1.1.2
       unenv: 1.5.1
-      unimport: 3.0.7(rollup@3.25.0)
+      unimport: 3.0.8(rollup@3.25.0)
       unstorage: 1.6.1
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -12074,10 +12071,10 @@ packages:
     transitivePeerDependencies:
       - rollup
 
-  /unimport@3.0.7(rollup@3.25.0):
-    resolution: {integrity: sha512-2dVQUxJEGcrSZ0U4qtwJVODrlfyGcwmIOoHVqbAFFUx7kPoEN5JWr1cZFhLwoAwTmZOvqAm3YIkzv1engIQocg==}
+  /unimport@3.0.8(rollup@3.23.0):
+    resolution: {integrity: sha512-AOt6xj3QMwqcTZRPB+NhFkyVEjCKnpTVoPm5x6424zz2NYYtCfym2bpJofzPHIJKPNIh5ko2/t2q46ZIMgdmbw==}
     dependencies:
-      '@rollup/pluginutils': 5.0.2(rollup@3.25.0)
+      '@rollup/pluginutils': 5.0.2(rollup@3.23.0)
       escape-string-regexp: 5.0.0
       fast-glob: 3.2.12
       local-pkg: 0.4.3
@@ -12091,10 +12088,10 @@ packages:
     transitivePeerDependencies:
       - rollup
 
-  /unimport@3.0.8(rollup@3.23.0):
+  /unimport@3.0.8(rollup@3.25.0):
     resolution: {integrity: sha512-AOt6xj3QMwqcTZRPB+NhFkyVEjCKnpTVoPm5x6424zz2NYYtCfym2bpJofzPHIJKPNIh5ko2/t2q46ZIMgdmbw==}
     dependencies:
-      '@rollup/pluginutils': 5.0.2(rollup@3.23.0)
+      '@rollup/pluginutils': 5.0.2(rollup@3.25.0)
       escape-string-regexp: 5.0.0
       fast-glob: 3.2.12
       local-pkg: 0.4.3
