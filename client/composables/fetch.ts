@@ -1,5 +1,5 @@
-import { useAsyncData } from '#imports'
 import type { OgImageOptions } from '../../src/types'
+import { useAsyncData } from '#imports'
 import { host, path, refreshTime } from '~/util/logic'
 
 export async function fetchOptions() {

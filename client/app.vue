@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core'
-import { $computed, computed, fetchOptions, useHead, useRoute, watch } from '#imports'
 import { base, containerWidth, description, path, refreshSources } from './util/logic'
+import { $computed, computed, fetchOptions, useHead, useRoute, watch } from '#imports'
 import { devtoolsClient } from '~/composables/devtools-client'
 
 useHead({
