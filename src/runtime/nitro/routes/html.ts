@@ -45,7 +45,7 @@ export default defineEventHandler(async (e) => {
 
   // using Nuxt Island, generate the og:image HTML
   const hashId = hash([options.component, options])
-  const island = await $fetch<NuxtIslandResponse>(`/__nuxt_island/${options.component}:${hashId}`, {
+  const island = await $fetch<NuxtIslandResponse>(`/__nuxt_island/${options.component}_${hashId}`, {
     params: {
       props: JSON.stringify(options),
     },
