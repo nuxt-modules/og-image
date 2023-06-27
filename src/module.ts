@@ -72,7 +72,7 @@ export default defineNuxtModule<ModuleOptions>({
     configKey: 'ogImage',
   },
   defaults(nuxt) {
-    const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl
+    const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl) as string
     return {
       siteUrl,
       defaults: {
