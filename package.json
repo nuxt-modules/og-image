@@ -85,10 +85,5 @@
     "nuxt": "^3.6.1",
     "sass": "^1.63.6",
     "vitest": "^0.32.2"
-  },
-  "resolutions": {
-    "nitropack": "npm:nitropack-edge@2.4.0-28027501.1cf01bf",
-    "unstorage": "^1.5.0",
-    "unenv": "^1.4.1"
   }
 }
