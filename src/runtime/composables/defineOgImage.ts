@@ -1,7 +1,7 @@
 import { withBase } from 'ufo'
+import { unref } from 'vue'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
-import { useRequestEvent } from '#app'
-import { useNitroOrigin, useRouter, useRuntimeConfig, useServerHead, useSiteConfig } from '#imports'
+import { useNitroOrigin, useRequestEvent, useRouter, useRuntimeConfig, useServerHead, useSiteConfig } from '#imports'
 import { componentNames } from '#build/og-image-component-names.mjs'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
