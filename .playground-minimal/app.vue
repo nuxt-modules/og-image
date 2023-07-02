@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { defineOgImageStatic } from '#imports'
+import { defineOgImageCached } from '#imports'
 
-defineOgImageStatic({
+defineOgImageCached({
   title: 'Satori Test',
   description: 'This is a test',
 })

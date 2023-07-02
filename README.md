@@ -96,30 +96,30 @@ which will be enabled for you.
 
 For this guide, you will create your Satori OG image using the default component for your home page.
 
-### 1. Define a static OG Image
+### 1. Define an OG Image
 
-Within your `pages/index.vue`, use `defineOgImageStatic` or `OgImageStatic` to define your `og:image` component.
-
-Make sure you have defined some metadata as props will be inferred from it.
+Within your `pages/index.vue`, use `defineOgImage()` or `<OgImage />` to define your `og:image` component.
 
 ```vue
 <script lang="ts" setup>
-// 1. make sure you have some meta
-useSeoMeta({
-  title: 'Home',
-  description: 'My awesome home page.',
-})
-// 2a. Use the Composition API
-defineOgImageStatic()
+const ogImageOptions = {
+  title: 'My awesome home page.',
+}
+// a. Use the Composition API
+defineOgImage(ogImageOptions)
 </script>
 
 <template>
   <div>
-    <!-- 2b. OR Component API -->
-    <OgImageStatic />
+    <!-- b. OR Component API -->
+    <OgImage v-bind="ogImageOptions" />
   </div>
 </template>
 ```
+
+This will use the default template [OgImageBasic](./src/runtime/components/OgImageBasic.island.vue),
+provided by this module.
+
 
 ### 2. View your `og:image`
 
@@ -130,30 +130,20 @@ For example, if your local site is hosted at `http://localhost:3000`, you can vi
 
 ### 3. Customize your `og:image`
 
-While you have the playground open, start customising the OG Image by providing options to the `defineOgImageStatic` function.
+While you have the playground open, start customizing the OG Image by modifying the `ogImageOptions`.
+Full HMR is supported, so you should see your changes instantly.
 
-```vue
-<script lang="ts" setup>
-defineOgImageStatic({
-  title: 'Welcome to my site!',
-  background: 'lightblue'
-})
-</script>
-```
-
-Congrats, you've set up your first Satori `og:image`! You can checkout the [options](./src/runtime/components/OgImageBasic.island.vue) of the default template.
+Congrats, you've set up your first Satori `og:image`! 
+You can check out the [options](./src/runtime/components/OgImageBasic.island.vue) of the default template.
 
 ## Making your own Satori template
 
 Templates for OG images are powered by Nuxt Islands, which are just Vue components. In this guide we'll create a new 
 template and use it for our `og:image`.
 
-### 1. Create an island component
+### 1. Create your template component
 
-Make a folder in your components directory called `islands`. 
-
-Within this directory make a new component called `MyOgImage.vue`, 
-you can use the following template to begin:
+Make a new file at the path `./components/OgImage/Default.vue` with the following contents:
 
 ```vue
 <script setup lang="ts">
@@ -181,13 +171,17 @@ h1 {
 </style>
 ```
 
+The convention is to use either the `OgImage` or `OgImageTemplate`  folders within `components`.
+
+See [componentDirs](#component-dirs) if you prefer to use a different named directory.
+
 ### 2. Use the new template
 
-Now that you have your template, you can use it in for your `defineOgImageStatic` function.
+Now that you have your template, you can use it in for your `defineOgImage` composable.
 
 ```vue
 <script lang="ts" setup>
-defineOgImageStatic({
+defineOgImage({
   component: 'MyOgImage',
   title: 'Welcome to my site!'
 })
@@ -200,7 +194,7 @@ View this image in your browser by appending `/__og_image__` to the end of the U
 
 Now that you have your template, you can start customizing it.
 
-Any options you pass to the `defineOgImageStatic` composable will be available in the component. With this in mind, we can
+Any options you pass to the `defineOgImage` composable will be available in the component. With this in mind, we can
 add support for changing the background color.
 
 ```vue
@@ -229,7 +223,7 @@ Now let's customize the background to be green instead.
 
 ```vue
 <script lang="ts" setup>
-defineOgImageStatic({
+defineOgImage({
   component: 'MyOgImage',
   title: 'Welcome to my site!',
   backgroundColor: 'bg-green-500'
@@ -253,6 +247,14 @@ Out of the box, this module provides support for the following:
 - Relative image support (you should link images from your public directory `/my-image.png`)
 
 If you find Satori is too limiting for your needs, you can always use the `browser` provider to capture browser screenshots instead.
+
+
+## Bypassing cache
+
+Caching og images is enabled by default, if you need to generate dynamically at runtime,
+you can modify the use the `defineOgImageWithoutCache(options)` composable or `<OgImageWithoutCache v-bind="options" />` component.
+
+This mode is not compatible with `nuxt generate`.
 
 ## SSG Images
 
@@ -336,11 +338,11 @@ defineOgImageScreenshot()
 </script>
 ```
 
-Alternatively you can pass the `{ provider: 'browser' }` option to `defineOgImageStatic`.
+Alternatively you can pass the `{ provider: 'browser' }` option to `defineOgImage`.
 
 ```vue
 <script lang="ts" setup>
-defineOgImageStatic({
+defineOgImage({
   component: 'MyAwesomeOgImage',
   // this will take a browser screenshot
   provider: 'browser'
@@ -456,7 +458,7 @@ export default defineNuxtConfig({
 By default, static images will be cached for 24 hours. You can change the image TTL by providing `cacheTtl` when defining the image.
 
 ```ts
-defineOgImageStatic({
+defineOgImage({
   // ...
   cacheTtl: 60 * 60 * 24 * 7 // 7 days
 })
@@ -479,7 +481,7 @@ You can also provide a configuration for the `cacheKey`. This gives you control 
 
 ```vue
 <script lang="ts" setup>
-defineOgImageStatic({
+defineOgImage({
   cacheKey: `${myData.id}:${myData.updatedAt}`,
 })
 </script>
@@ -501,9 +503,9 @@ export default defineNuxtConfig({
 The module exposes a composition and component API to implement your `og:image` generation. You should pick
 whichever one you prefer using.
 
-## OgImageStatic / defineOgImageStatic
+## OgImage / defineOgImage
 
-The `OgImageStatic` component and the `defineOgImageStatic` composable creates a static image
+The `OgImage` component and the `defineOgImage` composable creates a static image
 that will be prerendered.
 
 The options follow the [OgImageOptions](#OgImageOptions) interface,
@@ -516,7 +518,7 @@ It is useful for images that do not change at runtime.
 ```vue
 <script setup lang="ts">
 // a. Composition API
-defineOgImageStatic({
+defineOgImage({
   component: 'MyOgImageTemplate',
   title: 'Hello world',
   theme: 'dark'
@@ -525,7 +527,7 @@ defineOgImageStatic({
 
 <template>
   <!-- b. Component API -->
-  <OgImageStatic
+  <OgImage
     component="MyOgImageTemplate"
     title="Hello world"
     theme="dark"
@@ -534,9 +536,9 @@ defineOgImageStatic({
 ```
 
 
-## OgImageDynamic / defineOgImageDynamic
+## OgImageWithoutCache / defineOgImageWithoutCache
 
-The `OgImageDynamic` component and the `defineOgImageDynamic` composable creates a dynamic image. They are not prerendered and will
+The `OgImageWithoutCache` component and the `defineOgImageWithoutCache` composable creates a dynamic image. They are not prerendered and will
 be generated at runtime.
 
 The options follow the [OgImageOptions](#OgImageOptions) interface,
@@ -551,19 +553,19 @@ This feature is not compatible with static sites built using `nuxi generate`.
 const dynamicData = await fetch('https://example.com/api')
 
 // a. Composition API
-defineOgImageDynamic({
+defineOgImageWithoutCache({
   component: 'MyOgImageTemplate',
   title: 'Hello world',
-  dynamicData,
+  ...dynamicData,
 })
 </script>
 
 <template>
   <!-- b. Component API -->
-  <OgImageDynamic
+  <OgImageWithoutCache
     component="MyOgImageTemplate"
     title="Hello world"
-    :dynamic-data="dynamicData"
+    v-bind="dynamicData"
   />
 </template>
 ```
@@ -612,10 +614,10 @@ The name of the component to use as the template. By default, it uses OgImageBas
 The provider to use to generate the image. The default provider is `satori`.
 When you use `browser` it will use Playwright to generate the image.
 
-### `static`
+### `cache`
 
 - Type: `boolean`
-- Default: `true` when using `defineOgImageStatic`, `false` when dynamic
+- Default: `true` when using `defineOgImage`, `false` when dynamic
 
 Controls the prerendering of the image. A non-static image is one that will be generated at runtime and not cached.
 
