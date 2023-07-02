@@ -125,7 +125,7 @@ importers:
         version: 0.4.0(@nuxt/kit@3.6.1)(nuxi@3.6.1)(sass@1.63.6)
       '@nuxt/test-utils':
         specifier: 3.6.1
-        version: 3.6.1(rollup@3.23.0)(vitest@0.32.2)(vue@3.3.4)
+        version: 3.6.1(playwright@1.35.1)(rollup@3.23.0)(vitest@0.32.2)(vue@3.3.4)
       '@nuxtjs/eslint-config-typescript':
         specifier: ^12.0.0
         version: 12.0.0(eslint@8.44.0)(typescript@5.1.6)
@@ -144,12 +144,15 @@ importers:
       nuxt:
         specifier: ^3.6.1
         version: 3.6.1(@types/node@20.3.3)(eslint@8.44.0)(rollup@3.23.0)(sass@1.63.6)(typescript@5.1.6)(vue-tsc@1.8.2)
+      playwright:
+        specifier: ^1.35.1
+        version: 1.35.1
       sass:
         specifier: ^1.63.6
         version: 1.63.6
       vitest:
         specifier: ^0.32.2
-        version: 0.32.2(sass@1.63.6)
+        version: 0.32.2(playwright@1.35.1)(sass@1.63.6)
 
   .playground:
     dependencies:
@@ -2279,7 +2282,7 @@ packages:
       - rollup
       - supports-color
 
-  /@nuxt/test-utils@3.6.1(rollup@3.23.0)(vitest@0.32.2)(vue@3.3.4):
+  /@nuxt/test-utils@3.6.1(playwright@1.35.1)(rollup@3.23.0)(vitest@0.32.2)(vue@3.3.4):
     resolution: {integrity: sha512-pTyRwUseXXL+BAX7p3mHNDm6hSkK56GkiSYEoHfIN7C0rLOvsHbpjPp5FsRiCrr5Kk09TKFvjUNtk2UDhzFcvQ==}
     engines: {node: ^14.18.0 || >=16.10.0}
     peerDependencies:
@@ -2303,8 +2306,9 @@ packages:
       get-port-please: 3.0.1
       ofetch: 1.1.1
       pathe: 1.1.1
+      playwright: 1.35.1
       ufo: 1.1.2
-      vitest: 0.32.2(sass@1.63.6)
+      vitest: 0.32.2(playwright@1.35.1)(sass@1.63.6)
       vue: 3.3.4
     transitivePeerDependencies:
       - rollup
@@ -10221,7 +10225,15 @@ packages:
     resolution: {integrity: sha512-pNXb6CQ7OqmGDRspEjlxE49w+4YtR6a3X6mT1hZXeJHWmsEz7SunmvZeiG/+y1yyMZdHnnn73WKYdtV1er0Xyg==}
     engines: {node: '>=16'}
     hasBin: true
-    dev: false
+
+  /playwright@1.35.1:
+    resolution: {integrity: sha512-NbwBeGJLu5m7VGM0+xtlmLAH9VUfWwYOhUi/lSEDyGg46r1CA9RWlvoc5yywxR9AzQb0mOCm7bWtOXV7/w43ZA==}
+    engines: {node: '>=16'}
+    hasBin: true
+    requiresBuild: true
+    dependencies:
+      playwright-core: 1.35.1
+    dev: true
 
   /pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
@@ -12799,7 +12811,7 @@ packages:
     optionalDependencies:
       fsevents: 2.3.2
 
-  /vitest@0.32.2(sass@1.63.6):
+  /vitest@0.32.2(playwright@1.35.1)(sass@1.63.6):
     resolution: {integrity: sha512-hU8GNNuQfwuQmqTLfiKcqEhZY72Zxb7nnN07koCUNmntNxbKQnVbeIS6sqUgR3eXSlbOpit8+/gr1KpqoMgWCQ==}
     engines: {node: '>=v14.18.0'}
     hasBin: true
@@ -12848,6 +12860,7 @@ packages:
       magic-string: 0.30.0
       pathe: 1.1.1
       picocolors: 1.0.0
+      playwright: 1.35.1
       std-env: 3.3.3
       strip-literal: 1.0.1
       tinybench: 2.5.0
