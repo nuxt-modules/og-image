@@ -30,8 +30,9 @@ import { ensureDependencies, getNitroPreset, getNitroProviderCompatibility } fro
 
 export interface ModuleOptions {
   /**
-   * The hostname of your website.
-   * @deprecated use `siteUrl`
+   * Whether the og:image images should be generated.
+   *
+   * @default true
    */
   host?: string
   /**
@@ -74,7 +75,7 @@ export default defineNuxtModule<ModuleOptions>({
   defaults(nuxt) {
     const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl) as string
     return {
-      siteUrl,
+      enabled: true,
       defaults: {
         component: 'OgImageBasic',
         width: 1200,
@@ -92,8 +93,12 @@ export default defineNuxtModule<ModuleOptions>({
   },
   async setup(config, nuxt) {
     const logger = useLogger('nuxt-og-image')
-    logger.level = config.debug ? 4 : 3
-    const { resolve } = createResolver(import.meta.url)
+    logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
+    if (config.enabled === false) {
+      logger.debug('The module is disabled, skipping setup.')
+      return
+    }
+    const { resolve, resolvePath } = createResolver(import.meta.url)
 
     logger.debug('Using Nitro preset', getNitroPreset(nuxt))
 
