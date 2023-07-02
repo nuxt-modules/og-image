@@ -1,4 +1,5 @@
 import { withBase } from 'ufo'
+import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
 import { useRequestEvent } from '#app'
 import { useNitroOrigin, useRouter, useRuntimeConfig, useServerHead, useSiteConfig } from '#imports'
 import { componentNames } from '#build/og-image-component-names.mjs'
@@ -6,32 +7,46 @@ import { componentNames } from '#build/og-image-component-names.mjs'
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
   const route = router?.currentRoute?.value?.path || ''
-  defineOgImage({
+  return defineOgImage({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
     provider: 'browser',
     component: null,
-    static: true,
+    cache: true,
     ...options,
   })
 }
 
-export function defineOgImageDynamic(options: OgImageOptions = {}) {
-  const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
-  defineOgImage({
-    provider: runtimeSatori ? 'satori' : 'browser',
-    static: false,
+/**
+ * @deprecated Use `defineOgImageCached` instead
+ */
+export function defineOgImageStatic(options: OgImageOptions = {}) {
+  return defineOgImageCached(options)
+}
+
+export function defineOgImageCached(options: OgImageOptions = {}) {
+  const { defaults } = useRuntimeConfig()['nuxt-og-image']
+  // if we're not caching by default and are missing cache config, add it
+  if (!defaults.cacheTtl && !options.cacheTtl)
+    options.cacheTtl = 60 * 60 * 24 * 7 // 1 week
+  return defineOgImage({
+    cache: true,
+    ...options,
+  })
+}
+
+export function defineOgImageWithoutCache(options: OgImageOptions = {}) {
+  return defineOgImage({
+    cache: false,
     cacheTtl: 0,
     ...options,
   })
 }
 
-export function defineOgImageStatic(options: OgImageOptions = {}) {
-  const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
-  defineOgImage({
-    provider: runtimeSatori ? 'satori' : 'browser',
-    static: true,
-    ...options,
-  })
+/**
+ * @deprecated Use `defineOgImageWithoutCache` instead
+ */
+export function defineOgImageDynamic(options: OgImageOptions = {}) {
+  return defineOgImageWithoutCache(options)
 }
 
 export async function defineOgImage(_options: OgImageOptions = {}) {
