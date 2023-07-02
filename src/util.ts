@@ -14,6 +14,7 @@ const autodetectableProviders = {
   stormkit: 'stormkit',
   vercel: 'vercel',
   cleavr: 'cleavr',
+  stackblitz: 'stackblitz',
 }
 
 const autodetectableStaticProviders = {
