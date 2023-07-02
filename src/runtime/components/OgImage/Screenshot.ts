@@ -4,10 +4,10 @@ import { defineOgImageScreenshot } from '#imports'
 
 export default defineComponent<OgImageScreenshotOptions>({
   name: 'OgImageScreenshot',
-  setup(_, { attrs }) {
+  async setup(_, { attrs }) {
     // get attrs
     if (process.server)
-      defineOgImageScreenshot(attrs)
+      await defineOgImageScreenshot(attrs)
 
     return () => null
   },

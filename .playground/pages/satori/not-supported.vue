@@ -13,6 +13,6 @@ const description = 'It looks like you\'re trying to use the browser provider in
     <div>
       Static Banner page
     </div>
-    <OgImageStatic title="Browser provider is not supported." :description="description" />
+    <OgImage title="Browser provider is not supported." :description="description" />
   </div>
 </template>

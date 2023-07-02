@@ -13,6 +13,6 @@ useHead({
     <div>
       Default example with options
     </div>
-    <OgImageStatic />
+    <OgImage />
   </div>
   </template>

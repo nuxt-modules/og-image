@@ -34,9 +34,33 @@ export function defineOgImageStatic(options: OgImageOptions = {}) {
   })
 }
 
-export function defineOgImage(options: OgImageOptions = {}) {
+export async function defineOgImage(_options: OgImageOptions = {}) {
+  // clone to avoid any issues
+  const options = { ...unref(_options) }
   if (process.server) {
-    const { defaults, siteUrl } = useRuntimeConfig()['nuxt-og-image']
+    // support deprecations
+    if (options.static)
+      options.cache = options.cache || options.static
+    if (!options.provider)
+      options.provider = 'satori'
+    const { defaults, runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
+    if (options.provider === 'satori' && !runtimeSatori)
+      options.provider = 'browser'
+    // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
+    if (options.component && componentNames) {
+      const originalName = options.component
+      let isValid = componentNames.some(component => component.pascalName === originalName || component.kebabName === originalName)
+      if (!isValid) {
+        for (const component of componentNames) {
+          if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
+            options.component = component.pascalName
+            isValid = true
+            break
+          }
+        }
+      }
+    }
+
     const router = useRouter()
     const route = router?.currentRoute?.value?.path || ''
 

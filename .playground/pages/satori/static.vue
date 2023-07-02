@@ -12,6 +12,6 @@ const description = 'This is a description of the page. It can be a bit longer t
     <div>
       Static Banner page
     </div>
-    <OgImageStatic component="BannerTemplate" title="Static Banner" :description="description" />
+    <OgImage title="Static Banner" :description="description" />
   </div>
 </template>

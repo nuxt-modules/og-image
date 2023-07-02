@@ -60,7 +60,7 @@ const { data: posts } = await useFetch('/api/posts')
 </script>
 <template>
 <div class="px-7 my-5">
-  <OgImageStatic component="OgImageBasic" description="My description of the home page." theme-color="#b5ffd6" />
+  <OgImage component="Basic" description="My description of the home page." theme-color="#b5ffd6" />
   <div class="mb-10 xl:grid grid-cols-3 gap-10 justify-center max-w-7xl mx-auto">
     <div>
       <h2 class="text-2xl mb-10 ">Prerendered at build time.</h2>

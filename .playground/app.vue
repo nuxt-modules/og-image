@@ -1,27 +1,25 @@
-<script lang="ts" setup>
-import { useServerSeoMeta } from '#imports'
-
-useServerSeoMeta({
-  title: 'Nuxt OG Image Playground',
-  ogTitle: 'Nuxt OG Image Playground',
-  ogDescription: 'Edge rendered playground for Nuxt OG Image.',
-})
-</script>
-
 <template>
-<div class="flex-col flex min-h-screen">
-  <header class="w-full flex-shrink border-r-1 border-light-400 dark:(border-dark-400 bg-dark-900 text-light) bg-white text-dark-800 flex flex-col justify-between">
-    <div class="py-3 w-full flex items-start px-5 justify-between space-x-5">
-      <h1 class="text-base hidden md:block w-40">
-        Nuxt OG Image
-      </h1>
-    </div>
-    <hr class="border-1 border-light-400 dark:border-dark-400">
+<div class="flex flex-col min-h-screen">
+  <header class="sticky top-0 z-50 w-full backdrop-blur flex-none border-b border-gray-900/10 dark:border-gray-50/[0.06] bg-white/75 dark:bg-gray-900/75">
+    <UContainer class="py-3">
+      <div class="flex items-end gap-1.5 font-bold text-xl text-gray-900 dark:text-white">
+        <Icon name="logos:nuxt-icon" class="w-8 h-8" />
+        Nuxt
+        <div class="text-primary-500 dark:text-primary-400">{{ siteConfig.name }}</div>
+      </div>
+    </UContainer>
   </header>
-  <main class="flex-grow h-full mx-auto flex flex-col w-full bg-white dark:bg-black overflow-hidden dark:bg-dark-700 bg-light-200 ">
-    <div class="h-full max-h-full overflow-hidden lg:p-10 p-3">
+  <main class="min-h-full h-full flex-grow">
+    <UContainer class="mt-4">
       <NuxtPage />
-    </div>
+    </UContainer>
   </main>
+  <footer class="text-sm text-gray-700 flex justify-center items-center py-5">
+    Made by <UAvatar src="https://avatars.githubusercontent.com/u/5326365?v=4" size="xs" class="w-5 h-5 mx-1" /> Harlan Wilton
+  </footer>
 </div>
 </template>
+<script setup>
+import { useSiteConfig } from "#imports";
+const siteConfig = useSiteConfig()
+</script>

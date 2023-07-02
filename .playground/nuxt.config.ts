@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
     '@unocss/nuxt',
+    '@nuxthq/ui',
     'nuxt-icon',
     NuxtOgImage,
     // '@nuxt/devtools-edge',
@@ -24,6 +25,8 @@ export default defineNuxtConfig({
       ]
     }
   },
+
+  debug: false,
 
   // hooks: {
   //   'og-image:prerenderScreenshots'(queue) {
@@ -53,6 +56,10 @@ export default defineNuxtConfig({
       appName: 'My App',
     },
     debug: true,
+  },
+
+  site: {
+    name: 'OG Image Playground',
   },
 
   experimental: {

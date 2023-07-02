@@ -1,12 +1,15 @@
 import { defineComponent } from 'vue'
 import type { OgImageOptions } from '../../types'
-import { defineOgImageDynamic } from '#imports'
+import { defineOgImageWithoutCache } from '#imports'
 
+/**
+ * @deprecated Use OgImageWithoutCache
+ */
 export default defineComponent<OgImageOptions>({
   name: 'OgImageDynamic',
-  setup(_, { attrs }) {
+  async setup(_, { attrs }) {
     if (process.server)
-      defineOgImageDynamic(attrs)
+      await defineOgImageWithoutCache(attrs)
 
     return () => null
   },

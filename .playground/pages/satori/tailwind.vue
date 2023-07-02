@@ -3,6 +3,6 @@
   <div>
     Tailwind example
   </div>
-  <OgImageDynamic component="Tailwind" title="Tailwind example" />
+  <OgImageWithoutCache component="tailwind" title="Tailwind example" />
 </div>
 </template>

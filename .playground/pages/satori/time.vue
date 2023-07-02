@@ -12,6 +12,6 @@ const description = 'This is a description of the page. It can be a bit longer t
     <div>
       Dynamic Banner page
     </div>
-    <OgImageDynamic component="BannerTemplate" :title="'The time is: ' + Date.now()" :description="description" />
+    <OgImageWithoutCache :title="'The time is: ' + Date.now()" :description="description" icon="carbon:alarm" />
   </div>
 </template>

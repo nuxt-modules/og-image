@@ -1,6 +1,6 @@
 <template>
 <div>
   <h1>not prerendered</h1>
-  <OgImageStatic provider="browser" component="BannerTemplate" title="Not Pre-rendered" />
+  <OgImage provider="browser" component="Banner" title="Not Pre-rendered" />
 </div>
 </template>

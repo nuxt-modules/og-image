@@ -5,6 +5,6 @@
     <div>
       Nuxt icon
     </div>
-    <OgImageStatic component="NuxtIcon" title="Nuxt Icon" />
+    <OgImage component="NuxtIcon" title="Nuxt Icon" />
   </div>
 </template>

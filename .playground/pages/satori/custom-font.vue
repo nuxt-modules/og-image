@@ -6,6 +6,6 @@ const description = 'Using a custom font loaded from the public directory.'
     <div>
       Custom font page
     </div>
-    <OgImageStatic component="CustomFontTemplate" title="Custom Font" :description="description" />
+    <OgImage component="CustomFont" title="Custom Font" :description="description" />
   </div>
 </template>

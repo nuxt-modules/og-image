@@ -54,6 +54,34 @@ export interface ModuleOptions {
   runtimeCacheStorage: boolean | (Record<string, any> & {
     driver: string
   })
+  /**
+   * Extra component directories that should be used to resolve components.
+   *
+   * @default ['OgImage', 'OgImageTemplate']
+   */
+  componentDirs: string[]
+  /**
+   * The url of your site.
+   * Used to generate absolute URLs for the og:image.
+   *
+   * Note: This is only required when prerendering your site.
+   *
+   * @deprecated Provide `url` through site config instead: `{ site: { url: <value> }}`.
+   * This is powered by the `nuxt-site-config` module.
+   * @see https://github.com/harlan-zw/nuxt-site-config
+   */
+  host?: string
+  /**
+   * The url of your site.
+   * Used to generate absolute URLs for the og:image.
+   *
+   * Note: This is only required when prerendering your site.
+   *
+   * @deprecated Provide `url` through site config instead: `{ site: { url: <value> }}`.
+   * This is powered by the `nuxt-site-config` module.
+   * @see https://github.com/harlan-zw/nuxt-site-config
+   */
+  siteUrl?: string
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -84,6 +112,7 @@ export default defineNuxtModule<ModuleOptions>({
         height: 630,
         cacheTtl: 24 * 60 * 60 * 1000, // default is to cache the image for 24 hours
       },
+      componentDirs: ['OgImage', 'OgImageTemplate'],
       runtimeSatori: true,
       runtimeBrowser: nuxt.options.dev,
       fonts: [],
@@ -217,8 +246,14 @@ declare module 'nitropack' {
     }
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
-    ;['defineOgImageDynamic', 'defineOgImageStatic', 'defineOgImageScreenshot']
+    ;[
+      // deprecated
+      'Dynamic', 'Static',
+      // new
+      'index', 'Cached', 'WithoutCache', 'Screenshot',
+    ]
       .forEach((name) => {
+        name = name === 'index' ? 'defineOgImage' : `defineOgImage${name}`
         addImports({
           name,
           from: resolve('./runtime/composables/defineOgImage'),
@@ -227,18 +262,48 @@ declare module 'nitropack' {
       })
 
     await addComponent({
-      name: 'OgImageBasic',
-      filePath: resolve('./runtime/components/OgImageBasic.island.vue'),
+      name: 'OgImageTemplateFallback',
+      filePath: resolve('./runtime/components/OgImageTemplate/Fallback.vue'),
       island: true,
     })
 
-    ;['OgImageStatic', 'OgImageDynamic', 'OgImageScreenshot']
+    ;[
+      // deprecated
+      'Static', 'Dynamic',
+      // new
+      'index', 'Cached', 'WithoutCache', 'Screenshot',
+    ]
       .forEach((name) => {
         addComponent({
-          name,
-          filePath: resolve(`./runtime/components/${name}`),
+          name: name === 'index' ? 'OgImage' : `OgImage${name}`,
+          filePath: resolve(`./runtime/components/OgImage/${name}`),
         })
       })
+
+    // we're going to expose the og image components to the ssr build so we can fix prop usage
+    const ogImageComponents: { pascalName: string; kebabName: string }[] = []
+    nuxt.hook('components:extend', (components) => {
+      // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
+      components.forEach((component) => {
+        let valid = false
+        config.componentDirs.forEach((dir) => {
+          if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir))
+            valid = true
+        })
+        if (valid) {
+          component.island = true
+          component.mode = 'server'
+          ogImageComponents.push({ pascalName: component.pascalName, kebabName: component.kebabName })
+        }
+      })
+    })
+    addTemplate({
+      filename: 'og-image-component-names.mjs',
+      getContents() {
+        return `export const componentNames = ${JSON.stringify(ogImageComponents)}`
+      },
+      options: { mode: 'server' },
+    })
 
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
