@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { fetchOptions, highlight } from '#imports'
-
-const options = await fetchOptions()
+import { options } from '../util/logic'
+import { highlight } from '#imports'
 </script>
 
 <template>

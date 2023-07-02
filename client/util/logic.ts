@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { withBase } from 'ufo'
-import type { PlaygroundClientFunctions } from '../../src/types'
+import type {OgImageOptions, PlaygroundClientFunctions} from '../../src/types'
 import { connectWS, createBirpcClient } from '#imports'
 
 export const refreshTime = ref(Date.now())
@@ -10,6 +10,8 @@ export const description = ref<string | null>(null)
 export const hostname = window.location.host
 export const path = ref('/')
 export const base = ref('/')
+
+export const options = ref<OgImageOptions>({})
 
 export const refreshSources = useDebounceFn(() => {
   refreshTime.value = Date.now()

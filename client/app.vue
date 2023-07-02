@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core'
-import { base, containerWidth, description, path, refreshSources } from './util/logic'
-import { $computed, computed, fetchOptions, useHead, useRoute, watch } from '#imports'
+import { base, containerWidth, description, path, options, refreshSources } from './util/logic'
+import { $computed, computed, fetchOptions, useHead, useRoute, watch, watchEffect } from '#imports'
 import { devtoolsClient } from '~/composables/devtools-client'
 
 useHead({
@@ -21,7 +21,9 @@ const constrainsWidth = computed(() => {
   return useRoute().path !== '/vnodes' && useRoute().path !== '/options'
 })
 
-const options = await fetchOptions()
+watchEffect(async () => {
+  options.value = (await fetchOptions()).value
+})
 
 const setPath = useDebounceFn((e) => {
   path.value = e.target.value

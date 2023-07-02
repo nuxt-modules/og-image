@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
 import { computed, onMounted, ref, useColorMode, useHead, watch } from '#imports'
-import { containerWidth, description } from '~/util/logic'
+import { containerWidth, description, options } from '~/util/logic'
 
 const props = defineProps({
   src: String,
@@ -22,10 +22,12 @@ const setSource = useDebounceFn(() => {
     frame = document.querySelector('#iframe-loader')
   const now = Date.now()
   frame.src = ''
+  const width = options.value.width
+  const height = options.value.height
   const parentHeight = frame.offsetHeight
   const parentWidth = frame.offsetWidth
-  const parentHeightScale = parentHeight > 630 ? 1 : parentHeight / 630
-  const parentWidthScale = parentWidth > 1200 ? 1 : parentWidth / 1200
+  const parentHeightScale = parentHeight > height ? 1 : parentHeight / height
+  const parentWidthScale = parentWidth > width ? 1 : parentWidth / width
   const scale = parentWidthScale > parentHeightScale ? parentHeightScale : parentWidthScale
   timeTakenMs.value = 0
   frame.style.opacity = '0'
@@ -64,8 +66,8 @@ watch(loadDescription, (d) => {
 </script>
 
 <template>
-  <div class="w-full mx-auto max-w-1200px h-full max-h-630px justify-center flex" style="max-height: 630px;">
-    <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" width="1200" height="630" />
+  <div class="w-full mx-auto h-full justify-center flex" :style="{ maxHeight: `${options.height}px`, maxWidth: `${options.width}px` }">
+    <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" :width="options.width" :height="options.height" />
   </div>
 </template>
 

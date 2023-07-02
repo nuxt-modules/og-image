@@ -10,7 +10,7 @@ import type { FontConfig, OgImageOptions } from '../../../types'
 import { useNitroOrigin, useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
-  const { fonts, defaults, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
+  const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
   const query = getQuery(e)
   const path = withBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
   const scale = query.scale
@@ -80,8 +80,8 @@ export default defineEventHandler(async (e) => {
     transform-origin: top left;
     max-height: 100vh;
     position: relative;
-    width: ${defaults.width}px;
-    height: ${defaults.height}px;
+    width: ${options.width}px;
+    height: ${options.height}px;
     overflow: hidden;
     background-color: ${mode === 'dark' ? '#1b1b1b' : '#fff'};
 }
@@ -144,7 +144,7 @@ img.emoji {
   let htmlTemplate = `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
-<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: 1200px; height: 630px;">${html}</div>${headChunk.bodyTags}</body>
+<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 
   let hasInlineStyles = false

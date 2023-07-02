@@ -58,7 +58,7 @@ export async function defineOgImage(_options: OgImageOptions = {}) {
       options.cache = options.cache || options.static
     if (!options.provider)
       options.provider = 'satori'
-    const { defaults, runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
+    const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
     if (options.provider === 'satori' && !runtimeSatori)
       options.provider = 'browser'
     // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
@@ -99,11 +99,11 @@ export async function defineOgImage(_options: OgImageOptions = {}) {
       },
       {
         property: 'og:image:width',
-        content: options.width || defaults.width,
+        content: options.width,
       },
       {
         property: 'og:image:height',
-        content: options.height || defaults.height,
+        content: options.height,
       },
     ]
     if (options.alt) {

@@ -1,10 +1,8 @@
 <script lang="ts" setup>
-import { host, path, refreshTime, rpc } from '~/util/logic'
+import { host, options, path, refreshTime } from '~/util/logic'
 
-const config = await rpc.useServerConfig()
-
-const height = config.value?.height || 630
-const width = config.value?.width || 1200
+const height = options.value?.height || 630
+const width = options.value?.width || 1200
 
 const aspectRatio = width / height
 </script>
