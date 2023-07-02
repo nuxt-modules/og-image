@@ -27,13 +27,20 @@ export interface ScreenshotOptions {
 export interface OgImageOptions extends Partial<ScreenshotOptions> {
   provider?: 'browser' | 'satori'
 
-  static?: boolean
   title?: string
   description?: string
   component?: string | null
   alt?: string
+  // cache config
+  cache?: boolean
   cacheKey?: string
   cacheTtl?: number
+  // deprecations
+  /**
+   * @deprecated Use `cache` instead
+   */
+  static?: boolean
+  // catch-all
   [key: string]: any
 }
 

@@ -3,10 +3,10 @@ import type { NitroRouteRules } from 'nitropack'
 import {
   addComponent,
   addImports,
-  addServerHandler, addServerPlugin,
-  addTemplate,
+  addServerHandler, addServerPlugin, addTemplate,
   createResolver,
-  defineNuxtModule, useLogger,
+  defineNuxtModule, installModule,
+  useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
 import chalk from 'chalk'
@@ -36,21 +36,63 @@ export interface ModuleOptions {
    *
    * @default true
    */
-  host?: string
+  enabled: boolean
   /**
-   * The hostname of your website. Only needed when pre-rendering pages.
+   * Default data used within the payload to generate the OG Image.
+   *
+   * You can use this to change the default template, image sizing and more.
+   *
+   * @default { component: 'OgImageTemplateFallback', width: 1200, height: 630, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
    */
-  siteUrl?: string
   defaults: OgImageOptions
+  /**
+   * Fonts to use when rendering the og:image.
+   *
+   * @example ['Roboto:400,700', { path: 'path/to/font.ttf', weight: 400, name: 'MyFont' }]
+   */
   fonts: InputFontConfig[]
+  /**
+   * Options to pass to satori.
+   *
+   * @see https://github.com/vercel/satori/blob/main/src/satori.ts#L18
+   */
   satoriOptions: Partial<SatoriOptions>
+  /**
+   * Should the playground at <path>/__og_image__ be enabled in development.
+   *
+   * @default true
+   */
   playground: boolean
+  /**
+   * Include Satori runtime.
+   *
+   * @default true
+   */
   runtimeSatori: boolean
+  /**
+   * Include the Browser runtime.
+   * This will need to be manually enabled for production environments.
+   *
+   * @default `process.dev`
+   */
   runtimeBrowser: boolean
   /**
    * Enables debug logs and a debug endpoint.
+   *
+   * @false false
    */
   debug: boolean
+  /**
+   * Modify the cache behavior.
+   *
+   * Passing a boolean will enable or disable the runtime cache with the default options.
+   *
+   * Providing a record will allow you to configure the runtime cache fully.
+   *
+   * @default true
+   * @see https://nitro.unjs.io/guide/storage#mountpoints
+   * @example { driver: 'redis', host: 'localhost', port: 6379, password: 'password' }
+   */
   runtimeCacheStorage: boolean | (Record<string, any> & {
     driver: string
   })
@@ -103,20 +145,21 @@ export default defineNuxtModule<ModuleOptions>({
     configKey: 'ogImage',
   },
   defaults(nuxt) {
-    const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || process.env.NUXT_SITE_URL || nuxt.options.runtimeConfig.public?.siteUrl || nuxt.options.runtimeConfig.siteUrl) as string
     return {
       enabled: true,
       defaults: {
         component: 'OgImageTemplateFallback',
         width: 1200,
         height: 630,
-        cacheTtl: 24 * 60 * 60 * 1000, // default is to cache the image for 24 hours
+        // default is to cache the image for 24 hours
+        cache: true,
+        cacheTtl: 24 * 60 * 60 * 1000,
       },
       componentDirs: ['OgImage', 'OgImageTemplate'],
       runtimeSatori: true,
       runtimeBrowser: nuxt.options.dev,
       fonts: [],
-      runtimeCacheStorage: false,
+      runtimeCacheStorage: true,
       satoriOptions: {},
       playground: process.env.NODE_ENV === 'development' || nuxt.options.dev,
       debug: false,
@@ -329,11 +372,14 @@ declare module 'nitropack' {
       // allow other modules to modify runtime data
       // @ts-expect-error untyped
       nuxt.hooks.callHook('og-image:config', config)
-      // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = {
-        ...config,
+        satoriOptions: config.satoriOptions,
+        runtimeSatori: config.runtimeSatori,
+        runtimeBrowser: config.runtimeBrowser,
+        // @ts-expect-error runtime type
+        defaults: config.defaults,
         // avoid adding credentials
-        runtimeCacheStorage: Boolean(config.runtimeCacheStorage),
+        runtimeCacheStorage: typeof config.runtimeCacheStorage === 'boolean' ? 'default' : config.runtimeCacheStorage.driver,
         // convert the fonts to uniform type to fix ts issue
         fonts: config.fonts.map((f) => {
           if (typeof f === 'string') {
@@ -512,7 +558,7 @@ export async function useProvider(provider) {
         }
 
         // if we're running `nuxi generate` we prerender everything (including dynamic)
-        if ((nuxt.options._generate || entry.static) && entry.provider === 'browser')
+        if ((nuxt.options._generate || entry.cache) && entry.provider === 'browser')
           screenshotQueue.push(entry)
       })
 

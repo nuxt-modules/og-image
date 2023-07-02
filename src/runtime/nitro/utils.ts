@@ -45,11 +45,12 @@ export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fall
 }
 export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgImageOptions> {
   const { runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
-  const cache = (runtimeCacheStorage || process.env.prerender) ? prefixStorage(useStorage(), 'og-image-cache:options') : false
+  const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
+  const cache = (runtimeCacheStorage || process.env.prerender) ? prefixStorage(useStorage(), `${baseCacheKey}/options`) : false
 
   let options
   // check the cache first
-  if (cache && await cache.hasItem(path)) {
+  if (!process.dev && cache && await cache.hasItem(path)) {
     const cachedValue = await cache.getItem(path) as any
     if (cachedValue && cachedValue.value && cachedValue.expiresAt < Date.now())
       options = cachedValue.value
@@ -67,7 +68,7 @@ export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgI
     if (cache) {
       await cache.setItem(path, {
         value: options,
-        expiresAt: Date.now() + (options.static ? 60 * 60 * 1000 : 5 * 1000),
+        expiresAt: Date.now() + (options.cache ? 60 * 60 * 1000 : 5 * 1000),
       })
     }
   }

@@ -28,8 +28,9 @@ export default defineEventHandler(async (e) => {
       statusMessage: `Provider ${options.provider} is missing.`,
     })
   }
-  const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0
-  const cache = prefixStorage(useStorage(), 'og-image-cache:images')
+  const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0 && options.cache
+  const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
+  const cache = prefixStorage(useStorage(), `${baseCacheKey}/images`)
   const key = options.cacheKey || e.node.req.url as string
   let png
   if (useCache && await cache.hasItem(key)) {
@@ -61,7 +62,7 @@ export default defineEventHandler(async (e) => {
   }
 
   if (png) {
-    if (!process.dev && options.static) {
+    if (!process.dev && options.cache) {
       setHeader(e, 'Cache-Control', 'public, max-age=31536000')
     }
     else {
