@@ -47,15 +47,17 @@ export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgI
   const { runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
   const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
   const cache = (runtimeCacheStorage || process.env.prerender) ? prefixStorage(useStorage(), `${baseCacheKey}/options`) : false
+  let key = e.node.req.url.replace('/__og_image__/og.png', '') as string
+  key = (key === '/' || !key) ? 'index' : key
 
   let options
   // check the cache first
-  if (!process.dev && cache && await cache.hasItem(path)) {
-    const cachedValue = await cache.getItem(path) as any
+  if (!process.dev && cache && await cache.hasItem(key)) {
+    const cachedValue = await cache.getItem(key) as any
     if (cachedValue && cachedValue.value && cachedValue.expiresAt < Date.now())
       options = cachedValue.value
     else
-      await cache.removeItem(path)
+      await cache.removeItem(key)
   }
   if (!options) {
     options = await globalThis.$fetch('/api/og-image-options', {
@@ -66,7 +68,7 @@ export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgI
     })
 
     if (cache) {
-      await cache.setItem(path, {
+      await cache.setItem(key, {
         value: options,
         expiresAt: Date.now() + (options.cache ? 60 * 60 * 1000 : 5 * 1000),
       })

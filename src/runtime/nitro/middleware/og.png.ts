@@ -31,7 +31,8 @@ export default defineEventHandler(async (e) => {
   const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0 && options.cache
   const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/images`)
-  const key = options.cacheKey || e.node.req.url as string
+  let key = options.cacheKey || e.node.req.url.replace('/__og_image__/og.png', '') as string
+  key = (key === '/' || !key) ? 'index' : key
   let png
   if (useCache && await cache.hasItem(key)) {
     const { value, expiresAt } = await cache.getItem(key) as any

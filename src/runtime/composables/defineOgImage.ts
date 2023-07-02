@@ -17,7 +17,7 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
 }
 
 /**
- * @deprecated Use `defineOgImageCached` instead
+ * @deprecated Use `defineOgImage` or `defineOgImageCached` instead
  */
 export function defineOgImageStatic(options: OgImageOptions = {}) {
   return defineOgImageCached(options)
