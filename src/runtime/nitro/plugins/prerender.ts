@@ -24,7 +24,7 @@ const OgImagePrenderNitroPlugin: NitroAppPlugin = (nitroApp) => {
       value: JSON.stringify(options),
       expiresAt: Date.now() + 60 * 60 * 1000, // 60 minutes to prerender
     })
-    if (options.cache && options.provider === 'satori')
+    if (options.provider === 'satori')
       appendHeader(event, 'x-nitro-prerender', joinURL(url, '/__og_image__/og.png'))
   })
 }
