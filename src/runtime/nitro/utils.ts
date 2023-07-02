@@ -47,7 +47,7 @@ export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgI
   const { runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
   const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
   const cache = (runtimeCacheStorage || process.env.prerender) ? prefixStorage(useStorage(), `${baseCacheKey}/options`) : false
-  let key = e.node.req.url.replace('/__og_image__/og.png', '') as string
+  let key = path.replace('/__og_image__/og.png', '') as string
   key = (key === '/' || !key) ? 'index' : key
 
   let options
