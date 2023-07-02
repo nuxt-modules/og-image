@@ -20,6 +20,7 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
+import { requireSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
@@ -122,10 +123,14 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // allow config fallback
-    // @todo use site config
-    config.siteUrl = config.siteUrl || config.host!
-    if (!nuxt.options.dev && nuxt.options._generate && !config.siteUrl)
-      logger.warn('Missing `ogImage.siteUrl` and site is being prerendered. This will result in broken og images.')
+    await installModule(await resolvePath('nuxt-site-config'))
+    await updateSiteConfig({
+      _context: 'nuxt-og-image:config',
+      url: config.siteUrl || config.host!,
+    })
+    requireSiteConfig('nuxt-og-image', {
+      url: 'Required to generate absolute URLs for the og:image.',
+    }, { prerender: true })
 
     nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
     // provide cache storage for prerendering

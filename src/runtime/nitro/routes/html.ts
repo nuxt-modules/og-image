@@ -5,9 +5,9 @@ import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import twemoji from 'twemoji'
-import { fetchOptions, useHostname } from '../utils'
+import { fetchOptions } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
-import { useRuntimeConfig } from '#imports'
+import { useNitroOrigin, useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
   const { fonts, defaults, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
@@ -33,7 +33,7 @@ export default defineEventHandler(async (e) => {
   if (options.provider === 'browser' && !options.component) {
     // need the path without the base url, left trim the base url
     const pathWithoutBase = path.replace(new RegExp(`^${useRuntimeConfig().app.baseURL}`), '')
-    return sendRedirect(e, withBase(pathWithoutBase, useHostname(e)))
+    return sendRedirect(e, withBase(pathWithoutBase, useNitroOrigin(e)))
   }
 
   if (!options.component) {
@@ -160,7 +160,7 @@ img.emoji {
         const href = stylesheet.match(/href="(.*?)"/)![1]
         try {
           let css = (await (await $fetch(href, {
-            baseURL: useHostname(e),
+            baseURL: useNitroOrigin(e),
           })).text())
           // css is in format of const __vite__css = "<css>"
           if (css.includes('const __vite__css =')) {
@@ -179,7 +179,7 @@ img.emoji {
     if (hasInlineStyles) {
       const inlineCss = await import('inline-css').then(m => m?.default || m)
       htmlTemplate = inlineCss(htmlTemplate, {
-        url: useHostname(e),
+        url: useNitroOrigin(e),
         applyLinkTags: false,
         removeLinkTags: false,
         removeStyleTags: false,

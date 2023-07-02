@@ -1,8 +1,7 @@
 import { withBase } from 'ufo'
 import { useRequestEvent } from '#app'
-import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
-import { useHostname } from '../nitro/util-hostname'
-import { useRouter, useRuntimeConfig, useServerHead } from '#imports'
+import { useNitroOrigin, useRouter, useRuntimeConfig, useServerHead, useSiteConfig } from '#imports'
+import { componentNames } from '#build/og-image-component-names.mjs'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
@@ -42,11 +41,9 @@ export function defineOgImage(options: OgImageOptions = {}) {
     const route = router?.currentRoute?.value?.path || ''
 
     const e = useRequestEvent()
-    const baseUrl = process.env.prerender ? siteUrl : useHostname(e)
+    const baseUrl = process.env.prerender ? (await useSiteConfig(e)).url : useNitroOrigin(e)
 
-    function resolveSrc() {
-      return withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl)
-    }
+    const src = withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl || '')
 
     const meta = [
       {
@@ -55,11 +52,11 @@ export function defineOgImage(options: OgImageOptions = {}) {
       },
       {
         name: 'twitter:image:src',
-        content: resolveSrc,
+        content: src,
       },
       {
         property: 'og:image',
-        content: resolveSrc,
+        content: src,
       },
       {
         property: 'og:image:width',

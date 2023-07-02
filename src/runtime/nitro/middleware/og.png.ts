@@ -2,9 +2,9 @@ import { Buffer } from 'node:buffer'
 import { createError, defineEventHandler, sendRedirect, setHeader } from 'h3'
 import { joinURL, parseURL, withoutTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
-import { fetchOptions, useHostname } from '../utils'
+import { fetchOptions } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
-import { useRuntimeConfig, useStorage } from '#imports'
+import { useNitroOrigin, useRuntimeConfig, useStorage } from '#imports'
 
 export default defineEventHandler(async (e) => {
   const { runtimeBrowser, runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
@@ -20,7 +20,7 @@ export default defineEventHandler(async (e) => {
 
   const options = await fetchOptions(e, basePath)
   if (process.env.NODE_ENV === 'production' && !process.env.prerender && !runtimeBrowser && options.provider === 'browser')
-    return sendRedirect(e, joinURL(useHostname(e), '__nuxt_og_image__/browser-provider-not-supported.png'))
+    return sendRedirect(e, joinURL(useNitroOrigin(e), '__nuxt_og_image__/browser-provider-not-supported.png'))
   const provider = await useProvider(options.provider!)
   if (!provider) {
     throw createError({
