@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useSiteConfig } from '#imports'
 
 // inherited attrs can mess up the satori parser
 defineOptions({
@@ -15,10 +16,6 @@ const props = defineProps({
   description: {
     type: String,
     default: 'Set a description to change me.',
-  },
-  background: {
-    type: String,
-    default: 'linear-gradient(to bottom, #dbf4ff, #fff1f1)',
   },
   color: {
     type: String,
@@ -144,7 +141,7 @@ const MaybeIconComponent = resolveComponent('Icon')
         </div>
       </div>
       <div v-if="typeof icon === 'string' && typeof MaybeIconComponent !== 'string'" style="width: 30%;" class="flex justify-end">
-        <MaybeIconComponent :name="icon" size="250px" style="margin: 0 auto;" />
+        <component :as="MaybeIconComponent" :name="icon" size="250px" style="margin: 0 auto;" />
       </div>
     </div>
     <div class="flex flex-row absolute bottom-10 text-left items-start">
