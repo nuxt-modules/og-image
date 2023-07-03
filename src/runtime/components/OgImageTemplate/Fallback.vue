@@ -141,7 +141,7 @@ const MaybeIconComponent = resolveComponent('Icon')
         </div>
       </div>
       <div v-if="typeof icon === 'string' && typeof MaybeIconComponent !== 'string'" style="width: 30%;" class="flex justify-end">
-        <component :as="MaybeIconComponent" :name="icon" size="250px" style="margin: 0 auto;" />
+        <MaybeIconComponent :name="icon" size="250px" style="margin: 0 auto;" />
       </div>
     </div>
     <div class="flex flex-row absolute bottom-10 text-left items-start">
