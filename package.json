@@ -2,7 +2,8 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "2.0.0-beta.68",
-  "packageManager": "pnpm@8.6.0",
+  "packageManager": "pnpm@8.6.5",
+  "description": "Enlightened OG Image generation for Nuxt.",
   "license": "MIT",
   "funding": "https://github.com/sponsors/harlan-zw",
   "homepage": "https://github.com/harlan-zw/nuxt-og-image#readme",
@@ -53,7 +54,6 @@
     "image-size": "^1.0.2",
     "inline-css": "^4.0.2",
     "launch-editor": "^2.6.0",
-    "nuxt-icon": "^0.4.2",
     "nuxt-site-config": "^0.8.1",
     "nuxt-site-config-kit": "^0.8.1",
     "nypm": "^0.2.2",
@@ -84,8 +84,9 @@
     "eslint": "8.44.0",
     "jest-image-snapshot": "^6.1.0",
     "nuxt": "^3.6.1",
+    "nuxt-icon": "^0.4.2",
     "playwright": "^1.35.1",
     "sass": "^1.63.6",
-    "vitest": "^0.32.2"
+    "vitest": "^0.32.4"
   }
 }
