@@ -20,7 +20,7 @@ Enlightened OG Image generation for Nuxt 3.
 <tbody>
 <td align="center">
 <img width="800" height="0" /><br>
-<i>Status:</i> <a href="https://github.com/harlan-zw/nuxt-og-image/releases/tag/v1.0.0">v1 Released</a></b> <br>
+<i>Status:</i> <a href="https://github.com/harlan-zw/nuxt-og-image/releases/tag/v2.0.0">v2 Released</a></b> <br>
 <sup> Please report any issues 🐛</sup><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="800" height="0" />
@@ -28,6 +28,7 @@ Enlightened OG Image generation for Nuxt 3.
 </tbody>
 </table>
 </p>
+
 
 ℹ️ Looking for a complete SEO solution? Check out [Nuxt SEO Kit](https://github.com/harlan-zw/nuxt-seo-kit).
 
@@ -42,7 +43,6 @@ Enlightened OG Image generation for Nuxt 3.
 
 ## Demos
 
-- [Vercel Edge Demo](https://nuxt-og-image-playground.vercel.app/)
 - [StackBlitz - Minimal Playground Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
 - [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json)
 
@@ -50,11 +50,11 @@ Enlightened OG Image generation for Nuxt 3.
 
 ```bash
 # Install module
-npm install --save-dev nuxt-og-image@beta
+npm install --save-dev nuxt-og-image
 # Using yarn
-yarn add --dev nuxt-og-image@beta
+yarn add --dev nuxt-og-image
 #
-pnpm add -D nuxt-og-image@beta
+pnpm add -D nuxt-og-image
 ```
 
 ## Setup
@@ -69,12 +69,12 @@ export default defineNuxtConfig({
 })
 ```
 
-This module requires [Nuxt Server Components](https://nuxt.com/docs/guide/directory-structure/components#standalone-server-components)
+This module requires [Nuxt Island Components](https://nuxt.com/docs/guide/directory-structure/components#standalone-server-components)
 which will be enabled for you.
 
 # Guides
 
-## Your first Satori `og:image`
+## Your first `og:image`
 
 For this guide, you will create your Satori OG image using the default component for your home page.
 
@@ -279,22 +279,6 @@ export default defineNuxtConfig({
 ```
 
 ## SSR Images
-
-### Compatibility
-
-Both Satori and Browser will work in Node based environments. Prerendering is fully supported.
-
-When you want to generate dynamic images at runtime there are certain Nitro runtime limitations.
-
-| Provider                                                                        | Satori                | Browser |
-|---------------------------------------------------------------------------------|-----------------------|---------|
-| Node                                                                            | ✅                     | ✅       |
-| [Vercel](https://nuxt-og-image-playground.vercel.app/)                          | ✅                     | ❌    |
-| [Vercel Edge](https://nuxt-og-image-playground-gkdt.vercel.app/)                | ✅                     | ❌       |
-| [Cloudflare Pages](https://nuxt-og-image-playground.pages.dev/)                 | ✅                     | ❌       |
-| [Netlify](https://nuxt-og-image-playground-netlify.netlify.app/)                | ✅                     | ❌       |
-| [Netlify Edge](https://nuxt-og-image-playground-netlify-edge.netlify.app/)      | (Soon)                | ❌       |
-| [StackBlitz](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=package.json) | ✅ (emojis don't work) | ❌       |
 
 Other providers are yet to be tested. Please create an issue if your nitro preset is not listed.
 
@@ -714,13 +698,13 @@ defineOgImageScreenshot({
 
 ## Module Config
 
-### `siteUrl`
+### `enabled`
 
-- Type: `string`
-- Default: `undefined`
-- Required: `true`
+- Type: `boolean`
+- Default: `true`
+- Required: `false`
 
-The site URL of your site. This is required when prerendering to generate the absolute path of the `og:image`.
+Conditionally toggle the module.
 
 ### `defaults`
 
@@ -730,9 +714,17 @@ The site URL of your site. This is required when prerendering to generate the ab
 
 The default options to use when generating images.
 
+### `playground`
+
+- Type: `boolean`
+- Default: `true`
+- Required: `false`
+
+Should the playground at `<path>/__og_image__` be enabled in development.
+
 ### `fonts`
 
-- Type: ``${string}:${number}`[]`
+- Type: `InputFontConfig[]`
 - Default: `['Inter:400', 'Inter:700']`
 - Required: `false`
 
@@ -743,7 +735,7 @@ For example, if you wanted to add the Roboto font, you would add the following:
 ```ts
 export default defineNuxtConfig({
   ogImage: {
-    fonts: ['Roboto:400', 'Roboto:700']
+    fonts: ['Roboto:400,700', { path: 'path/to/font.ttf', weight: 400, name: 'MyFont' }]
   }
 })
 ```
@@ -771,6 +763,66 @@ Whether to use Satori at runtime. This is useful to disable if you're prerenderi
 Whether to use Playwright at runtime. You will need to enable this for production environments and ensure you are using 
 a supported nitro preset and have the required dependencies.
 
+### `componentDirs`
+
+- Type: `string[]`
+- Default: `['OgImage', 'OgImageTemplate']`
+- Required: `false`
+
+Extra component directories that should be used to resolve components.
+
+
+### `runtimeCacheStorage`
+
+- Type: `boolean | (Record<string, any> & { driver: string })`
+- Default: `true`
+- Required: `false`
+
+Modify the cache behavior.
+
+Passing a boolean will enable or disable the runtime cache with the default options.
+
+Providing a record will allow you to configure the runtime cache fully.
+
+```ts
+export default defineNuxtConfig({
+  ogImage: {
+    runtimeCacheStorage: {
+      driver: 'redis',
+      host: 'localhost',
+      port: 6379,
+      password: 'password'
+    }
+  }
+```
+
+### `debug`
+
+- Type: `boolean`
+- Default: `false`
+- Required: `false`
+
+Enables debug logs and a debug endpoint.
+
+### `siteUrl` - DEPRECATED
+
+- Type: `string`
+
+Used to ensure images are absolute URLs.
+
+Note: This is only required when prerendering your site.
+
+This is now handled by the [nuxt-site-config](https://github.com/harlan-zw/nuxt-site-config) module.
+
+You should provide `url` through site config instead, otherwise see the module for more examples.
+
+```ts
+export default defineNuxtConfig({
+  site: {
+    url: process.env.NUXT_SITE_URL || 'https://example.com',
+  },
+})
+```
 
 ## Examples
 

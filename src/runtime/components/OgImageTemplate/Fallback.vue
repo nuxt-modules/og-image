@@ -143,27 +143,13 @@ const MaybeIconComponent = resolveComponent('Icon')
         </div>
       </div>
       <div v-if="typeof icon === 'string' && typeof MaybeIconComponent !== 'string'" style="width: 30%;" class="flex justify-end">
-        <MaybeIconComponent :name="icon" size="250px" style="margin: 0 auto; margin-left: 100px; opacity: 0.9;" />
+        <MaybeIconComponent :name="icon" size="250px" style="margin: 0 auto 0 100px;opacity: 0.9;" />
       </div>
     </div>
     <div class="flex flex-row absolute bottom-10 text-left items-start">
       <img v-if="siteLogo" :src="siteLogo" height="30">
       <div v-else-if="siteName" style="font-size: 25px;" class="font-bold">
         {{ siteName }}
-      </div>
-      <div v-else class="flex flex-row items-center space-x-5">
-        <div class="flex flex-row items-end gap-1.5 font-bold text-2xl text-white font-title">
-          <svg height="25" width="25" class="d-inline-block mb-2px mr-2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#00DC82" d="M62.3,-53.9C74.4,-34.5,73.5,-9,67.1,13.8C60.6,36.5,48.7,56.5,30.7,66.1C12.7,75.7,-11.4,74.8,-31.6,65.2C-51.8,55.7,-67.9,37.4,-73.8,15.7C-79.6,-6,-75.1,-31.2,-61.1,-51C-47.1,-70.9,-23.6,-85.4,0.8,-86C25.1,-86.7,50.2,-73.4,62.3,-53.9Z" transform="translate(100 100)" />
-          </svg>
-          <span>Nuxt</span><span class="sm:text-primary-500 dark:sm:text-primary-400 ml-2">SEO</span>
-        </div>
-        <div class="opacity-75 flex flex-row items-end gap-1.5 font-bold text-2xl text-white font-title px-5">
-          •
-        </div>
-        <div class="flex flex-row items-end gap-1.5 font-bold text-2xl text-white font-title">
-          OG Image
-        </div>
       </div>
     </div>
   </div>
