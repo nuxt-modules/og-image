@@ -30,8 +30,6 @@ Enlightened runtime images generated with Vue templates, for Nuxt.
 </p>
 
 
-ℹ️ Looking for a complete SEO solution? Check out [Nuxt SEO Kit](https://github.com/harlan-zw/nuxt-seo-kit).
-
 ## Features
 
 - ✨ Turn your Vue components into `og:image` templates
@@ -43,17 +41,13 @@ Enlightened runtime images generated with Vue templates, for Nuxt.
 
 1. Install `nuxt-og-image` dependency to your project:
 
-::code-group
 
-```bash [yarn]
+```bash
+#
 yarn add -D nuxt-og-image
-```
-
-```bash [npm]
+#
 npm install -D nuxt-og-image
-```
-
-```sh [pnpm]
+#
 pnpm i -D nuxt-og-image
 ```
 
@@ -61,7 +55,7 @@ pnpm i -D nuxt-og-image
 
 2. Add it to your `modules` section in your `nuxt.config`:
 
-```ts [nuxt.config]
+```ts
 export default defineNuxtConfig({
   modules: ['nuxt-og-image']
 })
