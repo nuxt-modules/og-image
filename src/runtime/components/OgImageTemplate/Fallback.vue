@@ -126,6 +126,8 @@ const siteName = computed(() => {
 const siteLogo = computed(() => {
   return props.siteLogo || siteConfig.logo || 'https://nuxt.com/assets/design-kit/logo/full-logo-green-light.png'
 })
+
+const MaybeIconComponent = resolveComponent('Icon')
 </script>
 
 <template>
@@ -141,8 +143,8 @@ const siteLogo = computed(() => {
           {{ description }}
         </div>
       </div>
-      <div v-if="typeof icon === 'string'" style="width: 30%;" class="flex justify-end">
-        <Icon :name="icon" size="250px" style="margin: 0 auto;" />
+      <div v-if="typeof icon === 'string' && typeof MaybeIconComponent !== 'string'" style="width: 30%;" class="flex justify-end">
+        <MaybeIconComponent :name="icon" size="250px" style="margin: 0 auto;" />
       </div>
     </div>
     <div class="flex flex-row absolute bottom-10 text-left items-start">
