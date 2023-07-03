@@ -9,7 +9,7 @@ const width = options.value?.width || 1200
 const aspectRatio = width / height
 
 const src = computed(() => {
-  return withQuery(`${host.value}/api/og-image-html`, { path: path.value, timestamp: refreshTime.value, ...optionsOverrides.value })
+  return withQuery(`${host.value}/api/og-image-html`, { options: optionsOverrides.value, path: path.value, timestamp: refreshTime.value })
 })
 </script>
 
