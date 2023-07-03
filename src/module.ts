@@ -20,7 +20,7 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
-import { requireSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
+import { requireSiteConfig, updateSiteConfig, installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
@@ -195,8 +195,8 @@ export default defineNuxtModule<ModuleOptions>({
       await ensureDependencies(nuxt, ['puppeteer-core@14.1.1', '@sparticuz/chrome-aws-lambda@14.1.1'])
     }
 
+    await installNuxtSiteConfig()
     // allow config fallback
-    await installModule(await resolvePath('nuxt-site-config'))
     await updateSiteConfig({
       _context: 'nuxt-og-image:config',
       url: config.siteUrl || config.host!,
