@@ -70,6 +70,7 @@ export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgI
     if (cache) {
       await cache.setItem(key, {
         value: options,
+        // cache for 1 minute or 5 seconds, avoids subsequent internal fetches
         expiresAt: Date.now() + (options.cache ? 60 * 60 * 1000 : 5 * 1000),
       })
     }

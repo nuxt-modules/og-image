@@ -3,7 +3,7 @@ import { joinURL } from 'ufo'
 import type { NitroAppPlugin } from 'nitropack'
 import { prefixStorage } from 'unstorage'
 import { extractOgImageOptions } from '../utils-pure'
-import { useStorage, useRuntimeConfig } from '#imports'
+import { useRuntimeConfig, useStorage } from '#imports'
 
 const OgImagePrenderNitroPlugin: NitroAppPlugin = (nitroApp) => {
   if (!process.env.prerender)

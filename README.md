@@ -46,33 +46,15 @@ Enlightened OG Image generation for Nuxt 3.
 - [StackBlitz - Minimal Playground Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
 - [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json)
 
-## Runtime Provider Compatibility
-
-Both Satori and Browser will work in Node based environments. Prerendering is fully supported.
-
-When you want to generate dynamic images at runtime there are certain Nitro runtime limitations.
-
-| Provider                                                                        | Satori                | Browser |
-|---------------------------------------------------------------------------------|-----------------------|---------|
-| Node                                                                            | ✅                     | ✅       |
-| [Vercel](https://nuxt-og-image-playground.vercel.app/)                          | ✅                     | ❌    |
-| [Vercel Edge](https://nuxt-og-image-playground-gkdt.vercel.app/)                | ✅                     | ❌       |
-| [Cloudflare Pages](https://nuxt-og-image-playground.pages.dev/)                 | ✅                     | ❌       |
-| [Netlify](https://nuxt-og-image-playground-netlify.netlify.app/)                | ✅                     | ❌       |
-| [Netlify Edge](https://nuxt-og-image-playground-netlify-edge.netlify.app/)      | (Soon)                | ❌       |
-| [StackBlitz](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=package.json) | ✅ (emojis don't work) | ❌       |
-
-Other providers are yet to be tested. Please create an issue if your nitro preset is not listed.
-
 ## Install
-
-Note: The `main` branch is documentation for the beta version, it's recommended to use this version.
 
 ```bash
 # Install module
 npm install --save-dev nuxt-og-image@beta
 # Using yarn
 yarn add --dev nuxt-og-image@beta
+#
+pnpm add -D nuxt-og-image@beta
 ```
 
 ## Setup
@@ -297,6 +279,25 @@ export default defineNuxtConfig({
 ```
 
 ## SSR Images
+
+### Compatibility
+
+Both Satori and Browser will work in Node based environments. Prerendering is fully supported.
+
+When you want to generate dynamic images at runtime there are certain Nitro runtime limitations.
+
+| Provider                                                                        | Satori                | Browser |
+|---------------------------------------------------------------------------------|-----------------------|---------|
+| Node                                                                            | ✅                     | ✅       |
+| [Vercel](https://nuxt-og-image-playground.vercel.app/)                          | ✅                     | ❌    |
+| [Vercel Edge](https://nuxt-og-image-playground-gkdt.vercel.app/)                | ✅                     | ❌       |
+| [Cloudflare Pages](https://nuxt-og-image-playground.pages.dev/)                 | ✅                     | ❌       |
+| [Netlify](https://nuxt-og-image-playground-netlify.netlify.app/)                | ✅                     | ❌       |
+| [Netlify Edge](https://nuxt-og-image-playground-netlify-edge.netlify.app/)      | (Soon)                | ❌       |
+| [StackBlitz](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=package.json) | ✅ (emojis don't work) | ❌       |
+
+Other providers are yet to be tested. Please create an issue if your nitro preset is not listed.
+
 
 When using `nuxt build`, you can only use the `browser` provider with the `node` Nitro preset.
 
