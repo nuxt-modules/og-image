@@ -10,7 +10,7 @@
 
 
 <p align="center">
-Enlightened OG Image generation for Nuxt 3.
+Enlightened runtime images generated with Vue templates, for Nuxt.
 </p>
 
 <img src="https://repository-images.githubusercontent.com/578125755/90f77ca8-95be-4e06-9600-332afe1ba24f">
@@ -41,33 +41,37 @@ Enlightened OG Image generation for Nuxt 3.
 - 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
 - ⚙️ Works on the edge: Vercel Edge, Netlify Edge and Cloudflare Workers
 
-## Demos
+1. Install `nuxt-og-image` dependency to your project:
 
-- [StackBlitz - Minimal Playground Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
-- [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json)
+::code-group
 
-## Install
-
-```bash
-# Install module
-npm install --save-dev nuxt-og-image
-# Using yarn
-yarn add --dev nuxt-og-image
-#
-pnpm add -D nuxt-og-image
+```bash [yarn]
+yarn add -D nuxt-og-image
 ```
 
-## Setup
+```bash [npm]
+npm install -D nuxt-og-image
+```
 
-_nuxt.config.ts_
+```sh [pnpm]
+pnpm i -D nuxt-og-image
+```
 
-```ts
+::
+
+2. Add it to your `modules` section in your `nuxt.config`:
+
+```ts [nuxt.config]
 export default defineNuxtConfig({
-  modules: [
-    'nuxt-og-image',
-  ],
+  modules: ['nuxt-og-image']
 })
 ```
+
+That's it! You can now use all the components and composables in your Nuxt app ✨
+
+## Playground
+
+:u-button{icon="i-simple-icons-stackblitz" label="Play on StackBlitz" size="lg" to="https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue" target="_blank"}
 
 # Documentation
 
