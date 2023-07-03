@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer'
 import { createError, defineEventHandler, sendRedirect, setHeader } from 'h3'
 import { joinURL, parseURL, withoutTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+import { hash } from 'ohash'
 import { fetchOptions } from '../utils'
 import { useProvider } from '#nuxt-og-image/provider'
 import { useNitroOrigin, useRuntimeConfig, useStorage } from '#imports'
@@ -31,8 +32,8 @@ export default defineEventHandler(async (e) => {
   const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0 && options.cache
   const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/images`)
-  let key = options.cacheKey || e.node.req.url.replace('/__og_image__/og.png', '') as string
-  key = (key === '/' || !key) ? 'index' : key
+  // cache will invalidate if the options change
+  const key = [(options.path === '/' || !options.path) ? 'index' : options.path, hash(options)].join(':')
   let png
   if (useCache && await cache.hasItem(key)) {
     const { value, expiresAt } = await cache.getItem(key) as any
