@@ -5,7 +5,7 @@ import {
   addImports,
   addServerHandler, addServerPlugin, addTemplate,
   createResolver,
-  defineNuxtModule, installModule,
+  defineNuxtModule,
   useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
@@ -20,7 +20,7 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
-import { requireSiteConfig, updateSiteConfig, installNuxtSiteConfig } from 'nuxt-site-config-kit'
+import { installNuxtSiteConfig, requireSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
@@ -172,7 +172,7 @@ export default defineNuxtModule<ModuleOptions>({
       logger.debug('The module is disabled, skipping setup.')
       return
     }
-    const { resolve, resolvePath } = createResolver(import.meta.url)
+    const { resolve } = createResolver(import.meta.url)
 
     logger.debug('Using Nitro preset', getNitroPreset(nuxt))
 
