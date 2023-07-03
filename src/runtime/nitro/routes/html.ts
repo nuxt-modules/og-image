@@ -5,6 +5,7 @@ import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import twemoji from 'twemoji'
+import { defu } from 'defu'
 import { fetchOptions } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
 import { useNitroOrigin, useRuntimeConfig } from '#imports'
@@ -16,18 +17,19 @@ export default defineEventHandler(async (e) => {
   const scale = query.scale
   const mode = query.mode || 'light'
   // extract the options from the original path
-  let options: OgImageOptions | undefined
+  let queryOptions: OgImageOptions | undefined
   if (query.options) {
     try {
-      options = JSON.parse(query.options as string) as OgImageOptions
+      queryOptions = JSON.parse(query.options as string) as OgImageOptions
     }
     catch {
       // fallback is okay
     }
   }
 
-  if (!options)
-    options = await fetchOptions(e, path)
+  let options = await fetchOptions(e, path)
+  if (queryOptions)
+    options = defu(queryOptions, options)
 
   // for screenshots just return the base path
   if (options.provider === 'browser' && !options.component) {
