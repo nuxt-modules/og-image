@@ -1,8 +1,8 @@
-import { withBase } from 'ufo'
-import { unref } from 'vue'
+import { joinURL } from 'ufo'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
-import { useNitroOrigin, useRequestEvent, useRouter, useRuntimeConfig, useServerHead, useSiteConfig } from '#imports'
-import { componentNames } from '#build/og-image-component-names.mjs'
+import { normaliseOgImageOptions } from './util'
+import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#imports'
+import {Head} from "@unhead/schema";
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
@@ -51,67 +51,20 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
 
 export async function defineOgImage(_options: OgImageOptions = {}) {
   // clone to avoid any issues
-  const options = { ...unref(_options) }
   if (process.server) {
-    // support deprecations
-    if (options.static)
-      options.cache = options.cache || options.static
-    if (!options.provider)
-      options.provider = 'satori'
-    const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
-    if (options.provider === 'satori' && !runtimeSatori)
-      options.provider = 'browser'
-    // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
-    if (options.component && componentNames) {
-      const originalName = options.component
-      let isValid = componentNames.some(component => component.pascalName === originalName || component.kebabName === originalName)
-      if (!isValid) {
-        for (const component of componentNames) {
-          if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
-            options.component = component.pascalName
-            isValid = true
-            break
-          }
-        }
-      }
-    }
+    const options = normaliseOgImageOptions(_options)
 
-    const router = useRouter()
-    const route = router?.currentRoute?.value?.path || ''
+    const src = withSiteUrl(joinURL(useRouter().currentRoute.value.path || '', '/__og_image__/og.png'))
 
-    const e = useRequestEvent()
-    const baseUrl = process.env.prerender ? (await useSiteConfig(e)).url : useNitroOrigin(e)
-
-    const src = withBase(`${route === '/' ? '' : route}/__og_image__/og.png`, baseUrl || '')
-
-    const meta = [
-      {
-        name: 'twitter:card',
-        content: 'summary_large_image',
-      },
-      {
-        name: 'twitter:image:src',
-        content: src,
-      },
-      {
-        property: 'og:image',
-        content: src,
-      },
-      {
-        property: 'og:image:width',
-        content: options.width,
-      },
-      {
-        property: 'og:image:height',
-        content: options.height,
-      },
+    const meta: Head['meta'] = [
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:image:src', content: src },
+      { property: 'og:image', content: src },
+      { property: 'og:image:width', content: options.width },
+      { property: 'og:image:height', content: options.height },
     ]
-    if (options.alt) {
-      meta.push({
-        property: 'og:image:alt',
-        content: options.alt,
-      })
-    }
+    if (options.alt)
+      meta.push({ property: 'og:image:alt', content: options.alt })
 
     useServerHead({
       meta,
