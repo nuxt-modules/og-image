@@ -51,7 +51,6 @@ npm install -D nuxt-og-image
 pnpm i -D nuxt-og-image
 ```
 
-::
 
 2. Add it to your `modules` section in your `nuxt.config`:
 
@@ -61,11 +60,10 @@ export default defineNuxtConfig({
 })
 ```
 
-That's it! You can now use all the components and composables in your Nuxt app ✨
+## Playgrounds
 
-## Playground
-
-:u-button{icon="i-simple-icons-stackblitz" label="Play on StackBlitz" size="lg" to="https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue" target="_blank"}
+- [StackBlitz - Minimal Playground Example](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=pages/index.vue)
+- [StackBlitz - Alpine Theme](https://stackblitz.com/edit/github-hgunsf?file=package.json)
 
 # Documentation
 
