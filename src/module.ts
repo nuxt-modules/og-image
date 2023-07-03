@@ -5,7 +5,7 @@ import {
   addImports,
   addServerHandler, addServerPlugin, addTemplate,
   createResolver,
-  defineNuxtModule,
+  defineNuxtModule, hasNuxtModule,
   useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
@@ -318,6 +318,7 @@ declare module 'nitropack' {
     ]
       .forEach((name) => {
         addComponent({
+          global: hasNuxtModule('@nuxt/content'),
           name: name === 'index' ? 'OgImage' : `OgImage${name}`,
           filePath: resolve(`./runtime/components/OgImage/${name}`),
         })
