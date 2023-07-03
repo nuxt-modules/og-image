@@ -1,8 +1,24 @@
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core'
-import { base, containerWidth, description, path, options, refreshSources } from './util/logic'
-import { $computed, computed, fetchOptions, useHead, useRoute, watch, watchEffect } from '#imports'
+import JsonEditorVue from 'json-editor-vue'
+import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
+import { Pane, Splitpanes } from 'splitpanes'
+import { version } from '../package.json'
+import {
+  base,
+  containerWidth,
+  description,
+  options,
+  optionsEditor,
+  optionsOverrides,
+  path,
+  propsEdited,
+  refreshSources,
+  slowRefreshSources,
+} from './util/logic'
+import { $computed, computed, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
 import { devtoolsClient } from '~/composables/devtools-client'
+import 'splitpanes/dist/splitpanes.css'
 
 useHead({
   title: 'OG Image Playground',
@@ -21,14 +37,53 @@ const constrainsWidth = computed(() => {
   return useRoute().path !== '/vnodes' && useRoute().path !== '/options'
 })
 
-watchEffect(async () => {
-  options.value = (await fetchOptions()).value
+const optionRef = await fetchOptions()
+watch(optionRef, (val) => {
+  options.value = unref(val)
+  val = { ...unref(val) }
+  delete val.path
+  delete val.cache
+  delete val.cacheTtl
+  delete val.component
+  delete val.provider
+  optionsEditor.value = val
+}, {
+  immediate: true,
 })
 
 const setPath = useDebounceFn((e) => {
   path.value = e.target.value
   refreshSources()
 }, 1000)
+
+const mode = useColorMode()
+
+function updateProps(props: Record<string, any>) {
+  optionsOverrides.value = props
+  propsEdited.value = true
+  refreshSources()
+}
+
+const isDark = computed(() => {
+  return mode.value === 'dark'
+})
+
+async function resetProps(fetch = true) {
+  if (fetch)
+    await fetchOptions()
+  optionsOverrides.value = {}
+  propsEdited.value = false
+  const cloned = { ...options.value }
+  delete cloned.path
+  delete cloned.cache
+  delete cloned.cacheTtl
+  delete cloned.component
+  delete cloned.provider
+  optionsEditor.value = cloned
+  if (fetch)
+    refreshSources()
+}
+await resetProps(false)
 </script>
 
 <template>
@@ -52,7 +107,7 @@ const setPath = useDebounceFn((e) => {
           <NuxtLink v-slot="{ isActive }" to="/" class="transition-all hover:(ml-1) whitespace-nowrap">
             <Icon name="carbon:image-search" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
             <span :class="[isActive ? 'underline' : 'opacity-60']">
-              {{ options.component }}.vue
+              Template HTML
             </span>
           </NuxtLink>
           <NuxtLink v-if="options.provider === 'satori'" v-slot="{ isActive }" to="/svg" class="transition-all hover:(ml-1) whitespace-nowrap">
@@ -101,6 +156,9 @@ const setPath = useDebounceFn((e) => {
           </div>
         </div>
       </div>
+      <div class="p-3 text-gray-400 text-sm text-center">
+        v{{ version }}
+      </div>
     </header>
     <main class="mx-auto flex flex-col w-full bg-white dark:bg-black max-h-screen overflow-hidden dark:bg-dark-700 bg-light-200 ">
       <div class="py-9px dark:(bg-dark-800) bg-light-200 px-10 opacity-80 flex items-center max-w-full block space-x-5">
@@ -117,8 +175,34 @@ const setPath = useDebounceFn((e) => {
         </div>
       </div>
       <hr class="border-1 border-light-400 dark:border-dark-400">
-      <div class="h-full max-h-full overflow-hidden lg:p-10 p-3" :style="{ width: containerWidth && constrainsWidth ? `${containerWidth}px` : '100%' }">
-        <NuxtPage />
+      <div class="h-full max-h-full overflow-hidden lg:p-5 p-2" :style="{ width: containerWidth && constrainsWidth ? `${containerWidth}px` : '100%' }">
+        <Splitpanes class="default-theme" @resize="slowRefreshSources">
+          <Pane size="80">
+            <NuxtPage />
+          </Pane>
+          <Pane size="20">
+            <h2 class="font-semibold text-lg mb-5">
+              Props
+            </h2>
+            <div class="relative">
+              <JsonEditorVue
+                :model-value="optionsEditor"
+                :class="isDark ? ['jse-theme-dark'] : []"
+                :main-menu-bar="false"
+                :navigation-bar="false"
+                @update:model-value="updateProps"
+              />
+              <span v-if="propsEdited" class="absolute top-1 right-1 text-10px ml-1 bg-blue-100 text-blue-700 px-1 py-2px rounded">modified</span>
+            </div>
+            <div v-if="propsEdited" class="text-xs p-2 text-gray-300">
+              <div>
+                Update {{ options.component }} to persist the changes. <button type="button" class="underline" @click="resetProps(true)">
+                  Reset
+                </button>
+              </div>
+            </div>
+          </Pane>
+        </Splitpanes>
       </div>
     </main>
   </div>
@@ -131,5 +215,16 @@ const setPath = useDebounceFn((e) => {
 div[role="tabpanel"] {
   width: 100%;
   display: flex;
+}
+.splitpanes.default-theme .splitpanes__pane {
+  background-color: transparent !important;
+}
+.dark .splitpanes.default-theme .splitpanes__splitter {
+  background-color: transparent !important;
+  border-left: 1px solid rgba(156, 163, 175, 0.05);
+  background-image: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.05) 50%, rgba(0, 0, 0, 0));
+}
+.dark .splitpanes.default-theme .splitpanes__splitter:before, .splitpanes.default-theme .splitpanes__splitter:after {
+  background-color: rgba(156, 163, 175, 0.3) !important;
 }
 </style>

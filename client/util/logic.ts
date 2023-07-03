@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { withBase } from 'ufo'
-import type {OgImageOptions, PlaygroundClientFunctions} from '../../src/types'
+import type { OgImageOptions, PlaygroundClientFunctions } from '../../src/types'
 import { connectWS, createBirpcClient } from '#imports'
 
 export const refreshTime = ref(Date.now())
@@ -13,12 +13,23 @@ export const base = ref('/')
 
 export const options = ref<OgImageOptions>({})
 
+// prop editing
+export const optionsOverrides = ref({})
+export const propsEdited = ref(false)
+export const optionsEditor = ref({})
+
 export const refreshSources = useDebounceFn(() => {
   refreshTime.value = Date.now()
 }, 200)
 
+export const slowRefreshSources = useDebounceFn(() => {
+  refreshTime.value = Date.now()
+}, 1000)
+
 const clientFunctions: PlaygroundClientFunctions = {
   refresh() {
+    propsEdited.value = false
+    optionsOverrides.value = {}
     // @todo this is pretty hacky, we should validate the file being changed is one we care about
     refreshSources()
   },

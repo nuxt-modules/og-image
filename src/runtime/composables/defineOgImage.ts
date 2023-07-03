@@ -1,8 +1,8 @@
 import { joinURL } from 'ufo'
+import type { Head } from '@unhead/schema'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
 import { normaliseOgImageOptions } from './util'
 import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#imports'
-import {Head} from "@unhead/schema";
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()

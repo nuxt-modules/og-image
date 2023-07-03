@@ -3,7 +3,7 @@ import { useAsyncData } from '#imports'
 import { host, path, refreshTime } from '~/util/logic'
 
 export async function fetchOptions() {
-  const { data: options } = await useAsyncData<OgImageOptions>(() => {
+  const { data } = await useAsyncData<OgImageOptions>(() => {
     return $fetch('/api/og-image-options', {
       baseURL: host.value,
       query: { path: path.value },
@@ -11,7 +11,7 @@ export async function fetchOptions() {
   }, {
     watch: [path, refreshTime],
   })
-  return options
+  return data
 }
 
 export async function fetchVNodes() {

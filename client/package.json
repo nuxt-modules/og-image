@@ -9,8 +9,11 @@
   "dependencies": {
     "@nuxt/devtools-kit": "^0.6.6",
     "flatted": "^3.2.7",
+    "json-editor-vue": "^0.10.6",
     "nuxt-icon": "^0.4.2",
-    "shiki-es": "^0.2.0"
+    "shiki-es": "^0.2.0",
+    "splitpanes": "^3.1.5",
+    "vanilla-jsoneditor": "^0.17.8"
   },
   "devDependencies": {
     "@headlessui/vue": "^1.7.14",

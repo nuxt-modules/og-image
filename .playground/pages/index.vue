@@ -55,8 +55,6 @@ watch([color, title], () => {
   // do debounce
   setTailwindUrl()
 })
-
-const { data: posts } = await useFetch('/api/posts')
 </script>
 <template>
 <div class="px-7 my-5">
