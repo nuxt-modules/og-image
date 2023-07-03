@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue'
-import type { OgImageOptions } from '../../types'
+import type { OgImageOptions } from '../../../types'
 import { defineOgImageWithoutCache } from '#imports'
 
 export default defineComponent<OgImageOptions>({
