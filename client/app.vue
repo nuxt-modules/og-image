@@ -30,6 +30,8 @@ const clientPath = $computed(() => devtoolsClient.value?.host.nuxt.vueApp.config
 path.value = clientPath || useRoute().query.path as string || '/'
 base.value = useRoute().query.base as string || '/'
 watch(() => clientPath, (v) => {
+  optionsOverrides.value = {}
+  propsEdited.value = false
   path.value = v
 })
 
@@ -52,6 +54,8 @@ watch(optionRef, (val) => {
 })
 
 const setPath = useDebounceFn((e) => {
+  optionsOverrides.value = {}
+  propsEdited.value = false
   path.value = e.target.value
   refreshSources()
 }, 1000)
@@ -110,7 +114,7 @@ await resetProps(false)
               Template HTML
             </span>
           </NuxtLink>
-          <NuxtLink v-if="options.provider === 'satori'" v-slot="{ isActive }" to="/svg" class="transition-all hover:(ml-1) whitespace-nowrap">
+          <NuxtLink v-if="options?.provider === 'satori'" v-slot="{ isActive }" to="/svg" class="transition-all hover:(ml-1) whitespace-nowrap">
             <Icon name="carbon:svg" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
             <span :class="[isActive ? 'underline' : 'opacity-60']">
               Preview SVG
