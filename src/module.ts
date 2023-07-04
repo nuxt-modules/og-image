@@ -103,6 +103,12 @@ export interface ModuleOptions {
    */
   componentDirs: string[]
   /**
+   * Manually modify the deployment compatibility.
+   *
+   * @default { browser: 'playwright', satori: 'default', wasm: 'fetch', png: 'resvg-node' }
+   */
+  runtimeCompatibility: RuntimeCompatibilitySchema
+  /**
    * The url of your site.
    * Used to generate absolute URLs for the og:image.
    *
@@ -155,6 +161,7 @@ export default defineNuxtModule<ModuleOptions>({
         cache: true,
         cacheTtl: 24 * 60 * 60 * 1000,
       },
+      runtimeCompatibility: DefaultRuntimeCompatibility,
       componentDirs: ['OgImage', 'OgImageTemplate'],
       runtimeSatori: true,
       runtimeBrowser: nuxt.options.dev,
