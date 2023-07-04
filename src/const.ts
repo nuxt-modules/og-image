@@ -39,6 +39,12 @@ export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
   node: true,
 }
 
+const cloudflare: Partial<RuntimeCompatibilitySchema> = {
+  browser: false,
+  wasm: 'import',
+  png: 'resvg-wasm',
+  node: false,
+}
 export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
   'nitro-dev': {
     wasm: 'fetch',
@@ -70,14 +76,6 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     png: 'resvg-wasm',
     node: false,
   },
-  'cloudflare-pages': {
-    browser: false,
-    wasm: 'import',
-    png: 'resvg-wasm',
-    node: false,
-  },
-  'cloudflare': {
-    browser: false,
-    wasm: 'import',
-  },
+  'cloudflare-pages': cloudflare,
+  'cloudflare': cloudflare,
 }
