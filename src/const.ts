@@ -45,6 +45,10 @@ const cloudflare: Partial<RuntimeCompatibilitySchema> = {
   png: 'resvg-wasm',
   node: false,
 }
+const awsLambda: Partial<RuntimeCompatibilitySchema> = {
+  browser: false, // too difficult to support
+  wasm: 'inline',
+}
 export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
   'nitro-dev': {
     wasm: 'fetch',
@@ -56,10 +60,8 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     wasm: 'inline',
     png: 'resvg-wasm',
   },
-  'netlify': {
-    browser: 'lambda',
-    wasm: 'inline',
-  },
+  'aws-lambda': awsLambda,
+  'netlify': awsLambda,
   'netlify-edge': {
     wasm: 'inline',
     png: 'resvg-wasm',

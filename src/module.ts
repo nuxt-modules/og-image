@@ -509,14 +509,13 @@ export async function useProvider(provider) {
             updated = true
           }
 
-          if (_nitro.options.preset.includes('netlify') && path.endsWith('netlify.mjs')) {
+          if ((_nitro.options.preset.includes('netlify') && path.endsWith('netlify.mjs')) || (_nitro.options.preset === 'aws-lambda' && path.endsWith('aws-lambda.mjs'))) {
             // See https://github.com/unjs/nitro/pull/1274
             const match = '// TODO: handle event.isBase64Encoded\n'
               + '  });'
             contents = contents.replace(match, `${match}\n
   const headers = normalizeOutgoingHeaders(r.headers);
-  // image buffers must be base64 encoded
-  if (Buffer.isBuffer(r.body) && headers["content-type"].startsWith("image/")) {
+  if (Buffer.isBuffer(r.body)) {
     return {
       statusCode: r.status,
       headers,
