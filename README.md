@@ -39,6 +39,8 @@ Enlightened runtime images generated with Vue templates, for Nuxt.
 - 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
 - ⚙️ Works on the edge: Vercel Edge, Netlify Edge and Cloudflare Workers
 
+## Installation
+
 1. Install `nuxt-og-image` dependency to your project:
 
 
