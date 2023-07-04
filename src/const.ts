@@ -25,6 +25,8 @@ export interface RuntimeCompatibilitySchema {
   satori: false | 'default' | 'yoga-wasm'
   wasm: 'inline' | 'import' | 'fetch'
   png: 'resvg-wasm' | 'svg2png' | 'resvg-node'
+  inlineCss?: 'node' | 'mock'
+  node?: boolean
   wasmImportQuery?: string
 }
 
@@ -34,6 +36,7 @@ export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
   satori: 'default',
   wasm: 'fetch',
   png: 'resvg-node',
+  node: true,
 }
 
 export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
@@ -54,6 +57,7 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
   'netlify-edge': {
     wasm: 'inline',
     png: 'resvg-wasm',
+    node: false,
   },
   'vercel': {
     // exceeds 50mb limit
@@ -64,11 +68,13 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     wasm: 'import',
     wasmImportQuery: '?module',
     png: 'resvg-wasm',
+    node: false,
   },
   'cloudflare-pages': {
     browser: false,
     wasm: 'import',
     png: 'resvg-wasm',
+    node: false,
   },
   'cloudflare': {
     browser: false,

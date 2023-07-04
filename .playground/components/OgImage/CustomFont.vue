@@ -15,7 +15,13 @@ const theme = computed(() => props.themeColor || '#dbf4ff')
   <div :style="{ padding: '0 30px', display: 'flex', flexDirection: 'column' }">
     <p :style="{ fontSize: '75px', fontWeight: 'bold', marginBottom: '20px' }">{{ title }}</p>
     <p :style="{ fontSize: '35px', fontWeight: 400 }">{{ description }}</p>
+    <p class="inline-style">Test inline style, colour should be red</p>
   </div>
   <div :style="{ position: 'absolute', top: '50px', left: '50px', fontSize: '40px', fontWeight: 300 }">{{ appName }}</div>
 </div>
 </template>
+<style scoped>
+.inline-style {
+  color: red;
+}
+</style>

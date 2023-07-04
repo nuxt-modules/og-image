@@ -9,6 +9,7 @@ import { defu } from 'defu'
 import { fetchOptions } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../../types'
 import { useNitroOrigin, useRuntimeConfig } from '#imports'
+import loadInlineCSS from '#nuxt-og-image/inline-css'
 
 export default defineEventHandler(async (e) => {
   const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
@@ -16,6 +17,7 @@ export default defineEventHandler(async (e) => {
   const path = withBase(query.path as string || '/', useRuntimeConfig().app.baseURL)
   const scale = query.scale
   const mode = query.mode || 'light'
+  const nitroOrigin = useNitroOrigin(e)
   // extract the options from the original path
   let queryOptions: OgImageOptions | undefined
   if (query.options) {
@@ -35,7 +37,7 @@ export default defineEventHandler(async (e) => {
   if (options.provider === 'browser' && !options.component) {
     // need the path without the base url, left trim the base url
     const pathWithoutBase = path.replace(new RegExp(`^${useRuntimeConfig().app.baseURL}`), '')
-    return sendRedirect(e, withBase(pathWithoutBase, useNitroOrigin(e)))
+    return sendRedirect(e, withBase(pathWithoutBase, nitroOrigin))
   }
 
   if (!options.component) {
@@ -149,45 +151,51 @@ img.emoji {
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 
-  let hasInlineStyles = false
-  // for the tags we extract the stylesheet href and inline them where they are a vue template
-  const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*?">/g)
-  if (stylesheets) {
-    for (const stylesheet of stylesheets) {
-      if (!stylesheet.includes(`${options.component}.vue`)) {
-        htmlTemplate = htmlTemplate.replace(stylesheet, '')
-      }
-      else {
-        // using regex
-        const href = stylesheet.match(/href="(.*?)"/)![1]
-        try {
-          let css = (await (await $fetch(href, {
-            baseURL: useNitroOrigin(e),
-          })).text())
-          // css is in format of const __vite__css = "<css>"
-          if (css.includes('const __vite__css =')) {
-            // decode characters like \n
-            css = css.match(/const __vite__css = "(.*)"/)![1].replace(/\\n/g, '\n')
-          }
-          // we remove the last line from the css //# sourceMappingURL=
-          htmlTemplate = htmlTemplate.replace(stylesheet, `<style>${css.replace(/\/\/# sourceMappingURL=.*/, '')}</style>`)
-          hasInlineStyles = true
+  const inlineCss = loadInlineCSS()
+  if (!inlineCss.__mock) {
+    let hasInlineStyles = false
+    // for the tags we extract the stylesheet href and inline them where they are a vue template
+    const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*?">/g)
+    if (stylesheets) {
+      for (const stylesheet of stylesheets) {
+        // @todo we should check the actual component names
+        if (!stylesheet.includes(`${options.component.replace('OgImageTemplate', '').replace('OgImage', '')}.vue`)) {
+          htmlTemplate = htmlTemplate.replace(stylesheet, '')
         }
-        catch {}
+        else {
+          // using regex
+          const href = stylesheet.match(/href="(.*?)"/)![1]
+          try {
+            let css = (await (await $fetch(href, {
+              baseURL: nitroOrigin,
+            })).text())
+            // css is in format of const __vite__css = "<css>"
+            if (css.includes('const __vite__css =')) {
+              // decode characters like \n
+              css = css.match(/const __vite__css = "(.*)"/)![1].replace(/\\n/g, '\n')
+            }
+            css = css.replace(/\/\*# sourceMappingURL=.*?\*\//g, '')
+              // need to replace all !important, they don't work in Satori
+              .replaceAll('! important', '')
+              .replaceAll('!important')
+            // we remove the last line from the css //# sourceMappingURL=
+            htmlTemplate = htmlTemplate.replace(stylesheet, `<style>${css}</style>`)
+            hasInlineStyles = true
+          }
+          catch {
+          }
+        }
+      }
+    }
+    if (hasInlineStyles) {
+      try {
+        htmlTemplate = await inlineCss(htmlTemplate, {
+          url: nitroOrigin,
+        })
+      }
+      catch {
       }
     }
   }
-  try {
-    if (hasInlineStyles) {
-      const inlineCss = await import('inline-css').then(m => m?.default || m)
-      htmlTemplate = inlineCss(htmlTemplate, {
-        url: useNitroOrigin(e),
-        applyLinkTags: false,
-        removeLinkTags: false,
-        removeStyleTags: false,
-      })
-    }
-  }
-  catch {}
   return htmlTemplate
 })

@@ -21,12 +21,14 @@ import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
 import { installNuxtSiteConfig, requireSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
+import { provider } from 'std-env'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
-import { Wasms } from './const'
+import type { RuntimeCompatibilitySchema } from './const'
+import { DefaultRuntimeCompatibility, Wasms } from './const'
 import { ensureDependencies, getNitroPreset, getNitroProviderCompatibility } from './util'
 import { extendTypes } from './kit'
 
@@ -453,6 +455,11 @@ export default function() {
         nitroConfig.virtual!['#nuxt-og-image/png'] = `import png from '${providerPath}/png/${nitroCompatibility.png}'
 export default function() {
  return png
+}
+`
+        nitroConfig.virtual!['#nuxt-og-image/inline-css'] = `import inlineCss from '${providerPath}/inline-css/${nitroCompatibility.inlineCss || 'mock'}'
+export default function() {
+ return inlineCss
 }
 `
       }
