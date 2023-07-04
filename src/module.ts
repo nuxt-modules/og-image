@@ -422,6 +422,10 @@ declare module 'nitropack' {
         nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
       }
 
+      // mock the resvg-js dependency in edge runtimes
+      if (nitroCompatibility.png === 'resvg-wasm')
+        nitroConfig.alias!['@resvg/resvg-js'] = 'unenv/runtime/mock/proxy-cjs'
+
       nitroConfig.publicAssets = nitroConfig.publicAssets || []
       customAssetDirs.forEach((dir) => {
         nitroConfig.publicAssets!.push({ dir, maxAge: 31536000 })
