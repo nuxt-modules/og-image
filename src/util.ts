@@ -4,8 +4,9 @@ import {
 } from 'nypm'
 import { provider } from 'std-env'
 import defu from 'defu'
+import { useNuxt } from '@nuxt/kit'
 import type { RuntimeCompatibilitySchema } from './const'
-import { DefaultRuntimeCompatibility, RuntimeCompatibility } from './const'
+import { RuntimeCompatibility } from './const'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -27,24 +28,32 @@ export function detectTarget(options: { static?: boolean } = {}) {
   return options?.static ? autodetectableStaticProviders[provider] : autodetectableProviders[provider]
 }
 
-export function getNitroPreset(nuxt: Nuxt) {
+export function getNitroPreset(nuxt: Nuxt = useNuxt()) {
   return process.env.NITRO_PRESET || nuxt.options.nitro.preset || detectTarget() || 'node-server'
 }
 
-export function getNitroProviderCompatibility(nuxt: Nuxt): false | RuntimeCompatibilitySchema {
-  if (provider === 'stackblitz')
-    return defu(RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
-  if (nuxt.options.dev || nuxt.options._prepare || nuxt.options._generate) {
-    return defu({
+export function getNitroProviderCompatibility(defaults: RuntimeCompatibilitySchema, nuxt: Nuxt = useNuxt()): false | RuntimeCompatibilitySchema {
+  let compatibility
+  if (provider === 'stackblitz') {
+    compatibility = RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema
+  }
+  else if (nuxt.options.dev || nuxt.options._prepare || nuxt.options._generate) {
+    compatibility = {
       wasm: 'fetch',
       browser: 'universal',
-    } as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
+    } as RuntimeCompatibilitySchema
   }
-  const target = getNitroPreset(nuxt)
-  const compatibility = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
-  if (compatibility === false)
-    return false
-  return defu((compatibility || {}) as RuntimeCompatibilitySchema, DefaultRuntimeCompatibility)
+  else {
+    const target = getNitroPreset(nuxt)
+    const lookup = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
+    if (lookup === false)
+      return false
+    compatibility = (lookup || {}) as RuntimeCompatibilitySchema
+  }
+  compatibility = defu(compatibility, defaults)
+  // compatibility is now resolved, normalise
+  compatibility.inlineCss = compatibility.inlineCss || (compatibility.node ? 'node' : 'mock')
+  return compatibility
 }
 
 export function ensureDependencies(nuxt: Nuxt, dep: string[]) {

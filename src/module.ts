@@ -174,14 +174,14 @@ export default defineNuxtModule<ModuleOptions>({
     }
     const { resolve } = createResolver(import.meta.url)
 
-    logger.debug('Using Nitro preset', getNitroPreset(nuxt))
+    logger.debug('Using Nitro preset', getNitroPreset())
 
-    const nitroCompatibility = getNitroProviderCompatibility(nuxt)
+    const nitroCompatibility = getNitroProviderCompatibility(config.runtimeCompatibility)
     logger.debug('Nitro compatibility', nitroCompatibility)
 
-    const nitroTarget = process.env.NITRO_PRESET || nuxt.options.nitro.preset
+    const nitroTarget = process.env.NITRO_PRESET || nuxt.options.nitro.preset || provider
     if (!nitroCompatibility) {
-      logger.warn(`\`nuxt-og-image\` does not support the nitro target \`${nitroTarget}\`. Please make an issue. `)
+      logger.warn(`\`nuxt-og-image\` does not support the nitro preset \`${nitroTarget}\`. Please make an issue. `)
       return
     }
 
