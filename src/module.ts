@@ -1,4 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises'
+import * as fs from 'node:fs'
 import type { NitroRouteRules } from 'nitropack'
 import {
   addComponent,
@@ -20,8 +21,10 @@ import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
-import { installNuxtSiteConfig, requireSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
+import { installNuxtSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import { provider } from 'std-env'
+import { hash } from 'ohash'
+import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
@@ -210,9 +213,6 @@ export default defineNuxtModule<ModuleOptions>({
       _context: 'nuxt-og-image:config',
       url: config.siteUrl || config.host!,
     })
-    requireSiteConfig('nuxt-og-image', {
-      url: 'Required to generate absolute URLs for the og:image.',
-    }, { prerender: true })
 
     nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
     // provide cache storage for prerendering
@@ -334,7 +334,7 @@ declare module 'nitropack' {
       })
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponents: { pascalName: string; kebabName: string }[] = []
+    const ogImageComponents: { pascalName: string; kebabName: string; hash: string }[] = []
     nuxt.hook('components:extend', (components) => {
       // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
       components.forEach((component) => {
@@ -343,10 +343,16 @@ declare module 'nitropack' {
           if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir))
             valid = true
         })
-        if (valid) {
+        if (valid || component.pascalName === 'OgImageTemplateFoo') {
+          // get hash of the file
           component.island = true
           component.mode = 'server'
-          ogImageComponents.push({ pascalName: component.pascalName, kebabName: component.kebabName })
+          ogImageComponents.push({
+            // purge cache when component changes
+            hash: hash(fs.readFileSync(component.filePath, 'utf-8')),
+            pascalName: component.pascalName,
+            kebabName: component.kebabName,
+          })
         }
       })
     })
@@ -383,6 +389,7 @@ declare module 'nitropack' {
       // @ts-expect-error untyped
       nuxt.hooks.callHook('og-image:config', config)
       nuxt.options.runtimeConfig['nuxt-og-image'] = {
+        version,
         satoriOptions: config.satoriOptions,
         runtimeSatori: config.runtimeSatori,
         runtimeBrowser: config.runtimeBrowser,

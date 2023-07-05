@@ -48,6 +48,7 @@ watch(optionRef, (val) => {
   delete val.cacheTtl
   delete val.component
   delete val.provider
+  delete val.componentHash
   optionsEditor.value = val
 }, {
   immediate: true,
@@ -83,6 +84,7 @@ async function resetProps(fetch = true) {
   delete cloned.cacheTtl
   delete cloned.component
   delete cloned.provider
+  delete cloned.componentHash
   optionsEditor.value = cloned
   if (fetch)
     refreshSources()

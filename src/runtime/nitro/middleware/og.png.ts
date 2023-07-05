@@ -8,7 +8,7 @@ import { useProvider } from '#nuxt-og-image/provider'
 import { useNitroOrigin, useRuntimeConfig, useStorage } from '#imports'
 
 export default defineEventHandler(async (e) => {
-  const { runtimeBrowser, runtimeCacheStorage } = useRuntimeConfig()['nuxt-og-image']
+  const { runtimeBrowser, runtimeCacheStorage, version } = useRuntimeConfig()['nuxt-og-image']
 
   const path = parseURL(e.path).pathname
   // convert to regex
@@ -33,7 +33,7 @@ export default defineEventHandler(async (e) => {
   const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/images`)
   // cache will invalidate if the options change
-  const key = [(options.path === '/' || !options.path) ? 'index' : options.path, hash(options)].join(':')
+  const key = [(options.path === '/' || !options.path) ? 'index' : options.path, hash({ ...options, version })].join(':')
   let png
   if (useCache && await cache.hasItem(key)) {
     const { value, expiresAt } = await cache.getItem(key) as any

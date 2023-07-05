@@ -22,6 +22,7 @@ export function normaliseOgImageOptions(_options: OgImageOptions) {
       for (const component of componentNames) {
         if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
           options.component = component.pascalName
+          options.componentHash = component.hash
           isValid = true
           break
         }
