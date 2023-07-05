@@ -30,10 +30,10 @@ export default defineEventHandler(async (e) => {
     })
   }
   const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0 && options.cache
-  const baseCacheKey = runtimeCacheStorage === 'default' ? '/cache/og-image' : '/og-image'
+  const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/og-image${version}` : `/og-image/${version}`
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/images`)
   // cache will invalidate if the options change
-  const key = [(options.path === '/' || !options.path) ? 'index' : options.path, hash({ ...options, version })].join(':')
+  const key = [(options.path === '/' || !options.path) ? 'index' : options.path, hash(options)].join(':')
   let png
   if (useCache && await cache.hasItem(key)) {
     const { value, expiresAt } = await cache.getItem(key) as any
