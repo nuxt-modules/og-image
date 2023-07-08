@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, getQuery } from 'h3'
 import { withoutBase } from 'ufo'
 import { defu } from 'defu'
-import type { RuntimeOgImageOptions } from '../../../types'
+import type { OgImageOptions, RuntimeOgImageOptions } from '../../types'
 import { extractOgImageOptions } from '../utils'
 import { getRouteRules } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'

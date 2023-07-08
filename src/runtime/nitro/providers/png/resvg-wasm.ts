@@ -1,7 +1,7 @@
 import type { ResvgRenderOptions } from '@resvg/resvg-wasm'
 import { Resvg, initWasm } from '@resvg/resvg-wasm'
 import { wasmLoader } from '../../utils'
-import type { RuntimeOgImageOptions } from '../../../../types'
+import type { RuntimeOgImageOptions } from '../../../types'
 
 const ReSvgLoader = wasmLoader('/* NUXT_OG_IMAGE_RESVG_WASM */', '/resvg.wasm')
 

@@ -1,7 +1,7 @@
 import type { ConvertOptions } from 'svg2png-wasm'
 import { initialize, svg2png } from 'svg2png-wasm'
 import { wasmLoader } from '../../utils'
-import type { RuntimeOgImageOptions } from '../../../../types'
+import type { RuntimeOgImageOptions } from '../../../types'
 
 const Svg2PngLoader = wasmLoader('/* NUXT_OG_IMAGE_SVG2PNG_WASM */', '/svg2png.wasm')
 

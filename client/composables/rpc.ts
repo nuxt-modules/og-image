@@ -1,7 +1,7 @@
 import { createBirpc } from 'birpc'
 import { parse, stringify } from 'flatted'
 import { ref } from 'vue'
-import type { PlaygroundClientFunctions, PlaygroundServerFunctions } from '../../src/types'
+import type { PlaygroundClientFunctions, PlaygroundServerFunctions } from '../../src/runtime/types'
 import { useAsyncData } from '#imports'
 
 // copied from nuxt/devtools, credits @antfu

@@ -1,6 +1,6 @@
 import { joinURL } from 'ufo'
 import type { Head } from '@unhead/schema'
-import type { OgImageOptions, OgImageScreenshotOptions } from '../../types'
+import type { OgImageOptions, OgImageScreenshotOptions } from '../types'
 import { normaliseOgImageOptions } from './util'
 import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#imports'
 

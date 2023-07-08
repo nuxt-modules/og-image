@@ -1,6 +1,6 @@
 import { html as convertHtmlToSatori } from 'satori-html'
 import type { SatoriOptions } from 'satori'
-import type { FontConfig, Renderer } from '../../../../types'
+import type { FontConfig, Renderer } from '../../../types'
 import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'

@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer'
 import type { html } from 'satori-html'
-import type { ModuleOptions } from './module'
+import type { ModuleOptions } from '../module'
 
 export interface ScreenshotOptions {
   colorScheme?: 'dark' | 'light'

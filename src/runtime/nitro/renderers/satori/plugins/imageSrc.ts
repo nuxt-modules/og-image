@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { withBase } from 'ufo'
 import sizeOf from 'image-size'
-import type { RuntimeOgImageOptions, VNode } from '../../../../../types'
+import type { RuntimeOgImageOptions, VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 import { readPublicAssetBase64, toBase64Image } from '../../../utils'
 

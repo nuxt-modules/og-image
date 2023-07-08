@@ -1,5 +1,5 @@
 import { screenshot } from '../../browserUtil'
-import type { Renderer } from '../../../types'
+import type { Renderer } from '../../types'
 import loadBrowserLauncherChunk from '#nuxt-og-image/browser'
 
 const BrowserRenderer: Renderer = {

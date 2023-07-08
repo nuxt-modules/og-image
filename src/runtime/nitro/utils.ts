@@ -5,7 +5,7 @@ import { getQuery } from 'h3'
 import { join } from 'pathe'
 import { prefixStorage } from 'unstorage'
 import sizeOf from 'image-size'
-import type { RuntimeOgImageOptions } from '../../types'
+import type { RuntimeOgImageOptions } from '../types'
 import { useNitroOrigin, useRuntimeConfig, useStorage } from '#imports'
 
 export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fallback: string) {

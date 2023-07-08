@@ -27,7 +27,7 @@ import { hash } from 'ohash'
 import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
-import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './types'
+import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './runtime/types'
 import { setupPlaygroundRPC } from './rpc'
 import { extractOgImageOptions } from './runtime/nitro/utils-pure'
 import type { RuntimeCompatibilitySchema } from './const'
@@ -239,12 +239,16 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.experimental.componentIslands = true
 
     extendTypes('nuxt-og-image', () => {
-      return `interface NuxtOgImageNitroRules {
-  ogImage?: false | Record<string, any>
-}
+      return `
+import type { OgImageOptions } from '${resolve('./runtime/types')}'
+
 declare module 'nitropack' {
-  interface NitroRouteRules extends NuxtOgImageNitroRules {}
-  interface NitroRouteConfig extends NuxtOgImageNitroRules {}
+  interface NitroRouteRules {
+    ogImage?: false | OgImageOptions
+  }
+  interface NitroRouteConfig {
+    ogImage?: false | OgImageOptions
+  }
 }`
     })
 

@@ -7,7 +7,7 @@ import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import twemoji from 'twemoji'
 import { defu } from 'defu'
 import { fetchOptions } from '../utils'
-import type { FontConfig, OgImageOptions } from '../../../types'
+import type { FontConfig, OgImageOptions } from '../../types'
 import { useNitroOrigin, useRuntimeConfig } from '#imports'
 import loadInlineCSS from '#nuxt-og-image/inline-css'
 

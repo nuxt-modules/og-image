@@ -7,7 +7,7 @@ import type { ChannelOptions } from 'birpc'
 import { parse, stringify } from 'flatted'
 import type { Nuxt } from '@nuxt/schema'
 import { resolve } from 'pathe'
-import type { PlaygroundClientFunctions, PlaygroundServerFunctions } from './types'
+import type { PlaygroundClientFunctions, PlaygroundServerFunctions } from './runtime/types'
 import type { ModuleOptions } from './module'
 
 export function setupPlaygroundRPC(nuxt: Nuxt, config: ModuleOptions) {

@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
-import type { ScreenshotOptions } from '../types'
+import type { ScreenshotOptions } from './types'
 
 export async function screenshot(browser: Browser, options: Partial<ScreenshotOptions> & Record<string, any>): Promise<Buffer> {
   const page = await browser.newPage({

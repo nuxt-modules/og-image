@@ -1,4 +1,4 @@
-import type { OgImageOptions } from '../../types'
+import type { OgImageOptions } from '../types'
 import { unref, useRuntimeConfig } from '#imports'
 
 // @ts-expect-error untyped

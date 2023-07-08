@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer'
-import type { FontConfig, RuntimeOgImageOptions, SatoriTransformer, VNode } from '../../../../types'
+import type { FontConfig, RuntimeOgImageOptions, SatoriTransformer, VNode } from '../../../types'
 import { base64ToArrayBuffer, readPublicAsset } from '../../utils'
 import { useStorage } from '#imports'
 

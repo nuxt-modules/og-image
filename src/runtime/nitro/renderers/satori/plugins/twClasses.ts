@@ -1,4 +1,4 @@
-import type { VNode } from '../../../../../types'
+import type { VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 
 // copy classes to tw classes so they get processed
