@@ -2,10 +2,11 @@
 /// <reference types="vitest/globals" />
 
 import { defineConfig } from 'vite'
+import { isCI } from 'std-env'
 
 export default defineConfig({
   test: {
-    threads: false,
+    threads: isCI,
     deps: {
       inline: [
         '@nuxt/test-utils',

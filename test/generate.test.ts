@@ -18,13 +18,21 @@ describe('generate', () => {
   it('basic', async () => {
     process.env.NODE_ENV = 'production'
     process.env.prerender = true
-    process.env.NUXT_PUBLIC_SITE_URL = 'https://nuxt-simple-sitemap.com'
+    process.env.NUXT_PUBLIC_SITE_URL = 'https://nuxtseo.com'
     const { resolve } = createResolver(import.meta.url)
     const rootDir = resolve('../.playground')
     const nuxt = await loadNuxt({
       rootDir,
       overrides: {
         _generate: true,
+        nitro: {
+          prerender: {
+            routes: [
+              '/',
+              '/satori/image',
+            ],
+          },
+        },
       },
     })
 
