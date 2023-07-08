@@ -1,4 +1,5 @@
-import type { OgImageOptions } from '../../types'
+import { defu } from 'defu'
+import type { OgImageOptions } from '../types'
 
 export function decodeHtml(html: string) {
   return html.replace(/&lt;/g, '<')
@@ -27,7 +28,7 @@ function decodeObjectHtmlEntities(obj: Record<string, string | any>) {
   })
   return obj
 }
-export function extractOgImageOptions(html: string): OgImageOptions | false {
+export function extractOgImageOptions(html: string, routeRules: OgImageOptions): OgImageOptions | false {
   // extract the options from our script tag
   const htmlPayload = html.match(/<script id="nuxt-og-image-options" type="application\/json">(.+?)<\/script>/)?.[1]
   if (!htmlPayload)
@@ -35,10 +36,16 @@ export function extractOgImageOptions(html: string): OgImageOptions | false {
 
   let options: OgImageOptions | false
   try {
-    options = JSON.parse(htmlPayload)
+    const payload = JSON.parse(htmlPayload)
+    // remove empty values, allow route rules to override, these comes from template param values like title
+    Object.entries(payload).forEach(([key, value]) => {
+      if (!value)
+        delete payload[key]
+    })
+    options = defu(payload, routeRules)
   }
   catch (e) {
-    options = false
+    options = routeRules
     if (process.dev)
       console.warn('Failed to parse #nuxt-og-image-options', e, options)
   }

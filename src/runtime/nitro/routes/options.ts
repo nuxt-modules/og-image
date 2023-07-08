@@ -21,7 +21,19 @@ export default defineEventHandler(async (e) => {
       statusMessage: `Failed to read the path ${path} for og-image extraction. ${err.message}.`,
     })
   }
-  const extractedPayload = extractOgImageOptions(html!)
+
+  e.node.req.url = path
+  const oldRouteRules = e.context._nitro.routeRules
+  e.context._nitro.routeRules = undefined
+  const routeRules = (getRouteRules(e)?.ogImage || {}) as false | OgImageOptions
+  e.context._nitro.routeRules = oldRouteRules
+  e.node.req.url = e.path
+
+  // has been disabled via route rules
+  if (routeRules === false)
+    return false
+
+  const extractedPayload = extractOgImageOptions(html!, routeRules)
   // not supported
   if (!extractedPayload) {
     throw createError({
@@ -31,16 +43,6 @@ export default defineEventHandler(async (e) => {
   }
 
   // need to hackily reset the event params so we can access the route rules of the base URL
-  e.node.req.url = path
-  const oldRouteRules = e.context._nitro.routeRules
-  e.context._nitro.routeRules = undefined
-  const routeRules = getRouteRules(e)?.ogImage
-  e.context._nitro.routeRules = oldRouteRules
-  e.node.req.url = e.path
-
-  // has been disabled via route rules
-  if (routeRules === false)
-    return false
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
   return defu(
     extractedPayload, routeRules,

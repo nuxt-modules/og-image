@@ -17,6 +17,12 @@ export default defineNuxtConfig({
       })
     }
   ],
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false, // <-- this
+    },
+  ],
   unocss: extendUnocssOptions({}),
   nitro: {
     prerender: {
@@ -88,10 +94,19 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/static': {
+    '/satori/static': {
       ogImage: {
-        width: 1200,
-        height: 1200
+        icon: 'carbon:image-search',
+        description: 'set via route rules!',
+      }
+    },
+    '/satori/route-rules/**': {
+      site: {
+        name: 'nuxt-og-image-route-rules'
+      },
+      ogImage: {
+        icon: 'carbon:image-search',
+        title: 'set via route rules!',
       }
     }
   }

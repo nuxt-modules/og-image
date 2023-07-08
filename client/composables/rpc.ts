@@ -7,6 +7,7 @@ import { useAsyncData } from '#imports'
 // copied from nuxt/devtools, credits @antfu
 
 const RECONNECT_INTERVAL = 2000
+// eslint-disable-next-line @typescript-eslint/ban-types
 let onMessage: Function = () => {}
 
 export const wsConnecting = ref(true)

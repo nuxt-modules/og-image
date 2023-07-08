@@ -6,12 +6,15 @@ definePageMeta({
 })
 
 const description = 'This is a description of the page. It can be a bit longer than the title.'
+useSeoMeta({
+  description,
+})
 </script>
 <template>
   <div>
     <div>
       Static Banner page
     </div>
-    <OgImage title="Static Banner" :description="description" />
+    <OgImage title="Static Banner" />
   </div>
 </template>
