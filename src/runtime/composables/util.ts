@@ -17,15 +17,11 @@ export function normaliseOgImageOptions(_options: OgImageOptions) {
   // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
   if (options.component && componentNames) {
     const originalName = options.component
-    let isValid = componentNames.some(component => component.pascalName === originalName || component.kebabName === originalName)
-    if (!isValid) {
-      for (const component of componentNames) {
-        if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
-          options.component = component.pascalName
-          options.componentHash = component.hash
-          isValid = true
-          break
-        }
+    for (const component of componentNames) {
+      if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
+        options.component = component.pascalName
+        options.componentHash = component.hash
+        break
       }
     }
   }

@@ -340,7 +340,9 @@ declare module 'nitropack' {
       components.forEach((component) => {
         let valid = false
         config.componentDirs.forEach((dir) => {
-          if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir))
+          if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir)
+            // support non-prefixed components
+            || component.shortPath.includes(`/${dir}/`))
             valid = true
         })
         if (valid || component.pascalName === 'OgImageTemplateFoo') {
