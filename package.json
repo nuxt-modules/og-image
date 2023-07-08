@@ -54,8 +54,8 @@
     "image-size": "^1.0.2",
     "inline-css": "^4.0.2",
     "launch-editor": "^2.6.0",
-    "nuxt-site-config": "^1.0.2",
-    "nuxt-site-config-kit": "^1.0.2",
+    "nuxt-site-config": "^1.0.3",
+    "nuxt-site-config-kit": "^1.0.3",
     "nypm": "^0.2.2",
     "ofetch": "^1.1.1",
     "ohash": "^1.1.2",
@@ -88,5 +88,8 @@
     "playwright": "^1.35.1",
     "sass": "^1.63.6",
     "vitest": "^0.33.0"
+  },
+  "resolutions": {
+    "@nuxt/schema": "3.6.2"
   }
 }

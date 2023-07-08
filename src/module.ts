@@ -576,8 +576,8 @@ export async function useProvider(provider) {
         if (!html)
           return
 
-        const extractedOptions = extractOgImageOptions(html)
         const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
+        const extractedOptions = extractOgImageOptions(html, routeRules.ogImage || {})
         if (!extractedOptions || routeRules.ogImage === false)
           return
 
@@ -585,7 +585,6 @@ export async function useProvider(provider) {
           route: ctx.route,
           path: extractedOptions.component ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
           ...extractedOptions,
-          ...(routeRules.ogImage || {}),
         }
 
         // if we're running `nuxi generate` we prerender everything (including dynamic)
@@ -636,26 +635,32 @@ export async function useProvider(provider) {
             nitro.logger.info(`Prerendering ${screenshotQueue.length} og:image screenshots...`)
 
             // normalise
-            for (const entry of screenshotQueue) {
+            for (const k in screenshotQueue) {
+              let entry = screenshotQueue[k]
               // allow inserting items into the queue via hook
               if (entry.route && Object.keys(entry).length === 1) {
                 const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
-                const extractedOptions = extractOgImageOptions(html as string)
                 const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
-                Object.assign(entry, {
-                  // @ts-expect-error runtime
-                  path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route,
-                  ...extractedOptions,
-                  ...(routeRules.ogImage || {}),
-                })
+                const extractedOptions = extractOgImageOptions(html as string, routeRules.ogImage || {})
+                if (!extractedOptions || routeRules.ogImage === false) {
+                  entry.skip = true
+                  continue
+                }
+                screenshotQueue[k] = entry = defu(
+                  { path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route } as Partial<OgImageOptions>,
+                  entry,
+                  extractedOptions,
+                )
               }
               // if we're rendering a component let's fetch the html, it will have everything we need
-              if (entry.component)
+              if (!entry.skip && entry.component)
                 entry.html = await globalThis.$fetch(entry.path)
             }
 
             for (const k in screenshotQueue) {
               const entry = screenshotQueue[k]
+              if (entry.skip)
+                continue
               const start = Date.now()
               let hasError = false
               const dirname = joinURL(nitro.options.output.publicDir, entry.route, '/__og_image__/')
