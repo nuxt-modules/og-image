@@ -36,9 +36,9 @@ export function defineOgImageCached(options: OgImageOptions = {}) {
 
 export function defineOgImageWithoutCache(options: OgImageOptions = {}) {
   return defineOgImage({
+    ...options,
     cache: false,
     cacheTtl: 0,
-    ...options,
   })
 }
 

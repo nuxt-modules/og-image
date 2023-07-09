@@ -1,14 +1,14 @@
 import { Buffer } from 'node:buffer'
 import { createError, defineEventHandler, sendRedirect, setHeader } from 'h3'
-import { joinURL, parseURL, withoutTrailingSlash } from 'ufo'
-import { prefixStorage } from 'unstorage'
+import { joinURL, parseURL, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import { hash } from 'ohash'
-import { fetchOptions } from '../utils'
+import { fetchOptionsCached } from '../utils'
+import { useNitroCache } from '../../cache'
 import { useProvider } from '#nuxt-og-image/provider'
-import { useNitroOrigin, useRuntimeConfig, useStorage } from '#imports'
+import { useNitroOrigin, useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
-  const { runtimeBrowser, runtimeCacheStorage, version } = useRuntimeConfig()['nuxt-og-image']
+  const { runtimeBrowser } = useRuntimeConfig()['nuxt-og-image']
 
   const path = parseURL(e.path).pathname
   // convert to regex
@@ -19,7 +19,7 @@ export default defineEventHandler(async (e) => {
     .replace('__og_image__/og.png', ''),
   )
 
-  const options = await fetchOptions(e, basePath)
+  const options = await fetchOptionsCached(e, basePath)
   if (process.env.NODE_ENV === 'production' && !process.env.prerender && !runtimeBrowser && options.provider === 'browser')
     return sendRedirect(e, joinURL(useNitroOrigin(e), '__nuxt_og_image__/browser-provider-not-supported.png'))
   const provider = await useProvider(options.provider!)
@@ -29,30 +29,29 @@ export default defineEventHandler(async (e) => {
       statusMessage: `Provider ${options.provider} is missing.`,
     })
   }
-  const useCache = runtimeCacheStorage && !process.dev && options.cacheTtl && options.cacheTtl > 0 && options.cache
-  const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/og-image${version}` : `/og-image/${version}`
-  const cache = prefixStorage(useStorage(), `${baseCacheKey}/images`)
+
   // cache will invalidate if the options change
-  const key = [(options.path === '/' || !options.path) ? 'index' : options.path, hash(options)].join(':')
+  const key = [
+    withoutLeadingSlash((options.path === '/' || !options.path) ? 'index' : options.path).replaceAll('/', '-'),
+    `og-${hash(options)}`,
+  ].join(':')
+  const { enabled: cacheEnabled, cachedItem, update } = await useNitroCache(e, 'nuxt-og-image', {
+    key,
+    cacheTtl: options.cacheTtl || 0,
+    cache: process.dev && options.cache!,
+    headers: true,
+  })
   let png
-  if (useCache && await cache.hasItem(key)) {
-    const { value, expiresAt } = await cache.getItem(key) as any
-    if (expiresAt > Date.now()) {
-      setHeader(e, 'Cache-Control', 'public, max-age=31536000')
-      setHeader(e, 'Content-Type', 'image/png')
-      png = Buffer.from(value, 'base64')
-    }
-    else {
-      await cache.removeItem(key)
-    }
-  }
+  if (cachedItem)
+    png = Buffer.from(cachedItem, 'base64')
+
   if (!png) {
     try {
       png = await provider.createPng(options) as Uint8Array
-      if (useCache && png) {
+      if (png) {
         // set cache
         const base64png = Buffer.from(png).toString('base64')
-        await cache.setItem(key, { value: base64png, expiresAt: Date.now() + (options.cacheTtl || 0) })
+        await update(base64png)
       }
     }
     catch (err) {
@@ -64,7 +63,7 @@ export default defineEventHandler(async (e) => {
   }
 
   if (png) {
-    if (!process.dev && options.cache) {
+    if (cacheEnabled) {
       setHeader(e, 'Cache-Control', 'public, max-age=31536000')
     }
     else {

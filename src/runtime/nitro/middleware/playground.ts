@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { parseURL, withBase, withoutTrailingSlash } from 'ufo'
-import { fetchOptions } from '../utils'
+import { fetchOptionsCached } from '../utils'
 import { useRuntimeConfig } from '#imports'
 
 export default defineEventHandler(async (e) => {
@@ -11,7 +11,7 @@ export default defineEventHandler(async (e) => {
   const basePath = withBase(path.replace('/__og_image__', ''), useRuntimeConfig().app.baseURL)
 
   // extract the payload from the original path
-  const options = await fetchOptions(e, basePath === '' ? '/' : basePath)
+  const options = await fetchOptionsCached(e, basePath === '' ? '/' : basePath)
   if (!options)
     return `The route ${basePath} has not been set up for og:image generation.`
 

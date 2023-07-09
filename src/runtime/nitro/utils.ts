@@ -3,10 +3,12 @@ import { Buffer } from 'node:buffer'
 import type { H3Event } from 'h3'
 import { getQuery } from 'h3'
 import { join } from 'pathe'
-import { prefixStorage } from 'unstorage'
 import sizeOf from 'image-size'
+import { defu } from 'defu'
+import { withoutLeadingSlash } from 'ufo'
 import type { RuntimeOgImageOptions } from '../types'
-import { useNitroOrigin, useRuntimeConfig, useStorage } from '#imports'
+import { useNitroCache } from '../cache'
+import { useNitroOrigin, useRuntimeConfig } from '#imports'
 
 export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fallback: string) {
   let promise: Promise<any>
@@ -43,42 +45,40 @@ export function wasmLoader(asyncModuleLoad: Promise<any> | Buffer | string, fall
     },
   }
 }
-export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgImageOptions> {
-  const { runtimeCacheStorage, version } = useRuntimeConfig()['nuxt-og-image']
-  const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/og-image${version}` : `/og-image/${version}`
-  const cache = (runtimeCacheStorage || process.env.prerender) ? prefixStorage(useStorage(), `${baseCacheKey}/options`) : false
-  const key = [(path === '/' || !path) ? 'index' : path].join(':')
-  let options
-  // check the cache first
-  if (!process.dev && cache && await cache.hasItem(key)) {
-    const cachedValue = await cache.getItem(key) as any
-    if (cachedValue && cachedValue.value && cachedValue.expiresAt < Date.now())
-      options = cachedValue.value
-    else
-      await cache.removeItem(key)
-  }
-  if (!options) {
-    options = await globalThis.$fetch('/api/og-image-options', {
-      query: {
-        path,
-      },
-      responseType: 'json',
-    })
 
-    if (cache) {
-      await cache.setItem(key, {
-        value: options,
-        // cache for 1 minute or 5 seconds, avoids subsequent internal fetches
-        expiresAt: Date.now() + (options.cache ? 60 * 1000 : 5 * 1000),
-      })
-    }
-  }
-  return {
-    ...options,
+export async function fetchOptionsCached(e: H3Event, path: string) {
+  const key = [
+    withoutLeadingSlash((path === '/' || !path) ? 'index' : path).replaceAll('/', '-'),
+    'options',
+  ].join(':')
+  const { cachedItem, update } = await useNitroCache(e, 'nuxt-og-image', {
+    key,
+    // allow internal requests to be cached
+    cacheTtl: 5 * 1000,
+    cache: !process.dev,
+    headers: false,
+  })
+  if (cachedItem)
+    return cachedItem as RuntimeOgImageOptions
+
+  const options = await fetchOptions(e, path)
+  await update(options)
+  return options
+}
+
+export async function fetchOptions(e: H3Event, path: string): Promise<RuntimeOgImageOptions> {
+  const options = await globalThis.$fetch('/api/og-image-options', {
+    query: {
+      path,
+    },
+    responseType: 'json',
+  })
+  return defu(
+    { requestOrigin: useNitroOrigin(e) },
+    options,
     // use query data
-    ...getQuery(e),
-    requestOrigin: useNitroOrigin(e),
-  }
+    getQuery(e),
+  ) as RuntimeOgImageOptions
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
