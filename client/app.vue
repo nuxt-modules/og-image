@@ -3,6 +3,7 @@ import { useDebounceFn } from '@vueuse/core'
 import JsonEditorVue from 'json-editor-vue'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
+import { $computed, computed, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
 import { version } from '../package.json'
 import {
   base,
@@ -16,7 +17,6 @@ import {
   refreshSources,
   slowRefreshSources,
 } from './util/logic'
-import { $computed, computed, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
 import { devtoolsClient } from '~/composables/devtools-client'
 import 'splitpanes/dist/splitpanes.css'
 

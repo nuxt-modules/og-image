@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { withQuery } from 'ufo'
-import { host, options, optionsOverrides, path, refreshSources, refreshTime } from '~/util/logic'
 import { computed } from '#imports'
+import { host, options, optionsOverrides, path, refreshSources, refreshTime } from '~/util/logic'
 
 const height = options.value?.height || 630
 const width = options.value?.width || 1200
