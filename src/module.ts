@@ -701,17 +701,15 @@ export async function useProvider(provider) {
         screenshotQueue = []
       }
 
-      if (nuxt.options._generate) {
-        // SSR mode
-        nitro.hooks.hook('rollup:before', async () => {
-          await captureScreenshots()
-        })
+      // SSR mode
+      nitro.hooks.hook('rollup:before', async () => {
+        await captureScreenshots()
+      })
 
-        // SSG mode
-        nitro.hooks.hook('close', async () => {
-          await captureScreenshots()
-        })
-      }
+      // SSG mode
+      nitro.hooks.hook('close', async () => {
+        await captureScreenshots()
+      })
     })
   },
 })
