@@ -5,6 +5,7 @@ import { extractAndNormaliseOgImageOptions } from '../utils-pure'
 import { useNitroCache } from '../../cache'
 import type { OgImageOptions } from '../../types'
 import { getRouteRules } from '#internal/nitro'
+import { useRuntimeConfig } from '#imports'
 
 const OgImagePrenderNitroPlugin: NitroAppPlugin = async (nitroApp) => {
   if (!process.env.prerender)
