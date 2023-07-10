@@ -1,5 +1,6 @@
 import { joinURL } from 'ufo'
 import type { Head } from '@unhead/schema'
+import { defu } from 'defu'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../types'
 import { normaliseOgImageOptions } from './util'
 import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#imports'
@@ -52,19 +53,29 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
 export async function defineOgImage(_options: OgImageOptions = {}) {
   // clone to avoid any issues
   if (process.server) {
+    const { defaults } = useRuntimeConfig()['nuxt-og-image']
     const options = normaliseOgImageOptions(_options)
+    const optionsWithDefault = defu(options, defaults)
 
     const src = withSiteUrl(joinURL(useRouter().currentRoute.value.path || '', '/__og_image__/og.png'))
 
     const meta: Head['meta'] = [
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:image:src', content: src },
       { property: 'og:image', content: src },
-      { property: 'og:image:width', content: options.width },
-      { property: 'og:image:height', content: options.height },
+      { property: 'og:image:width', content: optionsWithDefault.width },
+      { property: 'og:image:height', content: optionsWithDefault.height },
+      { property: 'og:image:type', content: 'image/png' },
     ]
     if (options.alt)
-      meta.push({ property: 'og:image:alt', content: options.alt })
+      meta.push({ property: 'og:image:alt', content: optionsWithDefault.alt })
+
+    meta.push(...[
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:image:src', content: src },
+      { name: 'twitter:image:width', content: optionsWithDefault.width },
+      { name: 'twitter:image:height', content: optionsWithDefault.height },
+    ])
+    if (options.alt)
+      meta.push({ name: 'twitter:image:alt', content: optionsWithDefault.alt })
 
     useServerHead({
       meta,
@@ -76,6 +87,7 @@ export async function defineOgImage(_options: OgImageOptions = {}) {
             const payload = {
               title: '%s',
             }
+            // don't apply defaults
             // options is an object which has keys that may be kebab case, we need to convert the keys to camel case
             Object.entries(options).forEach(([key, val]) => {
               // with a simple kebab case conversion

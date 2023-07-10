@@ -26,6 +26,11 @@ export default defineNuxtConfig({
   unocss: extendUnocssOptions({}),
   nitro: {
     prerender: {
+      routes: [
+        '/browser/component',
+        '/browser/delayed',
+        '/browser/screenshot'
+      ],
       ignore: [
         '/not-prerendered'
       ]
