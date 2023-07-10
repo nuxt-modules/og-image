@@ -1,5 +1,5 @@
 import { defu } from 'defu'
-import type { OgImageOptions } from '../types'
+import type { OgImageOptions, RuntimeOgImageOptions } from '../types'
 
 export function decodeHtml(html: string) {
   return html.replace(/&lt;/g, '<')
@@ -28,7 +28,7 @@ function decodeObjectHtmlEntities(obj: Record<string, string | any>) {
   })
   return obj
 }
-export function extractOgImageOptions(html: string, routeRules: OgImageOptions): OgImageOptions | false {
+export function extractAndNormaliseOgImageOptions(path: string, html: string, routeRules: OgImageOptions, defaults: OgImageOptions): OgImageOptions | false {
   // extract the options from our script tag
   const htmlPayload = html.match(/<script id="nuxt-og-image-options" type="application\/json">(.+?)<\/script>/)?.[1]
   if (!htmlPayload)
@@ -49,16 +49,22 @@ export function extractOgImageOptions(html: string, routeRules: OgImageOptions):
     if (process.dev)
       console.warn('Failed to parse #nuxt-og-image-options', e, options)
   }
-  if (options) {
-    if (!options.description) {
-      // extract the og:description from the html
-      const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
-      if (description)
-        options.description = description
-      else
-        options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
-    }
-    return decodeObjectHtmlEntities(options)
+  if (!options)
+    return false
+
+  if (!options.description) {
+    // extract the og:description from the html
+    const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
+    if (description)
+      options.description = description
+    else
+      options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
   }
-  return false
+  const decoded = decodeObjectHtmlEntities(options)
+  return defu(
+    decoded,
+    // runtime options
+    { path },
+    defaults,
+  ) as RuntimeOgImageOptions
 }

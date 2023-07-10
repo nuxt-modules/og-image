@@ -35,7 +35,7 @@ export default defineEventHandler(async (e) => {
     withoutLeadingSlash((options.path === '/' || !options.path) ? 'index' : options.path).replaceAll('/', '-'),
     `og-${hash(options)}`,
   ].join(':')
-  const { enabled: cacheEnabled, cachedItem, update } = await useNitroCache(e, 'nuxt-og-image', {
+  const { enabled: cacheEnabled, cachedItem, update } = await useNitroCache<string>(e, 'nuxt-og-image', {
     key,
     cacheTtl: options.cacheTtl || 0,
     cache: process.dev && options.cache!,

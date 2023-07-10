@@ -51,7 +51,7 @@ export async function fetchOptionsCached(e: H3Event, path: string) {
     withoutLeadingSlash((path === '/' || !path) ? 'index' : path).replaceAll('/', '-'),
     'options',
   ].join(':')
-  const { cachedItem, update } = await useNitroCache(e, 'nuxt-og-image', {
+  const { cachedItem, update } = await useNitroCache<RuntimeOgImageOptions>(e, 'nuxt-og-image', {
     key,
     // allow internal requests to be cached
     cacheTtl: 5 * 1000,

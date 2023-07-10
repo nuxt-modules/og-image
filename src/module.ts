@@ -29,7 +29,7 @@ import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './runtime/types'
 import { setupPlaygroundRPC } from './rpc'
-import { extractOgImageOptions } from './runtime/nitro/utils-pure'
+import { extractAndNormaliseOgImageOptions } from './runtime/nitro/utils-pure'
 import type { RuntimeCompatibilitySchema } from './const'
 import { DefaultRuntimeCompatibility, Wasms } from './const'
 import { ensureDependencies, getNitroPreset, getNitroProviderCompatibility } from './util'
@@ -577,7 +577,7 @@ export async function useProvider(provider) {
           return
 
         const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(ctx.route).reverse())
-        const extractedOptions = extractOgImageOptions(html, routeRules.ogImage || {})
+        const extractedOptions = extractAndNormaliseOgImageOptions(ctx.route, html, routeRules.ogImage || {}, config.defaults)
         if (!extractedOptions || routeRules.ogImage === false)
           return
 
@@ -641,7 +641,7 @@ export async function useProvider(provider) {
               if (entry.route && Object.keys(entry).length === 1) {
                 const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
                 const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
-                const extractedOptions = extractOgImageOptions(html as string, routeRules.ogImage || {})
+                const extractedOptions = extractAndNormaliseOgImageOptions(entry.route, html as string, routeRules.ogImage || {}, config.defaults)
                 if (!extractedOptions || routeRules.ogImage === false) {
                   entry.skip = true
                   continue

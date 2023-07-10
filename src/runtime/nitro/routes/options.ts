@@ -1,8 +1,7 @@
 import { createError, defineEventHandler, getQuery } from 'h3'
 import { withoutBase } from 'ufo'
-import { defu } from 'defu'
-import type { OgImageOptions, RuntimeOgImageOptions } from '../../types'
-import { extractOgImageOptions } from '../utils'
+import type { OgImageOptions } from '../../types'
+import { extractAndNormaliseOgImageOptions } from '../utils'
 import { getRouteRules } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'
 
@@ -33,9 +32,10 @@ export default defineEventHandler(async (e) => {
   if (routeRules === false)
     return false
 
-  const extractedPayload = extractOgImageOptions(html!, routeRules)
+  const { defaults } = useRuntimeConfig()['nuxt-og-image']
+  const payload = extractAndNormaliseOgImageOptions(path, html!, routeRules, defaults)
   // not supported
-  if (!extractedPayload) {
+  if (!payload) {
     throw createError({
       statusCode: 500,
       statusMessage: `The path ${path} is missing the og-image payload.`,
@@ -43,11 +43,5 @@ export default defineEventHandler(async (e) => {
   }
 
   // need to hackily reset the event params so we can access the route rules of the base URL
-  const { defaults } = useRuntimeConfig()['nuxt-og-image']
-  return defu(
-    extractedPayload, routeRules,
-    // runtime options
-    { path },
-    defaults,
-  ) as RuntimeOgImageOptions
+  return payload
 })
