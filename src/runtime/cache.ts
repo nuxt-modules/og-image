@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import { getQuery, setHeader } from 'h3'
 import { useRuntimeConfig, useStorage } from '#imports'
 
-export async function useNitroCache(e: H3Event, module: string, options: { key: string; cacheTtl: number; cache: boolean; headers: boolean }) {
+export async function useNitroCache(e: H3Event, module: string, options: { key: string; cacheTtl: number; cache: boolean; headers: boolean; skipRestore?: boolean }) {
   const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string; runtimeCacheStorage: any }
 
   const enabled = runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0 && options.cache
@@ -16,7 +16,7 @@ export async function useNitroCache(e: H3Event, module: string, options: { key: 
   const purge = typeof getQuery(e).purge !== 'undefined'
   // cache will invalidate if the options change
   let cachedItem: string | false = false
-  if (enabled && await cache.hasItem(key).catch(() => false)) {
+  if (!options.skipRestore && enabled && await cache.hasItem(key).catch(() => false)) {
     const { value, expiresAt } = await cache.getItem(key).catch(() => ({ value: null, expiresAt: Date.now() })) as any
     if (expiresAt > Date.now()) {
       if (purge) {
