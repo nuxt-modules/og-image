@@ -144,15 +144,16 @@ img.emoji {
         }),
     ],
   })
+
+  // need to remove ALL script tags from the html
+  html = html.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+
   const headChunk = await renderSSRHead(head)
   let htmlTemplate = `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
-
-  // need to remove ALL script tags from the html
-  htmlTemplate = htmlTemplate.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
 
   const inlineCss = loadInlineCSS()
   if (!inlineCss.__mock) {
