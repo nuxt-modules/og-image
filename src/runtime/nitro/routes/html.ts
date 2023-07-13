@@ -151,6 +151,9 @@ img.emoji {
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 
+  // need to remove ALL script tags from the html
+  htmlTemplate = htmlTemplate.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+
   const inlineCss = loadInlineCSS()
   if (!inlineCss.__mock) {
     let hasInlineStyles = false
