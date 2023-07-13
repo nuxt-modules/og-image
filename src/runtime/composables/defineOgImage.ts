@@ -11,7 +11,7 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
   return defineOgImage({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
     provider: 'browser',
-    component: null,
+    component: 'PageScreenshot', // this is an alias
     cache: true,
     ...options,
   })

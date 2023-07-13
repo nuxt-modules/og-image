@@ -581,9 +581,10 @@ export async function useProvider(provider) {
         if (!extractedOptions || routeRules.ogImage === false)
           return
 
+        const isPageScreenshot = extractedOptions.component === 'PageScreenshot'
         const entry: OgImageOptions = {
           route: ctx.route,
-          path: extractedOptions.component ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
+          path: !isPageScreenshot ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
           ...extractedOptions,
         }
 
@@ -653,7 +654,7 @@ export async function useProvider(provider) {
                 )
               }
               // if we're rendering a component let's fetch the html, it will have everything we need
-              if (!entry.skip && entry.component)
+              if (!entry.skip && entry.component !== 'PageScreenshot')
                 entry.html = await globalThis.$fetch(entry.path)
             }
 

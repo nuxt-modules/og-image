@@ -34,7 +34,7 @@ export default defineEventHandler(async (e) => {
     options = defu(queryOptions, options)
 
   // for screenshots just return the base path
-  if (options.provider === 'browser' && !options.component) {
+  if (options.provider === 'browser' && options.component === 'PageScreenshot') {
     // need the path without the base url, left trim the base url
     const pathWithoutBase = path.replace(new RegExp(`^${useRuntimeConfig().app.baseURL}`), '')
     return sendRedirect(e, withBase(pathWithoutBase, nitroOrigin))
