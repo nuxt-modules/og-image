@@ -1,5 +1,6 @@
 import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
+import { withBase } from 'ufo'
 import type { ScreenshotOptions } from './types'
 
 export async function screenshot(browser: Browser, options: Partial<ScreenshotOptions> & Record<string, any>): Promise<Buffer> {
@@ -22,14 +23,14 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
     await page.waitForLoadState('networkidle')
   }
   else {
-    await page.goto(`${options.host}${options.path}`, {
-      timeout: (process.env.prerender || process.dev) ? 10000 : 3500,
+    await page.goto(withBase(options.path, options.host), {
+      timeout: 10000,
       waitUntil: 'networkidle',
     })
   }
 
   const screenshotOptions: PageScreenshotOptions = {
-    timeout: (process.env.prerender || process.dev) ? 10000 : 3500,
+    timeout: 10000,
   }
 
   if (options.delay)
