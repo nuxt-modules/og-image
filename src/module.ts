@@ -642,13 +642,16 @@ export async function useProvider(provider) {
               if (entry.route && Object.keys(entry).length === 1) {
                 const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
                 const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
-                const extractedOptions = extractAndNormaliseOgImageOptions(entry.route, html as string, routeRules.ogImage || {}, config.defaults)
+                const extractedOptions = extractAndNormaliseOgImageOptions(entry.route, html as string, routeRules.ogImage || {}, {
+                  ...config.defaults,
+                  component: 'PageScreenshot',
+                })
                 if (!extractedOptions || routeRules.ogImage === false) {
                   entry.skip = true
                   continue
                 }
                 screenshotQueue[k] = entry = defu(
-                  { path: extractedOptions.component ? `/api/og-image-html?path=${entry.route}` : entry.route } as Partial<OgImageOptions>,
+                  { path: extractedOptions.component !== 'PageScreenshot' ? `/api/og-image-html?path=${entry.route}` : entry.route } as Partial<OgImageOptions>,
                   entry,
                   extractedOptions,
                 )
