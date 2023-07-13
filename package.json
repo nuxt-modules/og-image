@@ -60,7 +60,7 @@
     "ofetch": "^1.1.1",
     "ohash": "^1.1.2",
     "pathe": "^1.1.1",
-    "playwright-core": "^1.35.1",
+    "playwright-core": "^1.36.0",
     "radix3": "^1.0.1",
     "satori": "0.10.1",
     "satori-html": "^0.3.2",
@@ -85,7 +85,7 @@
     "jest-image-snapshot": "^6.1.0",
     "nuxt": "^3.6.2",
     "nuxt-icon": "^0.4.2",
-    "playwright": "^1.35.1",
+    "playwright": "^1.36.0",
     "sass": "^1.63.6",
     "vitest": "^0.33.0"
   },
