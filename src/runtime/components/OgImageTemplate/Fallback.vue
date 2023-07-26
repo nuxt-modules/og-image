@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, resolveComponent } from 'vue'
 import { useSiteConfig } from '#imports'
 
 // inherited attrs can mess up the satori parser
