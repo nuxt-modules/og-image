@@ -7,7 +7,7 @@
     "preview": "nuxt preview"
   },
   "dependencies": {
-    "@nuxt/devtools-kit": "^0.6.7",
+    "@nuxt/devtools-kit": "^0.7.1",
     "flatted": "^3.2.7",
     "json-editor-vue": "^0.10.6",
     "nuxt-icon": "^0.4.2",
@@ -20,15 +20,15 @@
     "@iconify-json/carbon": "^1.1.18",
     "@iconify-json/logos": "^1.1.33",
     "@iconify-json/ri": "^1.1.10",
-    "@iconify-json/tabler": "^1.1.82",
-    "@nuxt/devtools-ui-kit": "^0.6.7",
+    "@iconify-json/tabler": "^1.1.85",
+    "@nuxt/devtools-ui-kit": "^0.7.1",
     "@nuxtjs/color-mode": "^3.3.0",
-    "@unocss/nuxt": "^0.53.5",
-    "@unocss/preset-icons": "^0.53.5",
-    "@unocss/preset-uno": "^0.53.5",
-    "@unocss/runtime": "^0.53.5",
+    "@unocss/nuxt": "^0.53.6",
+    "@unocss/preset-icons": "^0.53.6",
+    "@unocss/preset-uno": "^0.53.6",
+    "@unocss/runtime": "^0.53.6",
     "@vueuse/nuxt": "^10.2.1",
-    "nuxt": "^3.6.3",
-    "unocss": "^0.53.5"
+    "nuxt": "^3.6.5",
+    "unocss": "^0.53.6"
   }
 }
