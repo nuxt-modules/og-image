@@ -238,16 +238,14 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.experimental.componentIslands = true
 
-    extendTypes('nuxt-og-image', () => {
+    extendTypes('nuxt-og-image', ({ typesPath }) => {
       return `
-import type { OgImageOptions } from '${resolve('./runtime/types')}'
-
 declare module 'nitropack' {
   interface NitroRouteRules {
-    ogImage?: false | OgImageOptions
+    ogImage?: false | import('${typesPath}').OgImageOptions
   }
   interface NitroRouteConfig {
-    ogImage?: false | OgImageOptions
+    ogImage?: false | import('${typesPath}').OgImageOptions
   }
 }`
     })
