@@ -16,19 +16,19 @@
     "vanilla-jsoneditor": "^0.17.8"
   },
   "devDependencies": {
-    "@headlessui/vue": "^1.7.14",
+    "@headlessui/vue": "^1.7.15",
     "@iconify-json/carbon": "^1.1.18",
     "@iconify-json/logos": "^1.1.33",
     "@iconify-json/ri": "^1.1.10",
     "@iconify-json/tabler": "^1.1.85",
     "@nuxt/devtools-ui-kit": "^0.7.1",
     "@nuxtjs/color-mode": "^3.3.0",
-    "@unocss/nuxt": "^0.53.6",
-    "@unocss/preset-icons": "^0.53.6",
-    "@unocss/preset-uno": "^0.53.6",
-    "@unocss/runtime": "^0.53.6",
-    "@vueuse/nuxt": "^10.2.1",
+    "@unocss/nuxt": "^0.54.0",
+    "@unocss/preset-icons": "^0.54.0",
+    "@unocss/preset-uno": "^0.54.0",
+    "@unocss/runtime": "^0.54.0",
+    "@vueuse/nuxt": "^10.3.0",
     "nuxt": "^3.6.5",
-    "unocss": "^0.53.6"
+    "unocss": "^0.54.0"
   }
 }
