@@ -69,7 +69,7 @@ export default defineNuxtConfig({
 
 # Documentation
 
-[📖 Read the full documentation](https://nuxt-seo.netlify.app/og-image/getting-started/installation) for more information.
+[📖 Read the full documentation](https://nuxtseo.com/og-image/getting-started/installation) for more information.
 
 ## Sponsors
 
