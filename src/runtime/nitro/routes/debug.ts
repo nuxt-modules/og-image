@@ -17,6 +17,7 @@ export default defineEventHandler(async (e) => {
     },
     dev: process.dev,
     runtimeConfig,
-    cachedKeys: await cache.keys(),
+    baseCacheKey,
+    cachedKeys: await cache.getKeys(),
   }
 })
