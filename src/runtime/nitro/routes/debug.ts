@@ -8,7 +8,7 @@ export default defineEventHandler(async (e) => {
   const runtimeConfig = useRuntimeConfig()['nuxt-og-image']
   const siteConfig = await useSiteConfig(e)
 
-  const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/nuxt-og-image@${runtimeConfig.version}` : `/nuxt-og-image@${runtimeConfig.version}`
+  const baseCacheKey = runtimeConfig.runtimeCacheStorage === 'default' ? `/cache/nuxt-og-image@${runtimeConfig.version}` : `/nuxt-og-image@${runtimeConfig.version}`
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/`)
   return {
     siteConfigUrl: {
