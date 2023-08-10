@@ -6,12 +6,12 @@ import { useRuntimeConfig, useStorage } from '#imports'
 export async function useNitroCache<T>(e: H3Event, module: string, options: { key: string; cacheTtl: number; cache: boolean; headers: boolean; skipRestore?: boolean }) {
   const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string; runtimeCacheStorage: any }
 
-  const enabled = !process.dev && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0 && options.cache
+  const enabled = options.cache && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0 &&
   const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/${module}@${version}` : `/${module}@${version}`
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/`)
   const key = options.key
 
-  let xCacheHeader = 'MISS'
+  let xCacheHeader = 'DISABLED'
   let xCacheExpires = 0
   const newExpires = Date.now() + (options.cacheTtl || 0)
   const purge = typeof getQuery(e).purge !== 'undefined'
@@ -31,6 +31,7 @@ export async function useNitroCache<T>(e: H3Event, module: string, options: { ke
     }
     else {
       // miss
+      xCacheHeader = 'MISS'
       xCacheExpires = expiresAt
       await cache.removeItem(key).catch(() => {})
     }
