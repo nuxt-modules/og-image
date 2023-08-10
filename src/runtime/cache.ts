@@ -13,23 +13,25 @@ export async function useNitroCache<T>(e: H3Event, module: string, options: { ke
 
   let xCacheHeader = 'MISS'
   let xCacheExpires = 0
+  const newExpires = Date.now() + (options.cacheTtl || 0)
   const purge = typeof getQuery(e).purge !== 'undefined'
   // cache will invalidate if the options change
   let cachedItem: T | false = false
   if (!options.skipRestore && enabled && await cache.hasItem(key).catch(() => false)) {
     const { value, expiresAt } = await cache.getItem(key).catch(() => ({ value: null, expiresAt: Date.now() })) as any
-    if (expiresAt > Date.now()) {
-      if (purge) {
-        xCacheHeader = 'PURGE'
-        await cache.removeItem(key).catch(() => {})
-      }
-      else {
-        xCacheHeader = 'HIT'
-        xCacheExpires = expiresAt
-        cachedItem = value as T
-      }
+    if (purge) {
+      xCacheHeader = 'PURGE'
+      xCacheExpires = newExpires
+      await cache.removeItem(key).catch(() => {})
+    }
+    else if (expiresAt > Date.now()) {
+      xCacheHeader = 'HIT'
+      xCacheExpires = newExpires
+      cachedItem = value as T
     }
     else {
+      // miss
+      xCacheExpires = expiresAt
       await cache.removeItem(key).catch(() => {})
     }
   }
