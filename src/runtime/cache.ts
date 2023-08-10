@@ -6,7 +6,7 @@ import { useRuntimeConfig, useStorage } from '#imports'
 export async function useNitroCache<T>(e: H3Event, module: string, options: { key: string; cacheTtl: number; cache: boolean; headers: boolean; skipRestore?: boolean }) {
   const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string; runtimeCacheStorage: any }
 
-  const enabled = options.cache && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0 &&
+  const enabled = options.cache && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0
   const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/${module}@${version}` : `/${module}@${version}`
   const cache = prefixStorage(useStorage(), `${baseCacheKey}/`)
   const key = options.key
