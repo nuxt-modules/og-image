@@ -38,7 +38,7 @@ export default defineEventHandler(async (e) => {
   const { enabled: cacheEnabled, cachedItem, update } = await useNitroCache<string>(e, 'nuxt-og-image', {
     key,
     cacheTtl: options.cacheTtl || 0,
-    cache: process.dev && options.cache!,
+    cache: !process.dev && options.cache!,
     headers: true,
   })
   let png
