@@ -32,6 +32,22 @@ describe('build', () => {
       return Buffer.from(await blob.arrayBuffer())
     }
 
+    expect(await $fetch('/api/og-image-options', { query: { path: '/' }})).toMatchInlineSnapshot(`
+      {
+        "appName": "My App",
+        "cache": true,
+        "cacheTtl": 86400000,
+        "component": "OgImageTemplateFallback",
+        "description": "My description of the home page.",
+        "height": 630,
+        "path": "/",
+        "provider": "satori",
+        "themeColor": "#b5ffd6",
+        "title": "Home & //<\\"With Encoding\\">\\\\",
+        "width": 1200,
+      }
+    `)
+
     expect(await fetchImage('/__og_image__/og.png')).toMatchImageSnapshot()
 
     expect(await fetchImage('/satori/image/__og_image__/og.png')).toMatchImageSnapshot()

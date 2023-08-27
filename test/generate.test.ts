@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
-import { buildNuxt, createResolver, loadNuxt } from '@nuxt/kit'
+import { createResolver } from '@nuxt/kit'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { execa } from "execa";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -16,32 +17,15 @@ expect.extend({ toMatchImageSnapshot })
 
 describe('generate', () => {
   it('basic', async () => {
-    process.env.NODE_ENV = 'production'
-    process.env.prerender = true
-    process.env.NUXT_PUBLIC_SITE_URL = 'https://nuxtseo.com'
     const { resolve } = createResolver(import.meta.url)
     const rootDir = resolve('../.playground')
-    const nuxt = await loadNuxt({
-      rootDir,
-      overrides: {
-        _generate: true,
-        nitro: {
-          prerender: {
-            routes: [
-              '/',
-              '/satori/image',
-              '/browser/screenshot',
-            ],
-          },
-        },
-      },
-    })
+    // run nuxi generate on the playground dir using execa
+    // send execa output to the main console
+    await execa('nuxi', ['generate'], { cwd: rootDir, stdio: 'inherit', env: { NODE_ENV: 'production' }})
 
     function fetchImage(path: string) {
       return readFile(resolve(rootDir, `.output/public${path}`))
     }
-
-    await buildNuxt(nuxt)
 
     await new Promise(resolve => setTimeout(resolve, 1000))
 
