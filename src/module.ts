@@ -159,6 +159,7 @@ export default defineNuxtModule<ModuleOptions>({
     return {
       enabled: true,
       defaults: {
+        provider: 'satori',
         component: 'OgImageTemplateFallback',
         width: 1200,
         height: 630,
