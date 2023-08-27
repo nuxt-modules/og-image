@@ -88,8 +88,5 @@
     "playwright": "^1.37.1",
     "sass": "^1.66.1",
     "vitest": "^0.34.3"
-  },
-  "resolutions": {
-    "@nuxt/schema": "3.6.2"
   }
 }
