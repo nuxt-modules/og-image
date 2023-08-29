@@ -1,8 +1,8 @@
 import { computed, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { withBase } from 'ufo'
-import { connectWS, createBirpcClient } from '#imports'
 import type { OgImageOptions, PlaygroundClientFunctions } from '../../src/runtime/types'
+import { createBirpcClient } from '#imports'
 
 export const refreshTime = ref(Date.now())
 
@@ -35,7 +35,6 @@ const clientFunctions: PlaygroundClientFunctions = {
   },
 }
 
-await connectWS(hostname)
 export const rpc = createBirpcClient(clientFunctions)
 
 export const containerWidth = ref<number | null>(null)

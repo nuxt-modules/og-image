@@ -3,12 +3,10 @@ import { useDebounceFn } from '@vueuse/core'
 import JsonEditorVue from 'json-editor-vue'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
-import { $computed, computed, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
-import { version } from '../package.json'
 import {
   base,
   containerWidth,
-  description,
+  description, hostname,
   options,
   optionsEditor,
   optionsOverrides,
@@ -17,6 +15,7 @@ import {
   refreshSources,
   slowRefreshSources,
 } from './util/logic'
+import { computed, connectWS, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
 import { devtoolsClient } from '~/composables/devtools-client'
 import 'splitpanes/dist/splitpanes.css'
 
@@ -24,10 +23,12 @@ useHead({
   title: 'OG Image Playground',
 })
 
+connectWS(hostname)
+
 const isDevTools = computed(() => !!devtoolsClient.value)
 
-const clientPath = $computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
-path.value = clientPath || useRoute().query.path as string || '/'
+const clientPath = computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
+path.value = clientPath.value || useRoute().query.path as string || '/'
 base.value = useRoute().query.base as string || '/'
 watch(() => clientPath, (v) => {
   optionsOverrides.value = {}
