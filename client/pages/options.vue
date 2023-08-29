@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { highlight } from '#imports'
 import { options } from '../util/logic'
+import { highlight } from '#imports'
 </script>
 
 <template>

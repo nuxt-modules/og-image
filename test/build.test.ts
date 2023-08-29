@@ -32,7 +32,7 @@ describe('build', () => {
       return Buffer.from(await blob.arrayBuffer())
     }
 
-    expect(await $fetch('/api/og-image-options', { query: { path: '/' }})).toMatchInlineSnapshot(`
+    expect(await $fetch('/api/og-image-options', { query: { path: '/' } })).toMatchInlineSnapshot(`
       {
         "appName": "My App",
         "cache": true,

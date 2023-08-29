@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
-import { execa } from "execa";
+import { execa } from 'execa'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -21,7 +21,7 @@ describe('generate', () => {
     const rootDir = resolve('../.playground')
     // run nuxi generate on the playground dir using execa
     // send execa output to the main console
-    await execa('nuxi', ['generate'], { cwd: rootDir, stdio: 'inherit', env: { NODE_ENV: 'production' }})
+    await execa('nuxi', ['generate'], { cwd: rootDir, stdio: 'inherit', env: { NODE_ENV: 'production' } })
 
     function fetchImage(path: string) {
       return readFile(resolve(rootDir, `.output/public${path}`))

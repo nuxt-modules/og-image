@@ -6,9 +6,6 @@ export default defineNuxtConfig({
     'nuxt-icon',
   ],
   ssr: false,
-  experimental: {
-    reactivityTransform: true,
-  },
   nitro: {
     output: {
       publicDir: resolve(__dirname, '../dist/client'),
@@ -21,9 +18,6 @@ export default defineNuxtConfig({
     // fixes shiki bug
     define: {
       'process.env.VSCODE_TEXTMATE_DEBUG': 'false',
-    },
-    build: {
-      target: 'esnext',
     },
   },
 })
