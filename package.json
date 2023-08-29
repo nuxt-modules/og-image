@@ -35,7 +35,7 @@
     "dev:build": "nuxi build .playground",
     "dev:prepare": "nuxt-module-build --stub && nuxi prepare .playground",
     "release": "bumpp package.json --commit --push --tag",
-    "test": "vitest"
+    "test": "vitest build"
   },
   "dependencies": {
     "@nuxt/kit": "^3.7.0",
