@@ -429,11 +429,17 @@ declare module 'nitropack' {
         inline: [runtimeDir],
       })
 
-      if (config.runtimeBrowser) {
+      // stub out dependencies for non-node environments
+      if (!nitroCompatibility.node) {
         nitroConfig.alias = nitroConfig.alias || {}
-        nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
-        nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'
-        nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
+        // playwright-core
+        if (config.runtimeBrowser) {
+          nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
+          nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'
+          nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
+        }
+        // image-size
+        nitroConfig.alias.queue = 'unenv/runtime/mock/proxy-cjs'
       }
 
       // mock the resvg-js dependency in edge runtimes
