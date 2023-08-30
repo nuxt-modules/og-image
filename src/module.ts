@@ -150,7 +150,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '^3.6.1',
+      nuxt: '^3.7.0',
       bridge: false,
     },
     configKey: 'ogImage',
@@ -521,29 +521,6 @@ export async function useProvider(provider) {
 
           let contents = (await readFile(path, 'utf-8'))
           let updated = false
-          // fix for vercel
-          if (_nitro.options.preset.includes('vercel') && path === wasmProviderPath) {
-            contents = contents.replace('.cwd(),', '?.cwd || "/",')
-            updated = true
-          }
-
-          if ((_nitro.options.preset.includes('netlify') && path.endsWith('netlify.mjs')) || (_nitro.options.preset === 'aws-lambda' && path.endsWith('aws-lambda.mjs'))) {
-            // See https://github.com/unjs/nitro/pull/1274
-            const match = '// TODO: handle event.isBase64Encoded\n'
-              + '  });'
-            contents = contents.replace(match, `${match}\n
-  const headers = normalizeOutgoingHeaders(r.headers);
-  if (Buffer.isBuffer(r.body)) {
-    return {
-      statusCode: r.status,
-      headers,
-      body: r.body.toString("base64"),
-      isBase64Encoded: true
-    };
-  }`)
-            updated = true
-          }
-
           for (const wasm of Wasms) {
             if (contents.includes(wasm.placeholder)) {
               if (nitroCompatibility.wasm === 'import') {
