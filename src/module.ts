@@ -210,7 +210,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     await installNuxtSiteConfig()
     // allow config fallback
-    await updateSiteConfig({
+    updateSiteConfig({
       _context: 'nuxt-og-image:config',
       url: config.siteUrl || config.host!,
     })
