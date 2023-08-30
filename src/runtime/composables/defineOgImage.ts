@@ -7,7 +7,7 @@ import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#import
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
   const router = useRouter()
-  const route = router?.currentRoute?.value?.path || ''
+  const route = router.currentRoute.value?.path || ''
   return defineOgImage({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
     provider: 'browser',
@@ -57,7 +57,7 @@ export async function defineOgImage(_options: OgImageOptions = {}) {
     const options = normaliseOgImageOptions(_options)
     const optionsWithDefault = defu(options, defaults)
 
-    const src = withSiteUrl(joinURL(useRouter().currentRoute.value.path || '', '/__og_image__/og.png'))
+    const src = withSiteUrl(joinURL(useRouter().currentRoute.value?.path || '', '/__og_image__/og.png'))
 
     const meta: Head['meta'] = [
       { property: 'og:image', content: src },
