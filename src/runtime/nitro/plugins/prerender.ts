@@ -1,5 +1,5 @@
 import { appendHeader } from 'h3'
-import { joinURL, withoutLeadingSlash } from 'ufo'
+import { joinURL, parseURL, withoutLeadingSlash } from 'ufo'
 import type { NitroAppPlugin } from 'nitropack'
 import { extractAndNormaliseOgImageOptions } from '../utils-pure'
 import { useNitroCache } from '../../cache'
@@ -13,7 +13,7 @@ const OgImagePrenderNitroPlugin: NitroAppPlugin = async (nitroApp) => {
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
   // always use cache for prerendering to speed it up
   nitroApp.hooks.hook('render:html', async (ctx, { event }) => {
-    const path = event.node.req.url!
+    const path = parseURL(event.path).pathname
     if (path.includes('.') || path.startsWith('/__nuxt_island/'))
       return
     const routeRules = (getRouteRules(event)?.ogImage || {}) as false | OgImageOptions
