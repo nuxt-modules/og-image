@@ -1,3 +1,4 @@
+import type { Browser } from 'playwright-core'
 import { screenshot } from '../../browserUtil'
 import type { Renderer } from '../../types'
 import loadBrowserLauncherChunk from '#nuxt-og-image/browser'
@@ -16,7 +17,7 @@ const BrowserRenderer: Renderer = {
       // throw new exception
       throw new Error('Failed to load browser. Is the `browserProvider` enabled?')
     }
-    const browser = await launchBrowser()
+    const browser: Browser = await launchBrowser()
     let res = null
     if (browser) {
       try {
@@ -27,7 +28,7 @@ const BrowserRenderer: Renderer = {
         })
       }
       finally {
-        browser!.close()
+        await browser!.close()
       }
     }
     // @todo return placeholder image on failure
