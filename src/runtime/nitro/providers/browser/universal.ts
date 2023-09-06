@@ -1,6 +1,7 @@
+import type { Browser } from 'playwright-core'
 import playwrightCore from 'playwright-core'
 
-export default async function createBrowser() {
+export default async function createBrowser(): Promise<Browser | void> {
   if (process.dev || process.env.prerender) {
     // try to use a local chrome instance over downloading binaries
     try {

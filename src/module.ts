@@ -15,7 +15,6 @@ import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { joinURL, withBase } from 'ufo'
 import { dirname, relative } from 'pathe'
-import type { Browser } from 'playwright-core'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
@@ -24,6 +23,7 @@ import { globby } from 'globby'
 import { installNuxtSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import { provider } from 'std-env'
 import { hash } from 'ohash'
+import terminate from 'terminate'
 import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
@@ -599,11 +599,17 @@ export async function useProvider(provider) {
             resolve(true)
           })
         })
+        installChromeProcess.pid && terminate(installChromeProcess.pid)
 
+        // make sure we have a browser
+        const browser = await createBrowser()
+        if (!browser) {
+          nitro.logger.log(chalk.red('Failed to create a browser to create og:images.'))
+          return
+        }
+        nitro.logger.info('Creating server for og:image generation...')
         const previewProcess = execa('npx', ['serve', nitro.options.output.publicDir])
-        let browser: Browser | null = null
         try {
-          previewProcess.stderr?.pipe(process.stderr)
           // wait until we get a message which says "Accepting connections"
           const host = (await new Promise<string>((resolve) => {
             previewProcess.stdout?.on('data', (data) => {
@@ -613,68 +619,64 @@ export async function useProvider(provider) {
               }
             })
           })).trim()
-          browser = await createBrowser()
-          if (browser) {
-            nitro.logger.info(`Prerendering ${screenshotQueue.length} og:image screenshots...`)
+          previewProcess.removeAllListeners('data')
 
-            // normalise
-            for (const k in screenshotQueue) {
-              let entry = screenshotQueue[k]
-              // allow inserting items into the queue via hook
-              if (entry.route && Object.keys(entry).length === 1) {
-                const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
-                const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
-                const extractedOptions = extractAndNormaliseOgImageOptions(entry.route, html as string, routeRules.ogImage || {}, {
-                  ...config.defaults,
-                  component: 'PageScreenshot',
-                })
-                if (!extractedOptions || routeRules.ogImage === false) {
-                  entry.skip = true
-                  continue
-                }
-                screenshotQueue[k] = entry = defu(
-                  { path: extractedOptions.component !== 'PageScreenshot' ? `/api/og-image-html?path=${entry.route}` : entry.route } as Partial<OgImageOptions>,
-                  entry,
-                  extractedOptions,
-                )
-              }
-              // if we're rendering a component let's fetch the html, it will have everything we need
-              if (!entry.skip && entry.component !== 'PageScreenshot')
-                entry.html = await globalThis.$fetch(entry.path)
-            }
+          nitro.logger.info(`Prerendering ${screenshotQueue.length} og:image screenshots...`)
 
-            for (const k in screenshotQueue) {
-              const entry = screenshotQueue[k]
-              if (entry.skip)
+          // normalise
+          for (const k in screenshotQueue) {
+            let entry = screenshotQueue[k]
+            // allow inserting items into the queue via hook
+            if (entry.route && Object.keys(entry).length === 1) {
+              const html = await $fetch(entry.route, { baseURL: withBase(nuxt.options.app.baseURL, host) })
+              const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(entry.route).reverse())
+              const extractedOptions = extractAndNormaliseOgImageOptions(entry.route, html as string, routeRules.ogImage || {}, {
+                ...config.defaults,
+                component: 'PageScreenshot',
+              })
+              if (!extractedOptions || routeRules.ogImage === false) {
+                entry.skip = true
                 continue
-              const start = Date.now()
-              let hasError = false
-              const dirname = joinURL(nitro.options.output.publicDir, entry.route, '/__og_image__/')
-              const filename = joinURL(dirname, '/og.png')
-              try {
-                const imgBuffer = await screenshot(browser, {
-                  ...(config.defaults as ScreenshotOptions || {}),
-                  ...(entry || {}),
-                  host,
-                })
-                try {
-                  await mkdirp(dirname)
-                }
-                catch (e) {}
-                await writeFile(filename, imgBuffer)
               }
-              catch (e) {
-                hasError = true
-                console.error(e)
-              }
-              const generateTimeMS = Date.now() - start
-              nitro.logger.log(chalk[hasError ? 'red' : 'gray'](
-                `  ${Number(k) === screenshotQueue.length - 1 ? '└─' : '├─'} /${relative(nitro.options.output.publicDir, filename)} (${generateTimeMS}ms) ${Math.round((Number(k) + 1) / (screenshotQueue.length) * 100)}%`,
-              ))
+              screenshotQueue[k] = entry = defu(
+                { path: extractedOptions.component !== 'PageScreenshot' ? `/api/og-image-html?path=${entry.route}` : entry.route } as Partial<OgImageOptions>,
+                entry,
+                extractedOptions,
+              )
             }
+            // if we're rendering a component let's fetch the html, it will have everything we need
+            if (!entry.skip && entry.component !== 'PageScreenshot')
+              entry.html = await globalThis.$fetch(entry.path)
           }
-          else {
-            nitro.logger.log(chalk.red('Failed to create a browser to create og:images.'))
+
+          for (const k in screenshotQueue) {
+            const entry = screenshotQueue[k]
+            if (entry.skip)
+              continue
+            const start = Date.now()
+            let hasError = false
+            const dirname = joinURL(nitro.options.output.publicDir, entry.route, '/__og_image__/')
+            const filename = joinURL(dirname, '/og.png')
+            try {
+              const imgBuffer = await screenshot(browser, {
+                ...(config.defaults as ScreenshotOptions || {}),
+                ...(entry || {}),
+                host,
+              })
+              try {
+                await mkdirp(dirname)
+              }
+              catch (e) {}
+              await writeFile(filename, imgBuffer)
+            }
+            catch (e) {
+              hasError = true
+              console.error(e)
+            }
+            const generateTimeMS = Date.now() - start
+            nitro.logger.log(chalk[hasError ? 'red' : 'gray'](
+              `  ${Number(k) === screenshotQueue.length - 1 ? '└─' : '├─'} /${relative(nitro.options.output.publicDir, filename)} (${generateTimeMS}ms) ${Math.round((Number(k) + 1) / (screenshotQueue.length) * 100)}%`,
+            ))
           }
         }
         catch (e) {
@@ -682,7 +684,7 @@ export async function useProvider(provider) {
         }
         finally {
           await browser?.close()
-          previewProcess.kill()
+          previewProcess.pid && terminate(previewProcess.pid)
         }
         screenshotQueue = []
       }
