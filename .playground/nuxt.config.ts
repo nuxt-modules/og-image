@@ -29,7 +29,9 @@ export default defineNuxtConfig({
       routes: [
         '/browser/component',
         '/browser/delayed',
-        '/browser/screenshot'
+        '/browser/screenshot',
+        '/search?foo=bar',
+        '/search?foo=2',
       ],
       ignore: [
         '/not-prerendered'
