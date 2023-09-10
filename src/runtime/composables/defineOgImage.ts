@@ -83,6 +83,7 @@ export async function defineOgImage(_options: OgImageOptions = {}) {
         {
           id: 'nuxt-og-image-options',
           type: 'application/json',
+          processTemplateParams: true,
           innerHTML: () => {
             const payload = {
               title: '%s',
