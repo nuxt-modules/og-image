@@ -25,7 +25,7 @@ export interface RuntimeCompatibilitySchema {
   satori: false | 'default' | 'yoga-wasm'
   wasm: 'inline' | 'import' | 'fetch'
   png: 'resvg-wasm' | 'svg2png' | 'resvg-node'
-  inlineCss?: 'node' | 'mock'
+  cssInline?: 'node' | 'mock'
   node?: boolean
   wasmImportQuery?: string
 }

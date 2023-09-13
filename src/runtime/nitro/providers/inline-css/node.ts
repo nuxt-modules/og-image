@@ -1,11 +1,10 @@
-import inlineCss from 'inline-css'
+import { inline } from 'css-inline'
 
 function nodeFn(html: string, options: any) {
-  return inlineCss(html, {
+  return inline(html, {
     ...options,
-    applyLinkTags: false,
-    removeLinkTags: false,
-    removeStyleTags: false,
+    keep_link_tags: true,
+    keep_style_tags: true,
   })
 }
 nodeFn.__mock = false
