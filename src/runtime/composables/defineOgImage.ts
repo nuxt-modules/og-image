@@ -18,6 +18,7 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
 }
 
 /**
+ * @param options
  * @deprecated Use `defineOgImage` or `defineOgImageCached` instead
  */
 export function defineOgImageStatic(options: OgImageOptions = {}) {
@@ -44,6 +45,7 @@ export function defineOgImageWithoutCache(options: OgImageOptions = {}) {
 }
 
 /**
+ * @param options
  * @deprecated Use `defineOgImageWithoutCache` instead
  */
 export function defineOgImageDynamic(options: OgImageOptions = {}) {
