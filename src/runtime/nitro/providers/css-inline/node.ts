@@ -3,8 +3,8 @@ import { inline } from 'css-inline'
 function nodeFn(html: string, options: any) {
   return inline(html, {
     ...options,
-    keep_link_tags: true,
-    keep_style_tags: true,
+    load_remote_stylesheets: false,
+    keep_style_tags: false,
   })
 }
 nodeFn.__mock = false
