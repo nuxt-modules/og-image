@@ -52,7 +52,7 @@ export function getNitroProviderCompatibility(defaults: RuntimeCompatibilitySche
   }
   compatibility = defu(compatibility, defaults)
   // compatibility is now resolved, normalise
-  compatibility.inlineCss = compatibility.inlineCss || (compatibility.node ? 'node' : 'mock')
+  compatibility.cssInline = compatibility.cssInline || (compatibility.node ? 'node' : 'mock')
   return compatibility
 }
 

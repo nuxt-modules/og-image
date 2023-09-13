@@ -475,9 +475,9 @@ export default function() {
  return png
 }
 `
-        nitroConfig.virtual!['#nuxt-og-image/inline-css'] = `import inlineCss from '${providerPath}/inline-css/${nitroCompatibility.inlineCss || 'mock'}'
+        nitroConfig.virtual!['#nuxt-og-image/css-inline'] = `import cssInline from '${providerPath}/css-inline/${nitroCompatibility.cssInline || 'mock'}'
 export default function() {
- return inlineCss
+ return cssInline
 }
 `
       }

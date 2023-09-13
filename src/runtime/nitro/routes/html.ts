@@ -9,7 +9,7 @@ import { defu } from 'defu'
 import { fetchOptionsCached } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../types'
 import { useNitroOrigin, useRuntimeConfig } from '#imports'
-import loadInlineCSS from '#nuxt-og-image/inline-css'
+import loadCSSInline from '#nuxt-og-image/css-inline'
 
 export default defineEventHandler(async (e) => {
   const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
@@ -155,8 +155,8 @@ img.emoji {
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 
-  const inlineCss = loadInlineCSS()
-  if (!inlineCss.__mock) {
+  const cssInline = loadCSSInline()
+  if (!cssInline.__mock) {
     let hasInlineStyles = false
     // for the tags we extract the stylesheet href and inline them where they are a vue template
     const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*?">/g)
@@ -193,7 +193,7 @@ img.emoji {
     }
     if (hasInlineStyles) {
       try {
-        htmlTemplate = await inlineCss(htmlTemplate, {
+        htmlTemplate = await cssInline(htmlTemplate, {
           url: nitroOrigin,
         })
       }
