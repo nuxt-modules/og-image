@@ -26,7 +26,7 @@ const OgImagePrenderNitroPlugin: NitroAppPlugin = async (nitroApp) => {
       withoutLeadingSlash((path === '/' || !path) ? 'index' : path).replaceAll('/', '-'),
       'options',
     ].join(':')
-    const { update } = await useNitroCache(event, 'nuxt-og-image', {
+    const { update } = await useNitroCache<OgImageOptions>(event, 'nuxt-og-image', {
       key,
       // shouldn't change for the prerender, 5 min cache
       cacheTtl: 5 * 60 * 1000,
