@@ -453,6 +453,12 @@ declare module 'nitropack' {
 
       const providerPath = `${runtimeDir}/nitro/providers`
 
+      const cssInline = (config.runtimeSatori ? nitroCompatibility.cssInline : 'mock') || 'mock'
+      nitroConfig.virtual!['#nuxt-og-image/css-inline'] = `import cssInline from '${providerPath}/css-inline/${cssInline}'
+export default function() {
+ return cssInline
+}
+`
       if (config.runtimeBrowser) {
         // browser can only work in node runtime at the moment
         nitroConfig.virtual!['#nuxt-og-image/browser'] = `
@@ -473,11 +479,6 @@ export default function() {
         nitroConfig.virtual!['#nuxt-og-image/png'] = `import png from '${providerPath}/png/${nitroCompatibility.png}'
 export default function() {
  return png
-}
-`
-        nitroConfig.virtual!['#nuxt-og-image/css-inline'] = `import cssInline from '${providerPath}/css-inline/${nitroCompatibility.cssInline || 'mock'}'
-export default function() {
- return cssInline
 }
 `
       }
