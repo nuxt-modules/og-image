@@ -30,7 +30,7 @@ function decodeObjectHtmlEntities(obj: Record<string, string | any>) {
 }
 export function extractAndNormaliseOgImageOptions(path: string, html: string, routeRules: OgImageOptions, defaults: OgImageOptions): OgImageOptions | false {
   // extract the options from our script tag
-  const htmlPayload = html.match(/<script id="nuxt-og-image-options" type="application\/json">(.+?)<\/script>/)?.[1]
+  const htmlPayload = html.match(/<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/)?.[1]
   if (!htmlPayload)
     return false
 
