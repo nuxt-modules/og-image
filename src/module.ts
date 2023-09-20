@@ -453,8 +453,7 @@ declare module 'nitropack' {
 
       const providerPath = `${runtimeDir}/nitro/providers`
 
-      const cssInline = (config.runtimeSatori ? nitroCompatibility.cssInline : 'mock') || 'mock'
-      nitroConfig.virtual!['#nuxt-og-image/css-inline'] = `import cssInline from '${providerPath}/css-inline/${cssInline}'
+      nitroConfig.virtual!['#nuxt-og-image/css-inline'] = `import cssInline from '${providerPath}/css-inline/${nitroCompatibility.cssInline ? 'css-inline' : 'mock'}'
 export default function() {
  return cssInline
 }

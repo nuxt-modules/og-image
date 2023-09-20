@@ -25,7 +25,7 @@ export interface RuntimeCompatibilitySchema {
   satori: false | 'default' | 'yoga-wasm'
   wasm: 'inline' | 'import' | 'fetch'
   png: 'resvg-wasm' | 'svg2png' | 'resvg-node'
-  cssInline?: 'node' | 'mock'
+  cssInline?: boolean
   node?: boolean
   wasmImportQuery?: string
 }
@@ -37,6 +37,7 @@ export const DefaultRuntimeCompatibility: RuntimeCompatibilitySchema = {
   wasm: 'fetch',
   png: 'resvg-node',
   node: true,
+  cssInline: true,
 }
 
 const cloudflare: Partial<RuntimeCompatibilitySchema> = {
