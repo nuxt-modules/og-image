@@ -270,8 +270,7 @@ declare module 'nitropack' {
         }
       })
 
-    // eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error
-    // @ts-expect-error runtime type
+    // @ts-ignore runtime type
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',
