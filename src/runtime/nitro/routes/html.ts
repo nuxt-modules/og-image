@@ -5,7 +5,7 @@ import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import twemoji from 'twemoji'
-import { defu } from 'defu'
+import { createDefu } from 'defu'
 import { fetchOptionsCached } from '../utils'
 import type { FontConfig, OgImageOptions } from '../../types'
 import { useNitroOrigin, useRuntimeConfig } from '#imports'
@@ -30,8 +30,13 @@ export default defineEventHandler(async (e) => {
   }
 
   let options = await fetchOptionsCached(e, path)
+  const merger = createDefu((object, key, value) => {
+    // replace arrays instead of merging
+    if (Array.isArray(value))
+      return value
+  })
   if (queryOptions)
-    options = defu(queryOptions, options)
+    options = merger(queryOptions, options) as typeof options
 
   // for screenshots just return the base path
   if (options.provider === 'browser' && options.component === 'PageScreenshot') {
