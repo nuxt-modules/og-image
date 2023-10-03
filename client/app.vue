@@ -19,6 +19,7 @@ import {
 import { computed, connectWS, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
 import { devtoolsClient } from '~/composables/devtools-client'
 import 'splitpanes/dist/splitpanes.css'
+import { version } from '../package.json'
 
 useHead({
   title: 'OG Image Playground',
