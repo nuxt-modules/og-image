@@ -16,7 +16,7 @@ import { execa } from 'execa'
 import chalk from 'chalk'
 import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { joinURL, withBase } from 'ufo'
+import { joinURL, parsePath, withBase } from 'ufo'
 import { dirname, relative } from 'pathe'
 import { tinyws } from 'tinyws'
 import sirv from 'sirv'
@@ -271,7 +271,7 @@ declare module 'nitropack' {
       })
 
     // eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error
-    // @ts-ignore runtime type
+    // @ts-expect-error runtime type
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',
@@ -577,10 +577,14 @@ export async function useProvider(provider) {
 
         const isPageScreenshot = extractedOptions.component === 'PageScreenshot'
         const entry: OgImageOptions = {
-          route: ctx.route,
+          route: parsePath(ctx.route).pathname, // drop hash and query
           path: !isPageScreenshot ? `/api/og-image-html?path=${ctx.route}` : ctx.route,
           ...extractedOptions,
         }
+
+        // dedupe based on path
+        if (screenshotQueue.some(r => r.route === entry.route))
+          return
 
         // if we're running `nuxi generate` we prerender everything (including dynamic)
         if ((nuxt.options._generate || entry.cache) && entry.provider === 'browser')
