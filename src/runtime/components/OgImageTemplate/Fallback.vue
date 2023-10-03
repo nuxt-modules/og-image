@@ -127,6 +127,12 @@ const siteLogo = computed(() => {
 })
 
 const MaybeIconComponent = resolveComponent('Icon')
+if (typeof props.icon === 'string' && typeof MaybeIconComponent === 'string' && process.dev) {
+  // eslint-disable-next-line no-console
+  console.warn('Please install `nuxt-icon` to use icons with the fallback OG Image component.')
+  // eslint-disable-next-line no-console
+  console.log('npm add -D nuxt-icon')
+}
 </script>
 
 <template>
