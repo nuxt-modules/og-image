@@ -493,9 +493,10 @@ export default function() {
 `
       }
 
+      const rendererPath = `${runtimeDir}/nitro/renderers`
       nitroConfig.virtual!['#nuxt-og-image/provider'] = `
-${config.runtimeSatori ? `import satori from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/satori'))}'` : ''}
-${config.runtimeBrowser ? `import browser from '${relative(nuxt.options.rootDir, resolve('./runtime/nitro/renderers/browser'))}'` : ''}
+${config.runtimeSatori ? `import satori from '${rendererPath}/satori'` : ''}
+${config.runtimeBrowser ? `import browser from '${rendererPath}/browser'` : ''}
 
 export async function useProvider(provider) {
   if (provider === 'satori')
