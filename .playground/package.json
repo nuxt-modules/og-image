@@ -1,12 +1,5 @@
 {
   "private": true,
-  "dependencies": {
-    "@nuxt/devtools-ui-kit": "^0.8.0",
-    "@nuxthq/ui": "^2.7.0",
-    "@nuxtjs/i18n": "8.0.0-rc.3",
-    "chrome-aws-lambda": "^10.1.0",
-    "vue-tsc": "^1.8.8"
-  },
   "scripts": {
     "build": "nuxi build",
     "prepare": "nuxi prepare",
@@ -15,5 +8,12 @@
     "deploy:cloudflare-workers": "rm -rf .nuxt && rm -rf dist && NITRO_PRESET=cloudflare nuxi build && npx wrangler publish --config wrangler-workers.toml",
     "deploy:cloudflare-pages": "rm -rf .nuxt && rm -rf dist && NITRO_PRESET=cloudflare-pages nuxi build && npx wrangler pages publish dist/ --project-name og-image-pages-demo",
     "deploy:vercel-edge": "NITRO_PRESET=vercel-edge nuxi build && vercel --prebuilt -d --prod"
+  },
+  "dependencies": {
+    "@nuxt/devtools-ui-kit": "^0.8.0",
+    "@nuxthq/ui": "^2.7.0",
+    "@nuxtjs/i18n": "8.0.0-rc.3",
+    "chrome-aws-lambda": "^10.1.0",
+    "vue-tsc": "^1.8.8"
   }
 }

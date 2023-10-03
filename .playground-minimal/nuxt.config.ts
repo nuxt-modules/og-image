@@ -10,13 +10,13 @@ export default defineNuxtConfig({
       'og-image': {
         driver: 'cloudflare-kv-binding',
         binding: 'OGIMAGE',
-      }
+      },
     },
     prerender: {
       ignore: [
-        '/not-prerendered'
-      ]
-    }
+        '/not-prerendered',
+      ],
+    },
   },
 
   ogImage: {

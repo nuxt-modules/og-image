@@ -1,8 +1,8 @@
 <template>
-<div>
   <div>
-    Generated with route rules - nested
+    <div>
+      Generated with route rules - nested
+    </div>
+    <OgImage />
   </div>
-  <OgImage />
-</div>
 </template>

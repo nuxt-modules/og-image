@@ -1,6 +1,6 @@
 <template>
-<div>
-  <div>hello world</div>
-  <OgImageScreenshot />
-</div>
+  <div>
+    <div>hello world</div>
+    <OgImageScreenshot />
+  </div>
 </template>

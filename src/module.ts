@@ -4,9 +4,12 @@ import type { NitroRouteRules } from 'nitropack'
 import {
   addComponent,
   addImports,
-  addServerHandler, addServerPlugin, addTemplate,
+  addServerHandler,
+  addServerPlugin,
+  addTemplate,
   createResolver,
-  defineNuxtModule, hasNuxtModule,
+  defineNuxtModule,
+  hasNuxtModule,
   useLogger,
 } from '@nuxt/kit'
 import { execa } from 'execa'
@@ -303,9 +306,13 @@ declare module 'nitropack' {
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     ;[
       // deprecated
-      'Dynamic', 'Static',
+      'Dynamic',
+      'Static',
       // new
-      'index', 'Cached', 'WithoutCache', 'Screenshot',
+      'index',
+      'Cached',
+      'WithoutCache',
+      'Screenshot',
     ]
       .forEach((name) => {
         name = name === 'index' ? 'defineOgImage' : `defineOgImage${name}`
@@ -324,9 +331,13 @@ declare module 'nitropack' {
 
     ;[
       // deprecated
-      'Static', 'Dynamic',
+      'Static',
+      'Dynamic',
       // new
-      'index', 'Cached', 'WithoutCache', 'Screenshot',
+      'index',
+      'Cached',
+      'WithoutCache',
+      'Screenshot',
     ]
       .forEach((name) => {
         addComponent({
@@ -407,7 +418,8 @@ declare module 'nitropack' {
           if (typeof f === 'string') {
             const [name, weight] = f.split(':')
             return {
-              name, weight,
+              name,
+              weight,
             }
           }
           return f

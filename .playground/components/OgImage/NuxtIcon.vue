@@ -13,12 +13,12 @@ const containerStyles = {
   backgroundImage: 'linear-gradient(to bottom right, #111827, #0E262C 75%)',
   display: 'flex',
   alignItems: 'center',
-  color: 'white'
+  color: 'white',
 }
 </script>
 
 <template>
-<div :style="containerStyles">
-  <Icon name="uil:github" size="250px" style="margin: 0 auto;" />
-</div>
+  <div :style="containerStyles">
+    <Icon name="uil:github" size="250px" style="margin: 0 auto;" />
+  </div>
 </template>

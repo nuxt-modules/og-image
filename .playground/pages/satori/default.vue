@@ -4,10 +4,11 @@ useHead({
   titleTemplate: '%s %separator %siteName',
   templateParams: {
     separator: '-',
-    siteName: 'Harlan Wilton'
-  }
+    siteName: 'Harlan Wilton',
+  },
 })
 </script>
+
 <template>
   <div>
     <div>
@@ -15,4 +16,4 @@ useHead({
     </div>
     <OgImage />
   </div>
-  </template>
+</template>

@@ -5,8 +5,9 @@ definePageMeta({
   image: 'https://example.com/image.jpg',
 })
 </script>
+
 <template>
-<div>
-  <OgImage provider="browser" title="Browser Component Screenshot" />
-</div>
+  <div>
+    <OgImage provider="browser" title="Browser Component Screenshot" />
+  </div>
 </template>

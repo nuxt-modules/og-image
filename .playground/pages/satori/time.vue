@@ -7,11 +7,12 @@ definePageMeta({
 
 const description = 'This is a description of the page. It can be a bit longer than the title.'
 </script>
+
 <template>
   <div>
     <div>
       Dynamic Banner page
     </div>
-    <OgImageWithoutCache :title="'The time is: ' + Date.now()" :description="description" icon="carbon:alarm" />
+    <OgImageWithoutCache :title="`The time is: ${Date.now()}`" :description="description" icon="carbon:alarm" />
   </div>
 </template>

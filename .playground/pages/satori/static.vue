@@ -10,6 +10,7 @@ useSeoMeta({
   description,
 })
 </script>
+
 <template>
   <div>
     <div>

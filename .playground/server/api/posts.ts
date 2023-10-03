@@ -28,8 +28,8 @@ const posts = [
   // { title: `Designing Responsive Emails with HTML and CSS`, slug: `designing-responsive-emails-with-html-and-css` },
 ]
 
-  export default defineEventHandler(async () => {
-    // const mock = true;
-    // const posts = mock ? dummyPosts : await getPosts();
-    return posts;
-  });
+export default defineEventHandler(async () => {
+  // const mock = true;
+  // const posts = mock ? dummyPosts : await getPosts();
+  return posts
+})

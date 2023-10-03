@@ -10,12 +10,12 @@ export default defineNuxtConfig({
     'nuxt-icon',
     NuxtOgImage,
     // '@nuxt/devtools-edge',
-    function(options, nuxt) {
+    function (options, nuxt) {
       nuxt.hook('components:extend', (components) => {
         const index = components.findIndex(c => c.name === 'NuxtWelcome')
         components[index].mode = 'client'
       })
-    }
+    },
   ],
   components: [
     {
@@ -34,9 +34,9 @@ export default defineNuxtConfig({
         '/search?foo=2',
       ],
       ignore: [
-        '/not-prerendered'
-      ]
-    }
+        '/not-prerendered',
+      ],
+    },
   },
 
   debug: false,
@@ -59,7 +59,7 @@ export default defineNuxtConfig({
         name: 'optieinstein',
         weight: 800,
         path: '/OPTIEinstein-Black.otf',
-      }
+      },
     ],
     playground: true,
     runtimeBrowser: true,
@@ -97,7 +97,7 @@ export default defineNuxtConfig({
           rel: 'stylesheet',
         },
       ],
-    }
+    },
   },
 
   routeRules: {
@@ -105,16 +105,16 @@ export default defineNuxtConfig({
       ogImage: {
         icon: 'carbon:image-search',
         description: 'set via route rules!',
-      }
+      },
     },
     '/satori/route-rules/**': {
       site: {
-        name: 'nuxt-og-image-route-rules'
+        name: 'nuxt-og-image-route-rules',
       },
       ogImage: {
         icon: 'carbon:image-search',
         title: 'set via route rules!',
-      }
-    }
-  }
+      },
+    },
+  },
 })

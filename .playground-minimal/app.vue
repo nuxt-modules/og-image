@@ -8,7 +8,7 @@ defineOgImageCached({
 </script>
 
 <template>
-<div>
-  <img :src="'/__og_image__/og.png'" width="1200" height="630">
-</div>
+  <div>
+    <img src="/__og_image__/og.png" width="1200" height="630">
+  </div>
 </template>

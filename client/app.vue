@@ -6,7 +6,8 @@ import { Pane, Splitpanes } from 'splitpanes'
 import {
   base,
   containerWidth,
-  description, hostname,
+  description,
+  hostname,
   options,
   optionsEditor,
   optionsOverrides,
