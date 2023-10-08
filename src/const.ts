@@ -45,6 +45,7 @@ const cloudflare: Partial<RuntimeCompatibilitySchema> = {
   wasm: 'import',
   png: 'resvg-wasm',
   node: false,
+  cssInline: false,
 }
 const awsLambda: Partial<RuntimeCompatibilitySchema> = {
   browser: false, // too difficult to support
@@ -67,6 +68,7 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     wasm: 'inline',
     png: 'resvg-wasm',
     node: false,
+    cssInline: false,
   },
   'vercel': {
     // exceeds 50mb limit
@@ -78,6 +80,7 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     wasmImportQuery: '?module',
     png: 'resvg-wasm',
     node: false,
+    cssInline: false,
   },
   'cloudflare-pages': cloudflare,
   'cloudflare': cloudflare,
