@@ -4,6 +4,7 @@ defineOgImage({
   list: [1, 2, 3],
 })
 </script>
+
 <template>
   <div>
     <div>
