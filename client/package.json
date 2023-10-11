@@ -7,13 +7,13 @@
     "preview": "nuxt preview"
   },
   "dependencies": {
-    "@nuxt/devtools-kit": "^1.0.0-beta.0",
+    "@nuxt/devtools-kit": "^1.0.0-beta.1",
     "flatted": "^3.2.9",
     "json-editor-vue": "^0.10.19",
     "nuxt-icon": "^0.5.0",
     "shiki-es": "^0.14.0",
     "splitpanes": "^3.1.5",
-    "vanilla-jsoneditor": "^0.18.8"
+    "vanilla-jsoneditor": "^0.18.9"
   },
   "devDependencies": {
     "@headlessui/vue": "^1.7.16",
