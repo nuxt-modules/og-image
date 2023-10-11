@@ -399,8 +399,13 @@ declare module 'nitropack' {
       if (nitroCompatibility.satori === 'yoga-wasm')
         customAssetDirs.push(resolve('./runtime/public-assets-optional/yoga'))
     }
-    if (nitroCompatibility.cssInline)
-      nuxt.options.build.transpile.push('css-inline')
+
+    nuxt.hooks.hook('vite:extend', async ({ config }) => {
+      config.optimizeDeps = config.optimizeDeps || {}
+      config.optimizeDeps.include = config.optimizeDeps.include || []
+      config.optimizeDeps.include.push('css-inline')
+    })
+
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
       // @ts-expect-error untyped
