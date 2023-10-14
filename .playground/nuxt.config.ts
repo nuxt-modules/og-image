@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
     '@unocss/nuxt',
-    '@nuxthq/ui',
+    '@nuxt/ui',
     'nuxt-icon',
     NuxtOgImage,
     // '@nuxt/devtools-edge',
