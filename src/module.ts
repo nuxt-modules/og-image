@@ -34,7 +34,7 @@ import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './runti
 import { setupPlaygroundRPC } from './rpc'
 import { extractAndNormaliseOgImageOptions } from './runtime/nitro/utils-pure'
 import type { RuntimeCompatibilitySchema } from './const'
-import { DefaultRuntimeCompatibility, Wasms } from './const'
+import { Wasms } from './const'
 import { ensureDependencies, getNitroPreset, getNitroProviderCompatibility } from './util'
 import { extendTypes } from './kit'
 
@@ -112,10 +112,8 @@ export interface ModuleOptions {
   componentDirs: string[]
   /**
    * Manually modify the deployment compatibility.
-   *
-   * @default { browser: 'playwright', satori: 'default', wasm: 'fetch', png: 'resvg-node' }
    */
-  runtimeCompatibility: RuntimeCompatibilitySchema
+  runtimeCompatibility?: Partial<RuntimeCompatibilitySchema>
   /**
    * The url of your site.
    * Used to generate absolute URLs for the og:image.
@@ -170,7 +168,6 @@ export default defineNuxtModule<ModuleOptions>({
         cache: true,
         cacheTtl: 24 * 60 * 60 * 1000,
       },
-      runtimeCompatibility: DefaultRuntimeCompatibility,
       componentDirs: ['OgImage', 'OgImageTemplate'],
       runtimeSatori: true,
       runtimeBrowser: nuxt.options.dev,
@@ -192,7 +189,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     logger.debug('Using Nitro preset', getNitroPreset())
 
-    const nitroCompatibility = getNitroProviderCompatibility(config.runtimeCompatibility)
+    const nitroCompatibility = getNitroProviderCompatibility(config.runtimeCompatibility || {})
     logger.debug('Nitro compatibility', nitroCompatibility)
 
     const nitroTarget = process.env.NITRO_PRESET || nuxt.options.nitro.preset || provider
@@ -399,12 +396,6 @@ declare module 'nitropack' {
       if (nitroCompatibility.satori === 'yoga-wasm')
         customAssetDirs.push(resolve('./runtime/public-assets-optional/yoga'))
     }
-
-    nuxt.hooks.hook('vite:extend', async ({ config }) => {
-      config.optimizeDeps = config.optimizeDeps || {}
-      config.optimizeDeps.include = config.optimizeDeps.include || []
-      config.optimizeDeps.include.push('css-inline')
-    })
 
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data

@@ -6,7 +6,7 @@ import { provider } from 'std-env'
 import defu from 'defu'
 import { useNuxt } from '@nuxt/kit'
 import type { RuntimeCompatibilitySchema } from './const'
-import { RuntimeCompatibility } from './const'
+import {DefaultRuntimeCompatibility, RuntimeCompatibility} from './const'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -32,7 +32,7 @@ export function getNitroPreset(nuxt: Nuxt = useNuxt()) {
   return process.env.NITRO_PRESET || nuxt.options.nitro.preset || detectTarget() || 'node-server'
 }
 
-export function getNitroProviderCompatibility(defaults: RuntimeCompatibilitySchema, nuxt: Nuxt = useNuxt()): false | RuntimeCompatibilitySchema {
+export function getNitroProviderCompatibility(overrides: Partial<RuntimeCompatibilitySchema>, nuxt: Nuxt = useNuxt()): false | RuntimeCompatibilitySchema {
   let compatibility
   if (provider === 'stackblitz') {
     compatibility = RuntimeCompatibility.stackblitz as RuntimeCompatibilitySchema
@@ -50,10 +50,8 @@ export function getNitroProviderCompatibility(defaults: RuntimeCompatibilitySche
       return false
     compatibility = (lookup || {}) as RuntimeCompatibilitySchema
   }
-  compatibility = defu(compatibility, defaults)
-  // compatibility is now resolved, normalise
-  compatibility.cssInline = compatibility.cssInline || (compatibility.node ? 'node' : 'mock')
-  return compatibility
+  compatibility = defu(overrides, compatibility, DefaultRuntimeCompatibility)
+  return compatibility as RuntimeCompatibilitySchema
 }
 
 export function ensureDependencies(nuxt: Nuxt, dep: string[]) {

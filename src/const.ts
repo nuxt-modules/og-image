@@ -50,6 +50,7 @@ const cloudflare: Partial<RuntimeCompatibilitySchema> = {
 const awsLambda: Partial<RuntimeCompatibilitySchema> = {
   browser: false, // too difficult to support
   wasm: 'inline',
+  cssInline: false,
 }
 export const RuntimeCompatibility: Record<'default' | string, Partial<false | RuntimeCompatibilitySchema>> = {
   'nitro-dev': {
@@ -61,6 +62,7 @@ export const RuntimeCompatibility: Record<'default' | string, Partial<false | Ru
     satori: 'yoga-wasm',
     wasm: 'inline',
     png: 'resvg-wasm',
+    cssInline: false,
   },
   'aws-lambda': awsLambda,
   'netlify': awsLambda,
