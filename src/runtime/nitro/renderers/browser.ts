@@ -21,11 +21,16 @@ const BrowserRenderer: Renderer = {
     let res = null
     if (browser) {
       try {
-        res = await screenshot(browser!, {
-          ...options,
-          host: options.requestOrigin,
-          path: `/api/og-image-html?path=${options.path}`,
-        })
+        if (options.html) {
+          res = await screenshot(browser!, options)
+        }
+        else {
+          res = await screenshot(browser!, {
+            ...options,
+            host: options.requestOrigin,
+            path: `/api/og-image-html?path=${options.path}`,
+          })
+        }
       }
       finally {
         await browser!.close()

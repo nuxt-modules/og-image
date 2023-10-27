@@ -29,14 +29,14 @@ const SatoriRenderer: Renderer = {
   },
 
   createVNode: async function createVNode(options) {
-    const html = await globalThis.$fetch('/api/og-image-html', {
+    const html = options.html || (await globalThis.$fetch('/api/og-image-html', {
       params: {
         path: options.path,
         options: JSON.stringify(options),
       },
-    })
+    })) as string
     // get the body content of the html
-    const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || ''
+    const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || html
 
     // scan html for all css links and load them
     const satoriTree = convertHtmlToSatori(body)

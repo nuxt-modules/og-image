@@ -26,7 +26,10 @@ export interface ScreenshotOptions {
 
 export interface OgImageOptions extends Partial<ScreenshotOptions> {
   provider?: 'browser' | 'satori'
-
+  /**
+   * Provide a static HTML template to render the OG Image instead of a component.
+   */
+  html?: string
   title?: string
   description?: string
   component?: string | null
