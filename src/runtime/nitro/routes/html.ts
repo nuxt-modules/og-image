@@ -77,6 +77,16 @@ export default defineEventHandler(async (e) => {
   }
   catch (e) {}
 
+  // we need to group fonts by name
+  const googleFonts: Record<string, FontConfig[]> = {}
+  ;(fonts as FontConfig[])
+    .filter(font => !font.path)
+    .forEach((font) => {
+      if (!googleFonts[font.name])
+        googleFonts[font.name] = []
+      googleFonts[font.name].push(font)
+    })
+
   head.push({
     style: [
       {
@@ -139,11 +149,10 @@ img.emoji {
         rel: 'stylesheet',
       },
       // have to add each weight as their own stylesheet
-      ...(fonts as FontConfig[])
-        .filter(font => !font.path)
-        .map((font) => {
+      ...Object.entries(googleFonts)
+        .map(([name, fonts]) => {
           return {
-            href: `https://fonts.googleapis.com/css2?family=${font.name}:wght@${font.weight}&display=swap`,
+            href: `https://fonts.googleapis.com/css2?family=${name}:wght@${fonts.map(f => f.weight).join(';')}&display=swap`,
             rel: 'stylesheet',
           }
         }),
