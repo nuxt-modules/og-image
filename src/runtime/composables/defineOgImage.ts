@@ -52,9 +52,38 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
   return defineOgImageWithoutCache(options)
 }
 
-export async function defineOgImage(_options: OgImageOptions = {}) {
+type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt'>
+
+export async function defineOgImage(_options: OgImagePrebuilt | OgImageOptions = {}) {
+  // string is supported as an easy way to override the generated og image data
   // clone to avoid any issues
-  if (process.server) {
+  if (import.meta.server) {
+    // allow overriding using a prebuild config
+    if (_options.url) {
+      // can be a jpeg or png
+      const type = _options.url.endsWith('.png') ? 'image/png' : 'image/jpeg'
+      const meta: Head['meta'] = [
+        { property: 'og:image', content: _options.url },
+        { property: 'og:image:type', content: type },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:image:src', content: _options.url },
+      ]
+      if (_options.width) {
+        meta.push({ property: 'og:image:width', content: _options.width })
+        meta.push({ name: 'twitter:image:width', content: _options.width })
+      }
+      if (_options.height) {
+        meta.push({ property: 'og:image:height', content: _options.height })
+        meta.push({ name: 'twitter:image:height', content: _options.height })
+      }
+      if (_options.alt) {
+        meta.push({ property: 'og:image:alt', content: _options.alt })
+        meta.push({ name: 'twitter:image:alt', content: _options.alt })
+      }
+      useServerHead({ meta })
+      return
+    }
+
     const { defaults } = useRuntimeConfig()['nuxt-og-image']
     const options = normaliseOgImageOptions(_options)
     const optionsWithDefault = defu(options, defaults)
