@@ -80,7 +80,10 @@ export async function defineOgImage(_options: OgImagePrebuilt | OgImageOptions =
         meta.push({ property: 'og:image:alt', content: _options.alt })
         meta.push({ name: 'twitter:image:alt', content: _options.alt })
       }
-      useServerHead({ meta })
+      useServerHead({ meta }, {
+        // after async scripts when capo.js is enabled
+        tagPriority: 35,
+      })
       return
     }
 
@@ -128,8 +131,13 @@ export async function defineOgImage(_options: OgImagePrebuilt | OgImageOptions =
             })
             return payload
           },
+          // we want this to be last in our head
+          tagPosition: 'bodyClose',
         },
       ],
+    }, {
+      // after async scripts when capo.js is enabled
+      tagPriority: 35,
     })
   }
 }
