@@ -37,6 +37,9 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   // cache config
   cache?: boolean
   cacheKey?: string
+  /**
+   * The time to live of the cache in milliseconds.
+   */
   cacheTtl?: number
   // deprecations
   /**

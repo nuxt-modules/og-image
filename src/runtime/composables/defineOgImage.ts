@@ -29,7 +29,7 @@ export function defineOgImageCached(options: OgImageOptions = {}) {
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
   // if we're not caching by default and are missing cache config, add it
   if (!defaults.cacheTtl && !options.cacheTtl)
-    options.cacheTtl = 60 * 60 * 24 * 7 // 1 week
+    options.cacheTtl = 60 * 60 * 24 * 1000 * 7 // 7 days - 1 week
   return defineOgImage({
     cache: true,
     ...options,

@@ -53,7 +53,7 @@ export async function fetchOptionsCached(e: H3Event, path: string) {
   ].join(':')
   const { cachedItem, update } = await useNitroCache<RuntimeOgImageOptions>(e, 'nuxt-og-image', {
     key,
-    // allow internal requests to be cached
+    // allow internal requests to be cached for 5 seconds
     cacheTtl: 5 * 1000,
     cache: !process.dev,
     headers: false,

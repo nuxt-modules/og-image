@@ -164,8 +164,8 @@ export default defineNuxtModule<ModuleOptions>({
         component: 'OgImageTemplateFallback',
         width: 1200,
         height: 630,
-        // default is to cache the image for 24 hours
         cache: true,
+        // default is to cache the image for 1 day (24 hours)
         cacheTtl: 24 * 60 * 60 * 1000,
       },
       componentDirs: ['OgImage', 'OgImageTemplate'],

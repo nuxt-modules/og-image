@@ -64,7 +64,7 @@ export default defineEventHandler(async (e) => {
 
   if (png) {
     if (cacheEnabled && options.cacheTtl) {
-      setHeader(e, 'Cache-Control', `public, max-age=${options.cacheTtl}`)
+      setHeader(e, 'Cache-Control', `public, max-age=${options.cacheTtl / 1000}`)
     }
     else {
       // add http headers so the file isn't cached
