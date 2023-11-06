@@ -6,7 +6,7 @@ import { provider } from 'std-env'
 import defu from 'defu'
 import { useNuxt } from '@nuxt/kit'
 import type { RuntimeCompatibilitySchema } from './const'
-import {DefaultRuntimeCompatibility, RuntimeCompatibility} from './const'
+import { DefaultRuntimeCompatibility, RuntimeCompatibility } from './const'
 
 const autodetectableProviders = {
   azure_static: 'azure',

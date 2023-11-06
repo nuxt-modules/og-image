@@ -5,6 +5,7 @@ defineOgImage({
 </div>`,
 })
 </script>
+
 <template>
-<div>inline</div>
+  <div>inline</div>
 </template>
