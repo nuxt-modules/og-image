@@ -19,7 +19,11 @@ const OgImagePrenderNitroPlugin: NitroAppPlugin = async (nitroApp) => {
     const routeRules = (getRouteRules(event)?.ogImage || {}) as false | OgImageOptions
     if (routeRules === false)
       return
-    const options = extractAndNormaliseOgImageOptions(path, ctx.head.join('\n'), routeRules, defaults)
+    const options = extractAndNormaliseOgImageOptions(path, [
+      // payload may move
+      ctx.head.join('\n'),
+      ctx.bodyAppend.join('\n'),
+    ].join('\n'), routeRules, defaults)
     if (!options)
       return
     const key = [
