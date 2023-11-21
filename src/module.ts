@@ -37,6 +37,7 @@ import type { RuntimeCompatibilitySchema } from './const'
 import { Wasms } from './const'
 import { ensureDependencies, getNitroPreset, getNitroProviderCompatibility } from './util'
 import { extendTypes } from './kit'
+import { setupDevToolsUI } from './devtools'
 
 export interface ModuleOptions {
   /**
@@ -267,36 +268,9 @@ declare module 'nitropack' {
         }
       })
 
-    // @ts-ignore runtime type
-    nuxt.hook('devtools:customTabs', (iframeTabs) => {
-      iframeTabs.push({
-        name: 'ogimage',
-        title: 'OG Image',
-        icon: 'carbon:image-search',
-        view: {
-          type: 'iframe',
-          src: '/__nuxt_og_image__/client/',
-        },
-      })
-    })
-
     // Setup playground. Only available in development
     if (config.playground) {
-      const playgroundDir = distResolve('./client')
-      const {
-        middleware: rpcMiddleware,
-      } = setupPlaygroundRPC(nuxt, config)
-      nuxt.hook('vite:serverCreated', async (server) => {
-        server.middlewares.use(PATH_ENTRY, tinyws() as any)
-        server.middlewares.use(PATH_ENTRY, rpcMiddleware as any)
-        // serve the front end in production
-        if (await pathExists(playgroundDir))
-          server.middlewares.use(PATH_PLAYGROUND, sirv(playgroundDir, { single: true, dev: true }))
-      })
-      // allow /__og_image__ to be proxied
-      addServerHandler({
-        handler: resolve('./runtime/nitro/middleware/playground'),
-      })
+      setupDevToolsUI(config, resolve)
     }
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []

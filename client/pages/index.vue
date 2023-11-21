@@ -14,10 +14,11 @@ const src = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full w-full">
+  <div class="flex h-full items-center justify-center" >
     <IFrameLoader
       :src="src"
       :aspect-ratio="aspectRatio"
+      style="max-width: 600px;"
       description="[HTML] Generated in %sms."
       class="max-h-full"
       @refresh="refreshSources"
