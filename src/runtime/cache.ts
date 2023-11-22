@@ -3,8 +3,8 @@ import type { H3Event } from 'h3'
 import { getQuery, setHeader } from 'h3'
 import { useRuntimeConfig, useStorage } from '#imports'
 
-export async function useNitroCache<T>(e: H3Event, module: string, options: { key: string; cacheTtl: number; cache: boolean; headers: boolean; skipRestore?: boolean }) {
-  const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string; runtimeCacheStorage: any }
+export async function useNitroCache<T>(e: H3Event, module: string, options: { key: string, cacheTtl: number, cache: boolean, headers: boolean, skipRestore?: boolean }) {
+  const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string, runtimeCacheStorage: any }
 
   const enabled = options.cache && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0
   const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/${module}@${version}` : `/${module}@${version}`

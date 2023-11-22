@@ -18,8 +18,6 @@ import defu from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { joinURL, parsePath, withBase } from 'ufo'
 import { dirname, relative } from 'pathe'
-import { tinyws } from 'tinyws'
-import sirv from 'sirv'
 import type { SatoriOptions } from 'satori'
 import { copy, mkdirp, pathExists } from 'fs-extra'
 import { globby } from 'globby'
@@ -31,7 +29,6 @@ import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
 import type { InputFontConfig, OgImageOptions, ScreenshotOptions } from './runtime/types'
-import { setupPlaygroundRPC } from './rpc'
 import { extractAndNormaliseOgImageOptions } from './runtime/nitro/utils-pure'
 import type { RuntimeCompatibilitySchema } from './const'
 import { Wasms } from './const'
@@ -269,9 +266,8 @@ declare module 'nitropack' {
       })
 
     // Setup playground. Only available in development
-    if (config.playground) {
+    if (config.playground)
       setupDevToolsUI(config, resolve)
-    }
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     ;[
@@ -318,7 +314,7 @@ declare module 'nitropack' {
       })
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponents: { pascalName: string; kebabName: string; hash: string }[] = []
+    const ogImageComponents: { pascalName: string, kebabName: string, hash: string }[] = []
     nuxt.hook('components:extend', (components) => {
       // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
       components.forEach((component) => {
