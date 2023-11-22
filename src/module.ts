@@ -267,7 +267,7 @@ declare module 'nitropack' {
         }
       })
 
-    // @ts-ignore runtime type
+    // @ts-expect-error runtime type
     nuxt.hook('devtools:customTabs', (iframeTabs) => {
       iframeTabs.push({
         name: 'ogimage',
@@ -344,7 +344,7 @@ declare module 'nitropack' {
       })
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponents: { pascalName: string; kebabName: string; hash: string }[] = []
+    const ogImageComponents: { pascalName: string, kebabName: string, hash: string }[] = []
     nuxt.hook('components:extend', (components) => {
       // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
       components.forEach((component) => {

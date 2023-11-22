@@ -55,7 +55,7 @@ export interface RuntimeOgImageOptions extends OgImageOptions {
   requestOrigin: string
 }
 
-export interface FontConfig { name: string; weight: number; path?: string }
+export interface FontConfig { name: string, weight: number, path?: string }
 
 export type InputFontConfig = (`${string}:${number}` | FontConfig)
 
