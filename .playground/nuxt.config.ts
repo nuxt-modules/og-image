@@ -1,29 +1,56 @@
+import { resolve } from 'node:path'
 import { defineNuxtConfig } from 'nuxt/config'
-import { extendUnocssOptions } from '@nuxt/devtools-ui-kit/unocss'
+import { defineNuxtModule } from '@nuxt/kit'
+import { startSubprocess } from '@nuxt/devtools-kit'
 import NuxtOgImage from '../src/module'
 
 export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
-    '@unocss/nuxt',
     '@nuxt/ui',
     'nuxt-icon',
     NuxtOgImage,
-    // '@nuxt/devtools-edge',
-    function (options, nuxt) {
-      nuxt.hook('components:extend', (components) => {
-        const index = components.findIndex(c => c.name === 'NuxtWelcome')
-        components[index].mode = 'client'
-      })
-    },
+    /**
+     * Start a sub Nuxt Server for developing the client
+     *
+     * The terminal output can be found in the Terminals tab of the devtools.
+     */
+    defineNuxtModule({
+      setup(_, nuxt) {
+        if (!nuxt.options.dev)
+          return
+
+        const subprocess = startSubprocess(
+          {
+            command: 'npx',
+            args: ['nuxi', 'dev', '--port', '3030'],
+            cwd: resolve(__dirname, '../client'),
+          },
+          {
+            id: 'nuxt-og-image:client',
+            name: 'Nuxt OG Image Client Dev',
+          },
+        )
+        subprocess.getProcess().stdout?.on('data', (data) => {
+          // eslint-disable-next-line no-console
+          console.log(` sub: ${data.toString()}`)
+        })
+
+        process.on('exit', () => {
+          subprocess.terminate()
+        })
+
+        // process.getProcess().stdout?.pipe(process.stdout)
+        // process.getProcess().stderr?.pipe(process.stderr)
+      },
+    }),
   ],
   components: [
     {
       path: '~/components',
-      pathPrefix: false, // <-- this
+      pathPrefix: false,
     },
   ],
-  unocss: extendUnocssOptions({}),
   nitro: {
     prerender: {
       routes: [
@@ -40,14 +67,6 @@ export default defineNuxtConfig({
   },
 
   debug: false,
-
-  // hooks: {
-  //   'og-image:prerenderScreenshots'(queue) {
-  //     queue.push({
-  //       route: '/not-prerendered',
-  //     })
-  //   }
-  // },
 
   devtools: true,
 

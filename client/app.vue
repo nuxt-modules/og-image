@@ -7,7 +7,6 @@ import {
   base,
   containerWidth,
   description,
-  hostname,
   options,
   optionsEditor,
   optionsOverrides,
@@ -16,18 +15,35 @@ import {
   refreshSources,
   slowRefreshSources,
 } from './util/logic'
-import { computed, connectWS, fetchOptions, unref, useColorMode, useHead, useRoute, watch } from '#imports'
-import { devtoolsClient } from '~/composables/devtools-client'
+import {
+  computed,
+  devtools,
+  fetchOptions,
+  fetchVNodes,
+  highlight,
+  unref,
+  useColorMode,
+  useHead,
+  useRoute,
+  watch,
+} from '#imports'
 import 'splitpanes/dist/splitpanes.css'
 import { version } from '../package.json'
+import { ref } from 'vue'
+import { devtoolsClient } from '~/composables/rpc'
 
 useHead({
   title: 'OG Image Playground',
 })
 
-connectWS(hostname)
-
-const isDevTools = computed(() => !!devtoolsClient.value)
+await new Promise<void>((resolve) => {
+  watch(devtools, () => {
+    if (devtools.value)
+      resolve()
+  }, {
+    immediate: true,
+  })
+})
 
 const clientPath = computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
 path.value = clientPath.value || useRoute().query.path as string || '/'
@@ -38,9 +54,7 @@ watch(() => clientPath, (v) => {
   path.value = v
 })
 
-const constrainsWidth = computed(() => {
-  return useRoute().path !== '/vnodes' && useRoute().path !== '/options'
-})
+const vnodes = await fetchVNodes()
 
 const optionRef = await fetchOptions()
 watch(optionRef, (val) => {
@@ -72,6 +86,8 @@ function updateProps(props: Record<string, any>) {
   refreshSources()
 }
 
+const tab = ref('design')
+
 const isDark = computed(() => {
   return mode.value === 'dark'
 })
@@ -96,124 +112,141 @@ await resetProps(false)
 </script>
 
 <template>
-  <div class="flex-row flex h-screen">
-    <header class="border-r-1 border-light-400 dark:(border-dark-400 bg-dark-900 text-light) bg-white text-dark-800 flex flex-col justify-between h-screen z-5">
-      <div class="flex-grow hidden md:block">
-        <div class="py-3 w-full flex items-start px-5 justify-between space-x-5">
-          <h1 class="text-base w-40">
-            OG Image Playground
+  <div class="relative p8 n-bg-base flex flex-col h-screen">
+    <div>
+      <div class="flex justify-between items-center" mb6>
+        <div>
+          <h1 text-xl mb2 flex items-center gap-2>
+            <NIcon icon="carbon:image-search" class="text-blue-300" />
+            Nuxt OG Image <NBadge class="text-sm">
+              {{ version }}
+            </NBadge>
           </h1>
-          <NDarkToggle v-if="!isDevTools">
-            <template #default="{ toggle }">
-              <NButton n="borderless lg m-0" p-0 op50 @click="toggle">
-                <NIcon icon="dark:carbon-moon carbon-sun" />
-              </NButton>
-            </template>
-          </NDarkToggle>
+          <div class="space-x-3 mt-1 ml-1 opacity-80 text-sm">
+            <NLink href="https://nuxtseo.com/og-image" target="_blank">
+              <NuxtSeoLogo class="mr-[2px] w-5 h-5 inline" />
+              Documentation
+            </NLink>
+            <NLink href="https://github.com/harlan-zw/nuxt-og-image" target="_blank">
+              <NIcon icon="logos:github-icon" class="mr-[2px]" />
+              Submit an issue
+            </NLink>
+          </div>
         </div>
-        <hr class="border-1 border-light-400 dark:border-dark-400">
-        <div class="py-7 px-5 text-sm flex flex-col space-y-3">
-          <NuxtLink v-slot="{ isActive }" to="/" class="transition-all hover:(ml-1) whitespace-nowrap">
-            <Icon name="carbon:image-search" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
-            <span :class="[isActive ? 'underline' : 'opacity-60']">
-              Template HTML
-            </span>
-          </NuxtLink>
-          <NuxtLink v-if="options?.provider === 'satori'" v-slot="{ isActive }" to="/svg" class="transition-all hover:(ml-1) whitespace-nowrap">
-            <Icon name="carbon:svg" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
-            <span :class="[isActive ? 'underline' : 'opacity-60']">
-              Preview SVG
-            </span>
-          </NuxtLink>
-          <NuxtLink v-slot="{ isActive }" to="/png" class="transition-all hover:(ml-1) whitespace-nowrap">
-            <Icon name="carbon:png" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
-            <span :class="[isActive ? 'underline' : 'opacity-60']">
-              Preview PNG
-            </span>
-          </NuxtLink>
-          <NuxtLink v-slot="{ isActive }" to="/options" class="transition-all hover:(ml-1) whitespace-nowrap">
-            <Icon name="carbon:operations-record" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
-            <span :class="[isActive ? 'underline' : 'opacity-60']">
-              Options
-            </span>
-          </NuxtLink>
-          <NuxtLink v-slot="{ isActive }" to="/vnodes" class="transition-all hover:(ml-1) whitespace-nowrap">
-            <Icon name="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" :class="[isActive ? 'opacity-90' : 'opacity-60']" />
-            <span :class="[isActive ? 'underline' : 'opacity-60']">
-              vNodes
-            </span>
-          </NuxtLink>
-        </div>
-        <hr class="border-1 border-light-400 dark:border-dark-400">
-        <div v-if="constrainsWidth" class="py-7 px-5 text-sm flex flex-col space-y-3">
-          <div v-if="containerWidth !== 504" @click="containerWidth = 504">
-            <NButton>
-              <Icon name="carbon:mobile" />
-              Small
-            </NButton>
-          </div>
-          <div v-if="containerWidth !== null" @click="containerWidth = null">
-            <NButton>
-              <Icon name="carbon:laptop" />
-              Full width
-            </NButton>
-          </div>
-          <div>
-            <NButton @click="refreshSources">
-              Refresh
-            </NButton>
-          </div>
+        <div>
+          <a href="https://nuxtseo.com" target="_blank" class="flex items-end gap-1.5 font-semibold text-xl dark:text-white font-title">
+            <NuxtSeoLogo />
+            <span class="hidden sm:block">Nuxt</span><span class="sm:text-green-500 dark:sm:text-green-400">SEO</span>
+          </a>
         </div>
       </div>
-      <div class="p-3 text-gray-400 text-sm text-center">
-        v{{ version }}
-      </div>
-    </header>
-    <main class="mx-auto flex flex-col w-full bg-white dark:bg-black max-h-screen overflow-hidden dark:bg-dark-700 bg-light-200 ">
-      <div class="py-9px dark:(bg-dark-800) bg-light-200 px-10 opacity-80 flex items-center max-w-full block space-x-5">
-        <div class="text-sm flex items-center space-x-5">
-          <div class="text-xs opacity-40">
-            Path
-          </div>
-          <div class="flex items-center space-x-1">
-            <NTextInput :model-value="path" placeholder="Search..." n="primary" @input="setPath" />
-          </div>
-        </div>
-        <div v-if="description" class="text-xs opacity-70">
-          {{ description }}
-        </div>
-      </div>
-      <hr class="border-1 border-light-400 dark:border-dark-400">
-      <div class="h-full max-h-full overflow-hidden lg:p-5 p-2" :style="{ width: containerWidth && constrainsWidth ? `${containerWidth}px` : '100%' }">
-        <Splitpanes class="default-theme" @resize="slowRefreshSources">
-          <Pane size="80">
-            <NuxtPage />
-          </Pane>
-          <Pane size="20">
-            <h2 class="font-semibold text-lg mb-5">
-              Props
-            </h2>
-            <div class="relative">
-              <JsonEditorVue
-                :model-value="optionsEditor"
-                :class="isDark ? ['jse-theme-dark'] : []"
-                :main-menu-bar="false"
-                :navigation-bar="false"
-                @update:model-value="updateProps"
-              />
-              <span v-if="propsEdited" class="absolute top-1 right-1 text-10px ml-1 bg-blue-100 text-blue-700 px-1 py-2px rounded">modified</span>
+    </div>
+    <div class="mb-6 text-xl">
+      <fieldset
+        class="n-select-tabs flex flex-inline flex-wrap items-center border n-border-base rounded-lg n-bg-base"
+      >
+        <label
+          v-for="(value, idx) of ['design', 'debug']"
+          :key="idx"
+          class="relative n-border-base hover:n-bg-active px-0.5em py-0.1em"
+          :class="[
+            idx ? 'border-l n-border-base ml--1px' : '',
+            value === tab ? 'n-bg-active' : '',
+          ]"
+        >
+          <div v-if="value === 'design'" :class="[value === tab ? '' : 'op35']">
+            <div class="px-2 py-1">
+              <h2 text-lg flex items-center gap-2 mb-1>
+                <NIcon icon="carbon:brush-freehand opacity-50" />
+                Design
+              </h2>
+              <p text-xs op60>
+                Design your OG Image with Social Previews.
+              </p>
             </div>
-            <div v-if="propsEdited" class="text-xs p-2 text-gray-300">
-              <div>
-                Update {{ options.component }} to persist the changes. <button type="button" class="underline" @click="resetProps(true)">
-                  Reset
-                </button>
+          </div>
+          <div v-else-if="value === 'debug'" :class="[value === tab ? '' : 'op35']">
+            <div class="px-2 py-1">
+              <h2 text-lg flex items-center gap-2 mb-1>
+                <NIcon icon="carbon:debug opacity-50" />
+                Debug
+              </h2>
+              <p text-xs op60>
+                Find out what might be going wrong.
+              </p>
+            </div>
+          </div>
+          <input
+            v-model="tab"
+            type="radio"
+            :value="value"
+            :title="value"
+            class="absolute inset-0 op-0.1"
+          >
+        </label>
+      </fieldset>
+      <button
+        class="ml-5 hover:shadow-lg text-xs transition items-center gap-2 inline-flex border-green-500/50 border-1 rounded-lg shadow-sm px-3 py-1"
+        @click="refreshSources"
+      >
+        <div>
+          Refresh Data
+        </div>
+      </button>
+    </div>
+    <div class="flex-row flex h-screen">
+      <main class="mx-auto flex flex-col w-full bg-white dark:bg-black max-h-screen overflow-hidden dark:bg-dark-700 bg-light-200 ">
+        <hr class="border-1 border-light-400 dark:border-dark-400">
+        <div v-if="tab === 'design'" class="h-full max-h-full overflow-hidden lg:p-5 p-2" :style="{ width: containerWidth && constrainsWidth ? `${containerWidth}px` : '100%' }">
+          <Splitpanes class="default-theme" @resize="slowRefreshSources">
+            <Pane size="60">
+              <NuxtPage />
+            </Pane>
+            <Pane size="40">
+              <div class="px-3 pt-2">
+                <div v-if="description" class="mb-3 opacity-80">
+                  {{ description }}
+                </div>
+                <h2 class="font-semibold text-lg mb-3">
+                  <Icon name="carbon:operations-record" class="mr-1" />
+                  Options
+                </h2>
+                <div class="relative">
+                  <JsonEditorVue
+                    :model-value="optionsEditor"
+                    :class="isDark ? ['jse-theme-dark'] : []"
+                    :main-menu-bar="false"
+                    :navigation-bar="false"
+                    @update:model-value="updateProps"
+                  />
+                  <span v-if="propsEdited" class="absolute top-1 right-1 text-10px ml-1 bg-blue-100 text-blue-700 px-1 py-2px rounded">modified</span>
+                </div>
+                <div v-if="propsEdited" class="text-xs p-2 opacity-80">
+                  <div>
+                    Update {{ options.component }} to persist the changes. <button type="button" class="underline" @click="resetProps(true)">
+                      Reset
+                    </button>
+                  </div>
+                </div>
               </div>
+            </Pane>
+          </Splitpanes>
+        </div>
+        <div v-else-if="tab === 'debug'" class="h-full max-h-full overflow-hidden lg:p-5 p-2">
+          <OSectionBlock>
+            <template #text>
+              <h3 class="opacity-80 text-base mb-1">
+                <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
+                vNodes
+              </h3>
+            </template>
+            <div class="px-3 py-2 space-y-5">
+              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(vnodes, null, 2), 'json')" />
             </div>
-          </Pane>
-        </Splitpanes>
-      </div>
-    </main>
+          </OSectionBlock>
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 

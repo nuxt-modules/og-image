@@ -1,23 +1,21 @@
-import { resolve } from 'node:path'
+import { resolve } from 'pathe'
+import DevtoolsUIKit from '@nuxt/devtools-ui-kit'
 
 export default defineNuxtConfig({
+  ssr: false,
   modules: [
-    '@nuxt/devtools-ui-kit',
+    DevtoolsUIKit,
     'nuxt-icon',
   ],
-  ssr: false,
+  devtools: {
+    enabled: false,
+  },
   nitro: {
     output: {
       publicDir: resolve(__dirname, '../dist/client'),
     },
   },
   app: {
-    baseURL: '/__nuxt_og_image__/client',
-  },
-  vite: {
-    // fixes shiki bug
-    define: {
-      'process.env.VSCODE_TEXTMATE_DEBUG': 'false',
-    },
+    baseURL: '/__nuxt-og-image',
   },
 })
