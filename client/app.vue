@@ -5,7 +5,8 @@ import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
 import {
   base,
-  containerWidth, description,
+  containerWidth,
+  description,
   options,
   optionsEditor,
   optionsOverrides,
@@ -24,7 +25,7 @@ import {
   useColorMode,
   useHead,
   useRoute,
-  watch
+  watch,
 } from '#imports'
 import 'splitpanes/dist/splitpanes.css'
 import { version } from '../package.json'
@@ -203,7 +204,9 @@ await resetProps(false)
             </Pane>
             <Pane size="40">
               <div class="px-3 pt-2">
-                <div v-if="description" class="mb-3 opacity-80">{{ description }}</div>
+                <div v-if="description" class="mb-3 opacity-80">
+                  {{ description }}
+                </div>
                 <h2 class="font-semibold text-lg mb-3">
                   <Icon name="carbon:operations-record" class="mr-1" />
                   Options
