@@ -1,6 +1,7 @@
 import { html as convertHtmlToSatori } from 'satori-html'
 import type { SatoriOptions } from 'satori'
 import type { FontConfig, Renderer } from '../../../types'
+import { fetchHTML } from '../../utils'
 import { loadFont, walkSatoriTree } from './utils'
 import imageSrc from './plugins/imageSrc'
 import twClasses from './plugins/twClasses'
@@ -29,12 +30,7 @@ const SatoriRenderer: Renderer = {
   },
 
   createVNode: async function createVNode(options) {
-    const html = options.html || (await globalThis.$fetch('/api/og-image-html', {
-      params: {
-        path: options.path,
-        options: JSON.stringify(options),
-      },
-    })) as string
+    const html = options.html || await fetchHTML(options)
     // get the body content of the html
     const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || html
 

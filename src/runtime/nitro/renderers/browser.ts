@@ -1,6 +1,7 @@
 import type { Browser } from 'playwright-core'
 import { screenshot } from '../../browserUtil'
 import type { Renderer } from '../../types'
+import { getOgImagePath } from '../../utilts'
 import loadBrowserLauncherChunk from '#nuxt-og-image/browser'
 
 const BrowserRenderer: Renderer = {
@@ -12,6 +13,10 @@ const BrowserRenderer: Renderer = {
     throw new Error('Browser provider can\'t create VNodes.')
   },
   createPng: async function createPng(options) {
+    // TODO validate environment
+    // if (process.env.NODE_ENV === 'production' && !process.env.prerender && !runtimeBrowser && options.provider === 'browser')
+    //   return sendRedirect(e, joinURL(useNitroOrigin(e), '__nuxt_og_image__/browser-provider-not-supported.png'))
+    // TODO redirect for screenshot
     const launchBrowser = await loadBrowserLauncherChunk()
     if (!launchBrowser) {
       // throw new exception
@@ -28,7 +33,7 @@ const BrowserRenderer: Renderer = {
           res = await screenshot(browser!, {
             ...options,
             host: options.requestOrigin,
-            path: `/api/og-image-html?path=${options.path}`,
+            path: getOgImagePath(options.path, 'html'),
           })
         }
       }

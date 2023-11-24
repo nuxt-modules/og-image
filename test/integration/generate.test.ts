@@ -29,12 +29,12 @@ describe('generate', () => {
 
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    expect(await fetchImage('/__og_image__/og.png')).toMatchImageSnapshot({
+    expect(await fetchImage('/')).toMatchImageSnapshot({
       comparisonMethod: 'ssim',
       failureThreshold: 0.1,
       failureThresholdType: 'percent',
     })
-    expect(await fetchImage('/satori/image/__og_image__/og.png')).toMatchImageSnapshot({
+    expect(await fetchImage('/satori/image')).toMatchImageSnapshot({
       comparisonMethod: 'ssim',
       failureThreshold: 0.1,
       failureThresholdType: 'percent',

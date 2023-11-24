@@ -248,22 +248,23 @@ declare module 'nitropack' {
   }
 }`
     })
-
     addServerHandler({
       lazy: true,
-      handler: resolve('./runtime/nitro/middleware/og.png'),
+      route: '/__og-image__/font',
+      handler: resolve('./runtime/server/routes/__og-image__/font'),
     })
-
-    ;['html', 'options', 'svg', 'vnode', 'font', 'debug']
-      .forEach((type) => {
-        if (type !== 'debug' || config.debug) {
-          addServerHandler({
-            lazy: true,
-            route: `/api/og-image-${type}`,
-            handler: resolve(`./runtime/nitro/routes/${type}`),
-          })
-        }
+    if (config.debug || nuxt.options.dev) {
+      addServerHandler({
+        lazy: true,
+        route: '/__og-image__/debug.json',
+        handler: resolve('./runtime/server/routes/__og-image__/debug.json'),
       })
+    }
+    addServerHandler({
+      lazy: true,
+      route: '/__og-image__/image/**',
+      handler: resolve('./runtime/server/routes/__og-image__/image-[path]-og.[extension].ts'),
+    })
 
     // Setup playground. Only available in development
     if (config.playground)

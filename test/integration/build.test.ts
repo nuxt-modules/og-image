@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { getOgImagePath } from '../src/runtime/utilts'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -28,7 +29,7 @@ expect.extend({ toMatchImageSnapshot })
 describe('build', () => {
   it('basic', async () => {
     async function fetchImage(url: string, options: any = {}) {
-      const blob: Blob = await $fetch(url, options)
+      const blob: Blob = await $fetch(getOgImagePath(url), options)
       return Buffer.from(await blob.arrayBuffer())
     }
 
@@ -48,11 +49,11 @@ describe('build', () => {
       }
     `)
 
-    expect(await fetchImage('/__og_image__/og.png')).toMatchImageSnapshot()
+    expect(await fetchImage('/')).toMatchImageSnapshot()
 
-    expect(await fetchImage('/satori/image/__og_image__/og.png')).toMatchImageSnapshot()
-    expect(await fetchImage('/satori/with-options/__og_image__/og.png')).toMatchImageSnapshot()
-    expect(await fetchImage('/satori/tailwind/__og_image__/og.png', { query: { title: 'Fully dynamic', bgColor: 'bg-green-500' } })).toMatchImageSnapshot()
+    expect(await fetchImage('/satori/image')).toMatchImageSnapshot()
+    expect(await fetchImage('/satori/with-options')).toMatchImageSnapshot()
+    expect(await fetchImage('/satori/tailwind', { query: { title: 'Fully dynamic', bgColor: 'bg-green-500' } })).toMatchImageSnapshot()
 
     // expect(await fetchImage('/browser/component/__og_image__/og.png')).toMatchImageSnapshot({
     //   comparisonMethod: 'ssim',
