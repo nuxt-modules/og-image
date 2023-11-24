@@ -1,9 +1,10 @@
 import { appendHeader } from 'h3'
-import { joinURL, parseURL, withoutLeadingSlash } from 'ufo'
+import { parseURL, withoutLeadingSlash } from 'ufo'
 import type { NitroAppPlugin } from 'nitropack'
 import { extractAndNormaliseOgImageOptions } from '../utils-pure'
 import { useNitroCache } from '../../cache'
 import type { OgImageOptions } from '../../types'
+import { getOgImagePath } from '../../utilts'
 import { getRouteRules } from '#internal/nitro'
 import { useRuntimeConfig } from '#imports'
 
@@ -40,7 +41,7 @@ const OgImagePrenderNitroPlugin: NitroAppPlugin = async (nitroApp) => {
     })
     await update(options)
     if (options.provider === 'satori')
-      appendHeader(event, 'x-nitro-prerender', joinURL(path, '/__og_image__/og.png'))
+      appendHeader(event, 'x-nitro-prerender', getOgImagePath(path))
   })
 }
 

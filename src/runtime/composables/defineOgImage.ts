@@ -1,7 +1,7 @@
-import { joinURL } from 'ufo'
 import type { Head } from '@unhead/schema'
 import { defu } from 'defu'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../types'
+import { getOgImagePath } from '../utilts'
 import { normaliseOgImageOptions } from './util'
 import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#imports'
 
@@ -91,7 +91,7 @@ export async function defineOgImage(_options: OgImagePrebuilt | OgImageOptions =
     const options = normaliseOgImageOptions(_options)
     const optionsWithDefault = defu(options, defaults)
 
-    const src = withSiteUrl(joinURL(useRouter().currentRoute.value?.path || '', '/__og_image__/og.png'))
+    const src = withSiteUrl(getOgImagePath(useRouter().currentRoute.value?.path))
 
     const meta: Head['meta'] = [
       { property: 'og:image', content: src },
