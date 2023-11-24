@@ -9,6 +9,6 @@ defineOgImageCached({
 
 <template>
   <div>
-    <img src="/__og_image__/og.png" width="1200" height="630">
+    <img src="/__og-image__/image/og.png" width="1200" height="630">
   </div>
 </template>

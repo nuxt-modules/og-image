@@ -1,27 +1,24 @@
+import { joinURL } from 'ufo'
 import type { OgImageOptions } from '../../src/runtime/types'
 import { useAsyncData } from '#imports'
 import { host, path, refreshTime } from '~/util/logic'
 
-export async function fetchOptions() {
-  const { data } = await useAsyncData<OgImageOptions>(() => {
-    return $fetch('/api/og-image-options', {
+export function fetchPathDebug() {
+  return useAsyncData<{ siteConfig: { url?: string }, options: OgImageOptions, vnodes: Record<string, any> }>(() => {
+    return $fetch(joinURL('/__og-image__/image', path.value, 'og.json'), {
       baseURL: host.value,
-      query: { path: path.value },
     })
   }, {
     watch: [path, refreshTime],
   })
-  return data
 }
 
-export async function fetchVNodes() {
-  const { data: options } = await useAsyncData<OgImageOptions>(() => {
-    return $fetch('/api/og-image-vnode', {
-      query: { path: path.value },
+export function fetchGlobalDebug() {
+  return useAsyncData<{ componentNames: { pascalName: string }[] }>(() => {
+    return $fetch('/__og-image__/debug.json', {
       baseURL: host.value,
     })
   }, {
     watch: [path, refreshTime],
   })
-  return options
 }

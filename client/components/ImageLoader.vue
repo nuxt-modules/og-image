@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from '#imports'
-import { description } from '~/util/logic'
+import { onMounted, ref, watch } from '#imports'
 
-const props = defineProps({
-  src: String,
-  aspectRatio: Number,
-  description: String,
-})
+const props = defineProps<{
+  src: string
+  aspectRatio: number
+  maxHeight?: number
+  maxWidth?: number
+}>()
+// emits a load event
+const emit = defineEmits(['load'])
 
 const image = ref()
-const timeTakenMs = ref(0)
 
 function setSource(src: string) {
   const img = image.value as HTMLImageElement
-  const now = Date.now()
-  img.src = ''
-  timeTakenMs.value = 0
-  img.style.opacity = '0'
-  img.onload = () => {
-    img.style.opacity = '1'
-    timeTakenMs.value = Date.now() - now
+  if (src !== img.src) {
+    const now = Date.now()
+    img.src = ''
+    img.style.opacity = '0'
+    img.onload = () => {
+      img.style.opacity = '1'
+      emit('load', Date.now() - now)
+    }
+    img.src = src
   }
-  img.src = src
 }
 
 onMounted(() => {
@@ -31,19 +33,15 @@ onMounted(() => {
     immediate: true,
   })
 })
-
-const loadDescription = computed(() => props.description!.replace('%s', timeTakenMs.value.toString()))
-watch(loadDescription, (d) => {
-  description.value = d
-})
 </script>
 
 <template>
-  <img ref="image" class="max-h-full border-1 border-light-500 rounded" :style="{ aspectRatio }">
+  <img ref="image" :style="{ aspectRatio }">
 </template>
 
 <style scoped>
 img {
+  max-height: 100%;
   height: auto !important;
   width: auto !important;
   margin: 0 auto;

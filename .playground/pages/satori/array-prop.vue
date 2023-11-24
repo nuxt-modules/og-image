@@ -1,5 +1,7 @@
 <script setup lang="ts">
-defineOgImage({
+import ArrayProp from '~/components/OgImage/ArrayProp.vue'
+
+defineOgImage(ArrayProp, {
   component: 'ArrayProp',
   list: [1, 2, 3],
 })

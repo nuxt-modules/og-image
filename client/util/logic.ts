@@ -13,7 +13,7 @@ export const base = ref('/')
 export const options = ref<OgImageOptions>({})
 
 // prop editing
-export const optionsOverrides = ref({})
+export const optionsOverrides = ref<OgImageOptions>({})
 export const propsEdited = ref(false)
 export const optionsEditor = ref({})
 

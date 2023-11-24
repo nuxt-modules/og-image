@@ -315,8 +315,9 @@ declare module 'nitropack' {
       })
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponents: { pascalName: string, kebabName: string, hash: string }[] = []
+    const ogImageComponents: { path?: string, pascalName: string, kebabName: string, hash: string }[] = []
     nuxt.hook('components:extend', (components) => {
+      const validComponents: typeof components = []
       // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
       components.forEach((component) => {
         let valid = false
@@ -326,15 +327,17 @@ declare module 'nitropack' {
             || component.shortPath.includes(`/${dir}/`))
             valid = true
         })
-        if (valid || component.pascalName === 'OgImageTemplateFoo') {
+        if (valid) {
           // get hash of the file
           component.island = true
           component.mode = 'server'
+          validComponents.push(component)
           ogImageComponents.push({
             // purge cache when component changes
             hash: hash(fs.readFileSync(component.filePath, 'utf-8')),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
+            path: nuxt.options.dev ? component.filePath : undefined,
           })
         }
       })
@@ -346,6 +349,10 @@ declare module 'nitropack' {
       },
       options: { mode: 'server' },
     })
+    nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
+    nuxt.options.nitro.virtual['#nuxt-og-image/component-names.mjs'] = () => {
+      return `export const componentNames = ${JSON.stringify(ogImageComponents)}`
+    }
 
     const runtimeDir = resolve('./runtime')
     nuxt.options.build.transpile.push(runtimeDir)
@@ -544,6 +551,7 @@ export async function useProvider(provider) {
         if (!extractedOptions || routeRules.ogImage === false)
           return
 
+        // TODO handle in nitro
         const isPageScreenshot = extractedOptions.component === 'PageScreenshot'
         const entry: OgImageOptions = {
           route: parsePath(ctx.route).pathname, // drop hash and query
