@@ -31,6 +31,7 @@ export async function screenshot(browser: Browser, options: Partial<ScreenshotOp
 
   const screenshotOptions: PageScreenshotOptions = {
     timeout: 10000,
+    animations: 'disabled',
   }
 
   if (options.delay)
