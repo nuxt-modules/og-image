@@ -91,6 +91,7 @@ export default defineNuxtConfig({
   },
 
   site: {
+    url: 'https://nuxtseo.com',
     name: 'OG Image Playground',
   },
 

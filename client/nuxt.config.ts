@@ -18,4 +18,7 @@ export default defineNuxtConfig({
   app: {
     baseURL: '/__nuxt-og-image',
   },
+  experimental: {
+    componentIslands: true,
+  },
 })

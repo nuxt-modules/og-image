@@ -5,7 +5,7 @@ import { fetchOptionsCached } from '../utils'
 import type { Renderer } from '../../types'
 import { useProvider } from '#nuxt-og-image/provider'
 
-export asyncjoinURL('__og-image__/image/', , 'og.png') function resolveOgImageContext(e: H3Event) {
+export async function resolveOgImageContext(e: H3Event) {
   const path = parseURL(e.path).pathname
 
   const extension = path.split('.').pop()

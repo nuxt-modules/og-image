@@ -19,6 +19,8 @@ const containerStyles = {
 
 <template>
   <div :style="containerStyles">
+    <div>{{ title }}</div>
+    <div>{{ description }}</div>
     <Icon name="uil:github" size="250px" style="margin: 0 auto;" />
   </div>
 </template>

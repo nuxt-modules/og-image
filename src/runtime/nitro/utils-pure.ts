@@ -52,19 +52,30 @@ export function extractAndNormaliseOgImageOptions(path: string, html: string, ro
   if (!options)
     return false
 
-  if (!options.description) {
-    // extract the og:description from the html
-    const description = html.match(/<meta property="og:description" content="(.*?)">/)?.[1]
-    if (description)
-      options.description = description
-    else
-      options.description = html.match(/<meta name="description" content="(.*?)">/)?.[1]
+  // TODO dev only
+  // we need to extract the social media tag data for description and title, allow property to be before and after
+  const socialPreview: { twitter?: Record<string, string>, og?: Record<string, string> } = {}
+  // support both property and name
+  const socialMetaTags = html.match(/<meta[^>]+(property|name)="(twitter|og):([^"]+)"[^>]*>/g)
+  // <meta property="og:title" content="Home & //<&quot;With Encoding&quot;>\\"
+  if (socialMetaTags) {
+    socialMetaTags.forEach((tag) => {
+      const [, , type, key] = tag.match(/(property|name)="(twitter|og):([^"]+)"/) as any as [undefined, undefined, 'twitter' | 'og', string]
+      const value = tag.match(/content="([^"]+)"/)?.[1]
+      if (!value)
+        return
+      if (!socialPreview[type])
+        socialPreview[type] = {}
+      socialPreview[type]![key] = value
+    })
   }
+
   const decoded = decodeObjectHtmlEntities(options)
   return defu(
     decoded,
     // runtime options
     { path },
     defaults,
+    { socialPreview },
   ) as RuntimeOgImageOptions
 }

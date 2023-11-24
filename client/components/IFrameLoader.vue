@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
 import { computed, onMounted, ref, useColorMode, useHead, watch } from '#imports'
-import { containerWidth, description, options } from '~/util/logic'
+import { containerWidth, options } from '~/util/logic'
 
-const props = defineProps({
-  src: String,
-  aspectRatio: Number,
-  description: String,
-})
+const props = defineProps<{
+  src: string
+  aspectRatio: number
+  maxHeight?: number
+  maxWidth?: number
+}>()
+const emit = defineEmits(['load'])
 
 const src = ref(props.src)
 
 const mode = useColorMode()
 
 const iframe = ref()
-const timeTakenMs = ref(0)
 
 const setSource = useDebounceFn(() => {
   let frame = iframe.value as HTMLImageElement
@@ -29,19 +30,20 @@ const setSource = useDebounceFn(() => {
   const parentHeightScale = parentHeight > height ? 1 : parentHeight / height
   const parentWidthScale = parentWidth > width ? 1 : parentWidth / width
   const scale = parentWidthScale > parentHeightScale ? parentHeightScale : parentWidthScale
-  timeTakenMs.value = 0
   frame.style.opacity = '0'
   frame.onload = () => {
     frame.style.opacity = '1'
-    timeTakenMs.value = Date.now() - now
+    emit('load', Date.now() - now)
   }
   frame.src = `${src.value}&scale=${scale}&mode=${mode.value}`
 }, 200)
 
 onMounted(() => {
   watch(() => props.src, (val) => {
-    src.value = val
-    setSource()
+    if (src.value !== val) {
+      src.value = val
+      setSource()
+    }
   }, {
     immediate: true,
   })
@@ -59,15 +61,17 @@ useHead({
   },
 })
 
-const loadDescription = computed(() => props.description!.replace('%s', timeTakenMs.value.toString()))
-watch(loadDescription, (d) => {
-  description.value = d
+const maxWidth = computed(() => {
+  return props.maxWidth || options.value.width
+})
+const maxHeight = computed(() => {
+  return props.maxHeight || options.value.height
 })
 </script>
 
 <template>
-  <div class="w-full mx-auto h-full justify-center flex" :style="{ maxHeight: `${options.height}px`, maxWidth: `${options.width}px` }">
-    <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" :width="options.width" :height="options.height" />
+  <div class="w-full mx-auto h-full justify-center flex" :style="{ maxHeight: `${maxHeight}px`, maxWidth: `${maxWidth}px` }">
+    <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" :width="maxWidth" :height="maxHeight" />
   </div>
 </template>
 
