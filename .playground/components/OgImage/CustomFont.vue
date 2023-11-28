@@ -1,10 +1,16 @@
 <script setup lang="ts">
-const props = defineProps({
-  path: String,
-  title: String,
-  description: String,
-  themeColor: String,
-  appName: String,
+const props = withDefaults(defineProps<{
+  path?: string
+  title?: string
+  description?: string
+  themeColor?: string
+  appName?: string
+}>(), {
+  path: '/',
+  title: 'Welcome to the playground',
+  description: 'This is the playground',
+  themeColor: '#dbf4ff',
+  appName: 'Satori',
 })
 
 const theme = computed(() => props.themeColor || '#dbf4ff')

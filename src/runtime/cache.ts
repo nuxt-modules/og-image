@@ -3,7 +3,14 @@ import type { H3Event } from 'h3'
 import { getQuery, setHeader } from 'h3'
 import { useRuntimeConfig, useStorage } from '#imports'
 
-export async function useNitroCache<T>(e: H3Event, module: string, options: { key: string, cacheTtl: number, cache: boolean, headers: boolean, skipRestore?: boolean }) {
+export async function useNitroCache<T>(e: H3Event, options: {
+  key: string
+  cacheTtl: number
+  cache: boolean
+  headers: boolean
+  skipRestore?: boolean
+}): Promise<{ cachedItem: false | T, enabled: boolean, update: (item: T) => Promise<void> }> {
+  const module = 'nuxt-og-image'
   const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string, runtimeCacheStorage: any }
 
   const enabled = options.cache && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0

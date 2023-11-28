@@ -9,12 +9,13 @@ await setup({
 })
 describe('fonts', () => {
   it('basic', async () => {
-    const font = await $fetch('/__og-image__/font', {
-      query: {
-        name: 'Inter',
-        weight: '400',
-      },
-    })
-    expect(font).toMatchInlineSnapshot('"https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Au-0.ttf"')
+    const font = await $fetch('/__og-image__/font/Inter/400')
+    expect(font).toMatchInlineSnapshot(`
+      Blob {
+        Symbol(kHandle): Blob {},
+        Symbol(kLength): 310808,
+        Symbol(kType): "font/ttf",
+      }
+    `)
   }, 60000)
 })

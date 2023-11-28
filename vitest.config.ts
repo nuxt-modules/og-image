@@ -7,12 +7,6 @@ import { isCI } from 'std-env'
 export default defineConfig({
   test: {
     threads: isCI,
-    deps: {
-      inline: [
-        '@nuxt/test-utils',
-        '@nuxt/test-utils-edge',
-      ],
-    },
     watchExclude: [
       'dist',
       'playground',

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, definePageMeta, useServerSeoMeta } from '#imports'
+import { computed, defineOgImageComponent, definePageMeta, useServerSeoMeta } from '#imports'
 
 definePageMeta({
   title: 'Home',
@@ -12,12 +12,17 @@ useServerSeoMeta({
   ogTitle: 'Welcome to the playground',
 })
 
+defineOgImageComponent('CustomFont', {
+  description: 'Custom font',
+  appName: 'Playground',
+  missing: 12,
+})
+
 const host = computed(() => typeof window !== 'undefined' ? window.location.href : '/')
 </script>
 
 <template>
   <div class="px-7 my-5">
-    <OgImage description="My description of the home page." />
     <img :src="`${host}__og-image__/image/satori/static/og.png`" width="400" height="210" class="rounded">
   </div>
 </template>

@@ -1,8 +1,11 @@
 import type { Head } from '@unhead/schema'
 import { defu } from 'defu'
+import { appendHeader } from 'h3'
+import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { OgImageOptions, OgImageScreenshotOptions } from '../types'
 import { getOgImagePath } from '../utilts'
-import { normaliseOgImageOptions } from './util'
+import { normaliseOptions } from '../core/options/normalise'
+import type { OgImageComponents } from '#nuxt-og-image/components'
 import { useRouter, useRuntimeConfig, useServerHead, withSiteUrl } from '#imports'
 
 export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
@@ -101,18 +104,24 @@ export function defineOgImage(_options: OgImagePrebuilt | OgImageOptions = {}) {
     }
 
     const { defaults } = useRuntimeConfig()['nuxt-og-image']
-    const options = normaliseOgImageOptions(_options)
+    // TODO make sure this is working with route rules
+    const options = normaliseOptions(_options)
     const optionsWithDefault = defu(options, defaults)
 
-    const src = withSiteUrl(getOgImagePath(useRouter().currentRoute.value?.path))
+    const path = getOgImagePath(useRouter().currentRoute.value?.path, optionsWithDefault.extension)
+    const src = withSiteUrl(path)
+
+    // prerender the og:image as well
+    if (import.meta.prerender)
+      appendHeader(useRequestEvent(), 'x-nitro-prerender', path)
 
     const meta: Head['meta'] = [
       { property: 'og:image', content: src },
       { property: 'og:image:width', content: optionsWithDefault.width },
       { property: 'og:image:height', content: optionsWithDefault.height },
-      { property: 'og:image:type', content: 'image/png' },
+      { property: 'og:image:type', content: `image/${optionsWithDefault.extension}` },
     ]
-    if (options.alt)
+    if (optionsWithDefault.alt)
       meta.push({ property: 'og:image:alt', content: optionsWithDefault.alt })
 
     meta.push(...[
@@ -121,7 +130,7 @@ export function defineOgImage(_options: OgImagePrebuilt | OgImageOptions = {}) {
       { name: 'twitter:image:width', content: optionsWithDefault.width },
       { name: 'twitter:image:height', content: optionsWithDefault.height },
     ])
-    if (options.alt)
+    if (optionsWithDefault.alt)
       meta.push({ name: 'twitter:image:alt', content: optionsWithDefault.alt })
 
     useServerHead({

@@ -1,6 +1,17 @@
 import type { Buffer } from 'node:buffer'
 import type { html } from 'satori-html'
-import type { ModuleOptions } from '../module'
+import type { H3Error, H3Event } from 'h3'
+import type { ResvgRenderOptions } from '@resvg/resvg-js'
+import type { SatoriOptions } from 'satori'
+
+export interface OgImageComponent {
+  path?: string
+  pascalName: string
+  kebabName: string
+  hash: string
+  category: 'app' | 'official' | 'community' | 'pro'
+  credits?: string
+}
 
 export interface ScreenshotOptions {
   colorScheme?: 'dark' | 'light'
@@ -25,61 +36,53 @@ export interface ScreenshotOptions {
 }
 
 export interface OgImageOptions extends Partial<ScreenshotOptions> {
+  component?: string
+  renderer?: 'chromium' | 'satori'
+  extension?: 'png' | 'jpeg' | 'jpg'
+  /**
+   * @deprecated use renderer. Replace `browser` with `chromium`
+   */
   provider?: 'browser' | 'satori'
   /**
    * Provide a static HTML template to render the OG Image instead of a component.
    */
   html?: string
-  title?: string
-  description?: string
-  component?: string | null
-  alt?: string
   // cache config
   cache?: boolean
   cacheKey?: string
+  resvg?: ResvgRenderOptions
+  satori?: SatoriOptions
   /**
    * The time to live of the cache in milliseconds.
    */
   cacheTtl?: number
   // deprecations
-  /**
-   * @deprecated Use `cache` instead
-   */
-  static?: boolean
   // catch-all
   [key: string]: any
 }
 
-export interface RuntimeOgImageOptions extends OgImageOptions {
+export interface RuntimeOgImageOptions extends Omit<OgImageOptions, 'extension'> {
+  extension: 'png' | 'jpeg' | 'jpg' | 'svg' | 'json' | 'html'
   path: string
-  requestOrigin: string
 }
 
-export interface FontConfig { name: string, weight: number, path?: string }
+export interface FontConfig { name: string, weight: string | number, path?: string }
 
 export type InputFontConfig = (`${string}:${number}` | FontConfig)
 
+export type RendererOptions = Omit<RuntimeOgImageOptions, 'extension'> & { extension: Omit<RuntimeOgImageOptions['extension'], 'html'> }
+
 export interface Renderer {
-  name: 'browser' | 'satori'
-  createSvg: (options: RuntimeOgImageOptions) => Promise<string>
-  createPng: (options: RuntimeOgImageOptions) => Promise<Buffer>
-  createVNode: (options: RuntimeOgImageOptions) => Promise<VNode>
+  name: 'chromium' | 'satori'
+  supportedFormats: Partial<RendererOptions['extension']>[]
+  createImage: (e: H3Event, options: RendererOptions) => Promise<H3Error | Buffer>
 }
 
 export type OgImageScreenshotOptions = Omit<OgImageOptions, 'component'>
-
-export interface PlaygroundServerFunctions {
-  openInEditor(filepath: string): void
-  getConfig(): ModuleOptions
-}
-
-export interface PlaygroundClientFunctions {
-  refresh(type: string): void
-}
 
 export type VNode = ReturnType<typeof html>
 
 export interface SatoriTransformer {
   filter: (node: VNode) => boolean
-  transform: (node: VNode, props: RuntimeOgImageOptions) => Promise<void>
+  transform: (node: VNode, e: H3Event) => Promise<void>
 }

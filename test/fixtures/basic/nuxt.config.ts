@@ -10,6 +10,15 @@ export default defineNuxtConfig({
   },
   ogImage: {
     debug: true,
+    runtimeBrowser: true,
   },
+  routeRules: {
+    '/satori/route-rules/**': {
+      ogImage: {
+        title: 'Hello from route rules',
+      },
+    },
+  },
+  devtools: { enabled: false },
   debug: process.env.NODE_ENV === 'test',
 })

@@ -29,7 +29,7 @@
   "scripts": {
     "build": "pnpm dev:prepare && pnpm build:module && pnpm build:client",
     "build:client": "nuxi generate client",
-    "build:module": "nuxt-build-module",
+    "build:module": "nuxt-build-module build",
     "lint": "eslint . --fix",
     "dev": "nuxi dev .playground",
     "dev:build": "nuxi build .playground",
@@ -38,6 +38,9 @@
     "test": "vitest build"
   },
   "dependencies": {
+    "@img/sharp-libvips-dev": "^1.0.0",
+    "@img/sharp-wasm32": "0.33.0-rc.2",
+    "@nuxt/devtools-kit": "^1.0.3",
     "@nuxt/kit": "^3.8.2",
     "@resvg/resvg-js": "^2.6.0",
     "@resvg/resvg-wasm": "^2.6.0",
@@ -66,6 +69,7 @@
     "radix3": "^1.1.0",
     "satori": "0.10.11",
     "satori-html": "^0.3.2",
+    "sharp": "0.33.0-rc.2",
     "sirv": "^2.0.3",
     "std-env": "^3.5.0",
     "svg2png-wasm": "^1.4.1",
@@ -79,11 +83,13 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "2.0.0",
+    "@img/sharp-linux-x64": "0.33.0-rc.2",
     "@nuxt/content": "^2.9.0",
     "@nuxt/devtools": "1.0.3",
     "@nuxt/module-builder": "^0.5.4",
     "@nuxt/test-utils": "3.8.1",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
+    "@nuxtjs/i18n": "8.0.0-rc.5",
     "@types/ws": "^8.5.10",
     "bumpp": "^9.2.0",
     "eslint": "8.54.0",
@@ -93,5 +99,11 @@
     "playwright": "^1.40.0",
     "sass": "^1.69.5",
     "vitest": "^0.34.6"
+  },
+  "build": {
+    "externals": [
+      "h3",
+      "nitropack"
+    ]
   }
 }

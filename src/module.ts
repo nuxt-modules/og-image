@@ -13,7 +13,7 @@ import {
   useLogger,
 } from '@nuxt/kit'
 import type { SatoriOptions } from 'satori'
-import { installNuxtSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
+import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import { env } from 'std-env'
 import { hash } from 'ohash'
 import { relative } from 'pathe'
