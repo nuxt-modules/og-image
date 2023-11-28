@@ -86,9 +86,9 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     bindings: {
       'chromium': false,
       'css-inline': 'node',
-      'resvg': 'wasm',
+      'resvg': 'node',
       'satori': 'node',
-      'sharp': 'node',
+      'sharp': false,
     },
     wasmStrategy: 'inline',
   },
