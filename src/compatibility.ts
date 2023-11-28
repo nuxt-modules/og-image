@@ -122,25 +122,29 @@ export function detectTarget(options: { static?: boolean } = {}) {
   return options?.static ? autodetectableStaticProviders[provider] : autodetectableProviders[provider]
 }
 
-export function resolveNitroPreset(nitroConfig: NitroConfig) {
+export function resolveNitroPreset(nitroConfig?: NitroConfig) {
   if (provider === 'stackblitz')
     return 'stackblitz'
   let preset
-  if (nitroConfig.preset)
+  if (nitroConfig && nitroConfig?.preset)
     preset = nitroConfig.preset
   if (!preset)
     preset = env.NITRO_PRESET || detectTarget() || 'node-server'
   return preset.replace('_', '-') // sometimes they are different
 }
 
+export function getPresetNitroPresetCompatibility(target: string) {
+  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
+  if (!compatibility)
+    compatibility = RuntimeCompatibility['nitro-dev']
+  return compatibility
+}
+
 export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: RuntimeCompatibilitySchema, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
   let compatibility: RuntimeCompatibilitySchema | undefined = options?.compatibility
   const target = resolveNitroPreset(nitroConfig)
-  if (!compatibility) {
-    compatibility = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
-    if (!compatibility)
-      compatibility = RuntimeCompatibility['nitro-dev']
-  }
+  if (!compatibility)
+    compatibility = getPresetNitroPresetCompatibility(target)
   const resolve = options.resolve
   function applyBinding(key: keyof RuntimeCompatibilitySchema['bindings']) {
     const binding: string | false = compatibility!.bindings[key]

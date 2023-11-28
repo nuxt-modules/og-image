@@ -21,7 +21,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { version } from '../package.json'
 import type { FontConfig, InputFontConfig, OgImageComponent, OgImageOptions } from './runtime/types'
-import type { RuntimeCompatibilitySchema } from './compatibility'
+import { type RuntimeCompatibilitySchema, getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
 import { extendTypes } from './kit'
 import { setupDevToolsUI } from './build/devtools'
 import { setupDevHandler } from './build/dev'
@@ -166,6 +166,14 @@ export default defineNuxtModule<ModuleOptions>({
       return
     }
     const { resolve } = createResolver(import.meta.url)
+
+    const preset = resolveNitroPreset(nuxt.options.nitro)
+    const compatibility = getPresetNitroPresetCompatibility(preset)
+    config.defaults.extension = 'jpg'
+    if (!compatibility.bindings.sharp)
+      config.defaults.extension = 'png'
+
+    // TODO use png if if weren't not using a node-based env
 
     await installNuxtSiteConfig()
 
