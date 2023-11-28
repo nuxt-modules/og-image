@@ -10,9 +10,10 @@ await setup({
 describe('debug', () => {
   it('basic', async () => {
     const debug = await $fetch('/__og-image__/debug.json')
+    delete debug.baseCacheKey
+    delete debug.runtimeConfig.version
     expect(debug).toMatchInlineSnapshot(`
       {
-        "baseCacheKey": "/cache/nuxt-og-image@2.2.4",
         "cachedKeys": [],
         "componentNames": [
           {
@@ -30,7 +31,7 @@ describe('debug', () => {
           },
           {
             "category": "official",
-            "hash": "IdN05D6pf9",
+            "hash": "2LVK3YBcnq",
             "kebabName": "fallback",
             "pascalName": "Fallback",
           },
@@ -82,7 +83,6 @@ describe('debug', () => {
           "runtimeSatori": true,
           "satoriOptions": {},
           "sharpOptions": {},
-          "version": "2.2.4",
         },
         "siteConfigUrl": {
           "source": "nuxt-site-config:config",

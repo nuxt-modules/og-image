@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { definePageMeta, useSeoMeta } from '#imports'
+
 definePageMeta({
   title: 'Static Banner',
   description: 'My description',

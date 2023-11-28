@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import type { FontConfig } from '../../types'
 import { base64ToArrayBuffer } from '../env/assets'
 import { fontCache } from './cache'
-import { useStorage } from '#imports'
+import { useNitroOrigin, useStorage } from '#imports'
 
 export async function loadFont(e: H3Event, font: FontConfig) {
   const fontKey = `${font.name}:${font.weight}`
@@ -22,7 +22,7 @@ export async function loadFont(e: H3Event, font: FontConfig) {
   if (!data) {
     if (font.path) {
       data = await e.$fetch(font.path, {
-        baseURL: useNitroOrigin(e).replace('https', 'http'),
+        baseURL: useNitroOrigin(e),
         responseType: 'arrayBuffer',
       })
     }

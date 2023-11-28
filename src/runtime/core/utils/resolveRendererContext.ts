@@ -1,6 +1,6 @@
 import { parseURL, withoutBase, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
 import type { H3Error, H3Event } from 'h3'
-import { createError } from 'h3'
+import { createError, getQuery } from 'h3'
 import { defu } from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'

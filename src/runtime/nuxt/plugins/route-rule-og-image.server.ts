@@ -4,7 +4,7 @@ import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'
 import { normaliseOptions } from '../../core/options/normalise'
 import { getOgImagePath, isInternalRoute } from '../../utilts'
-import { useRequestEvent, useRuntimeConfig } from '#imports'
+import { defineNuxtPlugin, useRequestEvent, useRuntimeConfig } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed

@@ -16,21 +16,6 @@ export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string): 
     })
   }
 
-  e.node.req.url = path
-  const oldRouteRules = e.context._nitro.routeRules
-  e.context._nitro.routeRules = undefined
-  const routeRules = (getRouteRules(e)?.ogImage || {}) as false | OgImageOptions
-  e.context._nitro.routeRules = oldRouteRules
-  e.node.req.url = e.path
-
-  // has been disabled via route rules
-  if (routeRules === false) {
-    return createError({
-      statusCode: 400,
-      statusMessage: `This path has disabled OG images using route rules.`,
-    })
-  }
-
   const payload = extractAndNormaliseOgImageOptions(html!)
   // not supported
   if (!payload) {

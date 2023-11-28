@@ -4,6 +4,7 @@ import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
 import { prerenderCache, prerenderChromiumContext } from '../../core/cache/prerender'
 import type { OgImageOptions } from '../../types'
 import { isInternalRoute } from '../../utilts'
+import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)

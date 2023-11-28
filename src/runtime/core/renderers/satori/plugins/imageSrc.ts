@@ -5,6 +5,7 @@ import type { H3Event } from 'h3'
 import type { VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 import { toBase64Image } from '../../../env/assets'
+import { useNitroOrigin } from '#imports'
 
 // for relative links we embed them as base64 input or just fix the URL to be absolute
 export default defineSatoriTransformer({
