@@ -24,8 +24,9 @@ import { globby } from 'globby'
 import { installNuxtSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import { provider } from 'std-env'
 import { hash } from 'ohash'
-import terminate from 'terminate'
+import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
+import type { SharpOptions } from 'sharp'
 import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
@@ -63,7 +64,6 @@ export interface ModuleOptions {
    *
    * @see https://github.com/vercel/satori/blob/main/src/satori.ts#L18
    */
-  satoriOptions: Partial<SatoriOptions>
   satoriOptions?: Partial<SatoriOptions>
   /**
    * Options to pass to resvg.
@@ -71,6 +71,12 @@ export interface ModuleOptions {
    * @see https://github.com/yisibl/resvg-js/blob/main/wasm/index.d.ts#L39
    */
   resvgOptions?: Partial<ResvgRenderOptions>
+  /**
+   * Options to pass to sharp.
+   *
+   * @see https://sharp.pixelplumbing.com/api-constructor
+   */
+  sharpOptions?: Partial<SharpOptions>
   /**
    * Should the playground at <path>/__og_image__ be enabled in development.
    *
@@ -168,16 +174,8 @@ export default defineNuxtModule<ModuleOptions>({
       logger.debug('The module is disabled, skipping setup.')
       return
     }
-    const { resolve } = createResolver(import.meta.url)
-
-    logger.debug('Using Nitro preset', getNitroPreset())
-
-    const nitroCompatibility = getNitroProviderCompatibility(config.runtimeCompatibility || {})
-    logger.debug('Nitro compatibility', nitroCompatibility)
-
-    const nitroTarget = process.env.NITRO_PRESET || nuxt.options.nitro.preset || provider
-    if (!nitroCompatibility) {
-      logger.warn(`\`nuxt-og-image\` does not support the nitro preset \`${nitroTarget}\`. Please make an issue. `)
+    if (config.enabled && !nuxt.options.ssr) {
+      logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
 
