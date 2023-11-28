@@ -120,7 +120,6 @@ const PATH_PLAYGROUND = `${PATH}/client`
 
 export interface ModuleHooks {
   'og-image:config': (config: ModuleOptions) => Promise<void> | void
-  'og-image:prerenderScreenshots': (queue: OgImageOptions[]) => Promise<void> | void
 }
 
 export default defineNuxtModule<ModuleOptions>({
