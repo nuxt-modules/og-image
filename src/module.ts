@@ -25,6 +25,7 @@ import { installNuxtSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import { provider } from 'std-env'
 import { hash } from 'ohash'
 import terminate from 'terminate'
+import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
@@ -63,6 +64,13 @@ export interface ModuleOptions {
    * @see https://github.com/vercel/satori/blob/main/src/satori.ts#L18
    */
   satoriOptions: Partial<SatoriOptions>
+  satoriOptions?: Partial<SatoriOptions>
+  /**
+   * Options to pass to resvg.
+   *
+   * @see https://github.com/yisibl/resvg-js/blob/main/wasm/index.d.ts#L39
+   */
+  resvgOptions?: Partial<ResvgRenderOptions>
   /**
    * Should the playground at <path>/__og_image__ be enabled in development.
    *
