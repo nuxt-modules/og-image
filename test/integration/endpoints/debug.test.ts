@@ -30,7 +30,7 @@ describe('debug', () => {
           },
           {
             "category": "official",
-            "hash": "O07QEFztI0",
+            "hash": "IdN05D6pf9",
             "kebabName": "fallback",
             "pascalName": "Fallback",
           },
@@ -54,12 +54,10 @@ describe('debug', () => {
           },
         ],
         "runtimeConfig": {
-          "browserlessToken": "7b266afe-ef7d-44fd-9b8c-5c8985f872f2",
           "defaults": {
             "cache": true,
             "cacheTtl": 86400000,
             "component": "Fallback",
-            "extension": "jpeg",
             "height": 600,
             "renderer": "satori",
             "width": 1200,
@@ -67,18 +65,22 @@ describe('debug', () => {
           "fonts": [
             {
               "name": "Inter",
+              "path": "",
               "weight": "400",
             },
             {
               "name": "Inter",
+              "path": "",
               "weight": "700",
             },
           ],
           "hasNuxtIcon": false,
+          "resvgOptions": {},
           "runtimeBrowser": true,
           "runtimeCacheStorage": "default",
           "runtimeSatori": true,
           "satoriOptions": {},
+          "sharpOptions": {},
           "version": "2.2.4",
         },
         "siteConfigUrl": {
