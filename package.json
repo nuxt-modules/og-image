@@ -35,7 +35,7 @@
     "dev:build": "nuxi build .playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxi prepare .playground",
     "release": "bumpp package.json --commit --push --tag",
-    "test": "vitest build"
+    "test": "vitest"
   },
   "dependencies": {
     "@img/sharp-libvips-dev": "^1.0.0",
