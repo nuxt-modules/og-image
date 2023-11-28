@@ -1,48 +1,38 @@
-import { appendHeader } from 'h3'
 import { parseURL, withoutLeadingSlash } from 'ufo'
-import type { NitroAppPlugin } from 'nitropack'
-import { extractAndNormaliseOgImageOptions } from '../utils-pure'
-import { useNitroCache } from '../../cache'
+import { getRouteRules } from 'nitropack/dist/runtime/route-rules'
+import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
+import { prerenderCache, prerenderChromiumContext } from '../../core/cache/prerender'
 import type { OgImageOptions } from '../../types'
-import { getOgImagePath } from '../../utilts'
-import { getRouteRules } from '#internal/nitro'
-import { useRuntimeConfig } from '#imports'
+import { isInternalRoute } from '../../utilts'
 
-const OgImagePrenderNitroPlugin: NitroAppPlugin = async (nitroApp) => {
-  if (!process.env.prerender)
+export default defineNitroPlugin(async (nitro) => {
+  if (!import.meta.prerender)
     return
-  const { defaults } = useRuntimeConfig()['nuxt-og-image']
-  // always use cache for prerendering to speed it up
-  nitroApp.hooks.hook('render:html', async (ctx, { event }) => {
-    const path = parseURL(event.path).pathname
-    if (path.includes('.') || path.startsWith('/__nuxt_island/'))
+
+  nitro.hooks.hook('render:html', async ({ head, bodyAppend }, e) => {
+    const path = parseURL(e.event.path).pathname
+    if (isInternalRoute(path))
       return
-    const routeRules = (getRouteRules(event)?.ogImage || {}) as false | OgImageOptions
+    const routeRules = (getRouteRules(e)?.ogImage || {}) as false | OgImageOptions
     if (routeRules === false)
       return
-    const options = extractAndNormaliseOgImageOptions(path, [
-      // payload may move
-      ctx.head.join('\n'),
-      ctx.bodyAppend.join('\n'),
-    ].join('\n'), routeRules, defaults)
+    // when prerendering we want to cache the options for a quicker response when we render the image
+    const options = extractAndNormaliseOgImageOptions([
+      head.join('\n'),
+      bodyAppend.join('\n'),
+    ].join('\n'))
     if (!options)
       return
     const key = [
       withoutLeadingSlash((path === '/' || !path) ? 'index' : path).replaceAll('/', '-'),
-      'options',
     ].join(':')
-    const { update } = await useNitroCache<OgImageOptions>(event, 'nuxt-og-image', {
-      key,
-      // shouldn't change for the prerender, 5 min cache
-      cacheTtl: 5 * 60 * 1000,
-      cache: true,
-      headers: false,
-      skipRestore: true,
-    })
-    await update(options)
-    if (options.provider === 'satori')
-      appendHeader(event, 'x-nitro-prerender', getOgImagePath(path))
+    await prerenderCache!.setItem(key, options)
   })
-}
-
-export default OgImagePrenderNitroPlugin
+  nitro.hooks.hook('close', () => {
+    // clean up the browser
+    if (prerenderChromiumContext.browser) {
+      prerenderChromiumContext.browser.close()
+      prerenderChromiumContext.browser = undefined
+    }
+  })
+})
