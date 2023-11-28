@@ -11,18 +11,34 @@ const props = defineProps<{
 const emit = defineEmits(['load'])
 
 const image = ref()
+const loading = ref(true)
+const lastSrc = ref()
 
 function setSource(src: string) {
   const img = image.value as HTMLImageElement
-  if (src !== img.src) {
+  if (src !== lastSrc.value) {
+    lastSrc.value = src
+    loading.value = true
+    img.style.backgroundImage = ''
     const now = Date.now()
-    img.src = ''
-    img.style.opacity = '0'
-    img.onload = () => {
-      img.style.opacity = '1'
-      emit('load', Date.now() - now)
-    }
-    img.src = src
+    // we want to do a fetch of the image so we can get the size of it in kb
+    $fetch.raw(src, {
+      responseType: 'blob',
+    }).then((res) => {
+      const size = res.headers.get('content-length')
+      const kb = Math.round(Number(size) / 1024)
+      // set the image source using base 64 of the response
+      const reader = new FileReader()
+      reader.readAsDataURL(res._data)
+      reader.onloadend = () => {
+        const base64data = reader.result
+        if (base64data) {
+          img.style.backgroundImage = `url(${base64data})`
+          loading.value = false
+          emit('load', { timeTaken: Date.now() - now, sizeKb: kb })
+        }
+      }
+    })
   }
 }
 
@@ -36,16 +52,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <img ref="image" :style="{ aspectRatio }">
+  <div ref="image" :style="{ aspectRatio }">
+    <NLoading v-if="loading" />
+  </div>
 </template>
 
 <style scoped>
-img {
+div {
+  cursor: pointer;
   max-height: 100%;
   height: auto !important;
   width: auto !important;
   margin: 0 auto;
   max-width: 100%;
   transition: 0.4s ease-in-out;
+  background-color: white;
+  background-size: contain;
+  aspect-ratio: 2 / 1
 }
 </style>

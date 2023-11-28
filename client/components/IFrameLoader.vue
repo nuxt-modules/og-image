@@ -11,20 +11,18 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['load'])
 
-const src = ref(props.src)
+const src = ref()
 
 const mode = useColorMode()
 
 const iframe = ref()
 
 const setSource = useDebounceFn(() => {
-  let frame = iframe.value as HTMLImageElement
-  if (!frame)
-    frame = document.querySelector('#iframe-loader')
+  const frame = iframe.value as HTMLImageElement
   const now = Date.now()
   frame.src = ''
-  const width = options.value.width
-  const height = options.value.height
+  const width = options.value.width || 1200
+  const height = options.value.height || 600
   const parentHeight = frame.offsetHeight
   const parentWidth = frame.offsetWidth
   const parentHeightScale = parentHeight > height ? 1 : parentHeight / height
@@ -33,7 +31,7 @@ const setSource = useDebounceFn(() => {
   frame.style.opacity = '0'
   frame.onload = () => {
     frame.style.opacity = '1'
-    emit('load', Date.now() - now)
+    emit('load', { timeTaken: Date.now() - now })
   }
   frame.src = `${src.value}&scale=${scale}&mode=${mode.value}`
 }, 200)
@@ -41,14 +39,16 @@ const setSource = useDebounceFn(() => {
 onMounted(() => {
   watch(() => props.src, (val) => {
     if (src.value !== val) {
-      src.value = val
-      setSource()
+      if (iframe.value) {
+        src.value = val
+        setSource()
+      }
     }
   }, {
     immediate: true,
   })
 
-  watch([() => containerWidth.value, mode], () => {
+  watch([() => containerWidth.value, mode, iframe], () => {
     setSource()
   })
 })
@@ -71,7 +71,7 @@ const maxHeight = computed(() => {
 
 <template>
   <div class="w-full mx-auto h-full justify-center flex" :style="{ maxHeight: `${maxHeight}px`, maxWidth: `${maxWidth}px` }">
-    <iframe id="iframe-loader" ref="iframe" class="max-h-full" :style="{ aspectRatio }" :width="maxWidth" :height="maxHeight" />
+    <iframe ref="iframe" class="max-h-full" :style="{ aspectRatio }" :width="maxWidth" :height="maxHeight" />
   </div>
 </template>
 

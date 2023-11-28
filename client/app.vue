@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import 'floating-vue/dist/style.css'
-import { useDebounceFn } from '@vueuse/core'
 import JsonEditorVue from 'json-editor-vue'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
 import { joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { version } from '../package.json'
+import type { OgImageComponent } from '../src/runtime/types'
 import {
   base,
   containerWidth,
@@ -58,7 +58,8 @@ watch(() => clientPath, (v) => {
   path.value = v
 })
 
-const { data: debug } = fetchPathDebug()
+const debugAsyncData = fetchPathDebug()
+const { data: debug, pending, error } = debugAsyncData
 
 const vnodes = computed(() => debug.value?.vnodes || [])
 
@@ -73,18 +74,18 @@ watch(debug, (val) => {
   delete _options.cacheTtl
   delete _options.component
   delete _options.provider
+  delete _options.renderer
   delete _options.componentHash
+  const defaults = globalDebug.value?.runtimeConfig.defaults
+  // we want to do a diff on _options and defaults and get only the differences
+  Object.keys(defaults).forEach((key) => {
+    if (_options[key] === defaults[key])
+      delete _options[key]
+  })
   optionsEditor.value = _options
 }, {
   immediate: true,
 })
-
-const setPath = useDebounceFn((e) => {
-  optionsOverrides.value = {}
-  propsEdited.value = false
-  path.value = e.target.value
-  refreshSources()
-}, 1000)
 
 const mode = useColorMode()
 
@@ -95,14 +96,15 @@ function updateProps(props: Record<string, any>) {
   refreshSources()
 }
 
+const tab = ref('design')
+
 function patchProps(props: Record<string, any>) {
+  tab.value = 'design'
   delete props.options
   optionsOverrides.value = { ...optionsOverrides.value, ...props }
   propsEdited.value = true
   refreshSources()
 }
-
-const tab = ref('design')
 
 const isDark = computed(() => {
   return mode.value === 'dark'
@@ -120,6 +122,7 @@ async function resetProps(fetch = true) {
   delete cloned.component
   delete cloned.socialPreview
   delete cloned.provider
+  delete cloned.renderer
   delete cloned.componentHash
   optionsEditor.value = cloned
   if (fetch)
@@ -127,15 +130,34 @@ async function resetProps(fetch = true) {
 }
 await resetProps(false)
 
-const height = options.value?.height || 630
-const width = options.value?.width || 1200
+const defaults = computed(() => {
+  return globalDebug.value?.runtimeConfig.defaults || {
+    height: 600,
+    width: 1200,
+  }
+})
 
-const aspectRatio = width / height
+const height = computed(() => {
+  return optionsOverrides.value?.height || options.value?.height || defaults.value.height
+})
 
-const imageFormat = ref('png')
+const width = computed(() => {
+  return optionsOverrides.value?.width || options.value?.width || defaults.value.width
+})
+
+const aspectRatio = computed(() => {
+  return width.value / height.value
+})
+
+const imageFormat = computed(() => {
+  return optionsOverrides.value?.extension || options.value?.extension
+})
 const socialPreview = ref('twitter')
 
 const src = computed(() => {
+  // wait until we know what we're rendering
+  if (!debug.value)
+    return ''
   return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/og.${imageFormat.value}`), { timestamp: refreshTime.value, ...optionsOverrides.value })
 })
 
@@ -171,10 +193,10 @@ const activeComponentName = computed(() => {
 })
 
 const renderer = computed(() => {
-  return optionsOverrides.value?.provider || options.value?.provider || 'satori'
+  return optionsOverrides.value?.renderer || options.value?.renderer || 'satori'
 })
 
-const componentNames = computed<{ pascalName: string }[]>(() => {
+const componentNames = computed<OgImageComponent[]>(() => {
   const components = globalDebug.value?.componentNames || []
   return [
     components.find(name => name.pascalName === activeComponentName.value),
@@ -183,31 +205,65 @@ const componentNames = computed<{ pascalName: string }[]>(() => {
   ].filter(Boolean)
 })
 
+const communityComponents = computed(() => {
+  return componentNames.value.filter(c => c.category === 'community')
+})
+const officialComponents = computed(() => {
+  return componentNames.value.filter(c => c.category === 'official')
+})
+const appComponents = computed(() => {
+  return componentNames.value.filter(c => c.category === 'app')
+})
+
 const sidePanelOpen = ref(true)
 const isLoading = ref(false)
 
-function generateLoadTime(time: number) {
+function generateLoadTime(payload: { timeTaken: string, sizeKb: string }) {
   const extension = imageFormat.value.toUpperCase()
   let rendererLabel = ''
   switch (imageFormat.value) {
     case 'png':
       rendererLabel = renderer.value === 'satori' ? 'Satori and ReSVG' : 'Chromium'
       break
+    case 'jpeg':
+      rendererLabel = renderer.value === 'satori' ? 'Satori, ReSVG and Sharp' : 'Chromium'
+      break
     case 'svg':
       rendererLabel = 'Satori'
       break
   }
   isLoading.value = false
-  description.value = `Generated ${extension} ${rendererLabel ? `with ${rendererLabel}` : ''} in ${time}ms.`
+  if (extension !== 'HTML')
+    description.value = `Generated ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} ${rendererLabel ? `with ${rendererLabel}` : ''} in ${payload.timeTaken}ms.`
+  else
+    description.value = ''
 }
-watch([imageFormat, renderer, optionsOverrides], () => {
+watch([renderer, optionsOverrides], () => {
   description.value = 'Loading...'
   isLoading.value = true
 })
 
-function openComponent(component: { path: string }) {
-  devtoolsClient.value?.devtools.rpc.openInEditor(component.path)
+function openImage() {
+  // open new tab to source
+  window.open(src.value, '_blank')
 }
+
+const pageFile = computed(() => {
+  return devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file
+})
+function openCurrentPageFile() {
+  devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
+}
+
+const isPageScreenshot = computed(() => {
+  return activeComponentName.value === 'PageScreenshot'
+})
+
+const currentPageFile = computed(() => {
+  const path = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file
+  // get the path only from the `pages/<path>`
+  return `pages/${path?.split('pages/')[1]}`
+})
 </script>
 
 <template>
@@ -227,12 +283,14 @@ function openComponent(component: { path: string }) {
             class="n-select-tabs flex flex-inline flex-wrap items-center border n-border-base rounded-lg n-bg-base"
           >
             <label
-              v-for="(value, idx) of ['design', 'debug', 'docs']"
+              v-for="(value, idx) of ['design', 'gallery', 'debug', 'docs']"
               :key="idx"
               class="relative n-border-base hover:n-bg-active cursor-pointer"
               :class="[
                 idx ? 'border-l n-border-base ml--1px' : '',
                 value === tab ? 'n-bg-active' : '',
+                isPageScreenshot && value === 'gallery' ? 'hidden' : '',
+                (pending || error ? 'n-disabled' : ''),
               ]"
             >
               <div v-if="value === 'design'" :class="[value === tab ? '' : 'op35']">
@@ -244,6 +302,18 @@ function openComponent(component: { path: string }) {
                   </div>
                   <template #popper>
                     Design
+                  </template>
+                </VTooltip>
+              </div>
+              <div v-if="value === 'gallery'" :class="[value === tab ? '' : 'op35']">
+                <VTooltip>
+                  <div class="px-5 py-2">
+                    <h2 text-lg flex items-center>
+                      <NIcon icon="carbon:image opacity-50" />
+                    </h2>
+                  </div>
+                  <template #popper>
+                    Gallery
                   </template>
                 </VTooltip>
               </div>
@@ -298,7 +368,7 @@ function openComponent(component: { path: string }) {
             </template>
           </VTooltip>
         </div>
-        <div class="flex items-center space-x-3">
+        <div class="items-center space-x-3 hidden lg:flex">
           <div class="opacity-80 text-sm">
             <NLink href="https://github.com/sponsors/harlan-zw" target="_blank">
               <NIcon icon="carbon:favorite" class="mr-[2px]" />
@@ -320,17 +390,52 @@ function openComponent(component: { path: string }) {
     </header>
     <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
       <main class="mx-auto flex flex-col w-full bg-white dark:bg-black dark:bg-dark-700 bg-light-200 ">
-        <div v-if="tab === 'design'" class="h-full relative max-h-full" :style="{ width: containerWidth && constrainsWidth ? `${containerWidth}px` : '100%' }">
-          <Splitpanes class="default-theme" @resize="slowRefreshSources">
-            <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center" style="padding-top: 30px;">
-              <div class="flex justify-between text-sm w-full absolute top-0 left-0 pr-4">
-                <div class="flex items-center text-lg space-x-1">
-                  <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="imageFormat = 'png'" />
-                  <NButton v-if="renderer !== 'browser'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="imageFormat = 'svg'" />
-                  <NButton v-if="renderer === 'browser'" icon="carbon:jpg" :border="imageFormat === 'jpg'" @click="imageFormat = 'jpg'" />
-                  <NButton icon="carbon:html" :border="imageFormat === 'html'" @click="imageFormat = 'html'" />
+        <div v-if="tab === 'design'" class="h-full relative max-h-full" :style="{ width: containerWidth ? `${containerWidth}px` : '100%' }">
+          <div v-if="pending">
+            <NLoading />
+          </div>
+          <div v-else-if="error">
+            <div v-if="error.message.includes('missing the Nuxt OG Image payload')">
+              <!-- nicely tell the user they should use defineOgImage to get started -->
+              <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
+                <div class="">
+                  <h2 class="text-2xl font-semibold mb-3">
+                    <NIcon icon="carbon:information" class="text-blue-500" />
+                    Oops! Did you forget <code>defineOgImage()</code>?
+                  </h2>
+                  <p class="text-lg opacity-80 my-3">
+                    Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImage()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
+                  </p>
+                  <p class="text-lg opacity-80">
+                    <a href="https://nuxtseo.com/og-image/getting-started/your-first-image" target="_blank" class="underline">
+                      Learn more
+                    </a>
+                  </p>
                 </div>
-                <div class="flex items-center">
+              </div>
+            </div>
+            <div v-else>
+              {{ error }}
+            </div>
+          </div>
+          <Splitpanes v-else class="default-theme" @resize="slowRefreshSources">
+            <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
+              <div class="flex justify-between items-center text-sm w-full absolute top-0 left-0">
+                <div class="flex items-center text-lg space-x-1 w-[100px]">
+                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg'" @click="patchProps({ extension: 'jpeg' })" />
+                  <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchProps({ extension: 'png' })" />
+                  <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchProps({ extension: 'svg' })" />
+                  <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchProps({ extension: 'html' })" />
+                </div>
+                <div class="text-sm">
+                  <div v-if="!isPageScreenshot">
+                    {{ activeComponentName }}
+                  </div>
+                  <div v-else>
+                    Screenshot of the current page.
+                  </div>
+                </div>
+                <div class="flex items-center w-[100px]">
                   <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
                   <!--                  <NButton icon="logos:facebook" :border="socialPreview === 'facebook'" @click="socialPreview = 'facebook'" /> -->
                   <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
@@ -346,6 +451,7 @@ function openComponent(component: { path: string }) {
                   :src="src"
                   :aspect-ratio="aspectRatio"
                   @load="generateLoadTime"
+                  @click="openImage"
                   @refresh="refreshSources"
                 />
                 <IFrameLoader
@@ -415,44 +521,28 @@ function openComponent(component: { path: string }) {
                   </h3>
                 </template>
                 <div class="flex items-center space-x-2 text-sm">
-                  <NButton icon="logos:vercel-icon" :border="renderer === 'satori'" @click="renderer === 'browser' && patchProps({ provider: 'satori' })">
+                  <NButton v-if="!isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchProps({ renderer: 'satori' })">
                     Satori
                   </NButton>
-                  <NButton icon="carbon:drop-photo" :border="renderer === 'browser'" @click="renderer === 'satori' && patchProps({ provider: 'browser' })">
-                    Browser
+                  <NButton icon="logos:chrome" :border="renderer === 'chromium'" @click="patchProps({ renderer: 'chromium' })">
+                    Chromium
                   </NButton>
+                </div>
+                <div v-if="renderer === 'chromium'" class="text-sm mt-2">
+                  <NTip icon="carbon:warning">
+                    The Chromium renderer only supports Node based presets and needs to be enabled with <code>{ runtimeBrowser: true }</code>. <a target="_blank" class="underline" href="https://nuxtseo.com/og-image/guides/runtime-images">Learn more</a>.
+                  </NTip>
                 </div>
               </OSectionBlock>
               <OSectionBlock>
                 <template #text>
                   <h3 class="opacity-80 text-base mb-1">
-                    <NIcon icon="carbon:template" class="mr-1" />
-                    Component
+                    <NIcon icon="carbon:checkmark-filled-warning" class="mr-1" />
+                    Compatibility
                   </h3>
                 </template>
-                <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
-                  <NLoading v-if="isLoading" />
-                  <button v-for="name in componentNames" v-else :key="name.pascalName" class="!p-0" :class="name.pascalName === activeComponentName ? [] : ['opacity-75 hover:opacity-100']" @click="patchProps({ component: name.pascalName })">
-                    <div>
-                      <VTooltip>
-                        <div class="w-[228px] h-[120px] relative">
-                          <ImageLoader
-                            :src="withQuery(src, { component: name.pascalName })"
-                            :aspect-ratio="aspectRatio"
-                            class="rounded overflow-hidden"
-                            :class="name.pascalName === activeComponentName ? ['ring-2 ring-green-500'] : []"
-                            @refresh="refreshSources"
-                          />
-                          <button class="absolute z-2 top-2 right-2 hover:bg-white transition-all bg-white/50 px-1 py-2px rounded text-sm" @click.stop="openComponent(name)">
-                            <NIcon icon="carbon:launch" />
-                          </button>
-                        </div>
-                        <template #popper>
-                          {{ name.pascalName }}
-                        </template>
-                      </VTooltip>
-                    </div>
-                  </button>
+                <div>
+                  {{ currentPageFile }}
                 </div>
               </OSectionBlock>
               <OSectionBlock>
@@ -482,6 +572,65 @@ function openComponent(component: { path: string }) {
               </OSectionBlock>
             </Pane>
           </Splitpanes>
+        </div>
+        <div v-else-if="tab === 'gallery'" class="h-full max-h-full overflow-hidden space-y-5">
+          <OSectionBlock>
+            <template #text>
+              <h3 class="opacity-80 text-base mb-1">
+                <Icon name="carbon:app" class="mr-1" />
+                App
+              </h3>
+            </template>
+            <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+              <NLoading v-if="isLoading" />
+              <button v-for="name in appComponents" v-else :key="name.pascalName" class="!p-0" @click="patchProps({ component: name.pascalName })">
+                <TemplateComponentPreview
+                  :component="name"
+                  :src="withQuery(src, { component: name.pascalName })"
+                  :aspect-ratio="aspectRatio"
+                  :active="name.pascalName === activeComponentName"
+                />
+              </button>
+            </div>
+          </OSectionBlock>
+          <OSectionBlock>
+            <template #text>
+              <h3 class="opacity-80 text-base mb-1">
+                <Icon name="carbon:list-checked" class="mr-1" />
+                Official
+              </h3>
+            </template>
+            <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+              <NLoading v-if="isLoading" />
+              <button v-for="name in officialComponents" v-else :key="name.pascalName" class="!p-0" @click="patchProps({ component: name.pascalName })">
+                <TemplateComponentPreview
+                  :component="name"
+                  :src="withQuery(src, { component: name.pascalName })"
+                  :aspect-ratio="aspectRatio"
+                  :active="name.pascalName === activeComponentName"
+                />
+              </button>
+            </div>
+          </OSectionBlock>
+          <OSectionBlock>
+            <template #text>
+              <h3 class="opacity-80 text-base mb-1">
+                <Icon name="carbon:airline-passenger-care" class="mr-1" />
+                Community
+              </h3>
+            </template>
+            <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+              <NLoading v-if="isLoading" />
+              <button v-for="name in communityComponents" v-else :key="name.pascalName" class="!p-0" @click="patchProps({ component: name.pascalName })">
+                <TemplateComponentPreview
+                  :component="name"
+                  :src="withQuery(src, { component: name.pascalName })"
+                  :aspect-ratio="aspectRatio"
+                  :active="name.pascalName === activeComponentName"
+                />
+              </button>
+            </div>
+          </OSectionBlock>
         </div>
         <div v-else-if="tab === 'debug'" class="h-full max-h-full overflow-hidden">
           <OSectionBlock>
@@ -562,5 +711,119 @@ header {
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   background-color: #fffc;
+}
+
+html {
+  --at-apply: font-sans;
+  overflow-y: scroll;
+  overscroll-behavior: none;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+body::-webkit-scrollbar {
+  display: none;
+}
+body {
+  /* trap scroll inside iframe */
+  height: calc(100vh + 1px);
+}
+
+html.dark {
+  background: #111;
+  color-scheme: dark;
+}
+
+/* Markdown */
+.n-markdown a {
+  --at-apply: text-primary hover:underline;
+}
+.prose a {
+  --uno: hover:text-primary;
+}
+.prose code::before {
+  content: ""
+}
+.prose code::after {
+  content: ""
+}
+.prose hr {
+  --uno: border-solid border-1 border-b border-base h-1px w-full block my-2 op50;
+}
+
+.dark .shiki {
+  background: var(--shiki-dark-bg, inherit) !important;
+}
+
+.dark .shiki span {
+  color: var(--shiki-dark, inherit) !important;
+}
+
+/* JSON Editor */
+textarea {
+  background: #8881
+}
+
+:root {
+  --jse-theme-color: #fff !important;
+  --jse-text-color-inverse: #777 !important;
+  --jse-theme-color-highlight: #eee !important;
+  --jse-panel-background: #fff !important;
+  --jse-background-color: var(--jse-panel-background) !important;
+  --jse-error-color: #ee534150 !important;
+  --jse-main-border: none !important;
+}
+
+.dark, .jse-theme-dark {
+  --jse-panel-background: #111 !important;
+  --jse-theme-color: #111 !important;
+  --jse-text-color-inverse: #fff !important;
+  --jse-main-border: none !important;
+}
+
+.json-editor-vue .no-main-menu {
+  border: none !important;
+}
+
+.json-editor-vue .jse-main {
+  min-height: 1em !important;
+}
+
+.json-editor-vue .jse-contents {
+  border-width: 0 !important;
+  border-radius: 5px !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar:horizontal {
+  height: 6px;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--c-border);
+  border-radius: 1px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #8881;
+  transition: background 0.2s ease;
+  border-radius: 1px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8885;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
 }
 </style>

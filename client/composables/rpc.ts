@@ -2,6 +2,8 @@ import { onDevtoolsClientConnected } from '@nuxt/devtools-kit/iframe-client'
 import type { $Fetch } from 'nitropack'
 import { ref, watchEffect } from 'vue'
 import type { NuxtDevtoolsClient, NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
+import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
+import { globalRefreshTime, refreshSources } from '~/util/logic'
 
 export const appFetch = ref<$Fetch>()
 
@@ -18,4 +20,14 @@ onDevtoolsClientConnected(async (client) => {
   })
   devtools.value = client.devtools
   devtoolsClient.value = client
+  client.devtools.extendClientRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
+    refreshRouteData(path) {
+      // if path matches
+      if (devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file.includes(path))
+        refreshSources()
+    },
+    refreshGlobalData() {
+      globalRefreshTime.value = Date.now()
+    },
+  })
 })

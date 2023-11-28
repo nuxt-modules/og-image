@@ -1,7 +1,7 @@
 import { joinURL } from 'ufo'
 import type { OgImageOptions } from '../../src/runtime/types'
 import { useAsyncData } from '#imports'
-import { host, path, refreshTime } from '~/util/logic'
+import { globalRefreshTime, host, path, refreshTime } from '~/util/logic'
 
 export function fetchPathDebug() {
   return useAsyncData<{ siteConfig: { url?: string }, options: OgImageOptions, vnodes: Record<string, any> }>(() => {
@@ -19,6 +19,6 @@ export function fetchGlobalDebug() {
       baseURL: host.value,
     })
   }, {
-    watch: [path, refreshTime],
+    watch: [globalRefreshTime],
   })
 }

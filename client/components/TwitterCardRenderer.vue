@@ -16,7 +16,7 @@
 
 <style scoped>
 .image-wrap {
-  aspect-ratio: 1.90476 / 1;
+  aspect-ratio: 2 / 1;
   background-color: rgba(0, 0, 0, 0.1);
   opacity: 1;
   height: 315px;

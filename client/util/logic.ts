@@ -4,6 +4,7 @@ import { withBase } from 'ufo'
 import type { OgImageOptions } from '../../src/runtime/types'
 
 export const refreshTime = ref(Date.now())
+export const globalRefreshTime = ref(Date.now())
 
 export const description = ref<string | null>(null)
 export const hostname = window.location.host
