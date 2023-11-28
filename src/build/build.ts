@@ -14,7 +14,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = config.runtimeSatori ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
     nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = config.runtimeBrowser ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
 
-    applyNitroPresetCompatibility(nitroConfig, { resolve })
+    applyNitroPresetCompatibility(nitroConfig, { resolve, compatibility: config.runtimeCompatibility })
     // patch implicit dependencies:
     // - playwright-core
     nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'

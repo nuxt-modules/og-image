@@ -1,6 +1,7 @@
 import { H3Error, createError, defineEventHandler, setHeader } from 'h3'
 import { resolveRendererContext } from '../../../core/utils/resolveRendererContext'
 import { fetchHTML } from '../../../core/html/fetch'
+import { useSiteConfig } from '#imports'
 
 export default defineEventHandler(async (e): Promise<any> => {
   const ctx = await resolveRendererContext(e)

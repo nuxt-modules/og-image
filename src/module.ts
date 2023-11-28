@@ -116,7 +116,7 @@ export interface ModuleOptions {
   /**
    * Manually modify the deployment compatibility.
    */
-  runtimeCompatibility?: Partial<RuntimeCompatibilitySchema>
+  runtimeCompatibility?: RuntimeCompatibilitySchema
 }
 
 export interface ModuleHooks {
