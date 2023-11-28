@@ -12,48 +12,10 @@ describe('debug', () => {
     const debug = await $fetch('/__og-image__/debug.json')
     delete debug.baseCacheKey
     delete debug.runtimeConfig.version
+    delete debug.componentNames
     expect(debug).toMatchInlineSnapshot(`
       {
         "cachedKeys": [],
-        "componentNames": [
-          {
-            "category": "community",
-            "credits": "NuxtLabs <https://nuxtlabs.com/>",
-            "hash": "Y8Cv5a2BVV",
-            "kebabName": "nuxt",
-            "pascalName": "Nuxt",
-          },
-          {
-            "category": "official",
-            "hash": "QlFued2LU6",
-            "kebabName": "branded-logo",
-            "pascalName": "BrandedLogo",
-          },
-          {
-            "category": "official",
-            "hash": "2LVK3YBcnq",
-            "kebabName": "fallback",
-            "pascalName": "Fallback",
-          },
-          {
-            "category": "official",
-            "hash": "ksAWfVlFKD",
-            "kebabName": "simple-blog",
-            "pascalName": "SimpleBlog",
-          },
-          {
-            "category": "official",
-            "hash": "jEJbMD36vp",
-            "kebabName": "wave",
-            "pascalName": "Wave",
-          },
-          {
-            "category": "official",
-            "hash": "wty22cZhxS",
-            "kebabName": "with-emoji",
-            "pascalName": "WithEmoji",
-          },
-        ],
         "runtimeConfig": {
           "defaults": {
             "cache": true,

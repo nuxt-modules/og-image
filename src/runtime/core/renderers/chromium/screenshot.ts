@@ -3,6 +3,7 @@ import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import { withQuery } from 'ufo'
 import type { H3Event } from 'h3'
 import type { RendererOptions } from '../../../types'
+import { useNitroOrigin } from '#imports'
 
 export async function createScreenshot(e: H3Event, browser: Browser, options: RendererOptions): Promise<Buffer> {
   // TODO add screenshotOptions
