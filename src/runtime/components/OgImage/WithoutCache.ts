@@ -5,7 +5,7 @@ import { defineOgImageWithoutCache } from '#imports'
 export default defineComponent<OgImageOptions>({
   name: 'OgImageWithoutCache',
   async setup(_, { attrs }) {
-    if (process.server)
+    if (import.meta.server)
       defineOgImageWithoutCache(attrs)
 
     return () => null

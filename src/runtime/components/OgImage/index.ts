@@ -5,7 +5,7 @@ import { defineOgImage } from '#imports'
 export default defineComponent<OgImageOptions>({
   name: 'OgImage',
   async setup(_, { attrs }) {
-    if (process.server)
+    if (import.meta.server)
       // just use defaults
       await defineOgImage(attrs)
 

@@ -5,7 +5,7 @@ import { defineOgImageCached } from '#imports'
 export default defineComponent<OgImageOptions>({
   name: 'OgImageCached',
   async setup(_, { attrs }) {
-    if (process.server)
+    if (import.meta.server)
       await defineOgImageCached(attrs)
 
     return () => null
