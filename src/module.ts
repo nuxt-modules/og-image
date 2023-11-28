@@ -191,15 +191,10 @@ export default defineNuxtModule<ModuleOptions>({
 
     await installNuxtSiteConfig()
 
-    nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
-    // provide cache storage for prerendering
-    if (nuxt.options._generate) {
-      nuxt.options.nitro.storage['og-image'] = {
-        driver: 'memory',
-      }
-    }
-    else if (config.runtimeCacheStorage && !nuxt.options.dev && typeof config.runtimeCacheStorage === 'object') {
-      nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
+    // convert ogImage key to head data
+    if (hasNuxtModule('@nuxt/content')) {
+      addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
+      addPlugin(resolve('./runtime/nuxt/plugins/nuxt-content-canonical-urls'))
     }
 
     // default font is inter
