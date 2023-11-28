@@ -10,7 +10,8 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
   const route = router.currentRoute.value?.path || ''
   return defineOgImage({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
-    provider: 'browser',
+    renderer: 'chromium',
+    extension: 'jpeg',
     component: 'PageScreenshot', // this is an alias
     cache: true,
     ...options,
