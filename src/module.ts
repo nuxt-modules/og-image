@@ -345,7 +345,6 @@ ${componentImports}
         }
         return f as FontConfig
       })
-      // TODO only for `nuxi build`, nuxi generate won't need fonts
       if (!nuxt.options._generate && nuxt.options.build) {
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
         nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
@@ -353,8 +352,7 @@ ${componentImports}
           // if they have a path we can always access them locally
           .filter(f => !f.path)
           .forEach(({ name, weight }) => {
-            nuxt.options.nitro.prerender.routes.push(`/__og-image__/font/${name}/${weight}.ttf`)
-            // console.log(nuxt.options.nitro.prerender.routes)
+            nuxt.options.nitro.prerender!.routes!.push(`/__og-image__/font/${name}/${weight}.ttf`)
           })
       }
       nuxt.options.runtimeConfig['nuxt-og-image'] = {
