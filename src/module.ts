@@ -112,28 +112,6 @@ export interface ModuleOptions {
    * Manually modify the deployment compatibility.
    */
   runtimeCompatibility?: Partial<RuntimeCompatibilitySchema>
-  /**
-   * The url of your site.
-   * Used to generate absolute URLs for the og:image.
-   *
-   * Note: This is only required when prerendering your site.
-   *
-   * @deprecated Provide `url` through site config instead: `{ site: { url: <value> }}`.
-   * This is powered by the `nuxt-site-config` module.
-   * @see https://github.com/harlan-zw/nuxt-site-config
-   */
-  host?: string
-  /**
-   * The url of your site.
-   * Used to generate absolute URLs for the og:image.
-   *
-   * Note: This is only required when prerendering your site.
-   *
-   * @deprecated Provide `url` through site config instead: `{ site: { url: <value> }}`.
-   * This is powered by the `nuxt-site-config` module.
-   * @see https://github.com/harlan-zw/nuxt-site-config
-   */
-  siteUrl?: string
 }
 
 const PATH = '/__nuxt_og_image__'
@@ -207,11 +185,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     await installNuxtSiteConfig()
-    // allow config fallback
-    updateSiteConfig({
-      _context: 'nuxt-og-image:config',
-      url: config.siteUrl || config.host!,
-    })
 
     nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
     // provide cache storage for prerendering
