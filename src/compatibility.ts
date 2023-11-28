@@ -23,7 +23,7 @@ const autodetectableStaticProviders = {
 
 export interface RuntimeCompatibilitySchema {
   bindings: {
-    chromium: 'universal' | 'playwright' | 'lambda' | false
+    chromium: 'node' | false
     ['css-inline']: 'node' | false
     resvg: 'node' | 'wasm' | false
     satori: 'node' | 'yoga-wasm' | false
@@ -36,7 +36,7 @@ export interface RuntimeCompatibilitySchema {
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
   bindings: {
-    'chromium': 'universal',
+    'chromium': 'node',
     'css-inline': 'node',
     'resvg': 'node',
     'satori': 'node',
@@ -171,25 +171,3 @@ export function ensureDependencies(nuxt: Nuxt, dep: string[]) {
     return addDependency(d, { cwd: nuxt.options.rootDir })
   }))
 }
-
-export const SVG2PNGWasmPlaceholder = '"/* NUXT_OG_IMAGE_SVG2PNG_WASM */"'
-export const YogaWasmPlaceholder = '"/* NUXT_OG_IMAGE_YOGA_WASM */"'
-export const ReSVGWasmPlaceholder = '"/* NUXT_OG_IMAGE_RESVG_WASM */"'
-
-export const Wasms = [
-  {
-    placeholder: SVG2PNGWasmPlaceholder,
-    path: 'svg2png/svg2png.wasm',
-    file: 'svg2png.wasm',
-  },
-  {
-    placeholder: ReSVGWasmPlaceholder,
-    path: 'resvg/resvg.wasm',
-    file: 'resvg.wasm',
-  },
-  {
-    placeholder: YogaWasmPlaceholder,
-    path: 'yoga/yoga.wasm',
-    file: 'yoga.wasm',
-  },
-] as const

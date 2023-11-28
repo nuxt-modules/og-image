@@ -58,6 +58,7 @@ describe('debug', () => {
             "cache": true,
             "cacheTtl": 86400000,
             "component": "Fallback",
+            "extension": "jpg",
             "height": 600,
             "renderer": "satori",
             "width": 1200,

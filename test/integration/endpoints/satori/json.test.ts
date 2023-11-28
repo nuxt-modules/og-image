@@ -17,6 +17,7 @@ describe('json', () => {
           "cache": true,
           "cacheTtl": 86400000,
           "component": "Fallback",
+          "extension": "jpg",
           "height": 600,
           "path": "/satori",
           "renderer": "satori",
