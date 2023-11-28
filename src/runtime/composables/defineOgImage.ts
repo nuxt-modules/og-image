@@ -54,7 +54,19 @@ export function defineOgImageDynamic(options: OgImageOptions = {}) {
 
 type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt'>
 
-export async function defineOgImage(_options: OgImagePrebuilt | OgImageOptions = {}) {
+type ExtractComponentProps<T extends Component> = T extends new (...args: any) => any
+  ? Omit<InstanceType<T>['$props'], keyof ComponentCustomProps | keyof VNodeProps | keyof AllowedComponentProps>
+  : never
+
+export function defineOgImageComponent<T extends keyof OgImageComponents>(component: T, props: ExtractComponentProps<OgImageComponents[T]>, options: OgImageOptions = {}) {
+  defineOgImage({
+    component,
+    ...props,
+    ...options,
+  })
+}
+
+export function defineOgImage(_options: OgImagePrebuilt | OgImageOptions = {}) {
   // string is supported as an easy way to override the generated og image data
   // clone to avoid any issues
   if (import.meta.server) {
