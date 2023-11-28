@@ -12,10 +12,10 @@ useServerSeoMeta({
   ogTitle: 'Welcome to the playground',
 })
 
-defineOgImageComponent('CustomFont', {
-  description: 'Custom font',
-  appName: 'Playground',
-  missing: 12,
+defineOgImageComponent('Nuxt', {
+  headline: 'Nuxt OG Image',
+  title: 'Version 3 🎉',
+  description: 'Nuxt OG Image v3 is here!',
 })
 
 const host = computed(() => typeof window !== 'undefined' ? window.location.href : '/')

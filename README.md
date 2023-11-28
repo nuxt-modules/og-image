@@ -10,10 +10,10 @@
 
 
 <p align="center">
-Enlightened runtime images generated with Vue templates, for Nuxt.
+Generate OG Images with Vue templates in Nuxt.
 </p>
 
-<img src="https://repository-images.githubusercontent.com/578125755/90f77ca8-95be-4e06-9600-332afe1ba24f">
+<img src="https://github.com/harlan-zw/nuxt-og-image/assets/5326365/f551de84-c10a-45ca-bd62-8bf93df806cb">
 
 <p align="center">
 <table>
