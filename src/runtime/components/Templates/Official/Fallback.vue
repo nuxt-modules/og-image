@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, defineComponent, resolveComponent } from 'vue'
-import { useSiteConfig } from '#imports'
+import { computed, defineComponent, h, resolveComponent } from 'vue'
+import { useRuntimeConfig, useSiteConfig } from '#imports'
 
 // inherited attrs can mess up the satori parser
 defineOptions({
@@ -104,7 +104,7 @@ const IconComponent = runtimeConfig.hasNuxtIcon
   ? resolveComponent('Icon')
   : defineComponent({
     render() {
-      return h('div', this.$slots.default)
+      return h('div', 'missing nuxt-icon')
     },
   })
 if (typeof props.icon === 'string' && !runtimeConfig.hasNuxtIcon && process.dev) {
