@@ -11,7 +11,7 @@ await setup({
 
 expect.extend({ toMatchImageSnapshot })
 
-describe('route rules', () => {
+describe('png', () => {
   it('basic', async () => {
     const png: ArrayBuffer = await $fetch('/__og-image__/image/satori/og.png', {
       responseType: 'arrayBuffer',
