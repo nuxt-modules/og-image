@@ -150,9 +150,21 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     applyBinding('sharp'),
     nitroConfig.alias || {},
   )
-  if (target.includes('cloudflare')) {
-    nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
+  nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
+  // TODO may not be needed?
+  /*if (target.includes('cloudflare')) {
     nitroConfig.rollupConfig.output!.inlineDynamicImports = true
+  }
+  else*/
+  if (target === 'netlify-edge') {
+    nitroConfig.wasm = nitroConfig.wasm || {}
+    nitroConfig.wasm.rollup = nitroConfig.wasm.rollup || {}
+    nitroConfig.wasm.rollup.targetEnv = 'auto-inline'
+  }
+  // TODO check if provider has any wasm bindings instead
+  if (target.includes('edge') || target.includes('cloudflare')) {
+    nitroConfig.experimental = nitroConfig.experimental || {}
+    nitroConfig.experimental.wasm = true
   }
   return compatibility
 }

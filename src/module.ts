@@ -382,8 +382,6 @@ ${componentImports}
       }
     })
 
-    nuxt.options.nitro.experimental = nuxt.options.nitro.experimental || {}
-    nuxt.options.nitro.experimental.wasm = true
 
     // Setup playground. Only available in development
     if (nuxt.options.dev) {

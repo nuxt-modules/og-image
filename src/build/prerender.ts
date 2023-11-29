@@ -16,8 +16,6 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver[
       // bindings
       applyNitroPresetCompatibility(nitroConfig, { resolve })
       // avoid wasm handling while prerendering
-      nitroConfig.experimental = nitroConfig.experimental || {}
-      nitroConfig.experimental.wasm = false
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false
     })
