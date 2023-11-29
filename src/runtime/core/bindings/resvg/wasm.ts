@@ -1,7 +1,10 @@
 import { Resvg as _Resvg, initWasm } from '@resvg/resvg-wasm'
-import ReSVGWasm from '@resvg/resvg-wasm/index_bg.wasm'
 
 export default {
-  initWasmPromise: initWasm(ReSVGWasm),
+  initWasmPromise: initWasm(import('@resvg/resvg-wasm/index_bg.wasm').then((m) => {
+    let mod = m.default
+    mod = typeof mod === 'function' ? mod() : mod
+    return 'instance' in mod ? mod.instance : mod
+  })),
   Resvg: _Resvg,
 }
