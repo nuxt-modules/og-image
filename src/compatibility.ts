@@ -4,7 +4,7 @@ import {
 } from 'nypm'
 import { env, provider } from 'std-env'
 import { defu } from 'defu'
-import type { NitroConfig } from 'nitropack/types'
+import type { type NitroConfig, WasmOptions } from 'nitropack/types'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -26,11 +26,10 @@ export interface RuntimeCompatibilitySchema {
     chromium: 'node' | false
     ['css-inline']: 'node' | false
     resvg: 'node' | 'wasm' | false
-    satori: 'node' | 'yoga-wasm' | false
-    sharp: 'node' | 'lambda' | false
+    satori: 'node' | 'wasm' | false
+    sharp: 'node' | false
   }
-  wasmStrategy?: 'inline' | 'import' | 'fetch'
-  wasmImportQuery?: string
+  wasm?: WasmOptions
 }
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
@@ -42,7 +41,6 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
     'satori': 'node',
     'sharp': 'node',
   },
-  wasmStrategy: 'import',
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {
@@ -53,7 +51,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
     'satori': 'node',
     'sharp': false,
   },
-  wasmStrategy: 'import',
+  // nitro configures wasm
 }
 const awsLambda: RuntimeCompatibilitySchema = {
   bindings: {
@@ -63,7 +61,6 @@ const awsLambda: RuntimeCompatibilitySchema = {
     'satori': 'node',
     'sharp': 'node',
   },
-  wasmStrategy: 'inline',
 }
 
 export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
@@ -78,7 +75,6 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       'satori': 'node',
       'sharp': 'node',
     },
-    wasmStrategy: 'inline',
   },
   'aws-lambda': awsLambda,
   'netlify': awsLambda,
@@ -90,7 +86,11 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       'satori': 'node',
       'sharp': false,
     },
-    wasmStrategy: 'inline',
+    wasm: {
+      rollup: {
+        targetEnv: 'auto-inline',
+      },
+    },
   },
   'vercel': awsLambda,
   'vercel-edge': {
@@ -101,8 +101,13 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       'satori': 'node',
       'sharp': 'node',
     },
-    wasmStrategy: 'inline',
-    wasmImportQuery: '?module',
+    // requires vercel pro
+    // TODO support importing
+    wasm: {
+      rollup: {
+        targetEnv: 'auto-inline',
+      },
+    },
   },
   'cloudflare-pages': cloudflare,
   'cloudflare': cloudflare,
@@ -150,22 +155,13 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     applyBinding('sharp'),
     nitroConfig.alias || {},
   )
-  nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
-  // TODO may not be needed?
-  /*if (target.includes('cloudflare')) {
-    nitroConfig.rollupConfig.output!.inlineDynamicImports = true
-  }
-  else*/
-  if (target === 'netlify-edge') {
-    nitroConfig.wasm = nitroConfig.wasm || {}
-    nitroConfig.wasm.rollup = nitroConfig.wasm.rollup || {}
-    nitroConfig.wasm.rollup.targetEnv = 'auto-inline'
-  }
-  // TODO check if provider has any wasm bindings instead
-  if (target.includes('edge') || target.includes('cloudflare')) {
+  // if we're using any wasm modules we need to enable the wasm runtime
+  if (Object.values(compatibility.bindings).includes('wasm')) {
     nitroConfig.experimental = nitroConfig.experimental || {}
     nitroConfig.experimental.wasm = true
   }
+  nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
+  nitroConfig.wasm = defu(compatibility.wasm || {}, nitroConfig.wasm)
   return compatibility
 }
 
