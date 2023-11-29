@@ -15,6 +15,11 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver[
       nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = resolve('./runtime/core/renderers/chromium')
       // bindings
       applyNitroPresetCompatibility(nitroConfig, { resolve })
+      // avoid wasm handling while prerendering
+      nitroConfig.experimental = nitroConfig.experimental || {}
+      nitroConfig.experimental.wasm = false
+      nitroConfig.wasm = nitroConfig.wasm || {}
+      nitroConfig.wasm.esmImport = false
     })
   })
 }

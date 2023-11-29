@@ -17,10 +17,10 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     applyNitroPresetCompatibility(nitroConfig, { resolve, compatibility: config.runtimeCompatibility })
     // patch implicit dependencies:
     // - playwright-core
-    nitroConfig.alias.electron = 'unenv/runtime/mock/proxy-cjs'
-    nitroConfig.alias.bufferutil = 'unenv/runtime/mock/proxy-cjs'
-    nitroConfig.alias['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!.electron = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!.bufferutil = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
     // - image-size
-    nitroConfig.alias.queue = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!.queue = 'unenv/runtime/mock/proxy-cjs'
   })
 }
