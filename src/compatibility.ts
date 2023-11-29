@@ -86,22 +86,13 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     bindings: {
       'chromium': false,
       'css-inline': 'node',
-      'resvg': 'node',
+      'resvg': 'wasm',
       'satori': 'node',
       'sharp': false,
     },
     wasmStrategy: 'inline',
   },
-  'vercel': {
-    bindings: {
-      'chromium': false,
-      'css-inline': 'node',
-      'resvg': 'wasm',
-      'satori': 'node',
-      'sharp': 'node',
-    },
-    wasmStrategy: 'inline',
-  },
+  'vercel': awsLambda,
   'vercel-edge': {
     bindings: {
       'chromium': false,
