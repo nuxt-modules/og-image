@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "3.0.0-beta.6",
+  "version": "3.0.0-beta.7",
   "packageManager": "pnpm@8.11.0",
   "description": "Enlightened OG Image generation for Nuxt.",
   "license": "MIT",
@@ -26,6 +26,9 @@
   "files": [
     "dist"
   ],
+  "resolutions": {
+    "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001"
+  },
   "scripts": {
     "build": "pnpm dev:prepare && pnpm build:module && pnpm build:client",
     "build:client": "nuxi generate client",
@@ -82,6 +85,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
+    "nitropack": "npm:nitropack-nightly@2.8.1-28352923.b53e001",
     "@antfu/eslint-config": "2.1.1",
     "@img/sharp-linux-x64": "0.33.0-rc.2",
     "@nuxt/content": "^2.9.0",
