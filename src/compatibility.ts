@@ -4,7 +4,7 @@ import {
 } from 'nypm'
 import { env, provider } from 'std-env'
 import { defu } from 'defu'
-import type { type NitroConfig, WasmOptions } from 'nitropack/types'
+import type { NitroConfig, WasmOptions } from 'nitropack/types'
 
 const autodetectableProviders = {
   azure_static: 'azure',
