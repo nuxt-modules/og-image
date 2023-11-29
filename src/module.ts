@@ -395,7 +395,9 @@ ${componentImports}
       await setupBuildHandler(config, resolve)
     }
     // if prerendering
-    if (nuxt.options.nitro.prerender?.routes || nuxt.options._generate)
-      setupPrerenderHandler(config, resolve)
+    if (nuxt.options.nitro.prerender?.routes?.length || nuxt.options.nitro.prerender?.crawlLinks || nuxt.options._generate)
+      addServerPlugin(resolve('./runtime/nitro/plugins/prerender.ts'))
+    // always call this as we may have routes only discovered at build time
+    setupPrerenderHandler(config, resolve)
   },
 })

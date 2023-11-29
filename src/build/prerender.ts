@@ -7,7 +7,6 @@ import type { ModuleOptions } from './module'
 
 export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   // TODO maybe remove
-  addServerPlugin(resolve('./runtime/nitro/plugins/prerender.ts'))
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig) => {
       // renderers
