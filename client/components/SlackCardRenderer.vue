@@ -25,7 +25,7 @@
 </template>
 
 <style scoped>
-.favIcon >>> img {
+.favIcon :deep(img) {
   border-radius: 2px;
   box-sizing: content-box;
   height: 16px;
@@ -42,6 +42,7 @@
   word-wrap: break-word;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  height: 300px;
 }
 .siteName {
   font-weight: bold;
@@ -60,7 +61,6 @@
 }
 .content {
   padding: 0 12px;
-  max-width: 520px;
 }
 .bar {
   flex-shrink: 0;

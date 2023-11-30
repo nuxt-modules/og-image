@@ -26,17 +26,4 @@ export const slowRefreshSources = useDebounceFn(() => {
   refreshTime.value = Date.now()
 }, 1000)
 
-// const clientFunctions: PlaygroundClientFunctions = {
-//   refresh() {
-//     propsEdited.value = false
-//     optionsOverrides.value = {}
-//     // @todo this is pretty hacky, we should validate the file being changed is one we care about
-//     refreshSources()
-//   },
-// }
-
-export const containerWidth = ref<number | null>(null)
 export const host = computed(() => withBase(base.value, `${window.location.protocol}//${hostname}`))
-export const absoluteBasePath = computed(() => {
-  return `${host.value}${path.value === '/' ? '' : path.value}`
-})

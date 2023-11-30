@@ -61,8 +61,8 @@ onMounted(() => {
 div {
   cursor: pointer;
   max-height: 100%;
-  height: auto !important;
-  width: auto !important;
+  height: auto;
+  width: auto;
   margin: 0 auto;
   max-width: 100%;
   transition: 0.4s ease-in-out;

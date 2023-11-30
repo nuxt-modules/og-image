@@ -19,7 +19,7 @@
   aspect-ratio: 2 / 1;
   background-color: rgba(0, 0, 0, 0.1);
   opacity: 1;
-  height: 315px;
+  height: 300px;
 }
 .domain {
   word-wrap: break-word;

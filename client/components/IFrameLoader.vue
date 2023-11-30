@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
 import { computed, onMounted, ref, useColorMode, useHead, watch } from '#imports'
-import { containerWidth, options } from '~/util/logic'
+import { options } from '~/util/logic'
 
 const props = defineProps<{
   src: string
@@ -48,7 +48,7 @@ onMounted(() => {
     immediate: true,
   })
 
-  watch([() => containerWidth.value, mode, iframe], () => {
+  watch([() => mode, iframe], () => {
     setSource()
   })
 })

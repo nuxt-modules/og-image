@@ -9,7 +9,6 @@ import { version } from '../package.json'
 import type { OgImageComponent } from '../src/runtime/types'
 import {
   base,
-  containerWidth,
   description,
   host,
   options,
@@ -60,8 +59,6 @@ watch(() => clientPath, (v) => {
 
 const debugAsyncData = fetchPathDebug()
 const { data: debug, pending, error } = debugAsyncData
-
-const vnodes = computed(() => debug.value?.vnodes || [])
 
 watch(debug, (val) => {
   if (!val)
@@ -255,6 +252,11 @@ function openCurrentPageFile() {
   devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
 }
 
+function openCurrentComponent() {
+  const component = componentNames.value.find(c => c.pascalName === activeComponentName.value)
+  devtoolsClient.value?.devtools.rpc.openInEditor(component.path)
+}
+
 const isPageScreenshot = computed(() => {
   return activeComponentName.value === 'PageScreenshot'
 })
@@ -390,7 +392,7 @@ const currentPageFile = computed(() => {
     </header>
     <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
       <main class="mx-auto flex flex-col w-full bg-white dark:bg-black dark:bg-dark-700 bg-light-200 ">
-        <div v-if="tab === 'design'" class="h-full relative max-h-full" :style="{ width: containerWidth ? `${containerWidth}px` : '100%' }">
+        <div v-if="tab === 'design'" class="h-full relative max-h-full">
           <div v-if="pending">
             <NLoading />
           </div>
@@ -422,14 +424,14 @@ const currentPageFile = computed(() => {
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
-                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg'" @click="patchProps({ extension: 'jpeg' })" />
+                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchProps({ extension: 'jpeg' })" />
                   <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchProps({ extension: 'png' })" />
                   <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchProps({ extension: 'svg' })" />
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchProps({ extension: 'html' })" />
                 </div>
                 <div class="text-sm">
-                  <div v-if="!isPageScreenshot">
-                    {{ activeComponentName }}
+                  <div v-if="!isPageScreenshot" class="underline opacity-70 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
+                    {{ activeComponentName }}.vue
                   </div>
                   <div v-else>
                     Screenshot of the current page.
@@ -478,6 +480,7 @@ const currentPageFile = computed(() => {
                 <ImageLoader
                   v-if="imageFormat !== 'html'"
                   :src="src"
+                  class="!h-[300px]"
                   :aspect-ratio="aspectRatio"
                   @load="generateLoadTime"
                   @refresh="refreshSources"
@@ -513,6 +516,14 @@ const currentPageFile = computed(() => {
               </div>
             </Pane>
             <Pane v-if="sidePanelOpen" size="40">
+              <div v-if="propsEdited" class="text-xs p-2 opacity-80">
+                <div>
+                  To persist changes you'll need to update your component and / or props.
+                  <button type="button" class="underline" @click="resetProps(true)">
+                    Reset
+                  </button>
+                </div>
+              </div>
               <OSectionBlock>
                 <template #text>
                   <h3 class="opacity-80 text-base mb-1">
@@ -527,22 +538,6 @@ const currentPageFile = computed(() => {
                   <NButton icon="logos:chrome" :border="renderer === 'chromium'" @click="patchProps({ renderer: 'chromium' })">
                     Chromium
                   </NButton>
-                </div>
-                <div v-if="renderer === 'chromium'" class="text-sm mt-2">
-                  <NTip icon="carbon:warning">
-                    The Chromium renderer only supports Node based presets and needs to be enabled with <code>{ runtimeBrowser: true }</code>. <a target="_blank" class="underline" href="https://nuxtseo.com/og-image/guides/runtime-images">Learn more</a>.
-                  </NTip>
-                </div>
-              </OSectionBlock>
-              <OSectionBlock>
-                <template #text>
-                  <h3 class="opacity-80 text-base mb-1">
-                    <NIcon icon="carbon:checkmark-filled-warning" class="mr-1" />
-                    Compatibility
-                  </h3>
-                </template>
-                <div>
-                  {{ currentPageFile }}
                 </div>
               </OSectionBlock>
               <OSectionBlock>
@@ -562,11 +557,22 @@ const currentPageFile = computed(() => {
                   />
                   <span v-if="propsEdited" class="absolute top-1 right-1 text-10px ml-1 bg-blue-100 text-blue-700 px-1 py-2px rounded">modified</span>
                 </div>
-                <div v-if="propsEdited" class="text-xs p-2 opacity-80">
-                  <div>
-                    Update {{ options.component }} to persist the changes. <button type="button" class="underline" @click="resetProps(true)">
-                      Reset
-                    </button>
+              </OSectionBlock>
+              <OSectionBlock>
+                <template #text>
+                  <h3 class="opacity-80 text-base mb-1">
+                    <NIcon icon="carbon:checkmark-filled-warning" class="mr-1" />
+                    Compatibility
+                  </h3>
+                </template>
+                <div class="text-sm">
+                  <div v-if="!debug.compatibility.length" class="text-sm">
+                    <NIcon icon="carbon:checkmark" class="text-green-500" /> Looks good.
+                  </div>
+                  <div v-for="(c, key) in debug.compatibility" v-else :key="key" class="mb-2">
+                    <NTip icon="carbon:warning">
+                      {{ c }}
+                    </NTip>
                   </div>
                 </div>
               </OSectionBlock>
@@ -637,11 +643,11 @@ const currentPageFile = computed(() => {
             <template #text>
               <h3 class="opacity-80 text-base mb-1">
                 <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
-                vNodes
+                Path Debug
               </h3>
             </template>
             <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(vnodes, null, 2), 'json')" />
+              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(debug || {}, null, 2), 'json')" />
             </div>
           </OSectionBlock>
           <OSectionBlock>
@@ -780,15 +786,15 @@ textarea {
   --jse-main-border: none !important;
 }
 
-.json-editor-vue .no-main-menu {
+.no-main-menu {
   border: none !important;
 }
 
-.json-editor-vue .jse-main {
+.jse-main {
   min-height: 1em !important;
 }
 
-.json-editor-vue .jse-contents {
+.jse-contents {
   border-width: 0 !important;
   border-radius: 5px !important;
 }
