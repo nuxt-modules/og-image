@@ -39,10 +39,13 @@ export async function createScreenshot(e: H3Event, browser: Browser, options: Re
       })
     }
 
+    let type = options.extension
+    if (type === 'jpg')
+      type = 'jpeg'
     const screenshotOptions: PageScreenshotOptions = {
       timeout: 10000,
       animations: 'disabled',
-      type: options.extension as 'png' | 'jpeg',
+      type,
     }
 
     // if (options.delay)
