@@ -1,5 +1,4 @@
-import { type H3Event, createError } from 'h3'
-import { hash } from 'ohash'
+import type { H3Event } from 'h3'
 import { createHeadCore } from '@unhead/vue'
 import twemoji from 'twemoji'
 import { renderSSRHead } from '@unhead/ssr'
@@ -7,7 +6,7 @@ import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import type { FontConfig, RendererOptions, RuntimeOgImageOptions } from '../../types'
 import { useRuntimeConfig } from '#imports'
 
-export async function fetchHTML(e: H3Event, options: RuntimeOgImageOptions | RendererOptions) {
+export async function devIframeTemplate(e: H3Event, island: NuxtIslandResponse, options: RuntimeOgImageOptions | RendererOptions) {
   const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
   // const path = options.path
   // const scale = query.scale
@@ -21,20 +20,6 @@ export async function fetchHTML(e: H3Event, options: RuntimeOgImageOptions | Ren
   //   return sendRedirect(e, withBase(pathWithoutBase, nitroOrigin))
   // }
 
-  if (!options.component) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: `Nuxt OG Image trying to render an invalid component. Received options ${JSON.stringify(options)}`,
-    })
-  }
-
-  // using Nuxt Island, generate the og:image HTML
-  const hashId = hash([options.component, options, Math.random() * 100])
-  const island = await e.$fetch<NuxtIslandResponse>(`/__nuxt_island/${options.component}_${hashId}.json`, {
-    params: {
-      props: JSON.stringify(options),
-    },
-  })
   const head = createHeadCore()
   head.push(island.head)
 
@@ -124,6 +109,7 @@ img.emoji {
         rel: 'stylesheet',
       },
       // have to add each weight as their own stylesheet
+      // we should use the local font file no?
       ...Object.entries(googleFonts)
         .map(([name, fonts]) => {
           return {
@@ -138,58 +124,9 @@ img.emoji {
   html = html.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
 
   const headChunk = await renderSSRHead(head)
-  const htmlTemplate = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
 <body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div data-v-inspector-ignore="true" style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
 </html>`
-
-  // TODO re-eneable
-  // const cssInline = loadCSSInline()
-  // if (!cssInline.__mock) {
-  //   let hasInlineStyles = false
-  //   // for the tags we extract the stylesheet href and inline them where they are a vue template
-  //   const stylesheets = htmlTemplate.match(/<link rel="stylesheet" href=".*?">/g)
-  //   if (stylesheets) {
-  //     for (const stylesheet of stylesheets) {
-  //       // @todo we should check the actual component names
-  //       if (!stylesheet.includes(`${options.component.replace('OgImageTemplate', '').replace('OgImage', '')}.vue`)) {
-  //         htmlTemplate = htmlTemplate.replace(stylesheet, '')
-  //       }
-  //       else {
-  //         // using regex
-  //         const href = stylesheet.match(/href="(.*?)"/)![1]
-  //         try {
-  //           let css = (await (await $fetch(href, {
-  //             baseURL: nitroOrigin,
-  //           })).text())
-  //           // css is in format of const __vite__css = "<css>"
-  //           if (css.includes('const __vite__css =')) {
-  //             // decode characters like \n
-  //             css = css.match(/const __vite__css = "(.*)"/)![1].replace(/\\n/g, '\n')
-  //           }
-  //           css = css.replace(/\/\*# sourceMappingURL=.*?\*\//g, '')
-  //             // need to replace all !important, they don't work in Satori
-  //             .replaceAll('! important', '')
-  //             .replaceAll('!important')
-  //           // we remove the last line from the css //# sourceMappingURL=
-  //           htmlTemplate = htmlTemplate.replace(stylesheet, `<style>${css}</style>`)
-  //           hasInlineStyles = true
-  //         }
-  //         catch {
-  //         }
-  //       }
-  //     }
-  //   }
-  //   if (hasInlineStyles) {
-  //     try {
-  //       htmlTemplate = await cssInline(htmlTemplate, {
-  //         url: nitroOrigin,
-  //       })
-  //     }
-  //     catch {
-  //     }
-  //   }
-  // }
-  return htmlTemplate
 }
