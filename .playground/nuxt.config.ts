@@ -96,6 +96,7 @@ export default defineNuxtConfig({
   },
 
   experimental: {
+    inlineRouteRules: true,
     componentIslands: true,
   },
 

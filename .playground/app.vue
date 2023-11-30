@@ -1,7 +1,9 @@
 <script setup>
-import { useSiteConfig } from '#imports'
+import { defineOgImage, useSiteConfig } from '#imports'
 
 const siteConfig = useSiteConfig()
+
+defineOgImage()
 </script>
 
 <template>
