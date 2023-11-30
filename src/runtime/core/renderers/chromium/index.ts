@@ -1,13 +1,16 @@
 import type { Browser } from 'playwright-core'
+import { joinURL } from 'ufo'
 import type { Renderer } from '../../../types'
-import { getOgImagePath } from '../../../utilts'
 import { prerenderChromiumContext } from '../../cache/prerender'
 import { createScreenshot } from './screenshot'
 import { createBrowser } from '#nuxt-og-image/bindings/chromium'
 
 const ChromiumRenderer: Renderer = {
   name: 'chromium',
-  supportedFormats: ['png', 'jpeg'],
+  supportedFormats: ['png', 'jpeg', 'jpg'],
+  async debug() {
+    return {} // TODO
+  },
   async createImage(e, options) {
     // TODO redirect for screenshot
     // TODO maybe keep this alive
@@ -25,7 +28,7 @@ const ChromiumRenderer: Renderer = {
     // @todo return placeholder image on failure
     return createScreenshot(e, browser!, {
       ...options,
-      path: options.component === 'PageScreenshot' ? options.path : getOgImagePath(options.path, 'html'),
+      path: options.component === 'PageScreenshot' ? options.path : joinURL('/__og-image__/image', options.path, `og.html`),
     }).finally(async () => {
       await browser!.close()
     })

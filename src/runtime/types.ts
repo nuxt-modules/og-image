@@ -79,7 +79,8 @@ export type RendererOptions = Omit<RuntimeOgImageOptions, 'extension'> & { exten
 export interface Renderer {
   name: 'chromium' | 'satori'
   supportedFormats: Partial<RendererOptions['extension']>[]
-  createImage: (e: H3Event, options: RendererOptions) => Promise<H3Error | Buffer>
+  createImage: (e: H3Event, options: RendererOptions) => Promise<H3Error | Buffer | string>
+  debug: (e: H3Event, options: RendererOptions) => Promise<Record<string, any>>
 }
 
 export type OgImageScreenshotOptions = Omit<OgImageOptions, 'component'>

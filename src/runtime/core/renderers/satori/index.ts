@@ -47,8 +47,6 @@ const SatoriRenderer: Renderer = {
   supportedFormats: ['svg', 'png', 'jpeg', 'jpg', 'json'],
   async createImage(e, options) {
     switch (options.extension) {
-      case 'json':
-        return createVNodes(e, options)
       case 'svg':
         return createSvg(e, options)
       case 'png':
@@ -56,6 +54,11 @@ const SatoriRenderer: Renderer = {
       case 'jpeg':
       case 'jpg':
         return createJpeg(e, options)
+    }
+  },
+  async debug(e, options) {
+    return {
+      vnodes: await createVNodes(e, options),
     }
   },
 }
