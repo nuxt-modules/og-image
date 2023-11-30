@@ -21,14 +21,6 @@ export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) 
   })
 }
 
-/**
- * @param options
- * @deprecated Use `defineOgImage` or `defineOgImageCached` instead
- */
-export function defineOgImageStatic(options: OgImageOptions = {}) {
-  return defineOgImageCached(options)
-}
-
 export function defineOgImageCached(options: OgImageOptions = {}) {
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
   // if we're not caching by default and are missing cache config, add it
@@ -47,16 +39,6 @@ export function defineOgImageWithoutCache(options: OgImageOptions = {}) {
     cacheTtl: 0,
   })
 }
-
-/**
- * @param options
- * @deprecated Use `defineOgImageWithoutCache` instead
- */
-export function defineOgImageDynamic(options: OgImageOptions = {}) {
-  return defineOgImageWithoutCache(options)
-}
-
-type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt'>
 
 type ExtractComponentProps<T extends Component> = T extends new (...args: any) => any
   ? Omit<InstanceType<T>['$props'], keyof ComponentCustomProps | keyof VNodeProps | keyof AllowedComponentProps>
