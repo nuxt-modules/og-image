@@ -209,9 +209,6 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     ;[
-      // deprecated
-      'Dynamic',
-      'Static',
       // new
       'index',
       'Cached',

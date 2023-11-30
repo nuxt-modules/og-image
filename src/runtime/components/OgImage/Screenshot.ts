@@ -7,7 +7,7 @@ export default defineComponent<OgImageScreenshotOptions>({
   async setup(_, { attrs }) {
     // get attrs
     if (import.meta.server)
-      await defineOgImageScreenshot(attrs)
+      defineOgImageScreenshot(attrs)
 
     return () => null
   },

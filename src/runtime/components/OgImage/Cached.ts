@@ -6,7 +6,7 @@ export default defineComponent<OgImageOptions>({
   name: 'OgImageCached',
   async setup(_, { attrs }) {
     if (import.meta.server)
-      await defineOgImageCached(attrs)
+      defineOgImageCached(attrs)
 
     return () => null
   },
