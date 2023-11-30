@@ -16,15 +16,6 @@ export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string): 
     })
   }
 
-  const payload = extractAndNormaliseOgImageOptions(html!)
-  // not supported
-  if (!payload) {
-    return createError({
-      statusCode: 400,
-      statusMessage: `The path is missing the Nuxt OG Image payload. Did you forget to use defineOgImage()?`,
-    })
-  }
-
   // need to hackily reset the event params so we can access the route rules of the base URL
-  return payload
+  return extractAndNormaliseOgImageOptions(html!)
 }

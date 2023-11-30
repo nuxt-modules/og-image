@@ -16,7 +16,7 @@ export default defineNitroPlugin((nitroApp) => {
       const optionsWithDefault = defu(ogImageConfig, defaults)
       // Note: we can't resolve the site URL here because we don't have access to the request
       // the plugin nuxt-content-canonical-urls.ts fixes this
-      const src = getOgImagePath(content.path, optionsWithDefault.extension)
+      const src = getOgImagePath(content.path, optionsWithDefault)
 
       const payload = {
         title: content.title,

@@ -2,8 +2,11 @@ import { defu } from 'defu'
 import { parseURL, withoutBase } from 'ufo'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'
+import type { ActiveHeadEntry } from '@unhead/schema'
 import { normaliseOptions } from '../../core/options/normalise'
 import { getOgImagePath, isInternalRoute } from '../../utilts'
+import type { OgImageOptions } from '../../types'
+import { createOgImageMeta } from '../utilts'
 import { defineNuxtPlugin, useRequestEvent, useRuntimeConfig } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -17,69 +20,32 @@ export default defineNuxtPlugin((nuxtApp) => {
     const _routeRulesMatcher = toRouteMatcher(
       createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
     )
-    const routeRules = defu({}, ..._routeRulesMatcher.matchAll(
+    let routeRules = defu({}, ..._routeRulesMatcher.matchAll(
       withoutBase(path.split('?')[0], ssrContext?.runtimeConfig?.app.baseURL),
     ).reverse()).ogImage as NitroRouteRules['ogImage']
     if (typeof routeRules === 'undefined')
       return
 
     // if they have a payload, then we can just skip
-    const payloadIndex = ssrContext!.head.headEntries().findIndex((entry) => {
-      return entry.input?.script?.[0]?.id === 'nuxt-og-image-options'
-    })
+    const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
     // if we've opted out of route rules, we need to remove this entry
-    if (payloadIndex >= 0 && routeRules === false) {
-      ssrContext!.head.headEntries().splice(payloadIndex, 1)
+    if (routeRules === false) {
+      ogImageInstances?.forEach((e: ActiveHeadEntry<any>) => {
+        e.dispose()
+      })
+      nuxtApp.ssrContext!._ogImageInstances = undefined
       return
     }
     // otherwise it's fine to rely on payload, we'll need to merge in route rules anyway
-    if (payloadIndex >= 0)
+    if (ogImageInstances.length >= 0)
       return
 
-    const options = normaliseOptions(routeRules)
-    const { defaults } = useRuntimeConfig()['nuxt-og-image']
-    const optionsWithDefault = normaliseOptions(defu(options, defaults))
-    const src = getOgImagePath(ssrContext!.url, optionsWithDefault.extension)
+    routeRules = defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules)
 
-    ssrContext?.head.push({
-      script: [
-        {
-          id: 'nuxt-og-image-options',
-          type: 'application/json',
-          processTemplateParams: true,
-          innerHTML: () => {
-            const payload = {
-              title: '%s',
-            }
-            // don't apply defaults
-            // options is an object which has keys that may be kebab case, we need to convert the keys to camel case
-            Object.entries(options).forEach(([key, val]) => {
-              // with a simple kebab case conversion
-              // @ts-expect-error untyped
-              payload[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
-            })
-            return payload
-          },
-          // we want this to be last in our head
-          tagPosition: 'bodyClose',
-        },
-      ],
-      meta: [
-        { property: 'og:image', content: src },
-        { property: 'og:image:width', content: optionsWithDefault.width },
-        { property: 'og:image:height', content: optionsWithDefault.height },
-        { property: 'og:image:type', content: `image/${optionsWithDefault.extension}` },
-        { property: 'og:image:alt', content: optionsWithDefault.alt },
-        // twitter
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:image:src', content: src },
-        { name: 'twitter:image:width', content: optionsWithDefault.width },
-        { name: 'twitter:image:height', content: optionsWithDefault.height },
-        { name: 'twitter:image:alt', content: optionsWithDefault.alt },
-      ],
-    }, {
-      mode: 'server',
-      tagPriority: 35,
-    })
+    const { defaults } = useRuntimeConfig()['nuxt-og-image']
+    const resolvedOptions = normaliseOptions(defu(routeRules, defaults) as OgImageOptions)
+    const src = getOgImagePath(ssrContext!.url, resolvedOptions)
+
+    createOgImageMeta(src, {}, resolvedOptions, nuxtApp.ssrContext!)
   })
 })

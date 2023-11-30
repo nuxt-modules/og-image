@@ -35,6 +35,10 @@ export interface ScreenshotOptions {
   delay?: number
 }
 
+export type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt'>
+
+export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
+
 export interface OgImageOptions extends Partial<ScreenshotOptions> {
   component?: string
   renderer?: 'chromium' | 'satori'

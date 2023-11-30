@@ -41,10 +41,9 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | { ex
       options = await prerenderCache?.getItem(key)
     }
     else {
-      const payloadOptions = await fetchPathHtmlAndExtractOptions(e, basePath)
-      if (payloadOptions instanceof Error)
-        return payloadOptions
-      options = payloadOptions
+      options = await fetchPathHtmlAndExtractOptions(e, basePath)
+      if (options instanceof Error)
+        return options
     }
   }
   // no matter how we get the options, apply the defaults and the normalisation

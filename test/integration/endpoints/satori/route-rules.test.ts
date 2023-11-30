@@ -19,8 +19,15 @@ describe('route rules', () => {
     // eslint-disable-next-line node/prefer-global/buffer
     expect(Buffer.from(png)).toMatchImageSnapshot()
   }, 60000)
-  it('define', async () => {
-    const png: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/define/og.png', {
+  it('inline', async () => {
+    const png: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/inline/og.png', {
+      responseType: 'arrayBuffer',
+    })
+    // eslint-disable-next-line node/prefer-global/buffer
+    expect(Buffer.from(png)).toMatchImageSnapshot()
+  }, 60000)
+  it('config', async () => {
+    const png: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/config/og.png', {
       responseType: 'arrayBuffer',
     })
     // eslint-disable-next-line node/prefer-global/buffer
