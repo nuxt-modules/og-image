@@ -4,8 +4,6 @@ import { defineNuxtModule } from '@nuxt/kit'
 import { startSubprocess } from '@nuxt/devtools-kit'
 import NuxtOgImage from '../src/module'
 
-console.log(resolve('../module'));
-
 export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
