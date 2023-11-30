@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { parseURL } from 'ufo'
+import { computed, useSiteConfig } from '#imports'
 
 // inherited attrs can mess up the satori parser
 defineOptions({ inheritAttrs: false })

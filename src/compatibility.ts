@@ -162,7 +162,7 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     nitroConfig.experimental.wasm = true
   }
   nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
-  nitroConfig.wasm = defu(compatibility.wasm || {}, nitroConfig.wasm)
+  nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
   return compatibility
 }
 

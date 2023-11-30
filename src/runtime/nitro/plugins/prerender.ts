@@ -1,10 +1,10 @@
 import { parseURL, withoutLeadingSlash } from 'ufo'
 import { getRouteRules } from 'nitropack/dist/runtime/route-rules'
+import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
 import { prerenderCache, prerenderChromiumContext } from '../../core/cache/prerender'
 import type { OgImageOptions } from '../../types'
-import { isInternalRoute } from '../../utilts'
-import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
+import { isInternalRoute } from '../../utils'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)

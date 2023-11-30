@@ -1,7 +1,7 @@
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import type { ParsedContent } from '@nuxt/content/dist/runtime/types'
 import { defu } from 'defu'
-import { getOgImagePath } from '../../utilts'
+import { getOgImagePath } from '../../utils'
 import { useRuntimeConfig } from '#imports'
 
 export default defineNitroPlugin((nitroApp) => {

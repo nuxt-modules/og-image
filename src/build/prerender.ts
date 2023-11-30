@@ -1,4 +1,4 @@
-import { type Resolver, addServerPlugin, useNuxt } from '@nuxt/kit'
+import { type Resolver, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from './module'

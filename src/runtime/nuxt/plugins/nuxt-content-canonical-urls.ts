@@ -1,7 +1,7 @@
 import { parseURL } from 'ufo'
 import type { HeadPlugin } from '@unhead/schema'
 import { toValue } from 'vue'
-import { isInternalRoute } from '../../utilts'
+import { isInternalRoute } from '../../utils'
 import { useRequestEvent, withSiteUrl } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {
