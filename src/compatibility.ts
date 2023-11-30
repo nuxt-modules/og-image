@@ -153,6 +153,7 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     applyBinding('satori'),
     applyBinding('resvg'),
     applyBinding('sharp'),
+    applyBinding('css-inline'),
     nitroConfig.alias || {},
   )
   // if we're using any wasm modules we need to enable the wasm runtime

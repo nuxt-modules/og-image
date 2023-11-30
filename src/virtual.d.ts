@@ -12,6 +12,10 @@ declare module '#nuxt-og-image/bindings/chromium' {
   export const createBrowser: typeof launch = launch
 }
 
+declare module '#nuxt-og-image/bindings/css-inline' {
+  export default import('css-inline').default
+}
+
 declare module '#nuxt-og-image/components' {
   interface OgImageComponents {}
 }
