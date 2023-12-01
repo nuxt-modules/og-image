@@ -12,50 +12,6 @@ import { createOgImageMeta } from '../nuxt/utilts'
 import type { OgImageComponents } from '#nuxt-og-image/components'
 import { useNuxtApp, useRequestEvent, useRouter, useRuntimeConfig } from '#imports'
 
-export function defineOgImageScreenshot(options: OgImageScreenshotOptions = {}) {
-  const router = useRouter()
-  const route = router.currentRoute.value?.path || ''
-  return defineOgImage({
-    alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
-    renderer: 'chromium',
-    extension: 'jpeg',
-    component: 'PageScreenshot', // this is an alias
-    cache: true,
-    ...options,
-  })
-}
-
-export function defineOgImageCached(options: OgImageOptions = {}) {
-  const { defaults } = useRuntimeConfig()['nuxt-og-image']
-  // if we're not caching by default and are missing cache config, add it
-  if (!defaults.cacheTtl && !options.cacheTtl)
-    options.cacheTtl = 60 * 60 * 24 * 1000 * 7 // 7 days - 1 week
-  return defineOgImage({
-    cache: true,
-    ...options,
-  })
-}
-
-export function defineOgImageWithoutCache(options: OgImageOptions = {}) {
-  return defineOgImage({
-    ...options,
-    cache: false,
-    cacheTtl: 0,
-  })
-}
-
-type ExtractComponentProps<T extends Component> = T extends new (...args: any) => any
-  ? Omit<InstanceType<T>['$props'], keyof ComponentCustomProps | keyof VNodeProps | keyof AllowedComponentProps>
-  : never
-
-export function defineOgImageComponent<T extends keyof OgImageComponents>(component: T, props: ExtractComponentProps<OgImageComponents[T]>, options: OgImageOptions = {}) {
-  defineOgImage({
-    component,
-    ...props,
-    ...options,
-  })
-}
-
 export function defineOgImage(_options: DefineOgImageInput = {}) {
   // string is supported as an easy way to override the generated og image data
   // clone to avoid any issues
