@@ -19,7 +19,7 @@
     "@headlessui/vue": "^1.7.16",
     "@iconify-json/carbon": "^1.1.23",
     "@iconify-json/logos": "^1.1.40",
-    "@iconify-json/ri": "^1.1.14",
+    "@iconify-json/ri": "^1.1.15",
     "@iconify-json/tabler": "^1.1.100",
     "@nuxt/devtools-ui-kit": "^1.0.4",
     "@nuxtjs/color-mode": "^3.3.2",
