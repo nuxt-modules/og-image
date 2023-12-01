@@ -3,6 +3,7 @@ import type { html } from 'satori-html'
 import type { H3Error, H3Event } from 'h3'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
+export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'fxemoji' | 'streamline-emojis' | 'openmoji'
 
 export interface OgImageComponent {
   path?: string
@@ -43,10 +44,7 @@ export interface OgImageOptions extends Partial<ScreenshotOptions> {
   component?: string
   renderer?: 'chromium' | 'satori'
   extension?: 'png' | 'jpeg' | 'jpg'
-  /**
-   * @deprecated use renderer. Replace `browser` with `chromium`
-   */
-  provider?: 'browser' | 'satori'
+  emojis?: IconifyEmojiIconSets
   /**
    * Provide a static HTML template to render the OG Image instead of a component.
    */

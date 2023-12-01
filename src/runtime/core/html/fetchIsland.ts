@@ -1,9 +1,9 @@
-import { type H3Event, createError } from 'h3'
+import { createError } from 'h3'
 import { hash } from 'ohash'
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
-import type { RendererOptions, RuntimeOgImageOptions } from '../../types'
+import type { H3EventOgImageRender } from '../../types'
 
-export function fetchIsland(e: H3Event, options: RuntimeOgImageOptions | RendererOptions): Promise<NuxtIslandResponse> {
+export function fetchIsland({ options, e }: H3EventOgImageRender): Promise<NuxtIslandResponse> {
   if (!options.component) {
     throw createError({
       statusCode: 500,

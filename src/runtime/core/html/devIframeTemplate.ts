@@ -1,25 +1,19 @@
-import type { H3Event } from 'h3'
 import { createHeadCore } from '@unhead/vue'
-import twemoji from 'twemoji'
 import { renderSSRHead } from '@unhead/ssr'
-import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
-import type { FontConfig, RendererOptions, RuntimeOgImageOptions } from '../../types'
+import type { FontConfig, H3EventOgImageRender } from '../../types'
+import { applyEmojis } from './applyEmojis'
+import { fetchIsland } from './fetchIsland'
 import { useRuntimeConfig } from '#imports'
 
-export async function devIframeTemplate(e: H3Event, island: NuxtIslandResponse, options: RuntimeOgImageOptions | RendererOptions) {
+export async function devIframeTemplate(ctx: H3EventOgImageRender) {
+  const { options } = ctx
   const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
   // const path = options.path
   // const scale = query.scale
   // const mode = query.mode || 'light'
   // extract the options from the original path
 
-  // for screenshots just return the base path
-  // if (options.provider === 'browser' && options.component === 'PageScreenshot') {
-  //   // need the path without the base url, left trim the base url
-  //   const pathWithoutBase = path.replace(new RegExp(`^${useRuntimeConfig().app.baseURL}`), '')
-  //   return sendRedirect(e, withBase(pathWithoutBase, nitroOrigin))
-  // }
-
+  const island = await fetchIsland(ctx)
   const head = createHeadCore()
   head.push(island.head)
 
@@ -28,14 +22,8 @@ export async function devIframeTemplate(e: H3Event, island: NuxtIslandResponse, 
   if (firstFont)
     defaultFontFamily = firstFont.name
 
+  await applyEmojis(ctx, island)
   let html = island.html
-  try {
-    html = twemoji.parse(html!, {
-      folder: 'svg',
-      ext: '.svg',
-    })
-  }
-  catch (e) {}
 
   // we need to group fonts by name
   const googleFonts: Record<string, FontConfig[]> = {}
@@ -63,12 +51,6 @@ export async function devIframeTemplate(e: H3Event, island: NuxtIslandResponse, 
     height: ${options.height}px;
     overflow: hidden;
     background-color: ${options.mode === 'dark' ? '#1b1b1b' : '#fff'};
-}
-img.emoji {
-   height: 1em;
-   width: 1em;
-   margin: 0 .05em 0 .1em;
-   vertical-align: -0.1em;
 }`,
       },
       ...(fonts as FontConfig[])
