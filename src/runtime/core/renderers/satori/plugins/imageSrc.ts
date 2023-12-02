@@ -26,8 +26,12 @@ export default defineSatoriTransformer({
           .catch(() => { valid = false }))
         if (valid) {
           node.props.src = toBase64Image(src, response as ArrayBuffer)
-          const imageSize = sizeOf(Buffer.from(response as ArrayBuffer))
-          dimensions = { width: imageSize.width, height: imageSize.height }
+
+          try {
+            const imageSize = sizeOf(Buffer.from(response as ArrayBuffer))
+            dimensions = { width: imageSize.width, height: imageSize.height }
+          }
+          catch (e) {}
           updated = true
         }
       }
