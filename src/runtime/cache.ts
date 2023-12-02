@@ -1,59 +1,71 @@
 import { prefixStorage } from 'unstorage'
-import type { H3Event } from 'h3'
-import { getQuery, setHeader } from 'h3'
-import { useRuntimeConfig, useStorage } from '#imports'
+import { getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import { withTrailingSlash } from 'ufo'
+import { hash } from 'ohash'
+import type { H3EventOgImageRender } from './core/utils/resolveRendererContext'
+import { useStorage } from '#imports'
 
-export async function useNitroCache<T>(e: H3Event, options: {
-  key: string
-  cacheTtl: number
-  cache: boolean
-  headers: boolean
-  skipRestore?: boolean
-}): Promise<{ cachedItem: false | T, enabled: boolean, update: (item: T) => Promise<void> }> {
-  const module = 'nuxt-og-image'
-  const { runtimeCacheStorage, version } = useRuntimeConfig()[module] as any as { version: string, runtimeCacheStorage: any }
+// TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
+export async function useOgImageBufferCache(ctx: H3EventOgImageRender, options: {
+  baseCacheKey: string | false
+  cacheMaxAgeSeconds?: number
+}): Promise<void | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
+  const maxAge = Number(options.cacheMaxAgeSeconds)
+  const enabled = maxAge > 0
+  const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
+  const key = ctx.key
 
-  const enabled = options.cache && runtimeCacheStorage && options.cacheTtl && options.cacheTtl > 0
-  const baseCacheKey = runtimeCacheStorage === 'default' ? `/cache/${module}@${version}` : `/${module}@${version}`
-  const cache = prefixStorage(useStorage(), `${baseCacheKey}/`)
-  const key = options.key
-
-  let xCacheHeader = 'DISABLED'
-  let xCacheExpires = 0
-  const newExpires = Date.now() + (options.cacheTtl || 0)
-  const purge = typeof getQuery(e).purge !== 'undefined'
+  const purge = typeof getQuery(ctx.e).purge !== 'undefined'
   // cache will invalidate if the options change
-  let cachedItem: T | false = false
-  if (!options.skipRestore && enabled && await cache.hasItem(key).catch(() => false)) {
-    const { value, expiresAt } = await cache.getItem(key).catch(() => ({ value: null, expiresAt: Date.now() })) as any
+  let cachedItem: BufferSource | false = false
+  if (enabled && await cache.hasItem(key).catch(() => false)) {
+    const { value, expiresAt, headers } = await cache.getItem(key).catch(() => ({ value: null, expiresAt: Date.now() })) as any
     if (purge) {
-      xCacheHeader = 'PURGE'
-      xCacheExpires = newExpires
       await cache.removeItem(key).catch(() => {})
     }
     else if (expiresAt > Date.now()) {
-      xCacheHeader = 'HIT'
-      xCacheExpires = newExpires
-      cachedItem = value as T
+      cachedItem = Buffer.from(value, 'base64')
+      // Check for cache headers
+      if (
+        handleCacheHeaders(ctx.e, {
+          modifiedTime: new Date(headers['last-modified'] as string),
+          etag: headers.etag as string,
+          maxAge,
+        })
+      )
+        return
+
+      setHeaders(ctx.e, headers)
     }
     else {
-      // miss
-      xCacheHeader = 'MISS'
-      xCacheExpires = expiresAt
+      // expired
       await cache.removeItem(key).catch(() => {})
     }
   }
-  if (options.headers) {
-    // append the headers
-    setHeader(e, `x-${module}-cache`, xCacheHeader)
-    setHeader(e, `x-${module}-expires`, xCacheExpires.toString())
+  if (!enabled) {
+    // add http headers so the file isn't cached
+    setHeader(ctx.e, 'Cache-Control', 'no-cache, no-store, must-revalidate')
+    setHeader(ctx.e, 'Pragma', 'no-cache')
+    setHeader(ctx.e, 'Expires', '0')
   }
-
   return {
     enabled,
     cachedItem,
-    async update(item: T) {
-      enabled && await cache.setItem(key, { value: item, expiresAt: Date.now() + (options.cacheTtl || 0) })
+    async update(item) {
+      const value = Buffer.from(item).toString('base64')
+      const headers = {
+        // avoid multi-tenancy cache issues
+        'Vary': 'accept-encoding, host',
+        'etag': `W/"${hash(value)}"`,
+        'last-modified': new Date().toUTCString(),
+        'cache-control': `public, s-maxage=${maxAge}, stale-while-revalidate`,
+      }
+      setHeaders(ctx.e, headers)
+      enabled && await cache.setItem(key, {
+        value,
+        headers,
+        expiresAt: Date.now() + (maxAge * 1000),
+      })
     },
   }
 }
