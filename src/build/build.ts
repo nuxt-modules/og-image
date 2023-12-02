@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { type Resolver, resolvePath, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import { applyNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import type { ModuleOptions } from '../module'
 
 // we need all of the runtime dependencies when using build
@@ -30,13 +30,16 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   // TODO replace this once upstream is fixed
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('compiled', async (_nitro) => {
+      const target = resolveNitroPreset(_nitro.options)
+      const compatibility = getPresetNitroPresetCompatibility(target)
+      if (compatibility.wasm?.esmImport !== true)
+        return
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
       const serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs')
       const contents = (await readFile(serverEntry, 'utf-8'))
       const resvgHash = sha1(await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm')))
       const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
-      const postfix = resolveNitroPreset(_nitro.options) === 'vercel-edge' ? '?module' : ''
-      console.log({ preset: resolveNitroPreset(_nitro.options), postfix, resvgHash, yogaHash })
+      const postfix = target === 'vercel-edge' ? '?module' : ''
       await writeFile(serverEntry, contents
         .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"./wasm/index_bg-${resvgHash}.wasm${postfix}"`)
         .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"./wasm/yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })

@@ -51,7 +51,9 @@ const cloudflare: RuntimeCompatibilitySchema = {
     'satori': 'node',
     'sharp': false,
   },
-  // nitro configures wasm
+  wasm: {
+    esmImport: true,
+  },
 }
 const awsLambda: RuntimeCompatibilitySchema = {
   bindings: {
@@ -70,10 +72,10 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'stackblitz': {
     bindings: {
       'chromium': false,
-      'css-inline': 'node',
+      'css-inline': false,
       'resvg': 'wasm',
-      'satori': 'node',
-      'sharp': 'node',
+      'satori': 'wasm',
+      'sharp': false,
     },
   },
   'aws-lambda': awsLambda,
@@ -81,7 +83,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'netlify-edge': {
     bindings: {
       'chromium': false,
-      'css-inline': 'node',
+      'css-inline': false,
       'resvg': 'wasm',
       'satori': 'node',
       'sharp': false,
@@ -98,7 +100,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       'chromium': false,
       'css-inline': false,
       'resvg': 'wasm',
-      'satori': 'wasm',
+      'satori': 'node',
       'sharp': false,
     },
     wasm: {
