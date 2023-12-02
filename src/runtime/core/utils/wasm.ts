@@ -7,7 +7,7 @@ export async function importWasm(input: any) {
   console.log('interop default', { type: typeof _module, v: _module })
   let _instance
   // this is from rollup/wasm, it does some magic we need to recover from
-  if (typeof module === 'function') {
+  if (typeof _module === 'function') {
     console.log('interop rollup wasm fn')
     // empty input is to avoid instantiating the wasm module
     // this will just compile it
