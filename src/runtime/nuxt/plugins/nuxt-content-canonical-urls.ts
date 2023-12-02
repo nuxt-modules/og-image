@@ -2,7 +2,7 @@ import { parseURL } from 'ufo'
 import type { HeadPlugin } from '@unhead/schema'
 import { toValue } from 'vue'
 import { isInternalRoute } from '../../utils'
-import { useRequestEvent, withSiteUrl } from '#imports'
+import { defineNuxtPlugin, useRequestEvent, withSiteUrl } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
