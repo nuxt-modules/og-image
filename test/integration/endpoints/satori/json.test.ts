@@ -27,7 +27,6 @@ describe('json', () => {
           "extension": "jpg",
           "height": 600,
           "renderer": "satori",
-          "type": "static",
           "width": 1200,
         },
         "renderer": {
