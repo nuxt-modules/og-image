@@ -1,5 +1,5 @@
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
-import charMap from '@iconify-json/noto/chars.json'
+import defaultCharMap from '@iconify-json/noto/chars.json'
 import type { H3EventOgImageRender } from '../../types'
 import { emojiCache } from '../cache/emojis'
 
@@ -14,7 +14,7 @@ export async function applyEmojis(ctx: H3EventOgImageRender, island: NuxtIslandR
   const replacements = await Promise.all(matches.map(async (match) => {
     // convert match to unicodeconst
     const unicode = match.codePointAt(0)!.toString(16)
-    const emoji = charMap[unicode]
+    const emoji = defaultCharMap[unicode]
     if (emoji) {
       const key = ['1', ctx.options.emojis, emoji].join(':')
       let svg
