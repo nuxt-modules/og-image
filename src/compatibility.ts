@@ -91,6 +91,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     wasm: {
       rollup: {
         targetEnv: 'auto-inline',
+        sync: ['@resvg/resvg-wasm/index_bg.wasm'],
       },
     },
   },

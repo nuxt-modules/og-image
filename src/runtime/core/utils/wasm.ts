@@ -5,10 +5,18 @@ export async function importWasm(input: any) {
   console.log('awaited wasm input', { type: typeof _input, v: _input })
   const _module = _input.default || _input
   console.log('interop default', { type: typeof _module, v: _module })
-  const _instance
-    = typeof _module === 'function'
-      ? await _module({}).then(r => r.instance || r)
-      : await WebAssembly.instantiate(_module, {})
-  console.log('instance', typeof _instance, _instance, _instance.exports)
-  return _instance.exports
+  let _instance
+  // this is from rollup/wasm, it does some magic we need to recover from
+  if (typeof module === 'function') {
+    console.log('interop rollup wasm fn')
+    // empty input is to avoid instantiating the wasm module
+    // this will just compile it
+    const fnRes = await _module().catch(e => {
+      console.error('interop module error', e)
+      return e
+    })
+    _instance = fnRes.instance || fnRes
+    return _instance.exports || _instance || _module
+  }
+  return _module
 }
