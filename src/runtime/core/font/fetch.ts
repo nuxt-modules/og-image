@@ -1,11 +1,10 @@
 import { Buffer } from 'node:buffer'
-import type { H3Event } from 'h3'
-import type { FontConfig } from '../../types'
+import type { FontConfig, H3EventOgImageRender } from '../../types'
 import { base64ToArrayBuffer } from '../env/assets'
 import { fontCache } from './cache'
 import { useNitroOrigin, useStorage } from '#imports'
 
-export async function loadFont(e: H3Event, font: FontConfig) {
+export async function loadFont({ e }: H3EventOgImageRender, font: FontConfig) {
   const fontKey = `${font.name}:${font.weight}`
   const storageKey = `assets:nuxt-og-image:font:${fontKey}`
   if (fontCache[fontKey])
@@ -32,9 +31,14 @@ export async function loadFont(e: H3Event, font: FontConfig) {
       })
     }
   }
-
-  fontCache[fontKey] = { name, weight: Number(weight), data, style: 'normal' }
-  await useStorage().setItem(storageKey, Buffer.from(data).toString('base64'))
-  // convert data to string
-  return fontCache[fontKey]
+  if (data) {
+    fontCache[fontKey] = { name, weight: Number(weight), data, style: 'normal' }
+    await useStorage().setItem(storageKey, Buffer.from(data).toString('base64'))
+    // convert data to string
+    return fontCache[fontKey]
+  }
+  return createError({
+    statusCode: 500,
+    statusMessage: `Failed to fetch font: ${fontKey}`,
+  })
 }

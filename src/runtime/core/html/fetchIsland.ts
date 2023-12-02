@@ -12,10 +12,11 @@ export function fetchIsland({ options, e }: H3EventOgImageRender): Promise<NuxtI
   }
 
   // using Nuxt Island, generate the og:image HTML
-  const hashId = hash([options.component, options, Math.random() * 100])
+  const hashId = hash([options.component, options])
+  const props = typeof options.props !== 'undefined' ? options.props : options
   return e.$fetch<NuxtIslandResponse>(`/__nuxt_island/${options.component}_${hashId}.json`, {
     params: {
-      props: JSON.stringify(options),
+      props: JSON.stringify(props),
     },
   })
 }
