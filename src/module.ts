@@ -14,7 +14,7 @@ import {
 } from '@nuxt/kit'
 import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
-import { env } from 'std-env'
+import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
 import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
@@ -139,12 +139,11 @@ export default defineNuxtModule<ModuleOptions>({
         cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
       componentDirs: ['OgImage', 'OgImageTemplate'],
-      runtimeSatori: true,
-      runtimeBrowser: nuxt.options.dev,
       fonts: [],
       runtimeCacheStorage: true,
-      playground: env.NODE_ENV === 'development' || nuxt.options.dev,
-      debug: false,
+      runtimeSatori: true,
+      runtimeBrowser: nuxt.options.dev,
+      debug: isDevelopment,
     }
   },
   async setup(config, nuxt) {

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { type Resolver, resolvePath, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import { applyNitroPresetCompatibility } from '../compatibility'
+import { applyNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import type { ModuleOptions } from '../module'
 
 // we need all of the runtime dependencies when using build
@@ -30,16 +30,16 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   // TODO replace this once upstream is fixed
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('compiled', async (_nitro) => {
-      // need to replace the token in entry
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
-      // .playground/.netlify/functions-internal/server/chunks/rollup/provider.mjs
       const serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs')
       const contents = (await readFile(serverEntry, 'utf-8'))
-      const wasmSource = await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm'))
-      const wasmHash = sha1(wasmSource)
-      const postfix = _nitro.options.preset === 'vercel-edge' ? '?module' : ''
+      const resvgHash = sha1(await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm')))
+      const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
+      const postfix = resolveNitroPreset(_nitro.options) === 'vercel-edge' ? '?module' : ''
+      console.log({ preset: resolveNitroPreset(_nitro.options), postfix, resvgHash, yogaHash })
       await writeFile(serverEntry, contents
-        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"./wasm/index_bg-${wasmHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"./wasm/index_bg-${resvgHash}.wasm${postfix}"`)
+        .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"./wasm/yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
     })
   })
 }

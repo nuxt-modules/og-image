@@ -98,7 +98,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       'chromium': false,
       'css-inline': false,
       'resvg': 'wasm',
-      'satori': 'node',
+      'satori': 'wasm',
       'sharp': false,
     },
     wasm: {
