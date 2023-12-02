@@ -10,7 +10,7 @@ export default defineNuxtConfig({
   },
   ogImage: {
     debug: true,
-    runtimeBrowser: true,
+    // runtimeBrowser: false,
   },
   routeRules: {
     '/satori/route-rules/**': {

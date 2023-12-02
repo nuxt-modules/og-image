@@ -46,7 +46,7 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
 const cloudflare: RuntimeCompatibilitySchema = {
   bindings: {
     'chromium': false,
-    'css-inline': 'node',
+    'css-inline': false,
     'resvg': 'wasm',
     'satori': 'node',
     'sharp': false,
