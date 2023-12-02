@@ -1,11 +1,10 @@
 import { createError, defineEventHandler, proxyRequest, sendRedirect } from 'h3'
 import { parseURL } from 'ufo'
 
-// copied from vercel/satori
+// /__og-image__/font/<name>/<weight>.ttf
 export default defineEventHandler(async (e) => {
   const path = parseURL(e.path).pathname
 
-  // path will be like this: /__og-image__/font/<name>/<weight>.ttf
   const [name, weight] = path.split('/font/')[1].split('.')[0].split('/')
 
   if (!name || !weight)

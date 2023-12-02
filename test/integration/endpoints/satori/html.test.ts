@@ -24,12 +24,6 @@ describe('html', () => {
           height: 600px;
           overflow: hidden;
           background-color: #fff;
-      }
-      img.emoji {
-         height: 1em;
-         width: 1em;
-         margin: 0 .05em 0 .1em;
-         vertical-align: -0.1em;
       }</style>
       <script src=\\"https://cdn.tailwindcss.com\\"></script>
       <script>tailwind.config = {

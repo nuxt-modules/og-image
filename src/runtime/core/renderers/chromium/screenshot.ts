@@ -1,11 +1,11 @@
 import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
-import { withQuery } from 'ufo'
-import type { H3Event } from 'h3'
-import type { RendererOptions } from '../../../types'
+import { joinURL, withQuery } from 'ufo'
+import type { H3EventOgImageRender } from '../../../types'
 import { useNitroOrigin } from '#imports'
 
-export async function createScreenshot(e: H3Event, browser: Browser, options: RendererOptions): Promise<Buffer> {
+export async function createScreenshot({ e, options, extension }: H3EventOgImageRender, browser: Browser): Promise<Buffer> {
+  const path = options.component === 'PageScreenshot' ? options.path : joinURL('/__og-image__/image', options.path, `og.html`)
   // TODO add screenshotOptions
   const page = await browser.newPage({
     colorScheme: options.colorScheme,
@@ -33,19 +33,16 @@ export async function createScreenshot(e: H3Event, browser: Browser, options: Re
     }
     else {
       // avoid another fetch to the base path to resolve options
-      await page.goto(withQuery(options.path, options), {
+      await page.goto(withQuery(path, options.props), {
         timeout: 10000,
         waitUntil: 'networkidle',
       })
     }
 
-    let type = options.extension
-    if (type === 'jpg')
-      type = 'jpeg'
     const screenshotOptions: PageScreenshotOptions = {
       timeout: 10000,
       animations: 'disabled',
-      type,
+      type: extension === 'png' ? 'png' : 'jpeg',
     }
 
     // if (options.delay)

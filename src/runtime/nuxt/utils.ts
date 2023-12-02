@@ -3,15 +3,15 @@ import type { OgImageOptions, OgImagePrebuilt } from '../types'
 import { useServerHead } from '#imports'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: Record<string, any>) {
-  const url = src || input.url
+  const url = src || input.url || resolvedOptions.url
   let urlExtension = (url.split('/').pop() || url).split('.').pop() || resolvedOptions.extension
   if (urlExtension === 'jpg')
     urlExtension = 'jpeg'
   const meta: Head['meta'] = [
-    { property: 'og:image', content: resolvedOptions.url },
+    { property: 'og:image', content: url },
     { property: 'og:image:type', content: `image/${urlExtension}` },
     { name: 'twitter:card', content: 'summary_large_image' },
-    { name: 'twitter:image:src', content: resolvedOptions.url },
+    { name: 'twitter:image:src', content: url },
   ]
   if (resolvedOptions.width) {
     meta.push({ property: 'og:image:width', content: resolvedOptions.width })

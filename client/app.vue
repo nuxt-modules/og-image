@@ -57,6 +57,8 @@ watch(() => clientPath, (v) => {
   path.value = v
 })
 
+const emojis = ref('noto')
+
 const debugAsyncData = fetchPathDebug()
 const { data: debug, pending, error } = debugAsyncData
 
@@ -64,9 +66,9 @@ watch(debug, (val) => {
   if (!val)
     return
   options.value = unref(val.options)
+  emojis.value = options.value.emojis
   const _options = { ...unref(val.options) }
   delete _options.path
-  delete _options.cache
   delete _options.socialPreview
   delete _options.cacheTtl
   delete _options.component
@@ -79,7 +81,7 @@ watch(debug, (val) => {
     if (_options[key] === defaults[key])
       delete _options[key]
   })
-  optionsEditor.value = _options
+  optionsEditor.value = typeof _options.props !== 'undefined' ? _options.props : _options
 }, {
   immediate: true,
 })
@@ -216,13 +218,14 @@ const sidePanelOpen = ref(true)
 const isLoading = ref(false)
 
 function generateLoadTime(payload: { timeTaken: string, sizeKb: string }) {
-  const extension = imageFormat.value.toUpperCase()
+  const extension = (imageFormat.value || '').toUpperCase()
   let rendererLabel = ''
   switch (imageFormat.value) {
     case 'png':
       rendererLabel = renderer.value === 'satori' ? 'Satori and ReSVG' : 'Chromium'
       break
     case 'jpeg':
+    case 'jpg':
       rendererLabel = renderer.value === 'satori' ? 'Satori, ReSVG and Sharp' : 'Chromium'
       break
     case 'svg':
@@ -259,6 +262,14 @@ function openCurrentComponent() {
 
 const isPageScreenshot = computed(() => {
   return activeComponentName.value === 'PageScreenshot'
+})
+
+watch(emojis, (v) => {
+  if (v !== options.value?.emojis) {
+    patchProps({
+      emojis: v,
+    })
+  }
 })
 
 const currentPageFile = computed(() => {
@@ -393,10 +404,7 @@ const currentPageFile = computed(() => {
     <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
       <main class="mx-auto flex flex-col w-full bg-white dark:bg-black dark:bg-dark-700 bg-light-200 ">
         <div v-if="tab === 'design'" class="h-full relative max-h-full">
-          <div v-if="pending">
-            <NLoading />
-          </div>
-          <div v-else-if="error">
+          <div v-if="error">
             <div v-if="error.message.includes('missing the Nuxt OG Image payload')">
               <!-- nicely tell the user they should use defineOgImage to get started -->
               <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
@@ -424,7 +432,7 @@ const currentPageFile = computed(() => {
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
-                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchProps({ extension: 'jpeg' })" />
+                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchProps({ extension: 'jpg' })" />
                   <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchProps({ extension: 'png' })" />
                   <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchProps({ extension: 'svg' })" />
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchProps({ extension: 'html' })" />
@@ -528,16 +536,53 @@ const currentPageFile = computed(() => {
                 <template #text>
                   <h3 class="opacity-80 text-base mb-1">
                     <Icon name="carbon:gui-management" class="mr-1" />
-                    Renderer
+                    Render
                   </h3>
                 </template>
-                <div class="flex items-center space-x-2 text-sm">
-                  <NButton v-if="!isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchProps({ renderer: 'satori' })">
-                    Satori
-                  </NButton>
-                  <NButton icon="logos:chrome" :border="renderer === 'chromium'" @click="patchProps({ renderer: 'chromium' })">
-                    Chromium
-                  </NButton>
+                <div class="flex space-between">
+                  <div class="flex flex-grow items-center space-x-2 text-sm">
+                    <NButton v-if="!isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchProps({ renderer: 'satori' })">
+                      Satori
+                    </NButton>
+                    <NButton icon="logos:chrome" :border="renderer === 'chromium'" @click="patchProps({ renderer: 'chromium' })">
+                      Chromium
+                    </NButton>
+                  </div>
+                  <div class="flex items-center text-sm space-x-2">
+                    <label for="emojis">Emojis</label>
+                    <NSelect id="emojis" v-model="emojis">
+                      <option value="noto">
+                        Noto
+                      </option>
+                      <option value="noto-v1">
+                        Noto v1
+                      </option>
+                      <option value="twemoji">
+                        Twitter Emoji
+                      </option>
+                      <option value="fluent-emoji">
+                        Fluent Emoji
+                      </option>
+                      <option value="fluent-emoji-flat">
+                        Fluent Emoji Flat
+                      </option>
+                      <option value="emojione">
+                        Emojione
+                      </option>
+                      <option value="emojione-monotone">
+                        Emojione Monotone
+                      </option>
+                      <option value="emojione-v1">
+                        Emojione v1
+                      </option>
+                      <option value="streamline-emojis">
+                        Streamline Emojis
+                      </option>
+                      <option value="openmoji">
+                        Openmoji
+                      </option>
+                    </NSelect>
+                  </div>
                 </div>
               </OSectionBlock>
               <OSectionBlock>
@@ -565,14 +610,13 @@ const currentPageFile = computed(() => {
                     Compatibility
                   </h3>
                 </template>
-                <div class="text-sm">
+                <div v-if="debug?.compatibility" class="text-sm">
                   <div v-if="!debug.compatibility.length" class="text-sm">
                     <NIcon icon="carbon:checkmark" class="text-green-500" /> Looks good.
                   </div>
-                  <div v-for="(c, key) in debug.compatibility" v-else :key="key" class="mb-2">
-                    <NTip icon="carbon:warning">
-                      {{ c }}
-                    </NTip>
+                  <div v-for="(c, key) in debug.compatibility" v-else :key="key" class="mb-2 space-x-2 flex items-center opacity-65">
+                    <NIcon icon="carbon:warning" class="text-yellow-500" />
+                    <div>{{ c }}</div>
                   </div>
                 </div>
               </OSectionBlock>

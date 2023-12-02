@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 // nothing to see here, defined in global route rules
-defineOgImage({
-  description: 'hello from defineOgImage',
+defineOgImageComponent('Fallback', {
+  theme: '#c3f2b4',
 })
 </script>
 

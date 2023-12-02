@@ -6,7 +6,7 @@ import type { ActiveHeadEntry } from '@unhead/schema'
 import { normaliseOptions } from '../../core/options/normalise'
 import { getOgImagePath, isInternalRoute } from '../../utils'
 import type { OgImageOptions } from '../../types'
-import { createOgImageMeta } from '../utilts'
+import { createOgImageMeta } from '../utils'
 import { defineNuxtPlugin, useRequestEvent, useRuntimeConfig } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {

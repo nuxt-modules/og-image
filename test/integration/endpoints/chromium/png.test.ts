@@ -16,7 +16,7 @@ describe('png', () => {
     const png: ArrayBuffer = await $fetch('/__og-image__/image/chromium/og.png', {
       responseType: 'arrayBuffer',
     })
-    // eslint-disable-next-line node/prefer-global/buffer
+
     expect(Buffer.from(png)).toMatchImageSnapshot()
   }, 60000)
 })

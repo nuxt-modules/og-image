@@ -13,17 +13,20 @@ describe('debug', () => {
     delete debug.baseCacheKey
     delete debug.runtimeConfig.version
     delete debug.componentNames
+    delete debug.baseCacheKey
     expect(debug).toMatchInlineSnapshot(`
       {
-        "cachedKeys": [],
         "runtimeConfig": {
+          "baseCacheKey": "/cache/nuxt-og-image@3.0.0-beta.12",
+          "debug": true,
           "defaults": {
-            "cache": true,
-            "cacheTtl": 86400000,
+            "cacheMaxAgeSeconds": 259200,
             "component": "Fallback",
+            "emojis": "noto",
             "extension": "jpg",
             "height": 600,
             "renderer": "satori",
+            "type": "static",
             "width": 1200,
           },
           "fonts": [
@@ -41,7 +44,6 @@ describe('debug', () => {
           "hasNuxtIcon": false,
           "resvgOptions": {},
           "runtimeBrowser": true,
-          "runtimeCacheStorage": "default",
           "runtimeSatori": true,
           "satoriOptions": {},
           "sharpOptions": {},

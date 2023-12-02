@@ -1,5 +1,4 @@
 import type { Browser } from 'playwright-core'
-import { joinURL } from 'ufo'
 import type { Renderer } from '../../../types'
 import { prerenderChromiumContext } from '../../cache/prerender'
 import { createScreenshot } from './screenshot'
@@ -11,7 +10,7 @@ const ChromiumRenderer: Renderer = {
   async debug() {
     return {} // TODO
   },
-  async createImage(e, options) {
+  async createImage(ctx) {
     // TODO redirect for screenshot
     // TODO maybe keep this alive
     const browser: Browser = (import.meta.prerender ? prerenderChromiumContext.browser : null) || await createBrowser()
@@ -26,10 +25,7 @@ const ChromiumRenderer: Renderer = {
       prerenderChromiumContext.browser = browser
 
     // @todo return placeholder image on failure
-    return createScreenshot(e, browser!, {
-      ...options,
-      path: options.component === 'PageScreenshot' ? options.path : joinURL('/__og-image__/image', options.path, `og.html`),
-    }).finally(async () => {
+    return createScreenshot(ctx, browser!).finally(async () => {
       await browser!.close()
     })
   },

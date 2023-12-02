@@ -1,15 +1,13 @@
 import type { ActiveHeadEntry } from '@unhead/schema'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
-import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withoutBase } from 'ufo'
 import type { NitroRouteRules } from 'nitropack'
-import type { DefineOgImageInput, OgImageOptions, OgImageScreenshotOptions } from '../types'
+import type { DefineOgImageInput, OgImageOptions } from '../types'
 import { getOgImagePath } from '../utils'
 import { normaliseOptions } from '../core/options/normalise'
-import { createOgImageMeta } from '../nuxt/utilts'
-import type { OgImageComponents } from '#nuxt-og-image/components'
+import { createOgImageMeta } from '../nuxt/utils'
 import { useNuxtApp, useRequestEvent, useRouter, useRuntimeConfig } from '#imports'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {
@@ -41,7 +39,6 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   const options = normaliseOptions({
     ..._options,
   })
-
   const { defaults } = useRuntimeConfig()['nuxt-og-image']
   const resolvedOptions = normaliseOptions(defu(options, routeRules, defaults) as OgImageOptions)
   // allow overriding using a prebuild config

@@ -12,12 +12,25 @@ export default defineNuxtConfig({
     debug: true,
     runtimeBrowser: true,
   },
+  nitro: {
+    wasm: {
+      esmImport: true,
+    },
+    rollupConfig: {
+      output: {
+        inlineDynamicImports: true,
+      },
+    },
+  },
   routeRules: {
     '/satori/route-rules/**': {
       ogImage: {
         title: 'Hello from route rules',
       },
     },
+  },
+  experimental: {
+    inlineRouteRules: true,
   },
   devtools: { enabled: false },
   debug: process.env.NODE_ENV === 'test',

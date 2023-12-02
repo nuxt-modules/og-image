@@ -1,4 +1,4 @@
-import type { OgImageOptions, RuntimeOgImageOptions } from '../../types'
+import type { OgImageOptions } from '../../types'
 
 export function decodeHtml(html: string) {
   return html.replace(/&lt;/g, '<')
@@ -51,7 +51,7 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   if (!options)
     return false
 
-  const payload = decodeObjectHtmlEntities(options) as RuntimeOgImageOptions
+  const payload = decodeObjectHtmlEntities(options) as OgImageOptions
 
   // only needed for nuxt dev tools
   if (import.meta.dev) {

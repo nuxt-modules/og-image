@@ -69,12 +69,6 @@ export interface ModuleOptions {
    */
   sharpOptions?: Partial<SharpOptions>
   /**
-   * Should the playground at <path>/__og_image__ be enabled in development.
-   *
-   * @default true
-   */
-  playground: boolean
-  /**
    * Include Satori runtime.
    *
    * @default true
@@ -118,7 +112,6 @@ export interface ModuleOptions {
    */
   runtimeCompatibility?: RuntimeCompatibilitySchema
 }
-
 export interface ModuleHooks {
   'nuxt-og-image:components': (ctx: { components: OgImageComponent[] }) => Promise<void> | void
   'og-image:config': (config: ModuleOptions) => Promise<void> | void
@@ -128,7 +121,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '^3.7.0',
+      nuxt: '^3.8.2',
       bridge: false,
     },
     configKey: 'ogImage',
@@ -137,13 +130,13 @@ export default defineNuxtModule<ModuleOptions>({
     return {
       enabled: true,
       defaults: {
+        emojis: 'noto',
         renderer: 'satori',
         component: 'Fallback',
         width: 1200,
         height: 600,
-        cache: true,
         // default is to cache the image for 1 day (24 hours)
-        cacheTtl: 24 * 60 * 60 * 1000,
+        cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
       componentDirs: ['OgImage', 'OgImageTemplate'],
       runtimeSatori: true,
@@ -204,23 +197,15 @@ export default defineNuxtModule<ModuleOptions>({
     addServerHandler({
       lazy: true,
       route: '/__og-image__/image/**',
-      handler: resolve('./runtime/server/routes/__og-image__/image-[path]-og.[extension]'),
+      handler: resolve('./runtime/server/routes/__og-image__/image'),
     })
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
-    ;[
-      // new
-      'index',
-      'Cached',
-      'Component',
-      'WithoutCache',
-      'Screenshot',
-    ]
+    ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
       .forEach((name) => {
-        name = name === 'index' ? 'defineOgImage' : `defineOgImage${name}`
         addImports({
           name,
-          from: resolve('./runtime/composables/defineOgImage'),
+          from: resolve(`./runtime/composables/${name}`),
         })
         nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
       })
@@ -235,19 +220,13 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     ;[
-      // deprecated
-      'Static',
-      'Dynamic',
       // new
-      'index',
-      'Cached',
-      'WithoutCache',
-      'Screenshot',
+      'OgImage',
+      'OgImageScreenshot',
     ]
       .forEach((name) => {
         addComponent({
-          global: hasNuxtModule('@nuxt/content'),
-          name: name === 'index' ? 'OgImage' : `OgImage${name}`,
+          name,
           filePath: resolve(`./runtime/components/OgImage/${name}`),
         })
       })
@@ -327,6 +306,7 @@ declare module 'nitropack' {
     ogImage?: false | import('${typesPath}').OgImageOptions
   }
 }
+
 declare module '#nuxt-og-image/components' {
   export interface OgImageComponents {
 ${componentImports}
@@ -334,6 +314,12 @@ ${componentImports}
 }
 `
     })
+
+    const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
+    const runtimeCacheStorage = typeof config.runtimeCacheStorage === 'boolean' ? 'default' : config.runtimeCacheStorage.driver
+    let baseCacheKey: string | false = runtimeCacheStorage === 'default' ? `/cache/nuxt-og-image@${version}` : `/nuxt-og-image@${version}`
+    if (!cacheEnabled)
+      baseCacheKey = false
 
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
@@ -371,14 +357,15 @@ ${componentImports}
         runtimeBrowser: config.runtimeBrowser,
         // @ts-expect-error runtime type
         defaults: config.defaults,
+        debug: config.debug,
         // avoid adding credentials
-        runtimeCacheStorage: typeof config.runtimeCacheStorage === 'boolean' ? 'default' : config.runtimeCacheStorage.driver,
+        // @ts-expect-error runtime type
+        baseCacheKey,
         // convert the fonts to uniform type to fix ts issue
         fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon'),
       }
     })
-
 
     // Setup playground. Only available in development
     if (nuxt.options.dev) {
