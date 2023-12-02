@@ -1,4 +1,6 @@
-import { type Resolver, useNuxt } from '@nuxt/kit'
+import { readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { type Resolver, resolvePath, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from '../module'
@@ -23,4 +25,25 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     // - image-size
     nitroConfig.alias!.queue = 'unenv/runtime/mock/proxy-cjs'
   })
+
+  // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
+  // TODO replace this once upstream is fixed
+  nuxt.hooks.hook('nitro:init', async (nitro) => {
+    nitro.hooks.hook('compiled', async (_nitro) => {
+      // need to replace the token in entry
+      const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
+      // .playground/.netlify/functions-internal/server/chunks/rollup/provider.mjs
+      const serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs')
+      const contents = (await readFile(serverEntry, 'utf-8'))
+      const wasmSource = await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm'))
+      const wasmHash = sha1(wasmSource)
+      const postfix = _nitro.options.preset === 'vercel-edge' ? '?module' : ''
+      await writeFile(serverEntry, contents
+        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"./wasm/index_bg-${wasmHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+    })
+  })
+}
+
+function sha1(source: Buffer) {
+  return createHash('sha1').update(source).digest('hex').slice(0, 16)
 }

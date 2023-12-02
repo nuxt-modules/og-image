@@ -158,13 +158,24 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
+
     const { resolve } = createResolver(import.meta.url)
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const compatibility = getPresetNitroPresetCompatibility(preset)
-    config.defaults.extension = 'jpg'
-    if (!compatibility.bindings.sharp)
+    const userConfiguredExtension = config.defaults.extension
+    config.defaults.extension = userConfiguredExtension || 'jpg'
+    if (!compatibility.bindings.sharp && config.defaults.renderer !== 'chromium') {
+      if (['jpeg', 'jpg'].includes(userConfiguredExtension))
+        logger.warn('The sharp runtime is not available for this target, disabling sharp and using png instead.')
+
       config.defaults.extension = 'png'
+    }
+
+    if (config.runtimeBrowser && !compatibility.bindings.chromium) {
+      logger.warn('The Chromium runtime is not available for this target, disabling runtimeBrowser.')
+      config.runtimeBrowser = false
+    }
 
     // TODO use png if if weren't not using a node-based env
 
@@ -300,10 +311,10 @@ export default defineNuxtModule<ModuleOptions>({
       return `
 declare module 'nitropack' {
   interface NitroRouteRules {
-    ogImage?: false | import('${typesPath}').OgImageOptions
+    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
   }
   interface NitroRouteConfig {
-    ogImage?: false | import('${typesPath}').OgImageOptions
+    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
   }
 }
 

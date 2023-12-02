@@ -96,17 +96,14 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'vercel-edge': {
     bindings: {
       'chromium': false,
-      'css-inline': 'node',
+      'css-inline': false,
       'resvg': 'wasm',
       'satori': 'node',
-      'sharp': 'node',
+      'sharp': false,
     },
-    // requires vercel pro
-    // TODO support importing
     wasm: {
-      rollup: {
-        targetEnv: 'auto-inline',
-      },
+      // lowers workers kb size
+      esmImport: true,
     },
   },
   'cloudflare-pages': cloudflare,
