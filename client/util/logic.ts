@@ -15,8 +15,8 @@ export const options = ref<OgImageOptions>({})
 
 // prop editing
 export const optionsOverrides = ref<OgImageOptions>({})
-export const propsEdited = ref(false)
-export const optionsEditor = ref({})
+export const hasMadeChanges = ref(false)
+export const propEditor = ref({})
 
 export const refreshSources = useDebounceFn(() => {
   refreshTime.value = Date.now()

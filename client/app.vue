@@ -5,29 +5,29 @@ import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
 import { joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
+import defu from 'defu'
 import { version } from '../package.json'
-import type { OgImageComponent } from '../src/runtime/types'
+import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
+import { separateProps } from '../src/runtime/utils'
 import {
-  base,
   description,
+  hasMadeChanges,
   host,
   options,
-  optionsEditor,
   optionsOverrides,
   path,
-  propsEdited,
+  propEditor,
   refreshSources,
   refreshTime,
   slowRefreshSources,
 } from './util/logic'
 import {
+  colorMode,
   computed,
   fetchPathDebug,
   highlight,
   unref,
-  useColorMode,
   useHead,
-  useRoute,
   watch,
 } from '#imports'
 import 'splitpanes/dist/splitpanes.css'
@@ -38,24 +38,16 @@ useHead({
   title: 'OG Image Playground',
 })
 
-// await new Promise<void>((resolve) => {
-//   watch(devtools, () => {
-//     if (devtools.value)
-//       resolve()
-//   }, {
-//     immediate: true,
-//   })
-// })
 const { data: globalDebug } = fetchGlobalDebug()
 
-const clientPath = computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
-path.value = clientPath.value || useRoute().query.path as string || '/'
-base.value = useRoute().query.base as string || '/'
-watch(() => clientPath, (v) => {
-  optionsOverrides.value = {}
-  propsEdited.value = false
-  path.value = v
-})
+// const clientPath = computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
+// path.value = clientPath.value || useRoute().query.path as string || '/'
+// base.value = useRoute().query.base as string || '/'
+// watch(() => clientPath, (v) => {
+//   optionsOverrides.value = {}
+//   propsEdited.value = false
+//   path.value = v
+// })
 
 const emojis = ref('noto')
 
@@ -65,65 +57,41 @@ const { data: debug, pending, error } = debugAsyncData
 watch(debug, (val) => {
   if (!val)
     return
-  options.value = unref(val.options)
+  options.value = separateProps(unref(val.options), ['socialPreview', 'options'])
   emojis.value = options.value.emojis
-  const _options = { ...unref(val.options) }
-  delete _options.path
-  delete _options.socialPreview
-  delete _options.cacheTtl
-  delete _options.component
-  delete _options.provider
-  delete _options.renderer
-  delete _options.componentHash
-  const defaults = globalDebug.value?.runtimeConfig.defaults
-  // we want to do a diff on _options and defaults and get only the differences
-  Object.keys(defaults).forEach((key) => {
-    if (_options[key] === defaults[key])
-      delete _options[key]
-  })
-  optionsEditor.value = typeof _options.props !== 'undefined' ? _options.props : _options
+  propEditor.value = options.value.props
 }, {
   immediate: true,
 })
 
-const mode = useColorMode()
+const isDark = computed(() => colorMode.value === 'dark')
+useHead({
+  htmlAttrs: {
+    class: isDark.value ? 'dark' : '',
+  },
+})
 
 function updateProps(props: Record<string, any>) {
-  delete props.options
-  optionsOverrides.value = props
-  propsEdited.value = true
+  optionsOverrides.value = defu({ props }, optionsOverrides.value)
+  hasMadeChanges.value = true
   refreshSources()
 }
 
 const tab = ref('design')
 
-function patchProps(props: Record<string, any>) {
+function patchOptions(options: OgImageOptions) {
   tab.value = 'design'
-  delete props.options
-  optionsOverrides.value = { ...optionsOverrides.value, ...props }
-  propsEdited.value = true
+  delete options.options
+  optionsOverrides.value = defu(options, optionsOverrides.value)
+  hasMadeChanges.value = true
   refreshSources()
 }
-
-const isDark = computed(() => {
-  return mode.value === 'dark'
-})
 
 async function resetProps(fetch = true) {
   if (fetch)
     await fetchPathDebug()
   optionsOverrides.value = {}
-  propsEdited.value = false
-  const cloned = { ...options.value }
-  delete cloned.path
-  delete cloned.cache
-  delete cloned.cacheTtl
-  delete cloned.component
-  delete cloned.socialPreview
-  delete cloned.provider
-  delete cloned.renderer
-  delete cloned.componentHash
-  optionsEditor.value = cloned
+  hasMadeChanges.value = false
   if (fetch)
     refreshSources()
 }
@@ -180,15 +148,15 @@ const slackSocialPreviewSiteName = computed(() => {
   return options.value?.socialPreview?.og.site_name || socialSiteUrl.value
 })
 
-function toggleSocialPreview(preview: string) {
-  if (preview === socialPreview.value)
+function toggleSocialPreview(preview?: string) {
+  if (!preview || preview === socialPreview.value)
     socialPreview.value = ''
   else
-    socialPreview.value = preview
+    socialPreview.value = preview!
 }
 
 const activeComponentName = computed(() => {
-  return optionsOverrides.value?.component || options.value?.component || 'OgImageFallback'
+  return optionsOverrides.value?.component || options.value?.component || 'NuxtSeo'
 })
 
 const renderer = computed(() => {
@@ -206,9 +174,6 @@ const componentNames = computed<OgImageComponent[]>(() => {
 
 const communityComponents = computed(() => {
   return componentNames.value.filter(c => c.category === 'community')
-})
-const officialComponents = computed(() => {
-  return componentNames.value.filter(c => c.category === 'official')
 })
 const appComponents = computed(() => {
   return componentNames.value.filter(c => c.category === 'app')
@@ -266,7 +231,7 @@ const isPageScreenshot = computed(() => {
 
 watch(emojis, (v) => {
   if (v !== options.value?.emojis) {
-    patchProps({
+    patchOptions({
       emojis: v,
     })
   }
@@ -432,10 +397,10 @@ const currentPageFile = computed(() => {
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
-                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchProps({ extension: 'jpg' })" />
-                  <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchProps({ extension: 'png' })" />
-                  <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchProps({ extension: 'svg' })" />
-                  <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchProps({ extension: 'html' })" />
+                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchOptions({ extension: 'jpg' })" />
+                  <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchOptions({ extension: 'png' })" />
+                  <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchOptions({ extension: 'svg' })" />
+                  <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchOptions({ extension: 'html' })" />
                 </div>
                 <div class="text-sm">
                   <div v-if="!isPageScreenshot" class="underline opacity-70 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
@@ -446,6 +411,7 @@ const currentPageFile = computed(() => {
                   </div>
                 </div>
                 <div class="flex items-center w-[100px]">
+                  <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
                   <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
                   <!--                  <NButton icon="logos:facebook" :border="socialPreview === 'facebook'" @click="socialPreview = 'facebook'" /> -->
                   <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
@@ -467,6 +433,7 @@ const currentPageFile = computed(() => {
                 <IFrameLoader
                   v-else
                   :src="src"
+                  max-height="300"
                   :aspect-ratio="aspectRatio"
                   @load="generateLoadTime"
                   @refresh="refreshSources"
@@ -501,30 +468,28 @@ const currentPageFile = computed(() => {
                   @refresh="refreshSources"
                 />
               </SlackCardRenderer>
-              <div v-else>
-                <div>
-                  <ImageLoader
-                    v-if="imageFormat !== 'html'"
-                    :src="src"
-                    :aspect-ratio="aspectRatio"
-                    @load="generateLoadTime"
-                    @refresh="refreshSources"
-                  />
-                  <IFrameLoader
-                    v-else
-                    :src="src"
-                    :aspect-ratio="aspectRatio"
-                    @load="generateLoadTime"
-                    @refresh="refreshSources"
-                  />
-                </div>
+              <div v-else class="w-full h-full">
+                <ImageLoader
+                  v-if="imageFormat !== 'html'"
+                  :src="src"
+                  :aspect-ratio="aspectRatio"
+                  @load="generateLoadTime"
+                  @refresh="refreshSources"
+                />
+                <IFrameLoader
+                  v-else
+                  :src="src"
+                  :aspect-ratio="aspectRatio"
+                  @load="generateLoadTime"
+                  @refresh="refreshSources"
+                />
               </div>
               <div v-if="description" class="mt-3 text-sm opacity-50 absolute bottom-3">
                 {{ description }}
               </div>
             </Pane>
             <Pane v-if="sidePanelOpen" size="40">
-              <div v-if="propsEdited" class="text-xs p-2 opacity-80">
+              <div v-if="hasMadeChanges" class="text-xs p-2 opacity-80">
                 <div>
                   To persist changes you'll need to update your component and / or props.
                   <button type="button" class="underline" @click="resetProps(true)">
@@ -541,10 +506,10 @@ const currentPageFile = computed(() => {
                 </template>
                 <div class="flex space-between">
                   <div class="flex flex-grow items-center space-x-2 text-sm">
-                    <NButton v-if="!isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchProps({ renderer: 'satori' })">
+                    <NButton v-if="globalDebug?.runtimeConfig?.runtimeSatori && !isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchOptions({ renderer: 'satori' })">
                       Satori
                     </NButton>
-                    <NButton icon="logos:chrome" :border="renderer === 'chromium'" @click="patchProps({ renderer: 'chromium' })">
+                    <NButton v-if="globalDebug?.runtimeConfig?.runtimeChromium" icon="logos:chrome" :border="renderer === 'chromium'" @click="patchOptions({ renderer: 'chromium' })">
                       Chromium
                     </NButton>
                   </div>
@@ -594,13 +559,13 @@ const currentPageFile = computed(() => {
                 </template>
                 <div class="relative">
                   <JsonEditorVue
-                    :model-value="optionsEditor"
+                    :model-value="propEditor"
                     :class="isDark ? ['jse-theme-dark'] : []"
                     :main-menu-bar="false"
                     :navigation-bar="false"
                     @update:model-value="updateProps"
                   />
-                  <span v-if="propsEdited" class="absolute top-1 right-1 text-10px ml-1 bg-blue-100 text-blue-700 px-1 py-2px rounded">modified</span>
+                  <span v-if="hasMadeChanges" class="absolute top-1 right-1 text-10px ml-1 bg-blue-100 text-blue-700 px-1 py-2px rounded">modified</span>
                 </div>
               </OSectionBlock>
               <OSectionBlock>
@@ -614,9 +579,16 @@ const currentPageFile = computed(() => {
                   <div v-if="!debug.compatibility.length" class="text-sm">
                     <NIcon icon="carbon:checkmark" class="text-green-500" /> Looks good.
                   </div>
-                  <div v-for="(c, key) in debug.compatibility" v-else :key="key" class="mb-2 space-x-2 flex items-center opacity-65">
-                    <NIcon icon="carbon:warning" class="text-yellow-500" />
-                    <div>{{ c }}</div>
+                  <div v-else class="space-y-3">
+                    <div v-for="(c, key) in debug.compatibility" :key="key" class="space-x-2 flex items-center opacity-65">
+                      <NIcon icon="carbon:warning" class="text-yellow-500" />
+                      <div>{{ c }}</div>
+                    </div>
+                  </div>
+                  <div class="mt-5 text-center opacitt-75">
+                    See the <NuxtLink to="https://nuxtseo.com/og-image/guides/compatibility" class="underline">
+                      compatibility guide
+                    </NuxtLink> to learn more.
                   </div>
                 </div>
               </OSectionBlock>
@@ -624,63 +596,45 @@ const currentPageFile = computed(() => {
           </Splitpanes>
         </div>
         <div v-else-if="tab === 'gallery'" class="h-full max-h-full overflow-hidden space-y-5">
-          <OSectionBlock>
-            <template #text>
-              <h3 class="opacity-80 text-base mb-1">
-                <Icon name="carbon:app" class="mr-1" />
-                App
-              </h3>
-            </template>
-            <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
-              <NLoading v-if="isLoading" />
-              <button v-for="name in appComponents" v-else :key="name.pascalName" class="!p-0" @click="patchProps({ component: name.pascalName })">
-                <TemplateComponentPreview
-                  :component="name"
-                  :src="withQuery(src, { component: name.pascalName })"
-                  :aspect-ratio="aspectRatio"
-                  :active="name.pascalName === activeComponentName"
-                />
-              </button>
-            </div>
-          </OSectionBlock>
-          <OSectionBlock>
-            <template #text>
-              <h3 class="opacity-80 text-base mb-1">
-                <Icon name="carbon:list-checked" class="mr-1" />
-                Official
-              </h3>
-            </template>
-            <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
-              <NLoading v-if="isLoading" />
-              <button v-for="name in officialComponents" v-else :key="name.pascalName" class="!p-0" @click="patchProps({ component: name.pascalName })">
-                <TemplateComponentPreview
-                  :component="name"
-                  :src="withQuery(src, { component: name.pascalName })"
-                  :aspect-ratio="aspectRatio"
-                  :active="name.pascalName === activeComponentName"
-                />
-              </button>
-            </div>
-          </OSectionBlock>
-          <OSectionBlock>
-            <template #text>
-              <h3 class="opacity-80 text-base mb-1">
-                <Icon name="carbon:airline-passenger-care" class="mr-1" />
-                Community
-              </h3>
-            </template>
-            <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
-              <NLoading v-if="isLoading" />
-              <button v-for="name in communityComponents" v-else :key="name.pascalName" class="!p-0" @click="patchProps({ component: name.pascalName })">
-                <TemplateComponentPreview
-                  :component="name"
-                  :src="withQuery(src, { component: name.pascalName })"
-                  :aspect-ratio="aspectRatio"
-                  :active="name.pascalName === activeComponentName"
-                />
-              </button>
-            </div>
-          </OSectionBlock>
+          <NLoading v-if="isLoading" />
+          <div v-else>
+            <OSectionBlock v-if="appComponents.length">
+              <template #text>
+                <h3 class="opacity-80 text-base mb-1">
+                  <Icon name="carbon:app" class="mr-1" />
+                  App Templates
+                </h3>
+              </template>
+              <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+                <button v-for="name in appComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
+                  <TemplateComponentPreview
+                    :component="name"
+                    :src="withQuery(src, { component: name.pascalName })"
+                    :aspect-ratio="aspectRatio"
+                    :active="name.pascalName === activeComponentName"
+                  />
+                </button>
+              </div>
+            </OSectionBlock>
+            <OSectionBlock>
+              <template #text>
+                <h3 class="opacity-80 text-base mb-1">
+                  <Icon name="carbon:airline-passenger-care" class="mr-1" />
+                  Community Templates
+                </h3>
+              </template>
+              <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+                <button v-for="name in communityComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
+                  <TemplateComponentPreview
+                    :component="name"
+                    :src="withQuery(src, { component: name.pascalName })"
+                    :aspect-ratio="aspectRatio"
+                    :active="name.pascalName === activeComponentName"
+                  />
+                </button>
+              </div>
+            </OSectionBlock>
+          </div>
         </div>
         <div v-else-if="tab === 'debug'" class="h-full max-h-full overflow-hidden">
           <OSectionBlock>
@@ -691,7 +645,7 @@ const currentPageFile = computed(() => {
               </h3>
             </template>
             <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(debug || {}, null, 2), 'json')" />
+              <pre of-auto h-full text-sm style="max-height: 500px; overflow-y: auto; white-space: break-spaces;" v-html="highlight(JSON.stringify(debug || {}, null, 2), 'json')" />
             </div>
           </OSectionBlock>
           <OSectionBlock>
@@ -733,34 +687,15 @@ div[role="tabpanel"] {
 .dark .splitpanes.default-theme .splitpanes__splitter:before, .splitpanes.default-theme .splitpanes__splitter:after {
   background-color: rgba(156, 163, 175, 0.3) !important;
 }
-/* Overrides Floating Vue */
-.v-popper--theme-dropdown .v-popper__inner,
-.v-popper--theme-tooltip .v-popper__inner {
-  --at-apply: bg-base text-black dark:text-white rounded border border-base shadow;
-  box-shadow: 0 6px 30px #0000001a;
-  background-color: white;
-}
-
-.v-popper--theme-tooltip .v-popper__arrow-inner,
-.v-popper--theme-dropdown .v-popper__arrow-inner {
-  visibility: visible;
-  --at-apply: border-white dark:border-hex-121212;
-}
-
-.v-popper--theme-tooltip .v-popper__arrow-outer,
-.v-popper--theme-dropdown .v-popper__arrow-outer {
-  --at-apply: border-base;
-}
-
-.v-popper--theme-tooltip.v-popper--shown,
-.v-popper--theme-tooltip.v-popper--shown * {
-  transition: none !important;
-}
 
 header {
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   background-color: #fffc;
+}
+
+.dark header {
+  background-color: #111c;
 }
 
 html {

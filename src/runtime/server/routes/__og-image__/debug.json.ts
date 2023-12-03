@@ -1,5 +1,6 @@
 import { defineEventHandler, setHeader } from 'h3'
-import { useRuntimeConfig, useSiteConfig } from '#imports'
+import { useOgImageRuntimeConfig } from '../../../utils'
+import { useSiteConfig } from '#imports'
 
 // @ts-expect-error untyped
 import { componentNames } from '#nuxt-og-image/component-names.mjs'
@@ -7,7 +8,7 @@ import { componentNames } from '#nuxt-og-image/component-names.mjs'
 export default defineEventHandler(async (e) => {
   // set json header
   setHeader(e, 'Content-Type', 'application/json')
-  const runtimeConfig = useRuntimeConfig()['nuxt-og-image']
+  const runtimeConfig = useOgImageRuntimeConfig()
   const siteConfig = await useSiteConfig(e, { debug: true })
 
   return {

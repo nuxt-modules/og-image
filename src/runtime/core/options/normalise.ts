@@ -1,11 +1,12 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
-import { unref, useRuntimeConfig } from '#imports'
+import { useOgImageRuntimeConfig } from '../../utils'
+import { unref } from '#imports'
 
 // @ts-expect-error untyped
 import { componentNames } from '#build/og-image-component-names.mjs'
 
 export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions | OgImagePrebuilt {
-  const { runtimeSatori } = useRuntimeConfig()['nuxt-og-image']
+  const { runtimeSatori } = useOgImageRuntimeConfig()
   const options = { ...unref(_options) }
   // support deprecations
   if (options.static)

@@ -11,10 +11,11 @@ import { prerenderCache } from '../cache/prerender'
 import type SatoriRenderer from '../renderers/satori'
 import type ChromiumRenderer from '../renderers/chromium'
 import { useChromiumRenderer, useSatoriRenderer } from '../renderers/satori/instances'
+import { separateProps, useOgImageRuntimeConfig } from '../../utils'
 import { useRuntimeConfig, useSiteConfig } from '#imports'
 
 export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3EventOgImageRender> {
-  const runtimeConfig = useRuntimeConfig()['nuxt-og-image']
+  const runtimeConfig = useOgImageRuntimeConfig()
   const path = parseURL(e.path).pathname
 
   const extension = path.split('.').pop() as H3EventOgImageRender['extension']
@@ -37,7 +38,9 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3Ev
     .replace(`/__og-image__/image`, '')
     .replace(`/og.${extension}`, ''),
   )
-  const queryParams = { ...getQuery(e) }
+  let queryParams = { ...getQuery(e) }
+  queryParams.props = JSON.parse(queryParams.props || '{}')
+  queryParams = separateProps(queryParams)
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
   const siteConfig = useSiteConfig(e)
   const key = [
@@ -68,7 +71,14 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3Ev
   const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(
     withoutBase(basePath.split('?')[0], useRuntimeConfig().app.baseURL),
   ).reverse())
-  options = defu(queryParams, routeRules.ogImage, options, runtimeConfig.defaults) as OgImageOptions
+  if (typeof routeRules.ogImage === 'undefined' && !options) {
+    return createError({
+      statusCode: 400,
+      statusMessage: 'The route is missing the Nuxt OG Image payload or route rules.',
+    })
+  }
+  const ogImageRouteRules = separateProps(routeRules.ogImage)
+  options = defu(queryParams, ogImageRouteRules, options, runtimeConfig.defaults) as OgImageOptions
   if (!options) {
     return createError({
       statusCode: 404,

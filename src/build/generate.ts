@@ -23,6 +23,5 @@ export function setupGenerateHandler(options: ModuleOptions, resolve: Resolver['
       },
       resolve,
     })
-    // TODO css-inline
   })
 }

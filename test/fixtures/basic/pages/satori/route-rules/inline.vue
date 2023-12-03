@@ -3,7 +3,8 @@ import { defineRouteRules } from '#imports'
 
 defineRouteRules({
   ogImage: {
-    colorMode: 'light',
+    description: 'This is coming from inline route rules',
+    colorMode: 'dark',
   },
 })
 </script>

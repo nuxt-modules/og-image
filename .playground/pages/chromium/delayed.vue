@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { definePageMeta, onMounted, onUnmounted, ref } from '#imports'
+
 definePageMeta({
   title: 'About',
   description: 'My description',

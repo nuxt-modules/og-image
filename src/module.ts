@@ -20,9 +20,9 @@ import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { version } from '../package.json'
-import type { FontConfig, InputFontConfig, OgImageComponent, OgImageOptions } from './runtime/types'
+import type { FontConfig, InputFontConfig, OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from './runtime/types'
 import { type RuntimeCompatibilitySchema, getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
-import { extendTypes } from './kit'
+import { extendTypes, getNuxtModuleOptions } from './kit'
 import { setupDevToolsUI } from './build/devtools'
 import { setupDevHandler } from './build/dev'
 import { setupGenerateHandler } from './build/generate'
@@ -80,7 +80,7 @@ export interface ModuleOptions {
    *
    * @default `process.dev`
    */
-  runtimeBrowser: boolean
+  runtimeChromium: boolean
   /**
    * Enables debug logs and a debug endpoint.
    *
@@ -181,10 +181,8 @@ export default defineNuxtModule<ModuleOptions>({
     await installNuxtSiteConfig()
 
     // convert ogImage key to head data
-    if (hasNuxtModule('@nuxt/content')) {
+    if (hasNuxtModule('@nuxt/content'))
       addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
-      addPlugin(resolve('./runtime/nuxt/plugins/nuxt-content-canonical-urls'))
-    }
 
     // default font is inter
     if (!config.fonts.length)
@@ -224,10 +222,6 @@ export default defineNuxtModule<ModuleOptions>({
       path: resolve('./runtime/components/Templates/Community'),
       island: true,
     })
-    await addComponentsDir({
-      path: resolve('./runtime/components/Templates/Official'),
-      island: true,
-    })
 
     ;[
       // new
@@ -242,7 +236,8 @@ export default defineNuxtModule<ModuleOptions>({
       })
 
     // allows us to add og images using route rules without calling defineOgImage
-    addPlugin(resolve('./runtime/nuxt/plugins/route-rule-og-image.server'))
+    addPlugin({ mode: 'server', src: resolve('./runtime/nuxt/plugins/route-rule-og-image.server') })
+    addPlugin({ mode: 'server', src: resolve('./runtime/nuxt/plugins/og-image-canonical-urls.server') })
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[] } = { components: [] }
@@ -269,8 +264,6 @@ export default defineNuxtModule<ModuleOptions>({
           let category: OgImageComponent['category'] = 'app'
           if (component.filePath.includes(resolve('./runtime/components/Templates/Community')))
             category = 'community'
-          else if (component.filePath.includes(resolve('./runtime/components/Templates/Official')))
-            category = 'official'
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
           // see if we can extract credits from the component file, just find the line that starts with * @credits and return the rest of the line
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
@@ -377,11 +370,11 @@ ${componentImports}
         defaults: config.defaults,
         debug: config.debug,
         // avoid adding credentials
-        // @ts-expect-error runtime type
         baseCacheKey,
         // convert the fonts to uniform type to fix ts issue
         fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon'),
+        colorPreference,
       }
     })
 

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+/**
+ * @credits Full Stack Heroes <https://fullstackheroes.com/>
+ */
 // inherited attrs can mess up the satori parser
 defineOptions({ inheritAttrs: false })
 

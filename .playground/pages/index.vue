@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineOgImageComponent, definePageMeta, useServerSeoMeta } from '#imports'
+import { definePageMeta, useServerSeoMeta } from '#imports'
 
 definePageMeta({
   title: 'Home',
@@ -12,17 +12,34 @@ useServerSeoMeta({
   ogTitle: 'Welcome to the playground',
 })
 
-defineOgImageComponent('Nuxt', {
-  headline: 'Nuxt OG Image',
-  title: 'Version 3 🎉',
-  description: 'Nuxt OG Image v3 is here!',
-})
-
-const host = computed(() => typeof window !== 'undefined' ? window.location.href : '/')
+// defineOgImageComponent('Nuxt', {
+//   headline: 'Nuxt OG Image',
+//   title: 'Version 3 🎉',
+//   description: 'Nuxt OG Image v3 is here!',
+// })
 </script>
 
 <template>
   <div class="px-7 my-5">
-    <img :src="`${host}__og-image__/image/satori/static/og.png`" width="400" height="210" class="rounded">
+    <div>
+      <ul>
+        <li>
+          <a target="_blank" href="/__og-image__/image/chromium/og.jpeg">Chromium default</a>
+        </li>
+        <li>
+          <a target="_blank" href="/__og-image__/image/chromium/og.png">Chromium png</a>
+        </li>
+      </ul>
+      <ul>
+        <li>
+          <NuxtLink href="/satori/">
+            Satori index
+          </NuxtLink>
+        </li>
+        <li>
+          <a target="_blank" href="/__og-image__/image/satori/og.png">Satori png</a>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>

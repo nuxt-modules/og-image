@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
-import { computed, onMounted, ref, useColorMode, useHead, watch } from '#imports'
+import { colorMode, computed, onMounted, ref, useHead, watch } from '#imports'
 import { options } from '~/util/logic'
 
 const props = defineProps<{
@@ -13,9 +13,14 @@ const emit = defineEmits(['load'])
 
 const src = ref()
 
-const mode = useColorMode()
-
 const iframe = ref()
+
+const maxWidth = computed(() => {
+  return props.maxWidth || options.value.width
+})
+const maxHeight = computed(() => {
+  return props.maxHeight || options.value.height
+})
 
 const setSource = useDebounceFn(() => {
   const frame = iframe.value as HTMLImageElement
@@ -23,8 +28,8 @@ const setSource = useDebounceFn(() => {
   frame.src = ''
   const width = options.value.width || 1200
   const height = options.value.height || 600
-  const parentHeight = frame.offsetHeight
-  const parentWidth = frame.offsetWidth
+  const parentHeight = maxHeight.value // frame.offsetHeight
+  const parentWidth = maxWidth.value // frame.offsetWidth
   const parentHeightScale = parentHeight > height ? 1 : parentHeight / height
   const parentWidthScale = parentWidth > width ? 1 : parentWidth / width
   const scale = parentWidthScale > parentHeightScale ? parentHeightScale : parentWidthScale
@@ -33,7 +38,7 @@ const setSource = useDebounceFn(() => {
     frame.style.opacity = '1'
     emit('load', { timeTaken: Date.now() - now })
   }
-  frame.src = `${src.value}&scale=${scale}&mode=${mode.value}`
+  frame.src = `${src.value}&scale=${scale}&colorMode=${colorMode.value}`
 }, 200)
 
 onMounted(() => {
@@ -48,25 +53,21 @@ onMounted(() => {
     immediate: true,
   })
 
-  watch([() => mode, iframe], () => {
+  watch([() => colorMode, iframe], () => {
     setSource()
   })
 })
 
-useHead({
-  bodyAttrs: {
-    onresize: () => {
-      setSource()
+// unconstained, we need to resize
+if (!props.maxHeight && !props.maxWidth) {
+  useHead({
+    bodyAttrs: {
+      onresize: () => {
+        setSource()
+      },
     },
-  },
-})
-
-const maxWidth = computed(() => {
-  return props.maxWidth || options.value.width
-})
-const maxHeight = computed(() => {
-  return props.maxHeight || options.value.height
-})
+  })
+}
 </script>
 
 <template>

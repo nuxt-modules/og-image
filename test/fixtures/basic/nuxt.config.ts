@@ -10,12 +10,14 @@ export default defineNuxtConfig({
   },
   ogImage: {
     debug: true,
-    // runtimeBrowser: false,
+    runtimeChromium: true, // needed for tests
   },
   routeRules: {
     '/satori/route-rules/**': {
       ogImage: {
-        title: 'Hello from route rules',
+        props: {
+          title: 'Hello from route rules',
+        },
       },
     },
   },

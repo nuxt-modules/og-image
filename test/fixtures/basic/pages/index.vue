@@ -23,7 +23,10 @@
         <a target="_blank" href="/__og-image__/image/satori/route-rules/og.png">Satori Route Rules</a>
       </li>
       <li>
-        <a target="_blank" href="/__og-image__/image/satori/route-rules/define/og.png">Satori Route Rules /w Define</a>
+        <a target="_blank" href="/__og-image__/image/satori/route-rules/inline/og.png">Satori Route Rules inline</a>
+      </li>
+      <li>
+        <a target="_blank" href="/__og-image__/image/satori/route-rules/config/og.png">Satori Route Rules config</a>
       </li>
     </ul>
   </div>

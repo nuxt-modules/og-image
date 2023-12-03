@@ -1,8 +1,7 @@
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import type { ParsedContent } from '@nuxt/content/dist/runtime/types'
 import { defu } from 'defu'
-import { getOgImagePath } from '../../utils'
-import { useRuntimeConfig } from '#imports'
+import { getOgImagePath, useOgImageRuntimeConfig } from '../../utils'
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('content:file:afterParse', async (content: ParsedContent) => {
@@ -12,7 +11,7 @@ export default defineNitroPlugin((nitroApp) => {
     // convert ogImage to head tags
     if (content.path && content.ogImage) {
       const ogImageConfig = typeof content.ogImage === 'object' ? content.ogImage : {}
-      const { defaults } = useRuntimeConfig()['nuxt-og-image']
+      const { defaults } = useOgImageRuntimeConfig()
       const optionsWithDefault = defu(ogImageConfig, defaults)
       // Note: we can't resolve the site URL here because we don't have access to the request
       // the plugin nuxt-content-canonical-urls.ts fixes this

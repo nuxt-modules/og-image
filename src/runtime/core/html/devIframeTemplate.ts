@@ -1,13 +1,13 @@
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/ssr'
 import type { FontConfig, H3EventOgImageRender } from '../../types'
+import { useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from './applyEmojis'
 import { fetchIsland } from './fetchIsland'
-import { useRuntimeConfig } from '#imports'
 
 export async function devIframeTemplate(ctx: H3EventOgImageRender) {
   const { options } = ctx
-  const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
+  const { fonts, satoriOptions } = useOgImageRuntimeConfig()
   // const path = options.path
   // const scale = query.scale
   // const mode = query.mode || 'light'
@@ -43,15 +43,23 @@ export async function devIframeTemplate(ctx: H3EventOgImageRender) {
       },
       {
         innerHTML: `body {
-    transform: scale(${options.scale || 1});
+    transform: scale(${options.props.scale || 1});
     transform-origin: top left;
     max-height: 100vh;
     position: relative;
     width: ${options.width}px;
     height: ${options.height}px;
     overflow: hidden;
-    background-color: ${options.mode === 'dark' ? '#1b1b1b' : '#fff'};
-}`,
+    background-color: ${options.props.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
+}
+div {
+  display: flex;
+  flex-direction: column;
+}
+svg[data-emoji] {
+  display: inline-block;
+}
+`,
       },
       ...(fonts as FontConfig[])
         .filter(font => font.path)

@@ -3,6 +3,7 @@ import type { H3Error, H3Event } from 'h3'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
+import type { SharpOptions } from 'sharp'
 import type { OgImageComponents } from '#nuxt-og-image/components'
 
 export interface H3EventOgImageRender {
@@ -17,12 +18,29 @@ export interface H3EventOgImageRender {
 
 export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'streamline-emojis' | 'openmoji'
 
+export interface OgImageRuntimeConfig {
+  version: string
+  satoriOptions: SatoriOptions
+  resvgOptions: ResvgRenderOptions
+  sharpOptions: SharpOptions
+
+  runtimeSatori: boolean
+  runtimeChromium: boolean
+
+  defaults: OgImageOptions
+  debug: boolean
+  baseCacheKey: string
+  fonts: FontConfig[]
+  hasNuxtIcon: boolean
+  colorPreference: 'light' | 'dark'
+}
+
 export interface OgImageComponent {
   path?: string
   pascalName: string
   kebabName: string
   hash: string
-  category: 'app' | 'official' | 'community' | 'pro'
+  category: 'app' | 'community' | 'pro'
   credits?: string
 }
 
@@ -52,7 +70,7 @@ export type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | '
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 
-export interface OgImageOptions<T extends keyof OgImageComponents = 'Fallback'> {
+export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   /**
    * The width of the screenshot.
    *
@@ -94,6 +112,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'Fallback'> 
   resvg?: ResvgRenderOptions
   satori?: SatoriOptions
   screenshot?: Partial<ScreenshotOptions>
+  sharp?: SharpOptions
   // cache
   cacheMaxAgeSeconds?: number
 }

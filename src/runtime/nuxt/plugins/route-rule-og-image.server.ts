@@ -4,10 +4,10 @@ import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'
 import type { ActiveHeadEntry } from '@unhead/schema'
 import { normaliseOptions } from '../../core/options/normalise'
-import { getOgImagePath, isInternalRoute } from '../../utils'
+import { getOgImagePath, isInternalRoute, useOgImageRuntimeConfig } from '../../utils'
 import type { OgImageOptions } from '../../types'
 import { createOgImageMeta } from '../utils'
-import { defineNuxtPlugin, useRequestEvent, useRuntimeConfig } from '#imports'
+import { defineNuxtPlugin, useRequestEvent } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
@@ -17,6 +17,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     const path = parseURL(e.path).pathname
     if (isInternalRoute(path))
       return
+
     const _routeRulesMatcher = toRouteMatcher(
       createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
     )
@@ -33,19 +34,16 @@ export default defineNuxtPlugin((nuxtApp) => {
       ogImageInstances?.forEach((e: ActiveHeadEntry<any>) => {
         e.dispose()
       })
+      nuxtApp.ssrContext!._ogImagePayload = undefined
       nuxtApp.ssrContext!._ogImageInstances = undefined
       return
     }
-    // otherwise it's fine to rely on payload, we'll need to merge in route rules anyway
-    if (ogImageInstances.length >= 0)
-      return
 
     routeRules = defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules)
 
-    const { defaults } = useRuntimeConfig()['nuxt-og-image']
+    const { defaults } = useOgImageRuntimeConfig()
     const resolvedOptions = normaliseOptions(defu(routeRules, defaults) as OgImageOptions)
     const src = getOgImagePath(ssrContext!.url, resolvedOptions)
-
-    createOgImageMeta(src, {}, resolvedOptions, nuxtApp.ssrContext!)
+    createOgImageMeta(src, routeRules, resolvedOptions, nuxtApp.ssrContext!)
   })
 })

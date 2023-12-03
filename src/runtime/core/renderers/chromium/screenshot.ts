@@ -4,8 +4,8 @@ import { joinURL, withQuery } from 'ufo'
 import type { H3EventOgImageRender } from '../../../types'
 import { useNitroOrigin } from '#imports'
 
-export async function createScreenshot({ e, options, extension }: H3EventOgImageRender, browser: Browser): Promise<Buffer> {
-  const path = options.component === 'PageScreenshot' ? options.path : joinURL('/__og-image__/image', options.path, `og.html`)
+export async function createScreenshot({ basePath, e, options, extension }: H3EventOgImageRender, browser: Browser): Promise<Buffer> {
+  const path = options.component === 'PageScreenshot' ? options.path : joinURL('/__og-image__/image', basePath, `og.html`)
   // TODO add screenshotOptions
   const page = await browser.newPage({
     colorScheme: options.colorScheme,

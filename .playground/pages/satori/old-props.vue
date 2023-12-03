@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { defineOgImage, useHead, useSeoMeta } from '#imports'
+
 useHead({
   title: 'Hello World',
   titleTemplate: '%s %separator %siteName',
@@ -7,6 +9,16 @@ useHead({
     siteName: 'Harlan Wilton',
   },
 })
+useSeoMeta({
+  // write 300 characters
+  description: 'This is a description of the page. It can be a bit longer than the title.',
+})
+
+defineOgImage({
+  test: '123',
+  theme: 'light',
+  colorMode: 'dark',
+})
 </script>
 
 <template>
@@ -14,6 +26,5 @@ useHead({
     <div>
       Default example with options
     </div>
-    <OgImage />
   </div>
 </template>

@@ -1,7 +1,15 @@
 <script lang="ts" setup>
 // nothing to see here, defined in global route rules
-defineOgImageComponent('Fallback', {
+import { defineRouteRules } from '#imports'
+
+defineOgImageComponent('NuxtSeo', {
   theme: '#c3f2b4',
+})
+
+defineRouteRules({
+  ogImage: {
+    description: 'This is coming from inline route rules',
+  },
 })
 </script>
 

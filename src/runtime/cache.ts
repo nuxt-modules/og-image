@@ -2,7 +2,7 @@ import { prefixStorage } from 'unstorage'
 import { getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
 import { withTrailingSlash } from 'ufo'
 import { hash } from 'ohash'
-import type { H3EventOgImageRender } from './core/utils/resolveRendererContext'
+import type { H3EventOgImageRender } from './types'
 import { useStorage } from '#imports'
 
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
@@ -11,16 +11,15 @@ export async function useOgImageBufferCache(ctx: H3EventOgImageRender, options: 
   cacheMaxAgeSeconds?: number
 }): Promise<void | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  const enabled = maxAge > 0
+  const enabled = !import.meta.dev && import.meta.env.MODE !== 'test' && maxAge > 0
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
 
-  const purge = typeof getQuery(ctx.e).purge !== 'undefined'
   // cache will invalidate if the options change
   let cachedItem: BufferSource | false = false
   if (enabled && await cache.hasItem(key).catch(() => false)) {
     const { value, expiresAt, headers } = await cache.getItem(key).catch(() => ({ value: null, expiresAt: Date.now() })) as any
-    if (purge) {
+    if (typeof getQuery(ctx.e).purge !== 'undefined') {
       await cache.removeItem(key).catch(() => {})
     }
     else if (expiresAt > Date.now()) {
@@ -52,6 +51,8 @@ export async function useOgImageBufferCache(ctx: H3EventOgImageRender, options: 
     enabled,
     cachedItem,
     async update(item) {
+      if (!enabled)
+        return
       const value = Buffer.from(item).toString('base64')
       const headers = {
         // avoid multi-tenancy cache issues
@@ -61,7 +62,7 @@ export async function useOgImageBufferCache(ctx: H3EventOgImageRender, options: 
         'cache-control': `public, s-maxage=${maxAge}, stale-while-revalidate`,
       }
       setHeaders(ctx.e, headers)
-      enabled && await cache.setItem(key, {
+      await cache.setItem(key, {
         value,
         headers,
         expiresAt: Date.now() + (maxAge * 1000),

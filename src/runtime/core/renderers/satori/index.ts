@@ -1,14 +1,14 @@
 import type { SatoriOptions } from 'satori'
 import { defu } from 'defu'
 import type { H3EventOgImageRender, Renderer } from '../../../types'
+import { useOgImageRuntimeConfig } from '../../../utils'
 import { createVNodes } from './vnodes'
 import { loadFonts, satoriFonts } from './fonts'
 import { useResvg, useSatori, useSharp } from './instances'
-import { useRuntimeConfig } from '#imports'
 
 export async function createSvg(event: H3EventOgImageRender) {
   const { options } = event
-  const { fonts, satoriOptions } = useRuntimeConfig()['nuxt-og-image']
+  const { fonts, satoriOptions } = useOgImageRuntimeConfig()
   const vnodes = await createVNodes(event)
 
   if (!satoriFonts.length)
@@ -24,7 +24,7 @@ export async function createSvg(event: H3EventOgImageRender) {
 }
 
 async function createPng(event: H3EventOgImageRender) {
-  const { resvgOptions } = useRuntimeConfig()['nuxt-og-image']
+  const { resvgOptions } = useOgImageRuntimeConfig()
   const svg = await createSvg(event)
   const Resvg = await useResvg()
   const resvg = new Resvg(svg, defu(
@@ -36,7 +36,7 @@ async function createPng(event: H3EventOgImageRender) {
 }
 
 async function createJpeg(event: H3EventOgImageRender) {
-  const { sharpOptions } = useRuntimeConfig()['nuxt-og-image']
+  const { sharpOptions } = useOgImageRuntimeConfig()
   const png = await createPng(event)
   const sharp = await useSharp()
   return sharp(png, defu(event.options.sharp, sharpOptions)).jpeg().toBuffer()

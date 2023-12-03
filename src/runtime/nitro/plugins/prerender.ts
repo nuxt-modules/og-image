@@ -1,10 +1,12 @@
-import { parseURL, withoutLeadingSlash } from 'ufo'
-import { getRouteRules } from 'nitropack/dist/runtime/route-rules'
+import { parseURL, withoutBase, withoutLeadingSlash } from 'ufo'
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
+import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
+import { defu } from 'defu'
+import type { NitroRouteRules } from 'nitropack'
 import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
 import { prerenderCache, prerenderChromiumContext } from '../../core/cache/prerender'
-import type { OgImageOptions } from '../../types'
-import { isInternalRoute } from '../../utils'
+import { isInternalRoute } from '../../utils.pure'
+import { useRuntimeConfig } from '#imports'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)
@@ -14,7 +16,14 @@ export default defineNitroPlugin(async (nitro) => {
     const path = parseURL(e.event.path).pathname
     if (isInternalRoute(path))
       return
-    const routeRules = (getRouteRules(e)?.ogImage || {}) as false | OgImageOptions
+
+    const runtimeConfig = useRuntimeConfig()
+    const _routeRulesMatcher = toRouteMatcher(
+      createRadixRouter({ routes: runtimeConfig.nitro?.routeRules }),
+    )
+    const routeRules = defu({}, ..._routeRulesMatcher.matchAll(
+      withoutBase(path.split('?')[0], runtimeConfig.app.baseURL),
+    ).reverse()).ogImage as NitroRouteRules['ogImage']
     if (routeRules === false)
       return
     // when prerendering we want to cache the options for a quicker response when we render the image

@@ -3,14 +3,17 @@
  * @credits NuxtLabs <https://nuxtlabs.com/>
  * @see https://github.com/nuxt/nuxt.com/blob/main/components/OgImage/OgImageDocs.vue
  */
+import { computed } from 'vue'
 
 defineOptions({ inheritAttrs: false })
 
-withDefaults(defineProps<{ title?: string, description?: string, headline?: string }>(), {
+const props = withDefaults(defineProps<{ title?: string, description?: string, headline?: string }>(), {
   title: 'title',
   description: 'description',
   headline: 'headline',
 })
+
+const title = computed(() => props.title.slice(0, 60))
 </script>
 
 <template>
@@ -43,11 +46,11 @@ withDefaults(defineProps<{ title?: string, description?: string, headline?: stri
       </defs>
     </svg>
 
-    <div class="w-[700px] pl-[100px]">
+    <div class="w-[600px] pl-[100px]">
       <p v-if="headline" class="uppercase text-[24px] text-[#00DC82] mb-4 font-semibold">
         {{ headline }}
       </p>
-      <h1 class="m-0 text-[75px] font-semibold mb-4 text-white flex items-center">
+      <h1 class="w-[600px] m-0 text-[75px] font-semibold mb-4 text-white flex items-center">
         <span>{{ title }}</span>
       </h1>
       <p class="text-[32px] text-[#E4E4E7] leading-tight">

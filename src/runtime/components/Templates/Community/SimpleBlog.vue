@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * @credits Full Stack Heroes <https://fullstackheroes.com/>
+ */
+
 import { parseURL } from 'ufo'
 import { computed, useSiteConfig } from '#imports'
 
@@ -25,9 +29,9 @@ const website = computed(() => {
         <h1 class="text-[80px] p-20 font-black text-left">
           {{ title }}
         </h1>
-        <div class="text-2xl pb-10 px-20 font-bold mb-0">
+        <p class="text-2xl pb-10 px-20 font-bold mb-0">
           {{ website }}
-        </div>
+        </p>
       </div>
     </div>
   </div>

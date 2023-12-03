@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import { createError } from 'h3'
 import type { FontConfig, H3EventOgImageRender } from '../../types'
 import { base64ToArrayBuffer } from '../env/assets'
 import { fontCache } from './cache'
@@ -20,10 +21,17 @@ export async function loadFont({ e }: H3EventOgImageRender, font: FontConfig) {
   // fetch local fonts
   if (!data) {
     if (font.path) {
-      data = await e.$fetch(font.path, {
-        baseURL: useNitroOrigin(e),
-        responseType: 'arrayBuffer',
-      })
+      if (import.meta.prerender) {
+        // we need to read the file using unstorage
+        const key = `root:public${font.path.replace('./', ':').replace('/', ':')}`
+        data = await useStorage().getItemRaw(key)
+      }
+      else {
+        data = await e.$fetch(font.path, {
+          baseURL: useNitroOrigin(e),
+          responseType: 'arrayBuffer',
+        })
+      }
     }
     else {
       data = await e.$fetch(`/__og-image__/font/${name}/${weight}.ttf`, {

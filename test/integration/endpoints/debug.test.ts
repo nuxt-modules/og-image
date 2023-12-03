@@ -17,16 +17,16 @@ describe('debug', () => {
     expect(debug).toMatchInlineSnapshot(`
       {
         "runtimeConfig": {
-          "baseCacheKey": "/cache/nuxt-og-image@3.0.0-beta.12",
+          "baseCacheKey": "/cache/nuxt-og-image@3.0.0-beta.25",
+          "colorPreference": "light",
           "debug": true,
           "defaults": {
             "cacheMaxAgeSeconds": 259200,
-            "component": "Fallback",
+            "component": "NuxtSeo",
             "emojis": "noto",
             "extension": "jpg",
             "height": 600,
             "renderer": "satori",
-            "type": "static",
             "width": 1200,
           },
           "fonts": [
@@ -43,7 +43,7 @@ describe('debug', () => {
           ],
           "hasNuxtIcon": false,
           "resvgOptions": {},
-          "runtimeBrowser": true,
+          "runtimeChromium": true,
           "runtimeSatori": true,
           "satoriOptions": {},
           "sharpOptions": {},

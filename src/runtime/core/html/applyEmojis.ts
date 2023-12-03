@@ -30,7 +30,7 @@ export async function applyEmojis(ctx: H3EventOgImageRender, island: NuxtIslandR
           await emojiCache.setItem(key, svg)
       }
       if (svg)
-        return `\n${svg.replace('<svg ', '<svg data-emoji style="margin: 0 .05em 0 .3em;   vertical-align: -0.1em;" ')}\n`
+        return `\n${svg.replace('<svg ', '<svg data-emoji style="margin: 0 .05em 0 .15em; vertical-align: -0.1em;" ')}\n`
       return match
     }
   }))

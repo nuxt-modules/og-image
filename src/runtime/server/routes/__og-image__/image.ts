@@ -4,7 +4,8 @@ import { fetchIsland } from '../../../core/html/fetchIsland'
 import { devIframeTemplate } from '../../../core/html/devIframeTemplate'
 import { applyInlineCss } from '../../../core/html/applyInlineCss'
 import { useOgImageBufferCache } from '../../../cache'
-import { useRuntimeConfig, useSiteConfig } from '#imports'
+import { useOgImageRuntimeConfig } from '../../../utils'
+import { useSiteConfig } from '#imports'
 
 // /__og-image__/image/<path>/og.<extension
 export default defineEventHandler(async (e): Promise<any> => {
@@ -13,7 +14,7 @@ export default defineEventHandler(async (e): Promise<any> => {
     return ctx
 
   const { isDebugJsonPayload, extension, options, renderer } = ctx
-  const { debug, baseCacheKey } = useRuntimeConfig()['nuxt-og-image']
+  const { debug, baseCacheKey } = useOgImageRuntimeConfig()
   const compatibility: string[] = []
   // debug
   if (isDebugJsonPayload) {

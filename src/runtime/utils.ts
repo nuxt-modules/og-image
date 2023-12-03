@@ -1,14 +1,15 @@
 import { joinURL } from 'ufo'
 import { defu } from 'defu'
-import type { OgImageOptions } from './types'
+import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
 
+export * from './utils.pure'
+
 export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
-  const options = defu(_options, useRuntimeConfig()['nuxt-og-image'].defaults)
+  const options = defu(_options, useOgImageRuntimeConfig().defaults)
   return joinURL('/__og-image__/image', pagePath, `og.${options.extension}`)
 }
 
-export function isInternalRoute(path: string) {
-  const lastSegment = path.split('/').pop() || path
-  return lastSegment.includes('.') || path.startsWith('/__') || path.startsWith('@')
+export function useOgImageRuntimeConfig() {
+  return useRuntimeConfig()['nuxt-og-image'] as any as OgImageRuntimeConfig
 }
