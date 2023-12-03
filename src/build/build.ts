@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { type Resolver, resolvePath, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
+import { dirname } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import type { ModuleOptions } from '../module'
 
@@ -35,14 +36,20 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       if (compatibility.wasm?.esmImport !== true)
         return
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
-      const serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string' ? configuredEntry : 'index.mjs')
+      let serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
+        ? configuredEntry
+        : 'index.mjs')
+      if (target === 'cloudflare-pages')
+        // this is especially hacky
+        serverEntry = resolve(dirname(serverEntry), './chunks/wasm.mjs')
       const contents = (await readFile(serverEntry, 'utf-8'))
       const resvgHash = sha1(await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm')))
       const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
       const postfix = target === 'vercel-edge' ? '?module' : ''
+      const path = target === 'cloudflare-pages' ? `../wasm/` : `./wasm/`
       await writeFile(serverEntry, contents
-        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"./wasm/index_bg-${resvgHash}.wasm${postfix}"`)
-        .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"./wasm/yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
+        .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
     })
   })
 }
