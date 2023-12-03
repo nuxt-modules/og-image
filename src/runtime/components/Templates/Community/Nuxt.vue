@@ -5,8 +5,6 @@
  */
 import { computed } from 'vue'
 
-defineOptions({ inheritAttrs: false })
-
 const props = withDefaults(defineProps<{ title?: string, description?: string, headline?: string }>(), {
   title: 'title',
   description: 'description',

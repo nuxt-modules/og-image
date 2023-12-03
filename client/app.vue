@@ -261,13 +261,13 @@ const currentPageFile = computed(() => {
             class="n-select-tabs flex flex-inline flex-wrap items-center border n-border-base rounded-lg n-bg-base"
           >
             <label
-              v-for="(value, idx) of ['design', 'gallery', 'debug', 'docs']"
+              v-for="(value, idx) of ['design', 'templates', 'debug', 'docs']"
               :key="idx"
               class="relative n-border-base hover:n-bg-active cursor-pointer"
               :class="[
                 idx ? 'border-l n-border-base ml--1px' : '',
                 value === tab ? 'n-bg-active' : '',
-                isPageScreenshot && value === 'gallery' ? 'hidden' : '',
+                isPageScreenshot && value === 'templates' ? 'hidden' : '',
                 (pending || error ? 'n-disabled' : ''),
               ]"
             >
@@ -283,7 +283,7 @@ const currentPageFile = computed(() => {
                   </template>
                 </VTooltip>
               </div>
-              <div v-if="value === 'gallery'" :class="[value === tab ? '' : 'op35']">
+              <div v-if="value === 'templates'" :class="[value === tab ? '' : 'op35']">
                 <VTooltip>
                   <div class="px-5 py-2">
                     <h2 text-lg flex items-center>
@@ -291,7 +291,7 @@ const currentPageFile = computed(() => {
                     </h2>
                   </div>
                   <template #popper>
-                    Gallery
+                    Templates
                   </template>
                 </VTooltip>
               </div>
@@ -336,7 +336,7 @@ const currentPageFile = computed(() => {
               Refresh
             </template>
           </VTooltip>
-          <VTooltip>
+          <VTooltip v-if="tab === 'design'">
             <button text-lg="" type="button" class="n-icon-button n-button n-transition n-disabled:n-disabled" @click="sidePanelOpen = !sidePanelOpen">
               <div v-if="sidePanelOpen" class="n-icon carbon:side-panel-open" />
               <div v-else class="n-icon carbon:open-panel-right" />
@@ -595,7 +595,7 @@ const currentPageFile = computed(() => {
             </Pane>
           </Splitpanes>
         </div>
-        <div v-else-if="tab === 'gallery'" class="h-full max-h-full overflow-hidden space-y-5">
+        <div v-else-if="tab === 'templates'" class="h-full max-h-full overflow-hidden space-y-5">
           <NLoading v-if="isLoading" />
           <div v-else>
             <OSectionBlock v-if="appComponents.length">

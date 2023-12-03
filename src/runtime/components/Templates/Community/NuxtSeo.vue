@@ -7,11 +7,6 @@ import { computed, defineComponent, h, resolveComponent } from 'vue'
 import { useOgImageRuntimeConfig } from '../../../utils'
 import { useSiteConfig } from '#imports'
 
-// inherited attrs can mess up the satori parser
-defineOptions({
-  inheritAttrs: false,
-})
-
 // convert to typescript props
 const props = withDefaults(defineProps<{
   colorMode?: 'dark' | 'light'
