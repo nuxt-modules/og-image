@@ -10,7 +10,7 @@ await setup({
 describe('debug', () => {
   it('basic', async () => {
     const debug = await $fetch('/__og-image__/debug.json')
-    delete debug.baseCacheKey
+    delete debug.runtimeConfig.baseCacheKey
     delete debug.runtimeConfig.version
     delete debug.componentNames
     delete debug.baseCacheKey

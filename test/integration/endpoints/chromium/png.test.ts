@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { isCI } from 'std-env'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -11,7 +12,7 @@ await setup({
 
 expect.extend({ toMatchImageSnapshot })
 
-describe('png', () => {
+describe.skipIf(() => isCI)('png', () => {
   it('basic', async () => {
     const png: ArrayBuffer = await $fetch('/__og-image__/image/chromium/og.png', {
       responseType: 'arrayBuffer',

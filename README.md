@@ -32,8 +32,8 @@ Generate OG Images with Vue templates in Nuxt.
 
 ## Features
 
-- ✨ Turn your Vue components into `og:image` templates
-- 🎨 Design them in the OG Image Playground with full HMR
+- ✨ Create an `og:image` using the built-in templates or make your own with Vue components
+- 🎨 Design and test your `og:image` in the Nuxt DevTools OG Image Playground with full HMR
 - ▲ Render using [Satori](https://github.com/vercel/satori): Tailwind classes, Google fonts, emoji support and more!
 - 🤖 Or prerender using the Browser: Supporting painless, complex templates
 - 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
