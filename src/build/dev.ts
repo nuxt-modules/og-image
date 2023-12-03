@@ -8,7 +8,7 @@ export function setupDevHandler(options: ModuleOptions, resolve: Resolver['resol
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
     // renderers
     nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = options.runtimeSatori ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
-    nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = options.runtimeBrowser ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
+    nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = options.runtimeChromium ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
 
     applyNitroPresetCompatibility(nitroConfig, { resolve })
   })

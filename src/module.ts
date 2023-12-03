@@ -142,7 +142,7 @@ export default defineNuxtModule<ModuleOptions>({
       fonts: [],
       runtimeCacheStorage: true,
       runtimeSatori: true,
-      runtimeBrowser: nuxt.options.dev,
+      runtimeChromium: nuxt.options.dev,
       debug: isDevelopment,
     }
   },
@@ -171,9 +171,9 @@ export default defineNuxtModule<ModuleOptions>({
       config.defaults.extension = 'png'
     }
 
-    if (config.runtimeBrowser && !compatibility.bindings.chromium) {
-      logger.warn('The Chromium runtime is not available for this target, disabling runtimeBrowser.')
-      config.runtimeBrowser = false
+    if (config.runtimeChromium && !compatibility.bindings.chromium) {
+      logger.warn('The Chromium runtime is not available for this target, disabling runtimeChromium.')
+      config.runtimeChromium = false
     }
 
     // TODO use png if if weren't not using a node-based env
@@ -364,8 +364,7 @@ ${componentImports}
         sharpOptions: config.sharpOptions || {},
 
         runtimeSatori: config.runtimeSatori,
-        runtimeBrowser: config.runtimeBrowser,
-        // @ts-expect-error runtime type
+        runtimeChromium: config.runtimeChromium,
         defaults: config.defaults,
         debug: config.debug,
         // avoid adding credentials
