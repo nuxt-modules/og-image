@@ -356,7 +356,16 @@ ${componentImports}
             nuxt.options.nitro.prerender!.routes!.push(`/__og-image__/font/${name}/${weight}.ttf`)
           })
       }
-      nuxt.options.runtimeConfig['nuxt-og-image'] = {
+
+      // set theme color for the NuxtSeo component
+      let colorPreference = hasNuxtModule('@nuxtjs/color-mode')
+        ? (await getNuxtModuleOptions('@nuxtjs/color-mode') as { preference?: 'light' | 'dark' | 'system' }).preference
+        : 'light'
+      if (!colorPreference || !['dark', 'light'].includes(colorPreference))
+        colorPreference = 'light'
+
+      // @ts-expect-error runtime types
+      nuxt.options.runtimeConfig['nuxt-og-image'] = <OgImageRuntimeConfig> {
         version,
         // binding options
         satoriOptions: config.satoriOptions || {},
