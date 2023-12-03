@@ -132,7 +132,7 @@ export default defineNuxtModule<ModuleOptions>({
       defaults: {
         emojis: 'noto',
         renderer: 'satori',
-        component: 'Fallback',
+        component: 'NuxtSeo',
         width: 1200,
         height: 600,
         // default is to cache the image for 1 day (24 hours)
