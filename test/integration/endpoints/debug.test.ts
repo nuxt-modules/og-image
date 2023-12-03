@@ -17,7 +17,6 @@ describe('debug', () => {
     expect(debug).toMatchInlineSnapshot(`
       {
         "runtimeConfig": {
-          "baseCacheKey": "/cache/nuxt-og-image@3.0.0-beta.25",
           "colorPreference": "light",
           "debug": true,
           "defaults": {
