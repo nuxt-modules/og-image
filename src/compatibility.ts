@@ -25,8 +25,8 @@ export interface RuntimeCompatibilitySchema {
   bindings: {
     chromium: 'node' | false
     ['css-inline']: 'node' | false
-    resvg: 'node' | 'wasm' | false
-    satori: 'node' | 'wasm' | false
+    resvg: 'node' | 'wasm' | 'stackblitz' | false
+    satori: 'node' | 'wasm' | 'stackblitz' | false
     sharp: 'node' | false
   }
   wasm?: WasmOptions
@@ -73,15 +73,9 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     bindings: {
       'chromium': false,
       'css-inline': false,
-      'resvg': 'wasm',
-      'satori': 'wasm',
+      'resvg': 'stackblitz',
+      'satori': 'stackblitz',
       'sharp': false,
-    },
-    wasm: {
-      rollup: {
-        targetEnv: 'auto-inline',
-        sync: ['@resvg/resvg-wasm/index_bg.wasm'],
-      },
     },
   },
   'aws-lambda': awsLambda,
@@ -101,6 +95,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       },
     },
   },
+  'firebase': awsLambda,
   'vercel': awsLambda,
   'vercel-edge': {
     bindings: {

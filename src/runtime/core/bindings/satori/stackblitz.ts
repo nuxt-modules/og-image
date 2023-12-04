@@ -1,9 +1,8 @@
-import _satori from 'satori/wasm'
+import _satori, { init } from 'satori/wasm'
 import initYoga from 'yoga-wasm-web'
-import { init } from 'satori'
-import { importWasm } from '../../utils/wasm'
+import { readWasmFile } from '../../utils/wasm'
 
-const wasm = importWasm(import('yoga-wasm-web/dist/yoga.wasm' as string))
+const wasm = readWasmFile('yoga-wasm-web/dist/yoga.wasm')
   .then(async yoga => await initYoga(yoga))
 
 export default {
