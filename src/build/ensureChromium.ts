@@ -8,7 +8,7 @@ export async function ensureChromium(nitro: Nitro) {
   const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
     stdio: 'inherit',
   })
-  // eslint-disable-next-line node/prefer-global/process
+
   installChromeProcess.stderr?.pipe(process.stderr)
   await new Promise((resolve) => {
     installChromeProcess.on('exit', (e) => {
