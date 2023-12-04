@@ -3,7 +3,6 @@
  * @credits Full Stack Heroes <https://fullstackheroes.com/>
  */
 
-
 withDefaults(defineProps<{
   title?: string
 }>(), {

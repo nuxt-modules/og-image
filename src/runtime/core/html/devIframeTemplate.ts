@@ -4,10 +4,11 @@ import type { FontConfig, H3EventOgImageRender } from '../../types'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from './applyEmojis'
 import { fetchIsland } from './fetchIsland'
+import { theme } from '#nuxt-og-image/unocss-config.mjs'
 
 export async function devIframeTemplate(ctx: H3EventOgImageRender) {
   const { options } = ctx
-  const { fonts, satoriOptions } = useOgImageRuntimeConfig()
+  const { fonts } = useOgImageRuntimeConfig()
   // const path = options.path
   // const scale = query.scale
   // const mode = query.mode || 'light'
@@ -81,15 +82,20 @@ svg[data-emoji] {
     ],
     script: [
       {
-        src: 'https://cdn.tailwindcss.com',
+        src: 'https://cdn.jsdelivr.net/npm/@unocss/runtime/preset-wind.global.js',
       },
       {
-        innerHTML: `tailwind.config = {
-  corePlugins: {
-    preflight: false,
-  },
-  theme: ${JSON.stringify(satoriOptions?.tailwindConfig?.theme || {})}
-}`,
+        innerHTML: `
+  window.__unocss = {
+    theme: ${JSON.stringify(theme)},
+    presets: [
+      () => window.__unocss_runtime.presets.presetWind(),
+    ],
+  }
+`,
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/npm/@unocss/runtime/core.global.js',
       },
     ],
     link: [

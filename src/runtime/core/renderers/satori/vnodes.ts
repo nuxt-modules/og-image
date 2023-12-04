@@ -4,6 +4,7 @@ import { fetchIsland } from '../../html/fetchIsland'
 import { applyInlineCss } from '../../html/applyInlineCss'
 import { applyEmojis } from '../../html/applyEmojis'
 import { walkSatoriTree } from './utils'
+import unocss from './plugins/unocss'
 import emojis from './plugins/emojis'
 import twClasses from './plugins/twClasses'
 import imageSrc from './plugins/imageSrc'
@@ -26,6 +27,7 @@ export async function createVNodes(ctx: H3EventOgImageRender): Promise<VNode> {
   const satoriTree = convertHtmlToSatori(template)
   // process the tree
   await walkSatoriTree(ctx, satoriTree, [
+    unocss,
     emojis,
     twClasses,
     imageSrc,

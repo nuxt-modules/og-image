@@ -19,6 +19,7 @@ import { hash } from 'ohash'
 import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
+import { defu } from 'defu'
 import { version } from '../package.json'
 import type { FontConfig, InputFontConfig, OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from './runtime/types'
 import { type RuntimeCompatibilitySchema, getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
@@ -221,6 +222,7 @@ export default defineNuxtModule<ModuleOptions>({
     await addComponentsDir({
       path: resolve('./runtime/components/Templates/Community'),
       island: true,
+      watch: true,
     })
 
     ;[
@@ -292,6 +294,21 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#nuxt-og-image/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
+    }
+
+    // support simple theme extends
+    let unoCssConfig: any = { theme: {} }
+    // @ts-ignore runtime type
+    nuxt.hook('tailwindcss:config', (tailwindConfig) => {
+      // @ts-expect-error untyped
+      unoCssConfig = defu(tailwindConfig.theme.extend, { ...(tailwindConfig.theme || {}), extend: undefined })
+    })
+    // @ts-expect-error runtime type
+    nuxt.hook('unocss:config', (_unoCssConfig) => {
+      unoCssConfig = { ..._unoCssConfig.theme }
+    })
+    nuxt.options.nitro.virtual['#nuxt-og-image/unocss-config.mjs'] = () => {
+      return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
     extendTypes('nuxt-og-image', ({ typesPath }) => {
