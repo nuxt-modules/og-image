@@ -45,11 +45,18 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       // needs to be for a page change
       if ((e === 'change' || e.includes('link')) && path.startsWith('pages')) {
         rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
-          .catch(() => {})// ignore errors
+          .catch(() => {}) // ignore errors
       }
-      // TODO upstream bug, islands don't seem to support this
-      if (options.componentDirs.some(dir => path.includes(dir)))
-        rpc.broadcast.refreshGlobalData().catch(() => {})
+      if (options.componentDirs.some(dir => path.includes(dir))) {
+        if (e === 'change') {
+          rpc.broadcast.refresh()
+            .catch(() => {})
+        }
+        else {
+          rpc.broadcast.refreshGlobalData().catch(() => {
+          })
+        }
+      }
     })
     // call client RPC functions
     // since it might have multiple clients connected, we use `broadcast` to call all of them

@@ -31,6 +31,9 @@ onDevtoolsClientConnected(async (client) => {
       if (devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file.includes(path))
         refreshSources()
     },
+    refresh() {
+      refreshSources()
+    },
     refreshGlobalData() {
       globalRefreshTime.value = Date.now()
     },
