@@ -18,7 +18,7 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
 
   const nuxtApp = useNuxtApp()
   const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
-  const basePath = useRouter().currentRoute.value?.path
+  const basePath = useRouter().currentRoute.value?.path || '/' // (pages may be disabled)
 
   // need to check route rules hasn't disabled this
   const _routeRulesMatcher = toRouteMatcher(
