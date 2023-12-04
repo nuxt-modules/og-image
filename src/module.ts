@@ -189,11 +189,11 @@ export default defineNuxtModule<ModuleOptions>({
       // check if any of the fonts are missing paths
       config.fonts = config.fonts.map((f) => {
         if (typeof f === 'string' || !f.path) {
-          logger.warn(`Google Fonts are not available in StackBlitz, please use a local font.`)
+          logger.warn(`The ${typeof f === 'string' ? f : `${f.name}:${f.weight}`} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
           return false
         }
         return f
-      }).filter(Boolean)
+      }).filter(Boolean) as InputFontConfig[]
     }
     else {
       // default font is inter
