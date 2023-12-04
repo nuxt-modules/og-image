@@ -119,7 +119,7 @@ export function detectTarget(options: { static?: boolean } = {}) {
   return options?.static ? autodetectableStaticProviders[provider] : autodetectableProviders[provider]
 }
 
-export function resolveNitroPreset(nitroConfig?: NitroConfig) {
+export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (provider === 'stackblitz')
     return 'stackblitz'
   let preset
