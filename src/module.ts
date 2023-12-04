@@ -233,6 +233,7 @@ export default defineNuxtModule<ModuleOptions>({
       .forEach((name) => {
         addComponent({
           name,
+          global: true,
           filePath: resolve(`./runtime/components/OgImage/${name}`),
         })
       })
