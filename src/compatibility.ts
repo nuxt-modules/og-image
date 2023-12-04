@@ -77,6 +77,12 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
       'satori': 'wasm',
       'sharp': false,
     },
+    wasm: {
+      rollup: {
+        targetEnv: 'auto-inline',
+        sync: ['@resvg/resvg-wasm/index_bg.wasm'],
+      },
+    },
   },
   'aws-lambda': awsLambda,
   'netlify': awsLambda,
