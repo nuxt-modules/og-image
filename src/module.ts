@@ -185,9 +185,9 @@ export default defineNuxtModule<ModuleOptions>({
     if (hasNuxtModule('@nuxt/content'))
       addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
 
-    if (preset !== 'stackblitz' && config.fonts) {
+    if (preset === 'stackblitz') {
       // check if any of the fonts are missing paths
-      config.fonts = config.fonts.map((f) => {
+      config.fonts = (config.fonts || []).map((f) => {
         if (typeof f === 'string' || !f.path) {
           logger.warn(`The ${typeof f === 'string' ? f : `${f.name}:${f.weight}`} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
           return false
