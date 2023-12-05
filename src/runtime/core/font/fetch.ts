@@ -1,13 +1,11 @@
 import { createError } from 'h3'
 import type { FontConfig, H3EventOgImageRender } from '../../types'
-import { base64ToArrayBuffer } from '../env/assets'
 import { fontCache } from './cache'
 import { useNitroOrigin, useStorage } from '#imports'
 import { assets } from '#internal/nitro/virtual/server-assets'
 
 export async function loadFont({ e }: H3EventOgImageRender, font: FontConfig) {
   const fontKey = font.key || `${font.name}:${font.weight}`
-  const storageKey = `assets:nuxt-og-image:fonts:${fontKey}`
   if (fontCache[fontKey])
     return fontCache[fontKey]
 
@@ -15,8 +13,8 @@ export async function loadFont({ e }: H3EventOgImageRender, font: FontConfig) {
 
   let data: ArrayBuffer | undefined
   // check cache first, this uses Nuxt server assets
-  if (await assets.hasItem(storageKey))
-    data = base64ToArrayBuffer(await assets.getItem<ArrayBuffer>(storageKey))
+  if (font.key && await assets.hasItem(font.key))
+    data = await assets.getItemRaw<ArrayBuffer>(font.key)
   // fetch local fonts
   if (!data) {
     if (font.path) {
