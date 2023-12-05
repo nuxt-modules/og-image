@@ -30,13 +30,13 @@ describe('debug', () => {
           },
           "fonts": [
             {
+              "key": "nuxt-og-image:fonts:inter-latin-ext-400-normal.woff",
               "name": "Inter",
-              "path": "",
               "weight": "400",
             },
             {
+              "key": "nuxt-og-image:fonts:inter-latin-ext-700-normal.woff",
               "name": "Inter",
-              "path": "",
               "weight": "700",
             },
           ],

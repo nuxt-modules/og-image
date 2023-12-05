@@ -3,7 +3,7 @@ import { defineOgImage, useRouter } from '#imports'
 
 export function defineOgImageScreenshot(options: OgImagePageScreenshotOptions = {}) {
   const router = useRouter()
-  const route = router.currentRoute.value?.path || ''
+  const route = router.currentRoute.value?.path || '/'
   return defineOgImage({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
     renderer: 'chromium',

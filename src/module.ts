@@ -197,7 +197,6 @@ export default defineNuxtModule<ModuleOptions>({
           weight,
           // nuxt server assets
           key: `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`,
-          path: `<runtime>`,
         }
       }
       return font
@@ -211,7 +210,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (preset === 'stackblitz') {
       // check if any of the fonts are missing paths
       config.fonts = (config.fonts || []).map((f) => {
-        if (typeof f === 'string' || !f.path) {
+        if (typeof f === 'string' || (!f.path && !f.key)) {
           logger.warn(`The ${typeof f === 'string' ? f : `${f.name}:${f.weight}`} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
           return false
         }
