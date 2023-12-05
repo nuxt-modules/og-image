@@ -54,9 +54,9 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       routes: [
-        '/browser/component',
-        '/browser/delayed',
-        '/browser/screenshot',
+        '/chromium/component',
+        '/chromium/delayed',
+        '/chromium/screenshot',
         '/search?foo=bar',
         '/search?foo=2',
       ],

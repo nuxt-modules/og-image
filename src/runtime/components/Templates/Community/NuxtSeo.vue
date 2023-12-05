@@ -104,9 +104,9 @@ if (typeof props.icon === 'string' && !runtimeConfig.hasNuxtIcon && process.dev)
       }"
     />
     <div class="h-full w-full justify-between relative">
-      <div class="flex flex-row justify-between items-center">
-        <div class="flex flex-col w-full" :style="icon ? { width: '65%' } : {}">
-          <h1 class="font-bold mb-[30px] text-[75px] max-w-[70%]">
+      <div class="flex flex-row justify-between items-start">
+        <div class="flex flex-col w-full max-w-[65%]">
+          <h1 class="m-0 font-bold mb-[30px] text-[75px]">
             {{ title }}
           </h1>
           <p
@@ -118,7 +118,7 @@ if (typeof props.icon === 'string' && !runtimeConfig.hasNuxtIcon && process.dev)
           </p>
         </div>
         <div v-if="icon" style="width: 30%;" class="flex justify-end">
-          <IconComponent :name="icon" size="250px" style="margin: 0 auto 0 100px;opacity: 0.9;" />
+          <IconComponent :name="icon" size="250px" style="margin: 0 auto; opacity: 0.7;" />
         </div>
       </div>
       <div class="flex flex-row justify-center items-center text-left w-full">
