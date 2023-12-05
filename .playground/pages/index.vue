@@ -1,5 +1,5 @@
 <script setup>
-import { definePageMeta, useServerSeoMeta } from '#imports'
+import { defineOgImageComponent, definePageMeta, useServerSeoMeta } from '#imports'
 
 definePageMeta({
   title: 'Home',
@@ -12,11 +12,11 @@ useServerSeoMeta({
   ogTitle: 'Welcome to the playground',
 })
 
-// defineOgImageComponent('Nuxt', {
-//   headline: 'Nuxt OG Image',
-//   title: 'Version 3 🎉',
-//   description: 'Nuxt OG Image v3 is here!',
-// })
+defineOgImageComponent('Nuxt', {
+  headline: 'Nuxt OG Image',
+  title: 'Version 3 🎉',
+  description: 'Nuxt OG Image v3 is here!',
+})
 </script>
 
 <template>

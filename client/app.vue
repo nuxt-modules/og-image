@@ -3,6 +3,7 @@ import 'floating-vue/dist/style.css'
 import JsonEditorVue from 'json-editor-vue'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
+import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import { joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import defu from 'defu'
@@ -77,7 +78,7 @@ function updateProps(props: Record<string, any>) {
   refreshSources()
 }
 
-const tab = ref('design')
+const tab = useLocalStorage('nuxt-og-image:tab', 'design')
 
 function patchOptions(options: OgImageOptions) {
   tab.value = 'design'
@@ -119,7 +120,7 @@ const aspectRatio = computed(() => {
 const imageFormat = computed(() => {
   return optionsOverrides.value?.extension || options.value?.extension
 })
-const socialPreview = ref('twitter')
+const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
 
 const src = computed(() => {
   // wait until we know what we're rendering
@@ -179,7 +180,17 @@ const appComponents = computed(() => {
   return componentNames.value.filter(c => c.category === 'app')
 })
 
-const sidePanelOpen = ref(true)
+const windowSize = useWindowSize()
+const sidePanelOpen = useLocalStorage('nuxt-og-image:side-panel-open', windowSize.width.value >= 1024)
+
+// close side panel if it's too small
+watch(windowSize.width, (v) => {
+  if (v < 1024 && sidePanelOpen.value)
+    sidePanelOpen.value = false
+}, {
+  immediate: true,
+})
+
 const isLoading = ref(false)
 
 function generateLoadTime(payload: { timeTaken: string, sizeKb: string }) {
@@ -336,15 +347,6 @@ const currentPageFile = computed(() => {
               Refresh
             </template>
           </VTooltip>
-          <VTooltip v-if="tab === 'design'">
-            <button text-lg="" type="button" class="n-icon-button n-button n-transition n-disabled:n-disabled" @click="sidePanelOpen = !sidePanelOpen">
-              <div v-if="sidePanelOpen" class="n-icon carbon:side-panel-open" />
-              <div v-else class="n-icon carbon:open-panel-right" />
-            </button>
-            <template #popper>
-              Toggle Sidebar
-            </template>
-          </VTooltip>
         </div>
         <div class="items-center space-x-3 hidden lg:flex">
           <div class="opacity-80 text-sm">
@@ -395,16 +397,17 @@ const currentPageFile = computed(() => {
           </div>
           <Splitpanes v-else class="default-theme" @resize="slowRefreshSources">
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
-              <div class="flex justify-between items-center text-sm w-full absolute top-0 left-0">
+              <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
                   <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchOptions({ extension: 'jpg' })" />
                   <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchOptions({ extension: 'png' })" />
                   <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchOptions({ extension: 'svg' })" />
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchOptions({ extension: 'html' })" />
                 </div>
-                <div class="text-sm">
-                  <div v-if="!isPageScreenshot" class="underline opacity-70 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
-                    {{ activeComponentName }}.vue
+                <div class="text-xs">
+                  <div v-if="!isPageScreenshot" class="opacity-70 space-x-1 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
+                    <span>{{ activeComponentName.replace('OgImage', '') }}</span>
+                    <span class="underline">View source</span>
                   </div>
                   <div v-else>
                     Screenshot of the current page.
@@ -415,7 +418,16 @@ const currentPageFile = computed(() => {
                   <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
                   <!--                  <NButton icon="logos:facebook" :border="socialPreview === 'facebook'" @click="socialPreview = 'facebook'" /> -->
                   <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
-                <!--                  <NButton icon="logos:whatsapp-icon" :border="socialPreview === 'discord'" @click="socialPreview = 'discord'" /> -->
+                  <!--                  <NButton icon="logos:whatsapp-icon" :border="socialPreview === 'discord'" @click="socialPreview = 'discord'" /> -->
+                  <VTooltip>
+                    <button text-lg="" type="button" class=" n-icon-button n-button n-transition n-disabled:n-disabled" @click="sidePanelOpen = !sidePanelOpen">
+                      <div v-if="sidePanelOpen" class="n-icon carbon:side-panel-open" />
+                      <div v-else class="n-icon carbon:open-panel-right" />
+                    </button>
+                    <template #popper>
+                      Toggle Sidebar
+                    </template>
+                  </VTooltip>
                 </div>
               </div>
               <TwitterCardRenderer v-if="socialPreview === 'twitter'">
@@ -489,12 +501,12 @@ const currentPageFile = computed(() => {
               </div>
             </Pane>
             <Pane v-if="sidePanelOpen" size="40">
-              <div v-if="hasMadeChanges" class="text-xs p-2 opacity-80">
+              <div v-if="hasMadeChanges" class="text-sm p-2 opacity-80">
                 <div>
-                  To persist changes you'll need to update your component and / or props.
-                  <button type="button" class="underline" @click="resetProps(true)">
+                  You are previewing changes, you'll need to update your <code>defineOgImage</code> to persist them.
+                  <NButton type="button" class="underline" @click="resetProps(true)">
                     Reset
-                  </button>
+                  </NButton>
                 </div>
               </div>
               <OSectionBlock>
@@ -533,9 +545,6 @@ const currentPageFile = computed(() => {
                       </option>
                       <option value="emojione">
                         Emojione
-                      </option>
-                      <option value="emojione-monotone">
-                        Emojione Monotone
                       </option>
                       <option value="emojione-v1">
                         Emojione v1
@@ -585,7 +594,7 @@ const currentPageFile = computed(() => {
                       <div>{{ c }}</div>
                     </div>
                   </div>
-                  <div class="mt-5 text-center opacitt-75">
+                  <div class="mt-5 text-center opacity-75">
                     See the <NuxtLink to="https://nuxtseo.com/og-image/guides/compatibility" class="underline">
                       compatibility guide
                     </NuxtLink> to learn more.
@@ -605,6 +614,7 @@ const currentPageFile = computed(() => {
                   App Templates
                 </h3>
               </template>
+              <NTip>These are the OG Image templates that belong to your project.</NTip>
               <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
                 <button v-for="name in appComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
                   <TemplateComponentPreview
@@ -623,6 +633,7 @@ const currentPageFile = computed(() => {
                   Community Templates
                 </h3>
               </template>
+              <NTip>These are OG Image templates created by the community.<br>You can try them out by clicking on them, when you find one you like, view the source and copy+paste.</NTip>
               <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
                 <button v-for="name in communityComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
                   <TemplateComponentPreview

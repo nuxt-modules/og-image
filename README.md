@@ -13,7 +13,7 @@
 Generate OG Images with Vue templates in Nuxt.
 </p>
 
-<img src="https://github.com/harlan-zw/nuxt-og-image/assets/5326365/f551de84-c10a-45ca-bd62-8bf93df806cb">
+<img src="https://github.com/harlan-zw/nuxt-og-image/assets/5326365/e337b490-dccb-4e58-972a-5e6e63f30986" alt="Nuxt OG Image DevTools Preview">
 
 <p align="center">
 <table>

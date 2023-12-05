@@ -60,11 +60,11 @@ onMounted(() => {
 <style scoped>
 div {
   cursor: pointer;
-  max-height: 100%;
+  max-height: 600px;
   height: auto;
   width: auto;
   margin: 0 auto;
-  max-width: 100%;
+  max-width: 1200px;
   transition: 0.4s ease-in-out;
   background-color: white;
   background-size: contain;

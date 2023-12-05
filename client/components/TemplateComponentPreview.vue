@@ -31,45 +31,50 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 </script>
 
 <template>
-  <div>
-    <div v-if="component.credits" class="opacity-70 text-sm">
+  <div class="group">
+    <div v-if="component.credits" class="opacity-70 text-sm transition group-hover:opacity-100">
       <NLink v-if="creditSite" :href="creditSite" external class="underline">
         {{ creditName }}
       </NLink>
     </div>
-    <div class="w-[228px] h-[120px] relative mb-1">
-      <NIcon v-if="active" icon="carbon:checkmark-filled" class="absolute top-2 right-2 text-green-500" />
-      <ImageLoader
-        v-if="!isHtml"
-        :src="withQuery(src, { component: component.pascalName })"
-        :aspect-ratio="aspectRatio"
-        class="rounded overflow-hidden"
-        :class="active ? ['ring-2 ring-green-500'] : []"
-        @load="e => loadStats = e"
-      />
-      <IFrameLoader
-        v-else
-        :src="src"
-        class="pointer-events-none"
-        :max-height="120"
-        :aspect-ratio="aspectRatio"
-        @load="e => loadStats = e"
-      />
+    <div class="border-2 group-hover:shadow-sm rounded-[0.35rem] border-transparent hover:border-yellow-500 transition-all">
+      <VTooltip>
+        <div class="w-[220px] h-[110px] relative">
+          <NIcon v-if="active" icon="carbon:checkmark-filled" class="absolute top-2 right-2 text-green-500" />
+          <ImageLoader
+            v-if="!isHtml"
+            :src="withQuery(src, { component: component.pascalName })"
+            :aspect-ratio="aspectRatio"
+            class="rounded overflow-hidden"
+            :class="active ? ['ring-2 ring-green-500'] : []"
+            @load="e => loadStats = e"
+          />
+          <IFrameLoader
+            v-else
+            :src="src"
+            class="pointer-events-none"
+            :max-height="120"
+            :aspect-ratio="aspectRatio"
+            @load="e => loadStats = e"
+          />
+        </div>
+        <template #popper>
+          Preview {{ component.pascalName }} for the current page.
+        </template>
+      </VTooltip>
     </div>
     <div class="flex justify-between items-center text-xs px-2">
-      <div class="flex items-center">
-        <NLink external class="underline opacity-85" @click.stop="openComponent">
-          {{ component.pascalName }}.vue
-        </NLink>
-      </div>
-      <template v-if="loadStats">
-        <div class="opacity-85">
-          {{ loadStats.timeTaken }}ms
+      <VTooltip>
+        <div class="">
+          <NLink external class="opacity-70 items-start space-x-1 flex" @click.stop="openComponent">
+            <span>{{ component.pascalName }}</span>
+            <span class="underline">View source</span>
+          </NLink>
         </div>
-        <div class="opacity-70">
-          {{ loadStats.sizeKb }}kb
-        </div>
-      </template>
+        <template #popper>
+          Open the source code of {{ component.pascalName }}.vue in your IDE
+        </template>
+      </VTooltip>
     </div>
   </div>
 </template>
