@@ -1,18 +1,18 @@
-import { parseURL, withoutBase, withoutLeadingSlash, withoutTrailingSlash } from 'ufo'
+import { parseURL, withoutBase, withoutTrailingSlash } from 'ufo'
 import type { H3Error, H3Event } from 'h3'
 import { createError, getQuery } from 'h3'
 import { defu } from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'
-import { hash } from 'ohash'
 import type { H3EventOgImageRender, OgImageOptions } from '../../types'
 import { fetchPathHtmlAndExtractOptions } from '../options/fetch'
-import { prerenderCache } from '../cache/prerender'
+import { prerenderOptionsCache } from '../cache/prerender'
 import type SatoriRenderer from '../renderers/satori'
 import type ChromiumRenderer from '../renderers/chromium'
 import { useChromiumRenderer, useSatoriRenderer } from '../renderers/satori/instances'
 import { separateProps, useOgImageRuntimeConfig } from '../../utils'
-import { useRuntimeConfig, useSiteConfig } from '#imports'
+import { resolvePathCacheKey } from '../../nitro/utils'
+import { useRuntimeConfig } from '#imports'
 
 export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3EventOgImageRender> {
   const runtimeConfig = useOgImageRuntimeConfig()
@@ -42,21 +42,13 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3Ev
   queryParams.props = JSON.parse(queryParams.props || '{}')
   queryParams = separateProps(queryParams)
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
-  const siteConfig = useSiteConfig(e)
-  const key = [
-    withoutLeadingSlash((basePath === '/' || !basePath) ? 'index' : basePath).replaceAll('/', '-'),
-    hash([
-      basePath,
-      siteConfig.url,
-      hash(queryParams),
-    ]),
-  ].join(':')
+  const key = resolvePathCacheKey(e, basePath)
   let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions
   if (!options) {
-    if (import.meta.prerender) {
-      options = await prerenderCache?.getItem(key)
-    }
-    else {
+    if (import.meta.prerender)
+      options = await prerenderOptionsCache?.getItem(key)
+
+    if (!options) {
       const payload = await fetchPathHtmlAndExtractOptions(e, basePath, key)
       if (payload instanceof Error)
         return payload

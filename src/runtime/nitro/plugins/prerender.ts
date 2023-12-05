@@ -1,19 +1,21 @@
-import { parseURL, withoutBase, withoutLeadingSlash } from 'ufo'
+import { parseURL, withoutBase } from 'ufo'
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { defu } from 'defu'
 import type { NitroRouteRules } from 'nitropack'
 import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
-import { prerenderCache, prerenderChromiumContext } from '../../core/cache/prerender'
+import { prerenderChromiumContext, prerenderOptionsCache } from '../../core/cache/prerender'
 import { isInternalRoute } from '../../utils.pure'
+import { resolvePathCacheKey } from '../utils'
 import { useRuntimeConfig } from '#imports'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)
     return
 
-  nitro.hooks.hook('render:html', async ({ head, bodyAppend }, e) => {
-    const path = parseURL(e.event.path).pathname
+  nitro.hooks.hook('render:html', async (html, ctx) => {
+    const { head, bodyAppend } = html
+    const path = parseURL(ctx.event.path).pathname
     if (isInternalRoute(path))
       return
 
@@ -33,10 +35,8 @@ export default defineNitroPlugin(async (nitro) => {
     ].join('\n'))
     if (!options)
       return
-    const key = [
-      withoutLeadingSlash((path === '/' || !path) ? 'index' : path).replaceAll('/', '-'),
-    ].join(':')
-    await prerenderCache!.setItem(key, options)
+    const key = resolvePathCacheKey(ctx.event)
+    await prerenderOptionsCache!.setItem(key, options)
   })
   nitro.hooks.hook('close', () => {
     // clean up the browser

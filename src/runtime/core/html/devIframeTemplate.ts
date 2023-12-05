@@ -9,7 +9,6 @@ import { theme } from '#nuxt-og-image/unocss-config.mjs'
 export async function devIframeTemplate(ctx: H3EventOgImageRender) {
   const { options } = ctx
   const { fonts } = useOgImageRuntimeConfig()
-  // const path = options.path
   // const scale = query.scale
   // const mode = query.mode || 'light'
   // extract the options from the original path

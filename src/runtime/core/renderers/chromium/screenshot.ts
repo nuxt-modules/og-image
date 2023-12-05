@@ -5,7 +5,7 @@ import type { H3EventOgImageRender } from '../../../types'
 import { useNitroOrigin } from '#imports'
 
 export async function createScreenshot({ basePath, e, options, extension }: H3EventOgImageRender, browser: Browser): Promise<Buffer> {
-  const path = options.component === 'PageScreenshot' ? options.path : joinURL('/__og-image__/image', basePath, `og.html`)
+  const path = options.component === 'PageScreenshot' ? basePath : joinURL('/__og-image__/image', basePath, `og.html`)
   // TODO add screenshotOptions
   const page = await browser.newPage({
     colorScheme: options.colorScheme,
@@ -13,7 +13,7 @@ export async function createScreenshot({ basePath, e, options, extension }: H3Ev
   })
   if (import.meta.prerender && !options.html) {
     // we need to do a nitro fetch for the HTML instead of rendering with playwright
-    options.html = await e.$fetch(options.path)
+    options.html = await e.$fetch(path)
   }
   try {
     await page.setViewportSize({
@@ -21,9 +21,8 @@ export async function createScreenshot({ basePath, e, options, extension }: H3Ev
       height: options.height || 630,
     })
 
-    const isHtml = options.html || options.path?.startsWith('html:')
-    if (isHtml) {
-      const html = options.html || options.path?.substring(5)
+    if (options.html) {
+      const html = options.html
       await page.evaluate((html) => {
         document.open('text/html')
         document.write(html)

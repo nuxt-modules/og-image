@@ -4,7 +4,7 @@ import sizeOf from 'image-size'
 import type { H3EventOgImageRender, VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 import { toBase64Image } from '../../../env/assets'
-import { useNitroOrigin } from '#imports'
+import { useNitroOrigin, useStorage } from '#imports'
 
 // for relative links we embed them as base64 input or just fix the URL to be absolute
 export default defineSatoriTransformer({
@@ -15,25 +15,38 @@ export default defineSatoriTransformer({
     if (src) {
       let updated = false
       let dimensions
-      if (!updated) {
-        let valid = true
+      let imageBuffer: BufferSource
+      let valid = true
 
+      // we can't fetch public files using $fetch when prerendering
+      if (import.meta.prerender || import.meta.dev) {
+        // we need to read the file using unstorage
+        const key = `root:public${src.replace('./', ':').replace('/', ':')}`
+        if (await useStorage().hasItem(key)) {
+          imageBuffer = await useStorage().getItemRaw(key)
+          updated = !!imageBuffer
+        }
+      }
+      if (!import.meta.prerender && !updated) {
         // see if we can fetch it from a kv host if we're using an edge provider
-        const response = (await e.$fetch(src, {
+        imageBuffer = (await e.$fetch(src, {
           baseURL: useNitroOrigin(e),
           responseType: 'arrayBuffer',
         })
-          .catch(() => { valid = false }))
-        if (valid) {
-          node.props.src = toBase64Image(src, response as ArrayBuffer)
+          .catch(() => {
+            valid = false
+          }))
+        valid = !!imageBuffer
+      }
+      if (valid) {
+        node.props.src = toBase64Image(src, imageBuffer as ArrayBuffer)
 
-          try {
-            const imageSize = sizeOf(Buffer.from(response as ArrayBuffer))
-            dimensions = { width: imageSize.width, height: imageSize.height }
-          }
-          catch (e) {}
-          updated = true
+        try {
+          const imageSize = sizeOf(Buffer.from(imageBuffer as ArrayBuffer))
+          dimensions = { width: imageSize.width, height: imageSize.height }
         }
+        catch (e) {}
+        updated = true
       }
       // apply a natural aspect ratio if missing a dimension
       if (dimensions?.width && dimensions?.height) {
