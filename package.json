@@ -76,7 +76,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "2.2.2",
+    "@antfu/eslint-config": "2.3.1",
     "@img/sharp-linux-x64": "0.33.0",
     "@nuxt/content": "^2.9.0",
     "@nuxt/devtools": "1.0.4",
@@ -84,7 +84,7 @@
     "@nuxt/test-utils": "3.8.1",
     "@nuxt/ui": "^2.11.0",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "8.0.0-rc.6",
+    "@nuxtjs/i18n": "8.0.0-rc.7",
     "@nuxtjs/tailwindcss": "^6.10.1",
     "@unocss/nuxt": "^0.58.0",
     "bumpp": "^9.2.0",
@@ -94,7 +94,7 @@
     "nuxt-icon": "0.6.6",
     "playwright": "^1.40.1",
     "sass": "^1.69.5",
-    "vitest": "^0.34.6"
+    "vitest": "^1.0.1"
   },
   "build": {
     "externals": [
