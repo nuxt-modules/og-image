@@ -36,6 +36,17 @@ export default defineSatoriTransformer({
             // we need to replace any occurances of a var key with the var values, avoid replacing existing inline styles
             if (!styles[camelCasedKey])
               styles[camelCasedKey] = value.replace(/var\((.*?)\)/g, (_, k) => vars[k.trim()])
+
+            // we need to replace this rgba syntax with either a regular rgb if opacity is 1
+            // rgb(59 130 246 / 1) -> rgba(59, 130, 246)
+            // rgba(59 130 246 / 0.5) -> rgba(59, 130, 246, 0.5)
+            if (styles[camelCasedKey] && styles[camelCasedKey].includes('/')) {
+              const [rgb, opacity] = styles[camelCasedKey].split('/')
+              if (opacity.trim() === '1)')
+                styles[camelCasedKey] = rgb.replace(/(\d+) (\d+) (\d+).*/, (_, r, g, b) => `${r}, ${g}, ${b})`)
+              else
+                styles[camelCasedKey] = `${rgb.replace('rgb', 'rgba').replaceAll(' ', ', ')}${opacity.trim()}`
+            }
           })
         replacedClasses.add(token)
       }
