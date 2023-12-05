@@ -189,33 +189,28 @@ export default defineNuxtModule<ModuleOptions>({
     if (!config.fonts.length)
       config.fonts = ['Inter:400', 'Inter:700']
 
-    config.fonts = config.fonts.map((font) => {
-      if (typeof font === 'string' && font.startsWith('Inter:')) {
-        const [_, weight] = font.split(':')
-        return {
-          name: 'Inter',
-          weight,
-          // nuxt server assets
-          key: `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`,
-        }
-      }
-      return font
-    })
-
-    nuxt.hooks.hook('nitro:config', (nitroConfig) => {
-      nitroConfig.serverAssets = nitroConfig.serverAssets || []
-      nitroConfig.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: resolve('./runtime/server/assets') })
-    })
-
     if (preset === 'stackblitz') {
-      // check if any of the fonts are missing paths
-      config.fonts = (config.fonts || []).map((f) => {
+      // TODO maybe only for stackblitz, this will increase server bundle size
+      config.fonts = config.fonts.map((f) => {
+        if (typeof f === 'string' && f.startsWith('Inter:')) {
+          const [_, weight] = f.split(':')
+          return {
+            name: 'Inter',
+            weight,
+            // nuxt server assets
+            key: `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`,
+          }
+        }
         if (typeof f === 'string' || (!f.path && !f.key)) {
           logger.warn(`The ${typeof f === 'string' ? f : `${f.name}:${f.weight}`} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
           return false
         }
         return f
       }).filter(Boolean) as InputFontConfig[]
+      nuxt.hooks.hook('nitro:config', (nitroConfig) => {
+        nitroConfig.serverAssets = nitroConfig.serverAssets || []
+        nitroConfig.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: resolve('./runtime/server/assets') })
+      })
     }
 
     nuxt.options.experimental.componentIslands = true

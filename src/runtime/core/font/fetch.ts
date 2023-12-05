@@ -12,9 +12,11 @@ export async function loadFont({ e }: H3EventOgImageRender, font: FontConfig) {
   const { name, weight } = font
 
   let data: ArrayBuffer | undefined
-  // check cache first, this uses Nuxt server assets
-  if (font.key && await assets.hasItem(font.key))
-    data = await assets.getItemRaw<ArrayBuffer>(font.key)
+  if (import.meta.dev || import.meta.prerender) {
+    // check cache first, this uses Nuxt server assets
+    if (font.key && await assets.hasItem(font.key))
+      data = await assets.getItemRaw<ArrayBuffer>(font.key)
+  }
   // fetch local fonts
   if (!data) {
     if (font.path) {
