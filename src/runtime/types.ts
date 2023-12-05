@@ -117,7 +117,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   cacheMaxAgeSeconds?: number
 }
 
-export interface FontConfig { name: string, weight: string | number, path?: string }
+export interface FontConfig { name: string, weight: string | number, path?: string, key?: string }
 
 export type InputFontConfig = (`${string}:${number}` | FontConfig)
 

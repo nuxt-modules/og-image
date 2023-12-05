@@ -185,6 +185,29 @@ export default defineNuxtModule<ModuleOptions>({
     if (hasNuxtModule('@nuxt/content'))
       addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
 
+    // default font is inter
+    if (!config.fonts.length)
+      config.fonts = ['Inter:400', 'Inter:700']
+
+    config.fonts = config.fonts.map((font) => {
+      if (typeof font === 'string' && font.startsWith('Inter:')) {
+        const [_, weight] = font.split(':')
+        return {
+          name: 'Inter',
+          weight,
+          // nuxt server assets
+          key: `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`,
+          path: `<runtime>`,
+        }
+      }
+      return font
+    })
+
+    nuxt.hooks.hook('nitro:config', (nitroConfig) => {
+      nitroConfig.serverAssets = nitroConfig.serverAssets || []
+      nitroConfig.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: resolve('./runtime/server/assets') })
+    })
+
     if (preset === 'stackblitz') {
       // check if any of the fonts are missing paths
       config.fonts = (config.fonts || []).map((f) => {
@@ -194,11 +217,6 @@ export default defineNuxtModule<ModuleOptions>({
         }
         return f
       }).filter(Boolean) as InputFontConfig[]
-    }
-    else {
-      // default font is inter
-      if (!config.fonts.length)
-        config.fonts = ['Inter:400', 'Inter:700']
     }
 
     nuxt.options.experimental.componentIslands = true
@@ -373,7 +391,7 @@ ${componentImports}
         nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
         normalisedFonts
           // if they have a path we can always access them locally
-          .filter(f => !f.path)
+          .filter(f => !f.path && !f.key)
           .forEach(({ name, weight }) => {
             nuxt.options.nitro.prerender!.routes!.push(`/__og-image__/font/${name}/${weight}.ttf`)
           })
@@ -418,9 +436,9 @@ ${componentImports}
     else if (nuxt.options.build) {
       await setupBuildHandler(config, resolve)
     }
-    // if prerendering
-    if (nuxt.options.nitro.prerender?.routes?.length || nuxt.options.nitro.prerender?.crawlLinks || nuxt.options._generate)
-      addServerPlugin(resolve('./runtime/nitro/plugins/prerender.ts'))
+    // no way to know if we'll prerender any routes
+    if (nuxt.options.build)
+      addServerPlugin(resolve('./runtime/nitro/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolve)
   },
