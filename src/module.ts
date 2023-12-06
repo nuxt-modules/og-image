@@ -21,7 +21,13 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
 import { version } from '../package.json'
-import type { FontConfig, InputFontConfig, OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from './runtime/types'
+import type {
+  FontConfig,
+  InputFontConfig,
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+} from './runtime/types'
 import { type RuntimeCompatibilitySchema, getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
 import { extendTypes, getNuxtModuleOptions } from './kit'
 import { setupDevToolsUI } from './build/devtools'
@@ -115,7 +121,7 @@ export interface ModuleOptions {
 }
 export interface ModuleHooks {
   'nuxt-og-image:components': (ctx: { components: OgImageComponent[] }) => Promise<void> | void
-  'og-image:config': (config: ModuleOptions) => Promise<void> | void
+  'nuxt-og-image:runtime-config': (config: ModuleOptions) => Promise<void> | void
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -349,6 +355,10 @@ declare module 'nitropack' {
   interface NitroRouteConfig {
     ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
   }
+  interface NitroRuntimeHooks {
+    'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
+    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode) => void | Promise<void>
+  }
 }
 
 declare module '#nuxt-og-image/components' {
@@ -367,8 +377,6 @@ ${componentImports}
 
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
-      // @ts-expect-error untyped
-      nuxt.hooks.callHook('og-image:config', config)
       const normalisedFonts: FontConfig[] = config.fonts.map((f) => {
         if (typeof f === 'string') {
           const [name, weight] = f.split(':')
@@ -398,8 +406,7 @@ ${componentImports}
       if (!colorPreference || !['dark', 'light'].includes(colorPreference))
         colorPreference = 'light'
 
-      // @ts-expect-error runtime types
-      nuxt.options.runtimeConfig['nuxt-og-image'] = <OgImageRuntimeConfig> {
+      const runtimeConfig = <OgImageRuntimeConfig> {
         version,
         // binding options
         satoriOptions: config.satoriOptions || {},
@@ -417,6 +424,10 @@ ${componentImports}
         hasNuxtIcon: hasNuxtModule('nuxt-icon'),
         colorPreference,
       }
+      // @ts-expect-error untyped
+      nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
+      // @ts-expect-error runtime types
+      nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
     })
 
     // Setup playground. Only available in development

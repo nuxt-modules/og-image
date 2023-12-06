@@ -1,10 +1,10 @@
 import { createError } from 'h3'
-import type { FontConfig, H3EventOgImageRender } from '../../types'
+import type { FontConfig, OgImageRenderEventContext } from '../../types'
 import { fontCache } from './cache'
 import { useNitroOrigin, useStorage } from '#imports'
 import { assets } from '#internal/nitro/virtual/server-assets'
 
-export async function loadFont({ e }: H3EventOgImageRender, font: FontConfig) {
+export async function loadFont({ e }: OgImageRenderEventContext, font: FontConfig) {
   const fontKey = font.key || `${font.name}:${font.weight}`
   if (fontCache[fontKey])
     return fontCache[fontKey]

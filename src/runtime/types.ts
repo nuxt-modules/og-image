@@ -4,9 +4,10 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { SharpOptions } from 'sharp'
+import type { NitroApp } from 'nitropack'
 import type { OgImageComponents } from '#nuxt-og-image/components'
 
-export interface H3EventOgImageRender {
+export interface OgImageRenderEventContext {
   e: H3Event
   extension: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html' | 'json'
   key: string
@@ -14,6 +15,7 @@ export interface H3EventOgImageRender {
   renderer: Renderer
   options: OgImageOptions
   isDebugJsonPayload: boolean
+  _nitro: NitroApp
 }
 
 export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'streamline-emojis' | 'openmoji'
@@ -126,8 +128,8 @@ export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: O
 export interface Renderer {
   name: 'chromium' | 'satori'
   supportedFormats: Partial<RendererOptions['extension']>[]
-  createImage: (e: H3EventOgImageRender) => Promise<H3Error | BufferSource | void>
-  debug: (e: H3EventOgImageRender) => Promise<Record<string, any>>
+  createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | void>
+  debug: (e: OgImageRenderEventContext) => Promise<Record<string, any>>
 }
 
 export type ExtractComponentProps<T extends Component> = T extends new (...args: any) => any
@@ -140,5 +142,5 @@ export type VNode = ReturnType<typeof html>
 
 export interface SatoriTransformer {
   filter: (node: VNode) => boolean
-  transform: (node: VNode, e: H3EventOgImageRender) => Promise<void>
+  transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void>
 }

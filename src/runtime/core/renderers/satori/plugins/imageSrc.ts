@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { withBase } from 'ufo'
 import sizeOf from 'image-size'
-import type { H3EventOgImageRender, VNode } from '../../../../types'
+import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 import { toBase64Image } from '../../../env/assets'
 import { useNitroOrigin, useStorage } from '#imports'
@@ -9,7 +9,7 @@ import { useNitroOrigin, useStorage } from '#imports'
 // for relative links we embed them as base64 input or just fix the URL to be absolute
 export default defineSatoriTransformer({
   filter: (node: VNode) => node.type === 'img',
-  transform: async (node: VNode, { e }: H3EventOgImageRender) => {
+  transform: async (node: VNode, { e }: OgImageRenderEventContext) => {
     const src = node.props?.src as string | null
     const isRelative = src?.startsWith('/')
     if (src) {

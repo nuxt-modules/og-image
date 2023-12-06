@@ -1,6 +1,6 @@
-import type { H3EventOgImageRender, SatoriTransformer, VNode } from '../../../types'
+import type { OgImageRenderEventContext, SatoriTransformer, VNode } from '../../../types'
 
-export async function walkSatoriTree(e: H3EventOgImageRender, node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[]) {
+export async function walkSatoriTree(e: OgImageRenderEventContext, node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[]) {
   if (!node.props?.children || !Array.isArray(node.props.children))
     return
   // remove empty children

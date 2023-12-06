@@ -52,6 +52,7 @@ export default defineNuxtConfig({
     },
   ],
   nitro: {
+    plugins: ['plugins/hooks.ts'],
     prerender: {
       routes: [
         '/chromium/component',

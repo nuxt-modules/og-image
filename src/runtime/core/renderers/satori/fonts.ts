@@ -1,9 +1,9 @@
-import type { FontConfig, H3EventOgImageRender } from '../../../types'
+import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { loadFont } from '../../font/fetch'
 
 export const satoriFonts: any[] = []
 let fontLoadPromise: Promise<any> | null = null
-export function loadFonts(e: H3EventOgImageRender, fonts: FontConfig[]) {
+export function loadFonts(e: OgImageRenderEventContext, fonts: FontConfig[]) {
   if (fontLoadPromise)
     return fontLoadPromise
 

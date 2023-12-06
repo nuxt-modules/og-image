@@ -1,15 +1,17 @@
 import type { SatoriOptions } from 'satori'
 import { defu } from 'defu'
-import type { H3EventOgImageRender, Renderer } from '../../../types'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { useOgImageRuntimeConfig } from '../../../utils'
 import { createVNodes } from './vnodes'
 import { loadFonts, satoriFonts } from './fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 
-export async function createSvg(event: H3EventOgImageRender) {
+export async function createSvg(event: OgImageRenderEventContext) {
   const { options } = event
   const { fonts, satoriOptions } = useOgImageRuntimeConfig()
   const vnodes = await createVNodes(event)
+
+  await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes)
 
   if (!satoriFonts.length)
     satoriFonts.push(...await loadFonts(event, fonts))
@@ -23,7 +25,7 @@ export async function createSvg(event: H3EventOgImageRender) {
   }))
 }
 
-async function createPng(event: H3EventOgImageRender) {
+async function createPng(event: OgImageRenderEventContext) {
   const { resvgOptions } = useOgImageRuntimeConfig()
   const svg = await createSvg(event)
   const Resvg = await useResvg()
@@ -35,7 +37,7 @@ async function createPng(event: H3EventOgImageRender) {
   return pngData.asPng()
 }
 
-async function createJpeg(event: H3EventOgImageRender) {
+async function createJpeg(event: OgImageRenderEventContext) {
   const { sharpOptions } = useOgImageRuntimeConfig()
   const png = await createPng(event)
   const sharp = await useSharp()

@@ -1,12 +1,12 @@
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/ssr'
-import type { FontConfig, H3EventOgImageRender } from '../../types'
+import type { FontConfig, OgImageRenderEventContext } from '../../types'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from './applyEmojis'
 import { fetchIsland } from './fetchIsland'
 import { theme } from '#nuxt-og-image/unocss-config.mjs'
 
-export async function devIframeTemplate(ctx: H3EventOgImageRender) {
+export async function devIframeTemplate(ctx: OgImageRenderEventContext) {
   const { options } = ctx
   const { fonts } = useOgImageRuntimeConfig()
   // const scale = query.scale

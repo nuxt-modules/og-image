@@ -1,8 +1,8 @@
 import { type Resolver, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
+import { assertSiteConfig } from 'nuxt-site-config-kit'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from './module'
-import { assertSiteConfig } from 'nuxt-site-config-kit'
 
 // prerender will always be called when using nuxi generate and sometimes be used when using nuxi build
 

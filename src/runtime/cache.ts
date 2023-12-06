@@ -2,11 +2,11 @@ import { prefixStorage } from 'unstorage'
 import { getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
 import { withTrailingSlash } from 'ufo'
 import { hash } from 'ohash'
-import type { H3EventOgImageRender } from './types'
+import type { OgImageRenderEventContext } from './types'
 import { useStorage } from '#imports'
 
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
-export async function useOgImageBufferCache(ctx: H3EventOgImageRender, options: {
+export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
 }): Promise<void | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {

@@ -4,7 +4,7 @@ import { createError, getQuery } from 'h3'
 import { defu } from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'
-import type { H3EventOgImageRender, OgImageOptions } from '../../types'
+import type { OgImageOptions, OgImageRenderEventContext } from '../../types'
 import { fetchPathHtmlAndExtractOptions } from '../options/fetch'
 import { prerenderOptionsCache } from '../cache/prerender'
 import type SatoriRenderer from '../renderers/satori'
@@ -12,13 +12,13 @@ import type ChromiumRenderer from '../renderers/chromium'
 import { useChromiumRenderer, useSatoriRenderer } from '../renderers/satori/instances'
 import { separateProps, useOgImageRuntimeConfig } from '../../utils'
 import { resolvePathCacheKey } from '../../nitro/utils'
-import { useRuntimeConfig } from '#imports'
+import { useNitroApp, useRuntimeConfig } from '#imports'
 
-export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3EventOgImageRender> {
+export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {
   const runtimeConfig = useOgImageRuntimeConfig()
   const path = parseURL(e.path).pathname
 
-  const extension = path.split('.').pop() as H3EventOgImageRender['extension']
+  const extension = path.split('.').pop() as OgImageRenderEventContext['extension']
   if (!extension) {
     return createError({
       statusCode: 400,
@@ -93,7 +93,7 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3Ev
       statusMessage: `Renderer ${options.renderer} is missing.`,
     })
   }
-  return {
+  const ctx: OgImageRenderEventContext = {
     e,
     key,
     renderer,
@@ -101,5 +101,9 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | H3Ev
     extension,
     basePath,
     options,
+    _nitro: useNitroApp(),
   }
+  // call the nitro hook
+  await ctx._nitro.hooks.callHook('nuxt-og-image:context', ctx)
+  return ctx
 }

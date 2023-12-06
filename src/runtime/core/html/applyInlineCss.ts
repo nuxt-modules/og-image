@@ -1,10 +1,10 @@
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import { useCssInline } from '../renderers/satori/instances'
-import type { H3EventOgImageRender } from '../../types'
+import type { OgImageRenderEventContext } from '../../types'
 import { useNitroOrigin } from '#imports'
 import cssInline from '#nuxt-og-image/bindings/css-inline'
 
-export async function applyInlineCss({ e }: H3EventOgImageRender, island: NuxtIslandResponse) {
+export async function applyInlineCss({ e }: OgImageRenderEventContext, island: NuxtIslandResponse) {
   let html = island.html
   const componentInlineStyles = island.head.link.filter(l => l.href.startsWith('/_nuxt/components'))
   const usingInlineCss = !!componentInlineStyles.length

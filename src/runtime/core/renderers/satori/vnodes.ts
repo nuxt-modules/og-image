@@ -1,5 +1,5 @@
 import { html as convertHtmlToSatori } from 'satori-html'
-import type { H3EventOgImageRender, VNode } from '../../../types'
+import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { fetchIsland } from '../../html/fetchIsland'
 import { applyInlineCss } from '../../html/applyInlineCss'
 import { applyEmojis } from '../../html/applyEmojis'
@@ -11,7 +11,7 @@ import imageSrc from './plugins/imageSrc'
 import flex from './plugins/flex'
 import encoding from './plugins/encoding'
 
-export async function createVNodes(ctx: H3EventOgImageRender): Promise<VNode> {
+export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNode> {
   let html = ctx.options.html
   if (!html) {
     const island = await fetchIsland(ctx)

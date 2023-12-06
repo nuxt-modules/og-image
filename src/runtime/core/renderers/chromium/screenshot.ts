@@ -1,10 +1,10 @@
 import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import { joinURL, withQuery } from 'ufo'
-import type { H3EventOgImageRender } from '../../../types'
+import type { OgImageRenderEventContext } from '../../../types'
 import { useNitroOrigin } from '#imports'
 
-export async function createScreenshot({ basePath, e, options, extension }: H3EventOgImageRender, browser: Browser): Promise<Buffer> {
+export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
   const path = options.component === 'PageScreenshot' ? basePath : joinURL('/__og-image__/image', basePath, `og.html`)
   // TODO add screenshotOptions
   const page = await browser.newPage({
