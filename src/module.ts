@@ -170,7 +170,7 @@ export default defineNuxtModule<ModuleOptions>({
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const compatibility = getPresetNitroPresetCompatibility(preset)
     const userConfiguredExtension = config.defaults.extension
-    config.defaults.extension = userConfiguredExtension || 'jpg'
+    config.defaults.extension = userConfiguredExtension || 'png'
     if (!compatibility.bindings.sharp && config.defaults.renderer !== 'chromium') {
       if (userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension))
         logger.warn('The sharp runtime is not available for this target, disabling sharp and using png instead.')
