@@ -2,11 +2,11 @@ import { type Resolver, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from './module'
+import { assertSiteConfig } from 'nuxt-site-config-kit'
 
 // prerender will always be called when using nuxi generate and sometimes be used when using nuxi build
 
 export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
-  // TODO maybe remove
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig) => {
       // renderers
@@ -17,6 +17,15 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver[
       // avoid wasm handling while prerendering
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false
+
+      // check if there are any pages in the config, these are paths without a file extension
+      const prerenderingPages = (nuxt.options.nitro.prerender?.routes || [])
+        .some(r => r && (!r.includes('.') || r.includes('*')))
+      prerenderingPages && assertSiteConfig('nuxt-og-image', {
+        url: 'OG Image tags are required to be absolute URLs.',
+      }, {
+        throwError: false,
+      })
     })
   })
 }

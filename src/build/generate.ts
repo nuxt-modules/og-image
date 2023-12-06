@@ -1,5 +1,6 @@
 import { type Resolver, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
+import { assertSiteConfig } from 'nuxt-site-config-kit'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from '../module'
 
@@ -22,6 +23,11 @@ export function setupGenerateHandler(options: ModuleOptions, resolve: Resolver['
         },
       },
       resolve,
+    })
+    assertSiteConfig('nuxt-og-image', {
+      url: 'OG Image tags are required to be absolute URLs.',
+    }, {
+      throwError: true,
     })
   })
 }
