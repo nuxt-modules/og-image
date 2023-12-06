@@ -101,7 +101,8 @@
       "h3",
       "nitropack",
       "@vue/runtime-core",
-      "#nuxt-og-image/components"
+      "#nuxt-og-image/components",
+      "sharp"
     ]
   }
 }
