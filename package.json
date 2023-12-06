@@ -45,7 +45,6 @@
   },
   "dependencies": {
     "@iconify-json/noto": "^1.1.17",
-    "@img/sharp-wasm32": "^0.33.0",
     "@nuxt/devtools-kit": "^1.0.4",
     "@nuxt/kit": "^3.8.2",
     "@resvg/resvg-js": "^2.6.0",

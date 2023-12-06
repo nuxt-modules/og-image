@@ -136,7 +136,7 @@ export default defineNuxtModule<ModuleOptions>({
         component: 'NuxtSeo',
         width: 1200,
         height: 600,
-        // default is to cache the image for 1 day (24 hours)
+        // default is to cache the image for 3 day (72 hours)
         cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
       componentDirs: ['OgImage', 'OgImageTemplate'],

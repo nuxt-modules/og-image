@@ -11,9 +11,6 @@ importers:
       '@iconify-json/noto':
         specifier: ^1.1.17
         version: 1.1.17
-      '@img/sharp-wasm32':
-        specifier: ^0.33.0
-        version: 0.33.0
       '@nuxt/devtools-kit':
         specifier: ^1.0.4
         version: 1.0.4(nuxt@3.8.2)(rollup@3.29.4)(vite@4.5.0)
@@ -710,6 +707,7 @@ packages:
     dependencies:
       tslib: 2.6.2
     dev: false
+    optional: true
 
   /@es-joy/jsdoccomment@0.41.0:
     resolution: {integrity: sha512-aKUhyn1QI5Ksbqcr3fFJj16p99QdjUxXAEuFst1Z47DRyoiMwivIH9MV/ARcJOCXVjPfjITciej8ZD2O/6qUmw==}
@@ -1411,6 +1409,7 @@ packages:
     dependencies:
       '@emnapi/runtime': 0.44.0
     dev: false
+    optional: true
 
   /@img/sharp-win32-ia32@0.33.0:
     resolution: {integrity: sha512-5HfcsCZi3l5nPRF2q3bllMVMDXBqEWI3Q8KQONfzl0TferFE5lnsIG0A1YrntMAGqvkzdW6y1Ci1A2uTvxhfzg==}
@@ -11757,6 +11756,7 @@ packages:
     resolution: {integrity: sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==}
     requiresBuild: true
     dev: false
+    optional: true
 
   /tsscmp@1.0.6:
     resolution: {integrity: sha512-LxhtAkPDTkVCMQjt2h6eBVY28KCjikZqZfMcC15YBeNjkgUpdCfBu5HoiOTDu86v6smE8yOjyEktJ8hlbANHQA==}
