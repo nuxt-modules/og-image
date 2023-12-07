@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import {
+  type AddComponentOptions,
   addComponent,
   addComponentsDir,
   addImports,
@@ -89,6 +90,10 @@ export interface ModuleOptions {
    * @false false
    */
   debug: boolean
+  /**
+   * Options to pass to the <OgImage> and <OgImageScreenshot> component.
+   */
+  componentOptions?: Pick<AddComponentOptions, 'global'>
   /**
    * Modify the cache behavior.
    *
@@ -301,8 +306,8 @@ export default defineNuxtModule<ModuleOptions>({
       .forEach((name) => {
         addComponent({
           name,
-          global: true,
           filePath: resolve(`./runtime/components/OgImage/${name}`),
+          ...config.componentOptions,
         })
       })
 

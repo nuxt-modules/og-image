@@ -94,7 +94,7 @@
     "playwright": "^1.40.1",
     "sass": "^1.69.5",
     "sharp": "^0.33.0",
-    "vitest": "^1.0.1"
+    "vitest": "^1.0.2"
   },
   "build": {
     "externals": [
