@@ -13,52 +13,20 @@ describe('json', () => {
     delete json.key
     expect(json).toMatchInlineSnapshot(`
       {
-        "_nitro": {
-          "h3App": {
-            "options": {
-              "debug": false,
-            },
-            "stack": [
-              {
-                "route": "/",
-              },
-              {
-                "route": "/",
-              },
-              {
-                "route": "/",
-              },
-              {
-                "route": "/",
-              },
-              {
-                "route": "/",
-              },
-            ],
+        "cacheKey": "satori:5Hzq5ZrLws",
+        "compatibility": {
+          "bindings": {
+            "chromium": "node",
+            "css-inline": "node",
+            "resvg": "node",
+            "satori": "node",
+            "sharp": "node",
           },
-          "hooks": {
-            "_after": [
-              null,
-            ],
-            "_before": [
-              null,
-            ],
-            "_deprecatedHooks": {},
-            "_hooks": {
-              "render:html": [
-                null,
-              ],
-            },
-          },
-          "router": {},
+          "chromium": false,
         },
-        "basePath": "/satori",
-        "compatibility": [
+        "compatibilityHints": [
           "Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.",
         ],
-        "e": "[GET] /__og-image__/image/satori/og.json",
-        "extension": "json",
-        "isDebugJsonPayload": true,
         "options": {
           "cacheMaxAgeSeconds": 259200,
           "component": "NuxtSeo",
@@ -70,15 +38,6 @@ describe('json', () => {
           },
           "renderer": "satori",
           "width": 1200,
-        },
-        "renderer": {
-          "name": "satori",
-          "supportedFormats": [
-            "png",
-            "jpeg",
-            "jpg",
-            "json",
-          ],
         },
         "siteConfig": {
           "_context": {

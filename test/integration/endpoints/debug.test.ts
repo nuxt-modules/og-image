@@ -42,8 +42,6 @@ describe('debug', () => {
           ],
           "hasNuxtIcon": false,
           "resvgOptions": {},
-          "runtimeChromium": true,
-          "runtimeSatori": true,
           "satoriOptions": {},
           "sharpOptions": {},
         },
