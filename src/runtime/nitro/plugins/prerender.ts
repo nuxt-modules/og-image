@@ -4,7 +4,7 @@ import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { defu } from 'defu'
 import type { NitroRouteRules } from 'nitropack'
 import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
-import { prerenderOptionsCache } from '../../core/cache/prerender'
+import { prerenderChromiumContext, prerenderOptionsCache } from '../../core/cache/prerender'
 import { isInternalRoute } from '../../utils.pure'
 import { resolvePathCacheKey } from '../utils'
 import { useRuntimeConfig } from '#imports'
@@ -37,5 +37,12 @@ export default defineNitroPlugin(async (nitro) => {
       return
     const key = resolvePathCacheKey(ctx.event)
     await prerenderOptionsCache!.setItem(key, options)
+  })
+  nitro.hooks.hook('close', async () => {
+    // clean up the browser
+    if (prerenderChromiumContext.browser) {
+      await prerenderChromiumContext.browser.close()
+      prerenderChromiumContext.browser = undefined
+    }
   })
 })
