@@ -2,13 +2,14 @@ import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import { joinURL, withQuery } from 'ufo'
 import type { OgImageRenderEventContext } from '../../../types'
+import { useOgImageRuntimeConfig } from '../../../utils'
 import { useNitroOrigin } from '#imports'
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
+  const { colorPreference } = useOgImageRuntimeConfig()
   const path = options.component === 'PageScreenshot' ? basePath : joinURL('/__og-image__/image', basePath, `og.html`)
-  // TODO add screenshotOptions
   const page = await browser.newPage({
-    colorScheme: options.colorScheme,
+    colorScheme: colorPreference || 'no-preference',
     baseURL: useNitroOrigin(e),
   })
   if (import.meta.prerender && !options.html) {
@@ -44,17 +45,18 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
       type: extension === 'png' ? 'png' : 'jpeg',
     }
 
-    // if (options.delay)
-    //   await page.waitForTimeout(options.delay)
+    const _options = options.screenshot || {}
+    if (_options.delay)
+      await page.waitForTimeout(_options.delay)
 
-    if (options.mask) {
+    if (_options.mask) {
       await page.evaluate((mask) => {
         for (const el of document.querySelectorAll(mask) as any as HTMLElement[])
           el.style.display = 'none'
-      }, options.mask)
+      }, _options.mask)
     }
-    if (options.selector)
-      return await page.locator(options.selector).screenshot(screenshotOptions)
+    if (_options.selector)
+      return await page.locator(_options.selector).screenshot(screenshotOptions)
 
     return await page.screenshot(screenshotOptions)
   }

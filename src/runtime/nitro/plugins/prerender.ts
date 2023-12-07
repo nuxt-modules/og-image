@@ -38,10 +38,10 @@ export default defineNitroPlugin(async (nitro) => {
     const key = resolvePathCacheKey(ctx.event)
     await prerenderOptionsCache!.setItem(key, options)
   })
-  nitro.hooks.hook('close', () => {
+  nitro.hooks.hook('close', async () => {
     // clean up the browser
     if (prerenderChromiumContext.browser) {
-      prerenderChromiumContext.browser.close()
+      await prerenderChromiumContext.browser.close()
       prerenderChromiumContext.browser = undefined
     }
   })

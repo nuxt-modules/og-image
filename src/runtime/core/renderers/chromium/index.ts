@@ -11,22 +11,27 @@ const ChromiumRenderer: Renderer = {
     return {} // TODO
   },
   async createImage(ctx) {
-    // TODO redirect for screenshot
-    // TODO maybe keep this alive
-    const browser: Browser = (import.meta.prerender ? prerenderChromiumContext.browser : null) || await createBrowser()
-    if (!browser) {
+    let browser: Browser = (import.meta.prerender ? prerenderChromiumContext.browser : null) || await createBrowser()
+    // check if browser is open
+    // lets us re-use the browser
+    if (import.meta.prerender) {
+      prerenderChromiumContext.browser = browser
+      // if not, open it
+      if (!browser.isConnected())
+        browser = await createBrowser()
+    }
+
+    if (!browser.isConnected()) {
       return createError({
         statusCode: 400,
-        statusMessage: 'Failed to create Local Chromium Browser.',
+        statusMessage: 'Failed to create connect to Chromium Browser.',
       })
     }
-    // lets us re-use the browser
-    if (import.meta.prerender)
-      prerenderChromiumContext.browser = browser
 
     // @todo return placeholder image on failure
     return createScreenshot(ctx, browser!).finally(async () => {
-      await browser!.close()
+      if (!import.meta.prerender) // closed by
+        await browser!.close()
     })
   },
 }
