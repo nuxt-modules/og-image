@@ -185,6 +185,14 @@ export default defineNuxtModule<ModuleOptions>({
         logger.warn('Support for `sharp` is limited so check the compatibility guide.')
       }
     }
+    else if (!hasSharpDependency) {
+      // disable sharp
+      config.compatibility = defu(<CompatibilityConfig> {
+        runtime: { sharp: false },
+        dev: { sharp: false },
+        prerender: { sharp: false },
+      }, config.compatibility)
+    }
 
     // we can check if we have chrome and disable chromium if not
     const hasChromeLocally = !!Launcher.getFirstInstallation()
