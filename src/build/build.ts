@@ -13,11 +13,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
 
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
-    // renderers
-    nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = config.runtimeSatori ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
-    nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = config.runtimeChromium ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
-
-    applyNitroPresetCompatibility(nitroConfig, { resolve, compatibility: config.runtimeCompatibility })
+    applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
     // patch implicit dependencies:
     // - playwright-core
     nitroConfig.alias!.electron = 'unenv/runtime/mock/proxy-cjs'

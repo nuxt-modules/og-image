@@ -8,9 +8,6 @@ import type { ModuleOptions } from '../module'
 // same as dev but we inject the aliases into the prerender config and noop the regular nitro
 export function setupGenerateHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
-    // renderers
-    nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = 'unenv/runtime/mock/empty'
-    nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = 'unenv/runtime/mock/empty'
     // bindings
     applyNitroPresetCompatibility(nitroConfig, {
       compatibility: {

@@ -67,9 +67,11 @@ export default defineNuxtConfig({
     },
   },
 
-  debug: false,
+  debug: true,
 
-  devtools: true,
+  devtools: {
+    enabled: true,
+  },
 
   ogImage: {
     fonts: [

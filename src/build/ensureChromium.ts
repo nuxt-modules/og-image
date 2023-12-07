@@ -1,10 +1,10 @@
 import { execa } from 'execa'
 import terminate from 'terminate'
-import type { Nitro } from 'nitropack'
+import type { ConsolaInstance } from 'consola'
 
-export async function ensureChromium(nitro: Nitro) {
+export async function ensureChromium(logger: ConsolaInstance) {
   // avoid problems by installing playwright
-  nitro.logger.info('Ensuring Chromium install for og:image generation...')
+  logger.info('Ensuring Chromium install for og:image generation...')
   const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
     stdio: 'inherit',
   })
@@ -13,7 +13,7 @@ export async function ensureChromium(nitro: Nitro) {
   await new Promise((resolve) => {
     installChromeProcess.on('exit', (e) => {
       if (e !== 0)
-        nitro.logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
+        logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
       resolve(true)
     })
   })

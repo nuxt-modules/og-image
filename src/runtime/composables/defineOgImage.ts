@@ -6,8 +6,7 @@ import { withoutBase } from 'ufo'
 import type { NitroRouteRules } from 'nitropack'
 import type { DefineOgImageInput, OgImageOptions } from '../types'
 import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../utils'
-import { normaliseOptions } from '../core/options/normalise'
-import { createOgImageMeta } from '../nuxt/utils'
+import { createOgImageMeta, normaliseOptions } from '../nuxt/utils'
 import { useNuxtApp, useRequestEvent, useRouter, useRuntimeConfig } from '#imports'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {
@@ -40,7 +39,7 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     ..._options,
   })
   const { defaults } = useOgImageRuntimeConfig()
-  const resolvedOptions = normaliseOptions(defu(separateProps(options), separateProps(routeRules), defaults) as OgImageOptions)
+  const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
   // allow overriding using a prebuild config
   if (_options.url) {
     createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext)

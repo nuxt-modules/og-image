@@ -10,6 +10,7 @@ import {
   createResolver,
   defineNuxtModule,
   hasNuxtModule,
+  tryResolveModule,
   useLogger,
 } from '@nuxt/kit'
 import type { SatoriOptions } from 'satori'
@@ -20,21 +21,28 @@ import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
+import { Launcher } from 'chrome-launcher'
 import { version } from '../package.json'
 import type {
+  CompatibilityConfig,
   FontConfig,
   InputFontConfig,
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
 } from './runtime/types'
-import { type RuntimeCompatibilitySchema, getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
+import {
+  ensureDependencies,
+  getPresetNitroPresetCompatibility,
+  resolveNitroPreset,
+} from './compatibility'
 import { extendTypes, getNuxtModuleOptions } from './kit'
 import { setupDevToolsUI } from './build/devtools'
 import { setupDevHandler } from './build/dev'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { setupBuildHandler } from './build/build'
+import { ensureChromium } from './build/ensureChromium'
 
 export interface ModuleOptions {
   /**
@@ -76,19 +84,6 @@ export interface ModuleOptions {
    */
   sharpOptions?: Partial<SharpOptions>
   /**
-   * Include Satori runtime.
-   *
-   * @default true
-   */
-  runtimeSatori: boolean
-  /**
-   * Include the Browser runtime.
-   * This will need to be manually enabled for production environments.
-   *
-   * @default `process.dev`
-   */
-  runtimeChromium: boolean
-  /**
    * Enables debug logs and a debug endpoint.
    *
    * @false false
@@ -115,10 +110,11 @@ export interface ModuleOptions {
    */
   componentDirs: string[]
   /**
-   * Manually modify the deployment compatibility.
+   * Manually modify the compatibility.
    */
-  runtimeCompatibility?: RuntimeCompatibilitySchema
+  compatibility?: CompatibilityConfig
 }
+
 export interface ModuleHooks {
   'nuxt-og-image:components': (ctx: { components: OgImageComponent[] }) => Promise<void> | void
   'nuxt-og-image:runtime-config': (config: ModuleOptions) => Promise<void> | void
@@ -133,7 +129,7 @@ export default defineNuxtModule<ModuleOptions>({
     },
     configKey: 'ogImage',
   },
-  defaults(nuxt) {
+  defaults() {
     return {
       enabled: true,
       defaults: {
@@ -148,8 +144,6 @@ export default defineNuxtModule<ModuleOptions>({
       componentDirs: ['OgImage', 'OgImageTemplate'],
       fonts: [],
       runtimeCacheStorage: true,
-      runtimeSatori: true,
-      runtimeChromium: nuxt.options.dev,
       debug: isDevelopment,
     }
   },
@@ -168,22 +162,62 @@ export default defineNuxtModule<ModuleOptions>({
     const { resolve } = createResolver(import.meta.url)
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
-    const compatibility = getPresetNitroPresetCompatibility(preset)
+    const targetCompatibility = getPresetNitroPresetCompatibility(preset)
+
+    // support sharp if user opts-in
+    const hasSharpDependency = !!(await tryResolveModule('sharp'))
     const userConfiguredExtension = config.defaults.extension
-    config.defaults.extension = userConfiguredExtension || 'png'
-    if (!compatibility.bindings.sharp && config.defaults.renderer !== 'chromium') {
-      if (userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension))
-        logger.warn('The sharp runtime is not available for this target, disabling sharp and using png instead.')
-
-      config.defaults.extension = 'png'
+    const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
+    config.defaults.extension = userConfiguredExtension || (hasSharpDependency && targetCompatibility.bindings.sharp ? 'jpg' : 'png')
+    if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
+      if (hasSharpDependency && !targetCompatibility.bindings.sharp) {
+        logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
+        config.compatibility = defu(<CompatibilityConfig> {
+          runtime: {
+            sharp: false,
+          },
+        }, config.compatibility)
+      }
+      else if (!hasSharpDependency) {
+        // sharp is supported but not installed
+        logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
+        await ensureDependencies(['sharp'])
+        logger.warn('Support for `sharp` is limited so check the compatibility guide.')
+      }
     }
 
-    if (config.runtimeChromium && !compatibility.bindings.chromium) {
-      logger.warn('The Chromium runtime is not available for this target, disabling runtimeChromium.')
-      config.runtimeChromium = false
-    }
+    // we can check if we have chrome and disable chromium if not
+    const hasChromeLocally = !!Launcher.getFirstInstallation()
+    const hasPlaywrightDependency = !!(await tryResolveModule('playwright'))
+    if (!hasChromeLocally && !hasPlaywrightDependency) {
+      if (nuxt.options._generate)
+        await ensureChromium(logger)
+      else if (nuxt.options.build)
+        logger.info('You are missing a chromium install. You will not be able to prerender images using the chromium render.')
 
-    // TODO use png if if weren't not using a node-based env
+      // need to disable chromium in all environments
+      config.compatibility = defu(<CompatibilityConfig> {
+        runtime: { chromium: false },
+        dev: { chromium: false },
+        prerender: { chromium: false },
+      }, config.compatibility)
+    }
+    else if (hasChromeLocally) {
+      // we have chrome locally so we can enable chromium in dev
+      config.compatibility = defu(<CompatibilityConfig> {
+        runtime: { chromium: false },
+        dev: { chromium: true },
+        prerender: { chromium: true },
+      }, config.compatibility)
+    }
+    else if (hasPlaywrightDependency && targetCompatibility.bindings.chromium) {
+      // need to disable chromium in all environments
+      config.compatibility = defu(<CompatibilityConfig> {
+        runtime: { chromium: true },
+        dev: { chromium: true },
+        prerender: { chromium: true },
+      }, config.compatibility)
+    }
 
     await installNuxtSiteConfig()
 
@@ -316,7 +350,7 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.hooks.hook('nuxt-og-image:components', ogImageComponentCtx)
     })
     addTemplate({
-      filename: 'og-image-component-names.mjs',
+      filename: 'nuxt-og-image/components.mjs',
       getContents() {
         return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
       },
@@ -413,8 +447,6 @@ ${componentImports}
         resvgOptions: config.resvgOptions || {},
         sharpOptions: config.sharpOptions || {},
 
-        runtimeSatori: config.runtimeSatori,
-        runtimeChromium: config.runtimeChromium,
         defaults: config.defaults,
         debug: config.debug,
         // avoid adding credentials

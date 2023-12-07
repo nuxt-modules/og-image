@@ -584,12 +584,12 @@ const currentPageFile = computed(() => {
                     Compatibility
                   </h3>
                 </template>
-                <div v-if="debug?.compatibility" class="text-sm">
-                  <div v-if="!debug.compatibility.length" class="text-sm">
+                <div v-if="debug?.compatibilityHints" class="text-sm">
+                  <div v-if="!debug.compatibilityHints.length" class="text-sm">
                     <NIcon icon="carbon:checkmark" class="text-green-500" /> Looks good.
                   </div>
                   <div v-else class="space-y-3">
-                    <div v-for="(c, key) in debug.compatibility" :key="key" class="space-x-2 flex items-center opacity-65">
+                    <div v-for="(c, key) in debug.compatibilityHints" :key="key" class="space-x-2 flex items-center opacity-65">
                       <NIcon icon="carbon:warning" class="text-yellow-500" />
                       <div>{{ c }}</div>
                     </div>

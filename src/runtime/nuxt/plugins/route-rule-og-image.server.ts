@@ -3,10 +3,9 @@ import { parseURL, withoutBase } from 'ufo'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import type { NitroRouteRules } from 'nitropack'
 import type { ActiveHeadEntry } from '@unhead/schema'
-import { normaliseOptions } from '../../core/options/normalise'
 import { getOgImagePath, isInternalRoute, useOgImageRuntimeConfig } from '../../utils'
 import type { OgImageOptions } from '../../types'
-import { createOgImageMeta } from '../utils'
+import { createOgImageMeta, normaliseOptions } from '../utils'
 import { defineNuxtPlugin, useRequestEvent } from '#imports'
 
 export default defineNuxtPlugin((nuxtApp) => {

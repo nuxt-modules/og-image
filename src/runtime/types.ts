@@ -4,7 +4,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { SharpOptions } from 'sharp'
-import type { NitroApp } from 'nitropack'
+import type { NitroApp, WasmOptions } from 'nitropack'
 import type { OgImageComponents } from '#nuxt-og-image/components'
 
 export interface OgImageRenderEventContext {
@@ -25,9 +25,6 @@ export interface OgImageRuntimeConfig {
   satoriOptions: SatoriOptions
   resvgOptions: ResvgRenderOptions
   sharpOptions: SharpOptions
-
-  runtimeSatori: boolean
-  runtimeChromium: boolean
 
   defaults: OgImageOptions
   debug: boolean
@@ -122,6 +119,23 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
 export interface FontConfig { name: string, weight: string | number, path?: string, key?: string }
 
 export type InputFontConfig = (`${string}:${number}` | FontConfig)
+
+export interface RuntimeCompatibilitySchema {
+  bindings: {
+    chromium: 'node' | false
+    ['css-inline']: 'node' | false
+    resvg: 'node' | 'wasm' | 'wasm-fs' | false
+    satori: 'node' | 'wasm' | 'wasm-fs' | false
+    sharp: 'node' | false
+  }
+  wasm?: WasmOptions
+}
+
+export interface CompatibilityConfig {
+  dev?: Partial<RuntimeCompatibilitySchema>
+  runtime?: Partial<RuntimeCompatibilitySchema>
+  prerender?: Partial<RuntimeCompatibilitySchema>
+}
 
 export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: Omit<OgImageOptions['extension'], 'html'> }
 

@@ -4,7 +4,9 @@ import {
 } from 'nypm'
 import { env, provider } from 'std-env'
 import { defu } from 'defu'
-import type { NitroConfig, WasmOptions } from 'nitropack/types'
+import type { NitroConfig } from 'nitropack/types'
+import { addTemplate, useNuxt } from '@nuxt/kit'
+import type { RuntimeCompatibilitySchema } from './runtime/types'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -19,17 +21,6 @@ const autodetectableProviders = {
 const autodetectableStaticProviders = {
   netlify: 'netlify-static',
   vercel: 'vercel-static',
-}
-
-export interface RuntimeCompatibilitySchema {
-  bindings: {
-    chromium: 'node' | false
-    ['css-inline']: 'node' | false
-    resvg: 'node' | 'wasm' | 'stackblitz' | false
-    satori: 'node' | 'wasm' | 'stackblitz' | false
-    sharp: 'node' | false
-  }
-  wasm?: WasmOptions
 }
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
@@ -61,7 +52,7 @@ const awsLambda: RuntimeCompatibilitySchema = {
     'css-inline': 'node',
     'resvg': 'node',
     'satori': 'node',
-    'sharp': 'node',
+    'sharp': false, // 0.33.x has issues
   },
 }
 
@@ -73,13 +64,13 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     bindings: {
       'chromium': false,
       'css-inline': false,
-      'resvg': 'stackblitz',
-      'satori': 'stackblitz',
+      'resvg': 'wasm-fs',
+      'satori': 'wasm-fs',
       'sharp': false,
     },
   },
   'aws-lambda': awsLambda,
-  'netlify': awsLambda,
+  'netlify': defu({ bindings: { sharp: false } }, awsLambda),
   'netlify-edge': {
     bindings: {
       'chromium': false,
@@ -137,12 +128,15 @@ export function getPresetNitroPresetCompatibility(target: string) {
   return compatibility
 }
 
-export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: RuntimeCompatibilitySchema, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
-  let compatibility: RuntimeCompatibilitySchema | undefined = options?.compatibility
+export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: Partial<RuntimeCompatibilitySchema>, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
   const target = resolveNitroPreset(nitroConfig)
-  if (!compatibility)
-    compatibility = getPresetNitroPresetCompatibility(target)
-  const resolve = options.resolve
+  const compatibility: RuntimeCompatibilitySchema = defu(options.compatibility, getPresetNitroPresetCompatibility(target)) as RuntimeCompatibilitySchema
+  const { resolve } = options
+
+  // renderers
+  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = compatibility.bindings.satori ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = compatibility.bindings.chromium ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
+
   function applyBinding(key: keyof RuntimeCompatibilitySchema['bindings']) {
     const binding: string | false = compatibility!.bindings[key]
     if (binding === false)
@@ -164,11 +158,20 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
   }
   nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
+
+  nitroConfig.virtual!['#nuxt-og-image/compatibility'] = () => `export default ${JSON.stringify(compatibility)}`
+  addTemplate({
+    filename: 'nuxt-og-image/compatibility.mjs',
+    getContents() {
+      return `export default ${JSON.stringify(compatibility)}`
+    },
+    options: { mode: 'server' },
+  })
   return compatibility
 }
 
-export function ensureDependencies(nuxt: Nuxt, dep: string[]) {
+export function ensureDependencies(dep: string[], nuxt: Nuxt = useNuxt()) {
   return Promise.all(dep.map((d) => {
-    return addDependency(d, { cwd: nuxt.options.rootDir })
+    return addDependency(d, { cwd: nuxt.options.rootDir, dev: true })
   }))
 }

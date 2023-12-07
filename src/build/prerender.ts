@@ -9,11 +9,8 @@ import type { ModuleOptions } from './module'
 export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig) => {
-      // renderers
-      nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = resolve('./runtime/core/renderers/satori')
-      nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = resolve('./runtime/core/renderers/chromium')
       // bindings
-      applyNitroPresetCompatibility(nitroConfig, { resolve })
+      applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility.prerender, resolve })
       // avoid wasm handling while prerendering
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false

@@ -1,8 +1,12 @@
 import type { Head } from '@unhead/schema'
 import { defu } from 'defu'
-import type { OgImageOptions, OgImagePrebuilt } from '../types'
 import { separateProps } from '../utils'
-import { useServerHead } from '#imports'
+import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
+import { unref, useServerHead } from '#imports'
+
+// @ts-expect-error untyped
+import { componentNames } from '#build/nuxt-og-image/components.mjs'
+import compatibility from '#build/nuxt-og-image/compatibility.mjs'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: Record<string, any>) {
   const _input = separateProps(defu(input, ssrContext._ogImagePayload))
@@ -55,4 +59,26 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
   })
   ssrContext._ogImagePayload = _input
   ssrContext._ogImageInstances.push(instance)
+}
+
+export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions | OgImagePrebuilt {
+  const options = { ...unref(_options) } as OgImageOptions
+  if (!options)
+    return options
+  // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
+  if (options.component && componentNames) {
+    const originalName = options.component
+    for (const component of componentNames) {
+      if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
+        options.component = component.pascalName
+        break
+      }
+    }
+  }
+  // only if we have sharp available
+  if (['jpeg', 'jpg'].includes(options.extension || '') && !compatibility.bindings.sharp)
+    options.extension = 'png'
+  if (options.renderer === 'chromium' && !compatibility.bindings.chromium)
+    options.renderer = 'satori' // fallback
+  return options
 }

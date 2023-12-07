@@ -7,6 +7,9 @@ import { useOgImageBufferCache } from '../../../cache'
 import { useOgImageRuntimeConfig } from '../../../utils'
 import { useSiteConfig } from '#imports'
 
+// @ts-expect-error virtual module
+import compatibility from '#nuxt-og-image/compatibility'
+
 // /__og-image__/image/<path>/og.<extension
 export default defineEventHandler(async (e): Promise<any> => {
   const ctx = await resolveRendererContext(e)
@@ -15,21 +18,23 @@ export default defineEventHandler(async (e): Promise<any> => {
 
   const { isDebugJsonPayload, extension, options, renderer } = ctx
   const { debug, baseCacheKey } = useOgImageRuntimeConfig()
-  const compatibility: string[] = []
+  const compatibilityHints: string[] = []
   // debug
   if (isDebugJsonPayload) {
     const queryExtension = getQuery(e).extension || ctx.options.extension
-    // figure out compatibility based on what we're using
+    // figure out compatibilityHints based on what we're using
     if (['jpeg', 'jpg'].includes(queryExtension) && options.renderer === 'satori')
-      compatibility.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
+      compatibilityHints.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
     if (options.renderer === 'chromium')
-      compatibility.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
+      compatibilityHints.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
     if (await applyInlineCss(ctx, await fetchIsland(ctx)))
-      compatibility.push('Inlining CSS is only supported in Node based environments.')
+      compatibilityHints.push('Inlining CSS is only supported in Node based environments.')
     setHeader(e, 'Content-Type', 'application/json')
     return {
       compatibility,
-      ...ctx,
+      compatibilityHints,
+      cacheKey: ctx.key,
+      options: ctx.options,
       siteConfig: useSiteConfig(e),
       ...(options.renderer === 'satori' ? await renderer.debug(ctx) : undefined),
     }
