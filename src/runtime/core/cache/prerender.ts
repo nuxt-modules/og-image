@@ -8,5 +8,3 @@ export const prerenderOptionsCache = import.meta.prerender
     driver: lruCacheDriver({ max: 1000 }),
   })
   : undefined
-
-export const prerenderChromiumContext: { browser?: Browser } = { browser: undefined }
