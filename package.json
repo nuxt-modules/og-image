@@ -75,7 +75,6 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "sharp": "0.33.0",
     "@antfu/eslint-config": "2.3.4",
     "@img/sharp-linux-x64": "0.33.0",
     "@nuxt/content": "^2.9.0",
@@ -91,9 +90,10 @@
     "eslint": "8.55.0",
     "jest-image-snapshot": "^6.3.0",
     "nuxt": "^3.8.2",
-    "nuxt-icon": "0.6.6",
+    "nuxt-icon": "0.6.7",
     "playwright": "^1.40.1",
     "sass": "^1.69.5",
+    "sharp": "0.33.0",
     "vitest": "^1.0.1"
   },
   "build": {
