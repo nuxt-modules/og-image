@@ -25,35 +25,29 @@ const autodetectableStaticProviders = {
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
-  bindings: {
-    'chromium': 'node',
-    'css-inline': 'node',
-    'resvg': 'node',
-    'satori': 'node',
-    'sharp': 'node',
-  },
+  'chromium': 'node',
+  'css-inline': 'node',
+  'resvg': 'node',
+  'satori': 'node',
+  'sharp': 'node',
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {
-  bindings: {
-    'chromium': false,
-    'css-inline': false,
-    'resvg': 'wasm',
-    'satori': 'node',
-    'sharp': false,
-  },
-  wasm: {
+  'chromium': false,
+  'css-inline': false,
+  'resvg': 'wasm',
+  'satori': 'node',
+  'sharp': false,
+  'wasm': {
     esmImport: true,
   },
 }
 const awsLambda: RuntimeCompatibilitySchema = {
-  bindings: {
-    'chromium': false,
-    'css-inline': 'node',
-    'resvg': 'node',
-    'satori': 'node',
-    'sharp': false, // 0.33.x has issues
-  },
+  'chromium': false,
+  'css-inline': 'node',
+  'resvg': 'node',
+  'satori': 'node',
+  'sharp': false, // 0.33.x has issues
 }
 
 export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
@@ -61,25 +55,21 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'nitro-prerender': NodeRuntime,
   'node-server': NodeRuntime,
   'stackblitz': {
-    bindings: {
-      'chromium': false,
-      'css-inline': false,
-      'resvg': 'wasm-fs',
-      'satori': 'wasm-fs',
-      'sharp': false,
-    },
+    'chromium': false,
+    'css-inline': false,
+    'resvg': 'wasm-fs',
+    'satori': 'wasm-fs',
+    'sharp': false,
   },
   'aws-lambda': awsLambda,
-  'netlify': defu({ bindings: { sharp: false } }, awsLambda),
+  'netlify': awsLambda,
   'netlify-edge': {
-    bindings: {
-      'chromium': false,
-      'css-inline': false,
-      'resvg': 'wasm',
-      'satori': 'node',
-      'sharp': false,
-    },
-    wasm: {
+    'chromium': false,
+    'css-inline': false,
+    'resvg': 'wasm',
+    'satori': 'node',
+    'sharp': false,
+    'wasm': {
       rollup: {
         targetEnv: 'auto-inline',
         sync: ['@resvg/resvg-wasm/index_bg.wasm'],
@@ -89,14 +79,12 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'firebase': awsLambda,
   'vercel': awsLambda,
   'vercel-edge': {
-    bindings: {
-      'chromium': false,
-      'css-inline': false,
-      'resvg': 'wasm',
-      'satori': 'node',
-      'sharp': false,
-    },
-    wasm: {
+    'chromium': false,
+    'css-inline': false,
+    'resvg': 'wasm',
+    'satori': 'node',
+    'sharp': false,
+    'wasm': {
       // lowers workers kb size
       esmImport: true,
     },
@@ -130,18 +118,17 @@ export function getPresetNitroPresetCompatibility(target: string) {
 
 export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: Partial<RuntimeCompatibilitySchema>, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
   const target = resolveNitroPreset(nitroConfig)
-  const compatibility: RuntimeCompatibilitySchema = defu(options.compatibility, getPresetNitroPresetCompatibility(target)) as RuntimeCompatibilitySchema
+  const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
   const { resolve } = options
 
   // renderers
-  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = compatibility.bindings.satori ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
-  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = compatibility.bindings.chromium ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = compatibility.satori !== false ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = compatibility.chromium !== false ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
 
-  function applyBinding(key: keyof RuntimeCompatibilitySchema['bindings']) {
-    const binding: string | false = compatibility!.bindings[key]
-    if (binding === false)
-      return { [`#nuxt-og-image/bindings/${key}`]: 'unenv/runtime/mock/empty' }
-    return { [`#nuxt-og-image/bindings/${key}`]: resolve(`./runtime/core/bindings/${key}/${binding}`) }
+  function applyBinding(key: keyof RuntimeCompatibilitySchema) {
+    const binding = compatibility[key] as string | false
+    const envToggle = typeof options.compatibility?.[key] === 'undefined' ? true : !!options.compatibility[key]
+    return { [`#nuxt-og-image/bindings/${key}`]: [envToggle, binding].includes(false) ? 'unenv/runtime/mock/empty' : resolve(`./runtime/core/bindings/${key}/${binding}`) }
   }
   nitroConfig.alias = defu(
     applyBinding('chromium'),
@@ -152,7 +139,7 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     nitroConfig.alias || {},
   )
   // if we're using any wasm modules we need to enable the wasm runtime
-  if (Object.values(compatibility.bindings).includes('wasm')) {
+  if (Object.values(compatibility).includes('wasm')) {
     nitroConfig.experimental = nitroConfig.experimental || {}
     nitroConfig.experimental.wasm = true
   }

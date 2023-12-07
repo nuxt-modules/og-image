@@ -76,9 +76,9 @@ export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions |
     }
   }
   // only if we have sharp available
-  if (['jpeg', 'jpg'].includes(options.extension || '') && !compatibility.bindings.sharp)
+  if (['jpeg', 'jpg'].includes(options.extension || '') && !compatibility.sharp)
     options.extension = 'png'
-  if (options.renderer === 'chromium' && !compatibility.bindings.chromium)
+  if (options.renderer === 'chromium' && !compatibility.chromium)
     options.renderer = 'satori' // fallback
   return options
 }

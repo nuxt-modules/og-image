@@ -7,9 +7,6 @@ import { useOgImageBufferCache } from '../../../cache'
 import { useOgImageRuntimeConfig } from '../../../utils'
 import { useSiteConfig } from '#imports'
 
-// @ts-expect-error virtual module
-import compatibility from '#nuxt-og-image/compatibility'
-
 // /__og-image__/image/<path>/og.<extension
 export default defineEventHandler(async (e): Promise<any> => {
   const ctx = await resolveRendererContext(e)
@@ -31,7 +28,6 @@ export default defineEventHandler(async (e): Promise<any> => {
       compatibilityHints.push('Inlining CSS is only supported in Node based environments.')
     setHeader(e, 'Content-Type', 'application/json')
     return {
-      compatibility,
       compatibilityHints,
       cacheKey: ctx.key,
       options: ctx.options,

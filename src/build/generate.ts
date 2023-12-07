@@ -11,13 +11,11 @@ export function setupGenerateHandler(options: ModuleOptions, resolve: Resolver['
     // bindings
     applyNitroPresetCompatibility(nitroConfig, {
       compatibility: {
-        bindings: {
-          'css-inline': false,
-          'chromium': false,
-          'resvg': false,
-          'satori': false,
-          'sharp': false,
-        },
+        'chromium': false,
+        'satori': false,
+        'css-inline': false,
+        'resvg': false,
+        'sharp': false,
       },
       resolve,
     })

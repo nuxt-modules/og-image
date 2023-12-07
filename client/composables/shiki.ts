@@ -12,10 +12,8 @@ getHighlighter({
     'vitesse-light',
   ],
   langs: [
-    'css',
+    'html',
     'json',
-    'javascript',
-    'typescript',
   ],
 }).then((i) => { shiki.value = i })
 

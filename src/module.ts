@@ -145,6 +145,11 @@ export default defineNuxtModule<ModuleOptions>({
       fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
+      compatibility: {
+        dev: { satori: true },
+        prerender: { satori: true },
+        runtime: { satori: true },
+      },
     }
   },
   async setup(config, nuxt) {
@@ -168,14 +173,12 @@ export default defineNuxtModule<ModuleOptions>({
     const hasSharpDependency = !!(await tryResolveModule('sharp'))
     const userConfiguredExtension = config.defaults.extension
     const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
-    config.defaults.extension = userConfiguredExtension || (hasSharpDependency && targetCompatibility.bindings.sharp ? 'jpg' : 'png')
+    config.defaults.extension = userConfiguredExtension || (hasSharpDependency && targetCompatibility.sharp ? 'jpg' : 'png')
     if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
-      if (hasSharpDependency && !targetCompatibility.bindings.sharp) {
+      if (hasSharpDependency && !targetCompatibility.sharp) {
         logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
         config.compatibility = defu(<CompatibilityConfig> {
-          runtime: {
-            sharp: false,
-          },
+          runtime: { sharp: false },
         }, config.compatibility)
       }
       else if (!hasSharpDependency) {
@@ -218,7 +221,7 @@ export default defineNuxtModule<ModuleOptions>({
         prerender: { chromium: true },
       }, config.compatibility)
     }
-    else if (hasPlaywrightDependency && targetCompatibility.bindings.chromium) {
+    else if (hasPlaywrightDependency && targetCompatibility.chromium) {
       // need to disable chromium in all environments
       config.compatibility = defu(<CompatibilityConfig> {
         runtime: { chromium: true },

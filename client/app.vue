@@ -118,7 +118,7 @@ const aspectRatio = computed(() => {
 })
 
 const imageFormat = computed(() => {
-  return optionsOverrides.value?.extension || options.value?.extension
+  return optionsOverrides.value?.extension || options.value?.extension || 'png'
 })
 const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
 
@@ -399,7 +399,7 @@ const currentPageFile = computed(() => {
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
-                  <NButton icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchOptions({ extension: 'jpg' })" />
+                  <NButton v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium'" icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchOptions({ extension: 'jpg' })" />
                   <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchOptions({ extension: 'png' })" />
                   <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchOptions({ extension: 'svg' })" />
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchOptions({ extension: 'html' })" />
@@ -518,10 +518,10 @@ const currentPageFile = computed(() => {
                 </template>
                 <div class="flex space-between">
                   <div class="flex flex-grow items-center space-x-2 text-sm">
-                    <NButton v-if="globalDebug?.runtimeConfig?.runtimeSatori && !isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchOptions({ renderer: 'satori' })">
+                    <NButton v-if="!!globalDebug?.compatibility?.satori && !isPageScreenshot" icon="logos:vercel-icon" :border="renderer === 'satori'" @click="patchOptions({ renderer: 'satori' })">
                       Satori
                     </NButton>
-                    <NButton v-if="globalDebug?.runtimeConfig?.runtimeChromium" icon="logos:chrome" :border="renderer === 'chromium'" @click="patchOptions({ renderer: 'chromium' })">
+                    <NButton v-if="!!globalDebug?.compatibility?.chromium" icon="logos:chrome" :border="renderer === 'chromium'" @click="patchOptions({ renderer: 'chromium' })">
                       Chromium
                     </NButton>
                   </div>
@@ -651,12 +651,34 @@ const currentPageFile = computed(() => {
           <OSectionBlock>
             <template #text>
               <h3 class="opacity-80 text-base mb-1">
-                <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
-                Path Debug
+                <NIcon icon="carbon:settings" class="mr-1" />
+                Compatibility
               </h3>
             </template>
             <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="max-height: 500px; overflow-y: auto; white-space: break-spaces;" v-html="highlight(JSON.stringify(debug || {}, null, 2), 'json')" />
+              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(globalDebug?.compatibility || {}, null, 2), 'json')" />
+            </div>
+          </OSectionBlock>
+          <OSectionBlock>
+            <template #text>
+              <h3 class="opacity-80 text-base mb-1">
+                <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
+                vNodes
+              </h3>
+            </template>
+            <div class="px-3 py-2 space-y-5">
+              <pre of-auto h-full text-sm style="max-height: 500px; overflow-y: auto; white-space: break-spaces;" v-html="highlight(JSON.stringify(debug?.vnodes || {}, null, 2), 'json')" />
+            </div>
+          </OSectionBlock>
+          <OSectionBlock>
+            <template #text>
+              <h3 class="opacity-80 text-base mb-1">
+                <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
+                SVG
+              </h3>
+            </template>
+            <div class="px-3 py-2 space-y-5">
+              <pre of-auto h-full text-sm style="max-height: 500px; overflow-y: auto; white-space: break-spaces;" v-html="highlight(debug?.svg.replaceAll('>', '>\n') || '', 'html')" />
             </div>
           </OSectionBlock>
           <OSectionBlock>

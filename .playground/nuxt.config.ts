@@ -83,9 +83,6 @@ export default defineNuxtConfig({
         path: '/OPTIEinstein-Black.otf',
       },
     ],
-    playground: true,
-    // runtimeBrowser: true,
-    runtimeCacheStorage: false,
     debug: true,
   },
 

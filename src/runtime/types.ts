@@ -121,13 +121,11 @@ export interface FontConfig { name: string, weight: string | number, path?: stri
 export type InputFontConfig = (`${string}:${number}` | FontConfig)
 
 export interface RuntimeCompatibilitySchema {
-  bindings: {
-    chromium: 'node' | false
-    ['css-inline']: 'node' | false
-    resvg: 'node' | 'wasm' | 'wasm-fs' | false
-    satori: 'node' | 'wasm' | 'wasm-fs' | false
-    sharp: 'node' | false
-  }
+  chromium: 'node' | false
+  ['css-inline']: 'node' | false
+  resvg: 'node' | 'wasm' | 'wasm-fs' | false
+  satori: 'node' | 'wasm' | 'wasm-fs' | false
+  sharp: 'node' | false
   wasm?: WasmOptions
 }
 

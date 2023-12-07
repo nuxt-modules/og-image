@@ -33,6 +33,7 @@
     "virtual.d.ts"
   ],
   "scripts": {
+    "stub": "nuxt-build-module build --stub",
     "build": "pnpm dev:prepare && pnpm build:module && pnpm build:client",
     "build:client": "nuxi generate client",
     "build:module": "nuxt-build-module build",
