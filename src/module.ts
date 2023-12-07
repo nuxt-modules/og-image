@@ -15,7 +15,7 @@ import {
 } from '@nuxt/kit'
 import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
-import { isDevelopment } from 'std-env'
+import { isCI, isDevelopment } from 'std-env'
 import { hash } from 'ohash'
 import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
@@ -200,20 +200,12 @@ export default defineNuxtModule<ModuleOptions>({
         hasChromeLocally = !!Launcher.getFirstInstallation()
       }
       catch {}
+
+      if (isCI)
+        await ensureChromium(logger)
+
       const hasPlaywrightDependency = !!(await tryResolveModule('playwright'))
-      if (!hasChromeLocally && !hasPlaywrightDependency) {
-        if (nuxt.options._generate || config.defaults?.renderer === 'chromium')
-          await ensureChromium(logger)
-        else if (nuxt.options.build)
-          logger.info('You are missing a chromium install. You will not be able to prerender images using the chromium render.')
-        // need to disable chromium in all environments
-        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-          runtime: { chromium: false },
-          dev: { chromium: false },
-          prerender: { chromium: false },
-        })
-      }
-      else if (hasChromeLocally) {
+      if (hasChromeLocally) {
         // we have chrome locally so we can enable chromium in dev
         config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
           runtime: { chromium: false },
