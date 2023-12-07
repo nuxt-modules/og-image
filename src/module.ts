@@ -24,7 +24,7 @@ import { defu } from 'defu'
 import { Launcher } from 'chrome-launcher'
 import { version } from '../package.json'
 import type {
-  CompatibilityConfig,
+  CompatibilityFlagEnvOverrides,
   FontConfig,
   InputFontConfig,
   OgImageComponent,
@@ -112,7 +112,7 @@ export interface ModuleOptions {
   /**
    * Manually modify the compatibility.
    */
-  compatibility?: CompatibilityConfig
+  compatibility?: CompatibilityFlagEnvOverrides
 }
 
 export interface ModuleHooks {
@@ -145,11 +145,6 @@ export default defineNuxtModule<ModuleOptions>({
       fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
-      compatibility: {
-        dev: { satori: true },
-        prerender: { satori: true },
-        runtime: { satori: true },
-      },
     }
   },
   async setup(config, nuxt) {
@@ -177,7 +172,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
       if (hasSharpDependency && !targetCompatibility.sharp) {
         logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
-        config.compatibility = defu(<CompatibilityConfig> {
+        config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
           runtime: { sharp: false },
         }, config.compatibility)
       }
@@ -190,7 +185,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
     else if (!hasSharpDependency) {
       // disable sharp
-      config.compatibility = defu(<CompatibilityConfig> {
+      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
         runtime: { sharp: false },
         dev: { sharp: false },
         prerender: { sharp: false },
@@ -207,7 +202,7 @@ export default defineNuxtModule<ModuleOptions>({
         logger.info('You are missing a chromium install. You will not be able to prerender images using the chromium render.')
 
       // need to disable chromium in all environments
-      config.compatibility = defu(<CompatibilityConfig> {
+      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
         runtime: { chromium: false },
         dev: { chromium: false },
         prerender: { chromium: false },
@@ -215,18 +210,18 @@ export default defineNuxtModule<ModuleOptions>({
     }
     else if (hasChromeLocally) {
       // we have chrome locally so we can enable chromium in dev
-      config.compatibility = defu(<CompatibilityConfig> {
+      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
         runtime: { chromium: false },
-        dev: { chromium: true },
-        prerender: { chromium: true },
+        dev: { chromium: 'node' },
+        prerender: { chromium: 'node' },
       }, config.compatibility)
     }
     else if (hasPlaywrightDependency && targetCompatibility.chromium) {
       // need to disable chromium in all environments
-      config.compatibility = defu(<CompatibilityConfig> {
-        runtime: { chromium: true },
-        dev: { chromium: true },
-        prerender: { chromium: true },
+      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
+        runtime: { chromium: 'node' },
+        dev: { chromium: 'node' },
+        prerender: { chromium: 'node' },
       }, config.compatibility)
     }
 

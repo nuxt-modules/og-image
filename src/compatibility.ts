@@ -6,7 +6,7 @@ import { env, provider } from 'std-env'
 import { defu } from 'defu'
 import type { NitroConfig } from 'nitropack/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
-import type { RuntimeCompatibilitySchema } from './runtime/types'
+import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -116,7 +116,7 @@ export function getPresetNitroPresetCompatibility(target: string) {
   return compatibility
 }
 
-export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: Partial<RuntimeCompatibilitySchema>, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
+export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
   const { resolve } = options
@@ -126,9 +126,16 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
   nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = compatibility.chromium !== false ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
 
   function applyBinding(key: keyof RuntimeCompatibilitySchema) {
-    const binding = compatibility[key] as string | false
-    const envToggle = typeof options.compatibility?.[key] === 'undefined' ? true : !!options.compatibility[key]
-    return { [`#nuxt-og-image/bindings/${key}`]: [envToggle, binding].includes(false) ? 'unenv/runtime/mock/empty' : resolve(`./runtime/core/bindings/${key}/${binding}`) }
+    let binding = compatibility[key] as string | false
+    // @ts-expect-error untyped
+    const override = options.compatibility?.[key]
+    if (override) {
+      if (override === true)
+        binding = 'node'
+      else
+        binding = override
+    }
+    return { [`#nuxt-og-image/bindings/${key}`]: binding === false ? 'unenv/runtime/mock/empty' : resolve(`./runtime/core/bindings/${key}/${binding}`) }
   }
   nitroConfig.alias = defu(
     applyBinding('chromium'),

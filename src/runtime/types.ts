@@ -129,10 +129,12 @@ export interface RuntimeCompatibilitySchema {
   wasm?: WasmOptions
 }
 
-export interface CompatibilityConfig {
-  dev?: Partial<RuntimeCompatibilitySchema>
-  runtime?: Partial<RuntimeCompatibilitySchema>
-  prerender?: Partial<RuntimeCompatibilitySchema>
+export type CompatibilityFlags = Partial<RuntimeCompatibilitySchema>
+
+export interface CompatibilityFlagEnvOverrides {
+  dev?: CompatibilityFlags
+  runtime?: CompatibilityFlags
+  prerender?: CompatibilityFlags
 }
 
 export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: Omit<OgImageOptions['extension'], 'html'> }
