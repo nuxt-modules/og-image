@@ -18,11 +18,16 @@ const ChromiumRenderer: Renderer = {
         statusMessage: 'Failed to create connect to Chromium Browser.',
       })
     }
-
-    // @todo return placeholder image on failure
-    return await createScreenshot(ctx, browser!).finally(async () => {
-      await browser!.close()
-    })
+    const screenshot = await createScreenshot(ctx, browser!)
+      .catch(e => e)
+    if (screenshot instanceof Error) {
+      return createError({
+        statusCode: 400,
+        statusMessage: `Failed to create screenshot ${screenshot.message}.`,
+      })
+    }
+    await browser.close()
+    return screenshot
   },
 }
 

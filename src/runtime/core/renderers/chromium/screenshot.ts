@@ -12,11 +12,11 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     colorScheme: colorPreference || 'no-preference',
     baseURL: useNitroOrigin(e),
   })
-  if (import.meta.prerender && !options.html) {
-    // we need to do a nitro fetch for the HTML instead of rendering with playwright
-    options.html = await e.$fetch(path)
-  }
   try {
+    if (import.meta.prerender && !options.html) {
+      // we need to do a nitro fetch for the HTML instead of rendering with playwright
+      options.html = await e.$fetch(path).catch(() => undefined)
+    }
     await page.setViewportSize({
       width: options.width || 1200,
       height: options.height || 630,
