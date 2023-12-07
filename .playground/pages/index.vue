@@ -24,10 +24,14 @@ defineOgImageComponent('Nuxt', {
     <div>
       <ul>
         <li>
-          <a target="_blank" href="/__og-image__/image/chromium/og.jpeg">Chromium default</a>
+          <NuxtLink href="/chromium/screenshot">
+            Chromium screenshot
+          </NuxtLink>
         </li>
         <li>
-          <a target="_blank" href="/__og-image__/image/chromium/og.png">Chromium png</a>
+          <NuxtLink href="/chromium/component">
+            Chromium component
+          </NuxtLink>
         </li>
       </ul>
       <ul>

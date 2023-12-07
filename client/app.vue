@@ -525,7 +525,7 @@ const currentPageFile = computed(() => {
                       Chromium
                     </NButton>
                   </div>
-                  <div class="flex items-center text-sm space-x-2">
+                  <div v-if="!isPageScreenshot" class="flex items-center text-sm space-x-2">
                     <label for="emojis">Emojis</label>
                     <NSelect id="emojis" v-model="emojis">
                       <option value="noto">
@@ -559,7 +559,7 @@ const currentPageFile = computed(() => {
                   </div>
                 </div>
               </OSectionBlock>
-              <OSectionBlock>
+              <OSectionBlock v-if="!isPageScreenshot">
                 <template #text>
                   <h3 class="opacity-80 text-base mb-1">
                     <Icon name="carbon:operations-record" class="mr-1" />

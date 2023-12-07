@@ -9,7 +9,6 @@ export function defineOgImageScreenshot(options: OgImagePageScreenshotOptions = 
     renderer: 'chromium',
     extension: 'jpeg',
     component: 'PageScreenshot', // this is an alias
-    cache: true,
     ...options,
   })
 }

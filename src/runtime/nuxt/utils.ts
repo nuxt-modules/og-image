@@ -6,7 +6,6 @@ import { unref, useServerHead } from '#imports'
 
 // @ts-expect-error untyped
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import compatibility from '#build/nuxt-og-image/compatibility.mjs'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: Record<string, any>) {
   const _input = separateProps(defu(input, ssrContext._ogImagePayload))
@@ -75,10 +74,5 @@ export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions |
       }
     }
   }
-  // only if we have sharp available
-  if (['jpeg', 'jpg'].includes(options.extension || '') && !compatibility.sharp)
-    options.extension = 'png'
-  if (options.renderer === 'chromium' && !compatibility.chromium)
-    options.renderer = 'satori' // fallback
   return options
 }
