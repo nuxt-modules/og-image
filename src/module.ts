@@ -195,7 +195,11 @@ export default defineNuxtModule<ModuleOptions>({
     const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
     if (isUndefinedOrTruthy(config.compatibility?.prerender?.chromium) && isUndefinedOrTruthy(config.compatibility?.runtime?.chromium)) {
       // we can check if we have chrome and disable chromium if not
-      const hasChromeLocally = !!Launcher.getFirstInstallation()
+      let hasChromeLocally = false
+      try {
+        hasChromeLocally = !!Launcher.getFirstInstallation()
+      }
+      catch {}
       const hasPlaywrightDependency = !!(await tryResolveModule('playwright'))
       if (!hasChromeLocally && !hasPlaywrightDependency) {
         if (nuxt.options._generate || config.defaults?.renderer === 'chromium')
