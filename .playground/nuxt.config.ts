@@ -67,7 +67,7 @@ export default defineNuxtConfig({
     },
   },
 
-  debug: true,
+  debug: false,
 
   devtools: {
     enabled: true,
@@ -83,6 +83,14 @@ export default defineNuxtConfig({
         path: '/OPTIEinstein-Black.otf',
       },
     ],
+    // defaults: {
+    //   extension: 'jpeg',
+    // },
+    // compatibility: {
+    //   dev: {
+    //     chromium: false,
+    //   },
+    // },
     debug: true,
   },
 

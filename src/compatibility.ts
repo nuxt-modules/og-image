@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema'
 import {
-  addDependency,
+  ensureDependencyInstalled,
 } from 'nypm'
 import { env, provider } from 'std-env'
 import { defu } from 'defu'
@@ -29,7 +29,7 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
   'css-inline': 'node',
   'resvg': 'node',
   'satori': 'node',
-  'sharp': 'node',
+  'sharp': 'node', // will be disabled if they're missing the dependency
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {
@@ -116,26 +116,27 @@ export function getPresetNitroPresetCompatibility(target: string) {
   return compatibility
 }
 
-export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): RuntimeCompatibilitySchema {
+export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> {
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
   const { resolve } = options
 
+  const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
+  const chromiumEnabled = typeof options.compatibility?.chromium !== 'undefined' ? !!options.compatibility.chromium : !!compatibility.chromium
   // renderers
-  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = compatibility.satori !== false ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
-  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = compatibility.chromium !== false ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = satoriEnabled ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = chromiumEnabled ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
 
-  function applyBinding(key: keyof RuntimeCompatibilitySchema) {
-    let binding = compatibility[key] as string | false
+  const resolvedCompatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> = {}
+  function applyBinding(key: keyof Omit<RuntimeCompatibilitySchema, 'wasm'>) {
+    let binding = options.compatibility?.[key]
+    if (typeof binding === 'undefined')
+      binding = compatibility[key]
     // @ts-expect-error untyped
-    const override = options.compatibility?.[key]
-    if (override) {
-      if (override === true)
-        binding = 'node'
-      else
-        binding = override
+    resolvedCompatibility[key] = binding
+    return {
+      [`#nuxt-og-image/bindings/${key}`]: binding === false ? 'unenv/runtime/mock/empty' : resolve(`./runtime/core/bindings/${key}/${binding}`),
     }
-    return { [`#nuxt-og-image/bindings/${key}`]: binding === false ? 'unenv/runtime/mock/empty' : resolve(`./runtime/core/bindings/${key}/${binding}`) }
   }
   nitroConfig.alias = defu(
     applyBinding('chromium'),
@@ -153,19 +154,22 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
   nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
 
-  nitroConfig.virtual!['#nuxt-og-image/compatibility'] = () => `export default ${JSON.stringify(compatibility)}`
+  nitroConfig.virtual!['#nuxt-og-image/compatibility'] = () => `export default ${JSON.stringify(resolvedCompatibility)}`
   addTemplate({
     filename: 'nuxt-og-image/compatibility.mjs',
     getContents() {
-      return `export default ${JSON.stringify(compatibility)}`
+      return `export default ${JSON.stringify(resolvedCompatibility)}`
     },
     options: { mode: 'server' },
   })
-  return compatibility
+  return resolvedCompatibility
 }
 
 export function ensureDependencies(dep: string[], nuxt: Nuxt = useNuxt()) {
   return Promise.all(dep.map((d) => {
-    return addDependency(d, { cwd: nuxt.options.rootDir, dev: true })
+    return ensureDependencyInstalled(d, {
+      cwd: nuxt.options.rootDir,
+      dev: true,
+    })
   }))
 }

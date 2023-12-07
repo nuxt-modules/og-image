@@ -129,7 +129,7 @@ export interface RuntimeCompatibilitySchema {
   wasm?: WasmOptions
 }
 
-export type CompatibilityFlags = Partial<RuntimeCompatibilitySchema>
+export type CompatibilityFlags = Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>
 
 export interface CompatibilityFlagEnvOverrides {
   dev?: CompatibilityFlags

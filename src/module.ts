@@ -172,9 +172,9 @@ export default defineNuxtModule<ModuleOptions>({
     if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
       if (hasSharpDependency && !targetCompatibility.sharp) {
         logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
-        config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
+        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides> {
           runtime: { sharp: false },
-        }, config.compatibility)
+        })
       }
       else if (!hasSharpDependency) {
         // sharp is supported but not installed
@@ -185,44 +185,46 @@ export default defineNuxtModule<ModuleOptions>({
     }
     else if (!hasSharpDependency) {
       // disable sharp
-      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
+      config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides> {
         runtime: { sharp: false },
         dev: { sharp: false },
         prerender: { sharp: false },
-      }, config.compatibility)
+      })
     }
 
-    // we can check if we have chrome and disable chromium if not
-    const hasChromeLocally = !!Launcher.getFirstInstallation()
-    const hasPlaywrightDependency = !!(await tryResolveModule('playwright'))
-    if (!hasChromeLocally && !hasPlaywrightDependency) {
-      if (nuxt.options._generate)
-        await ensureChromium(logger)
-      else if (nuxt.options.build)
-        logger.info('You are missing a chromium install. You will not be able to prerender images using the chromium render.')
-
-      // need to disable chromium in all environments
-      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
-        runtime: { chromium: false },
-        dev: { chromium: false },
-        prerender: { chromium: false },
-      }, config.compatibility)
-    }
-    else if (hasChromeLocally) {
-      // we have chrome locally so we can enable chromium in dev
-      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
-        runtime: { chromium: false },
-        dev: { chromium: 'node' },
-        prerender: { chromium: 'node' },
-      }, config.compatibility)
-    }
-    else if (hasPlaywrightDependency && targetCompatibility.chromium) {
-      // need to disable chromium in all environments
-      config.compatibility = defu(<CompatibilityFlagEnvOverrides> {
-        runtime: { chromium: 'node' },
-        dev: { chromium: 'node' },
-        prerender: { chromium: 'node' },
-      }, config.compatibility)
+    const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
+    if (isUndefinedOrTruthy(config.compatibility?.prerender?.chromium) && isUndefinedOrTruthy(config.compatibility?.runtime?.chromium)) {
+      // we can check if we have chrome and disable chromium if not
+      const hasChromeLocally = !!Launcher.getFirstInstallation()
+      const hasPlaywrightDependency = !!(await tryResolveModule('playwright'))
+      if (!hasChromeLocally && !hasPlaywrightDependency) {
+        if (nuxt.options._generate || config.defaults?.renderer === 'chromium')
+          await ensureChromium(logger)
+        else if (nuxt.options.build)
+          logger.info('You are missing a chromium install. You will not be able to prerender images using the chromium render.')
+        // need to disable chromium in all environments
+        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+          runtime: { chromium: false },
+          dev: { chromium: false },
+          prerender: { chromium: false },
+        })
+      }
+      else if (hasChromeLocally) {
+        // we have chrome locally so we can enable chromium in dev
+        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+          runtime: { chromium: false },
+          dev: { chromium: 'node' },
+          prerender: { chromium: 'node' },
+        })
+      }
+      else if (hasPlaywrightDependency && targetCompatibility.chromium) {
+        // need to disable chromium in all environments
+        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+          runtime: { chromium: 'node' },
+          dev: { chromium: 'node' },
+          prerender: { chromium: 'node' },
+        })
+      }
     }
 
     await installNuxtSiteConfig()

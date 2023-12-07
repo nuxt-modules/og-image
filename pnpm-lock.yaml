@@ -99,9 +99,6 @@ importers:
       '@antfu/eslint-config':
         specifier: 2.3.4
         version: 2.3.4(eslint@8.55.0)(typescript@5.3.3)(vitest@1.0.1)
-      '@img/sharp-linux-x64':
-        specifier: 0.33.0
-        version: 0.33.0
       '@nuxt/content':
         specifier: ^2.9.0
         version: 2.9.0(nuxt@3.8.2)(rollup@3.29.4)(vue@3.3.10)
@@ -151,7 +148,7 @@ importers:
         specifier: ^1.69.5
         version: 1.69.5
       sharp:
-        specifier: 0.33.0
+        specifier: ^0.33.0
         version: 0.33.0
       vitest:
         specifier: ^1.0.1
@@ -1376,9 +1373,11 @@ packages:
     engines: {glibc: '>=2.26', node: ^18.17.0 || ^20.3.0 || >=21.0.0, npm: '>=9.6.5', pnpm: '>=7.1.0', yarn: '>=3.2.0'}
     cpu: [x64]
     os: [linux]
+    requiresBuild: true
     optionalDependencies:
       '@img/sharp-libvips-linux-x64': 1.0.0
     dev: true
+    optional: true
 
   /@img/sharp-linuxmusl-arm64@0.33.0:
     resolution: {integrity: sha512-1QLbbN0zt+32eVrg7bb1lwtvEaZwlhEsY1OrijroMkwAqlHqFj6R33Y47s2XUv7P6Ie1PwCxK/uFnNqMnkd5kg==}
