@@ -241,6 +241,15 @@ export default defineNuxtModule<ModuleOptions>({
     if (!config.fonts.length)
       config.fonts = ['Inter:400', 'Inter:700']
 
+    if (preset === 'cloudflare') {
+      config.fonts = config.fonts.filter((f) => {
+        if (typeof f !== 'string' && f.path) {
+          logger.warn(`The ${f.name}:${f.weight} font was skipped because remote fonts are not available in Cloudflare Workers, please use a Google font.`)
+          return false
+        }
+        return true
+      })
+    }
     if (preset === 'stackblitz') {
       // TODO maybe only for stackblitz, this will increase server bundle size
       config.fonts = config.fonts.map((f) => {

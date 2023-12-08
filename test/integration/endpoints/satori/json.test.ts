@@ -14,16 +14,6 @@ describe('json', () => {
     expect(json).toMatchInlineSnapshot(`
       {
         "cacheKey": "satori:5Hzq5ZrLws",
-        "compatibility": {
-          "bindings": {
-            "chromium": "node",
-            "css-inline": "node",
-            "resvg": "node",
-            "satori": "node",
-            "sharp": "node",
-          },
-          "chromium": false,
-        },
         "compatibilityHints": [
           "Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.",
         ],

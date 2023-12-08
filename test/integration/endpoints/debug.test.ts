@@ -16,6 +16,13 @@ describe('debug', () => {
     delete debug.baseCacheKey
     expect(debug).toMatchInlineSnapshot(`
       {
+        "compatibility": {
+          "chromium": false,
+          "css-inline": "node",
+          "resvg": "node",
+          "satori": "node",
+          "sharp": "node",
+        },
         "runtimeConfig": {
           "colorPreference": "light",
           "debug": true,
@@ -30,13 +37,17 @@ describe('debug', () => {
           },
           "fonts": [
             {
+              "cacheKey": "Inter:400",
               "name": "Inter",
               "path": "",
+              "style": "normal",
               "weight": "400",
             },
             {
+              "cacheKey": "Inter:700",
               "name": "Inter",
               "path": "",
+              "style": "normal",
               "weight": "700",
             },
           ],
