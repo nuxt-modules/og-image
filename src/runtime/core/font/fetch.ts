@@ -1,14 +1,8 @@
-import { createError } from 'h3'
-import type { FontConfig, OgImageRenderEventContext } from '../../types'
-import { fontCache } from './cache'
+import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../types'
 import { useNitroOrigin, useStorage } from '#imports'
 import { assets } from '#internal/nitro/virtual/server-assets'
 
-export async function loadFont({ e }: OgImageRenderEventContext, font: FontConfig) {
-  const fontKey = font.key || `${font.name}:${font.weight}`
-  if (fontCache[fontKey])
-    return fontCache[fontKey]
-
+export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedFontConfig): Promise<ResolvedFontConfig> {
   const { name, weight } = font
 
   let data: ArrayBuffer | undefined
@@ -46,13 +40,6 @@ export async function loadFont({ e }: OgImageRenderEventContext, font: FontConfi
       })
     }
   }
-  if (data) {
-    fontCache[fontKey] = { name, weight: Number(weight), data, style: 'normal' }
-    // convert data to string
-    return fontCache[fontKey]
-  }
-  return createError({
-    statusCode: 500,
-    statusMessage: `Failed to fetch font: ${fontKey}`,
-  })
+  font.data = data
+  return font
 }

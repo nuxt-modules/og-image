@@ -1,5 +1,5 @@
 import { defu } from 'defu'
-import type { OgImageOptions } from './types'
+import type { InputFontConfig, OgImageOptions, ResolvedFontConfig } from './types'
 
 export function isInternalRoute(path: string) {
   const lastSegment = path.split('/').pop() || path
@@ -12,6 +12,7 @@ function filterIsOgImageOption(key: string) {
     'extension',
     'width',
     'height',
+    'fonts',
     'alt',
     'props',
     'renderer',
@@ -24,7 +25,6 @@ function filterIsOgImageOption(key: string) {
     'sharp',
     'screenshot',
     'cacheMaxAgeSeconds',
-    'componentHash',
   ]
   return keys.includes(key as keyof OgImageOptions)
 }
@@ -49,4 +49,25 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
     ),
     props,
   }
+}
+
+export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig[] {
+  return fonts.map((f) => {
+    if (typeof f === 'string') {
+      const [name, weight] = f.split(':')
+      return <ResolvedFontConfig> {
+        cacheKey: f,
+        name,
+        weight: weight || '400',
+        style: 'normal',
+        path: undefined,
+      }
+    }
+    return <ResolvedFontConfig> {
+      cacheKey: f.key || `${f.name}:${f.weight}`,
+      style: 'normal',
+      weight: 400,
+      ...f,
+    }
+  })
 }

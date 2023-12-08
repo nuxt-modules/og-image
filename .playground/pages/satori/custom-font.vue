@@ -1,5 +1,20 @@
 <script setup lang="ts">
-const description = 'Using a custom font loaded from the public directory.'
+import { defineOgImage } from '#imports'
+
+defineOgImage({
+  component: 'CustomFont',
+  props: {
+    title: 'Custom Font',
+    description: 'Using a custom font loaded from the public directory',
+  },
+  fonts: [
+    {
+      name: 'optieinstein',
+      weight: 800,
+      path: '/OPTIEinstein-Black.otf',
+    },
+  ],
+})
 </script>
 
 <template>
@@ -7,6 +22,5 @@ const description = 'Using a custom font loaded from the public directory.'
     <div>
       Custom font page
     </div>
-    <OgImage component="CustomFont" title="Custom Font" :description="description" />
   </div>
 </template>

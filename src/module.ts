@@ -44,6 +44,7 @@ import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { setupBuildHandler } from './build/build'
 import { ensureChromium } from './build/ensureChromium'
+import { normaliseFontInput } from './runtime/utils.pure'
 
 export interface ModuleOptions {
   /**
@@ -402,7 +403,7 @@ declare module 'nitropack' {
   }
   interface NitroRuntimeHooks {
     'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode) => void | Promise<void>
+    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
   }
 }
 
@@ -422,17 +423,7 @@ ${componentImports}
 
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
-      const normalisedFonts: FontConfig[] = config.fonts.map((f) => {
-        if (typeof f === 'string') {
-          const [name, weight] = f.split(':')
-          return <FontConfig>{
-            name,
-            weight,
-            path: undefined,
-          }
-        }
-        return f as FontConfig
-      })
+      const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
       if (!nuxt.options._generate && nuxt.options.build) {
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
         nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []

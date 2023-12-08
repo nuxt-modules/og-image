@@ -74,15 +74,11 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    fonts: [
-      'Inter:400',
-      'Inter:700',
-      {
-        name: 'optieinstein',
-        weight: 800,
-        path: '/OPTIEinstein-Black.otf',
-      },
-    ],
+    // compatibility: {
+    //   runtime: {
+    //     resvg: 'wasm',
+    //   },
+    // },
     // defaults: {
     //   extension: 'jpeg',
     // },
