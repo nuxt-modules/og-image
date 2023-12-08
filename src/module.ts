@@ -197,15 +197,14 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
+    // we can check if we have chrome and disable chromium if not
+    let hasChromeLocally = false
+    try {
+      hasChromeLocally = !!Launcher.getFirstInstallation()
+    }
+    catch {}
     const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
     if (isUndefinedOrTruthy(config.compatibility?.prerender?.chromium) && isUndefinedOrTruthy(config.compatibility?.runtime?.chromium)) {
-      // we can check if we have chrome and disable chromium if not
-      let hasChromeLocally = false
-      try {
-        hasChromeLocally = !!Launcher.getFirstInstallation()
-      }
-      catch {}
-
       if (isCI)
         await ensureChromium(logger)
 
@@ -226,6 +225,9 @@ export default defineNuxtModule<ModuleOptions>({
           prerender: { chromium: 'node' },
         })
       }
+    }
+    else if (!hasChromeLocally && nuxt.options.dev && config.compatibility?.dev?.chromium === 'node') {
+      await ensureChromium(logger)
     }
 
     await installNuxtSiteConfig()
