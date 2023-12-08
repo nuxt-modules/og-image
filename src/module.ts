@@ -445,12 +445,16 @@ ${componentImports}
       }
 
       // set theme color for the NuxtSeo component
-      let colorPreference = hasNuxtModule('@nuxtjs/color-mode')
-        ? (await getNuxtModuleOptions('@nuxtjs/color-mode') as { preference?: 'light' | 'dark' | 'system' }).preference
-        : 'light'
-      if (!colorPreference || !['dark', 'light'].includes(colorPreference))
+      type ColorMode = 'light' | 'dark' | 'system'
+      const hasColorModeModule = hasNuxtModule('@nuxtjs/color-mode')
+      const colorModeOptions: { fallback?: ColorMode, preference?: ColorMode } = hasColorModeModule
+        ? (await getNuxtModuleOptions('@nuxtjs/color-mode') as { fallback?: ColorMode, preference?: ColorMode })
+        : {}
+      let colorPreference = colorModeOptions.preference
+      if (!colorPreference || colorPreference === 'system')
+        colorPreference = colorModeOptions.fallback
+      if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
-
       const runtimeConfig = <OgImageRuntimeConfig> {
         version,
         // binding options
