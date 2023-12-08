@@ -74,7 +74,7 @@ export default defineSatoriTransformer([
   },
   // fix style="background-image: url('')"
   {
-    filter: (node: VNode) => node.props.style?.backgroundImage?.includes('url('),
+    filter: (node: VNode) => node.props?.style?.backgroundImage?.includes('url('),
     transform: async (node: VNode, { e }: OgImageRenderEventContext) => {
       // same as the above, need to swap out relative background images for absolute
       const backgroundImage = node.props.style!.backgroundImage
