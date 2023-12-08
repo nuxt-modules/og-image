@@ -1,5 +1,6 @@
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../types'
-import { useNitroOrigin, useStorage } from '#imports'
+import { useStorage } from '#internal/nitro'
+import { useNitroOrigin } from '#imports'
 import { assets } from '#internal/nitro/virtual/server-assets'
 
 export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedFontConfig): Promise<ResolvedFontConfig> {

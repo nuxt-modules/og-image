@@ -7,7 +7,7 @@ import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
 import { prerenderOptionsCache } from '../../core/cache/prerender'
 import { isInternalRoute } from '../../utils.pure'
 import { resolvePathCacheKey } from '../utils'
-import { useRuntimeConfig } from '#imports'
+import { useRuntimeConfig } from '#internal/nitro'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)
