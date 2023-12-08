@@ -6,6 +6,7 @@ import { loadFont } from '../../font/fetch'
 import { fontCache, fontPromises } from '../../cache/fonts'
 import { createVNodes } from './vnodes'
 import { useResvg, useSatori, useSharp } from './instances'
+import { theme } from '#nuxt-og-image/unocss-config.mjs'
 
 export async function createSvg(event: OgImageRenderEventContext) {
   const { options } = event
@@ -37,7 +38,11 @@ export async function createSvg(event: OgImageRenderEventContext) {
 
   const satori = await useSatori()
   return satori(vnodes, <SatoriOptions> defu(options.satori, satoriOptions, {
-    fonts: [...preloadedFonts, ...awaitedFonts],
+    fonts: [...preloadedFonts, ...awaitedFonts].map((_f) => {
+      // weight must be a number
+      return { ..._f, weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'] }
+    }),
+    tailwindConfig: { theme },
     embedFont: true,
     width: options.width!,
     height: options.height!,
