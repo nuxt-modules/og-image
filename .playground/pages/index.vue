@@ -43,6 +43,11 @@ defineOgImageComponent('Nuxt', {
         <li>
           <a target="_blank" href="/__og-image__/image/satori/og.png">Satori png</a>
         </li>
+        <li>
+          <NuxtLink to="/satori/image">
+            Satori image
+          </NuxtLink>
+        </li>
       </ul>
     </div>
   </div>

@@ -60,6 +60,7 @@ export default defineNuxtConfig({
         '/chromium/screenshot',
         '/search?foo=bar',
         '/search?foo=2',
+        '/satori/image',
       ],
       ignore: [
         '/not-prerendered',
