@@ -1,7 +1,9 @@
 import { parseURL } from 'ufo'
 import type { HeadPlugin } from '@unhead/schema'
 import { toValue } from 'vue'
-import { isInternalRoute } from '../../utils.pure'
+import { defu } from 'defu'
+import { isInternalRoute, separateProps } from '../../utils.pure'
+import type { OgImageOptions } from '../../types'
 import { defineNuxtPlugin, useRequestEvent, withSiteUrl } from '#imports'
 
 export default defineNuxtPlugin({
@@ -16,10 +18,21 @@ export default defineNuxtPlugin({
 
       // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
       ssrContext?.head.use(<HeadPlugin>{
-        key: 'nuxt-og-image:canonical-urls',
+        key: 'nuxt-og-image:overrides-and-canonical-urls',
         hooks: {
-          'tags:resolve': async ({ tags }) => {
-            for (const tag of tags) {
+          'tags:resolve': async (ctx) => {
+            // see if id "nuxt-og-image-overrides" exists
+            let overrides: OgImageOptions | undefined
+            for (const tag of ctx.tags) {
+              if (tag.tag === 'script' && tag.props.id === 'nuxt-og-image-overrides') {
+                overrides = separateProps(JSON.parse(tag.innerHTML || '{}'))
+                delete ctx.tags[ctx.tags.indexOf(tag)]
+                break
+              }
+            }
+            ctx.tags = ctx.tags.filter(Boolean)
+
+            for (const tag of ctx.tags) {
               if (tag.tag === 'meta' && (tag.props.property === 'og:image' || tag.props.name === 'twitter:image:src')) {
                 // looking for:
                 // property og:image
@@ -29,6 +42,10 @@ export default defineNuxtPlugin({
                     tag.props.content = toValue(withSiteUrl(tag.props.content))
                   })
                 }
+              }
+              // need to insert the overrides into the payload
+              else if (overrides && tag.tag === 'script' && tag.props.id === 'nuxt-og-image-options') {
+                tag.innerHTML = JSON.stringify(defu(overrides, JSON.parse(tag.innerHTML)))
               }
             }
           },

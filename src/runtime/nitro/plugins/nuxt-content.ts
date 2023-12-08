@@ -1,6 +1,7 @@
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import type { ParsedContent } from '@nuxt/content/dist/runtime/types'
 import { defu } from 'defu'
+import type { UseHeadInput } from 'unhead'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../utils'
 
 export default defineNitroPlugin((nitroApp) => {
@@ -28,15 +29,16 @@ export default defineNitroPlugin((nitroApp) => {
         payload[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
       })
 
-      content.head = defu({
+      content.head = defu(<UseHeadInput<any>> {
         script: [
           {
-            id: 'nuxt-og-image-options',
+            id: 'nuxt-og-image-overrides',
             type: 'application/json',
             processTemplateParams: true,
             innerHTML: payload,
             // we want this to be last in our head
             tagPosition: 'bodyClose',
+            tagPriority: 30, // slighty higher priority
           },
         ],
         meta: [
