@@ -17,6 +17,8 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
     { property: 'og:image', content: url },
     { property: 'og:image:type', content: `image/${urlExtension}` },
     { name: 'twitter:card', content: 'summary_large_image' },
+    // we don't need this but avoids issue when using useSeoMeta({ twitterImage })
+    { name: 'twitter:image', content: url },
     { name: 'twitter:image:src', content: url },
   ]
   if (resolvedOptions.width) {
