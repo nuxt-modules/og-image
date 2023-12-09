@@ -231,6 +231,16 @@ export default defineNuxtModule<ModuleOptions>({
       await ensureChromium(logger)
     }
 
+    // let's check we can access resvg
+    await import('@resvg/resvg-js')
+      .catch(() => {
+        logger.warn('ReSVG is missing dependencies for environment. Falling back to WASM version, this may slow down PNG rendering.')
+        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+          dev: { resvg: 'wasm-fs' },
+          prerender: { resvg: 'wasm-fs' },
+        })
+      })
+
     await installNuxtSiteConfig()
 
     // convert ogImage key to head data
