@@ -239,6 +239,12 @@ export default defineNuxtModule<ModuleOptions>({
           dev: { resvg: 'wasm-fs' },
           prerender: { resvg: 'wasm-fs' },
         })
+        // swap out runtime node for wasm if we have a broken dependency
+        if (targetCompatibility.resvg === 'node') {
+          config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+            runtime: { resvg: 'wasm' },
+          })
+        }
       })
 
     await installNuxtSiteConfig()
