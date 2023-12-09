@@ -11,7 +11,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   cacheMaxAgeSeconds?: number
 }): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  let enabled = maxAge > 0
+  let enabled = !import.meta.dev && import.meta.env.MODE !== 'test' && maxAge > 0
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
 
