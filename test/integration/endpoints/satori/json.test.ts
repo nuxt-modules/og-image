@@ -18,6 +18,7 @@ describe('json', () => {
           "Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.",
         ],
         "options": {
+          "_query": {},
           "cacheMaxAgeSeconds": 259200,
           "component": "NuxtSeo",
           "emojis": "noto",
