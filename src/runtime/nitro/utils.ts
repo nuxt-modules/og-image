@@ -9,7 +9,7 @@ export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = useSiteConfig(e)
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path || e.path)))
   return [
-    !basePath ? 'index' : basePath,
+    (!basePath || basePath === '/') ? 'index' : basePath,
     hash([
       basePath,
       siteConfig.url,

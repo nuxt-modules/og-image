@@ -1,5 +1,5 @@
 import { prefixStorage } from 'unstorage'
-import { getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import { type H3Error, createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
 import { withTrailingSlash } from 'ufo'
 import { hash } from 'ohash'
 import type { OgImageRenderEventContext } from './types'
@@ -9,36 +9,53 @@ import { useStorage } from '#imports'
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
-}): Promise<void | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
+}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  const enabled = !import.meta.dev && import.meta.env.MODE !== 'test' && maxAge > 0
+  let enabled = maxAge > 0
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
 
   // cache will invalidate if the options change
   let cachedItem: BufferSource | false = false
-  if (enabled && await cache.hasItem(key).catch(() => false)) {
-    const { value, expiresAt, headers } = await cache.getItem(key).catch(() => ({ value: null, expiresAt: Date.now() })) as any
-    if (typeof getQuery(ctx.e).purge !== 'undefined') {
-      await cache.removeItem(key).catch(() => {})
-    }
-    else if (expiresAt > Date.now()) {
-      cachedItem = Buffer.from(value, 'base64')
-      // Check for cache headers
-      if (
-        handleCacheHeaders(ctx.e, {
-          modifiedTime: new Date(headers['last-modified'] as string),
-          etag: headers.etag as string,
-          maxAge,
+  if (enabled) {
+    const hasItem = await cache.hasItem(key).catch((e) => {
+      enabled = false
+      return createError({
+        cause: e,
+        statusCode: 500,
+        statusMessage: `[Nuxt OG Image] Failed to connect to cache ${options.baseCacheKey}. Response from cache: ${e.message}`,
+      })
+    })
+    if (hasItem instanceof Error)
+      return hasItem
+    if (hasItem) {
+      const { value, expiresAt, headers } = await cache.getItem(key).catch(() => ({
+        value: null,
+        expiresAt: Date.now(),
+      })) as any
+      if (typeof getQuery(ctx.e).purge !== 'undefined') {
+        await cache.removeItem(key).catch(() => {
         })
-      )
-        return
+      }
+      else if (expiresAt > Date.now()) {
+        cachedItem = Buffer.from(value, 'base64')
+        // Check for cache headers
+        if (
+          handleCacheHeaders(ctx.e, {
+            modifiedTime: new Date(headers['last-modified'] as string),
+            etag: headers.etag as string,
+            maxAge,
+          })
+        )
+          return
 
-      setHeaders(ctx.e, headers)
-    }
-    else {
-      // expired
-      await cache.removeItem(key).catch(() => {})
+        setHeaders(ctx.e, headers)
+      }
+      else {
+        // expired
+        await cache.removeItem(key).catch(() => {
+        })
+      }
     }
   }
   if (!enabled) {

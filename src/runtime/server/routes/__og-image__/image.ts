@@ -80,6 +80,8 @@ export default defineEventHandler(async (e): Promise<any> => {
   // we sent a 304 not modified
   if (typeof cacheApi === 'undefined')
     return
+  if (cacheApi instanceof H3Error)
+    return cacheApi
 
   let image: H3Error | BufferSource | false | void = cacheApi.cachedItem
   if (!image) {
