@@ -22,13 +22,13 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgIm
   if (!extension) {
     return createError({
       statusCode: 400,
-      statusMessage: `Missing OG Image type.`,
+      statusMessage: `[Nuxt OG Image] Missing OG Image type.`,
     })
   }
   if (!['png', 'jpeg', 'jpg', 'svg', 'html', 'json'].includes(extension)) {
     return createError({
       statusCode: 400,
-      statusMessage: `Unknown OG Image type ${extension}.`,
+      statusMessage: `[Nuxt OG Image] Unknown OG Image type ${extension}.`,
     })
   }
   // remove all of the different cache types (static, dynamic, none)
@@ -74,7 +74,7 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgIm
   if (!options) {
     return createError({
       statusCode: 404,
-      statusMessage: 'OG Image not found.',
+      statusMessage: '[Nuxt OG Image] OG Image not found.',
     })
   }
   // TODO merge in component data from component-names, we want the hash to use as a cache key
@@ -90,7 +90,7 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgIm
   if (!renderer || renderer.__unenv__) {
     throw createError({
       statusCode: 400,
-      statusMessage: `Renderer ${options.renderer} is missing.`,
+      statusMessage: `[Nuxt OG Image] Renderer ${options.renderer} is missing.`,
     })
   }
   const ctx: OgImageRenderEventContext = {

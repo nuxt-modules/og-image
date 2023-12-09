@@ -18,7 +18,8 @@ const ChromiumRenderer: Renderer = {
     if (screenshot instanceof Error) {
       return createError({
         statusCode: 400,
-        statusMessage: `Failed to create screenshot ${screenshot.message}.`,
+        cause: screenshot,
+        statusMessage: `[Nuxt OG Image] Failed to create screenshot ${screenshot.message}.`,
       })
     }
     return screenshot

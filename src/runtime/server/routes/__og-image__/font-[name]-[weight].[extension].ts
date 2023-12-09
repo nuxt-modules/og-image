@@ -21,7 +21,7 @@ export default defineEventHandler(async (e) => {
   if (!css) {
     return createError({
       statusCode: 500,
-      statusMessage: `Invalid Google Font ${name}:${weight}`,
+      statusMessage: `[Nuxt OG Image] Invalid Google Font ${name}:${weight}`,
     })
   }
 
@@ -36,6 +36,6 @@ export default defineEventHandler(async (e) => {
 
   return createError({
     statusCode: 500,
-    statusMessage: `Malformed Google Font CSS ${css}`,
+    statusMessage: `[Nuxt OG Image] Malformed Google Font CSS ${css}`,
   })
 })

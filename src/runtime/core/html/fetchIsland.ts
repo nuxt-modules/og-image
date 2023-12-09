@@ -7,7 +7,7 @@ export function fetchIsland({ options, e }: OgImageRenderEventContext): Promise<
   if (!options.component) {
     throw createError({
       statusCode: 500,
-      statusMessage: `Nuxt OG Image trying to render an invalid component. Received options ${JSON.stringify(options)}`,
+      statusMessage: `[Nuxt OG Image] Rendering an invalid component. Received options: ${JSON.stringify(options)}.`,
     })
   }
 

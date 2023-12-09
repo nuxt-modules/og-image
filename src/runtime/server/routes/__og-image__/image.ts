@@ -50,7 +50,7 @@ export default defineEventHandler(async (e): Promise<any> => {
       if (ctx.renderer.name !== 'satori') {
         return createError({
           statusCode: 400,
-          statusMessage: `Generating ${extension}\'s with ${renderer.name} is not supported.`,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}\'s with ${renderer.name} is not supported.`,
         })
       }
       // add svg headers
@@ -62,7 +62,7 @@ export default defineEventHandler(async (e): Promise<any> => {
       if (!renderer.supportedFormats.includes(extension)) {
         return createError({
           statusCode: 400,
-          statusMessage: `Generating ${extension}\'s with ${renderer.name} is not supported.`,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}\'s with ${renderer.name} is not supported.`,
         })
       }
       setHeader(e, 'Content-Type', `image/${extension === 'jpg' ? 'jpeg' : extension}`)
@@ -70,7 +70,7 @@ export default defineEventHandler(async (e): Promise<any> => {
     default:
       return createError({
         statusCode: 400,
-        statusMessage: `Invalid request for og.${extension}.`,
+        statusMessage: `[Nuxt OG Image] Invalid request for og.${extension}.`,
       })
   }
   const cacheApi = await useOgImageBufferCache(ctx, {

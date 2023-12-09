@@ -10,14 +10,21 @@ export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, k
     return cachedHtmlPayload.value
 
   // extract the payload from the original path
-  let html: string
+  let html: unknown
   try {
     html = await e.$fetch(path)
   }
   catch (err) {
     return createError({
       statusCode: 500,
-      statusMessage: `Failed to read the path ${path} for og-image extraction. ${err.message}.`,
+      statusMessage: `[Nuxt OG Image] Failed to read the path ${path} for og-image extraction. ${err.message}.`,
+    })
+  }
+
+  if (typeof html !== 'string') {
+    return createError({
+      statusCode: 500,
+      statusMessage: `[Nuxt OG Image] Got invalid response from ${path} for og-image extraction.`,
     })
   }
 
