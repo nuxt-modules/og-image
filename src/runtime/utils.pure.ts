@@ -20,6 +20,7 @@ function filterIsOgImageOption(key: string) {
     'component',
     'renderer',
     'emojis',
+    '_query',
     'satori',
     'resvg',
     'sharp',

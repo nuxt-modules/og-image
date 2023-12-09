@@ -115,6 +115,10 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   fonts?: InputFontConfig[]
   // cache
   cacheMaxAgeSeconds?: number
+  /**
+   * @internal
+   */
+  _query?: Record<string, any>
 }
 
 export interface FontConfig { name: string, weight?: string | number, path?: string, key?: string }

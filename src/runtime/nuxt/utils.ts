@@ -1,5 +1,6 @@
 import type { Head } from '@unhead/schema'
 import { defu } from 'defu'
+import { withQuery } from 'ufo'
 import { separateProps } from '../utils'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { unref, useServerHead } from '#imports'
@@ -9,7 +10,9 @@ import { componentNames } from '#build/nuxt-og-image/components.mjs'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: Record<string, any>) {
   const _input = separateProps(defu(input, ssrContext._ogImagePayload))
-  const url = src || input.url || resolvedOptions.url
+  let url = src || input.url || resolvedOptions.url
+  if (input._query && url)
+    url = withQuery(url, { _query: input._query })
   let urlExtension = (url.split('/').pop() || url).split('.').pop() || resolvedOptions.extension
   if (urlExtension === 'jpg')
     urlExtension = 'jpeg'

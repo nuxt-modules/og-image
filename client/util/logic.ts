@@ -9,6 +9,7 @@ export const globalRefreshTime = ref(Date.now())
 export const description = ref<string | null>(null)
 export const hostname = window.location.host
 export const path = ref('/')
+export const query = ref()
 export const base = ref('/')
 
 export const options = ref<OgImageOptions>({})

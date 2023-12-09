@@ -7,7 +7,7 @@ import type { NitroRouteRules } from 'nitropack'
 import type { DefineOgImageInput, OgImageOptions } from '../types'
 import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../utils'
 import { createOgImageMeta, normaliseOptions } from '../nuxt/utils'
-import { useNuxtApp, useRequestEvent, useRouter, useRuntimeConfig } from '#imports'
+import { useNuxtApp, useRequestEvent, useRoute, useRuntimeConfig } from '#imports'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {
   // string is supported as an easy way to override the generated og image data
@@ -17,7 +17,8 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
 
   const nuxtApp = useNuxtApp()
   const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
-  const basePath = useRouter().currentRoute.value?.path || '/' // (pages may be disabled)
+  const route = useRoute()
+  const basePath = route.path || '/' // (pages may be disabled)
 
   // need to check route rules hasn't disabled this
   const _routeRulesMatcher = toRouteMatcher(
@@ -38,6 +39,8 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   const options = normaliseOptions({
     ..._options,
   })
+  if (route.query)
+    options._query = route.query
   const { defaults } = useOgImageRuntimeConfig()
   const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
   // allow overriding using a prebuild config

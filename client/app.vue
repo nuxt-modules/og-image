@@ -18,6 +18,7 @@ import {
   optionsOverrides,
   path,
   propEditor,
+  query,
   refreshSources,
   refreshTime,
   slowRefreshSources,
@@ -126,7 +127,11 @@ const src = computed(() => {
   // wait until we know what we're rendering
   if (!debug.value)
     return ''
-  return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/og.${imageFormat.value}`), { timestamp: refreshTime.value, ...optionsOverrides.value })
+  return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/og.${imageFormat.value}`), {
+    timestamp: refreshTime.value,
+    ...optionsOverrides.value,
+    _query: query.value,
+  })
 })
 
 const socialPreviewTitle = computed(() => {

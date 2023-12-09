@@ -1,4 +1,4 @@
-import { parseURL, withoutBase, withoutTrailingSlash } from 'ufo'
+import { parseURL, withQuery, withoutBase, withoutTrailingSlash } from 'ufo'
 import type { H3Error, H3Event } from 'h3'
 import { createError, getQuery } from 'h3'
 import { defu } from 'defu'
@@ -31,16 +31,15 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgIm
       statusMessage: `[Nuxt OG Image] Unknown OG Image type ${extension}.`,
     })
   }
-  // remove all of the different cache types (static, dynamic, none)
-  // need to use regex to match path /__og-image__/image/<cacheType>/
-  // where cache type is optional and one of the above
-  const basePath = withoutTrailingSlash(path
-    .replace(`/__og-image__/image`, '')
-    .replace(`/og.${extension}`, ''),
-  )
   let queryParams = { ...getQuery(e) }
   queryParams.props = JSON.parse(queryParams.props || '{}')
   queryParams = separateProps(queryParams)
+  let basePath = withoutTrailingSlash(path
+    .replace(`/__og-image__/image`, '')
+    .replace(`/og.${extension}`, ''),
+  )
+  if (queryParams._query)
+    basePath = withQuery(basePath, JSON.parse(queryParams._query))
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
   const key = resolvePathCacheKey(e, basePath)
   let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions

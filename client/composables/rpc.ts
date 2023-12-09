@@ -3,7 +3,7 @@ import type { $Fetch } from 'nitropack'
 import { ref, watchEffect } from 'vue'
 import type { NuxtDevtoolsClient, NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
-import { globalRefreshTime, path, refreshSources } from '~/util/logic'
+import { globalRefreshTime, path, query, refreshSources } from '~/util/logic'
 
 export const appFetch = ref<$Fetch>()
 
@@ -18,8 +18,11 @@ onDevtoolsClientConnected(async (client) => {
   watchEffect(() => {
     colorMode.value = client.host.app.colorMode.value
   })
-  path.value = client.host.nuxt.vueApp.config.globalProperties?.$route.path || '/'
+  const $route = client.host.nuxt.vueApp.config.globalProperties?.$route
+  query.value = $route.query
+  path.value = $route.path || '/'
   client.host.nuxt.$router.afterEach((route) => {
+    query.value = route.query
     path.value = route.path
     refreshSources()
   })
