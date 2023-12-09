@@ -428,7 +428,7 @@ declare module 'nitropack' {
   }
   interface NitroRuntimeHooks {
     'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
+    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
   }
 }
 
