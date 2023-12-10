@@ -54,7 +54,7 @@
     "@unocss/preset-wind": "^0.58.0",
     "@vueuse/core": "^10.7.0",
     "chrome-launcher": "^1.1.0",
-    "css-inline": "^0.11.0",
+    "css-inline": "^0.11.2",
     "defu": "^6.1.3",
     "execa": "^8.0.1",
     "floating-vue": "2.0.0-beta.24",
@@ -86,7 +86,7 @@
     "@nuxtjs/i18n": "8.0.0-rc.8",
     "@nuxtjs/tailwindcss": "^6.10.1",
     "@unocss/nuxt": "^0.58.0",
-    "bumpp": "^9.2.0",
+    "bumpp": "^9.2.1",
     "eslint": "8.55.0",
     "jest-image-snapshot": "^6.3.0",
     "nuxt": "^3.8.2",
@@ -94,7 +94,7 @@
     "playwright": "^1.40.1",
     "sass": "^1.69.5",
     "sharp": "^0.33.0",
-    "vitest": "^1.0.2"
+    "vitest": "^1.0.4"
   },
   "build": {
     "externals": [
