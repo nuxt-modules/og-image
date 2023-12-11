@@ -5,7 +5,7 @@ import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withoutBase } from 'ufo'
 import type { NitroRouteRules } from 'nitropack'
 import type { DefineOgImageInput, OgImageOptions } from '../types'
-import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../utils'
+import { getOgImagePath, separateProps, useOgImageRuntimeConfig, withoutQuery } from '../utils'
 import { createOgImageMeta, normaliseOptions } from '../nuxt/utils'
 import { useNuxtApp, useRequestEvent, useRoute, useRuntimeConfig } from '#imports'
 
@@ -25,7 +25,7 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     createRadixRouter({ routes: useRuntimeConfig().nitro?.routeRules }),
   )
   const routeRules = defu({}, ..._routeRulesMatcher.matchAll(
-    withoutBase(basePath.split('?')[0], useRuntimeConfig().app.baseURL),
+    withoutBase(withoutQuery(basePath), useRuntimeConfig().app.baseURL),
   ).reverse()).ogImage as NitroRouteRules['ogImage']
   // has been disabled by route rules
   if (!_options || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false || (typeof routeRules !== 'undefined' && routeRules === false)) {

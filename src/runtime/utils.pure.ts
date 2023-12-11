@@ -72,3 +72,13 @@ export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig
     }
   })
 }
+
+export function withoutQuery(path: string) {
+  return path.split('?')[0]
+}
+
+export function getExtension(path: string) {
+  path = withoutQuery(path)
+  const lastSegment = (path.split('/').pop() || path)
+  return lastSegment.split('.').pop() || lastSegment
+}
