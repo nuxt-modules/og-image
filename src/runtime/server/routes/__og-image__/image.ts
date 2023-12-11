@@ -27,6 +27,9 @@ export default defineEventHandler(async (e): Promise<any> => {
       compatibilityHints.push('Inlining CSS is only supported in Node based environments.')
     setHeader(e, 'Content-Type', 'application/json')
     return {
+      siteConfig: {
+        url: e.context.siteConfig.get().url,
+      },
       compatibilityHints,
       cacheKey: ctx.key,
       options: ctx.options,
