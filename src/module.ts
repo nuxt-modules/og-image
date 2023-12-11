@@ -37,7 +37,7 @@ import {
   getPresetNitroPresetCompatibility,
   resolveNitroPreset,
 } from './compatibility'
-import { extendTypes, getNuxtModuleOptions } from './kit'
+import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { setupDevToolsUI } from './build/devtools'
 import { setupDevHandler } from './build/dev'
 import { setupGenerateHandler } from './build/generate'
@@ -452,15 +452,21 @@ ${componentImports}
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
       const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
-      if (!nuxt.options._generate && nuxt.options.build) {
+      if (!isNuxtGenerate() && nuxt.options.build) {
         nuxt.options.nitro = nuxt.options.nitro || {}
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
         nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
         normalisedFonts
           // if they have a path we can always access them locally
           .filter(f => !f.path && !f.key)
-          .forEach(({ name, weight }) => {
-            nuxt.options.nitro.prerender!.routes!.push(`/__og-image__/font/${name}/${weight}.ttf`)
+          .forEach(({ name, weight }, key) => {
+            const path = `/__og-image__/font/${name.toLowerCase()}/${weight}.ttf`
+            nuxt.options.nitro.prerender!.routes!.push(path)
+            normalisedFonts[key] = {
+              path,
+              name,
+              weight,
+            }
           })
       }
 
@@ -502,7 +508,7 @@ ${componentImports}
       setupDevHandler(config, resolve)
       setupDevToolsUI(config, resolve)
     }
-    else if (nuxt.options._generate) {
+    else if (isNuxtGenerate()) {
       setupGenerateHandler(config, resolve)
     }
     else if (nuxt.options.build) {

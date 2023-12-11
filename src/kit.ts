@@ -53,3 +53,7 @@ export {}
     references.push({ path: resolve(nuxt.options.buildDir, `module/${module}.d.ts`) })
   })
 }
+
+export function isNuxtGenerate(nuxt: Nuxt = useNuxt()) {
+  return nuxt.options._generate || nuxt.options.nitro.static || nuxt.options.nitro.preset === 'static'
+}

@@ -5,10 +5,15 @@ import { parseURL } from 'ufo'
 export default defineEventHandler(async (e) => {
   const path = parseURL(e.path).pathname
 
-  const [name, weight] = path.split('/font/')[1].split('.')[0].split('/')
+  const [_name, _weight] = path.split('/font/')[1].split('.')[0].split('/')
 
-  if (!name || !weight)
+  if (!_name || !_weight)
     return 'Provide a font name and weight'
+
+  // make sure name starts with a capital letter
+  const name = _name[0].toUpperCase() + _name.slice(1)
+  // make sure weight is a valid number between 100 to 900 in 100 increments
+  const weight = Math.round(Number.parseInt(_weight) / 100) * 100
 
   // using H3Event $fetch will cause the request headers not to be sent
   const css = await globalThis.$fetch(`https://fonts.googleapis.com/css2?family=${name}:wght@${weight}`, {
