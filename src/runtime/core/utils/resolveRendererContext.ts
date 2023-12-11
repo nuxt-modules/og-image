@@ -12,7 +12,8 @@ import type ChromiumRenderer from '../renderers/chromium'
 import { useChromiumRenderer, useSatoriRenderer } from '../renderers/satori/instances'
 import { separateProps, useOgImageRuntimeConfig } from '../../utils'
 import { resolvePathCacheKey } from '../../nitro/utils'
-import { useNitroApp, useRuntimeConfig } from '#internal/nitro'
+import { useRuntimeConfig } from '#internal/nitro'
+import { useNitroApp } from '#internal/nitro/app'
 
 export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {
   const runtimeConfig = useOgImageRuntimeConfig()

@@ -5,7 +5,6 @@ import { devIframeTemplate } from '../../../core/html/devIframeTemplate'
 import { applyInlineCss } from '../../../core/html/applyInlineCss'
 import { useOgImageBufferCache } from '../../../cache'
 import { useOgImageRuntimeConfig } from '../../../utils'
-import { useSiteConfig } from '#imports'
 
 // /__og-image__/image/<path>/og.<extension
 export default defineEventHandler(async (e): Promise<any> => {
@@ -31,7 +30,6 @@ export default defineEventHandler(async (e): Promise<any> => {
       compatibilityHints,
       cacheKey: ctx.key,
       options: ctx.options,
-      siteConfig: useSiteConfig(e),
       ...(options.renderer === 'satori' ? await renderer.debug(ctx) : undefined),
     }
   }

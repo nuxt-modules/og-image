@@ -3,10 +3,9 @@ import { hash } from 'ohash'
 import type { H3Event } from 'h3'
 import { normalizeKey } from 'unstorage'
 import { getQuery } from 'h3'
-import { useSiteConfig } from '#imports'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
-  const siteConfig = useSiteConfig(e)
+  const siteConfig = e.context.siteConfig.get()
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path || e.path)))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
