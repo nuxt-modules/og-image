@@ -453,6 +453,7 @@ ${componentImports}
       // allow other modules to modify runtime data
       const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
       if (!nuxt.options._generate && nuxt.options.build) {
+        nuxt.options.nitro = nuxt.options.nitro || {}
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
         nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
         normalisedFonts
