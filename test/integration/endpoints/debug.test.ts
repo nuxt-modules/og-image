@@ -37,17 +37,13 @@ describe('debug', () => {
           },
           "fonts": [
             {
-              "cacheKey": "Inter:400",
               "name": "Inter",
-              "path": "",
-              "style": "normal",
+              "path": "/__og-image__/font/inter/400.ttf",
               "weight": "400",
             },
             {
-              "cacheKey": "Inter:700",
               "name": "Inter",
-              "path": "",
-              "style": "normal",
+              "path": "/__og-image__/font/inter/700.ttf",
               "weight": "700",
             },
           ],
@@ -55,10 +51,6 @@ describe('debug', () => {
           "resvgOptions": {},
           "satoriOptions": {},
           "sharpOptions": {},
-        },
-        "siteConfigUrl": {
-          "source": "nuxt-site-config:config",
-          "value": "https://nuxtseo.com",
         },
       }
     `)
