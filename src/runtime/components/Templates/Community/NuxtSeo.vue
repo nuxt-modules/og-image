@@ -117,7 +117,7 @@ if (typeof props.icon === 'string' && !runtimeConfig.hasNuxtIcon && process.dev)
             {{ description }}
           </p>
         </div>
-        <div v-if="icon" style="width: 30%;" class="flex justify-end">
+        <div v-if="Boolean(icon)" style="width: 30%;" class="flex justify-end">
           <IconComponent :name="icon" size="250px" style="margin: 0 auto; opacity: 0.7;" />
         </div>
       </div>
