@@ -121,7 +121,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   _query?: Record<string, any>
 }
 
-export interface FontConfig { name: string, weight?: string | number, path?: string, key?: string }
+export interface FontConfig { name: string, style?: string, weight?: string | number, path?: string, key?: string }
 export interface ResolvedFontConfig extends FontConfig { cacheKey: string, data?: BufferSource }
 
 export type InputFontConfig = (`${string}:${number}` | string | FontConfig)

@@ -88,13 +88,13 @@ export default defineNuxtConfig({
     //     chromium: false,
     //   },
     // },
-    runtimeCacheStorage: {
-      driver: 'redis',
-      options: {
-        host: 'localhost',
-        port: 6379,
-      },
-    },
+    // runtimeCacheStorage: {
+    //   driver: 'redis',
+    //   options: {
+    //     host: 'localhost',
+    //     port: 6379,
+    //   },
+    // },
     debug: true,
   },
 
