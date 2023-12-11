@@ -2,7 +2,7 @@ import { type Resolver, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import { assertSiteConfig } from 'nuxt-site-config-kit'
 import { applyNitroPresetCompatibility } from '../compatibility'
-import type { ModuleOptions } from './module'
+import type { ModuleOptions } from '../module'
 
 // prerender will always be called when using nuxi generate and sometimes be used when using nuxi build
 
@@ -12,7 +12,7 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver[
       nitroConfig.serverAssets = nitroConfig.serverAssets || []
       nitroConfig.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: resolve('./runtime/server/assets') })
       // bindings
-      applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility.prerender, resolve })
+      applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve })
       // avoid wasm handling while prerendering
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false
