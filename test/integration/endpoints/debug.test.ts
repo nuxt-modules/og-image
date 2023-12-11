@@ -37,13 +37,17 @@ describe('debug', () => {
           },
           "fonts": [
             {
+              "cacheKey": "Inter:400",
               "name": "Inter",
               "path": "/__og-image__/font/inter/400.ttf",
+              "style": "normal",
               "weight": "400",
             },
             {
+              "cacheKey": "Inter:700",
               "name": "Inter",
               "path": "/__og-image__/font/inter/700.ttf",
+              "style": "normal",
               "weight": "700",
             },
           ],

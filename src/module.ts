@@ -459,8 +459,11 @@ ${componentImports}
         normalisedFonts
           // if they have a path we can always access them locally
           .filter(f => !f.path && !f.key)
-          .forEach(({ name, weight }) => {
-            nuxt.options.nitro.prerender!.routes!.push(`/__og-image__/font/${name}/${weight}.ttf`)
+          .forEach((entry, key) => {
+            const { name, weight } = entry
+            entry.path = `/__og-image__/font/${name.toLowerCase()}/${weight}.ttf`
+            nuxt.options.nitro.prerender!.routes!.push(entry.path)
+            normalisedFonts[key] = entry
           })
       }
 

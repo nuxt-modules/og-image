@@ -1,4 +1,4 @@
-import { createError, defineEventHandler } from 'h3'
+import { createError, defineEventHandler, proxyRequest, sendRedirect } from 'h3'
 import { parseURL } from 'ufo'
 
 // /__og-image__/font/<name>/<weight>.ttf
@@ -31,13 +31,13 @@ export default defineEventHandler(async (e) => {
   }
 
   const ttfResource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/)
-  if (ttfResource[1])
-    return globalThis.$fetch(ttfResource[1], { responseType: 'arrayBuffer' })
+  if (ttfResource?.[1])
+    return proxyRequest(e, ttfResource[1], {})
 
   // try woff2
   const woff2Resource = css.match(/src: url\((.+)\) format\('woff2'\)/)
-  if (woff2Resource[1])
-    return globalThis.$fetch(woff2Resource[1], { responseType: 'arrayBuffer' })
+  if (woff2Resource?.[1])
+    return sendRedirect(e, woff2Resource[1])
 
   return createError({
     statusCode: 500,
