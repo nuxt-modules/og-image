@@ -1,7 +1,7 @@
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/ssr'
 import type { FontConfig, OgImageRenderEventContext } from '../../types'
-import { useOgImageRuntimeConfig } from '../../utils'
+import { normaliseFontInput, useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from './applyEmojis'
 import { fetchIsland } from './fetchIsland'
 import { theme } from '#nuxt-og-image/unocss-config.mjs'
@@ -18,7 +18,8 @@ export async function devIframeTemplate(ctx: OgImageRenderEventContext) {
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
-  const firstFont = fonts[0] as FontConfig
+  const normalisedFonts = normaliseFontInput([...options.fonts || [], ...fonts])
+  const firstFont = normalisedFonts[0] as FontConfig
   if (firstFont)
     defaultFontFamily = firstFont.name
 

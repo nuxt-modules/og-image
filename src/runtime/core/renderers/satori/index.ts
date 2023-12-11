@@ -15,7 +15,7 @@ export async function createSvg(event: OgImageRenderEventContext) {
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
 
-  const normalisedFonts = normaliseFontInput([...fonts, ...event.options.fonts || []])
+  const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
   const localFontPromises: Promise<ResolvedFontConfig>[] = []
   const preloadedFonts: ResolvedFontConfig[] = []
   for (const font of normalisedFonts) {

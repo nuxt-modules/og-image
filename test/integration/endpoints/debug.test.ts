@@ -38,6 +38,7 @@ describe('debug', () => {
           "fonts": [
             {
               "cacheKey": "Inter:400",
+              "key": "nuxt-og-image:fonts:inter-latin-ext-400-normal.woff",
               "name": "Inter",
               "path": "/__og-image__/font/inter/400.ttf",
               "style": "normal",
@@ -45,6 +46,7 @@ describe('debug', () => {
             },
             {
               "cacheKey": "Inter:700",
+              "key": "nuxt-og-image:fonts:inter-latin-ext-700-normal.woff",
               "name": "Inter",
               "path": "/__og-image__/font/inter/700.ttf",
               "style": "normal",

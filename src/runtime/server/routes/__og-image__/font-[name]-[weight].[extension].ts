@@ -1,5 +1,7 @@
-import { createError, defineEventHandler, proxyRequest, sendRedirect } from 'h3'
+import { createError, defineEventHandler, proxyRequest, sendRedirect, setHeader } from 'h3'
 import { parseURL } from 'ufo'
+import { getExtension, normaliseFontInput, useOgImageRuntimeConfig } from '../../../utils'
+import { assets } from '#internal/nitro/virtual/server-assets'
 
 // /__og-image__/font/<name>/<weight>.ttf
 export default defineEventHandler(async (e) => {
@@ -14,6 +16,24 @@ export default defineEventHandler(async (e) => {
   const name = _name[0].toUpperCase() + _name.slice(1)
   // make sure weight is a valid number between 100 to 900 in 100 increments
   const weight = Math.round(Number.parseInt(_weight) / 100) * 100
+
+  const config = useOgImageRuntimeConfig()
+  const normalisedFonts = normaliseFontInput(config.fonts)
+  const font = normalisedFonts.find(font => font.name === name && weight === Number(font.weight))
+  if (!font) {
+    return createError({
+      statusCode: 404,
+      statusMessage: `[Nuxt OG Image] Font ${name}:${weight} not found`,
+    })
+  }
+
+  if (import.meta.dev || import.meta.prerender) {
+    // check cache first, this uses Nuxt server assets
+    if (font.key && await assets.hasItem(font.key)) {
+      setHeader(e, 'Content-Type', `font/${getExtension(font.path!)}`)
+      return assets.getItemRaw<ArrayBuffer>(font.key)
+    }
+  }
 
   // using H3Event $fetch will cause the request headers not to be sent
   const css = await globalThis.$fetch(`https://fonts.googleapis.com/css2?family=${name}:wght@${weight}`, {

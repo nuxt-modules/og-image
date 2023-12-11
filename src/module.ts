@@ -462,7 +462,10 @@ ${componentImports}
           .forEach((entry, key) => {
             const { name, weight } = entry
             entry.path = `/__og-image__/font/${name.toLowerCase()}/${weight}.ttf`
-            nuxt.options.nitro.prerender!.routes!.push(entry.path)
+            nuxt.options.nitro.prerender!.routes!.unshift(entry.path)
+            // uses server assets storage for prerendering and dev
+            if (name === 'Inter' && [400, 700].includes(Number(weight)))
+              entry.key = `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`
             normalisedFonts[key] = entry
           })
       }

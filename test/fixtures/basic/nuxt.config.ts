@@ -26,6 +26,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     compressPublicAssets: true,
+    // prerender: {
+    //   routes: ['/', '/satori/'],
+    // },
   },
   devtools: { enabled: false },
   debug: process.env.NODE_ENV === 'test',
