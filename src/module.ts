@@ -142,6 +142,7 @@ export default defineNuxtModule<ModuleOptions>({
         emojis: 'noto',
         renderer: 'satori',
         component: 'NuxtSeo',
+        extension: 'png',
         width: 1200,
         height: 600,
         // default is to cache the image for 3 day (72 hours)
@@ -174,7 +175,6 @@ export default defineNuxtModule<ModuleOptions>({
     const hasSharpDependency = !!(await tryResolveModule('sharp'))
     const userConfiguredExtension = config.defaults.extension
     const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
-    config.defaults.extension = userConfiguredExtension || (hasSharpDependency && targetCompatibility.sharp ? 'jpg' : 'png')
     if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
       if (hasSharpDependency && !targetCompatibility.sharp) {
         logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
