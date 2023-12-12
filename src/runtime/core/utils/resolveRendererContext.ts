@@ -1,9 +1,7 @@
-import { parseURL, withQuery, withoutBase, withoutTrailingSlash } from 'ufo'
+import { parseURL, withQuery, withoutTrailingSlash } from 'ufo'
 import type { H3Error, H3Event } from 'h3'
 import { createError, getQuery } from 'h3'
 import { defu } from 'defu'
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import type { NitroRouteRules } from 'nitropack'
 import type { OgImageOptions, OgImageRenderEventContext } from '../../types'
 import { fetchPathHtmlAndExtractOptions } from '../options/fetch'
 import { prerenderOptionsCache } from '../cache/prerender'
@@ -12,7 +10,7 @@ import type ChromiumRenderer from '../renderers/chromium'
 import { useChromiumRenderer, useSatoriRenderer } from '../renderers/satori/instances'
 import { separateProps, useOgImageRuntimeConfig } from '../../utils'
 import { resolvePathCacheKey } from '../../nitro/utils'
-import { useRuntimeConfig } from '#internal/nitro'
+import { createNitroRouteRuleMatcher } from '../../nitro/kit'
 import { useNitroApp } from '#internal/nitro/app'
 
 export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {
@@ -57,12 +55,8 @@ export async function resolveRendererContext(e: H3Event): Promise<H3Error | OgIm
   }
   // no matter how we get the options, apply the defaults and the normalisation
   delete queryParams.options
-  const _routeRulesMatcher = toRouteMatcher(
-    createRadixRouter({ routes: useRuntimeConfig().nitro?.routeRules }),
-  )
-  const routeRules: NitroRouteRules = defu({}, ..._routeRulesMatcher.matchAll(
-    withoutBase(basePath.split('?')[0], useRuntimeConfig().app.baseURL),
-  ).reverse())
+  const routeRuleMatcher = createNitroRouteRuleMatcher()
+  const routeRules = routeRuleMatcher(basePath)
   if (typeof routeRules.ogImage === 'undefined' && !options) {
     return createError({
       statusCode: 400,

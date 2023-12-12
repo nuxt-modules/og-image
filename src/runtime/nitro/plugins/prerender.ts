@@ -1,13 +1,10 @@
-import { parseURL, withoutBase } from 'ufo'
+import { parseURL } from 'ufo'
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { defu } from 'defu'
-import type { NitroRouteRules } from 'nitropack'
 import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
 import { prerenderOptionsCache } from '../../core/cache/prerender'
 import { isInternalRoute } from '../../utils.pure'
 import { resolvePathCacheKey } from '../utils'
-import { useRuntimeConfig } from '#internal/nitro'
+import { createNitroRouteRuleMatcher } from '../kit'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)
@@ -19,14 +16,9 @@ export default defineNitroPlugin(async (nitro) => {
     if (isInternalRoute(path))
       return
 
-    const runtimeConfig = useRuntimeConfig()
-    const _routeRulesMatcher = toRouteMatcher(
-      createRadixRouter({ routes: runtimeConfig.nitro?.routeRules }),
-    )
-    const routeRules = defu({}, ..._routeRulesMatcher.matchAll(
-      withoutBase(path.split('?')[0], runtimeConfig.app.baseURL),
-    ).reverse()).ogImage as NitroRouteRules['ogImage']
-    if (routeRules === false)
+    const routeRuleMatcher = createNitroRouteRuleMatcher()
+    const routeRules = routeRuleMatcher(path)
+    if (routeRules.ogImage === false)
       return
     // when prerendering we want to cache the options for a quicker response when we render the image
     const options = extractAndNormaliseOgImageOptions([

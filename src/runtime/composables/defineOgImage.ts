@@ -1,13 +1,11 @@
 import type { ActiveHeadEntry } from '@unhead/schema'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { withoutBase } from 'ufo'
-import type { NitroRouteRules } from 'nitropack'
 import type { DefineOgImageInput, OgImageOptions } from '../types'
-import { getOgImagePath, separateProps, useOgImageRuntimeConfig, withoutQuery } from '../utils'
+import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../utils'
 import { createOgImageMeta, normaliseOptions } from '../nuxt/utils'
-import { useNuxtApp, useRequestEvent, useRoute, useRuntimeConfig } from '#imports'
+import { createNitroRouteRuleMatcher } from '../nitro/kit'
+import { useNuxtApp, useRequestEvent, useRoute } from '#imports'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {
   // string is supported as an easy way to override the generated og image data
@@ -21,12 +19,8 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   const basePath = route.path || '/' // (pages may be disabled)
 
   // need to check route rules hasn't disabled this
-  const _routeRulesMatcher = toRouteMatcher(
-    createRadixRouter({ routes: useRuntimeConfig().nitro?.routeRules }),
-  )
-  const routeRules = defu({}, ..._routeRulesMatcher.matchAll(
-    withoutBase(withoutQuery(basePath), useRuntimeConfig().app.baseURL),
-  ).reverse()).ogImage as NitroRouteRules['ogImage']
+  const routeRuleMatcher = createNitroRouteRuleMatcher()
+  const routeRules = routeRuleMatcher(basePath).ogImage
   // has been disabled by route rules
   if (!_options || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false || (typeof routeRules !== 'undefined' && routeRules === false)) {
     // remove the previous entries
