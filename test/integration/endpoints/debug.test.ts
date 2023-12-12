@@ -30,7 +30,7 @@ describe('debug', () => {
             "cacheMaxAgeSeconds": 259200,
             "component": "NuxtSeo",
             "emojis": "noto",
-            "extension": "jpg",
+            "extension": "png",
             "height": 600,
             "renderer": "satori",
             "width": 1200,

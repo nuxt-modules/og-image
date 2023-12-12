@@ -14,15 +14,13 @@ describe('json', () => {
     expect(json).toMatchInlineSnapshot(`
       {
         "cacheKey": "satori:5Hzq5ZrLws",
-        "compatibilityHints": [
-          "Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.",
-        ],
+        "compatibilityHints": [],
         "options": {
           "_query": {},
           "cacheMaxAgeSeconds": 259200,
           "component": "NuxtSeo",
           "emojis": "noto",
-          "extension": "jpg",
+          "extension": "png",
           "height": 600,
           "props": {
             "title": "Hello World",
