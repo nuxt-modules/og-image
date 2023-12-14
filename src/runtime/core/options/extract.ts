@@ -1,5 +1,11 @@
 import type { OgImageOptions } from '../../types'
 
+export function htmlDecodeQuotes(html: string) {
+  return html.replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'')
+    .replace(/&#x27;/g, '\'')
+}
+
 export function decodeHtml(html: string) {
   return html.replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

@@ -38,6 +38,9 @@ export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedF
     else {
       data = await e.$fetch(`/__og-image__/font/${name}/${weight}.ttf`, {
         responseType: 'arrayBuffer',
+        query: {
+          font,
+        },
       })
     }
   }

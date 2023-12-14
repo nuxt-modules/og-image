@@ -2,6 +2,7 @@
 import { defineOgImage } from '#imports'
 
 defineOgImage({
+  component: 'CustomFonts',
   props: {
     title: 'Custom Font',
     description: 'Using a custom font loaded from the public directory',
@@ -12,6 +13,7 @@ defineOgImage({
       weight: 800,
       path: '/OPTIEinstein-Black.otf',
     },
+    'Noto+Sans:400',
   ],
 })
 </script>

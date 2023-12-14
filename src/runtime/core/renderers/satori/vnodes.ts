@@ -3,6 +3,7 @@ import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { fetchIsland } from '../../html/fetchIsland'
 import { applyInlineCss } from '../../html/applyInlineCss'
 import { applyEmojis } from '../../html/applyEmojis'
+import { htmlDecodeQuotes } from '../../options/extract'
 import { walkSatoriTree } from './utils'
 import unocss from './plugins/unocss'
 import emojis from './plugins/emojis'
@@ -15,6 +16,9 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   let html = ctx.options.html
   if (!html) {
     const island = await fetchIsland(ctx)
+    // this fixes any inline style props that need to be wrapped in single quotes, such as:
+    // background image, fonts, etc
+    island.html = htmlDecodeQuotes(island.html)
     // pre-transform HTML
     await applyInlineCss(ctx, island)
     await applyEmojis(ctx, island)

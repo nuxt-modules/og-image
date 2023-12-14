@@ -10,7 +10,7 @@ import { theme } from '#nuxt-og-image/unocss-config.mjs'
 
 export async function createSvg(event: OgImageRenderEventContext) {
   const { options } = event
-  const { fonts, satoriOptions } = useOgImageRuntimeConfig()
+  const { fonts, satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
   const vnodes = await createVNodes(event)
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
@@ -35,18 +35,18 @@ export async function createSvg(event: OgImageRenderEventContext) {
     }
   }
   const awaitedFonts = await Promise.all(localFontPromises)
-
   const satori = await useSatori()
-  return satori(vnodes, <SatoriOptions> defu(options.satori, satoriOptions, {
+  const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions> {
     fonts: [...preloadedFonts, ...awaitedFonts].map((_f) => {
       // weight must be a number
-      return { ..._f, weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'] }
+      return { name: _f.name, data: _f.data, style: _f.style, weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'] }
     }),
     tailwindConfig: { theme },
     embedFont: true,
     width: options.width!,
     height: options.height!,
-  }))
+  }) as SatoriOptions
+  return satori(vnodes, satoriOptions)
 }
 
 async function createPng(event: OgImageRenderEventContext) {

@@ -1,6 +1,7 @@
-import { createError, defineEventHandler, proxyRequest, sendRedirect, setHeader } from 'h3'
+import { createError, defineEventHandler, getQuery, proxyRequest, sendRedirect, setHeader } from 'h3'
 import { parseURL } from 'ufo'
 import { getExtension, normaliseFontInput, useOgImageRuntimeConfig } from '../../../utils'
+import type { ResolvedFontConfig } from '../../../types'
 import { assets } from '#internal/nitro/virtual/server-assets'
 
 // /__og-image__/font/<name>/<weight>.ttf
@@ -19,7 +20,14 @@ export default defineEventHandler(async (e) => {
 
   const config = useOgImageRuntimeConfig()
   const normalisedFonts = normaliseFontInput(config.fonts)
-  const font = normalisedFonts.find(font => font.name === name && weight === Number(font.weight))
+  let font: ResolvedFontConfig | undefined
+  if (typeof getQuery(e).font === 'string')
+    font = JSON.parse(getQuery(e).font as string)
+  if (!font) {
+    font = normalisedFonts.find((font) => {
+      return font.name.toLowerCase() === name.toLowerCase() && weight === Number(font.weight)
+    })
+  }
   if (!font) {
     return createError({
       statusCode: 404,

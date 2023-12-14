@@ -59,7 +59,7 @@ export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig
       return <ResolvedFontConfig> {
         cacheKey: f,
         name,
-        weight: weight || '400',
+        weight: weight || 400,
         style: 'normal',
         path: undefined,
       }
