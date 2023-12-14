@@ -38,7 +38,7 @@ describe('html', () => {
                   font-family: 'Inter';
                   font-style: normal;
                   font-weight: 400;
-                  src: url('/__og-image__/font/inter/400.ttf') format('truetype');
+                  src: url('/__og-image__/font/Inter/400.ttf') format('truetype');
                 }
                 </style>
       <style>
@@ -46,7 +46,7 @@ describe('html', () => {
                   font-family: 'Inter';
                   font-style: normal;
                   font-weight: 700;
-                  src: url('/__og-image__/font/inter/700.ttf') format('truetype');
+                  src: url('/__og-image__/font/Inter/700.ttf') format('truetype');
                 }
                 </style>
       <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/preset-wind.global.js"></script>
