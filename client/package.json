@@ -17,9 +17,9 @@
   },
   "devDependencies": {
     "@headlessui/vue": "^1.7.16",
-    "@iconify-json/carbon": "^1.1.26",
+    "@iconify-json/carbon": "^1.1.27",
     "@iconify-json/logos": "^1.1.41",
-    "@iconify-json/ri": "^1.1.17",
+    "@iconify-json/ri": "^1.1.18",
     "@iconify-json/tabler": "^1.1.102",
     "@nuxt/devtools-ui-kit": "^1.0.6",
     "@nuxtjs/color-mode": "^3.3.2",
