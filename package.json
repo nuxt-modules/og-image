@@ -40,7 +40,7 @@
     "lint": "eslint . --fix",
     "dev": "nuxi dev .playground",
     "dev:build": "nuxi build .playground",
-    "dev:prepare": "nuxt-module-build build --stub && nuxi prepare .playground",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare .playground && nuxi prepare client",
     "release": "bumpp && pnpm -r publish --no-git-checks",
     "test": "vitest"
   },
