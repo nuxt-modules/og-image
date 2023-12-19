@@ -33,14 +33,14 @@
     "virtual.d.ts"
   ],
   "scripts": {
-    "stub": "nuxt-build-module build --stub",
+    "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
     "build": "pnpm dev:prepare && pnpm build:module && pnpm build:client",
     "build:client": "nuxi generate client",
     "build:module": "nuxt-build-module build",
     "lint": "eslint . --fix",
     "dev": "nuxi dev .playground",
     "dev:build": "nuxi build .playground",
-    "dev:prepare": "nuxt-module-build build --stub && nuxi prepare .playground",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare .playground && nuxi prepare client",
     "release": "bumpp && pnpm -r publish --no-git-checks",
     "test": "vitest"
   },
