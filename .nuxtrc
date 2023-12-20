@@ -1,2 +1,3 @@
-imports.autoImport=false
-typescript.includeWorkspace=true
+modules[]=nuxt-og-image
+modules[]=@nuxtjs/tailwindcss
+modules[]=@unocss/nuxt
