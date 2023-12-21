@@ -25,10 +25,10 @@ const org = computed(() => props.title.split('/')[0])
 const repo = computed(() => props.title.split('/')[1])
 
 const stars = computed(() => {
-  return new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(props.stars || 0)
+  return new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(Number(props.stars || 0))
 })
 const downloads = computed(() => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' })
-  .format(props.downloads || 0),
+  .format(Number(props.downloads || 0)),
 )
 
 const description = computed(() => (props.description || '').slice(0, 200))
