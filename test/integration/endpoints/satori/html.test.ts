@@ -52,7 +52,7 @@ describe('html', () => {
       <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/preset-wind.global.js"></script>
       <script>
         window.__unocss = {
-          theme: {"theme":{}},
+          theme: {},
           presets: [
             () => window.__unocss_runtime.presets.presetWind(),
           ],
