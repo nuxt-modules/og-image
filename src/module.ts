@@ -168,6 +168,8 @@ export default defineNuxtModule<ModuleOptions>({
 
     const { resolve } = createResolver(import.meta.url)
 
+    nuxt.options.build.transpile.push(resolve('./runtime'))
+
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
@@ -401,10 +403,8 @@ export default defineNuxtModule<ModuleOptions>({
     // support simple theme extends
     let unoCssConfig: any = { theme: {} }
     nuxt.hook('tailwindcss:config', (tailwindConfig) => {
-      // @ts-expect-error untyped
-      unoCssConfig = defu(tailwindConfig.theme.extend, { ...(tailwindConfig.theme || {}), extend: undefined })
+      unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
     })
-    // @ts-expect-error runtime type
     nuxt.hook('unocss:config', (_unoCssConfig) => {
       unoCssConfig = { ..._unoCssConfig.theme }
     })
