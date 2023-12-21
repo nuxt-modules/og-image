@@ -153,6 +153,9 @@ importers:
       sharp:
         specifier: ^0.33.1
         version: 0.33.1
+      typescript:
+        specifier: ^5.3.3
+        version: 5.3.3
       vitest:
         specifier: ^1.0.4
         version: 1.0.4(sass@1.69.5)
