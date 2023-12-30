@@ -10,25 +10,25 @@
     "@nuxt/devtools-kit": "^1.0.6",
     "flatted": "^3.2.9",
     "json-editor-vue": "^0.11.2",
-    "nuxt-icon": "^0.6.7",
+    "nuxt-icon": "^0.6.8",
     "shiki-es": "^0.14.0",
     "splitpanes": "^3.1.5",
-    "vanilla-jsoneditor": "^0.20.0"
+    "vanilla-jsoneditor": "^0.21.1"
   },
   "devDependencies": {
     "@headlessui/vue": "^1.7.16",
     "@iconify-json/carbon": "^1.1.27",
-    "@iconify-json/logos": "^1.1.41",
+    "@iconify-json/logos": "^1.1.42",
     "@iconify-json/ri": "^1.1.18",
     "@iconify-json/tabler": "^1.1.102",
     "@nuxt/devtools-ui-kit": "^1.0.6",
     "@nuxtjs/color-mode": "^3.3.2",
-    "@unocss/nuxt": "^0.58.0",
-    "@unocss/preset-icons": "^0.58.0",
-    "@unocss/preset-uno": "^0.58.0",
-    "@unocss/runtime": "^0.58.0",
-    "@vueuse/nuxt": "^10.7.0",
-    "nuxt": "^3.8.2",
-    "unocss": "^0.58.0"
+    "@unocss/nuxt": "^0.58.2",
+    "@unocss/preset-icons": "^0.58.2",
+    "@unocss/preset-uno": "^0.58.2",
+    "@unocss/runtime": "^0.58.2",
+    "@vueuse/nuxt": "^10.7.1",
+    "nuxt": "^3.9.0",
+    "unocss": "^0.58.2"
   }
 }
