@@ -401,7 +401,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // support simple theme extends
-    let unoCssConfig: any = { theme: {} }
+    let unoCssConfig: any = {}
     // @ts-expect-error module optional
     nuxt.hook('tailwindcss:config', (tailwindConfig) => {
       unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
