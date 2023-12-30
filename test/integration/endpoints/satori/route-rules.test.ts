@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, fetch, setup } from '@nuxt/test-utils'
+import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
 
 const { resolve } = createResolver(import.meta.url)

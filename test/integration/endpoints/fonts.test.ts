@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup } from '@nuxt/test-utils'
+import { $fetch, setup } from '@nuxt/test-utils/e2e'
 
 const { resolve } = createResolver(import.meta.url)
 

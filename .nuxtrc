@@ -1,4 +1,1 @@
-modules[]=nuxt-og-image
-modules[]=@nuxtjs/tailwindcss
-modules[]=@unocss/nuxt
 site.url=https://nuxtseo.com
