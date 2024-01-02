@@ -18,4 +18,5 @@ export default defineSatoriTransformer([
       // unescape all html tokens
       node.props.children = decodeHtml(node.props.children as string)
     },
-  }])
+  },
+])
