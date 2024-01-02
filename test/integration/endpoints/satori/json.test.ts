@@ -190,7 +190,6 @@ describe('json', () => {
                       "type": "div",
                     },
                   ],
-                  "data-v-inspector-ignore": "true",
                   "style": {
                     "display": "flex",
                     "height": "600px",
