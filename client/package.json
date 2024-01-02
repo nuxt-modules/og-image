@@ -23,12 +23,12 @@
     "@iconify-json/tabler": "^1.1.102",
     "@nuxt/devtools-ui-kit": "^1.0.6",
     "@nuxtjs/color-mode": "^3.3.2",
-    "@unocss/nuxt": "^0.58.2",
-    "@unocss/preset-icons": "^0.58.2",
-    "@unocss/preset-uno": "^0.58.2",
-    "@unocss/runtime": "^0.58.2",
+    "@unocss/nuxt": "^0.58.3",
+    "@unocss/preset-icons": "^0.58.3",
+    "@unocss/preset-uno": "^0.58.3",
+    "@unocss/runtime": "^0.58.3",
     "@vueuse/nuxt": "^10.7.1",
     "nuxt": "^3.9.0",
-    "unocss": "^0.58.2"
+    "unocss": "^0.58.3"
   }
 }
