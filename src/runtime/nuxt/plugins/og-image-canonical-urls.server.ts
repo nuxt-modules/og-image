@@ -21,12 +21,23 @@ export default defineNuxtPlugin({
         key: 'nuxt-og-image:overrides-and-canonical-urls',
         hooks: {
           'tags:resolve': async (ctx) => {
+            // check if script id 'nuxt-og-image-options' exists
+            const hasPrimaryPayload = ctx.tags.some(tag => tag.tag === 'script' && tag.props.id === 'nuxt-og-image-options')
             // see if id "nuxt-og-image-overrides" exists
             let overrides: OgImageOptions | undefined
             for (const tag of ctx.tags) {
               if (tag.tag === 'script' && tag.props.id === 'nuxt-og-image-overrides') {
-                overrides = separateProps(JSON.parse(tag.innerHTML || '{}'))
-                delete ctx.tags[ctx.tags.indexOf(tag)]
+                if (hasPrimaryPayload) {
+                  overrides = separateProps(JSON.parse(tag.innerHTML || '{}'))
+                  delete ctx.tags[ctx.tags.indexOf(tag)]
+                }
+                else {
+                  // make this the primary payload
+                  tag.props.id = 'nuxt-og-image-options'
+                  tag.innerHTML = JSON.stringify(separateProps(JSON.parse(tag.innerHTML || '{}')))
+                  tag._d = 'script:id:nuxt-og-image-options'
+                  // console.log('updating overrides', tag)
+                }
                 break
               }
             }
