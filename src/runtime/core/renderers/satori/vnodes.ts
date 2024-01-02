@@ -25,7 +25,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     html = island.html
   }
   // get the body content of the html
-  const template = `<div data-v-inspector-ignore="true" style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
+  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
 
   // scan html for all css links and load them
   const satoriTree = convertHtmlToSatori(template)
@@ -38,7 +38,5 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     flex,
     encoding,
   ])
-  // @todo allow users to hook into the vnode tree
-
   return satoriTree
 }
