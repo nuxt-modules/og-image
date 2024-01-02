@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@nuxt/ui',
     'nuxt-icon',
+    '@nuxt/content',
     NuxtOgImage,
     /**
      * Start a sub Nuxt Server for developing the client
