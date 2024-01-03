@@ -34,7 +34,7 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
 
 const cloudflare: RuntimeCompatibilitySchema = {
   'chromium': false,
-  'css-inline': false,
+  'css-inline': 'wasm',
   'resvg': 'wasm',
   'satori': 'node',
   'sharp': false,
@@ -56,7 +56,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'node-server': NodeRuntime,
   'stackblitz': {
     'chromium': false,
-    'css-inline': false,
+    'css-inline': 'wasm-fs',
     'resvg': 'wasm-fs',
     'satori': 'wasm-fs',
     'sharp': false,
@@ -65,7 +65,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'netlify': awsLambda,
   'netlify-edge': {
     'chromium': false,
-    'css-inline': false,
+    'css-inline': 'wasm',
     'resvg': 'wasm',
     'satori': 'node',
     'sharp': false,
@@ -80,7 +80,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'vercel': awsLambda,
   'vercel-edge': {
     'chromium': false,
-    'css-inline': false,
+    'css-inline': 'wasm',
     'resvg': 'wasm',
     'satori': 'node',
     'sharp': false,

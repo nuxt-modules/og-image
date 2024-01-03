@@ -128,7 +128,7 @@ export type InputFontConfig = (`${string}:${number}` | string | FontConfig)
 
 export interface RuntimeCompatibilitySchema {
   chromium: 'node' | false
-  ['css-inline']: 'node' | false
+  ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'wasm' | 'wasm-fs' | false
   satori: 'node' | 'wasm' | 'wasm-fs' | false
   sharp: 'node' | false

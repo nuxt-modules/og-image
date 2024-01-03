@@ -1,3 +1,8 @@
-import cssInline from 'css-inline'
+import { inline } from '@css-inline/css-inline'
 
-export default cssInline
+export default {
+  initWasmPromise: Promise.resolve(),
+  cssInline: {
+    inline,
+  },
+}

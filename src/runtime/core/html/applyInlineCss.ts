@@ -26,8 +26,8 @@ export async function applyInlineCss({ e }: OgImageRenderEventContext, island: N
     const cssToInline = `${linksToCss}${css}`
     const cssInline = await useCssInline()
     html = cssInline.inline(island.html, {
-      load_remote_stylesheets: false,
-      extra_css: cssToInline,
+      loadRemoteStylesheets: false,
+      extraCss: cssToInline,
     })
     // extract classses from the css
     const classes = cssToInline.match(/\.([a-zA-Z0-9-_]+)/g)?.map(c => c.replace('.', ''))
