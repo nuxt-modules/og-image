@@ -463,8 +463,11 @@ ${componentImports}
           .filter(f => !f.path && !f.key)
           .forEach((entry, key) => {
             const { name, weight } = entry
-            entry.path = `/__og-image__/font/${name}/${weight}.ttf`
-            nuxt.options.nitro.prerender!.routes!.unshift(entry.path)
+            // we need to access using nitro
+            if (preset !== 'cloudflare') {
+              entry.path = `/__og-image__/font/${name}/${weight}.ttf`
+              nuxt.options.nitro.prerender!.routes!.unshift(entry.path)
+            }
             // uses server assets storage for prerendering and dev
             if (name === 'Inter' && [400, 700].includes(Number(weight)))
               entry.key = `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`
