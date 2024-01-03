@@ -44,7 +44,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
       const cssInlineHash = sha1(await readFile(await resolvePath('@css-inline/css-inline-wasm/index_bg.wasm')))
       const postfix = target === 'vercel-edge' ? '?module' : ''
-      const path = target === 'cloudflare-pages' ? `../wasm/` : `./wasm/`
+      const path = target.includes('cloudflare') ? `../wasm/` : `./wasm/`
       await writeFile(serverEntry, contents
         .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
         .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
@@ -53,9 +53,9 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       if (target.includes('cloudflare')) {
         const imgChunk = resolve(dirname(serverEntry), './chunks/handlers/image.mjs')
         existsSync(imgChunk) && await writeFile(imgChunk, (await readFile(serverEntry, 'utf-8'))
-          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
-          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
-          .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"../${path}/index_bg-${resvgHash}.wasm${postfix}"`)
+          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"../${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
+          .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"../${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
       }
     })
   })
