@@ -57,6 +57,14 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   if (!options)
     return false
 
+  // load in the description
+  const description = html.match(/<meta[^>]+name="description"[^>]*>/)?.[0]
+  if (description) {
+    const [, content] = description.match(/content="([^"]+)"/) || []
+    if (content && !options.props.description)
+      options.props.description = content
+  }
+
   const payload = decodeObjectHtmlEntities(options) as OgImageOptions
 
   // only needed for nuxt dev tools
