@@ -50,14 +50,6 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
         .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
         .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
-      // TODO remove with next nitro bump
-      if (isCloudflarePages) {
-        const imgChunk = resolve(dirname(serverEntry), './handlers/image.mjs')
-        existsSync(imgChunk) && await writeFile(imgChunk, (await readFile(serverEntry, 'utf-8'))
-          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"../${path}/index_bg-${resvgHash}.wasm${postfix}"`)
-          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"../${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
-          .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"../${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
-      }
     })
   })
 }
