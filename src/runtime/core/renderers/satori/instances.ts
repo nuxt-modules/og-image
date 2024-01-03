@@ -43,5 +43,6 @@ export async function useSharp() {
 
 export async function useCssInline() {
   cssInlineInstance.instance = cssInlineInstance.instance || await import('#nuxt-og-image/bindings/css-inline').then(m => m.default)
+  await cssInlineInstance.instance!.initWasmPromise
   return cssInlineInstance.instance!.cssInline
 }
