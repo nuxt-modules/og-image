@@ -36,7 +36,8 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       let serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
         ? configuredEntry
         : 'index.mjs')
-      if (target === 'cloudflare-pages')
+      const isCloudflare = target.includes('cloudflare')
+      if (isCloudflare)
         // this is especially hacky
         serverEntry = resolve(dirname(serverEntry), './chunks/wasm.mjs')
       const contents = (await readFile(serverEntry, 'utf-8'))
@@ -44,14 +45,14 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
       const cssInlineHash = sha1(await readFile(await resolvePath('@css-inline/css-inline-wasm/index_bg.wasm')))
       const postfix = target === 'vercel-edge' ? '?module' : ''
-      const path = target.includes('cloudflare') ? `../wasm/` : `./wasm/`
+      const path = isCloudflare ? `../wasm/` : `./wasm/`
       await writeFile(serverEntry, contents
         .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
         .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
         .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
       // TODO remove with next nitro bump
-      if (target.includes('cloudflare')) {
-        const imgChunk = resolve(dirname(serverEntry), './chunks/handlers/image.mjs')
+      if (isCloudflare) {
+        const imgChunk = resolve(dirname(serverEntry), './handlers/image.mjs')
         existsSync(imgChunk) && await writeFile(imgChunk, (await readFile(serverEntry, 'utf-8'))
           .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"../${path}/index_bg-${resvgHash}.wasm${postfix}"`)
           .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"../${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
