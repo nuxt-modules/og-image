@@ -19,7 +19,7 @@ Generate OG Images with Vue templates in Nuxt.
 <tbody>
 <td align="center">
 <img width="800" height="0" /><br>
-<i>Status:</i> <a href="https://github.com/harlan-zw/nuxt-og-image/releases/tag/v2.1.0">v2.1 Released</a></b> <br>
+<i>Status:</i> <a href="https://nuxtseo.com/og-image/releases/v3">v3 RC is available</a></b> <br>
 <sup> Please report any issues 🐛</sup><br>
 <sub>Made possible by my <a href="https://github.com/sponsors/harlan-zw">Sponsor Program 💖</a><br> Follow me <a href="https://twitter.com/harlan_zw">@harlan_zw</a> 🐦 • Join <a href="https://discord.gg/275MBUBvgP">Discord</a> for help</sub><br>
 <img width="800" height="0" />
