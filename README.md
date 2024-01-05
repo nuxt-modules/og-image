@@ -1,18 +1,18 @@
 <h1 align='center'>nuxt-og-image</h1>
 
 <p align="center">
-<a href='https://github.com/nuxt/og-image/actions/workflows/test.yml'>
+<a href='https://github.com/nuxt-modules/og-image/actions/workflows/test.yml'>
 </a>
 <a href="https://www.npmjs.com/package/nuxt-og-image" target="__blank"><img src="https://img.shields.io/npm/v/nuxt-og-image?style=flat&colorA=002438&colorB=28CF8D" alt="NPM version"></a>
 <a href="https://www.npmjs.com/package/nuxt-og-image" target="__blank"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/nuxt-og-image?flat&colorA=002438&colorB=28CF8D"></a>
-<a href="https://github.com/nuxt/og-image" target="__blank"><img alt="GitHub stars" src="https://img.shields.io/github/stars/nuxt/og-image?flat&colorA=002438&colorB=28CF8D"></a>
+<a href="https://github.com/nuxt-modules/og-image" target="__blank"><img alt="GitHub stars" src="https://img.shields.io/github/stars/nuxt-modules/og-image?flat&colorA=002438&colorB=28CF8D"></a>
 </p>
 
 <p align="center">
 Generate OG Images with Vue templates in Nuxt.
 </p>
 
-<img src="https://github.com/nuxt/og-image/assets/5326365/e337b490-dccb-4e58-972a-5e6e63f30986" alt="Nuxt OG Image DevTools Preview">
+<img src="https://github.com/nuxt-modules/og-image/assets/5326365/e337b490-dccb-4e58-972a-5e6e63f30986" alt="Nuxt OG Image DevTools Preview">
 
 <p align="center">
 <table>
