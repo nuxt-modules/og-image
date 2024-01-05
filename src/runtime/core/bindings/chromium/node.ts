@@ -35,7 +35,7 @@ export async function createBrowser(): Promise<Browser | void> {
     }
     else {
       // throw the error in the CI environment, we will need playwright
-      console.error('Failed to load browser instance. Please open an issue with the exception: https://github.com/harlan-zw/nuxt-og-image/issues.')
+      console.error('Failed to load browser instance. Please open an issue with the exception: https://github.com/nuxt/og-image/issues.')
       throw e
     }
   }

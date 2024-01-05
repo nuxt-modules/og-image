@@ -11,13 +11,13 @@
   },
   "license": "MIT",
   "funding": "https://github.com/sponsors/harlan-zw",
-  "homepage": "https://github.com/harlan-zw/nuxt-og-image#readme",
+  "homepage": "https://github.com/nuxt/og-image#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/harlan-zw/nuxt-og-image.git"
+    "url": "git+https://github.com/nuxt/og-image.git"
   },
   "bugs": {
-    "url": "https://github.com/harlan-zw/nuxt-og-image/issues"
+    "url": "https://github.com/nuxt/og-image/issues"
   },
   "exports": {
     ".": {
