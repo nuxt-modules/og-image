@@ -1,5 +1,4 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { type Resolver, resolvePath, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'

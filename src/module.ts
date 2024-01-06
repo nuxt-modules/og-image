@@ -23,7 +23,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
 import { Launcher } from 'chrome-launcher'
-import { version } from '../package.json'
+import { readPackageJSON } from 'pkg-types'
 import type {
   CompatibilityFlagEnvOverrides,
   FontConfig,
@@ -155,7 +155,9 @@ export default defineNuxtModule<ModuleOptions>({
     }
   },
   async setup(config, nuxt) {
-    const logger = useLogger('nuxt-og-image')
+    const { resolve } = createResolver(import.meta.url)
+    const { name, version } = await readPackageJSON(resolve('../package.json'))
+    const logger = useLogger(name)
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
       logger.debug('The module is disabled, skipping setup.')
@@ -165,8 +167,6 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
-
-    const { resolve } = createResolver(import.meta.url)
 
     nuxt.options.build.transpile.push(resolve('./runtime'))
 
