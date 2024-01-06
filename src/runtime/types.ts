@@ -32,6 +32,8 @@ export interface OgImageRuntimeConfig {
   fonts: FontConfig[]
   hasNuxtIcon: boolean
   colorPreference: 'light' | 'dark'
+
+  isNuxtContentDocumentDriven: boolean
 }
 
 export interface OgImageComponent {

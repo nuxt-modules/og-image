@@ -501,6 +501,9 @@ ${componentImports}
         fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon'),
         colorPreference,
+
+        // @ts-expect-error runtime type
+        isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
       }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)

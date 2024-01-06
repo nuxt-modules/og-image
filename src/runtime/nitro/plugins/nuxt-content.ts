@@ -5,18 +5,21 @@ import type { UseHeadInput } from 'unhead'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../utils'
 
 export default defineNitroPlugin((nitroApp) => {
+  const { isNuxtContentDocumentDriven, defaults } = useOgImageRuntimeConfig()
   nitroApp.hooks.hook('content:file:afterParse', async (content: ParsedContent) => {
     if (content._draft || content._extension !== 'md' || content._partial || content.indexable === false || content.index === false)
       return
 
+    let path = content.path
+    if (isNuxtContentDocumentDriven)
+      path = content._path
     // convert ogImage to head tags
-    if (content.path && content.ogImage) {
+    if (path && content.ogImage) {
       const ogImageConfig = typeof content.ogImage === 'object' ? content.ogImage : {}
-      const { defaults } = useOgImageRuntimeConfig()
       const optionsWithDefault = defu(ogImageConfig, defaults)
       // Note: we can't resolve the site URL here because we don't have access to the request
       // the plugin nuxt-content-canonical-urls.ts fixes this
-      const src = getOgImagePath(content.path, optionsWithDefault)
+      const src = getOgImagePath(path, optionsWithDefault)
 
       const payload = {
         title: content.title,
