@@ -54,6 +54,7 @@ describe('debug', () => {
             },
           ],
           "hasNuxtIcon": false,
+          "isNuxtContentDocumentDriven": false,
           "resvgOptions": {},
           "satoriOptions": {},
           "sharpOptions": {},
