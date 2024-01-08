@@ -419,10 +419,13 @@ export default defineNuxtModule<ModuleOptions>({
       const componentImports = ogImageComponentCtx.components.map((component) => {
         const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
         // remove dirNames from component name
-        const name = config.componentDirs.reduce((name, dir) => {
+        const name = config.componentDirs
+          // need to sort by longest first so we don't replace the wrong part of the string
+          .sort((a, b) => b.length - a.length)
+          .reduce((name, dir) => {
           // only replace from the start of the string
-          return name.replace(new RegExp(`^${dir}`), '')
-        }, component.pascalName)
+            return name.replace(new RegExp(`^${dir}`), '')
+          }, component.pascalName)
         return `    '${name}': typeof import('${relativeComponentPath}')['default']`
       }).join('\n')
       return `
