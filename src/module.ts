@@ -418,7 +418,12 @@ export default defineNuxtModule<ModuleOptions>({
       // need to map our components to types so we can import them
       const componentImports = ogImageComponentCtx.components.map((component) => {
         const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
-        return `    '${component.pascalName}': typeof import('${relativeComponentPath}')['default']`
+        // remove dirNames from component name
+        const name = config.componentDirs.reduce((name, dir) => {
+          // only replace from the start of the string
+          return name.replace(new RegExp(`^${dir}`), '')
+        }, component.pascalName)
+        return `    '${name}': typeof import('${relativeComponentPath}')['default']`
       }).join('\n')
       return `
 declare module 'nitropack' {
