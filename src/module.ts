@@ -64,7 +64,7 @@ export interface ModuleOptions {
   /**
    * Fonts to use when rendering the og:image.
    *
-   * @example ['Roboto:400,700', { path: 'path/to/font.ttf', weight: 400, name: 'MyFont' }]
+   * @example ['Roboto:400', 'Roboto:700', { path: 'path/to/font.ttf', weight: 400, name: 'MyFont' }]
    */
   fonts: InputFontConfig[]
   /**
