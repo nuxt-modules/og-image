@@ -48,8 +48,8 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1
       floating-vue:
-        specifier: 2.0.0-beta.24
-        version: 2.0.0-beta.24(@nuxt/kit@3.9.1)(vue@3.4.5)
+        specifier: 5.0.3
+        version: 5.0.3(@nuxt/kit@3.9.1)(vue@3.4.5)
       image-size:
         specifier: ^1.1.1
         version: 1.1.1
@@ -6406,6 +6406,21 @@ packages:
 
   /floating-vue@2.0.0-beta.24(@nuxt/kit@3.9.1)(vue@3.4.5):
     resolution: {integrity: sha512-URSzP6YXaF4u1oZ9XGL8Sn8puuM7ivp5jkOUrpy5Q1mfo9BfGppJOn+ierTmsSUfJEeHBae8KT7r5DeI3vQIEw==}
+    peerDependencies:
+      '@nuxt/kit': ^3.2.0
+      vue: ^3.2.0
+    peerDependenciesMeta:
+      '@nuxt/kit':
+        optional: true
+    dependencies:
+      '@floating-ui/dom': 1.1.1
+      '@nuxt/kit': 3.9.1(rollup@4.9.3)
+      vue: 3.4.5(typescript@5.3.3)
+      vue-resize: 2.0.0-alpha.1(vue@3.4.5)
+    dev: false
+
+  /floating-vue@5.0.3(@nuxt/kit@3.9.1)(vue@3.4.5):
+    resolution: {integrity: sha512-AM7yczIuFACI6T2l8z0ozpTSqHDagcxiQCCanUqvm7Zxtk4CUJNyF6nSuBkkeEYX6hDyTAcmNHe2NJ5x54qnnw==}
     peerDependencies:
       '@nuxt/kit': ^3.2.0
       vue: ^3.2.0
