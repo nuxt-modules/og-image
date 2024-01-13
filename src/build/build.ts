@@ -35,8 +35,8 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       let serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
         ? configuredEntry
         : 'index.mjs')
-      const isCloudflarePages = target === 'cloudflare-pages'
-      if (isCloudflarePages)
+      const isCloudflarePagesOrModule = target === 'cloudflare-pages' || target === 'cloudflare-module'
+      if (isCloudflarePagesOrModule)
         // this is especially hacky
         serverEntry = resolve(dirname(serverEntry), './chunks/wasm.mjs')
       const contents = (await readFile(serverEntry, 'utf-8'))
@@ -44,7 +44,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
       const cssInlineHash = sha1(await readFile(await resolvePath('@css-inline/css-inline-wasm/index_bg.wasm')))
       const postfix = target === 'vercel-edge' ? '?module' : ''
-      const path = isCloudflarePages ? `../wasm/` : `./wasm/`
+      const path = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
       await writeFile(serverEntry, contents
         .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
         .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
