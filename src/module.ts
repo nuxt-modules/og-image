@@ -259,7 +259,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (!config.fonts.length)
       config.fonts = ['Inter:400', 'Inter:700']
 
-    if (preset === 'cloudflare') {
+    if (preset === 'cloudflare' || preset === 'cloudflare-module') {
       config.fonts = config.fonts.filter((f) => {
         if (typeof f !== 'string' && f.path) {
           logger.warn(`The ${f.name}:${f.weight} font was skipped because remote fonts are not available in Cloudflare Workers, please use a Google font.`)
@@ -472,7 +472,7 @@ ${componentImports}
           .forEach((entry, key) => {
             const { name, weight } = entry
             // we need to access using nitro
-            if (preset !== 'cloudflare') {
+            if (preset !== 'cloudflare' && preset !== 'cloudflare-module') {
               entry.path = `/__og-image__/font/${name}/${weight}.ttf`
               nuxt.options.nitro.prerender!.routes!.unshift(entry.path)
             }
