@@ -91,6 +91,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   },
   'cloudflare-pages': cloudflare,
   'cloudflare': cloudflare,
+  'cloudflare-module': cloudflare,
 } as const
 
 export function detectTarget(options: { static?: boolean } = {}) {
