@@ -59,7 +59,7 @@
     "chrome-launcher": "^1.1.0",
     "defu": "^6.1.4",
     "execa": "^8.0.1",
-    "floating-vue": "5.0.3",
+    "floating-vue": "5.1.0",
     "image-size": "^1.1.1",
     "nuxt-site-config": "^2.2.5",
     "nuxt-site-config-kit": "^2.2.5",

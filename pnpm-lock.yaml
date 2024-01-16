@@ -48,8 +48,8 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1
       floating-vue:
-        specifier: 5.0.3
-        version: 5.0.3(@nuxt/kit@3.9.1)(vue@3.4.5)
+        specifier: 5.1.0
+        version: 5.1.0(@nuxt/kit@3.9.1)(vue@3.4.5)
       image-size:
         specifier: ^1.1.1
         version: 1.1.1
@@ -200,11 +200,11 @@ importers:
         specifier: ^1.1.42
         version: 1.1.42
       '@iconify-json/ri':
-        specifier: ^1.1.18
-        version: 1.1.18
+        specifier: ^1.1.19
+        version: 1.1.19
       '@iconify-json/tabler':
-        specifier: ^1.1.103
-        version: 1.1.103
+        specifier: ^1.1.104
+        version: 1.1.104
       '@nuxt/devtools-ui-kit':
         specifier: ^1.0.8
         version: 1.0.8(@nuxt/devtools@1.0.8)(@vue/compiler-core@3.4.5)(nuxt@3.9.1)(postcss@8.4.33)(rollup@4.9.3)(vite@5.0.11)(vue@3.4.5)(webpack@5.89.0)
@@ -1231,13 +1231,13 @@ packages:
       '@iconify/types': 2.0.0
     dev: false
 
-  /@iconify-json/ri@1.1.18:
-    resolution: {integrity: sha512-/gm7OrzhX6iOklhSnhK102unCzA+5wB0OJzXPgvpMr19VOD+dkXzIxEAbGu5lhFCxgn5TJ2jJLc8DtvnZWsyrw==}
+  /@iconify-json/ri@1.1.19:
+    resolution: {integrity: sha512-S9usTucQOY//J3LGIGZ+A6i8AYGCStDcLKjmWzI2UPnWJo+Xd5dESMQGkhOI5BlG3W4AtH6RmiXcpbPy3krmjQ==}
     dependencies:
       '@iconify/types': 2.0.0
 
-  /@iconify-json/tabler@1.1.103:
-    resolution: {integrity: sha512-8lCzy0GP4sjhRfFQO2nubytMb1OsEItjJ75ts/cOBPuj6bs9Wwq/Pxycz3DWg7cemTOVxiOyG1lednlhMy4DLg==}
+  /@iconify-json/tabler@1.1.104:
+    resolution: {integrity: sha512-wULNz6HmRZSOUansZl57uI9PkE98QlkplIpalBEez56RtJ2Ygi30JqFNG+eSBRA8dYcYJG9TPNg6fcOV3TZYpA==}
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -1922,8 +1922,8 @@ packages:
     dependencies:
       '@iconify-json/carbon': 1.1.27
       '@iconify-json/logos': 1.1.42
-      '@iconify-json/ri': 1.1.18
-      '@iconify-json/tabler': 1.1.103
+      '@iconify-json/ri': 1.1.19
+      '@iconify-json/tabler': 1.1.104
       '@nuxt/devtools': 1.0.8(nuxt@3.9.1)(rollup@4.9.3)(vite@5.0.11)
       '@nuxt/devtools-kit': 1.0.8(nuxt@3.9.1)(rollup@4.9.3)(vite@5.0.11)
       '@nuxt/kit': 3.9.1(rollup@4.9.3)
@@ -6703,8 +6703,8 @@ packages:
       vue-resize: 2.0.0-alpha.1(vue@3.4.5)
     dev: false
 
-  /floating-vue@5.0.3(@nuxt/kit@3.9.1)(vue@3.4.5):
-    resolution: {integrity: sha512-AM7yczIuFACI6T2l8z0ozpTSqHDagcxiQCCanUqvm7Zxtk4CUJNyF6nSuBkkeEYX6hDyTAcmNHe2NJ5x54qnnw==}
+  /floating-vue@5.1.0(@nuxt/kit@3.9.1)(vue@3.4.5):
+    resolution: {integrity: sha512-tk2Y9pbsmfaMc15JhA3JYPRDT+DSOJ2fm7kYIRks0HRga8HtOYDfU4nPh95SRqFOk+OQWHdaE41FYq/wYKztuA==}
     peerDependencies:
       '@nuxt/kit': ^3.2.0
       vue: ^3.2.0
