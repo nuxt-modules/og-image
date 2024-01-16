@@ -23,5 +23,6 @@ const containerStyles = {
     <div :style="{ position: 'absolute', top: '170px', left: '450px', fontSize: '25px', display: 'flex', alignItems: 'center' }">
       <img src="/harlan-wilton.jpeg" width="225" height="225" :style="{ borderRadius: '12px', marginRight: '8px' }">
     </div>
+    <img src="https://avatars.githubusercontent.com/u/5326365?v=4" alt="absolute test">
   </div>
 </template>

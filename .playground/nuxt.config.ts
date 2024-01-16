@@ -62,6 +62,7 @@ export default defineNuxtConfig({
         '/search?foo=bar',
         '/search?foo=2',
         '/satori/image',
+        '/prebuilt',
       ],
       ignore: [
         '/not-prerendered',
