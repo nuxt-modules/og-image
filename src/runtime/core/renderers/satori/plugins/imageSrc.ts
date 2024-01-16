@@ -80,12 +80,26 @@ export default defineSatoriTransformer([
     filter: (node: VNode) => node.props?.style?.backgroundImage?.includes('url('),
     transform: async (node: VNode, { e }: OgImageRenderEventContext) => {
       // same as the above, need to swap out relative background images for absolute
-      const backgroundImage = node.props.style!.backgroundImage
-      if (backgroundImage) {
-        const src = backgroundImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '')
-        const isRelative = src?.startsWith('/')
-        if (isRelative)
+      const backgroundImage = node.props.style!.backgroundImage!
+      const src = backgroundImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '')
+      const isRelative = src?.startsWith('/')
+      if (isRelative) {
+        if (import.meta.prerender || import.meta.dev) {
+          // try hydrating from storage
+          // we need to read the file using unstorage
+          // because we can't fetch public files using $fetch when prerendering
+          const key = `root:public${src.replace('./', ':').replace('/', ':')}`
+          if (await useStorage().hasItem(key)) {
+            const imageBuffer = await useStorage().getItemRaw(key)
+            if (imageBuffer) {
+              const base64 = toBase64Image(src, Buffer.from(imageBuffer as ArrayBuffer))
+              node.props.style!.backgroundImage = `url(${base64})`
+            }
+          }
+        }
+        else {
           node.props.style!.backgroundImage = `url(${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()})`
+        }
       }
     },
   },
