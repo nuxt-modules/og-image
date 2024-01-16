@@ -11,64 +11,67 @@ import { useNitroOrigin } from '#imports'
 export default defineSatoriTransformer([
   // fix <img src="">
   {
-    filter: (node: VNode) => node.type === 'img',
+    filter: (node: VNode) => node.type === 'img' && node.props?.src,
     transform: async (node: VNode, { e }: OgImageRenderEventContext) => {
-      const src = node.props?.src as string | null
-      const isRelative = src?.startsWith('/')
-      if (src) {
-        let updated = false
-        let dimensions
-        let imageBuffer: BufferSource
-        let valid = true
+      const src = node.props.src!
+      const isRelative = src.startsWith('/')
+      let dimensions
+      let imageBuffer: BufferSource | undefined
 
-        // we can't fetch public files using $fetch when prerendering
+      if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
+          // try hydrating from storage
           // we need to read the file using unstorage
+          // because we can't fetch public files using $fetch when prerendering
           const key = `root:public${src.replace('./', ':').replace('/', ':')}`
-          if (await useStorage().hasItem(key)) {
+          if (await useStorage().hasItem(key))
             imageBuffer = await useStorage().getItemRaw(key)
-            updated = !!imageBuffer
-          }
         }
-        if (!import.meta.prerender && !updated) {
+        else {
           // see if we can fetch it from a kv host if we're using an edge provider
           imageBuffer = (await e.$fetch(src, {
             baseURL: useNitroOrigin(e),
             responseType: 'arrayBuffer',
           })
-            .catch(() => {
-              valid = false
-            }))
-          valid = !!imageBuffer
+            .catch(() => {})) as BufferSource | undefined
         }
-        if (valid) {
-          node.props.src = toBase64Image(src, imageBuffer as ArrayBuffer)
+      }
+      else {
+        // see if we can fetch it from a kv host if we're using an edge provider
+        imageBuffer = (await $fetch(src, {
+          responseType: 'arrayBuffer',
+        })
+          .catch(() => {})) as BufferSource | undefined
+      }
+      if (imageBuffer)
+        imageBuffer = Buffer.from(imageBuffer as ArrayBuffer)
+      if (imageBuffer) {
+        node.props.src = toBase64Image(src, imageBuffer)
 
-          try {
-            const imageSize = sizeOf(Buffer.from(imageBuffer as ArrayBuffer))
-            dimensions = { width: imageSize.width, height: imageSize.height }
-          }
-          catch (e) {}
-          updated = true
+        try {
+          const imageSize = sizeOf(imageBuffer)
+          dimensions = { width: imageSize.width, height: imageSize.height }
         }
-        // apply a natural aspect ratio if missing a dimension
-        if (dimensions?.width && dimensions?.height) {
-          const naturalAspectRatio = dimensions.width / dimensions.height
-          if (node.props.width && !node.props.height) {
-            node.props.height = Math.round(node.props.width / naturalAspectRatio)
-          }
-          else if (node.props.height && !node.props.width) {
-            node.props.width = Math.round(node.props.height * naturalAspectRatio)
-          }
-          else if (!node.props.width && !node.props.height) {
-            node.props.width = dimensions.width
-            node.props.height = dimensions.height
-          }
+        catch (e) {}
+      }
+      // apply a natural aspect ratio if missing a dimension
+      if (dimensions?.width && dimensions?.height) {
+        const naturalAspectRatio = dimensions.width / dimensions.height
+        if (node.props.width && !node.props.height) {
+          node.props.height = Math.round(node.props.width / naturalAspectRatio)
         }
-        if (!updated && isRelative) {
-          // with query to avoid satori caching issue
-          node.props.src = `${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()}`
+        else if (node.props.height && !node.props.width) {
+          node.props.width = Math.round(node.props.height * naturalAspectRatio)
         }
+        else if (!node.props.width && !node.props.height) {
+          node.props.width = dimensions.width
+          node.props.height = dimensions.height
+        }
+      }
+      // if it's still relative, we need to swap out the src for an absolute URL
+      if (node.props.src.startsWith('/')) {
+        // with query to avoid satori caching issue
+        node.props.src = `${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()}`
       }
     },
   },
