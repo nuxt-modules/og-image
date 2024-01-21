@@ -174,7 +174,7 @@ describe('json', () => {
                           },
                         ],
                         "class": "",
-                        "nuxt-ssr-component-uid": "",
+                        "data-island-uid": "",
                         "style": {
                           "backgroundColor": "rgb(255, 255, 255)",
                           "color": "rgb(17, 24, 39)",
