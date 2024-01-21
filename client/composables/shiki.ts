@@ -1,5 +1,5 @@
-import type { Highlighter, Lang } from 'shiki-es'
-import { getHighlighter } from 'shiki-es'
+import type { BuiltinLanguage, Highlighter } from 'shikiji'
+import { getHighlighter } from 'shikiji'
 import { ref } from 'vue'
 import { useColorMode } from '#imports'
 
@@ -17,7 +17,7 @@ getHighlighter({
   ],
 }).then((i) => { shiki.value = i })
 
-export function highlight(code: string, lang: Lang) {
+export function highlight(code: string, lang: BuiltinLanguage) {
   const mode = useColorMode()
   if (!shiki.value)
     return code
