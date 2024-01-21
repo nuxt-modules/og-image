@@ -36,13 +36,13 @@ export default defineNuxtConfig({
           // eslint-disable-next-line no-console
           console.log(` sub: ${data.toString()}`)
         })
+        subprocess.getProcess().stderr?.on('data', (data) => {
+          console.error(` sub: ${data.toString()}`)
+        })
 
         process.on('exit', () => {
           subprocess.terminate()
         })
-
-        // process.getProcess().stdout?.pipe(process.stdout)
-        // process.getProcess().stderr?.pipe(process.stderr)
       },
     }),
   ],
