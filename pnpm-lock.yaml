@@ -63,11 +63,11 @@ importers:
         specifier: ^0.6.8
         version: 0.6.8(nuxt@3.9.3)(rollup@4.9.5)(vite@5.0.11)(vue@3.4.15)
       nuxt-site-config:
-        specifier: ^2.2.7
-        version: 2.2.7(@nuxt/devtools@1.0.8)(@vue/compiler-core@3.4.15)(nuxt@3.9.3)(postcss@8.4.33)(rollup@4.9.5)(vite@5.0.11)(vue@3.4.15)(webpack@5.89.0)
+        specifier: ^2.2.8
+        version: 2.2.8(@nuxt/devtools@1.0.8)(@vue/compiler-core@3.4.15)(nuxt@3.9.3)(postcss@8.4.33)(rollup@4.9.5)(vite@5.0.11)(vue@3.4.15)(webpack@5.89.0)
       nuxt-site-config-kit:
-        specifier: ^2.2.7
-        version: 2.2.7(rollup@4.9.5)(vue@3.4.15)
+        specifier: ^2.2.8
+        version: 2.2.8(rollup@4.9.5)(vue@3.4.15)
       nypm:
         specifier: ^0.3.4
         version: 0.3.4
@@ -96,8 +96,8 @@ importers:
         specifier: ^0.3.2
         version: 0.3.2
       shikiji:
-        specifier: ^0.10.0-beta.9
-        version: 0.10.0-beta.9
+        specifier: ^0.10.0
+        version: 0.10.0
       sirv:
         specifier: ^2.0.4
         version: 2.0.4
@@ -127,8 +127,8 @@ importers:
         specifier: ^1.7.17
         version: 1.7.17(vue@3.4.15)
       '@iconify-json/carbon':
-        specifier: ^1.1.27
-        version: 1.1.27
+        specifier: ^1.1.28
+        version: 1.1.28
       '@iconify-json/logos':
         specifier: ^1.1.42
         version: 1.1.42
@@ -142,8 +142,8 @@ importers:
         specifier: 0.33.2
         version: 0.33.2
       '@nuxt/content':
-        specifier: ^2.10.0
-        version: 2.10.0(nuxt@3.9.3)(rollup@4.9.5)(vue@3.4.15)
+        specifier: ^2.11.0
+        version: 2.11.0(nuxt@3.9.3)(rollup@4.9.5)(vue@3.4.15)
       '@nuxt/devtools':
         specifier: 1.0.8
         version: 1.0.8(nuxt@3.9.3)(rollup@4.9.5)(vite@5.0.11)
@@ -216,8 +216,6 @@ importers:
       vitest:
         specifier: ^1.2.1
         version: 1.2.1(sass@1.70.0)
-
-  client: {}
 
 packages:
 
@@ -1205,8 +1203,8 @@ packages:
   /@humanwhocodes/object-schema@2.0.2:
     resolution: {integrity: sha512-6EwiSjwWYP7pTckG6I5eyFANjPhmPjUX9JRLUSfNPC7FX7zK9gyZAfUEaECL6ALTpGX5AjnBq3C9XmVWPitNpw==}
 
-  /@iconify-json/carbon@1.1.27:
-    resolution: {integrity: sha512-tJVXv9+D9cjU5HcaY+8J0awv9AL/Mjo9MWR/fxHfHFPP/iokjPBEgq4jOBDGNe8W0k/BTrVI3zpgZjLoi6RNGg==}
+  /@iconify-json/carbon@1.1.28:
+    resolution: {integrity: sha512-tg+h0i+69JrIqUpQva2Mt611KdLMeCyibqS7lIqaMRXJgnalHtdqDcdZAKCSLb/hTbkJHyk0NCpQSYJ3f/v51w==}
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -1826,8 +1824,8 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /@nuxt/content@2.10.0(nuxt@3.9.3)(rollup@4.9.5)(vue@3.4.15):
-    resolution: {integrity: sha512-HZ+1RJJc2SZc/FPYvbsME7b8++a2uf6g9JlMm+qUMDjnCWJaF38pbrsmYq2b9whXx/3WjpBmCRkWCJy6bjSP+g==}
+  /@nuxt/content@2.11.0(nuxt@3.9.3)(rollup@4.9.5)(vue@3.4.15):
+    resolution: {integrity: sha512-bHk4Vs+9k94z9WDdQcjTKWeXEkHiRsatTPx/914okegKaWz3yntt3x6NUPv6Ch3zI5JJZvepqbVPoWxuySFmmQ==}
     dependencies:
       '@nuxt/kit': 3.9.3(rollup@4.9.5)
       '@nuxtjs/mdc': 0.3.2(rollup@4.9.5)
@@ -1849,7 +1847,7 @@ packages:
       ohash: 1.1.3
       pathe: 1.1.2
       scule: 1.2.0
-      shiki-es: 0.14.0
+      shikiji: 0.9.19
       slugify: 1.6.6
       socket.io-client: 4.7.4
       ufo: 1.3.2
@@ -1901,7 +1899,7 @@ packages:
     peerDependencies:
       '@nuxt/devtools': 1.0.8
     dependencies:
-      '@iconify-json/carbon': 1.1.27
+      '@iconify-json/carbon': 1.1.28
       '@iconify-json/logos': 1.1.42
       '@iconify-json/ri': 1.1.19
       '@iconify-json/tabler': 1.1.104
@@ -8858,13 +8856,13 @@ packages:
       - vite
       - vue
 
-  /nuxt-site-config-kit@2.2.7(rollup@4.9.5)(vue@3.4.15):
-    resolution: {integrity: sha512-d7lJchV7J8AFMZ1cscJ0WK4gWYPneGn1jzL7NOyk8X59KpxmJqhqKQF/eJhb1oG9HY1HE4GCa7xYi0Up9S4wRg==}
+  /nuxt-site-config-kit@2.2.8(rollup@4.9.5)(vue@3.4.15):
+    resolution: {integrity: sha512-i/BFSjU2Q5ShtsJKCsrr8FuHUrSJhj7/wzVWeX6IEap59qOkynAU3XBlQZ8oEyQSYK2eP+/csNxPGbZkw4gg2A==}
     dependencies:
       '@nuxt/kit': 3.9.3(rollup@4.9.5)
       '@nuxt/schema': 3.9.3(rollup@4.9.5)
       pkg-types: 1.0.3
-      site-config-stack: 2.2.7(vue@3.4.15)
+      site-config-stack: 2.2.8(vue@3.4.15)
       std-env: 3.7.0
       ufo: 1.3.2
     transitivePeerDependencies:
@@ -8873,20 +8871,20 @@ packages:
       - vue
     dev: false
 
-  /nuxt-site-config@2.2.7(@nuxt/devtools@1.0.8)(@vue/compiler-core@3.4.15)(nuxt@3.9.3)(postcss@8.4.33)(rollup@4.9.5)(vite@5.0.11)(vue@3.4.15)(webpack@5.89.0):
-    resolution: {integrity: sha512-J99X2EUvDzOAOYxpx71FLNVsmMGXfwsZE61uc6vA5oC0zW6cKq6VHH+YIeQsobeUwmGrd/IjfpwUj2q6+0460w==}
+  /nuxt-site-config@2.2.8(@nuxt/devtools@1.0.8)(@vue/compiler-core@3.4.15)(nuxt@3.9.3)(postcss@8.4.33)(rollup@4.9.5)(vite@5.0.11)(vue@3.4.15)(webpack@5.89.0):
+    resolution: {integrity: sha512-RZooHHBtRZYZOPco6MZcAzJbstYtb6DElh91BEOzIuYJkQLo1vpkz1RLWiRQDux0eEaYWb0PI5exFmI0tgeMqw==}
     dependencies:
       '@nuxt/devtools-kit': 1.0.8(nuxt@3.9.3)(rollup@4.9.5)(vite@5.0.11)
       '@nuxt/devtools-ui-kit': 1.0.8(@nuxt/devtools@1.0.8)(@vue/compiler-core@3.4.15)(nuxt@3.9.3)(postcss@8.4.33)(rollup@4.9.5)(vite@5.0.11)(vue@3.4.15)(webpack@5.89.0)
       '@nuxt/kit': 3.9.3(rollup@4.9.5)
       '@nuxt/schema': 3.9.3(rollup@4.9.5)
       floating-vue: 5.2.0(@nuxt/kit@3.9.3)(vue@3.4.15)
-      nuxt-site-config-kit: 2.2.7(rollup@4.9.5)(vue@3.4.15)
+      nuxt-site-config-kit: 2.2.8(rollup@4.9.5)(vue@3.4.15)
       pathe: 1.1.2
       pkg-types: 1.0.3
-      shikiji: 0.10.0-beta.9
+      shikiji: 0.10.0
       sirv: 2.0.4
-      site-config-stack: 2.2.7(vue@3.4.15)
+      site-config-stack: 2.2.8(vue@3.4.15)
       ufo: 1.3.2
     transitivePeerDependencies:
       - '@nuxt/devtools'
@@ -10496,13 +10494,8 @@ packages:
   /shell-quote@1.8.1:
     resolution: {integrity: sha512-6j1W9l1iAs/4xYBI1SYOVZyFcCis9b4KCLQ8fgAGG07QvzaRLVVRQvAy85yNmmZSjYjg4MWh4gNvlPujU/5LpA==}
 
-  /shiki-es@0.14.0:
-    resolution: {integrity: sha512-e+/aueHx0YeIEut6RXC6K8gSf0PykwZiHD7q7AHtpTW8Kd8TpFUIWqTwhAnrGjOyOMyrwv+syr5WPagMpDpVYQ==}
-    deprecated: Please migrate to https://github.com/antfu/shikiji
-    dev: true
-
-  /shikiji-core@0.10.0-beta.9:
-    resolution: {integrity: sha512-7dgwTyN9PeKyc4KJeyKo/qW8gi8XbR//c1CO+0B5GaeozWexNTpEL/tSohyIKkj0Z+7spfm2REmAaS39NlC4Lw==}
+  /shikiji-core@0.10.0:
+    resolution: {integrity: sha512-imG+bvRkuNlZUi2q9tMVfegRRouTpDxMFejpfF/6J+bFX3NDKtlW9T9iIAkBYnw4pcCtSwirW0AvkwlQR4wyxg==}
     dev: false
 
   /shikiji-core@0.9.19:
@@ -10515,10 +10508,10 @@ packages:
       shikiji: 0.9.19
     dev: true
 
-  /shikiji@0.10.0-beta.9:
-    resolution: {integrity: sha512-I+sv642n9M7/FK/dVcXp9vMv7v5Wa8gU2UuKwkIWKQFvyo+qKB8eV1zNNtRYas+jC7BLwdAaflc5BFUozAonFQ==}
+  /shikiji@0.10.0:
+    resolution: {integrity: sha512-1dAzIOWbtM7B4Sem5BvE+CEdsebDsRA34SfCxM4qJ4PLgR73ZD92VEtNfbcoZ3xOLSqvtV0J9i4WpCgVsmQteg==}
     dependencies:
-      shikiji-core: 0.10.0-beta.9
+      shikiji-core: 0.10.0
     dev: false
 
   /shikiji@0.9.19:
@@ -10585,8 +10578,8 @@ packages:
   /sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
-  /site-config-stack@2.2.7(vue@3.4.15):
-    resolution: {integrity: sha512-mLd6MUsQdkxGPN0KWt8U8b46K+TbSqssCDqGO1eeCkUVGH0ry4Ewz/Vfy9X5TGmNF5wJVi1YTMi+g3SVHdtJHg==}
+  /site-config-stack@2.2.8(vue@3.4.15):
+    resolution: {integrity: sha512-4HyAb5bnP+kkmsMktHGu4xFlZijcuEAhm7MUZEsru8b9d4UfOEV86SE+9+GGkT3OkDlcV0mJrdoga65W7/GTmw==}
     peerDependencies:
       vue: ^3
     dependencies:
