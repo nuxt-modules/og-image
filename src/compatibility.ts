@@ -50,17 +50,20 @@ const awsLambda: RuntimeCompatibilitySchema = {
   'sharp': false, // 0.33.x has issues
 }
 
+export const WebContainer: RuntimeCompatibilitySchema = {
+  'chromium': false,
+  'css-inline': 'wasm-fs',
+  'resvg': 'wasm-fs',
+  'satori': 'wasm-fs',
+  'sharp': false,
+}
+
 export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
   'nitro-dev': NodeRuntime,
   'nitro-prerender': NodeRuntime,
   'node-server': NodeRuntime,
-  'stackblitz': {
-    'chromium': false,
-    'css-inline': 'wasm-fs',
-    'resvg': 'wasm-fs',
-    'satori': 'wasm-fs',
-    'sharp': false,
-  },
+  'stackblitz': WebContainer,
+  'codesandbox': WebContainer,
   'aws-lambda': awsLambda,
   'netlify': awsLambda,
   'netlify-edge': {
@@ -100,8 +103,8 @@ export function detectTarget(options: { static?: boolean } = {}) {
 }
 
 export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
-  if (provider === 'stackblitz')
-    return 'stackblitz'
+  if (provider === 'stackblitz' || provider === 'codesandbox')
+    return provider
   let preset
   if (nitroConfig && nitroConfig?.preset)
     preset = nitroConfig.preset
