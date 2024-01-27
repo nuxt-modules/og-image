@@ -136,6 +136,9 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')
       binding = compatibility[key]
+    // TODO avoid breaking changes, remove this in v4
+    if (key === 'chromium' && binding === 'node')
+      binding = 'playwright'
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {
