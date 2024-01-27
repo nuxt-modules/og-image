@@ -129,7 +129,7 @@ export interface ResolvedFontConfig extends FontConfig { cacheKey: string, data?
 export type InputFontConfig = (`${string}:${number}` | string | FontConfig)
 
 export interface RuntimeCompatibilitySchema {
-  chromium: 'node' | false
+  chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'wasm' | 'wasm-fs' | false
   satori: 'node' | 'wasm' | 'wasm-fs' | false

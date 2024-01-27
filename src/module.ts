@@ -16,13 +16,12 @@ import {
 } from '@nuxt/kit'
 import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
-import { isCI, isDevelopment } from 'std-env'
+import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
 import { relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
-import { Launcher } from 'chrome-launcher'
 import { readPackageJSON } from 'pkg-types'
 import type {
   CompatibilityFlagEnvOverrides,
@@ -31,6 +30,7 @@ import type {
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
 } from './runtime/types'
 import {
   ensureDependencies,
@@ -43,9 +43,8 @@ import { setupDevHandler } from './build/dev'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { setupBuildHandler } from './build/build'
-import { ensureChromium } from './build/ensureChromium'
+import { checkLocalChrome, checkPlaywrightDependency, isUndefinedOrTruthy } from './util'
 import { normaliseFontInput } from './runtime/utils.pure'
-import { isUndefinedOrTruthy } from './util'
 
 export interface ModuleOptions {
   /**
@@ -201,38 +200,35 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
-    // we can check if we have chrome and disable chromium if not
-    let hasChromeLocally = false
-    try {
-      hasChromeLocally = !!Launcher.getFirstInstallation()
+    // in dev and prerender we rely on local chrome or playwright dependency
+    // for runtime we need playwright dependency
+    const hasChromeLocally = checkLocalChrome()
+    const hasPlaywrightDependency = await checkPlaywrightDependency()
+    const chromeCompatibilityFlags = {
+      prerender: config.compatibility?.prerender?.chromium,
+      dev: config.compatibility?.dev?.chromium,
+      runtime: config.compatibility?.runtime?.chromium,
     }
-    catch {}
-    const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
-    if (isUndefinedOrTruthy(config.compatibility?.prerender?.chromium) && isUndefinedOrTruthy(config.compatibility?.runtime?.chromium)) {
-      if (isCI)
-        await ensureChromium(logger)
-
-      const hasPlaywrightDependency = !!(await tryResolveModule('playwright'))
-      if (hasChromeLocally) {
-        // we have chrome locally so we can enable chromium in dev
-        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-          runtime: { chromium: false },
-          dev: { chromium: 'node' },
-          prerender: { chromium: 'node' },
-        })
-      }
-      else if (hasPlaywrightDependency && targetCompatibility.chromium) {
-        // need to disable chromium in all environments
-        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-          runtime: { chromium: 'node' },
-          dev: { chromium: 'node' },
-          prerender: { chromium: 'node' },
-        })
-      }
+    const chromiumBinding: Record<string, RuntimeCompatibilitySchema['chromium'] | null> = {
+      dev: null,
+      prerender: null,
+      runtime: null,
     }
-    else if (!hasChromeLocally && nuxt.options.dev && config.compatibility?.dev?.chromium === 'node') {
-      await ensureChromium(logger)
+    if (nuxt.options.dev) {
+      if (isUndefinedOrTruthy(chromeCompatibilityFlags.dev))
+        chromiumBinding.dev = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
     }
+    else {
+      if (isUndefinedOrTruthy(chromeCompatibilityFlags.prerender))
+        chromiumBinding.prerender = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
+      if (isUndefinedOrTruthy(chromeCompatibilityFlags.runtime))
+        chromiumBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
+    }
+    config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+      runtime: { chromium: chromiumBinding.runtime },
+      dev: { chromium: chromiumBinding.dev },
+      prerender: { chromium: chromiumBinding.prerender },
+    })
 
     // let's check we can access resvg
     await import('@resvg/resvg-js')
