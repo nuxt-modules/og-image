@@ -67,7 +67,7 @@ export interface ScreenshotOptions {
   delay?: number
 }
 
-export type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt'>
+export type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt' | '_query'>
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 

@@ -45,6 +45,7 @@ import { setupPrerenderHandler } from './build/prerender'
 import { setupBuildHandler } from './build/build'
 import { ensureChromium } from './build/ensureChromium'
 import { normaliseFontInput } from './runtime/utils.pure'
+import { isUndefinedOrTruthy } from './util'
 
 export interface ModuleOptions {
   /**
@@ -297,19 +298,19 @@ export default defineNuxtModule<ModuleOptions>({
     addServerHandler({
       lazy: true,
       route: '/__og-image__/font/**',
-      handler: resolve('./runtime/server/routes/__og-image__/font-[name]-[weight].[extension]'),
+      handler: resolve('./runtime/nitro/routes/__og-image__/font-[name]-[weight].[extension]'),
     })
     if (config.debug || nuxt.options.dev) {
       addServerHandler({
         lazy: true,
         route: '/__og-image__/debug.json',
-        handler: resolve('./runtime/server/routes/__og-image__/debug.json'),
+        handler: resolve('./runtime/nitro/routes/__og-image__/debug.json'),
       })
     }
     addServerHandler({
       lazy: true,
       route: '/__og-image__/image/**',
-      handler: resolve('./runtime/server/routes/__og-image__/image'),
+      handler: resolve('./runtime/nitro/routes/__og-image__/image'),
     })
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []

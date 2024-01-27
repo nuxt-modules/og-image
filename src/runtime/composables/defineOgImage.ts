@@ -39,12 +39,12 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
   // allow overriding using a prebuild config
   if (_options.url) {
-    createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext)
+    createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext!)
   }
   else {
     const path = getOgImagePath(basePath, resolvedOptions)
     if (import.meta.prerender)
       appendHeader(useRequestEvent(), 'x-nitro-prerender', path)
-    createOgImageMeta(path, options, resolvedOptions, nuxtApp.ssrContext)
+    createOgImageMeta(path, options, resolvedOptions, nuxtApp.ssrContext!)
   }
 }
