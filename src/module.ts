@@ -120,6 +120,12 @@ export interface ModuleOptions {
    * Manually modify the compatibility.
    */
   compatibility?: CompatibilityFlagEnvOverrides
+  /**
+   * Use an alternative host for downloading Google Fonts. This is used to support China where Google Fonts is blocked.
+   *
+   * When `true` is set will use `fonts.font.im`, otherwise will use a string as the host.
+   */
+  googleFontMirror?: true | string
 }
 
 export interface ModuleHooks {
