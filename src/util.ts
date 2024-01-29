@@ -1,6 +1,11 @@
+import { writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { Launcher } from 'chrome-launcher'
 import { tryResolveModule } from '@nuxt/kit'
 import { isCI } from 'std-env'
+import { $fetch } from 'ofetch'
+import { join } from 'pathe'
+import type { ResolvedFontConfig } from './runtime/types'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
 
@@ -19,4 +24,34 @@ export function checkLocalChrome() {
 
 export async function checkPlaywrightDependency() {
   return !!(await tryResolveModule('playwright'))
+}
+
+export async function downloadFont(font: ResolvedFontConfig, outputPath: string, mirror?: true | string) {
+  const { name, weight } = font
+  const fontPath = join(outputPath, `${name}-${weight}.ttf.base64`)
+  if (existsSync(fontPath))
+    return true
+
+  const host = typeof mirror === 'undefined' ? 'fonts.googleapis.com' : mirror === true ? 'fonts.font.im' : mirror
+  // using H3Event $fetch will cause the request headers not to be sent
+  const css = await $fetch(`https://${host}/css2?family=${name}:wght@${weight}`, {
+    headers: {
+      // Make sure it returns TTF.
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1',
+    },
+  })
+  if (!css)
+    return false
+
+  const ttfResource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/)
+  if (ttfResource?.[1]) {
+    const buf = await $fetch(ttfResource[1], { baseURL: host, responseType: 'arrayBuffer' })
+    // need to base 64 the buf
+    const base64Font = Buffer.from(buf).toString('base64')
+    // output to outputPath
+    await writeFile(fontPath, base64Font)
+    return true
+  }
+  return false
 }

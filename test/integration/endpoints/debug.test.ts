@@ -38,17 +38,17 @@ describe('debug', () => {
           "fonts": [
             {
               "cacheKey": "Inter:400",
-              "key": "nuxt-og-image:fonts:inter-latin-ext-400-normal.woff",
+              "key": "nuxt-og-image:fonts:Inter-400.ttf.base64",
               "name": "Inter",
-              "path": "/__og-image__/font/Inter/400.ttf",
+              "path": "",
               "style": "normal",
               "weight": "400",
             },
             {
               "cacheKey": "Inter:700",
-              "key": "nuxt-og-image:fonts:inter-latin-ext-700-normal.woff",
+              "key": "nuxt-og-image:fonts:Inter-700.ttf.base64",
               "name": "Inter",
-              "path": "/__og-image__/font/Inter/700.ttf",
+              "path": "",
               "style": "normal",
               "weight": "700",
             },

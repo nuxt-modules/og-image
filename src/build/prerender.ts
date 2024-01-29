@@ -9,8 +9,6 @@ import type { ModuleOptions } from '../module'
 export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig) => {
-      nitroConfig.serverAssets = nitroConfig.serverAssets || []
-      nitroConfig.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: resolve('./runtime/server/assets') })
       // bindings
       applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve })
       // avoid wasm handling while prerendering

@@ -13,7 +13,7 @@ describe('svg', () => {
     expect(svg).toMatchInlineSnapshot(`
       Blob {
         Symbol(kHandle): Blob {},
-        Symbol(kLength): 14597,
+        Symbol(kLength): 14657,
         Symbol(kType): "image/svg+xml",
       }
     `)

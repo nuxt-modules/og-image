@@ -1,8 +1,11 @@
 import { createError, defineEventHandler, getQuery, proxyRequest, sendRedirect, setHeader } from 'h3'
 import { parseURL } from 'ufo'
+import { prefixStorage } from 'unstorage'
 import { getExtension, normaliseFontInput, useOgImageRuntimeConfig } from '../../../utils'
 import type { ResolvedFontConfig } from '../../../types'
-import { assets } from '#internal/nitro/virtual/server-assets'
+import { useStorage } from '#imports'
+
+const assets = prefixStorage(useStorage(), '/assets')
 
 // /__og-image__/font/<name>/<weight>.ttf
 export default defineEventHandler(async (e) => {
@@ -35,12 +38,12 @@ export default defineEventHandler(async (e) => {
     })
   }
 
-  if (import.meta.dev || import.meta.prerender) {
-    // check cache first, this uses Nuxt server assets
-    if (font.key && await assets.hasItem(font.key)) {
-      setHeader(e, 'Content-Type', `font/${getExtension(font.path!)}`)
-      return assets.getItemRaw<ArrayBuffer>(font.key)
-    }
+  // check cache first, this uses Nuxt server assets
+  if (font.key && await assets.hasItem(font.key)) {
+    setHeader(e, 'Content-Type', `font/${getExtension(font.path!)}`)
+    const fontData = await assets.getItemRaw<string>(font.key)
+    // buf is a string need to convert it to a buffer
+    return Buffer.from(fontData!, 'base64')
   }
 
   // using H3Event $fetch will cause the request headers not to be sent
