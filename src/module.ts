@@ -19,7 +19,7 @@ import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
-import { basename, relative } from 'pathe'
+import { basename, join, relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
@@ -283,7 +283,7 @@ export default defineNuxtModule<ModuleOptions>({
         }
         else if (f.path) {
           // move to assets folder as base64 and set key
-          const fontPath = resolve(nuxt.options.rootDir, nuxt.options.dir.public, f.path)
+          const fontPath = join(nuxt.options.rootDir, nuxt.options.dir.public, f.path)
           const fontData = await readFile(fontPath, 'base64')
           f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.ttf.base64`
           await writeFile(resolve(serverFontsDir, `${basename(f.path)}.base64`), fontData)
