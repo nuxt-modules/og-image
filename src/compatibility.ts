@@ -83,7 +83,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'vercel': awsLambda,
   'vercel-edge': {
     'chromium': false,
-    'css-inline': 'wasm',
+    'css-inline': false, // size constraint (2mb is max)
     'resvg': 'wasm',
     'satori': 'node',
     'sharp': false,
