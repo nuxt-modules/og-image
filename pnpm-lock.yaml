@@ -9,10 +9,10 @@ importers:
   .:
     dependencies:
       '@css-inline/css-inline':
-        specifier: ^0.12.1
+        specifier: 0.12.1
         version: 0.12.1
       '@css-inline/css-inline-wasm':
-        specifier: ^0.12.1
+        specifier: 0.12.1
         version: 0.12.1
       '@iconify-json/noto':
         specifier: ^1.1.18
