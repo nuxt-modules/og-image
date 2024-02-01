@@ -1,10 +1,9 @@
 import { parseURL } from 'ufo'
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
-import { extractAndNormaliseOgImageOptions } from '../../core/options/extract'
-import { prerenderOptionsCache } from '../../core/cache/prerender'
-import { isInternalRoute } from '../../utils.pure'
-import { resolvePathCacheKey } from '../utils'
-import { createNitroRouteRuleMatcher } from '../kit'
+import { extractAndNormaliseOgImageOptions, resolvePathCacheKey } from '../og-image/context'
+import { prerenderOptionsCache } from '../og-image/cache'
+import { isInternalRoute } from '../../pure'
+import { createNitroRouteRuleMatcher } from '../util/kit'
 
 export default defineNitroPlugin(async (nitro) => {
   if (!import.meta.prerender)

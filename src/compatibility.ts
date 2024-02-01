@@ -128,8 +128,8 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
   const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
   const chromiumEnabled = typeof options.compatibility?.chromium !== 'undefined' ? !!options.compatibility.chromium : !!compatibility.chromium
   // renderers
-  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = satoriEnabled ? resolve('./runtime/core/renderers/satori') : 'unenv/runtime/mock/empty'
-  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = chromiumEnabled ? resolve('./runtime/core/renderers/chromium') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/satori'] = satoriEnabled ? resolve('./runtime/nitro/og-image/satori/renderer') : 'unenv/runtime/mock/empty'
+  nitroConfig.alias!['#nuxt-og-image/renderers/chromium'] = chromiumEnabled ? resolve('./runtime/nitro/og-image/chromium/renderer') : 'unenv/runtime/mock/empty'
 
   const resolvedCompatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> = {}
   function applyBinding(key: keyof Omit<RuntimeCompatibilitySchema, 'wasm'>) {
@@ -142,7 +142,7 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {
-      [`#nuxt-og-image/bindings/${key}`]: binding === false ? 'unenv/runtime/mock/empty' : resolve(`./runtime/core/bindings/${key}/${binding}`),
+      [`#nuxt-og-image/bindings/${key}`]: binding === false ? 'unenv/runtime/mock/empty' : resolve(`./runtime/nitro/og-image/bindings/${key}/${binding}`),
     }
   }
   nitroConfig.alias = defu(

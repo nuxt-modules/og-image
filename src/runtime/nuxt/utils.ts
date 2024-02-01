@@ -1,11 +1,11 @@
 import type { Head } from '@unhead/schema'
 import { defu } from 'defu'
 import { withQuery } from 'ufo'
-import { getExtension, separateProps } from '../utils'
+import type { NuxtSSRContext } from 'nuxt/app'
+import { getExtension, separateProps } from '../shared'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { unref, useServerHead } from '#imports'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import type { NuxtSSRContext } from '#app'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: NuxtSSRContext) {
   const _input = separateProps(defu(input, ssrContext._ogImagePayload))

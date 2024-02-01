@@ -2,7 +2,7 @@ import { parseURL } from 'ufo'
 import type { HeadPlugin } from '@unhead/schema'
 import { toValue } from 'vue'
 import { defu } from 'defu'
-import { isInternalRoute, separateProps } from '../../utils.pure'
+import { isInternalRoute, separateProps } from '../../pure'
 import type { OgImageOptions } from '../../types'
 import { defineNuxtPlugin, useRequestEvent, withSiteUrl } from '#imports'
 

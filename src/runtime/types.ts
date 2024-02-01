@@ -166,3 +166,5 @@ export interface SatoriTransformer {
   filter: (node: VNode) => boolean
   transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void>
 }
+
+export interface SocialPreviewMetaData { twitter?: Record<string, string>, og?: Record<string, string> }

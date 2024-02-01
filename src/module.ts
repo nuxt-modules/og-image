@@ -309,19 +309,19 @@ export default defineNuxtModule<ModuleOptions>({
     addServerHandler({
       lazy: true,
       route: '/__og-image__/font/**',
-      handler: resolve('./runtime/nitro/routes/__og-image__/font-[name]-[weight].[extension]'),
+      handler: resolve('./runtime/nitro/routes/font'),
     })
     if (config.debug || nuxt.options.dev) {
       addServerHandler({
         lazy: true,
         route: '/__og-image__/debug.json',
-        handler: resolve('./runtime/nitro/routes/__og-image__/debug.json'),
+        handler: resolve('./runtime/nitro/routes/debug.json'),
       })
     }
     addServerHandler({
       lazy: true,
       route: '/__og-image__/image/**',
-      handler: resolve('./runtime/nitro/routes/__og-image__/image'),
+      handler: resolve('./runtime/nitro/routes/image'),
     })
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
@@ -329,13 +329,13 @@ export default defineNuxtModule<ModuleOptions>({
       .forEach((name) => {
         addImports({
           name,
-          from: resolve(`./runtime/composables/${name}`),
+          from: resolve(`./runtime/nuxt/composables/${name}`),
         })
         nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
       })
 
     await addComponentsDir({
-      path: resolve('./runtime/components/Templates/Community'),
+      path: resolve('./runtime/nuxt/components/Templates/Community'),
       island: true,
       watch: true,
     })
@@ -348,7 +348,7 @@ export default defineNuxtModule<ModuleOptions>({
       .forEach((name) => {
         addComponent({
           name,
-          filePath: resolve(`./runtime/components/OgImage/${name}`),
+          filePath: resolve(`./runtime/nuxt/components/OgImage/${name}`),
           ...config.componentOptions,
         })
       })
@@ -371,7 +371,7 @@ export default defineNuxtModule<ModuleOptions>({
             || component.shortPath.includes(`/${dir}/`))
             valid = true
         })
-        if (component.filePath.includes(resolve('./runtime/components/Templates')))
+        if (component.filePath.includes(resolve('./runtime/nuxt/components/Templates')))
           valid = true
 
         if (valid && fs.existsSync(component.filePath)) {
@@ -380,7 +380,7 @@ export default defineNuxtModule<ModuleOptions>({
           component.mode = 'server'
           validComponents.push(component)
           let category: OgImageComponent['category'] = 'app'
-          if (component.filePath.includes(resolve('./runtime/components/Templates/Community')))
+          if (component.filePath.includes(resolve('./runtime/nuxt/components/Templates/Community')))
             category = 'community'
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
           // see if we can extract credits from the component file, just find the line that starts with * @credits and return the rest of the line
