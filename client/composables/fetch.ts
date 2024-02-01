@@ -5,6 +5,8 @@ import { globalRefreshTime, optionsOverrides, path, refreshTime } from '~/util/l
 
 export function fetchPathDebug() {
   return useAsyncData<{ siteConfig: { url?: string }, options: OgImageOptions, vnodes: Record<string, any> }>(() => {
+    if (!appFetch.value)
+      return { siteCofig: {}, options: {}, vnodes: {} }
     return appFetch.value(joinURL('/__og-image__/image', path.value, 'og.json'), {
       query: optionsOverrides.value,
     })
@@ -15,6 +17,8 @@ export function fetchPathDebug() {
 
 export function fetchGlobalDebug() {
   return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>(() => {
+    if (!appFetch.value)
+      return { runtimeConfig: {} }
     return appFetch.value('/__og-image__/debug.json')
   }, {
     watch: [globalRefreshTime],

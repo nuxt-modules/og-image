@@ -7,9 +7,8 @@ import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import { joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import defu from 'defu'
-import { version } from '../package.json'
 import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
-import { separateProps } from '../src/runtime/utils'
+import { separateProps } from '../src/runtime/shared'
 import {
   description,
   hasMadeChanges,
@@ -268,7 +267,7 @@ const currentPageFile = computed(() => {
           <h1 text-xl flex items-center gap-2>
             <NIcon icon="carbon:image-search" class="text-blue-300" />
             OG Image <NBadge class="text-sm">
-              {{ version }}
+              {{ globalDebug?.runtimeConfig?.version }}
             </NBadge>
           </h1>
         </div>
