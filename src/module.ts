@@ -271,8 +271,8 @@ export default defineNuxtModule<ModuleOptions>({
     // default font is inter
     if (!config.fonts.length) {
       config.fonts = [
-        { name: 'Inter', weight: 400, path: resolve('./assets/Inter-400.ttf.base64'), absolutePath: true },
-        { name: 'Inter', weight: 700, path: resolve('./assets/Inter-700.ttf.base64'), absolutePath: true },
+        { name: 'Inter', weight: 400, path: resolve('./runtime/assets/Inter-400.ttf.base64'), absolutePath: true },
+        { name: 'Inter', weight: 700, path: resolve('./runtime/assets/Inter-700.ttf.base64'), absolutePath: true },
       ]
     }
 
