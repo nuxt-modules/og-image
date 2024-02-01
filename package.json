@@ -46,8 +46,8 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@css-inline/css-inline": "^0.13.0",
-    "@css-inline/css-inline-wasm": "^0.13.0",
+    "@css-inline/css-inline": "0.12.1",
+    "@css-inline/css-inline-wasm": "0.12.1",
     "@iconify-json/noto": "^1.1.18",
     "@nuxt/devtools-kit": "^1.0.8",
     "@nuxt/kit": "^3.10.0",
