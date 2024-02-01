@@ -1,10 +1,11 @@
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import defaultCharMap from '@iconify-json/noto/chars.json'
+import type { Storage } from 'unstorage'
 import { createStorage } from 'unstorage'
 import lruCacheDriver from 'unstorage/drivers/lru-cache'
 import type { OgImageRenderEventContext } from '../../../../types'
 
-export const emojiCache = createStorage<string>({
+export const emojiCache: Storage<string> = createStorage<string>({
   driver: lruCacheDriver({ max: 1000 }),
 })
 
