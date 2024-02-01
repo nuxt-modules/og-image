@@ -8,7 +8,10 @@
         <slot />
       </div>
     </div>
-    <div class="domain absolute bottom-3 bg-black/20 z-2 left-3 text-white">
+    <div class="title absolute bottom-3 z-2 left-3 text-white">
+      <slot name="title" />
+    </div>
+    <div class="domain absolute -bottom-5 z-2 left-3">
       <slot name="domain" />
     </div>
   </div>
@@ -21,7 +24,30 @@
   opacity: 1;
   height: 300px;
 }
+.domain:hover {
+  text-decoration: underline;
+}
 .domain {
+  line-height: 16px;
+  cursor: pointer;
+  min-width: 0px;
+  word-wrap: break-word;
+  text-overflow: unset;
+  color: rgb(83, 100, 113);
+  font-weight: 400;
+  background-color: rgba(0,0,0,0.00);
+  border: 0 solid black;
+  box-sizing: border-box;
+  display: inline;
+  font: 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  list-style: none;
+  margin: 0px;
+  padding: 0px;
+  text-align: inherit;
+  text-decoration: none;
+  white-space: pre-wrap;
+}
+.title {
   word-wrap: break-word;
   text-overflow: unset;
   min-width: 0px;
@@ -32,6 +58,8 @@
   text-align: center;
   height: 20px;
   padding: 0 4px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.77);
 }
 .root {
   outline-style: none;

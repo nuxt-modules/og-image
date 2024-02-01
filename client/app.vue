@@ -4,7 +4,7 @@ import JsonEditorVue from 'json-editor-vue'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import { Pane, Splitpanes } from 'splitpanes'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
-import { joinURL, parseURL, withQuery } from 'ufo'
+import { joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
 import defu from 'defu'
 import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
@@ -147,7 +147,7 @@ const socialPreviewDescription = computed(() => {
 
 const socialSiteUrl = computed(() => {
   // need to turn this URL into just an origin
-  return parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url
+  return parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url || '/'
 })
 const slackSocialPreviewSiteName = computed(() => {
   return options.value?.socialPreview?.og.site_name || socialSiteUrl.value
@@ -434,8 +434,11 @@ const currentPageFile = computed(() => {
                 </div>
               </div>
               <TwitterCardRenderer v-if="socialPreview === 'twitter'">
+                <template #title>
+                  {{ socialPreviewTitle }}
+                </template>
                 <template #domain>
-                  {{ socialSiteUrl }}
+                  <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
                 </template>
                 <ImageLoader
                   v-if="imageFormat !== 'html'"
