@@ -1,5 +1,5 @@
 import * as fs from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import {
   type AddComponentOptions,
   addComponent,
@@ -19,11 +19,13 @@ import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
-import { basename, join, relative } from 'pathe'
+import { basename, isAbsolute, join, relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
 import { readPackageJSON } from 'pkg-types'
+import { createStorage } from 'unstorage'
+import fsDriver from 'unstorage/drivers/fs'
 import type {
   CompatibilityFlagEnvOverrides,
   FontConfig,
@@ -45,7 +47,7 @@ import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { setupBuildHandler } from './build/build'
 import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
-import { normaliseFontInput } from './runtime/utils.pure'
+import { normaliseFontInput } from './runtime/pure'
 
 export interface ModuleOptions {
   /**
@@ -260,45 +262,48 @@ export default defineNuxtModule<ModuleOptions>({
       addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
 
     // default font is inter
-    if (!config.fonts.length)
-      config.fonts = ['Inter:400', 'Inter:700']
-
-    if (preset === 'cloudflare' || preset === 'cloudflare-module') {
-      config.fonts = config.fonts.filter((f) => {
-        if (typeof f !== 'string' && f.path) {
-          logger.warn(`The ${f.name}:${f.weight} font was skipped because remote fonts are not available in Cloudflare Workers, please use a Google Font.`)
-          return false
-        }
-        return true
-      })
+    if (!config.fonts.length) {
+      config.fonts = [
+        { name: 'Inter', weight: 400, path: resolve('./assets/Inter-400.ttf.base64') },
+        { name: 'Inter', weight: 700, path: resolve('./assets/Inter-700.ttf.base64') },
+      ]
     }
-    const serverFontsDir = resolve('./runtime/nitro/fonts')
-    config.fonts = await Promise.all(normaliseFontInput(config.fonts)
+
+    const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image@${version}`, '_fonts')
+    // mkdir@
+    const fontStorage = createStorage({
+      driver: fsDriver({
+        base: serverFontsDir,
+      }),
+    })
+    config.fonts = (await Promise.all(normaliseFontInput(config.fonts)
       .map(async (f) => {
         if (!f.key && !f.path) {
-          if (await downloadFont(f, serverFontsDir, config.googleFontMirror)) {
+          if (preset === 'stackblitz') {
+            logger.warn(`The ${f.name}:${f.weight} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
+            return false
+          }
+          if (await downloadFont(f, fontStorage, config.googleFontMirror)) {
             // move file to serverFontsDir
             f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.ttf.base64`
           }
+          else {
+            logger.warn(`Failed to download font ${f.name}:${f.weight}. You may be offline or behind a firewall blocking Google. Consider setting \`googleFontMirror: true\`.`)
+            return false
+          }
         }
         else if (f.path) {
-          // move to assets folder as base64 and set key
-          const fontPath = join(nuxt.options.rootDir, nuxt.options.dir.public, f.path)
-          const fontData = await readFile(fontPath, 'base64')
+          // resolve relative paths from public dir
+          if (!isAbsolute(f.path)) {
+            // move to assets folder as base64 and set key
+            f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, f.path)
+          }
+          const fontData = await readFile(f.path, 'base64')
           f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.ttf.base64`
-          await writeFile(resolve(serverFontsDir, `${basename(f.path)}.base64`), fontData)
+          await fontStorage.setItem(`${basename(f.path)}.base64`, fontData)
         }
         return f
-      }))
-    config.fonts = config.fonts.map((f) => {
-      if (preset === 'stackblitz') {
-        if (typeof f === 'string' || (!f.path && !f.key)) {
-          logger.warn(`The ${typeof f === 'string' ? f : `${f.name}:${f.weight}`} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
-          return false
-        }
-      }
-      return f
-    }).filter(Boolean) as InputFontConfig[]
+      }))).filter(Boolean) as InputFontConfig[]
 
     // bundle fonts within nitro runtime
     nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
@@ -458,6 +463,9 @@ declare module '#nuxt-og-image/components' {
   export interface OgImageComponents {
 ${componentImports}
   }
+}
+declare module '#nuxt-og-image/unocss-config' {
+  export type theme = any
 }
 `
     })
