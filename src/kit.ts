@@ -52,6 +52,12 @@ export {}
   nuxt.hooks.hook('prepare:types', ({ references }) => {
     references.push({ path: resolve(nuxt.options.buildDir, `module/${module}.d.ts`) })
   })
+  nuxt.hooks.hook('nitro:config', (config) => {
+    config.typescript = config.typescript || {}
+    config.typescript.tsConfig = config.typescript.tsConfig || {}
+    config.typescript.tsConfig.include = config.typescript.tsConfig.include || []
+    config.typescript.tsConfig.include.push(`./module/${module}.d.ts`)
+  })
 }
 
 export function isNuxtGenerate(nuxt: Nuxt = useNuxt()) {
