@@ -4,7 +4,7 @@ import { createError } from 'h3'
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
-import { applyEmojis } from '~/src/runtime/nitro/og-image/satori/transforms/emojis'
+import { applyEmojis } from '../satori/transforms/emojis'
 import { theme } from '#nuxt-og-image/unocss-config.mjs'
 
 export async function html(ctx: OgImageRenderEventContext) {

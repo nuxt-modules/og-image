@@ -2,6 +2,7 @@ import { H3Error, createError, defineEventHandler, getQuery, setHeader } from 'h
 import { useOgImageBufferCache } from '../util/cache'
 import { useOgImageRuntimeConfig } from '../../shared'
 import { resolveContext } from '../og-image/context'
+import { html } from '../og-image/templates/html'
 
 // /__og-image__/image/<path>/og.<extension
 export default defineEventHandler(async (e): Promise<any> => {
@@ -36,7 +37,7 @@ export default defineEventHandler(async (e): Promise<any> => {
       setHeader(e, 'Content-Type', `text/html`)
       // if the user is loading the iframe we need to render a nicer template
       // also used for chromium screenshots
-      return devIframeTemplate(ctx)
+      return html(ctx)
     case 'svg':
       if (!debug && !import.meta.dev) {
         return createError({
