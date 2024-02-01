@@ -20,13 +20,14 @@ import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
-import { basename, isAbsolute, join, relative } from 'pathe'
+import { basename, join, relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
 import { readPackageJSON } from 'pkg-types'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
+import { withoutLeadingSlash } from 'ufo'
 import type {
   CompatibilityFlagEnvOverrides,
   FontConfig,
@@ -306,10 +307,8 @@ export default defineNuxtModule<ModuleOptions>({
             return false
           }
           // resolve relative paths from public dir
-          if (!isAbsolute(f.path)) {
-            // move to assets folder as base64 and set key
-            f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, f.path)
-          }
+          // move to assets folder as base64 and set key
+          f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, withoutLeadingSlash(f.path))
           if (!existsSync(f.path)) {
             logger.warn(`The ${f.name}:${f.weight} font was skipped because the file does not exist at path ${f.path}.`)
             return false
