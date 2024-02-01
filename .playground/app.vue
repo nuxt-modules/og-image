@@ -1,9 +1,3 @@
-<script setup>
-import { useSiteConfig } from '#imports'
-
-const siteConfig = useSiteConfig()
-</script>
-
 <template>
   <div class="flex flex-col min-h-screen">
     <header class="sticky top-0 z-50 w-full backdrop-blur flex-none border-b border-gray-900/10 dark:border-gray-50/[0.06] bg-white/75 dark:bg-gray-900/75">
@@ -12,7 +6,7 @@ const siteConfig = useSiteConfig()
           <Icon name="logos:nuxt-icon" class="w-8 h-8" />
           Nuxt
           <div class="text-primary-500 dark:text-primary-400">
-            {{ siteConfig.name }}
+            OG Image
           </div>
         </NuxtLink>
       </UContainer>
