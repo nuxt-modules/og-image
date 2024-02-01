@@ -1,7 +1,5 @@
-import { setHeader } from 'h3'
 import { prefixStorage } from 'unstorage'
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../types'
-import { getExtension } from '../../../pure'
 import { useNitroOrigin, useStorage } from '#imports'
 
 const assets = prefixStorage(useStorage(), '/assets')
@@ -12,8 +10,8 @@ export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedF
     return font
 
   if (font.key && await assets.hasItem(font.key)) {
-    setHeader(e, 'Content-Type', `font/${getExtension(font.path!)}`)
-    const fontData = await assets.getItemRaw<string>(font.key)
+    const fontData = await assets.getItem<string>(font.key)
+    // fontData is a base64 string, need to turn it into a buffer
     // buf is a string need to convert it to a buffer
     font.data = Buffer.from(fontData!, 'base64')
     return font

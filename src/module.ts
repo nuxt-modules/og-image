@@ -271,8 +271,8 @@ export default defineNuxtModule<ModuleOptions>({
     // default font is inter
     if (!config.fonts.length) {
       config.fonts = [
-        { name: 'Inter', weight: 400, path: resolve('./assets/Inter-400.ttf.base64') },
-        { name: 'Inter', weight: 700, path: resolve('./assets/Inter-700.ttf.base64') },
+        { name: 'Inter', weight: 400, path: resolve('./assets/Inter-400.ttf.base64'), absolutePath: true },
+        { name: 'Inter', weight: 700, path: resolve('./assets/Inter-700.ttf.base64'), absolutePath: true },
       ]
     }
 
@@ -301,22 +301,24 @@ export default defineNuxtModule<ModuleOptions>({
         }
         else if (f.path) {
           // validate the extension, can only be woff, ttf or otf
-          const extension = basename(f.path).split('.').pop()!
-          if (!['woff', 'ttf', 'otf', 'base64'].includes(extension)) {
+          const extension = basename(f.path.replace('.base64', '')).split('.').pop()!
+          if (!['woff', 'ttf', 'otf'].includes(extension)) {
             logger.warn(`The ${f.name}:${f.weight} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
             return false
           }
           // resolve relative paths from public dir
           // move to assets folder as base64 and set key
-          f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, withoutLeadingSlash(f.path))
+          if (!f.absolutePath)
+            f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, withoutLeadingSlash(f.path))
           if (!existsSync(f.path)) {
             logger.warn(`The ${f.name}:${f.weight} font was skipped because the file does not exist at path ${f.path}.`)
             return false
           }
-          const fontData = await readFile(f.path, 'base64')
-          f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.ttf.base64`
-          await fontStorage.setItem(`${basename(f.path)}.base64`, fontData)
+          const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
+          f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.${extension}.base64`
+          await fontStorage.setItem(`${f.name}-${f.weight}.${extension}.base64`, fontData)
           delete f.path
+          delete f.absolutePath
         }
         return f
       }))).filter(Boolean) as InputFontConfig[]
@@ -502,21 +504,6 @@ declare module '#nuxt-og-image/unocss-config' {
         nuxt.options.nitro = nuxt.options.nitro || {}
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
         nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
-        normalisedFonts
-          // if they have a path we can always access them locally
-          .filter(f => !f.path && !f.key)
-          .forEach((entry, key) => {
-            const { name, weight } = entry
-            // we need to access using nitro
-            if (preset !== 'cloudflare' && preset !== 'cloudflare-module') {
-              entry.path = `/__og-image__/font/${name}/${weight}.ttf`
-              nuxt.options.nitro.prerender!.routes!.unshift(entry.path)
-            }
-            // uses server assets storage for prerendering and dev
-            if (name === 'Inter' && [400, 700].includes(Number(weight)))
-              entry.key = `nuxt-og-image:fonts:inter-latin-ext-${weight}-normal.woff`
-            normalisedFonts[key] = entry
-          })
       }
 
       // set theme color for the NuxtSeo component
