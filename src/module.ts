@@ -171,6 +171,11 @@ export default defineNuxtModule<ModuleOptions>({
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
       logger.debug('The module is disabled, skipping setup.')
+      // need to mock the composables to allow module still to work when disabled
+      ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
+        .forEach((name) => {
+          addImports({ name, from: resolve(`./runtime/nuxt/composables/mock`) })
+        })
       return
     }
     if (config.enabled && !nuxt.options.ssr) {
