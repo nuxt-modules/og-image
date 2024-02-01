@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import {
   type AddComponentOptions,
   addComponent,
@@ -293,14 +294,25 @@ export default defineNuxtModule<ModuleOptions>({
           }
         }
         else if (f.path) {
+          // validate the extension, can only be woff, ttf or otf
+          const extension = basename(f.path).split('.').pop()!
+          if (!['woff', 'ttf', 'otf', 'base64'].includes(extension)) {
+            logger.warn(`The ${f.name}:${f.weight} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
+            return false
+          }
           // resolve relative paths from public dir
           if (!isAbsolute(f.path)) {
             // move to assets folder as base64 and set key
             f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, f.path)
           }
+          if (!existsSync(f.path)) {
+            logger.warn(`The ${f.name}:${f.weight} font was skipped because the file does not exist at path ${f.path}.`)
+            return false
+          }
           const fontData = await readFile(f.path, 'base64')
           f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.ttf.base64`
           await fontStorage.setItem(`${basename(f.path)}.base64`, fontData)
+          delete f.path
         }
         return f
       }))).filter(Boolean) as InputFontConfig[]

@@ -14,7 +14,7 @@ describe('fonts', () => {
       Blob {
         Symbol(kHandle): Blob {},
         Symbol(kLength): 310808,
-        Symbol(kType): "",
+        Symbol(kType): "font/ttf",
       }
     `)
   }, 60000)

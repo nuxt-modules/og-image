@@ -20,8 +20,6 @@ export default defineEventHandler(async (e): Promise<any> => {
       compatibilityHints.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
     if (options.renderer === 'chromium')
       compatibilityHints.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
-    if (options.component !== 'PageScreenshot' && await applyInlineCss(ctx, await fetchIsland(ctx)))
-      compatibilityHints.push('Inlining CSS is not supported on Cloudflare.')
     setHeader(e, 'Content-Type', 'application/json')
     return {
       siteConfig: {
