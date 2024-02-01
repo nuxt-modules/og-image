@@ -598,7 +598,7 @@ const currentPageFile = computed(() => {
                     </div>
                   </div>
                   <div class="mt-5 text-center opacity-75">
-                    See the <NuxtLink to="https://nuxtseo.com/og-image/guides/compatibility" class="underline">
+                    See the <NuxtLink target="_blank" to="https://nuxtseo.com/og-image/guides/compatibility" class="underline">
                       compatibility guide
                     </NuxtLink> to learn more.
                   </div>
