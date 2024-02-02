@@ -4,7 +4,7 @@ import {
 } from 'nypm'
 import { env, provider } from 'std-env'
 import { defu } from 'defu'
-import type { NitroConfig } from 'nitropack/types'
+import type { NitroConfig } from 'nitropack'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 
@@ -25,7 +25,7 @@ const autodetectableStaticProviders = {
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
-  'chromium': 'node',
+  'chromium': 'on-demand', // this gets changed build start
   'css-inline': 'node',
   'resvg': 'node',
   'satori': 'node',
