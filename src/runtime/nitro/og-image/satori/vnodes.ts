@@ -7,7 +7,7 @@ import { applyEmojis } from './transforms/emojis'
 import { walkSatoriTree } from './utils'
 import unocss from './plugins/unocss'
 import emojis from './plugins/emojis'
-import twClasses from './plugins/twClasses'
+import classes from './plugins/classes'
 import imageSrc from './plugins/imageSrc'
 import flex from './plugins/flex'
 import encoding from './plugins/encoding'
@@ -33,7 +33,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   await walkSatoriTree(ctx, satoriTree, [
     unocss,
     emojis,
-    twClasses,
+    classes,
     imageSrc,
     flex,
     encoding,
