@@ -46,8 +46,8 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@css-inline/css-inline": "0.12.1",
-    "@css-inline/css-inline-wasm": "0.12.1",
+    "@css-inline/css-inline": "0.13.0",
+    "@css-inline/css-inline-wasm": "0.13.0",
     "@iconify-json/noto": "^1.1.18",
     "@nuxt/devtools-kit": "^1.0.8",
     "@nuxt/kit": "^3.10.0",
@@ -85,7 +85,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "2.6.3",
+    "@antfu/eslint-config": "2.6.4",
     "@headlessui/vue": "^1.7.18",
     "@iconify-json/carbon": "^1.1.28",
     "@iconify-json/logos": "^1.1.42",
