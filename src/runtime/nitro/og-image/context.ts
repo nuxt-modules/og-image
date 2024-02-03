@@ -12,7 +12,7 @@ import { htmlPayloadCache, prerenderOptionsCache } from './cache'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 import type SatoriRenderer from './satori/renderer'
 import type ChromiumRenderer from './chromium/renderer'
-import { useNitroApp } from '#internal/nitro'
+import { useNitroApp } from '#imports'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
@@ -177,7 +177,7 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
 // TODO caching
 async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: string): Promise<H3Error | OgImageOptions> {
   const cachedHtmlPayload = await htmlPayloadCache.getItem(key)
-  if (cachedHtmlPayload && cachedHtmlPayload.expiresAt < Date.now())
+  if (!import.meta.dev && cachedHtmlPayload && cachedHtmlPayload.expiresAt < Date.now())
     return cachedHtmlPayload.value
 
   // extract the payload from the original path
