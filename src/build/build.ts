@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { type Resolver, resolvePath, useNuxt } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import { dirname } from 'pathe'
@@ -36,9 +37,14 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         ? configuredEntry
         : 'index.mjs')
       const isCloudflarePagesOrModule = target === 'cloudflare-pages' || target === 'cloudflare-module'
-      if (isCloudflarePagesOrModule)
+      if (isCloudflarePagesOrModule) {
         // this is especially hacky
-        serverEntry = resolve(dirname(serverEntry), './chunks/wasm.mjs')
+        // TODO replace with this https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128?
+        serverEntry = [
+          resolve(dirname(serverEntry), './chunks/wasm.mjs'),
+          resolve(dirname(serverEntry), './chunks/_/wasm.mjs'),
+        ].filter(existsSync)[0] || serverEntry
+      }
       const contents = (await readFile(serverEntry, 'utf-8'))
       const resvgHash = sha1(await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm')))
       const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
