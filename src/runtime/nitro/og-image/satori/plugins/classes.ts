@@ -14,9 +14,8 @@ export default defineSatoriTransformer([
   {
     filter: (node: VNode) => !!node.props?.style?.display,
     transform: async (node: VNode) => {
-      if (['inline-block', 'inline'].includes(node.props.style!.display)) {
+      if (['inline-block', 'inline'].includes(node.props.style!.display))
         delete node.props.style!.display
-      }
     },
   },
 ])
