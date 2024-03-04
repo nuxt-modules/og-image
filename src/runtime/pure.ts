@@ -14,7 +14,7 @@ export function toBase64Image(fileName: string, data: string | ArrayBuffer) {
 }
 
 export function isInternalRoute(path: string) {
-  return path.startsWith('/__') || path.startsWith('@')
+  return path.startsWith('/_') || path.startsWith('@')
 }
 
 function filterIsOgImageOption(key: string) {
