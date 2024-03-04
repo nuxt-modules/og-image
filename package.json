@@ -64,8 +64,8 @@
     "image-size": "^1.1.1",
     "json-editor-vue": "^0.12.0",
     "nuxt-icon": "^0.6.8",
-    "nuxt-site-config": "^2.2.10",
-    "nuxt-site-config-kit": "^2.2.10",
+    "nuxt-site-config": "^2.2.11",
+    "nuxt-site-config-kit": "^2.2.11",
     "nypm": "^0.3.8",
     "ofetch": "^1.3.3",
     "ohash": "^1.1.3",
@@ -85,7 +85,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "2.7.0",
+    "@antfu/eslint-config": "2.8.0",
     "@headlessui/vue": "^1.7.19",
     "@iconify-json/carbon": "^1.1.31",
     "@iconify-json/logos": "^1.1.42",
@@ -107,7 +107,7 @@
     "@unocss/preset-uno": "^0.58.5",
     "@unocss/runtime": "^0.58.5",
     "@vueuse/nuxt": "^10.9.0",
-    "bumpp": "^9.3.1",
+    "bumpp": "^9.4.0",
     "eslint": "8.57.0",
     "jest-image-snapshot": "^6.4.0",
     "nuxt": "^3.10.3",
