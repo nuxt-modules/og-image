@@ -10,7 +10,12 @@ export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedF
     return font
 
   if (font.key && await assets.hasItem(font.key)) {
-    const fontData = await assets.getItem<string>(font.key)
+    let fontData = await assets.getItem(font.key)
+    // if buffer
+    if (fontData instanceof Uint8Array) {
+      const decoder = new TextDecoder()
+      fontData = decoder.decode(fontData)
+    }
     // fontData is a base64 string, need to turn it into a buffer
     // buf is a string need to convert it to a buffer
     font.data = Buffer.from(fontData!, 'base64')
