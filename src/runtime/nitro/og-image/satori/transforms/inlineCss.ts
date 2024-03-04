@@ -29,6 +29,9 @@ export async function applyInlineCss({ e }: OgImageRenderEventContext, island: N
                     return res.match(/__vite__css = "([^"]+)"/)?.[1]
                   return res.trim().split('\n').filter(l => !l.startsWith('//')).join('\n').trim()
                 })
+                  .catch(() => {
+                    return '' // fails in dev with https if not secure
+                  })
               }),
           )).join('\n')
         : ''
