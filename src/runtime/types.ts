@@ -4,8 +4,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { SharpOptions } from 'sharp'
-import type { NitroApp } from 'nitropack'
-import type { UnwasmPluginOptions as WasmOptions } from 'unwasm/plugin'
+import type { NitroApp, NitroConfig } from 'nitropack'
 import type { OgImageComponents } from '#nuxt-og-image/components'
 
 export interface OgImageRenderEventContext {
@@ -142,7 +141,7 @@ export interface RuntimeCompatibilitySchema {
   resvg: 'node' | 'wasm' | 'wasm-fs' | false
   satori: 'node' | 'wasm' | 'wasm-fs' | false
   sharp: 'node' | false
-  wasm?: WasmOptions
+  wasm?: NitroConfig['wasm']
 }
 
 export type CompatibilityFlags = Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>

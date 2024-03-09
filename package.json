@@ -81,7 +81,6 @@
     "std-env": "^3.7.0",
     "terminate": "^2.6.1",
     "ufo": "^1.4.0",
-    "unwasm": "^0.3.7",
     "vanilla-jsoneditor": "^0.22.0",
     "yoga-wasm-web": "^0.3.3"
   },
