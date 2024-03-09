@@ -4,7 +4,8 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { SharpOptions } from 'sharp'
-import type { NitroApp, WasmOptions } from 'nitropack'
+import type { NitroApp } from 'nitropack'
+import type { UnwasmPluginOptions as WasmOptions } from 'unwasm/plugin'
 import type { OgImageComponents } from '#nuxt-og-image/components'
 
 export interface OgImageRenderEventContext {
