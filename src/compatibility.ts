@@ -40,6 +40,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
   'sharp': false,
   'wasm': {
     esmImport: true,
+    lazy: true,
   },
 }
 const awsLambda: RuntimeCompatibilitySchema = {
@@ -90,6 +91,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'wasm': {
       // lowers workers kb size
       esmImport: true,
+      lazy: true,
     },
   },
   'cloudflare-pages': cloudflare,
