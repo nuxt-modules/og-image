@@ -52,9 +52,9 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       const postfix = target === 'vercel-edge' ? '?module' : ''
       const path = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
       await writeFile(serverEntry, contents
-        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
-        .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
-        .replaceAll('"yoga-wasm-web/dist/yoga.wasm"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
+        .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
+        .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
     })
   })
 }
