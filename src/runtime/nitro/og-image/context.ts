@@ -12,7 +12,7 @@ import { htmlPayloadCache, prerenderOptionsCache } from './cache'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 import type SatoriRenderer from './satori/renderer'
 import type ChromiumRenderer from './chromium/renderer'
-import { useNitroApp } from '#imports'
+import { useNitroApp } from '#internal/nitro/app'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
