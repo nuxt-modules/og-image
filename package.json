@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "@css-inline/css-inline": "0.13.1",
-    "@css-inline/css-inline-wasm": "0.13.1",
+    "@css-inline/css-inline-wasm": "0.12.1",
     "@nuxt/devtools-kit": "^1.0.8",
     "@nuxt/kit": "^3.10.3",
     "@resvg/resvg-js": "^2.6.0",
