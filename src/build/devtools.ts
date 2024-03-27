@@ -1,3 +1,4 @@
+import { relative, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import type { Nuxt } from 'nuxt/schema'
 import type { Resolver } from '@nuxt/kit'
@@ -42,6 +43,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {})
 
     nuxt.hook('builder:watch', (e, path) => {
+      path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
       // needs to be for a page change
       if ((e === 'change' || e.includes('link')) && path.startsWith('pages')) {
         rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
