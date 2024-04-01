@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * @credits @arashsheyda <https://github.com/arashsheyda>
+ */
+
 withDefaults(defineProps<{
   title?: string
   description?: string
