@@ -44,13 +44,15 @@ export default defineNuxtPlugin({
             ctx.tags = ctx.tags.filter(Boolean)
 
             for (const tag of ctx.tags) {
-              if (tag.tag === 'meta' && (tag.props.property === 'og:image' || tag.props.name === 'twitter:image:src')) {
+              if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name))) {
                 // looking for:
                 // property og:image
                 // property twitter:image:src
                 if (!tag.props.content.startsWith('https')) {
                   await nuxtApp.runWithContext(() => {
-                    tag.props.content = toValue(withSiteUrl(tag.props.content))
+                    tag.props.content = toValue(withSiteUrl(tag.props.content, {
+                      withBase: true,
+                    }))
                   })
                 }
               }
