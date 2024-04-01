@@ -1,4 +1,4 @@
-import { relative, resolve } from 'node:path'
+import { relative } from 'node:path'
 import { existsSync } from 'node:fs'
 import type { Nuxt } from 'nuxt/schema'
 import type { Resolver } from '@nuxt/kit'

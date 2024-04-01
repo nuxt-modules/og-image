@@ -7,7 +7,7 @@ withDefaults(defineProps<{
   logo?: string
   image?: string
   username?: string
-  socials?: { name: string; icon: string }[]
+  socials?: { name: string, icon: string }[]
 }>(), {
   bg: 'linear-gradient(to bottom right, #171717, #131313)',
 })

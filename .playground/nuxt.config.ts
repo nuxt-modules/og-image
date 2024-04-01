@@ -140,6 +140,9 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    '/': {
+      prerender: true,
+    },
     '/satori/static': {
       ogImage: {
         icon: 'carbon:image-search',

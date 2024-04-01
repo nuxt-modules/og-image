@@ -13,7 +13,7 @@ useServerSeoMeta({
 })
 
 defineOgImageComponent('Nuxt', {
-  headline: 'Nuxt OG Image',
+  headline: ' ä, ö, and ü',
   title: 'Version 3 🎉',
   description: 'Nuxt OG Image v3 is here!',
 })
