@@ -107,6 +107,12 @@ export function detectTarget(options: { static?: boolean } = {}) {
 export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (provider === 'stackblitz' || provider === 'codesandbox')
     return provider
+  const nuxt = useNuxt()
+  if (nuxt.options.dev)
+    return 'nitro-dev'
+  // check for prerendering
+  if (nuxt.options._generate)
+    return 'nitro-prerender'
   let preset
   if (nitroConfig && nitroConfig?.preset)
     preset = nitroConfig.preset
