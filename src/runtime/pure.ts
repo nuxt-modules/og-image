@@ -17,7 +17,7 @@ function detectMimeType(b64: string) {
   return 'image/svg+xml'
 }
 
-export function toBase64Image(fileName: string, data: string | ArrayBuffer) {
+export function toBase64Image(data: string | ArrayBuffer) {
   const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
   const type = detectMimeType(base64)
 
