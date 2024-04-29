@@ -30,7 +30,7 @@ export default defineSatoriTransformer([
           // try hydrating from storage
           // we need to read the file using unstorage
           // because we can't fetch public files using $fetch when prerendering
-          imageBuffer = resolveLocalFilePathImage(src)
+          imageBuffer = await resolveLocalFilePathImage(src)
         }
         else {
           // see if we can fetch it from a kv host if we're using an edge provider
@@ -98,7 +98,7 @@ export default defineSatoriTransformer([
       const isRelative = src?.startsWith('/')
       if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
-          const imageBuffer = resolveLocalFilePathImage(src)
+          const imageBuffer = await resolveLocalFilePathImage(src)
           if (imageBuffer) {
             const base64 = toBase64Image(Buffer.from(imageBuffer as ArrayBuffer))
             node.props.style!.backgroundImage = `url(${base64})`
