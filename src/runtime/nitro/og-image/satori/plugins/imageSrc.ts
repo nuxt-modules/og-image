@@ -5,6 +5,15 @@ import { defineSatoriTransformer } from '../utils'
 import { toBase64Image } from '../../../../pure'
 import { useNitroOrigin, useStorage } from '#imports'
 
+async function resolveLocalFilePathImage(src: string) {
+  // try hydrating from storage
+  // we need to read the file using unstorage
+  // because we can't fetch public files using $fetch when prerendering
+  const key = `root:public${src.replace('./', ':').replace('/', ':')}`
+  if (await useStorage().hasItem(key))
+    return await useStorage().getItemRaw(key)
+}
+
 // for relative links we embed them as base64 input or just fix the URL to be absolute
 export default defineSatoriTransformer([
   // fix <img src="">
@@ -21,9 +30,7 @@ export default defineSatoriTransformer([
           // try hydrating from storage
           // we need to read the file using unstorage
           // because we can't fetch public files using $fetch when prerendering
-          const key = `root:public${src.replace('./', ':').replace('/', ':')}`
-          if (await useStorage().hasItem(key))
-            imageBuffer = await useStorage().getItemRaw(key)
+          imageBuffer = resolveLocalFilePathImage(src)
         }
         else {
           // see if we can fetch it from a kv host if we're using an edge provider
@@ -33,6 +40,9 @@ export default defineSatoriTransformer([
           })
             .catch(() => {})) as BufferSource | undefined
         }
+        // convert relative images to base64 as satori will have no chance of resolving
+        if (imageBuffer)
+          node.props.src = toBase64Image(imageBuffer)
       }
       // avoid trying to fetch base64 image uris
       else if (!src.startsWith('data:')) {
@@ -42,10 +52,6 @@ export default defineSatoriTransformer([
         })
           .catch(() => {})) as BufferSource | undefined
       }
-      if (imageBuffer)
-        imageBuffer = Buffer.from(imageBuffer as ArrayBuffer)
-      if (imageBuffer) {
-        node.props.src = toBase64Image(imageBuffer)
 
       // if we're missing either a height or width on an image we can try and compute it using the image size
       if (imageBuffer && (!node.props.width || !node.props.height)) {
@@ -71,9 +77,14 @@ export default defineSatoriTransformer([
         }
       }
       // if it's still relative, we need to swap out the src for an absolute URL
-      if (node.props.src.startsWith('/')) {
-        // with query to avoid satori caching issue
-        node.props.src = `${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()}`
+      if (typeof node.props.src === 'string' && node.props.src.startsWith('/')) {
+        if (imageBuffer) {
+          node.props.src = toBase64Image(imageBuffer)
+        }
+        else {
+          // with query to avoid satori caching issue
+          node.props.src = `${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()}`
+        }
       }
     },
   },
@@ -87,16 +98,10 @@ export default defineSatoriTransformer([
       const isRelative = src?.startsWith('/')
       if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
-          // try hydrating from storage
-          // we need to read the file using unstorage
-          // because we can't fetch public files using $fetch when prerendering
-          const key = `root:public${src.replace('./', ':').replace('/', ':')}`
-          if (await useStorage().hasItem(key)) {
-            const imageBuffer = await useStorage().getItemRaw(key)
-            if (imageBuffer) {
-              const base64 = toBase64Image(Buffer.from(imageBuffer as ArrayBuffer))
-              node.props.style!.backgroundImage = `url(${base64})`
-            }
+          const imageBuffer = resolveLocalFilePathImage(src)
+          if (imageBuffer) {
+            const base64 = toBase64Image(Buffer.from(imageBuffer as ArrayBuffer))
+            node.props.style!.backgroundImage = `url(${base64})`
           }
         }
         else {
