@@ -1,15 +1,27 @@
 import { defu } from 'defu'
 import type { InputFontConfig, OgImageOptions, ResolvedFontConfig } from './types'
 
-export function toBase64Image(fileName: string, data: string | ArrayBuffer) {
+function detectBase64MimeType(data: string) {
+  const signatures = {
+    'R0lGODdh': 'image/gif',
+    'R0lGODlh': 'image/gif',
+    'iVBORw0KGgo': 'image/png',
+    '/9j/': 'image/jpeg',
+    'UklGR': 'image/webp',
+    'AAABAA': 'image/x-icon',
+  }
+
+  for (const s in signatures) {
+    if (data.indexOf(s) === 0)
+      return signatures[s as keyof typeof signatures]
+  }
+  return 'image/svg+xml'
+}
+
+export function toBase64Image(data: string | ArrayBuffer) {
   const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
-  let type = 'image/jpeg'
-  // guess type from file name
-  const ext = fileName.split('.').pop()
-  if (ext === 'svg')
-    type = 'image/svg+xml'
-  else if (ext === 'png')
-    type = 'image/png'
+  const type = detectBase64MimeType(base64)
+
   return `data:${type};base64,${base64}`
 }
 

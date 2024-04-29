@@ -44,7 +44,7 @@ export default defineSatoriTransformer([
       if (imageBuffer)
         imageBuffer = Buffer.from(imageBuffer as ArrayBuffer)
       if (imageBuffer) {
-        node.props.src = toBase64Image(src, imageBuffer)
+        node.props.src = toBase64Image(imageBuffer)
 
         try {
           const imageSize = sizeOf(imageBuffer)
@@ -90,7 +90,7 @@ export default defineSatoriTransformer([
           if (await useStorage().hasItem(key)) {
             const imageBuffer = await useStorage().getItemRaw(key)
             if (imageBuffer) {
-              const base64 = toBase64Image(src, Buffer.from(imageBuffer as ArrayBuffer))
+              const base64 = toBase64Image(Buffer.from(imageBuffer as ArrayBuffer))
               node.props.style!.backgroundImage = `url(${base64})`
             }
           }
