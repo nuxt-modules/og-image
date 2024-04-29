@@ -26,10 +26,17 @@ export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedF
   let data: ArrayBuffer | undefined
   // fetch local fonts
   if (font.path) {
-    data = await e.$fetch(font.path, {
-      baseURL: useNitroOrigin(e),
-      responseType: 'arrayBuffer',
-    })
+    if (import.meta.dev || import.meta.prerender) {
+      const key = `root:public${font.path.replace('./', ':').replace('/', ':')}`
+      if (await useStorage().hasItem(key))
+        data = await useStorage().getItemRaw(key)
+    }
+    else {
+      data = await e.$fetch(font.path, {
+        baseURL: useNitroOrigin(e),
+        responseType: 'arrayBuffer',
+      })
+    }
   }
   else {
     data = await e.$fetch(`/__og-image__/font/${name}/${weight}.ttf`, {
