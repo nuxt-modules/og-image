@@ -1,7 +1,7 @@
 import type { OgImageRenderEventContext, SatoriTransformer, VNode } from '../../../types'
 
 export function walkSatoriTree(e: OgImageRenderEventContext, node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[]) {
-  const promises: Promise<void>[] = []
+  const promises: (Promise<void> | void)[] = []
   if (!node.props?.children || !Array.isArray(node.props.children))
     return promises
   // remove empty children

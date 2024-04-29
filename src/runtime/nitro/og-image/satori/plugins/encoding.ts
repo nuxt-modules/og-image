@@ -7,13 +7,13 @@ export default defineSatoriTransformer([
   // clean up
   {
     filter: (node: VNode) => node.props?.['data-v-inspector'],
-    transform: async (node: VNode) => {
+    transform: (node: VNode) => {
       delete node.props['data-v-inspector']
     },
   },
   {
     filter: (node: VNode) => typeof node.props?.children === 'string',
-    transform: async (node: VNode) => {
+    transform: (node: VNode) => {
       // for the payload, we unencode any html
       // unescape all html tokens
       node.props.children = decodeHtml(node.props.children as string)

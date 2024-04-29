@@ -29,14 +29,17 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
 
   // scan html for all css links and load them
   const satoriTree = convertHtmlToSatori(template)
-  // process the tree
-  await Promise.all(walkSatoriTree(ctx, satoriTree, [
-    unocss,
+  // do sync transforms
+  walkSatoriTree(ctx, satoriTree, [
     emojis,
     classes,
-    imageSrc,
     flex,
     encoding,
+  ])
+  // do async transforms
+  await Promise.all(walkSatoriTree(ctx, satoriTree, [
+    unocss,
+    imageSrc,
   ]))
   return satoriTree
 }

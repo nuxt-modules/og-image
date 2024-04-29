@@ -11,7 +11,7 @@ export default defineSatoriTransformer([
   {
     filter: (node: VNode) =>
       ['div', 'p'].includes(node.type) && Array.isArray(node.props?.children) && (node.props.children as VNode[]).some(isEmojiFilter),
-    transform: async (node: VNode) => {
+    transform: (node: VNode) => {
       node.props.style = node.props.style || {}
       node.props.style.display = 'flex'
       node.props.style.alignItems = 'center'

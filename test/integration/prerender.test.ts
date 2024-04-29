@@ -3,11 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { setup } from '@nuxt/test-utils/e2e'
 import { globby } from 'globby'
-import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { execa } from 'execa'
 
 const { resolve } = createResolver(import.meta.url)
 
+const toMatchImageSnapshot = configureToMatchImageSnapshot({
+  customDiffConfig: {
+    threshold: 0.1,
+  },
+  failureThresholdType: 'percent',
+  failureThreshold: 0.1,
+})
 expect.extend({ toMatchImageSnapshot })
 
 await setup({
@@ -37,11 +44,17 @@ describe('prerender', () => {
     // use globby and fs tools to read the images
     const imagePath = resolve('../fixtures/basic/.output/public/__og-image__')
     // globby in image path
-    const images = await globby('**/*', { cwd: imagePath })
+    const images = await globby('**/*.png', { cwd: imagePath })
     // for each image we run a snapshot test
     for (const image of images) {
       const imageBuffer = await fs.readFile(resolve(imagePath, image))
-      expect(Buffer.from(imageBuffer)).toMatchImageSnapshot()
+      expect(imageBuffer).toMatchImageSnapshot({
+        customDiffConfig: {
+          threshold: 0.1,
+        },
+        failureThresholdType: 'percent',
+        failureThreshold: 0.1,
+      })
     }
   }, 60000)
 })

@@ -171,7 +171,7 @@ export type VNode = ReturnType<typeof html>
 
 export interface SatoriTransformer {
   filter: (node: VNode) => boolean
-  transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void>
+  transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void> | void
 }
 
 export interface SocialPreviewMetaData { twitter?: Record<string, string>, og?: Record<string, string> }
