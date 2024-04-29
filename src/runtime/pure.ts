@@ -3,11 +3,13 @@ import type { InputFontConfig, OgImageOptions, ResolvedFontConfig } from './type
 
 function detectMimeType(b64: string) {
   const signatures = {
-    R0lGODdh: 'image/gif',
-    R0lGODlh: 'image/gif',
-    iVBORw0KGgo: 'image/png',
-    '/9j/': 'image/jpeg'
-  };
+    'R0lGODdh': 'image/gif',
+    'R0lGODlh': 'image/gif',
+    'iVBORw0KGgo': 'image/png',
+    '/9j/': 'image/jpeg',
+    'UklGR': 'image/webp',
+    'AAABAA': 'image/x-icon',
+  }
 
   for (var s in signatures) {
     if (b64.indexOf(s) === 0) {
