@@ -28,6 +28,21 @@ describe('json', () => {
             "title": "Hello World",
           },
           "renderer": "satori",
+          "socialPreview": {
+            "og": {
+              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image:height": "600",
+              "image:type": "image/png",
+              "image:width": "1200",
+            },
+            "twitter": {
+              "card": "summary_large_image",
+              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image:height": "600",
+              "image:src": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image:width": "1200",
+            },
+          },
           "width": 1200,
         },
         "siteConfig": {
@@ -181,6 +196,7 @@ describe('json', () => {
                           "backgroundColor": "rgb(255, 255, 255)",
                           "color": "rgb(17, 24, 39)",
                           "display": "flex",
+                          "flexDirection": "column",
                           "height": "100%",
                           "justifyContent": "space-between",
                           "padding": "60px",
