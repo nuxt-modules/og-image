@@ -47,24 +47,27 @@ export default defineSatoriTransformer([
       if (imageBuffer) {
         node.props.src = toBase64Image(imageBuffer)
 
+      // if we're missing either a height or width on an image we can try and compute it using the image size
+      if (imageBuffer && (!node.props.width || !node.props.height)) {
         try {
           const imageSize = sizeOf(imageBuffer)
           dimensions = { width: imageSize.width, height: imageSize.height }
         }
-        catch (e) {}
-      }
-      // apply a natural aspect ratio if missing a dimension
-      if (dimensions?.width && dimensions?.height) {
-        const naturalAspectRatio = dimensions.width / dimensions.height
-        if (node.props.width && !node.props.height) {
-          node.props.height = Math.round(node.props.width / naturalAspectRatio)
+        catch (e) {
         }
-        else if (node.props.height && !node.props.width) {
-          node.props.width = Math.round(node.props.height * naturalAspectRatio)
-        }
-        else if (!node.props.width && !node.props.height) {
-          node.props.width = dimensions.width
-          node.props.height = dimensions.height
+        // apply a natural aspect ratio if missing a dimension
+        if (dimensions?.width && dimensions?.height) {
+          const naturalAspectRatio = dimensions.width / dimensions.height
+          if (node.props.width && !node.props.height) {
+            node.props.height = Math.round(node.props.width / naturalAspectRatio)
+          }
+          else if (node.props.height && !node.props.width) {
+            node.props.width = Math.round(node.props.height * naturalAspectRatio)
+          }
+          else if (!node.props.width && !node.props.height) {
+            node.props.width = dimensions.width
+            node.props.height = dimensions.height
+          }
         }
       }
       // if it's still relative, we need to swap out the src for an absolute URL
