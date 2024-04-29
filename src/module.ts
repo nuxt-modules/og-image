@@ -49,7 +49,7 @@ import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { setupBuildHandler } from './build/build'
 import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
-import { normaliseFontInput } from './runtime/pure'
+import { normaliseFontInput } from './pure'
 
 export interface ModuleOptions {
   /**

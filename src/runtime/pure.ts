@@ -75,6 +75,7 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
   }
 }
 
+// duplicate of ../pure.ts
 export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig[] {
   return fonts.map((f) => {
     if (typeof f === 'string') {
