@@ -6,6 +6,8 @@ const { resolve } = createResolver(import.meta.url)
 
 await setup({
   rootDir: resolve('../../../fixtures/basic'),
+  dev: true,
+  server: true,
 })
 describe('json', () => {
   it('basic', async () => {

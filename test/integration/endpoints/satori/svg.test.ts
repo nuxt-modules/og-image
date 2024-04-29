@@ -6,7 +6,10 @@ const { resolve } = createResolver(import.meta.url)
 
 await setup({
   rootDir: resolve('../../../fixtures/basic'),
+  dev: true,
+  server: true,
 })
+
 describe('svg', () => {
   it('basic', async () => {
     const svg = await $fetch('/__og-image__/image/satori/og.svg')
