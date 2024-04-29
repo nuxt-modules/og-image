@@ -34,7 +34,8 @@ export default defineSatoriTransformer([
             .catch(() => {})) as BufferSource | undefined
         }
       }
-      else {
+      // avoid trying to fetch base64 image uris
+      else if (!src.startsWith('data:')) {
         // see if we can fetch it from a kv host if we're using an edge provider
         imageBuffer = (await $fetch(src, {
           responseType: 'arrayBuffer',
