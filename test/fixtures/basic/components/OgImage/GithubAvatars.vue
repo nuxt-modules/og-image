@@ -123,7 +123,7 @@ function format(value: number) {
 
 <style scoped>
 .profile-card {
-  background-image: url('http://localhost:3000/card-gradient-bg.svg');
+  background-image: url('/card-gradient-bg.svg');
   background-repeat: no-repeat;
   background-size: 300%;
 }
