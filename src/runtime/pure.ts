@@ -1,7 +1,7 @@
 import { defu } from 'defu'
 import type { InputFontConfig, OgImageOptions, ResolvedFontConfig } from './types'
 
-function detectMimeType(b64: string) {
+function detectBase64MimeType(data: string) {
   const signatures = {
     'R0lGODdh': 'image/gif',
     'R0lGODlh': 'image/gif',
@@ -11,17 +11,16 @@ function detectMimeType(b64: string) {
     'AAABAA': 'image/x-icon',
   }
 
-  for (var s in signatures) {
-    if (b64.indexOf(s) === 0) {
-      return signatures[s];
-    }
+  for (const s in signatures) {
+    if (data.indexOf(s) === 0)
+      return signatures[s as keyof typeof signatures]
   }
   return 'image/svg+xml'
 }
 
 export function toBase64Image(data: string | ArrayBuffer) {
   const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
-  const type = detectMimeType(base64)
+  const type = detectBase64MimeType(base64)
 
   return `data:${type};base64,${base64}`
 }
