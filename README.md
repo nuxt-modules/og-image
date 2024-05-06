@@ -39,18 +39,10 @@ Generate OG Images with Vue templates in Nuxt.
 
 ## Installation
 
-1. Install `nuxt-og-image` dependency to your project:
+Install `nuxt-og-image` dependency to your project:
 
 ```bash
 npx nuxi@latest module add og-image
-```
-
-2. Add it to your `modules` section in your `nuxt.config`:
-
-```ts
-export default defineNuxtConfig({
-  modules: ['nuxt-og-image']
-})
 ```
 
 ## Playgrounds
