@@ -1,6 +1,5 @@
 import type { Browser } from 'playwright-core'
 import { execa } from 'execa'
-import terminate from 'terminate'
 import { createConsola } from 'consola'
 import playwrightCore from 'playwright-core'
 
@@ -27,7 +26,7 @@ export async function createBrowser(): Promise<Browser | void> {
           resolve(true)
         })
       }).then(() => {
-        installChromeProcess.pid && terminate(installChromeProcess.pid)
+        installChromeProcess.kill()
         logger.info('Installed Chromium install for og:image generation.')
         _resolve()
       })

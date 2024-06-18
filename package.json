@@ -78,7 +78,6 @@
     "sirv": "^2.0.4",
     "splitpanes": "^3.1.5",
     "std-env": "^3.7.0",
-    "terminate": "^2.6.1",
     "ufo": "^1.5.3",
     "unwasm": "^0.3.9",
     "vanilla-jsoneditor": "^0.23.2",
