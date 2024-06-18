@@ -46,8 +46,9 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
             etag: headers.etag as string,
             maxAge,
           })
-        )
+        ) {
           return
+        }
 
         setHeaders(ctx.e, headers)
       }

@@ -46,7 +46,7 @@ export async function applyInlineCss({ e }: OgImageRenderEventContext, island: N
       extraCss: css,
     })
     // extract classses from the css
-    const classes = css.match(/\.([a-zA-Z0-9-_]+)/g)?.map(c => c.replace('.', ''))
+    const classes = css.match(/\.([\w-]+)/g)?.map(c => c.replace('.', ''))
     // remove classes from the html to avoid satori errors
     if (classes)
       html = html.replace(new RegExp(`class="(${classes.join('|')})"`, 'g'), '')

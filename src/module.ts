@@ -391,8 +391,9 @@ export default defineNuxtModule<ModuleOptions>({
         config.componentDirs.forEach((dir) => {
           if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir)
             // support non-prefixed components
-            || component.shortPath.includes(`/${dir}/`))
+            || component.shortPath.includes(`/${dir}/`)) {
             valid = true
+          }
         })
         if (component.filePath.includes(resolve('./runtime/nuxt/components/Templates')))
           valid = true

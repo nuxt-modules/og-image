@@ -43,7 +43,7 @@ export default defineSatoriTransformer({
             if (styles[camelCasedKey] && styles[camelCasedKey].includes('/')) {
               const [rgb, opacity] = styles[camelCasedKey].split('/')
               if (opacity.trim() === '1)')
-                styles[camelCasedKey] = rgb.replace(/(\d+) (\d+) (\d+).*/, (_, r, g, b) => `${r}, ${g}, ${b})`)
+                styles[camelCasedKey] = rgb.replace(/(\d) (\d) (\d).*/, (_, r, g, b) => `${r}, ${g}, ${b})`)
               else
                 styles[camelCasedKey] = `${rgb.replace('rgb', 'rgba').replaceAll(' ', ', ')}${opacity.trim()}`
             }

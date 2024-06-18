@@ -19,7 +19,7 @@ export function decodeHtml(html: string) {
     .replace(/&#39;/g, '\'')
     .replace(/&#x27;/g, '\'')
     .replace(/&#x2F;/g, '/')
-    .replace(/&#([0-9]+);/g, (full, int) => {
+    .replace(/&#(\d+);/g, (full, int) => {
       return String.fromCharCode(Number.parseInt(int))
     })
 }
