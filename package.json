@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "3.0.0-rc.53",
-  "packageManager": "pnpm@9.0.6",
+  "packageManager": "pnpm@9.4.0",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -74,7 +74,7 @@
     "radix3": "^1.1.2",
     "satori": "0.10.13",
     "satori-html": "^0.3.2",
-    "shiki": "^1.4.0",
+    "shiki": "^1.7.0",
     "sirv": "^2.0.4",
     "splitpanes": "^3.1.5",
     "std-env": "^3.7.0",
@@ -84,9 +84,9 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^2.16.1",
+    "@antfu/eslint-config": "^2.21.1",
     "@headlessui/vue": "^1.7.22",
-    "@iconify-json/carbon": "^1.1.32",
+    "@iconify-json/carbon": "^1.1.35",
     "@iconify-json/logos": "^1.1.43",
     "@iconify-json/noto": "^1.1.18",
     "@iconify-json/ri": "^1.1.21",
@@ -113,11 +113,11 @@
     "nuxt": "^3.12.2",
     "nuxt-icon": "0.6.10",
     "playwright": "^1.44.1",
-    "sass": "^1.76.0",
+    "sass": "^1.77.6",
     "sharp": "^0.33.4",
     "typescript": "^5.4.5",
     "unocss": "0.61.0",
-    "vitest": "^1.5.3"
+    "vitest": "^1.6.0"
   },
   "build": {
     "externals": [
