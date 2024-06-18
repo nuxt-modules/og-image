@@ -26,7 +26,6 @@ import { globby } from 'globby'
 import { installNuxtSiteConfig, updateSiteConfig } from 'nuxt-site-config-kit'
 import { provider } from 'std-env'
 import { hash } from 'ohash'
-import terminate from 'terminate'
 import { version } from '../package.json'
 import createBrowser from './runtime/nitro/providers/browser/universal'
 import { screenshot } from './runtime/browserUtil'
@@ -613,7 +612,7 @@ export async function useProvider(provider) {
             resolve(true)
           })
         })
-        installChromeProcess.pid && terminate(installChromeProcess.pid)
+        installChromeProcess.kill()
 
         // make sure we have a browser
         const browser = await createBrowser()
@@ -698,7 +697,7 @@ export async function useProvider(provider) {
         }
         finally {
           await browser?.close()
-          previewProcess.pid && terminate(previewProcess.pid)
+          previewProcess.kill()
         }
         screenshotQueue = []
       }
