@@ -520,12 +520,14 @@ declare module '#nuxt-og-image/unocss-config' {
         colorPreference = colorModeOptions.fallback
       if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
+      const publicDirAbs = nuxt.options.alias[nuxt.options.dir.public]
       const runtimeConfig = <OgImageRuntimeConfig> {
         version,
         // binding options
         satoriOptions: config.satoriOptions || {},
         resvgOptions: config.resvgOptions || {},
         sharpOptions: config.sharpOptions === true ? {} : (config.sharpOptions || {}),
+        publicStoragePath: `root${publicDirAbs.replace(nuxt.options.rootDir, '').replaceAll('/', ':')}`,
 
         defaults: config.defaults,
         debug: config.debug,

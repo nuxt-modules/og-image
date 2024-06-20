@@ -106,6 +106,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     key,
     renderer,
     isDebugJsonPayload,
+    publicStoragePath: runtimeConfig.publicStoragePath,
     extension,
     basePath,
     options,

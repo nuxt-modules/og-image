@@ -4,7 +4,7 @@ import { useNitroOrigin, useStorage } from '#imports'
 
 const assets = prefixStorage(useStorage(), '/assets')
 
-export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedFontConfig): Promise<ResolvedFontConfig> {
+export async function loadFont({ e, publicStoragePath }: OgImageRenderEventContext, font: ResolvedFontConfig): Promise<ResolvedFontConfig> {
   const { name, weight } = font
   if (font.data)
     return font
@@ -27,7 +27,7 @@ export async function loadFont({ e }: OgImageRenderEventContext, font: ResolvedF
   // fetch local fonts
   if (font.path) {
     if (import.meta.dev || import.meta.prerender) {
-      const key = `root:public${font.path.replace('./', ':').replace('/', ':')}`
+      const key = `${publicStoragePath}${font.path.replace('./', ':').replace('/', ':')}`
       if (await useStorage().hasItem(key))
         data = await useStorage().getItemRaw(key)
     }

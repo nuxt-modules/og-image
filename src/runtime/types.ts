@@ -15,6 +15,7 @@ export interface OgImageRenderEventContext {
   renderer: Renderer
   options: OgImageOptions
   isDebugJsonPayload: boolean
+  publicStoragePath: string
   _nitro: NitroApp
 }
 
@@ -25,6 +26,8 @@ export interface OgImageRuntimeConfig {
   satoriOptions: SatoriOptions
   resvgOptions: ResvgRenderOptions
   sharpOptions: SharpOptions
+
+  publicStoragePath: string
 
   defaults: OgImageOptions
   debug: boolean
