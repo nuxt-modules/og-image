@@ -21,7 +21,7 @@ describe('debug', () => {
           "css-inline": "node",
           "resvg": "node",
           "satori": "node",
-          "sharp": "node",
+          "sharp": false,
         },
         "runtimeConfig": {
           "colorPreference": "light",
@@ -53,6 +53,7 @@ describe('debug', () => {
           ],
           "hasNuxtIcon": false,
           "isNuxtContentDocumentDriven": false,
+          "publicStoragePath": "root:public",
           "resvgOptions": {},
           "satoriOptions": {},
           "sharpOptions": {},
