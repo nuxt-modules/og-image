@@ -2,7 +2,6 @@ import * as fs from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import {
-  type AddComponentOptions,
   addComponent,
   addComponentsDir,
   addImports,
@@ -16,6 +15,7 @@ import {
   tryResolveModule,
   useLogger,
 } from '@nuxt/kit'
+import type { AddComponentOptions } from '@nuxt/kit'
 import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import { isDevelopment } from 'std-env'
