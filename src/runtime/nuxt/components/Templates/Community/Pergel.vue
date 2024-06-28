@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 /**
  * @credits Pergel <https://nuxtlabs.com/>
- * @see https://github.com/nuxt/nuxt.com/blob/main/components/OgImage/OgImageDocs.vue
  */
 import { computed } from 'vue'
 
@@ -33,7 +32,7 @@ const title = computed(() => props.title.slice(0, 60))
 
     <div class="w-[600px] pl-[100px]">
       <p v-if="headline" class="uppercase text-[24px] text-[#FEC476] mb-4 font-semibold">
-        Oku - Pergel
+        {{ headline }}
       </p>
       <h1 class="w-[600px] m-0 text-[75px] font-semibold mb-4 text-white flex items-center">
         <span>{{ title }}</span>
