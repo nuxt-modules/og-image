@@ -1,5 +1,6 @@
 import { prefixStorage } from 'unstorage'
-import { type H3Error, createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import type { H3Error } from 'h3'
 import { withTrailingSlash } from 'ufo'
 import { hash } from 'ohash'
 import type { OgImageRenderEventContext } from '../../types'
