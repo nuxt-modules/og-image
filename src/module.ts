@@ -278,6 +278,7 @@ export default defineNuxtModule<ModuleOptions>({
       ]
     }
 
+    const publicDirAbs = nuxt.options.alias[basename(nuxt.options.dir.public)]
     const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image@${version}`, '_fonts')
     // mkdir@
     const fontStorage = createStorage({
@@ -311,7 +312,7 @@ export default defineNuxtModule<ModuleOptions>({
           // resolve relative paths from public dir
           // move to assets folder as base64 and set key
           if (!f.absolutePath)
-            f.path = join(nuxt.options.rootDir, nuxt.options.dir.public, withoutLeadingSlash(f.path))
+            f.path = join(publicDirAbs, withoutLeadingSlash(f.path))
           if (!existsSync(f.path)) {
             logger.warn(`The ${f.name}:${f.weight} font was skipped because the file does not exist at path ${f.path}.`)
             return false
@@ -520,7 +521,6 @@ declare module '#nuxt-og-image/unocss-config' {
         colorPreference = colorModeOptions.fallback
       if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
-      const publicDirAbs = nuxt.options.alias[nuxt.options.dir.public]
       const runtimeConfig = <OgImageRuntimeConfig> {
         version,
         // binding options
