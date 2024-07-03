@@ -20,7 +20,7 @@ import type { SatoriOptions } from 'satori'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
 import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
-import { basename, join, relative } from 'pathe'
+import { basename, isAbsolute, join, relative } from 'pathe'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SharpOptions } from 'sharp'
 import { defu } from 'defu'
@@ -278,7 +278,10 @@ export default defineNuxtModule<ModuleOptions>({
       ]
     }
 
-    const publicDirAbs = nuxt.options.alias[basename(nuxt.options.dir.public)]
+    let publicDirAbs = nuxt.options.dir.public
+    if (!isAbsolute(publicDirAbs)) {
+      publicDirAbs = publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)
+    }
     const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image@${version}`, '_fonts')
     // mkdir@
     const fontStorage = createStorage({
@@ -312,7 +315,7 @@ export default defineNuxtModule<ModuleOptions>({
           // resolve relative paths from public dir
           // move to assets folder as base64 and set key
           if (!f.absolutePath)
-            f.path = join(publicDirAbs, withoutLeadingSlash(f.path))
+            f.path = resolve(publicDirAbs, withoutLeadingSlash(f.path))
           if (!existsSync(f.path)) {
             logger.warn(`The ${f.name}:${f.weight} font was skipped because the file does not exist at path ${f.path}.`)
             return false
