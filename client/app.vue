@@ -387,7 +387,7 @@ const currentPageFile = computed(() => {
                     Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImage()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
                   </p>
                   <p class="text-lg opacity-80">
-                    <a href="https://nuxtseo.com/og-image/getting-started/your-first-image" target="_blank" class="underline">
+                    <a href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="underline">
                       Learn more
                     </a>
                   </p>
