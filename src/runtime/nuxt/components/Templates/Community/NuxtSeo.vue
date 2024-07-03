@@ -78,13 +78,13 @@ const IconComponent = runtimeConfig.hasNuxtIcon
   ? resolveComponent('Icon')
   : defineComponent({
     render() {
-      return h('div', 'missing nuxt-icon')
+      return h('div', 'missing @nuxt/icon')
     },
   })
 if (typeof props.icon === 'string' && !runtimeConfig.hasNuxtIcon && process.dev) {
-  console.warn('Please install `nuxt-icon` to use icons with the fallback OG Image component.')
+  console.warn('Please install `@nuxt/icon` to use icons with the fallback OG Image component.')
   // eslint-disable-next-line no-console
-  console.log('\nnpm add -D nuxt-icon\n')
+  console.log('\nnpx nuxi module add icon\n')
   // create simple div renderer component
 }
 </script>

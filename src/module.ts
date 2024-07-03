@@ -535,7 +535,7 @@ declare module '#nuxt-og-image/unocss-config' {
         baseCacheKey,
         // convert the fonts to uniform type to fix ts issue
         fonts: normalisedFonts,
-        hasNuxtIcon: hasNuxtModule('nuxt-icon'),
+        hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
         // @ts-expect-error runtime type
