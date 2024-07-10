@@ -121,7 +121,7 @@
     "sharp": "^0.33.4",
     "typescript": "^5.5.3",
     "unocss": "0.61.0",
-    "vitest": "^1.6.0"
+    "vitest": "^2.0.2"
   },
   "build": {
     "externals": [
