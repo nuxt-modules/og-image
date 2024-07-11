@@ -45,7 +45,7 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
       type: 'application/json',
       processTemplateParams: true,
       innerHTML: () => {
-        if (!_input.props.title)
+        if (typeof _input.props.title === 'undefined')
           _input.props.title = '%s'
         delete _input.url
         // don't apply defaults

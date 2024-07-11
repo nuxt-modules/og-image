@@ -123,7 +123,7 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   if (!htmlPayload)
     return false
 
-  let options: OgImageOptions | false
+  let options: OgImageOptions | false = false
   try {
     const payload = JSON.parse(htmlPayload)
     // remove empty values, allow route rules to override, these comes from template param values like title
@@ -141,12 +141,14 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   if (!options)
     return false
 
-  // load in the description
-  const description = html.match(/<meta[^>]+name="description"[^>]*>/)?.[0]
-  if (description) {
-    const [, content] = description.match(/content="([^"]+)"/) || []
-    if (content && !options.props.description)
-      options.props.description = content
+  if (typeof options.props?.description === 'undefined') {
+    // load in the description
+    const description = html.match(/<meta[^>]+name="description"[^>]*>/)?.[0]
+    if (description) {
+      const [, content] = description.match(/content="([^"]+)"/) || []
+      if (content && !options.props.description)
+        options.props.description = content
+    }
   }
 
   const payload = decodeObjectHtmlEntities(options) as OgImageOptions & { socialPreview?: SocialPreviewMetaData }
