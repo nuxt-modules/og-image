@@ -497,7 +497,7 @@ declare module '#nuxt-og-image/unocss-config' {
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
     const runtimeCacheStorage = typeof config.runtimeCacheStorage === 'boolean' ? 'default' : config.runtimeCacheStorage.driver
-    let baseCacheKey: string | false = runtimeCacheStorage === 'default' ? `/cache/nuxt-og-image@${version}` : `/nuxt-og-image/${version}`
+    let baseCacheKey: string | false = runtimeCacheStorage === 'default' ? `/cache/nuxt-og-image/${version}` : `/nuxt-og-image/${version}`
     if (!cacheEnabled)
       baseCacheKey = false
     if (!nuxt.options.dev && config.runtimeCacheStorage && typeof config.runtimeCacheStorage === 'object') {
