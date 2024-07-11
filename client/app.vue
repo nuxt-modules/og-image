@@ -433,10 +433,7 @@ const currentPageFile = computed(() => {
                   </VTooltip>
                 </div>
               </div>
-              <TwitterCardRenderer v-if="socialPreview === 'twitter'">
-                <template #title>
-                  {{ socialPreviewTitle }}
-                </template>
+              <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle">
                 <template #domain>
                   <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
                 </template>
