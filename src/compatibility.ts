@@ -26,7 +26,7 @@ const autodetectableStaticProviders = {
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
   'chromium': 'on-demand', // this gets changed build start
-  'css-inline': 'node',
+  'css-inline': 'wasm',
   'resvg': 'node',
   'satori': 'node',
   'sharp': 'node', // will be disabled if they're missing the dependency
@@ -45,7 +45,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
 }
 const awsLambda: RuntimeCompatibilitySchema = {
   'chromium': false,
-  'css-inline': 'node',
+  'css-inline': 'wasm',
   'resvg': 'node',
   'satori': 'node',
   'sharp': false, // 0.33.x has issues

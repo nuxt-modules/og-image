@@ -1,7 +1,7 @@
 import type _sharp from 'sharp'
 import type { Resvg } from '@resvg/resvg-wasm'
 import type _satori from 'satori'
-import type _cssInline from '@css-inline/css-inline'
+import type _cssInline from '@css-inline/css-inline-wasm'
 
 // we keep instances alive to avoid re-importing them on every request, maybe not needed but
 // also helps with type inference
