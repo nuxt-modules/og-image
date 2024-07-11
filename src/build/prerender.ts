@@ -19,11 +19,13 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver[
       // check if there are any pages in the config, these are paths without a file extension
       const prerenderingPages = (nuxt.options.nitro.prerender?.routes || [])
         .some(r => r && (!r.includes('.') || r.includes('*')))
-      prerenderingPages && assertSiteConfig('nuxt-og-image', {
-        url: 'OG Image tags are required to be absolute URLs.',
-      }, {
-        throwError: false,
-      })
+      if (prerenderingPages) {
+        assertSiteConfig('nuxt-og-image', {
+          url: 'OG Image tags are required to be absolute URLs.',
+        }, {
+          throwError: false,
+        })
+      }
     })
   })
 }
