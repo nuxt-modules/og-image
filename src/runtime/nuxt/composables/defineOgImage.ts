@@ -38,7 +38,7 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   const { defaults } = useOgImageRuntimeConfig()
   const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
   // allow overriding using a prebuild config
-  if (_options.url) {
+  if (resolvedOptions.url) {
     createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext!)
   }
   else {
