@@ -5,12 +5,16 @@ export default defineNuxtConfig({
   ssr: false,
   modules: [
     DevtoolsUIKit,
-    'nuxt-icon',
   ],
   devtools: {
     enabled: false,
   },
   nitro: {
+    prerender: {
+      routes: [
+        '/',
+      ],
+    },
     output: {
       publicDir: resolve(__dirname, '../dist/client'),
     },

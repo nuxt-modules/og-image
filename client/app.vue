@@ -515,7 +515,7 @@ const currentPageFile = computed(() => {
               <OSectionBlock>
                 <template #text>
                   <h3 class="opacity-80 text-base mb-1">
-                    <Icon name="carbon:gui-management" class="mr-1" />
+                    <NIcon name="carbon:gui-management" class="mr-1" />
                     Render
                   </h3>
                 </template>
@@ -565,7 +565,7 @@ const currentPageFile = computed(() => {
               <OSectionBlock v-if="!isPageScreenshot">
                 <template #text>
                   <h3 class="opacity-80 text-base mb-1">
-                    <Icon name="carbon:operations-record" class="mr-1" />
+                    <NIcon name="carbon:operations-record" class="mr-1" />
                     Props
                   </h3>
                 </template>
@@ -613,7 +613,7 @@ const currentPageFile = computed(() => {
             <OSectionBlock v-if="appComponents.length">
               <template #text>
                 <h3 class="opacity-80 text-base mb-1">
-                  <Icon name="carbon:app" class="mr-1" />
+                  <NIcon name="carbon:app" class="mr-1" />
                   App Templates
                 </h3>
               </template>
@@ -632,7 +632,7 @@ const currentPageFile = computed(() => {
             <OSectionBlock>
               <template #text>
                 <h3 class="opacity-80 text-base mb-1">
-                  <Icon name="carbon:airline-passenger-care" class="mr-1" />
+                  <NIcon name="carbon:airline-passenger-care" class="mr-1" />
                   Community Templates
                 </h3>
               </template>
