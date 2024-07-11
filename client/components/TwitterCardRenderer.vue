@@ -1,4 +1,7 @@
 <script setup lang="ts">
+defineProps<{
+  title?: string
+}>()
 </script>
 
 <template>
@@ -8,10 +11,12 @@
         <slot />
       </div>
     </div>
-    <div class="title absolute bottom-3 z-2 left-3 text-white">
-      <slot name="title" />
+    <div v-if="title" class="title absolute bottom-3 z-2 left-3 text-white">
+      <slot name="title">
+        {{ title }}
+      </slot>
     </div>
-    <div class="domain absolute -bottom-5 z-2 left-3">
+    <div class="domain absolute -bottom-5 z-2 left-0">
       <slot name="domain" />
     </div>
   </div>
@@ -39,7 +44,7 @@
   border: 0 solid black;
   box-sizing: border-box;
   display: inline;
-  font: 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font: 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   list-style: none;
   margin: 0px;
   padding: 0px;
