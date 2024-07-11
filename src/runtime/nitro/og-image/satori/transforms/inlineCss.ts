@@ -3,16 +3,22 @@ import type { OgImageRenderEventContext } from '../../../../types'
 import { useCssInline } from '../instances'
 import { useNitroOrigin } from '#imports'
 
-export async function applyInlineCss({ e }: OgImageRenderEventContext, island: NuxtIslandResponse) {
+export async function applyInlineCss(ctx: OgImageRenderEventContext, island: NuxtIslandResponse) {
+  const { e } = ctx
   let html = island.html
   // inline styles from the island
   // empty.mjs returns an __unenv__ object as true
-  let css = island.head.style.map(s => s.innerHTML).join('\n')
+  let css = island.head.style.map(s => s.innerHTML).filter(Boolean).join('\n')
   // TODO this has an island bug in that it's rendering styles for components that aren't used because they're used in app.vue
   // TODO need to make an upstream issue
-  const componentInlineStyles = island.head.link.filter(l => l.href.startsWith('/_nuxt/components'))
+  const componentInlineStyles = island.head.link.filter(l => l.href.startsWith('/_nuxt/components') && l.href.replaceAll('/', '').includes(ctx.options.component))
+  // stricter opt-in for runtime
+  if (!import.meta.prerender && !componentInlineStyles.length) {
+    return false
+  }
+  let linksToCss = []
   if (import.meta.dev) {
-    const linksToCss = componentInlineStyles.length
+    linksToCss = componentInlineStyles.length
       ? (await Promise.all(
           componentInlineStyles
             .map((l) => {
@@ -33,7 +39,7 @@ export async function applyInlineCss({ e }: OgImageRenderEventContext, island: N
             }),
         )).join('\n')
       : ''
-    css = `${linksToCss}${css}`
+    css = [linksToCss, css].join('\n')
   }
   // avoid loading css-inline wasm if we don't need
   if (!css.trim().length)

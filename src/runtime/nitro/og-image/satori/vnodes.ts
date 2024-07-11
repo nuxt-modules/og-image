@@ -23,10 +23,13 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     await applyInlineCss(ctx, island)
     await applyEmojis(ctx, island)
     html = island.html
+    if (html?.includes('<body>')) {
+      // get inner contents of body
+      html = html.match(/<body>([\s\S]*)<\/body>/)?.[1] || ''
+    }
   }
   // get the body content of the html
   const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
-
   // scan html for all css links and load them
   const satoriTree = convertHtmlToSatori(template)
   // do sync transforms
