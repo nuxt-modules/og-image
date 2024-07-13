@@ -2,6 +2,7 @@ import type { Head } from '@unhead/schema'
 import { defu } from 'defu'
 import { withQuery } from 'ufo'
 import type { NuxtSSRContext } from 'nuxt/app'
+import { stringify } from 'devalue'
 import { getExtension, separateProps } from '../shared'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { unref, useServerHead } from '#imports'
@@ -49,7 +50,7 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
           _input.props.title = '%s'
         delete _input.url
         // don't apply defaults
-        return _input
+        return stringify(_input)
       },
       // we want this to be last in our head
       tagPosition: 'bodyClose',

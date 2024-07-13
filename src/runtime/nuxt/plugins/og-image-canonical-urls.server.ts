@@ -2,6 +2,7 @@ import { parseURL } from 'ufo'
 import type { HeadPlugin } from '@unhead/schema'
 import { toValue } from 'vue'
 import { defu } from 'defu'
+import { parse, stringify } from 'devalue'
 import { isInternalRoute, separateProps } from '../../pure'
 import type { OgImageOptions } from '../../types'
 import { defineNuxtPlugin, useRequestEvent, withSiteUrl } from '#imports'
@@ -28,13 +29,13 @@ export default defineNuxtPlugin({
             for (const tag of ctx.tags) {
               if (tag.tag === 'script' && tag.props.id === 'nuxt-og-image-overrides') {
                 if (hasPrimaryPayload) {
-                  overrides = separateProps(JSON.parse(tag.innerHTML || '{}'))
+                  overrides = separateProps(parse(tag.innerHTML || '{}'))
                   delete ctx.tags[ctx.tags.indexOf(tag)]
                 }
                 else {
                   // make this the primary payload
                   tag.props.id = 'nuxt-og-image-options'
-                  tag.innerHTML = JSON.stringify(separateProps(JSON.parse(tag.innerHTML || '{}')))
+                  tag.innerHTML = JSON.stringify(separateProps(parse(tag.innerHTML || '{}')))
                   tag._d = 'script:id:nuxt-og-image-options'
                   // console.log('updating overrides', tag)
                 }
@@ -58,7 +59,7 @@ export default defineNuxtPlugin({
               }
               // need to insert the overrides into the payload
               else if (overrides && tag.tag === 'script' && tag.props.id === 'nuxt-og-image-options') {
-                tag.innerHTML = JSON.stringify(defu(overrides, JSON.parse(tag.innerHTML)))
+                tag.innerHTML = stringify(defu(overrides, parse(tag.innerHTML)))
               }
             }
           },

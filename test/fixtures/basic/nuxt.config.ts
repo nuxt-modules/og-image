@@ -5,12 +5,15 @@ export default defineNuxtConfig({
   modules: [
     NuxtOgImage,
   ],
+
   site: {
     url: 'https://nuxtseo.com',
   },
+
   ogImage: {
     debug: true,
   },
+
   routeRules: {
     '/satori/route-rules/**': {
       ogImage: {
@@ -20,9 +23,11 @@ export default defineNuxtConfig({
       },
     },
   },
+
   experimental: {
     inlineRouteRules: true,
   },
+
   nitro: {
     compressPublicAssets: true,
     prerender: {
@@ -35,6 +40,8 @@ export default defineNuxtConfig({
       ],
     },
   },
+
   devtools: { enabled: false },
   debug: process.env.NODE_ENV === 'test',
+  compatibilityDate: '2024-07-13',
 })

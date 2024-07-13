@@ -4,6 +4,8 @@ import { createError, getQuery } from 'h3'
 import { defu } from 'defu'
 import { normalizeKey } from 'unstorage'
 import { hash } from 'ohash'
+import { useNitroApp } from 'nitropack/runtime'
+import { parse } from 'devalue'
 import type { OgImageOptions, OgImageRenderEventContext, SocialPreviewMetaData } from '../../types'
 import { separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { createNitroRouteRuleMatcher } from '../util/kit'
@@ -12,7 +14,6 @@ import { htmlPayloadCache, prerenderOptionsCache } from './cache'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 import type SatoriRenderer from './satori/renderer'
 import type ChromiumRenderer from './chromium/renderer'
-import { useNitroApp } from '#internal/nitro/app'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
@@ -125,7 +126,7 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
 
   let options: OgImageOptions | false = false
   try {
-    const payload = JSON.parse(htmlPayload)
+    const payload = parse(htmlPayload)
     // remove empty values, allow route rules to override, these comes from template param values like title
     Object.entries(payload).forEach(([key, value]) => {
       if (!value)
