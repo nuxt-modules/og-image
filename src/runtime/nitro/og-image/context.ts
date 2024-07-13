@@ -204,7 +204,7 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
 
   // need to hackily reset the event params, so we can access the route rules of the base URL
   const payload = extractAndNormaliseOgImageOptions(html!)
-  if (payload) {
+  if (!import.meta.dev && payload) {
     await htmlPayloadCache.setItem(key, {
       // 60 minutes for prerender, 10 seconds for runtime
       expiresAt: Date.now() + (1000 * (import.meta.prerender ? 60 * 60 : 10)),
