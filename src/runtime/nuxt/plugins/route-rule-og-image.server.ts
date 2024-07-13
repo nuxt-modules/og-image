@@ -38,7 +38,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       return
     }
 
-    routeRules = defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules)
+    routeRules = normaliseOptions(defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules))
 
     const { defaults } = useOgImageRuntimeConfig()
     const resolvedOptions = normaliseOptions(defu(routeRules, defaults) as OgImageOptions)

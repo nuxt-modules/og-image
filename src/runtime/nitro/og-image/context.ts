@@ -78,7 +78,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     })
   }
   const ogImageRouteRules = separateProps(routeRules.ogImage)
-  options = defu(queryParams, ogImageRouteRules, options, runtimeConfig.defaults) as OgImageOptions
+  options = defu(queryParams, options, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
   if (!options) {
     return createError({
       statusCode: 404,
