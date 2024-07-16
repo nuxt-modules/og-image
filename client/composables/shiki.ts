@@ -16,9 +16,8 @@ getHighlighter({
     'json',
   ],
 }).then((i) => { shiki.value = i })
-
+const mode = useColorMode()
 export function highlight(code: string, lang: BuiltinLanguage) {
-  const mode = useColorMode()
   if (!shiki.value)
     return code
   return shiki.value.codeToHtml(code, {
