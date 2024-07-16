@@ -1,4 +1,5 @@
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
+import { createConsola } from 'consola'
 import type { OgImageRenderEventContext } from '../../../../types'
 import { useCssInline } from '../instances'
 import { useNitroOrigin } from '#imports'
@@ -45,6 +46,14 @@ export async function applyInlineCss(ctx: OgImageRenderEventContext, island: Nux
   if (!css.trim().length)
     return false
   const cssInline = await useCssInline()
+  // dependency missing
+  if (!cssInline || cssInline?.__unenv__) {
+    if (componentInlineStyles.length) {
+      const logger = createConsola().withTag('Nuxt OG Image')
+      logger.warn('To have inline styles applied you need to install either the `@css-inline/css-inline` or `@css-inline/css-inline-wasm` package.')
+    }
+    return false
+  }
   html = cssInline.inline(island.html, {
     loadRemoteStylesheets: false,
     extraCss: css,

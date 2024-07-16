@@ -5,7 +5,7 @@ import {
 import { env, provider } from 'std-env'
 import { defu } from 'defu'
 import type { NitroConfig } from 'nitropack'
-import { addTemplate, useNuxt } from '@nuxt/kit'
+import { addTemplate, tryResolveModule, useNuxt } from '@nuxt/kit'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 
 const autodetectableProviders = {
@@ -26,7 +26,7 @@ const autodetectableStaticProviders = {
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
   'chromium': 'on-demand', // this gets changed build start
-  'css-inline': 'wasm',
+  'css-inline': 'node',
   'resvg': 'node',
   'satori': 'node',
   'sharp': 'node', // will be disabled if they're missing the dependency
@@ -128,9 +128,13 @@ export function getPresetNitroPresetCompatibility(target: string) {
   return compatibility
 }
 
-export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> {
+export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): Promise<Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>> {
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
+
+  const hasCssInlineNode = !!(await tryResolveModule('@css-inline/css-inline'))
+  const hasCssInlineWasm = !!(await tryResolveModule('@css-inline/css-inline-wasm'))
+
   const { resolve } = options
 
   const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
@@ -147,6 +151,11 @@ export function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options:
     // TODO avoid breaking changes, remove this in v4
     if (key === 'chromium' && binding === 'node')
       binding = 'playwright'
+    if (key === 'css-inline') {
+      if ((binding === 'node' && !hasCssInlineNode) || (binding === 'wasm' && !hasCssInlineWasm)) {
+        binding = false
+      }
+    }
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {

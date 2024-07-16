@@ -15,7 +15,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
 
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
-    applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
+    await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
     // patch implicit dependencies:
     // - playwright-core
     nitroConfig.alias!.electron = 'unenv/runtime/mock/proxy-cjs'

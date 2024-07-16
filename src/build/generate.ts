@@ -10,7 +10,7 @@ import type { ModuleOptions } from '../module'
 export function setupGenerateHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
     // bindings
-    applyNitroPresetCompatibility(nitroConfig, {
+    await applyNitroPresetCompatibility(nitroConfig, {
       compatibility: {
         'chromium': false,
         'satori': false,

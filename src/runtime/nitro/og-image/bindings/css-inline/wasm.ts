@@ -1,3 +1,4 @@
+// @ts-expect-error optional dependency
 import { initWasm, inline } from '@css-inline/css-inline-wasm'
 
 export default {

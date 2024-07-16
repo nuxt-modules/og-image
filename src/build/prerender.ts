@@ -11,7 +11,7 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver[
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig) => {
       // bindings
-      applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve })
+      await applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve })
       // avoid wasm handling while prerendering
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false

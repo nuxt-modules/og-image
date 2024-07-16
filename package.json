@@ -49,7 +49,6 @@
     "test": "vitest integration/endpoints"
   },
   "dependencies": {
-    "@css-inline/css-inline-wasm": "^0.14.1",
     "@nuxt/devtools-kit": "^1.3.9",
     "@nuxt/kit": "^3.12.3",
     "@resvg/resvg-js": "^2.6.2",
@@ -79,6 +78,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^2.22.4",
+    "@css-inline/css-inline": "^0.14.1",
     "@headlessui/vue": "^1.7.22",
     "@iconify-json/carbon": "^1.1.36",
     "@iconify-json/logos": "^1.1.43",
