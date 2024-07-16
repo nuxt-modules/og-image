@@ -18,7 +18,7 @@ describe('debug', () => {
       {
         "compatibility": {
           "chromium": "playwright",
-          "css-inline": "wasm",
+          "css-inline": "node",
           "resvg": "node",
           "satori": "node",
           "sharp": false,
