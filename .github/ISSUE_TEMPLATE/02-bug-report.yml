@@ -14,7 +14,7 @@ body:
       required: true
     attributes:
       label: 🛠️ To reproduce
-      description: 'A reproduction of the bug. Please use the Nuxt OG Image starter https://stackblitz.com/edit/nuxt-starter-pkwfkx?file=pages%2Findex.vue'
+      description: 'A reproduction of the bug. Please use a Nuxt OG Image starter https://nuxtseo.com/og-image/getting-started/stackblitz'
       placeholder: https://stackblitz.com/[...]
   - type: textarea
     validations:
