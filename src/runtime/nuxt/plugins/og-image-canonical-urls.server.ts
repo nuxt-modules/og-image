@@ -35,9 +35,8 @@ export default defineNuxtPlugin({
                 else {
                   // make this the primary payload
                   tag.props.id = 'nuxt-og-image-options'
-                  tag.innerHTML = JSON.stringify(separateProps(parse(tag.innerHTML || '{}')))
+                  tag.innerHTML = stringify(separateProps(parse(tag.innerHTML || '{}')))
                   tag._d = 'script:id:nuxt-og-image-options'
-                  // console.log('updating overrides', tag)
                 }
                 break
               }
