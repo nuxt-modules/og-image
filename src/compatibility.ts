@@ -117,7 +117,7 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (nitroConfig && nitroConfig?.preset)
     preset = nitroConfig.preset
   if (!preset)
-    preset = env.NITRO_PRESET || detectTarget() || 'node-server'
+    preset = env.NITRO_PRESET || env.SERVER_PRESET || detectTarget() || 'node-server'
   return preset.replace('_', '-') // sometimes they are different
 }
 
