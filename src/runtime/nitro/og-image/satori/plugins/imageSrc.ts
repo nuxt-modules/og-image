@@ -3,6 +3,7 @@ import sizeOf from 'image-size'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 import { toBase64Image } from '../../../../pure'
+import { logger } from '../../../util/logger'
 import { useNitroOrigin, useStorage } from '#imports'
 
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
@@ -24,6 +25,10 @@ export default defineSatoriTransformer([
       const isRelative = src.startsWith('/')
       let dimensions
       let imageBuffer: BufferSource | undefined
+
+      if (src.endsWith('.webp')) {
+        logger.warn('Using WebP images with Satori is not supported. Please consider switching image format or use the chromium renderer.', src)
+      }
 
       if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
