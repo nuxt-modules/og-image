@@ -3,6 +3,7 @@ import { defu } from 'defu'
 import { withQuery } from 'ufo'
 import type { NuxtSSRContext } from 'nuxt/app'
 import { stringify } from 'devalue'
+import { resolveUnrefHeadInput } from '@unhead/vue'
 import { getExtension, separateProps } from '../shared'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { unref, useServerHead } from '#imports'
@@ -46,11 +47,12 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
       type: 'application/json',
       processTemplateParams: true,
       innerHTML: () => {
-        if (typeof _input.props.title === 'undefined')
-          _input.props.title = '%s'
-        delete _input.url
+        const payload = resolveUnrefHeadInput(_input)
+        if (typeof payload.props.title === 'undefined')
+          payload.props.title = '%s'
+        delete payload.url
         // don't apply defaults
-        return stringify(_input)
+        return stringify(payload)
       },
       // we want this to be last in our head
       tagPosition: 'bodyClose',
