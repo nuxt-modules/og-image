@@ -47,9 +47,9 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         ].filter(existsSync)[0] || serverEntry
       }
       const contents = (await readFile(serverEntry, 'utf-8'))
-      const resvgHash = sha1(await readFile(await resolvePath('@resvg/resvg-wasm/index_bg.wasm')))
-      const yogaHash = sha1(await readFile(await resolvePath('yoga-wasm-web/dist/yoga.wasm')))
-      const cssInlineHash = sha1(await readFile(await resolvePath('@css-inline/css-inline-wasm/index_bg.wasm')))
+      const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
+      const yogaHash = await resolveFilePathSha1('yoga-wasm-web/dist/yoga.wasm')
+      const cssInlineHash = await resolveFilePathSha1('@css-inline/css-inline-wasm/index_bg.wasm')
       const postfix = target === 'vercel-edge' ? '?module' : ''
       const path = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
       await writeFile(serverEntry, contents
@@ -58,6 +58,11 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
     })
   })
+}
+
+async function resolveFilePathSha1(path: string) {
+  const _path = await resolvePath(path)
+  return sha1(existsSync(_path) ? await readFile(_path) : path)
 }
 
 function sha1(source: Buffer) {
