@@ -102,7 +102,7 @@
     "@unocss/preset-icons": "^0.61.4",
     "@unocss/preset-uno": "^0.61.4",
     "@unocss/runtime": "^0.61.4",
-    "@vueuse/nuxt": "^10.11.0",
+    "@vueuse/nuxt": "^11.0.3",
     "bumpp": "^9.4.1",
     "eslint": "9.7.0",
     "jest-image-snapshot": "^6.4.0",
