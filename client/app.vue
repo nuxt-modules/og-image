@@ -618,7 +618,7 @@ const currentPageFile = computed(() => {
                 </h3>
               </template>
               <NTip>These are the OG Image templates that belong to your project.</NTip>
-              <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+              <div class="flex flex-wrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
                 <button v-for="name in appComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
                   <TemplateComponentPreview
                     :component="name"
