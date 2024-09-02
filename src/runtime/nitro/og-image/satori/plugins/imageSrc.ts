@@ -64,7 +64,7 @@ export default defineSatoriTransformer([
           const imageSize = sizeOf(imageBuffer)
           dimensions = { width: imageSize.width, height: imageSize.height }
         }
-        catch (e) {
+        catch {
         }
         // apply a natural aspect ratio if missing a dimension
         if (dimensions?.width && dimensions?.height) {
