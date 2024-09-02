@@ -14,7 +14,7 @@ useServerSeoMeta({
 
 defineOgImageComponent('NuxtSeo', {
   theme: '#fcfcfc',
-  colorMode: 'dark'
+  colorMode: 'dark',
 })
 </script>
 
