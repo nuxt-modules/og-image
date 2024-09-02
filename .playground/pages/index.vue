@@ -12,10 +12,9 @@ useServerSeoMeta({
   ogTitle: 'Welcome to the playground',
 })
 
-defineOgImageComponent('Nuxt', {
-  headline: ' ä, ö, and ü',
-  title: 'Version 3 🎉',
-  description: 'Nuxt OG Image v3 is here!',
+defineOgImageComponent('NuxtSeo', {
+  theme: '#fcfcfc',
+  colorMode: 'dark'
 })
 </script>
 
