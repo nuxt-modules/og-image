@@ -2,6 +2,7 @@ import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import type { ParsedContent } from '@nuxt/content/dist/runtime/types'
 import { defu } from 'defu'
 import type { UseHeadInput } from 'unhead'
+import { stringify } from 'devalue'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
 
 export default defineNitroPlugin((nitroApp) => {
@@ -38,7 +39,7 @@ export default defineNitroPlugin((nitroApp) => {
             id: 'nuxt-og-image-overrides',
             type: 'application/json',
             processTemplateParams: true,
-            innerHTML: payload,
+            innerHTML: stringify(payload),
             // we want this to be last in our head
             tagPosition: 'bodyClose',
             tagPriority: 30, // slighty higher priority
