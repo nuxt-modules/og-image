@@ -62,8 +62,17 @@ export async function html(ctx: OgImageRenderEventContext) {
 }
 div {
   display: flex;
+}
+div:has(div, p, ul, ol, li, blockquote, pre, hr, table, dl) {
+  display: flex;
   flex-direction: column;
 }
+div:not(:has(div, p, ul, ol, li, blockquote, pre, hr, table, dl)) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 svg[data-emoji] {
   display: inline-block;
 }

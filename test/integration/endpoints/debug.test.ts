@@ -6,6 +6,7 @@ const { resolve } = createResolver(import.meta.url)
 
 await setup({
   rootDir: resolve('../../fixtures/basic'),
+  dev: true,
 })
 describe('debug', () => {
   it('basic', async () => {
@@ -17,7 +18,7 @@ describe('debug', () => {
     expect(debug).toMatchInlineSnapshot(`
       {
         "compatibility": {
-          "chromium": "playwright",
+          "chromium": "chrome-launcher",
           "css-inline": "node",
           "resvg": "node",
           "satori": "node",

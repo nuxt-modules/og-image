@@ -7,6 +7,7 @@ const { resolve } = createResolver(import.meta.url)
 
 await setup({
   rootDir: resolve('../../../fixtures/basic'),
+  dev: true,
 })
 
 expect.extend({ toMatchImageSnapshot })
