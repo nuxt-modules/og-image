@@ -329,6 +329,15 @@ export default defineNuxtModule<ModuleOptions>({
         return f
       }))).filter(Boolean) as InputFontConfig[]
 
+    const fontKeys = config.fonts.map(f => f.key?.split(':').pop())
+    const fontStorageKeys = await fontStorage.keys()
+    await Promise.all(fontStorageKeys
+      .filter(key => !fontKeys.includes(key))
+      .map(async (key) => {
+        logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
+        await fontStorage.removeItem(key)
+      }))
+
     // bundle fonts within nitro runtime
     nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
     nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
