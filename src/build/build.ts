@@ -6,6 +6,7 @@ import { dirname } from 'pathe'
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { gray, logger } from '../logger'
 import type { ModuleOptions } from '../module'
 
 // we need all of the runtime dependencies when using build
@@ -45,6 +46,18 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           resolve(dirname(serverEntry), './chunks/wasm.mjs'),
           resolve(dirname(serverEntry), './chunks/_/wasm.mjs'),
         ].filter(existsSync)[0] || serverEntry
+        // we need to modify the _routes.json as og image adds to many
+        const routesPath = resolve(nitro.options.output.publicDir, '_routes.json')
+        const routes: { version: number, include: string[], exclude: string[] } = await readFile(routesPath)
+          .then(buffer => JSON.parse(buffer.toString()))
+
+        const preSize = routes.exclude.length
+        routes.exclude = routes.exclude.filter(path => !path.startsWith('/__og-image__/static'))
+        routes.exclude.push('/__og-image__/static/*')
+        if (preSize !== routes.exclude.length) {
+          logger.info(`Optimizing CloudFlare \`_routes.json\` for prerendered OG Images ${gray(`(${100 - Math.round(routes.exclude.length / preSize * 100)}% smaller)`)}`)
+        }
+        await writeFile(routesPath, JSON.stringify(routes, void 0, 2))
       }
       const contents = (await readFile(serverEntry, 'utf-8'))
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
