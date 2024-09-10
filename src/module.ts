@@ -48,6 +48,7 @@ import type {
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
+  ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 
