@@ -125,7 +125,8 @@
       "#nuxt-og-image/components",
       "sharp",
       "unstorage",
-      "unstorage/drivers/fs"
+      "unstorage/drivers/fs",
+      "consola/utils"
     ]
   }
 }
