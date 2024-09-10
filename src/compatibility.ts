@@ -151,8 +151,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     // TODO avoid breaking changes, remove this in v4
     if (key === 'chromium' && binding === 'node')
       binding = 'playwright'
-    if (key === 'css-inline') {
-      if ((binding === 'node' && !hasCssInlineNode) || (binding === 'wasm' && !hasCssInlineWasm)) {
+    if (key === 'css-inline' && typeof binding === 'string') {
+      if ((binding === 'node' && !hasCssInlineNode) || (['wasm', 'wasm-fs'].includes(binding) && !hasCssInlineWasm)) {
         binding = false
       }
     }
