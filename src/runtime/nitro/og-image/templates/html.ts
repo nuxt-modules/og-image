@@ -33,16 +33,6 @@ export async function html(ctx: OgImageRenderEventContext) {
   await applyEmojis(ctx, island)
   let html = island.html
 
-  // we need to group fonts by name
-  const googleFonts: Record<string, FontConfig[]> = {}
-  ;(fonts as FontConfig[])
-    .filter(font => !font.path)
-    .forEach((font) => {
-      if (!googleFonts[font.name])
-        googleFonts[font.name] = []
-      googleFonts[font.name].push(font)
-    })
-
   head.push({
     style: [
       {
@@ -51,14 +41,14 @@ export async function html(ctx: OgImageRenderEventContext) {
       },
       {
         innerHTML: `body {
-    transform: scale(${options.props.scale || 1});
+    transform: scale(${options.props?.scale || 1});
     transform-origin: top left;
     max-height: 100vh;
     position: relative;
     width: ${options.width}px;
     height: ${options.height}px;
     overflow: hidden;
-    background-color: ${options.props.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
+    background-color: ${options.props?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
 }
 div {
   display: flex;
@@ -79,14 +69,14 @@ svg[data-emoji] {
 `,
       },
       ...(fonts as FontConfig[])
-        .filter(font => font.path)
+        // .filter(font => font.path)
         .map((font) => {
           return `
           @font-face {
             font-family: '${font.name}';
             font-style: normal;
             font-weight: ${font.weight};
-            src: url('${font.path}') format('truetype');
+            src: url('/__og-image__/font/${font.key}') format('truetype');
           }
           `
         }),
@@ -120,15 +110,6 @@ svg[data-emoji] {
         href: 'https://cdn.jsdelivr.net/npm/gardevoir',
         rel: 'stylesheet',
       },
-      // have to add each weight as their own stylesheet
-      // we should use the local font file no?
-      ...Object.entries(googleFonts)
-        .map(([name, fonts]) => {
-          return {
-            href: `https://fonts.googleapis.com/css2?family=${name}:wght@${fonts.map(f => f.weight).join(';')}&display=swap`,
-            rel: 'stylesheet',
-          }
-        }),
     ],
   })
 

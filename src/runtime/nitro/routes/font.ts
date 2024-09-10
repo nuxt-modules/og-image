@@ -1,13 +1,43 @@
-import { createError, defineEventHandler, getQuery, proxyRequest, sendRedirect } from 'h3'
+import { createError, defineEventHandler, getQuery, proxyRequest, sendRedirect, setResponseHeader } from 'h3'
 import { parseURL } from 'ufo'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../shared'
+import { assets } from '../og-image/satori/font'
 import type { ResolvedFontConfig } from '../../types'
 
 // /__og-image__/font/<name>/<weight>.ttf
 export default defineEventHandler(async (e) => {
   const path = parseURL(e.path).pathname
+  const { fonts } = useOgImageRuntimeConfig()
 
-  const [_name, _weight] = path.split('/font/')[1].split('.')[0].split('/')
+  // used internally for html previews
+  const key = path.split('/font/')[1]
+  if (key.includes(':')) {
+    const font = fonts.find(f => f.key === key)
+    // use as storage key
+    if (font?.key && await assets.hasItem(font.key)) {
+      let fontData = await assets.getItem(font.key)
+      // if buffer
+      if (fontData instanceof Uint8Array) {
+        const decoder = new TextDecoder()
+        fontData = decoder.decode(fontData)
+      }
+      // set header either as ttf, otf or woff2
+      if (key.includes('.oft')) {
+        setResponseHeader(e, 'Content-Type', 'font/otf')
+      }
+      else if (key.includes('.woff2')) {
+        setResponseHeader(e, 'Content-Type', 'font/woff2')
+      }
+      else if (key.includes('.ttf')) {
+        setResponseHeader(e, 'Content-Type', 'font/ttf')
+      }
+      // fontData is a base64 string, need to turn it into a buffer
+      // buf is a string need to convert it to a buffer
+      return Buffer.from(fontData!, 'base64')
+    }
+  }
+
+  const [_name, _weight] = key.split('.')[0].split('/')
 
   if (!_name || !_weight)
     return 'Provide a font name and weight'

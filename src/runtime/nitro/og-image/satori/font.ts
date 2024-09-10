@@ -2,7 +2,7 @@ import { useNitroOrigin, useStorage } from '#imports'
 import { prefixStorage } from 'unstorage'
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../types'
 
-const assets = prefixStorage(useStorage(), '/assets')
+export const assets = prefixStorage(useStorage(), '/assets')
 
 export async function loadFont({ e, publicStoragePath }: OgImageRenderEventContext, font: ResolvedFontConfig): Promise<ResolvedFontConfig> {
   const { name, weight } = font
