@@ -3,8 +3,8 @@
  * @credits Full Stack Heroes <https://fullstackheroes.com/>
  */
 
-import { parseURL } from 'ufo'
 import { computed, useSiteConfig } from '#imports'
+import { parseURL } from 'ufo'
 
 const props = withDefaults(defineProps<{
   title?: string

@@ -1,11 +1,11 @@
-import { parseURL } from 'ufo'
-import type { HeadPlugin } from '@unhead/schema'
-import { toValue } from 'vue'
+import { defineNuxtPlugin, useRequestEvent, withSiteUrl } from '#imports'
 import { defu } from 'defu'
 import { parse, stringify } from 'devalue'
+import { parseURL } from 'ufo'
+import { toValue } from 'vue'
+import type { HeadPlugin } from '@unhead/schema'
 import { isInternalRoute, separateProps } from '../../pure'
 import type { OgImageOptions } from '../../types'
-import { defineNuxtPlugin, useRequestEvent, withSiteUrl } from '#imports'
 
 export default defineNuxtPlugin({
   setup(nuxtApp) {

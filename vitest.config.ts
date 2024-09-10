@@ -1,8 +1,8 @@
 /// <reference types="vitest" />
 /// <reference types="vitest/globals" />
 
-import { defineConfig } from 'vite'
 import { isCI } from 'std-env'
+import { defineConfig } from 'vite'
 
 export default defineConfig({
   test: {

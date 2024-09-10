@@ -1,11 +1,11 @@
-import type { Nuxt } from '@nuxt/schema'
+import { addTemplate, tryResolveModule, useNuxt } from '@nuxt/kit'
+import { defu } from 'defu'
 import {
   ensureDependencyInstalled,
 } from 'nypm'
 import { env, provider } from 'std-env'
-import { defu } from 'defu'
+import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack'
-import { addTemplate, tryResolveModule, useNuxt } from '@nuxt/kit'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 
 const autodetectableProviders = {

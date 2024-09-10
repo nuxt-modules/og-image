@@ -1,10 +1,10 @@
-import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
+import { dirname } from 'pathe'
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import { dirname } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import type { ModuleOptions } from '../module'
 

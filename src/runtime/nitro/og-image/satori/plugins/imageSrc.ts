@@ -1,10 +1,10 @@
-import { withBase } from 'ufo'
+import { useNitroOrigin, useStorage } from '#imports'
 import sizeOf from 'image-size'
-import type { OgImageRenderEventContext, VNode } from '../../../../types'
-import { defineSatoriTransformer } from '../utils'
+import { withBase } from 'ufo'
 import { toBase64Image } from '../../../../pure'
 import { logger } from '../../../util/logger'
-import { useNitroOrigin, useStorage } from '#imports'
+import { defineSatoriTransformer } from '../utils'
+import type { OgImageRenderEventContext, VNode } from '../../../../types'
 
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
   // try hydrating from storage

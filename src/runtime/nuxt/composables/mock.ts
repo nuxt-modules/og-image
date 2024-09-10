@@ -1,5 +1,5 @@
-import type { DefineOgImageInput, ExtractComponentProps, OgImageOptions, OgImagePageScreenshotOptions } from '../../types'
 import type { OgImageComponents } from '#nuxt-og-image/components'
+import type { DefineOgImageInput, ExtractComponentProps, OgImageOptions, OgImagePageScreenshotOptions } from '../../types'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {}
 // eslint-disable-next-line unused-imports/no-unused-vars

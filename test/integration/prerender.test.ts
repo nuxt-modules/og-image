@@ -1,10 +1,10 @@
 import * as fs from 'node:fs/promises'
-import { describe, expect, it } from 'vitest'
 import { createResolver } from '@nuxt/kit'
 import { setup } from '@nuxt/test-utils/e2e'
+import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
-import { execa } from 'execa'
+import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
 

@@ -1,11 +1,11 @@
-import type { html } from 'satori-html'
-import type { H3Error, H3Event } from 'h3'
-import type { ResvgRenderOptions } from '@resvg/resvg-js'
-import type { SatoriOptions } from 'satori'
-import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
-import type { SharpOptions } from 'sharp'
-import type { NitroApp, NitroOptions } from 'nitropack'
 import type { OgImageComponents } from '#nuxt-og-image/components'
+import type { ResvgRenderOptions } from '@resvg/resvg-js'
+import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
+import type { H3Error, H3Event } from 'h3'
+import type { NitroApp, NitroOptions } from 'nitropack'
+import type { SatoriOptions } from 'satori'
+import type { html } from 'satori-html'
+import type { SharpOptions } from 'sharp'
 
 export interface OgImageRenderEventContext {
   e: H3Event

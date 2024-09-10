@@ -1,13 +1,21 @@
 <script lang="ts" setup>
-import 'floating-vue/dist/style.css'
-import JsonEditorVue from 'json-editor-vue'
-import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
-import { Pane, Splitpanes } from 'splitpanes'
+import {
+  colorMode,
+  computed,
+  fetchPathDebug,
+  highlight,
+  unref,
+  useHead,
+  watch,
+} from '#imports'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
+import defu from 'defu'
+import JsonEditorVue from 'json-editor-vue'
+import { Pane, Splitpanes } from 'splitpanes'
 import { joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
-import defu from 'defu'
-import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
+import { fetchGlobalDebug } from '~/composables/fetch'
+import { devtoolsClient } from '~/composables/rpc'
 import { separateProps } from '../src/runtime/shared'
 import {
   description,
@@ -22,18 +30,10 @@ import {
   refreshTime,
   slowRefreshSources,
 } from './util/logic'
-import {
-  colorMode,
-  computed,
-  fetchPathDebug,
-  highlight,
-  unref,
-  useHead,
-  watch,
-} from '#imports'
+import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
+import 'floating-vue/dist/style.css'
+import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import 'splitpanes/dist/splitpanes.css'
-import { devtoolsClient } from '~/composables/rpc'
-import { fetchGlobalDebug } from '~/composables/fetch'
 
 useHead({
   title: 'OG Image Playground',

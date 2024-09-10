@@ -1,9 +1,9 @@
-import { relative } from 'node:path'
 import { existsSync } from 'node:fs'
-import type { Nuxt } from 'nuxt/schema'
-import type { Resolver } from '@nuxt/kit'
-import { useNuxt } from '@nuxt/kit'
+import { relative } from 'node:path'
 import { extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
+import { useNuxt } from '@nuxt/kit'
+import type { Resolver } from '@nuxt/kit'
+import type { Nuxt } from 'nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { ClientFunctions, ServerFunctions } from '../rpc-types'
 

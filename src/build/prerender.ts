@@ -1,7 +1,7 @@
 import { useNuxt } from '@nuxt/kit'
+import { assertSiteConfig } from 'nuxt-site-config-kit'
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import { assertSiteConfig } from 'nuxt-site-config-kit'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from '../module'
 

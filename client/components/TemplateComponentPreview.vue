@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { withQuery } from 'ufo'
 import { computed, ref } from 'vue'
-import type { OgImageComponent } from '../../src/runtime/types'
 import { devtoolsClient } from '~/composables/rpc'
+import type { OgImageComponent } from '../../src/runtime/types'
 
 const props = defineProps<{
   src: string

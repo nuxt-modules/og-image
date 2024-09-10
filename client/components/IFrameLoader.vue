@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useDebounceFn } from '@vueuse/core'
 import { colorMode, computed, onMounted, ref, useHead, watch } from '#imports'
+import { useDebounceFn } from '@vueuse/core'
 import { options } from '~/util/logic'
 
 const props = defineProps<{

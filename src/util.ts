@@ -1,7 +1,7 @@
-import { Launcher } from 'chrome-launcher'
 import { tryResolveModule } from '@nuxt/kit'
-import { isCI } from 'std-env'
+import { Launcher } from 'chrome-launcher'
 import { $fetch } from 'ofetch'
+import { isCI } from 'std-env'
 import type { Storage } from 'unstorage'
 import type { ResolvedFontConfig } from './runtime/types'
 

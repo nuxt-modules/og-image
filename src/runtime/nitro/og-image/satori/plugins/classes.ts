@@ -1,5 +1,5 @@
-import type { VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
+import type { VNode } from '../../../../types'
 
 // copy classes to tw classes so they get processed
 export default defineSatoriTransformer([

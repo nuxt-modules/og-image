@@ -1,5 +1,5 @@
-import type { VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
+import type { VNode } from '../../../../types'
 
 // automatically add missing flex rules
 export default defineSatoriTransformer({

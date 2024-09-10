@@ -1,6 +1,6 @@
-import type { Browser } from 'playwright-core'
-import playwrightCore from 'playwright-core'
 import { Launcher } from 'chrome-launcher'
+import playwrightCore from 'playwright-core'
+import type { Browser } from 'playwright-core'
 
 const chromePath = Launcher.getFirstInstallation()
 

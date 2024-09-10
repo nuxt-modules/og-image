@@ -1,11 +1,11 @@
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { defu } from 'defu'
-import { withoutBase, withoutTrailingSlash } from 'ufo'
-import type { NitroRouteRules } from 'nitropack'
-import type { H3Event } from 'h3'
-import { hash } from 'ohash'
-import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import { useRuntimeConfig } from '#imports'
+import { defu } from 'defu'
+import { hash } from 'ohash'
+import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
+import { withoutBase, withoutTrailingSlash } from 'ufo'
+import type { H3Event } from 'h3'
+import type { NitroRouteRules } from 'nitropack'
+import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>): Promise<NuxtIslandResponse> {
   // using Nuxt Island, generate the og:image HTML

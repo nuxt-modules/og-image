@@ -1,8 +1,8 @@
-import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
-import { createConsola } from 'consola'
-import type { OgImageRenderEventContext } from '../../../../types'
-import { useCssInline } from '../instances'
 import { useNitroOrigin } from '#imports'
+import { createConsola } from 'consola'
+import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
+import { useCssInline } from '../instances'
+import type { OgImageRenderEventContext } from '../../../../types'
 
 export async function applyInlineCss(ctx: OgImageRenderEventContext, island: NuxtIslandResponse) {
   const { e } = ctx
@@ -33,10 +33,9 @@ export async function applyInlineCss(ctx: OgImageRenderEventContext, island: Nux
                 if (res.includes('__vite__css'))
                   return res.match(/__vite__css = "([^"]+)"/)?.[1]
                 return res.trim().split('\n').filter(l => !l.startsWith('//')).join('\n').trim()
+              }).catch(() => {
+                return '' // fails in dev with https if not secure
               })
-                .catch(() => {
-                  return '' // fails in dev with https if not secure
-                })
             }),
         )).join('\n')
       : ''

@@ -3,9 +3,9 @@
  * @credits Nuxt SEO <https://nuxtseo.com/>
  */
 
+import { useSiteConfig } from '#imports'
 import { computed, defineComponent, h, resolveComponent } from 'vue'
 import { useOgImageRuntimeConfig } from '../../../../shared'
-import { useSiteConfig } from '#imports'
 
 // convert to typescript props
 const props = withDefaults(defineProps<{

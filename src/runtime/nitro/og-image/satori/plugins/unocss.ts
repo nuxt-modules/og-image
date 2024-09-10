@@ -1,8 +1,8 @@
+import { theme } from '#nuxt-og-image/unocss-config.mjs'
 import { createGenerator } from '@unocss/core'
 import presetWind from '@unocss/preset-wind'
-import type { VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
-import { theme } from '#nuxt-og-image/unocss-config.mjs'
+import type { VNode } from '../../../../types'
 
 const uno = createGenerator({ theme }, {
   presets: [

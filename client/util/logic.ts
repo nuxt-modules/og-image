@@ -1,6 +1,6 @@
-import { computed, ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { withBase } from 'ufo'
+import { computed, ref } from 'vue'
 import type { OgImageOptions } from '../../src/runtime/types'
 
 export const refreshTime = ref(Date.now())

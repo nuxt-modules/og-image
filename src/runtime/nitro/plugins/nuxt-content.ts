@@ -1,8 +1,8 @@
+import { defu } from 'defu'
+import { stringify } from 'devalue'
 import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import type { ParsedContent } from '@nuxt/content/dist/runtime/types'
-import { defu } from 'defu'
 import type { UseHeadInput } from 'unhead'
-import { stringify } from 'devalue'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
 
 export default defineNitroPlugin((nitroApp) => {

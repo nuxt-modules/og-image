@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
-import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import {
   addComponent,
   addComponentsDir,
@@ -15,19 +15,32 @@ import {
   tryResolveModule,
   useLogger,
 } from '@nuxt/kit'
-import type { AddComponentOptions } from '@nuxt/kit'
-import type { SatoriOptions } from 'satori'
+import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
-import { isDevelopment } from 'std-env'
 import { hash } from 'ohash'
 import { basename, isAbsolute, relative } from 'pathe'
-import type { ResvgRenderOptions } from '@resvg/resvg-js'
-import type { SharpOptions } from 'sharp'
-import { defu } from 'defu'
 import { readPackageJSON } from 'pkg-types'
+import { isDevelopment } from 'std-env'
+import { withoutLeadingSlash } from 'ufo'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
-import { withoutLeadingSlash } from 'ufo'
+import type { AddComponentOptions } from '@nuxt/kit'
+import type { ResvgRenderOptions } from '@resvg/resvg-js'
+import type { SatoriOptions } from 'satori'
+import type { SharpOptions } from 'sharp'
+import { setupBuildHandler } from './build/build'
+import { setupDevHandler } from './build/dev'
+import { setupDevToolsUI } from './build/devtools'
+import { setupGenerateHandler } from './build/generate'
+import { setupPrerenderHandler } from './build/prerender'
+import {
+  ensureDependencies,
+  getPresetNitroPresetCompatibility,
+  resolveNitroPreset,
+} from './compatibility'
+import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
+import { normaliseFontInput } from './pure'
+import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
 import type {
   CompatibilityFlagEnvOverrides,
   FontConfig,
@@ -37,19 +50,6 @@ import type {
   OgImageRuntimeConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
-import {
-  ensureDependencies,
-  getPresetNitroPresetCompatibility,
-  resolveNitroPreset,
-} from './compatibility'
-import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
-import { setupDevToolsUI } from './build/devtools'
-import { setupDevHandler } from './build/dev'
-import { setupGenerateHandler } from './build/generate'
-import { setupPrerenderHandler } from './build/prerender'
-import { setupBuildHandler } from './build/build'
-import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
-import { normaliseFontInput } from './pure'
 
 export interface ModuleOptions {
   /**

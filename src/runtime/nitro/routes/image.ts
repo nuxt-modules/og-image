@@ -1,8 +1,8 @@
-import { H3Error, createError, defineEventHandler, getQuery, setHeader } from 'h3'
-import { useOgImageBufferCache } from '../util/cache'
+import { createError, defineEventHandler, getQuery, H3Error, setHeader } from 'h3'
 import { useOgImageRuntimeConfig } from '../../shared'
 import { resolveContext } from '../og-image/context'
 import { html } from '../og-image/templates/html'
+import { useOgImageBufferCache } from '../util/cache'
 
 // /__og-image__/image/<path>/og.<extension
 export default defineEventHandler(async (e): Promise<any> => {

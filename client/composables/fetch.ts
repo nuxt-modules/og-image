@@ -1,7 +1,7 @@
-import { joinURL } from 'ufo'
-import type { OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from '../../src/runtime/types'
 import { appFetch, useAsyncData } from '#imports'
+import { joinURL } from 'ufo'
 import { globalRefreshTime, optionsOverrides, path, refreshTime } from '~/util/logic'
+import type { OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from '../../src/runtime/types'
 
 export function fetchPathDebug() {
   return useAsyncData<{ siteConfig: { url?: string }, options: OgImageOptions, vnodes: Record<string, any> }>(() => {

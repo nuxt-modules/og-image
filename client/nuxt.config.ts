@@ -1,5 +1,5 @@
-import { resolve } from 'pathe'
 import DevtoolsUIKit from '@nuxt/devtools-ui-kit'
+import { resolve } from 'pathe'
 
 export default defineNuxtConfig({
   ssr: false,

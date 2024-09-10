@@ -1,6 +1,6 @@
-import type { Storage } from 'unstorage'
 import { createStorage } from 'unstorage'
 import lruCacheDriver from 'unstorage/drivers/lru-cache'
+import type { Storage } from 'unstorage'
 import type { OgImageOptions } from '../../types'
 
 export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }> = createStorage<{ expiresAt: number, value: OgImageOptions }>({

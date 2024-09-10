@@ -1,9 +1,9 @@
+import { useNitroOrigin } from '#imports'
+import { joinURL, withQuery } from 'ufo'
 import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
-import { joinURL, withQuery } from 'ufo'
-import type { OgImageRenderEventContext } from '../../../types'
 import { useOgImageRuntimeConfig } from '../../../shared'
-import { useNitroOrigin } from '#imports'
+import type { OgImageRenderEventContext } from '../../../types'
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
   const { colorPreference } = useOgImageRuntimeConfig()

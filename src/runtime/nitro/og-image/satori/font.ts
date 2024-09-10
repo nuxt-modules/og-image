@@ -1,6 +1,6 @@
+import { useNitroOrigin, useStorage } from '#imports'
 import { prefixStorage } from 'unstorage'
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../types'
-import { useNitroOrigin, useStorage } from '#imports'
 
 const assets = prefixStorage(useStorage(), '/assets')
 
