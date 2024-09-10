@@ -41,9 +41,9 @@
     "build:client": "nuxi generate client",
     "build:module": "nuxt-build-module build",
     "lint": "eslint . --fix",
-    "dev": "nuxi dev .playground",
-    "dev:build": "nuxi build .playground",
-    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare .playground && nuxi prepare client",
+    "dev": "nuxi dev playground",
+    "dev:build": "nuxi build playground",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground && nuxi prepare client",
     "release": "pnpm build && bumpp && pnpm -r publish --no-git-checks",
     "typecheck": "tsc --noEmit",
     "test": "vitest integration/endpoints"
