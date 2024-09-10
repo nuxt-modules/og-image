@@ -352,6 +352,12 @@ export default defineNuxtModule<ModuleOptions>({
       route: '/__og-image__/image/**',
       handler: resolve('./runtime/nitro/routes/image'),
     })
+    // prerender only
+    addServerHandler({
+      lazy: true,
+      route: '/__og-image__/static/**',
+      handler: resolve('./runtime/nitro/routes/image'),
+    })
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']

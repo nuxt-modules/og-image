@@ -50,6 +50,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   queryParams = separateProps(queryParams)
   let basePath = withoutTrailingSlash(path
     .replace(`/__og-image__/image`, '')
+    .replace(`/__og-image__/static`, '')
     .replace(`/og.${extension}`, ''),
   )
   if (queryParams._query)
