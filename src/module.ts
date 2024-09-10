@@ -329,7 +329,7 @@ export default defineNuxtModule<ModuleOptions>({
         return f
       }))).filter(Boolean) as InputFontConfig[]
 
-    const fontKeys = config.fonts.map(f => f.key?.split(':').pop())
+    const fontKeys = (config.fonts as ResolvedFontConfig[]).map(f => f.key?.split(':').pop())
     const fontStorageKeys = await fontStorage.keys()
     await Promise.all(fontStorageKeys
       .filter(key => !fontKeys.includes(key))
