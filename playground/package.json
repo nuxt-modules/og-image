@@ -1,0 +1,14 @@
+{
+  "name": "nuxt-og-image-playground",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxi dev --https",
+    "build": "nuxi build",
+    "generate": "nuxi generate"
+  },
+  "dependencies": {
+    "nuxt-og-image": "workspace:*",
+    "nuxt-og-image-devtools": "workspace:*"
+  }
+}

@@ -52,6 +52,7 @@ export default defineNuxtConfig({
     },
   ],
   nitro: {
+    preset: 'cloudflare_pages',
     plugins: ['plugins/hooks.ts'],
     prerender: {
       routes: [
