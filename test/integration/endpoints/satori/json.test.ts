@@ -210,6 +210,7 @@ describe('json', () => {
                   ],
                   "style": {
                     "display": "flex",
+                    "flexDirection": "column",
                     "height": "600px",
                     "margin": "0 auto",
                     "overflow": "hidden",

@@ -27,14 +27,17 @@ describe('html', () => {
           overflow: hidden;
           background-color: #fff;
       }
-
       div {
+        display: flex;
+      }
+      div:has(div, p, ul, ol, li, blockquote, pre, hr, table, dl) {
         display: flex;
         flex-direction: column;
       }
-      div:not(:has( div, p, ul, ol, li, blockquote, pre, hr, table, dl)) {
+      div:not(:has(div, p, ul, ol, li, blockquote, pre, hr, table, dl)) {
         display: flex;
         flex-wrap: wrap;
+        gap: 12px;
       }
 
       svg[data-emoji] {
