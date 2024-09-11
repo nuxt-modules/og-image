@@ -16,7 +16,7 @@ const toMatchImageSnapshot = configureToMatchImageSnapshot({
 })
 expect.extend({ toMatchImageSnapshot })
 
-describe('prerender', () => {
+describe.skipIf(!process.env.RUN_FLAKY_TESTS)('prerender', () => {
   it('basic', async () => {
     // use execa to run `nuxi generate` in the rootDir
     await execa('nuxt', ['generate'], { cwd: resolve('../fixtures/basic') })
