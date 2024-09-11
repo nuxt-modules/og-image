@@ -4,6 +4,7 @@ import type { ParsedContent } from '@nuxt/content'
 import type { NitroApp } from 'nitropack'
 import type { UseHeadInput } from 'unhead'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { normaliseOptions } from './options'
 
 export function nuxtContentPlugin(nitroApp: NitroApp) {
   const { isNuxtContentDocumentDriven, defaults } = useOgImageRuntimeConfig()
@@ -39,7 +40,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
             id: 'nuxt-og-image-overrides',
             type: 'application/json',
             processTemplateParams: true,
-            innerHTML: stringify(payload),
+            innerHTML: stringify(normaliseOptions(payload)),
             // we want this to be last in our head
             tagPosition: 'bodyClose',
             tagPriority: 30, // slighty higher priority
