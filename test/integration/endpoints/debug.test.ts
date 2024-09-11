@@ -15,6 +15,7 @@ describe('debug', () => {
     delete debug.runtimeConfig.version
     delete debug.componentNames
     delete debug.baseCacheKey
+    delete debug.compatibility.chromium // github ci will have playwright
     expect(debug).toMatchInlineSnapshot(`
       {
         "compatibility": {
