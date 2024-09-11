@@ -4,8 +4,8 @@
  */
 
 import { useSiteConfig } from '#imports'
+import { useOgImageRuntimeConfig } from '#nuxt-og-image-utils'
 import { computed, defineComponent, h, resolveComponent } from 'vue'
-import { useOgImageRuntimeConfig } from '../../../../shared'
 
 // convert to typescript props
 const props = withDefaults(defineProps<{
