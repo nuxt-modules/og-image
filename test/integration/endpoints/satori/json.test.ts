@@ -20,7 +20,7 @@ describe('json', () => {
         "options": {
           "_query": {},
           "cacheMaxAgeSeconds": 259200,
-          "component": "NuxtSeo",
+          "component": "OgImageNuxtSeo",
           "emojis": "noto",
           "extension": "png",
           "height": 600,
