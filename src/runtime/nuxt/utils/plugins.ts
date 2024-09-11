@@ -100,10 +100,11 @@ export function routeRuleOgImage(nuxtApp: NuxtApp) {
       nuxtApp.ssrContext!._ogImageInstances = undefined
       return
     }
-
-    routeRules = normaliseOptions(defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules))
-
     const { defaults } = useOgImageRuntimeConfig()
+    routeRules = normaliseOptions(defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules, {
+      component: defaults.component,
+    }))
+
     const resolvedOptions = normaliseOptions(defu(routeRules, defaults) as OgImageOptions)
     const src = getOgImagePath(ssrContext!.url, resolvedOptions)
     createOgImageMeta(src, routeRules, resolvedOptions, nuxtApp.ssrContext!)
