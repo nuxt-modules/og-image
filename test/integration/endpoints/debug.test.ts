@@ -19,7 +19,6 @@ describe('debug', () => {
     expect(debug).toMatchInlineSnapshot(`
       {
         "compatibility": {
-          "chromium": "chrome-launcher",
           "css-inline": "node",
           "resvg": "node",
           "satori": "node",

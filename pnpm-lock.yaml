@@ -6,6 +6,7 @@ settings:
 
 overrides:
   vue: 3.5.4
+  vue-router: 4.4.4
 
 importers:
 
@@ -232,7 +233,7 @@ importers:
         specifier: 3.5.4
         version: 3.5.4(typescript@5.6.2)
       vue-router:
-        specifier: ^4.4.4
+        specifier: 4.4.4
         version: 4.4.4(vue@3.5.4(typescript@5.6.2))
 
 packages:
@@ -1582,7 +1583,7 @@ packages:
       vite: '*'
       vitest: ^0.34.6 || ^1.0.0 || ^2.0.0
       vue: 3.5.4
-      vue-router: ^4.0.0
+      vue-router: 4.4.4
     peerDependenciesMeta:
       '@cucumber/cucumber':
         optional: true
@@ -6689,7 +6690,7 @@ packages:
   unplugin-vue-router@0.10.8:
     resolution: {integrity: sha512-xi+eLweYAqolIoTRSmumbi6Yx0z5M0PLvl+NFNVWHJgmE2ByJG1SZbrn+TqyuDtIyln20KKgq8tqmL7aLoiFjw==}
     peerDependencies:
-      vue-router: ^4.4.0
+      vue-router: 4.4.4
     peerDependenciesMeta:
       vue-router:
         optional: true
