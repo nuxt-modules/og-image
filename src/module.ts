@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import {
+  addBuildPlugin,
   addComponent,
   addComponentsDir,
   addImports,
@@ -33,6 +34,7 @@ import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
+import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import {
   ensureDependencies,
   getPresetNitroPresetCompatibility,
@@ -131,6 +133,10 @@ export interface ModuleOptions {
    * When `true` is set will use `fonts.font.im`, otherwise will use a string as the host.
    */
   googleFontMirror?: true | string
+  /**
+   * Only allow the prerendering and dev runtimes to generate images.
+   */
+  zeroRuntime?: boolean
 }
 
 export interface ModuleHooks {
@@ -184,11 +190,25 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
-
-    nuxt.options.build.transpile.push(resolve('./runtime'))
+    nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
+    nuxt.options.alias['#nuxt-og-image-cache'] = resolve('./runtime/nitro/og-image/cache/lru')
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
+
+    if (config.zeroRuntime) {
+      config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+        runtime: {
+          chromium: false, // should already be false
+          satori: false,
+        },
+      })
+
+      if (!nuxt.options.dev) {
+        addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
+        nuxt.options.alias['#nuxt-og-image-cache'] = resolve('./runtime/nitro/og-image/cache/mock')
+      }
+    }
 
     let isUsingSharp = false
     // avoid any sharp logic if user explicitly opts-out
@@ -268,8 +288,9 @@ export default defineNuxtModule<ModuleOptions>({
     await installNuxtSiteConfig()
 
     // convert ogImage key to head data
-    if (hasNuxtModule('@nuxt/content'))
+    if (hasNuxtModule('@nuxt/content')) {
       addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
+    }
 
     // default font is inter
     if (!config.fonts.length) {
@@ -339,16 +360,19 @@ export default defineNuxtModule<ModuleOptions>({
         await fontStorage.removeItem(key)
       }))
 
-    // bundle fonts within nitro runtime
-    nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
-    nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
+    if (!config.zeroRuntime) {
+      // bundle fonts within nitro runtime
+      nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
+      nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
+    }
 
     nuxt.options.experimental.componentIslands = true
 
+    const basePath = config.zeroRuntime ? './runtime/nitro/routes/__zero-runtime' : './runtime/nitro/routes'
     addServerHandler({
       lazy: true,
       route: '/__og-image__/font/**',
-      handler: resolve('./runtime/nitro/routes/font'),
+      handler: resolve(`${basePath}/font`),
     })
     if (config.debug || nuxt.options.dev) {
       addServerHandler({
@@ -360,13 +384,13 @@ export default defineNuxtModule<ModuleOptions>({
     addServerHandler({
       lazy: true,
       route: '/__og-image__/image/**',
-      handler: resolve('./runtime/nitro/routes/image'),
+      handler: resolve(`${basePath}/image`),
     })
     // prerender only
     addServerHandler({
       lazy: true,
       route: '/__og-image__/static/**',
-      handler: resolve('./runtime/nitro/routes/image'),
+      handler: resolve(`${basePath}/image`),
     })
 
     nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
@@ -379,11 +403,14 @@ export default defineNuxtModule<ModuleOptions>({
         nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
       })
 
-    await addComponentsDir({
-      path: resolve('./runtime/nuxt/components/Templates/Community'),
-      island: true,
-      watch: true,
-    })
+    // community templates must be copy+pasted!
+    if (!config.zeroRuntime || nuxt.options.dev) {
+      await addComponentsDir({
+        path: resolve('./runtime/nuxt/components/Templates/Community'),
+        island: true,
+        // watch: true,
+      })
+    }
 
     ;[
       // new
@@ -398,9 +425,10 @@ export default defineNuxtModule<ModuleOptions>({
         })
       })
 
+    const basePluginPath = `./runtime/nuxt/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
-    addPlugin({ mode: 'server', src: resolve('./runtime/nuxt/plugins/route-rule-og-image.server') })
-    addPlugin({ mode: 'server', src: resolve('./runtime/nuxt/plugins/og-image-canonical-urls.server') })
+    addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
+    addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[] } = { components: [] }
