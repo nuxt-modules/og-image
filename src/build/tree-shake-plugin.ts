@@ -68,10 +68,10 @@ export const TreeShakeComposablesPlugin = createUnplugin(() => {
     transform(code, id) {
       const s = new MagicString(code)
       if (id.endsWith('components.islands.mjs')) {
-        // we need to strip all of the OgImage components from this using regex
-        for (const match of code.matchAll(/"OgImage.*": defineAsyncComponent\(.*\),?/g)) {
-          s.overwrite(match.index!, match.index! + match[0].length, '')
-        }
+        // TODO re-implement
+        // for (const match of code.matchAll(/"OgImage.*": defineAsyncComponent\(.*\),?/g)) {
+        //   s.overwrite(match.index!, match.index! + match[0].length, '')
+        // }
       }
       else {
         const strippedCode = stripLiteral(code)
