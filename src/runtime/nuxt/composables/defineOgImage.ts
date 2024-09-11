@@ -30,12 +30,14 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     nuxtApp.ssrContext!._ogImageInstances = undefined
     return
   }
-  const options = normaliseOptions({
+  const { defaults } = useOgImageRuntimeConfig()
+  const options = normaliseOptions(defu({
     ..._options,
-  })
+  }, {
+    component: defaults.component,
+  }))
   if (route.query)
     options._query = route.query
-  const { defaults } = useOgImageRuntimeConfig()
   const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
   // allow overriding using a prebuild config
   if (resolvedOptions.url) {
