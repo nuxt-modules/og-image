@@ -59,6 +59,7 @@
     "defu": "^6.1.4",
     "execa": "^9.3.1",
     "image-size": "^1.1.1",
+    "magic-string": "^0.30.11",
     "nuxt-site-config": "^2.2.17",
     "nuxt-site-config-kit": "^2.2.17",
     "nypm": "^0.3.11",
@@ -72,6 +73,7 @@
     "satori-html": "^0.3.2",
     "sirv": "^2.0.4",
     "std-env": "^3.7.0",
+    "strip-literal": "^2.1.0",
     "ufo": "^1.5.4",
     "unwasm": "^0.3.9",
     "yoga-wasm-web": "^0.3.3"
