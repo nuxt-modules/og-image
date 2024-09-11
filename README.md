@@ -12,8 +12,6 @@
 Generate OG Images with Vue templates in Nuxt.
 </p>
 
-- [👾 &nbsp;Playground](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=nuxt.config.ts)
-
 <img src="https://github.com/nuxt-modules/og-image/assets/5326365/e337b490-dccb-4e58-972a-5e6e63f30986" alt="Nuxt OG Image DevTools Preview">
 
 <p align="center">
@@ -29,6 +27,8 @@ Generate OG Images with Vue templates in Nuxt.
 </tbody>
 </table>
 </p>
+
+- [👾 &nbsp;Playground](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=nuxt.config.ts)
 
 ## Features
 
