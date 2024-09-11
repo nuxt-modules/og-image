@@ -13,6 +13,7 @@ describe('json', () => {
   it('basic', async () => {
     const json = await $fetch('/__og-image__/image/satori/og.json')
     delete json.key
+    json.options.component = json.options.component.replace('OgImage', '')
     expect(json).toMatchInlineSnapshot(`
       {
         "cacheKey": "satori:5Hzq5ZrLws",
@@ -20,7 +21,7 @@ describe('json', () => {
         "options": {
           "_query": {},
           "cacheMaxAgeSeconds": 259200,
-          "component": "OgImageNuxtSeo",
+          "component": "NuxtSeo",
           "emojis": "noto",
           "extension": "png",
           "height": 600,

@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
-import { setup } from '@nuxt/test-utils/e2e'
 import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
@@ -16,26 +15,6 @@ const toMatchImageSnapshot = configureToMatchImageSnapshot({
   failureThreshold: 0.1,
 })
 expect.extend({ toMatchImageSnapshot })
-
-await setup({
-  rootDir: resolve('../fixtures/basic'),
-  server: false,
-  dev: false,
-  build: true,
-  nuxtConfig: {
-    _generate: true,
-    // force prerender
-    nitro: {
-      static: true,
-      preset: 'static',
-      prerender: {
-        routes: [
-          '/satori/image',
-        ],
-      },
-    },
-  },
-})
 
 describe('prerender', () => {
   it('basic', async () => {
