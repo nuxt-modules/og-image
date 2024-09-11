@@ -83,5 +83,9 @@ export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions |
       }
     }
   }
+  else if (!options.component) {
+    // just pick first component
+    options.component = componentNames[0]?.pascalName
+  }
   return options
 }
