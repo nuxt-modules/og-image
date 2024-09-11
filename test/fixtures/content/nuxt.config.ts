@@ -6,12 +6,16 @@ export default defineNuxtConfig({
     NuxtOgImage,
     '@nuxt/content',
   ],
+
   site: {
     url: 'https://nuxtseo.com',
   },
+
   ogImage: {
     debug: true,
   },
-  devtools: { enabled: false },
+
+  devtools: { enabled: true },
   debug: process.env.NODE_ENV === 'test',
+  compatibilityDate: '2024-09-11',
 })

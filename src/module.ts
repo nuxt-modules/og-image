@@ -137,6 +137,15 @@ export interface ModuleOptions {
    * Only allow the prerendering and dev runtimes to generate images.
    */
   zeroRuntime?: boolean
+
+  /**
+   * Enable when your nuxt/content files match your pages.
+   *
+   * This will automatically map the `ogImage` frontmatter key to the correct path.
+   *
+   * This is similar behavior to using `nuxt/content` with `documentDriven: true`.
+   */
+  strictNuxtContentPaths: boolean
 }
 
 export interface ModuleHooks {
@@ -586,7 +595,7 @@ declare module '#nuxt-og-image/unocss-config' {
         colorPreference,
 
         // @ts-expect-error runtime type
-        isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
+        isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
       }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)

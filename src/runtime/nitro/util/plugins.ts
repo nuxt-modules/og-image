@@ -13,7 +13,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       return
 
     let path = content.path
-    if (isNuxtContentDocumentDriven)
+    if (isNuxtContentDocumentDriven && content.path)
       path = content._path
     // convert ogImage to head tags
     if (path && content.ogImage) {

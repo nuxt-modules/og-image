@@ -11,7 +11,11 @@ import { separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
-import type { OgImageOptions, OgImageRenderEventContext, SocialPreviewMetaData } from '../../types'
+import type {
+  OgImageOptions,
+  OgImageRenderEventContext,
+  SocialPreviewMetaData,
+} from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
 
