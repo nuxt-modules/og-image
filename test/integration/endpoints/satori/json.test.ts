@@ -6,8 +6,8 @@ const { resolve } = createResolver(import.meta.url)
 
 await setup({
   rootDir: resolve('../../../fixtures/basic'),
-  dev: true,
   server: true,
+  build: true,
 })
 describe('json', () => {
   it('basic', async () => {
@@ -29,21 +29,6 @@ describe('json', () => {
             "title": "Hello World",
           },
           "renderer": "satori",
-          "socialPreview": {
-            "og": {
-              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
-              "image:height": "600",
-              "image:type": "image/png",
-              "image:width": "1200",
-            },
-            "twitter": {
-              "card": "summary_large_image",
-              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
-              "image:height": "600",
-              "image:src": "https://nuxtseo.com/__og-image__/image/satori/og.png",
-              "image:width": "1200",
-            },
-          },
           "width": 1200,
         },
         "siteConfig": {

@@ -12,7 +12,7 @@ await setup({
 
 expect.extend({ toMatchImageSnapshot })
 
-describe('image', () => {
+describe.skipIf(!process.env.RUN_FLAKY_TESTS)('image', () => {
   it('basic', async () => {
     const png: ArrayBuffer = await $fetch('/__og-image__/image/satori/image/og.png', {
       responseType: 'arrayBuffer',

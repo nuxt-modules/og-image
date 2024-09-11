@@ -192,7 +192,12 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   // extract the payload from the original path
   let html: unknown
   try {
-    html = await e.$fetch(path)
+    // e.$fetch is doing something weird with the response
+    html = await $fetch(path, {
+      // follow redirects
+      redirect: 'follow',
+      responseType: 'text',
+    })
   }
   catch (err) {
     return createError({

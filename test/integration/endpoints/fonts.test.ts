@@ -6,7 +6,8 @@ const { resolve } = createResolver(import.meta.url)
 
 await setup({
   rootDir: resolve('../../fixtures/basic'),
-  dev: true,
+  server: true,
+  build: true,
 })
 describe('fonts', () => {
   it('basic', async () => {
