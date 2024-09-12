@@ -14,6 +14,13 @@ await setup({
 expect.extend({ toMatchImageSnapshot })
 
 describe('build', () => {
+  it.runIf(process.env.HAS_CHROME)('chromium tests', async () => {
+    const chromium: ArrayBuffer = await $fetch('/__og-image__/image/chromium/og.png', {
+      responseType: 'arrayBuffer',
+    })
+
+    expect(Buffer.from(chromium)).toMatchImageSnapshot()
+  })
   it('static images', async () => {
     const customFont: ArrayBuffer = await $fetch('/__og-image__/static/satori/custom-font/og.png', {
       responseType: 'arrayBuffer',
@@ -32,12 +39,6 @@ describe('build', () => {
     })
 
     expect(Buffer.from(defaults)).toMatchImageSnapshot()
-
-    const chromium: ArrayBuffer = await $fetch('/__og-image__/image/chromium/og.png', {
-      responseType: 'arrayBuffer',
-    })
-
-    expect(Buffer.from(chromium)).toMatchImageSnapshot()
   }, 60000)
 
   it('dynamic images', async () => {
