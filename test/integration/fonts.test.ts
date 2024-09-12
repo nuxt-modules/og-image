@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 const { resolve } = createResolver(import.meta.url)
 
 await setup({
-  rootDir: resolve('../../fixtures/basic'),
+  rootDir: resolve('../fixtures/basic'),
   server: true,
   build: true,
 })

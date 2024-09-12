@@ -16,12 +16,12 @@ const toMatchImageSnapshot = configureToMatchImageSnapshot({
 })
 expect.extend({ toMatchImageSnapshot })
 
-describe.skipIf(!process.env.RUN_FLAKY_TESTS)('prerender', () => {
+describe('prerender', () => {
   it('basic', async () => {
     // use execa to run `nuxi generate` in the rootDir
-    await execa('nuxt', ['generate'], { cwd: resolve('../fixtures/basic') })
+    await execa('nuxt', ['generate'], { cwd: resolve('../fixtures/app-dir') })
     // use globby and fs tools to read the images
-    const imagePath = resolve('../fixtures/basic/.output/public/__og-image__')
+    const imagePath = resolve('../fixtures/app-dir/.output/public/__og-image__')
     // globby in image path
     const images = await globby('**/*.png', { cwd: imagePath })
     // for each image we run a snapshot test
