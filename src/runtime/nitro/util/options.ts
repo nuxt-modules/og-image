@@ -1,5 +1,5 @@
-// @ts-expect-error untyped
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
+// @ts-expect-error untyped
 import { componentNames } from '#nuxt-og-image/component-names.mjs'
 
 export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions | OgImagePrebuilt {

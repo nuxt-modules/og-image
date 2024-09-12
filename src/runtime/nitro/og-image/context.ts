@@ -17,6 +17,7 @@ import { normalizeKey } from 'unstorage'
 import { separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
+import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
@@ -115,7 +116,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     publicStoragePath: runtimeConfig.publicStoragePath,
     extension,
     basePath,
-    options,
+    options: normaliseOptions(options),
     _nitro: useNitroApp(),
   }
   // call the nitro hook
