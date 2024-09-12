@@ -48,7 +48,7 @@
     "release": "pnpm build && bumpp && pnpm -r publish --no-git-checks",
     "typecheck": "tsc --noEmit",
     "test": "HAS_CHROME=true vitest",
-    "test:no-chrome": "HAS_CHROME=true vitest"
+    "test:no-chrome": "vitest"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^1.4.2",
