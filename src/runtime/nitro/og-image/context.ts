@@ -196,8 +196,20 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
     html = await e.$fetch(path, {
       // follow redirects
       redirect: 'follow',
-      responseType: 'text',
+      headers: {
+        accept: 'text/html',
+      },
     })
+    // fallback to globalThis.fetch
+    if (typeof html !== 'string' || !html.includes('<html>')) {
+      html = await globalThis.$fetch(path, {
+        // follow redirects
+        redirect: 'follow',
+        headers: {
+          accept: 'text/html',
+        },
+      })
+    }
   }
   catch (err) {
     return createError({
