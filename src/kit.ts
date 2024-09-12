@@ -1,6 +1,6 @@
+import type { Nuxt, NuxtModule } from '@nuxt/schema'
 import { addTemplate, createResolver, loadNuxtModuleInstance, useNuxt } from '@nuxt/kit'
 import { relative } from 'pathe'
-import type { Nuxt, NuxtModule } from '@nuxt/schema'
 
 /**
  * Get the user provided options for a Nuxt module.

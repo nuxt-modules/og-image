@@ -1,3 +1,4 @@
+import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { theme } from '#nuxt-og-image/unocss-config.mjs'
 import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
@@ -5,7 +6,6 @@ import { createError } from 'h3'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../satori/transforms/emojis'
-import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx

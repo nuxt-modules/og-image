@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
 import {
   colorMode,
   computed,
@@ -30,7 +31,6 @@ import {
   refreshTime,
   slowRefreshSources,
 } from './util/logic'
-import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
 import 'floating-vue/dist/style.css'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import 'splitpanes/dist/splitpanes.css'

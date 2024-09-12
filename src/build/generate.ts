@@ -1,9 +1,9 @@
-import { useNuxt } from '@nuxt/kit'
-import { assertSiteConfig } from 'nuxt-site-config-kit'
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from '../module'
+import { useNuxt } from '@nuxt/kit'
+import { assertSiteConfig } from 'nuxt-site-config-kit'
+import { applyNitroPresetCompatibility } from '../compatibility'
 
 // we don't need any of the runtime dependencies when we use nuxt generate
 // same as dev but we inject the aliases into the prerender config and noop the regular nitro

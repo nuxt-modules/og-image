@@ -1,12 +1,12 @@
+import type { Nuxt } from '@nuxt/schema'
+import type { NitroConfig } from 'nitropack'
+import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, tryResolveModule, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import {
   ensureDependencyInstalled,
 } from 'nypm'
 import { env, provider } from 'std-env'
-import type { Nuxt } from '@nuxt/schema'
-import type { NitroConfig } from 'nitropack'
-import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 
 const autodetectableProviders = {
   azure_static: 'azure',

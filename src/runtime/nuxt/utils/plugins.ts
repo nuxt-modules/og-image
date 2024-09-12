@@ -1,16 +1,16 @@
+import type { ActiveHeadEntry, HeadPlugin } from '@unhead/schema'
+import type { NitroRouteRules } from 'nitropack'
+import type { NuxtApp } from 'nuxt/app'
+import type { OgImageOptions } from '../../types'
 import { useRequestEvent, withSiteUrl } from '#imports'
 import { defu } from 'defu'
 import { parse, stringify } from 'devalue'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { parseURL, withoutBase } from 'ufo'
 import { toValue } from 'vue'
-import type { ActiveHeadEntry, HeadPlugin } from '@unhead/schema'
-import type { NitroRouteRules } from 'nitropack'
-import type { NuxtApp } from 'nuxt/app'
 import { createOgImageMeta, normaliseOptions } from '../../nuxt/utils'
 import { isInternalRoute, separateProps } from '../../pure'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
-import type { OgImageOptions } from '../../types'
 
 export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed

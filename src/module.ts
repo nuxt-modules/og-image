@@ -1,3 +1,17 @@
+import type { AddComponentOptions } from '@nuxt/kit'
+import type { ResvgRenderOptions } from '@resvg/resvg-js'
+import type { SatoriOptions } from 'satori'
+import type { SharpOptions } from 'sharp'
+import type {
+  CompatibilityFlagEnvOverrides,
+  FontConfig,
+  InputFontConfig,
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+  ResolvedFontConfig,
+  RuntimeCompatibilitySchema,
+} from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -25,10 +39,6 @@ import { isDevelopment } from 'std-env'
 import { withoutLeadingSlash } from 'ufo'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
-import type { AddComponentOptions } from '@nuxt/kit'
-import type { ResvgRenderOptions } from '@resvg/resvg-js'
-import type { SatoriOptions } from 'satori'
-import type { SharpOptions } from 'sharp'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
@@ -43,16 +53,6 @@ import {
 import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { normaliseFontInput } from './pure'
 import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
-import type {
-  CompatibilityFlagEnvOverrides,
-  FontConfig,
-  InputFontConfig,
-  OgImageComponent,
-  OgImageOptions,
-  OgImageRuntimeConfig,
-  ResolvedFontConfig,
-  RuntimeCompatibilitySchema,
-} from './runtime/types'
 
 export interface ModuleOptions {
   /**

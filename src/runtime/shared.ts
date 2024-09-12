@@ -1,7 +1,7 @@
+import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
 import { defu } from 'defu'
 import { joinURL } from 'ufo'
-import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 
 // must work in both Nuxt an
 

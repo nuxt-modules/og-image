@@ -1,5 +1,5 @@
-import { defineOgImage, useRouter } from '#imports'
 import type { OgImagePageScreenshotOptions } from '../../types'
+import { defineOgImage, useRouter } from '#imports'
 
 export function defineOgImageScreenshot(options: OgImagePageScreenshotOptions = {}) {
   const router = useRouter()

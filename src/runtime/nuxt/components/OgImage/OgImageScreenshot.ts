@@ -1,6 +1,6 @@
+import type { OgImagePageScreenshotOptions } from '../../../types'
 import { defineOgImageScreenshot } from '#imports'
 import { defineComponent } from 'vue'
-import type { OgImagePageScreenshotOptions } from '../../../types'
 
 export default defineComponent<OgImagePageScreenshotOptions>({
   name: 'OgImageScreenshot',

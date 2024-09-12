@@ -1,12 +1,12 @@
+import type { SatoriOptions } from 'satori'
+import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { theme } from '#nuxt-og-image/unocss-config.mjs'
 import { fontCache } from '#nuxt-og-image-cache'
 import { defu } from 'defu'
-import type { SatoriOptions } from 'satori'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 
 const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
 

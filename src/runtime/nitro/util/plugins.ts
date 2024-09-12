@@ -1,8 +1,8 @@
-import { defu } from 'defu'
-import { stringify } from 'devalue'
 import type { ParsedContent } from '@nuxt/content'
 import type { NitroApp } from 'nitropack'
 import type { UseHeadInput } from 'unhead'
+import { defu } from 'defu'
+import { stringify } from 'devalue'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
 import { normaliseOptions } from './options'
 

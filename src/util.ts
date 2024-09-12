@@ -1,9 +1,9 @@
+import type { Storage } from 'unstorage'
+import type { ResolvedFontConfig } from './runtime/types'
 import { tryResolveModule } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
 import { $fetch } from 'ofetch'
 import { isCI } from 'std-env'
-import type { Storage } from 'unstorage'
-import type { ResolvedFontConfig } from './runtime/types'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
 

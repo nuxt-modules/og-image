@@ -1,8 +1,8 @@
+import type { Browser } from 'playwright-core'
+import type { Renderer } from '../../../types'
 import { createBrowser } from '#nuxt-og-image/bindings/chromium'
 import { createError } from 'h3'
-import type { Browser } from 'playwright-core'
 import { createScreenshot } from './screenshot'
-import type { Renderer } from '../../../types'
 
 const ChromiumRenderer: Renderer = {
   name: 'chromium',

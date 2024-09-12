@@ -1,11 +1,11 @@
-import { existsSync } from 'node:fs'
-import { relative } from 'node:path'
-import { extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
-import { useNuxt } from '@nuxt/kit'
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from 'nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { ClientFunctions, ServerFunctions } from '../rpc-types'
+import { existsSync } from 'node:fs'
+import { relative } from 'node:path'
+import { extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
+import { useNuxt } from '@nuxt/kit'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030

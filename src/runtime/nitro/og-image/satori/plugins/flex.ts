@@ -1,5 +1,5 @@
-import { defineSatoriTransformer } from '../utils'
 import type { VNode } from '../../../../types'
+import { defineSatoriTransformer } from '../utils'
 
 const BLOCK_ELEMENTS = [
   'div',

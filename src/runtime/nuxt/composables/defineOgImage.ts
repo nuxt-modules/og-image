@@ -1,11 +1,11 @@
+import type { ActiveHeadEntry } from '@unhead/schema'
+import type { DefineOgImageInput, OgImageOptions } from '../../types'
 import { useNuxtApp, useRequestEvent, useRoute } from '#imports'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
-import type { ActiveHeadEntry } from '@unhead/schema'
 import { createNitroRouteRuleMatcher } from '../../nitro/util/kit'
 import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { createOgImageMeta, normaliseOptions } from '../utils'
-import type { DefineOgImageInput, OgImageOptions } from '../../types'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {
   // string is supported as an easy way to override the generated og image data

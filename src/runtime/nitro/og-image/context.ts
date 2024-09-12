@@ -1,3 +1,11 @@
+import type { H3Error, H3Event } from 'h3'
+import type {
+  OgImageOptions,
+  OgImageRenderEventContext,
+  SocialPreviewMetaData,
+} from '../../types'
+import type ChromiumRenderer from './chromium/renderer'
+import type SatoriRenderer from './satori/renderer'
 import { htmlPayloadCache, prerenderOptionsCache } from '#nuxt-og-image-cache'
 import { defu } from 'defu'
 import { parse } from 'devalue'
@@ -6,18 +14,10 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
-import type { H3Error, H3Event } from 'h3'
 import { separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
-import type {
-  OgImageOptions,
-  OgImageRenderEventContext,
-  SocialPreviewMetaData,
-} from '../../types'
-import type ChromiumRenderer from './chromium/renderer'
-import type SatoriRenderer from './satori/renderer'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()

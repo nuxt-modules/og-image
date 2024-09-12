@@ -1,5 +1,5 @@
-import { defu } from 'defu'
 import type { InputFontConfig, OgImageOptions, ResolvedFontConfig } from './types'
+import { defu } from 'defu'
 
 function detectBase64MimeType(data: string) {
   const signatures = {

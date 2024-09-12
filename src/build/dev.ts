@@ -1,8 +1,8 @@
-import { useNuxt } from '@nuxt/kit'
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import { applyNitroPresetCompatibility } from '../compatibility'
 import type { ModuleOptions } from '../module'
+import { useNuxt } from '@nuxt/kit'
+import { applyNitroPresetCompatibility } from '../compatibility'
 
 // we need all of the runtime dependencies when using build
 export function setupDevHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {

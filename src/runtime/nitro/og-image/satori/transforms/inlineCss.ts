@@ -1,8 +1,8 @@
+import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
+import type { OgImageRenderEventContext } from '../../../../types'
 import { useNitroOrigin } from '#imports'
 import { createConsola } from 'consola'
-import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import { useCssInline } from '../instances'
-import type { OgImageRenderEventContext } from '../../../../types'
 
 export async function applyInlineCss(ctx: OgImageRenderEventContext, island: NuxtIslandResponse) {
   const { e } = ctx

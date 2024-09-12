@@ -1,13 +1,13 @@
+import type { Resolver } from '@nuxt/kit'
+import type { Nuxt } from '@nuxt/schema'
+import type { ModuleOptions } from '../module'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
 import { dirname } from 'pathe'
-import type { Resolver } from '@nuxt/kit'
-import type { Nuxt } from '@nuxt/schema'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import { gray, logger } from '../logger'
-import type { ModuleOptions } from '../module'
 
 // we need all of the runtime dependencies when using build
 export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {

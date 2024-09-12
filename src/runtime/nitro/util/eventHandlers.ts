@@ -1,12 +1,12 @@
+import type { H3Event } from 'h3'
+import type { ResolvedFontConfig } from '../../types'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
 import { parseURL } from 'ufo'
-import type { H3Event } from 'h3'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../shared'
 import { resolveContext } from '../og-image/context'
 import { assets } from '../og-image/satori/font'
 import { html } from '../og-image/templates/html'
 import { useOgImageBufferCache } from './cache'
-import type { ResolvedFontConfig } from '../../types'
 
 export async function fontEventHandler(e: H3Event) {
   const path = parseURL(e.path).pathname

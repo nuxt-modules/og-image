@@ -1,7 +1,7 @@
+import type { Browser } from 'playwright-core'
 import { createConsola } from 'consola'
 import { execa } from 'execa'
 import playwrightCore from 'playwright-core'
-import type { Browser } from 'playwright-core'
 
 let installedChromium = false
 let installChromiumPromise: Promise<void>
