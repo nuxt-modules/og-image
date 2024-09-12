@@ -40,4 +40,4 @@ jobs:
         run: pnpm run build
 
       - name: Test
-        run: vitest
+        run: pnpm run test
