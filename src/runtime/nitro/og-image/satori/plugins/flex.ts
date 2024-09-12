@@ -14,10 +14,34 @@ const BLOCK_ELEMENTS = [
   'dl',
 ]
 
+const INLINE_ELEMENTS = [
+  'span',
+  'a',
+  'b',
+  'i',
+  'u',
+  'em',
+  'strong',
+  'code',
+  'abbr',
+  'del',
+  'ins',
+  'mark',
+  'sub',
+  'sup',
+  'small',
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+]
+
 // automatically add missing flex rules
 export default defineSatoriTransformer({
   filter: (node: VNode) =>
-    node.type === 'div'
+    [...INLINE_ELEMENTS, 'div'].includes(node.type)
     && (Array.isArray(node.props?.children) && node.props?.children.length >= 1)
     && (!node.props?.class?.includes('hidden')),
   transform: (node: VNode) => {
@@ -25,11 +49,13 @@ export default defineSatoriTransformer({
     if (node.props.style?.display && node.props.style?.display !== 'flex') {
       return
     }
-    node.props.style.display = 'flex'
-    // if any of the children are divs we swap it to old behavior
-    if (!node.props?.class?.includes('flex-') && node.props.children!.some((child: VNode) => BLOCK_ELEMENTS.includes(child.type))) {
-      node.props.style.flexDirection = 'column'
-      return
+    if (node.type === 'div') {
+      node.props.style.display = 'flex'
+      // if any of the children are divs we swap it to old behavior
+      if (!node.props?.class?.includes('flex-') && node.props.children!.some((child: VNode) => BLOCK_ELEMENTS.includes(child.type))) {
+        node.props.style.flexDirection = 'column'
+        return
+      }
     }
     // inline elements
     let flexWrap = node.props?.class?.includes('flex-wrap')
