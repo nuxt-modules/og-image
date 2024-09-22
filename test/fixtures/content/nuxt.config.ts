@@ -16,6 +16,5 @@ export default defineNuxtConfig({
   },
 
   devtools: { enabled: true },
-  debug: process.env.NODE_ENV === 'test',
   compatibilityDate: '2024-09-11',
 })

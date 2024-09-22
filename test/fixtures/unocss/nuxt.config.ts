@@ -10,5 +10,4 @@ export default defineNuxtConfig({
     url: 'https://nuxtseo.com',
   },
   devtools: { enabled: false },
-  debug: process.env.NODE_ENV === 'test',
 })

@@ -8,10 +8,9 @@ export default defineNuxtConfig({
   site: {
     url: 'https://nuxtseo.com',
   },
-  srcDir: 'app/',
   ogImage: {
     debug: true,
   },
+  srcDir: 'app/',
   devtools: { enabled: false },
-  debug: process.env.NODE_ENV === 'test',
 })
