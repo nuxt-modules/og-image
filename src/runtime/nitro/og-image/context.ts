@@ -124,12 +124,14 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   return ctx
 }
 
-export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions | false {
-  // extract the options from our script tag
-  const htmlPayload = html.match(/<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/)?.[1]
-  if (!htmlPayload)
-    return false
+const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
 
+function getPayloadFromHtml(html: string | unknown): string | null {
+  const match = String(html).match(PAYLOAD_REGEX)
+  return match ? match[1] : null
+}
+
+export function extractAndNormaliseOgImageOptions(htmlPayload: string): OgImageOptions | false {
   let options: OgImageOptions | false = false
   try {
     const payload = parse(htmlPayload)
@@ -138,7 +140,7 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
       if (!value)
         delete payload[key]
     })
-    options = payload // defu(payload, routeRules)
+    options = payload
   }
   catch (e) {
     // options = routeRules
@@ -191,25 +193,26 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
     return cachedHtmlPayload.value
 
   // extract the payload from the original path
-  let html: unknown
+  let _payload: string | null = null
   try {
-    // e.$fetch is doing something weird with the response
-    html = await e.$fetch(path, {
+    const html = await e.$fetch(path, {
       // follow redirects
       redirect: 'follow',
       headers: {
         accept: 'text/html',
       },
     })
+    _payload = getPayloadFromHtml(html)
     // fallback to globalThis.fetch
-    if (typeof html !== 'string' || !html.includes('<html>')) {
-      html = await globalThis.$fetch(path, {
+    if (!_payload) {
+      const fallbackHtml = await globalThis.$fetch(path, {
         // follow redirects
         redirect: 'follow',
         headers: {
           accept: 'text/html',
         },
       })
+      _payload = getPayloadFromHtml(fallbackHtml)
     }
   }
   catch (err) {
@@ -219,7 +222,7 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
     })
   }
 
-  if (typeof html !== 'string') {
+  if (!_payload) {
     return createError({
       statusCode: 500,
       statusMessage: `[Nuxt OG Image] Got invalid response from ${path} for og-image extraction.`,
@@ -227,7 +230,7 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   }
 
   // need to hackily reset the event params, so we can access the route rules of the base URL
-  const payload = extractAndNormaliseOgImageOptions(html!)
+  const payload = extractAndNormaliseOgImageOptions(_payload)
   if (!import.meta.dev && payload) {
     await htmlPayloadCache.setItem(key, {
       // 60 minutes for prerender, 10 seconds for runtime
