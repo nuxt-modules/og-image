@@ -35,17 +35,17 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       if (compatibility.wasm?.esmImport !== true)
         return
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
-      let serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
+      const serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
         ? configuredEntry
         : 'index.mjs')
+      const wasmEntries = [serverEntry]
       const isCloudflarePagesOrModule = target === 'cloudflare-pages' || target === 'cloudflare-module'
       if (isCloudflarePagesOrModule) {
-        // this is especially hacky
-        // TODO replace with this https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128?
-        serverEntry = [
-          resolve(dirname(serverEntry), './chunks/wasm.mjs'),
-          resolve(dirname(serverEntry), './chunks/_/wasm.mjs'),
-        ].filter(existsSync)[0] || serverEntry
+        // this is especially hacky, basically need to add all paths the wasm import can exist on
+        // TODO maybe implement https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128
+        wasmEntries.push(resolve(dirname(serverEntry), './chunks/wasm.mjs'))
+        wasmEntries.push(resolve(dirname(serverEntry), './chunks/_/wasm.mjs'))
+        wasmEntries.push(resolve(dirname(serverEntry), './chunks/index_bg.mjs'))
         // we need to modify the _routes.json as og image adds to many
         const routesPath = resolve(nitro.options.output.publicDir, '_routes.json')
         const routes: { version: number, include: string[], exclude: string[] } = await readFile(routesPath)
@@ -59,16 +59,20 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         }
         await writeFile(routesPath, JSON.stringify(routes, void 0, 2))
       }
-      const contents = (await readFile(serverEntry, 'utf-8'))
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
       const yogaHash = await resolveFilePathSha1('yoga-wasm-web/dist/yoga.wasm')
       const cssInlineHash = await resolveFilePathSha1('@css-inline/css-inline-wasm/index_bg.wasm')
-      const postfix = target === 'vercel-edge' ? '?module' : ''
-      const path = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
-      await writeFile(serverEntry, contents
-        .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
-        .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
-        .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+      for (const entry of wasmEntries) {
+        if (!existsSync(entry))
+          continue
+        const contents = (await readFile(serverEntry, 'utf-8'))
+        const postfix = target === 'vercel-edge' ? '?module' : ''
+        const path = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
+        await writeFile(serverEntry, contents
+          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
+          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
+          .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+      }
     })
   })
 }
