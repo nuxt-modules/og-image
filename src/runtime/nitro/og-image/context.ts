@@ -131,8 +131,8 @@ function getPayloadFromHtml(html: string | unknown): string | null {
   return match ? match[1] : null
 }
 
-export function extractAndNormaliseOgImageOptions(htmlPayload: string): OgImageOptions | false {
-  const _payload = getPayloadFromHtml(htmlPayload)
+export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions | false {
+  const _payload = getPayloadFromHtml(html)
   if (!_payload)
     return false
   let options: OgImageOptions | false = false
