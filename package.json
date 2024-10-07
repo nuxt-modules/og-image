@@ -97,7 +97,7 @@
     "@nuxt/icon": "^1.5.2",
     "@nuxt/image": "^1.8.0",
     "@nuxt/module-builder": "^0.8.4",
-    "@nuxt/test-utils": "3.14.2",
+    "@nuxt/test-utils": "3.14.3",
     "@nuxt/ui": "^2.18.6",
     "@nuxtjs/color-mode": "^3.5.1",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
