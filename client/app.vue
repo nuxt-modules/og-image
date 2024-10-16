@@ -4,7 +4,6 @@ import {
   colorMode,
   computed,
   fetchPathDebug,
-  highlight,
   unref,
   useHead,
   watch,
@@ -17,6 +16,7 @@ import { joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { fetchGlobalDebug } from '~/composables/fetch'
 import { devtoolsClient } from '~/composables/rpc'
+import { loadShiki } from '~/composables/shiki'
 import { separateProps } from '../src/runtime/shared'
 import {
   description,
@@ -36,8 +36,9 @@ import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import 'splitpanes/dist/splitpanes.css'
 
 useHead({
-  title: 'OG Image Playground',
+  title: 'Nuxt OG Image',
 })
+await loadShiki()
 
 const { data: globalDebug } = fetchGlobalDebug()
 
@@ -372,7 +373,7 @@ const currentPageFile = computed(() => {
       </div>
     </header>
     <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
-      <main class="mx-auto flex flex-col w-full bg-white dark:bg-black dark:bg-dark-700 bg-light-200 ">
+      <main class="mx-auto flex flex-col w-full">
         <div v-if="tab === 'design'" class="h-full relative max-h-full">
           <div v-if="error">
             <div v-if="error.message.includes('missing the Nuxt OG Image payload')">
@@ -381,10 +382,10 @@ const currentPageFile = computed(() => {
                 <div class="">
                   <h2 class="text-2xl font-semibold mb-3">
                     <NIcon icon="carbon:information" class="text-blue-500" />
-                    Oops! Did you forget <code>defineOgImage()</code>?
+                    Oops! Did you forget <code>defineOgImageComponent()</code>?
                   </h2>
                   <p class="text-lg opacity-80 my-3">
-                    Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImage()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
+                    Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImageComponent()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
                   </p>
                   <p class="text-lg opacity-80">
                     <a href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="underline">
@@ -609,16 +610,15 @@ const currentPageFile = computed(() => {
         </div>
         <div v-else-if="tab === 'templates'" class="h-full max-h-full overflow-hidden space-y-5">
           <NLoading v-if="isLoading" />
-          <div v-else>
+          <div v-else class="space-y-5">
             <OSectionBlock v-if="appComponents.length">
               <template #text>
                 <h3 class="opacity-80 text-base mb-1">
                   <NIcon name="carbon:app" class="mr-1" />
-                  App Templates
+                  Your Templates
                 </h3>
               </template>
-              <NTip>These are the OG Image templates that belong to your project.</NTip>
-              <div class="flex flex-wrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+              <div class="flex flex-wrap items-center justify-center gap-3" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
                 <button v-for="name in appComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
                   <TemplateComponentPreview
                     :component="name"
@@ -636,8 +636,7 @@ const currentPageFile = computed(() => {
                   Community Templates
                 </h3>
               </template>
-              <NTip>These are OG Image templates created by the community.<br>You can try them out by clicking on them, when you find one you like, view the source and copy+paste.</NTip>
-              <div class="flex flex-nowrap overflow-x-auto space-x-3 p2" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
+              <div class="flex flex-wrap items-center justify-center gap-3" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
                 <button v-for="name in communityComponents" :key="name.pascalName" class="!p-0" @click="patchOptions({ component: name.pascalName })">
                   <TemplateComponentPreview
                     :component="name"
@@ -650,7 +649,7 @@ const currentPageFile = computed(() => {
             </OSectionBlock>
           </div>
         </div>
-        <div v-else-if="tab === 'debug'" class="h-full max-h-full overflow-hidden">
+        <div v-else-if="tab === 'debug'" class="h-full max-h-full overflow-hidden space-y-5">
           <OSectionBlock>
             <template #text>
               <h3 class="opacity-80 text-base mb-1">
@@ -658,9 +657,7 @@ const currentPageFile = computed(() => {
                 Compatibility
               </h3>
             </template>
-            <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(globalDebug?.compatibility || {}, null, 2), 'json')" />
-            </div>
+              <OCodeBlock :code="JSON.stringify(globalDebug?.compatibility || {}, null, 2)" lang="json" />
           </OSectionBlock>
           <OSectionBlock>
             <template #text>
@@ -669,9 +666,7 @@ const currentPageFile = computed(() => {
                 vNodes
               </h3>
             </template>
-            <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="max-height: 500px; overflow-y: auto; white-space: break-spaces;" v-html="highlight(JSON.stringify(debug?.vnodes || {}, null, 2), 'json')" />
-            </div>
+            <OCodeBlock :code="JSON.stringify(debug?.vnodes || {}, null, 2)" lang="json" />
           </OSectionBlock>
           <OSectionBlock>
             <template #text>
@@ -680,9 +675,7 @@ const currentPageFile = computed(() => {
                 SVG
               </h3>
             </template>
-            <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="max-height: 500px; overflow-y: auto; white-space: break-spaces;" v-html="highlight(debug?.svg.replaceAll('>', '>\n') || '', 'html')" />
-            </div>
+            <OCodeBlock :code="debug?.svg.replaceAll('>', '>\n')" lang="html" />
           </OSectionBlock>
           <OSectionBlock>
             <template #text>
@@ -691,9 +684,7 @@ const currentPageFile = computed(() => {
                 Runtime Config
               </h3>
             </template>
-            <div class="px-3 py-2 space-y-5">
-              <pre of-auto h-full text-sm style="white-space: break-spaces;" v-html="highlight(JSON.stringify(globalDebug?.runtimeConfig || {}, null, 2), 'json')" />
-            </div>
+            <OCodeBlock :code="JSON.stringify(globalDebug?.runtimeConfig || {}, null, 2)" lang="json" />
           </OSectionBlock>
         </div>
         <div v-else-if="tab === 'docs'" class="h-full max-h-full overflow-hidden">
@@ -769,14 +760,6 @@ html.dark {
 }
 .prose hr {
   --uno: border-solid border-1 border-b border-base h-1px w-full block my-2 op50;
-}
-
-.dark .shiki {
-  background: var(--shiki-dark-bg, inherit) !important;
-}
-
-.dark .shiki span {
-  color: var(--shiki-dark, inherit) !important;
 }
 
 /* JSON Editor */

@@ -32,14 +32,14 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 
 <template>
   <div class="group">
-    <div v-if="component.credits" class="opacity-70 text-sm transition group-hover:opacity-100">
-      <NLink v-if="creditSite" :href="creditSite" external class="underline">
-        {{ creditName }}
+    <div class="opacity-70 text-sm transition group-hover:opacity-100">
+      <NLink :href="creditSite" external class="underline">
+        {{ component.pascalName }}
       </NLink>
     </div>
     <div class="border-2 group-hover:shadow-sm rounded-[0.35rem] border-transparent hover:border-yellow-500 transition-all">
       <VTooltip>
-        <div class="w-[220px] h-[110px] relative">
+        <div class="w-[300px] h-[150px] relative">
           <NIcon v-if="active" icon="carbon:checkmark-filled" class="absolute top-2 right-2 text-green-500" />
           <ImageLoader
             v-if="!isHtml"
@@ -67,7 +67,6 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
       <VTooltip>
         <div class="">
           <NLink external class="opacity-70 items-start space-x-1 flex" @click.stop="openComponent">
-            <span>{{ component.pascalName }}</span>
             <span class="underline">View source</span>
           </NLink>
         </div>
@@ -75,6 +74,12 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
           Open the source code of {{ component.pascalName }}.vue in your IDE
         </template>
       </VTooltip>
+      <div v-if="component.credits" class="opacity-70 transition group-hover:opacity-100">
+        Credits:
+        <NLink v-if="creditSite" :href="creditSite" external class="underline">
+          {{ creditName }}
+        </NLink>
+      </div>
     </div>
   </div>
 </template>

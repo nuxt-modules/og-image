@@ -1,27 +1,32 @@
-import type { BuiltinLanguage, Highlighter } from 'shiki'
-import { useColorMode } from '#imports'
-import { getHighlighter } from 'shiki'
-import { ref } from 'vue'
+import type { MaybeRef } from '@vueuse/core'
+import type { Highlighter, BundledLanguage } from 'shiki'
+import { createHighlighter } from 'shiki'
+import { computed, ref, toValue } from 'vue'
+import { devtools } from './rpc'
 
 export const shiki = ref<Highlighter>()
 
-// TODO: Only loading when needed
-getHighlighter({
-  themes: [
-    'vitesse-dark',
-    'vitesse-light',
-  ],
-  langs: [
-    'html',
-    'json',
-  ],
-}).then((i) => { shiki.value = i })
-const mode = useColorMode()
-export function highlight(code: string, lang: BuiltinLanguage) {
-  if (!shiki.value)
-    return code
-  return shiki.value.codeToHtml(code, {
-    lang,
-    theme: mode.value === 'dark' ? 'vitesse-dark' : 'vitesse-light',
+export async function loadShiki() {
+  // Only loading when needed
+  shiki.value = await createHighlighter({
+    themes: [
+      'vitesse-dark',
+      'vitesse-light',
+    ],
+    langs: [
+      'html',
+      'json',
+    ],
+  })
+  return shiki.value
+}
+
+export function renderCodeHighlight(code: MaybeRef<string>, lang: BundledLanguage) {
+  return computed(() => {
+    const colorMode = devtools.value?.colorMode || 'light'
+    return shiki.value!.codeToHtml(toValue(code) || '', {
+      lang,
+      theme: colorMode === 'dark' ? 'vitesse-dark' : 'vitesse-light',
+    }) || ''
   })
 }
