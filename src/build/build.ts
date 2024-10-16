@@ -48,16 +48,18 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         wasmEntries.push(resolve(dirname(serverEntry), './chunks/index_bg.mjs'))
         // we need to modify the _routes.json as og image adds to many
         const routesPath = resolve(nitro.options.output.publicDir, '_routes.json')
-        const routes: { version: number, include: string[], exclude: string[] } = await readFile(routesPath)
-          .then(buffer => JSON.parse(buffer.toString()))
+        if (existsSync(routesPath)) {
+          const routes: { version: number, include: string[], exclude: string[] } = await readFile(routesPath)
+            .then(buffer => JSON.parse(buffer.toString()))
 
-        const preSize = routes.exclude.length
-        routes.exclude = routes.exclude.filter(path => !path.startsWith('/__og-image__/static'))
-        routes.exclude.push('/__og-image__/static/*')
-        if (preSize !== routes.exclude.length) {
-          logger.info(`Optimizing CloudFlare \`_routes.json\` for prerendered OG Images ${gray(`(${100 - Math.round(routes.exclude.length / preSize * 100)}% smaller)`)}`)
+          const preSize = routes.exclude.length
+          routes.exclude = routes.exclude.filter(path => !path.startsWith('/__og-image__/static'))
+          routes.exclude.push('/__og-image__/static/*')
+          if (preSize !== routes.exclude.length) {
+            logger.info(`Optimizing CloudFlare \`_routes.json\` for prerendered OG Images ${gray(`(${100 - Math.round(routes.exclude.length / preSize * 100)}% smaller)`)}`)
+          }
+          await writeFile(routesPath, JSON.stringify(routes, void 0, 2))
         }
-        await writeFile(routesPath, JSON.stringify(routes, void 0, 2))
       }
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
       const yogaHash = await resolveFilePathSha1('yoga-wasm-web/dist/yoga.wasm')
