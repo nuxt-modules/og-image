@@ -32,7 +32,6 @@ export default defineNuxtConfig({
           },
         )
         subprocess.getProcess().stdout?.on('data', (data) => {
-          // eslint-disable-next-line no-console
           console.log(` - devtools: ${data.toString()}`)
         })
         subprocess.getProcess().stderr?.on('data', (data) => {

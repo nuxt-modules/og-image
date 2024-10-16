@@ -1,5 +1,5 @@
 import type { MaybeRef } from '@vueuse/core'
-import type { Highlighter, BundledLanguage } from 'shiki'
+import type { BundledLanguage, Highlighter } from 'shiki'
 import { createHighlighter } from 'shiki'
 import { computed, ref, toValue } from 'vue'
 import { devtools } from './rpc'

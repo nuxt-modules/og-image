@@ -657,7 +657,7 @@ const currentPageFile = computed(() => {
                 Compatibility
               </h3>
             </template>
-              <OCodeBlock :code="JSON.stringify(globalDebug?.compatibility || {}, null, 2)" lang="json" />
+            <OCodeBlock :code="JSON.stringify(globalDebug?.compatibility || {}, null, 2)" lang="json" />
           </OSectionBlock>
           <OSectionBlock>
             <template #text>
