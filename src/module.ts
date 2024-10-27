@@ -375,7 +375,7 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
     }
 
-    nuxt.options.experimental.componentIslands = true
+    nuxt.options.experimental.componentIslands ||= true
 
     const basePath = config.zeroRuntime ? './runtime/nitro/routes/__zero-runtime' : './runtime/nitro/routes'
     addServerHandler({
