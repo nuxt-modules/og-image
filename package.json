@@ -120,7 +120,8 @@
     "vitest": "^2.1.4"
   },
   "resolutions": {
-    "vue": "3.5.4",
+    "@vue/server-renderer": "3.5.12",
+    "vue": "3.5.12",
     "vue-router": "4.4.4"
   },
   "build": {
