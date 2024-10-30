@@ -1,4 +1,4 @@
-import type { OgImageComponents } from '#nuxt-og-image/components'
+import type { OgImageComponents } from '#og-image/components'
 import type { DefineOgImageInput, ExtractComponentProps, OgImageOptions, OgImagePageScreenshotOptions } from '../../types'
 
 export function defineOgImage(_options: DefineOgImageInput = {}) {}

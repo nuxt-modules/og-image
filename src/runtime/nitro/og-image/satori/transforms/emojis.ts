@@ -1,6 +1,6 @@
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import type { OgImageRenderEventContext } from '../../../../types'
-import { emojiCache } from '#nuxt-og-image-cache'
+import { emojiCache } from '#og-image-cache'
 
 const charMap = {
   '2049': 'exclamation-question-mark',

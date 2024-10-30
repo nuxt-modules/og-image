@@ -1,4 +1,4 @@
-import type { OgImageComponents } from '#nuxt-og-image/components'
+import type { OgImageComponents } from '#og-image/components'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { H3Error, H3Event } from 'h3'

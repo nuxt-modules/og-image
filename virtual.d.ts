@@ -1,28 +1,28 @@
-declare module '#nuxt-og-image/components' {
+declare module '#og-image/components' {
   import type { Component } from 'vue'
 
   const components: Record<string, Component>
   export default components
 }
-declare module '#nuxt-og-image/renderers/satori' {
+declare module '#og-image/renderers/satori' {
   import type Renderer from './src/runtime/types'
 
   const renderer: Renderer | { __unenv__: true } | undefined
   export default renderer
 }
-declare module '#nuxt-og-image/renderers/chromium' {
+declare module '#og-image/renderers/chromium' {
   import type Renderer from './src/runtime/types'
 
   const renderer: Renderer | { __unenv__: true } | undefined
   export default renderer
 }
 
-declare module '#nuxt-og-image/bindings/satori' {
+declare module '#og-image/bindings/satori' {
   const satori: typeof import('satori').satori
   export default satori
 }
 
-declare module '#nuxt-og-image/bindings/resvg' {
+declare module '#og-image/bindings/resvg' {
   interface WasmResvg {
     initWasmPromise: Promise<void>
     Resvg: import('resvg').Resvg
@@ -30,36 +30,35 @@ declare module '#nuxt-og-image/bindings/resvg' {
   const instance: WasmResvg
   export default instance
 }
-declare module '#nuxt-og-image/bindings/chromium' {
+declare module '#og-image/bindings/chromium' {
   export const createBrowser: () => Promise<Browser | void>
 }
 
-declare module '#nuxt-og-image/bindings/css-inline' {
+declare module '#og-image/bindings/css-inline' {
   import type _CssInline from 'css-inline'
 
   const cssInline: _CssInline
   export default cssInline
 }
 
-declare module '#nuxt-og-image/bindings/sharp' {
+declare module '#og-image/bindings/sharp' {
   import type _sharp from 'sharp'
 
   const sharp: _sharp
   export default sharp
 }
 
-declare module '#nuxt-og-image-virtual/component-names.mjs' {
+declare module '#og-image-virtual/component-names.mjs' {
   const componentNames: string[]
   export default componentNames
 }
 
-declare module '#nuxt-og-image-virtual/unocss-config.mjs' {
-  const theme: Record<string, any>
-  export default theme
+declare module '#og-image-virtual/unocss-config.mjs' {
+  export const theme: Record<string, any>
 }
 
-declare module '#nuxt-og-image-cache' {
-  import type { OgImageOptions } from '#nuxt-og-image/types'
+declare module '#og-image-cache' {
+  import type { OgImageOptions } from '#og-image/types'
   import type { Storage } from 'unstorage'
 
   export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }>

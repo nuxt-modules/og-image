@@ -1,7 +1,7 @@
 import type { SatoriOptions } from 'satori'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { theme } from '#nuxt-og-image/virtual/unocss-config.mjs'
-import { fontCache } from '#nuxt-og-image-cache'
+import { fontCache } from '#og-image-cache'
+import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { defu } from 'defu'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { loadFont } from './font'
@@ -15,20 +15,21 @@ async function resolveFonts(event: OgImageRenderEventContext) {
   const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
   const localFontPromises: Promise<ResolvedFontConfig>[] = []
   const preloadedFonts: ResolvedFontConfig[] = []
-  for (const font of normalisedFonts) {
-    if (await fontCache.hasItem(font.cacheKey)) {
-      font.data = await fontCache.getItemRaw(font.cacheKey)
-      preloadedFonts.push(font)
-    }
-    else {
-      if (!fontPromises[font.cacheKey]) {
-        fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
-          if (_font?.data)
-            await fontCache.setItemRaw(_font.cacheKey, _font.data)
-          return _font
-        })
+  if (fontCache) {
+    for (const font of normalisedFonts) {
+      if (await fontCache.hasItem(font.cacheKey)) {
+        font.data = await fontCache.getItemRaw(font.cacheKey)
+        preloadedFonts.push(font)
+      } else {
+        if (!fontPromises[font.cacheKey]) {
+          fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
+            if (_font?.data)
+              await fontCache?.setItemRaw(_font.cacheKey, _font.data)
+            return _font
+          })
+        }
+        localFontPromises.push(fontPromises[font.cacheKey])
       }
-      localFontPromises.push(fontPromises[font.cacheKey])
     }
   }
   const awaitedFonts = await Promise.all(localFontPromises)

@@ -7,7 +7,7 @@ import type {
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
 import { useNitroApp } from '#imports'
-import { htmlPayloadCache, prerenderOptionsCache } from '#nuxt-og-image-cache'
+import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
 import { defu } from 'defu'
 import { parse } from 'devalue'
 import { createError, getQuery } from 'h3'

@@ -199,8 +199,8 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
-    nuxt.options.alias['#nuxt-og-image'] = resolve('./runtime')
-    nuxt.options.alias['#nuxt-og-image-cache'] = resolve('./runtime/nitro/og-image/cache/lru')
+    nuxt.options.alias['#og-image'] = resolve('./runtime')
+    nuxt.options.alias['#og-image-cache'] = resolve('./runtime/nitro/og-image/cache/lru')
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -215,7 +215,7 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (!nuxt.options.dev) {
         addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
-        nuxt.options.alias['#nuxt-og-image-cache'] = resolve('./runtime/nitro/og-image/cache/mock')
+        nuxt.options.alias['#og-image-cache'] = resolve('./runtime/nitro/og-image/cache/mock')
       }
     }
 
@@ -491,7 +491,7 @@ export default defineNuxtModule<ModuleOptions>({
       options: { mode: 'server' },
     })
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
-    nuxt.options.nitro.virtual['#nuxt-og-image-virtual/component-names.mjs'] = () => {
+    nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
 
@@ -505,7 +505,7 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('unocss:config', (_unoCssConfig) => {
       unoCssConfig = { ..._unoCssConfig.theme }
     })
-    nuxt.options.nitro.virtual['#nuxt-og-image-virtual/unocss-config.mjs'] = () => {
+    nuxt.options.nitro.virtual['#og-image-virtual/unocss-config.mjs'] = () => {
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
@@ -537,12 +537,12 @@ declare module 'nitropack' {
   }
 }
 
-declare module '#nuxt-og-image/components' {
+declare module '#og-image/components' {
   export interface OgImageComponents {
 ${componentImports}
   }
 }
-declare module '#nuxt-og-image/unocss-config' {
+declare module '#og-image/unocss-config' {
   export type theme = any
 }
 `

@@ -1,7 +1,7 @@
 // @ts-expect-error virtual module
-import compatibility from '#nuxt-og-image/compatibility'
+import compatibility from '#og-image/compatibility'
 // @ts-expect-error untyped
-import { componentNames } from '#nuxt-og-image-virtual/component-names.mjs'
+import { componentNames } from '#og-image-virtual/component-names.mjs'
 
 import { defineEventHandler, setHeader } from 'h3'
 

@@ -1,6 +1,6 @@
 import type { Browser } from 'playwright-core'
 import type { Renderer } from '../../../types'
-import { createBrowser } from '#nuxt-og-image/bindings/chromium'
+import { createBrowser } from '#og-image/bindings/chromium'
 import { createError } from 'h3'
 import { createScreenshot } from './screenshot'
 
