@@ -31,6 +31,8 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     const target = resolveNitroPreset(nitro.options)
     const isCloudflarePagesOrModule = target === 'cloudflare-pages' || target === 'cloudflare-module'
     if (isCloudflarePagesOrModule) {
+      nitro.options.cloudflare = nitro.options.cloudflare || {}
+      nitro.options.cloudflare.pages = nitro.options.cloudflare.pages || {}
       nitro.options.cloudflare.pages.routes = nitro.options.cloudflare.pages.routes || { exclude: [] }
       nitro.options.cloudflare.pages.routes.exclude = nitro.options.cloudflare.pages.routes.exclude || []
       nitro.options.cloudflare.pages.routes.exclude.push('/__og-image__/static/*')
