@@ -1,5 +1,5 @@
+import { defineNitroPlugin } from '#imports'
 import { prerenderOptionsCache } from '#nuxt-og-image-cache'
-import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
 import { parseURL } from 'ufo'
 import { isInternalRoute } from '../../pure'
 import { extractAndNormaliseOgImageOptions, resolvePathCacheKey } from '../og-image/context'

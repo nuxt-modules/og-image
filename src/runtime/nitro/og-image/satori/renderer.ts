@@ -1,6 +1,6 @@
 import type { SatoriOptions } from 'satori'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { theme } from '#nuxt-og-image/unocss-config.mjs'
+import { theme } from '#nuxt-og-image/virtual/unocss-config.mjs'
 import { fontCache } from '#nuxt-og-image-cache'
 import { defu } from 'defu'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'

@@ -47,3 +47,26 @@ declare module '#nuxt-og-image/bindings/sharp' {
   const sharp: _sharp
   export default sharp
 }
+
+declare module '#nuxt-og-image-virtual/component-names.mjs' {
+  const componentNames: string[]
+  export default componentNames
+}
+
+declare module '#nuxt-og-image-virtual/unocss-config.mjs' {
+  const theme: Record<string, any>
+  export default theme
+}
+
+declare module '#nuxt-og-image-cache' {
+  import type { OgImageOptions } from '#nuxt-og-image/types'
+  import type { Storage } from 'unstorage'
+
+  export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }>
+
+  export const prerenderOptionsCache: Storage<OgImageOptions> | undefined
+
+  export const fontCache: Storage<BufferSource> | undefined
+
+  export const emojiCache: Storage<string>
+}

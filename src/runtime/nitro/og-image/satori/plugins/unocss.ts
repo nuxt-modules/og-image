@@ -1,5 +1,5 @@
 import type { VNode } from '../../../../types'
-import { theme } from '#nuxt-og-image/unocss-config.mjs'
+import { theme } from '#nuxt-og-image/virtual/unocss-config.mjs'
 import { createGenerator } from '@unocss/core'
 import presetWind from '@unocss/preset-wind'
 import { defineSatoriTransformer } from '../utils'
