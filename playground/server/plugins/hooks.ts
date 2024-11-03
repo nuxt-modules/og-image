@@ -1,4 +1,4 @@
-import { defineNitroPlugin } from 'nitropack/dist/runtime/plugin'
+import { defineNitroPlugin } from '#imports'
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('nuxt-og-image:context', async (ctx) => {
