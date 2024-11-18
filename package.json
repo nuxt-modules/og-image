@@ -101,7 +101,7 @@
     "@nuxt/ui": "^2.18.7",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "^8.5.5",
+    "@nuxtjs/i18n": "^9.1.0",
     "@nuxtjs/tailwindcss": "^6.12.2",
     "@unocss/nuxt": "^0.63.6",
     "@unocss/preset-icons": "^0.63.6",
