@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^1.6.0",
-    "@nuxt/kit": "^3.13.2",
+    "@nuxt/kit": "^3.14.1592",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
     "@unocss/core": "^0.63.6",
@@ -111,7 +111,7 @@
     "bumpp": "^9.8.0",
     "eslint": "9.13.0",
     "jest-image-snapshot": "^6.4.0",
-    "nuxt": "^3.13.2",
+    "nuxt": "^3.14.1592",
     "playwright": "^1.48.2",
     "sass": "^1.80.5",
     "sharp": "^0.33.5",
