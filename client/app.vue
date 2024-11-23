@@ -12,7 +12,7 @@ import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
 import JsonEditorVue from 'json-editor-vue'
 import { Pane, Splitpanes } from 'splitpanes'
-import { joinURL, parseURL, withHttps, withQuery } from 'ufo'
+import { hasProtocol, joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { fetchGlobalDebug } from '~/composables/fetch'
 import { devtoolsClient } from '~/composables/rpc'
@@ -42,20 +42,13 @@ await loadShiki()
 
 const { data: globalDebug } = fetchGlobalDebug()
 
-// const clientPath = computed(() => devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route?.path || undefined)
-// path.value = clientPath.value || useRoute().query.path as string || '/'
-// base.value = useRoute().query.base as string || '/'
-// watch(() => clientPath, (v) => {
-//   optionsOverrides.value = {}
-//   propsEdited.value = false
-//   path.value = v
-// })
-
 const emojis = ref('noto')
 
 const debugAsyncData = fetchPathDebug()
 const { data: debug, pending, error } = debugAsyncData
-
+const isCustomOgImage = computed(() => {
+  return debug.value?.custom
+})
 watch(debug, (val) => {
   if (!val)
     return
@@ -127,6 +120,12 @@ const src = computed(() => {
   // wait until we know what we're rendering
   if (!debug.value)
     return ''
+  if (isCustomOgImage.value) {
+    if (hasProtocol(debug.value.options.url, { acceptRelative: true })) {
+      return debug.value.options.url
+    }
+    return joinURL(host.value, debug.value.options.url)
+  }
   return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/og.${imageFormat.value}`), {
     timestamp: refreshTime.value,
     ...optionsOverrides.value,
@@ -148,7 +147,11 @@ const socialPreviewDescription = computed(() => {
 
 const socialSiteUrl = computed(() => {
   // need to turn this URL into just an origin
-  return parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url || '/'
+  const url = parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url || '/'
+  if (url === '/') {
+    return globalDebug.value?.siteConfigUrl
+  }
+  return url
 })
 const slackSocialPreviewSiteName = computed(() => {
   return options.value?.socialPreview?.og.site_name || socialSiteUrl.value
@@ -375,7 +378,60 @@ const currentPageFile = computed(() => {
     <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
       <main class="mx-auto flex flex-col w-full">
         <div v-if="tab === 'design'" class="h-full relative max-h-full">
-          <div v-if="error">
+          <div v-if="isCustomOgImage" class="w-full flex h-full justify-center items-center relative pr-4" style="padding-top: 30px;">
+            <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
+              <div class="text-xs">
+                Your prebuilt OG Image: {{ debug?.options.url }}
+              </div>
+              <div class="flex items-center w-[100px]">
+                <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
+                <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
+                <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
+              </div>
+            </div>
+            <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle">
+              <template #domain>
+                <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
+              </template>
+              <ImageLoader
+                :src="src"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
+                @click="openImage"
+                @refresh="refreshSources"
+              />
+            </TwitterCardRenderer>
+            <SlackCardRenderer v-else-if="socialPreview === 'slack'">
+              <template #favIcon>
+                <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`">
+              </template>
+              <template #siteName>
+                {{ slackSocialPreviewSiteName }}
+              </template>
+              <template #title>
+                {{ socialPreviewTitle }}
+              </template>
+              <template #description>
+                {{ socialPreviewDescription }}
+              </template>
+              <ImageLoader
+                :src="src"
+                class="!h-[300px]"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
+            </SlackCardRenderer>
+            <div v-else class="w-full h-full">
+              <ImageLoader
+                :src="src"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
+            </div>
+          </div>
+          <div v-else-if="error">
             <div v-if="error.message.includes('missing the Nuxt OG Image payload') || error.message.includes('Got invalid response')">
               <!-- nicely tell the user they should use defineOgImage to get started -->
               <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
@@ -460,7 +516,7 @@ const currentPageFile = computed(() => {
               </TwitterCardRenderer>
               <SlackCardRenderer v-else-if="socialPreview === 'slack'">
                 <template #favIcon>
-                  <img :src="`${socialSiteUrl?.includes('localhost') ? 'http' : 'https'}://${socialSiteUrl}/favicon.ico`">
+                  <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`">
                 </template>
                 <template #siteName>
                   {{ slackSocialPreviewSiteName }}
