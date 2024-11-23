@@ -376,7 +376,7 @@ const currentPageFile = computed(() => {
       <main class="mx-auto flex flex-col w-full">
         <div v-if="tab === 'design'" class="h-full relative max-h-full">
           <div v-if="error">
-            <div v-if="error.message.includes('missing the Nuxt OG Image payload')">
+            <div v-if="error.message.includes('missing the Nuxt OG Image payload') || error.message.includes('Got invalid response')">
               <!-- nicely tell the user they should use defineOgImage to get started -->
               <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
                 <div class="">
@@ -387,7 +387,10 @@ const currentPageFile = computed(() => {
                   <p class="text-lg opacity-80 my-3">
                     Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImageComponent()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
                   </p>
-                  <p class="text-lg opacity-80">
+                  <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-lg">
+                    Using Nuxt Content? Follow the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="underline">Nuxt Content guide</a>.
+                  </div>
+                  <p v-else class="text-lg opacity-80">
                     <a href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="underline">
                       Learn more
                     </a>
