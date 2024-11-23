@@ -191,7 +191,7 @@ export default defineNuxtModule<ModuleOptions>({
       // need to mock the composables to allow module still to work when disabled
       ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
         .forEach((name) => {
-          addImports({ name, from: resolve(`./runtime/nuxt/composables/mock`) })
+          addImports({ name, from: resolve(`./runtime/app/composables/mock`) })
         })
       return
     }
@@ -200,7 +200,7 @@ export default defineNuxtModule<ModuleOptions>({
       return
     }
     nuxt.options.alias['#og-image'] = resolve('./runtime')
-    nuxt.options.alias['#og-image-cache'] = resolve('./runtime/nitro/og-image/cache/lru')
+    nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -215,7 +215,7 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (!nuxt.options.dev) {
         addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
-        nuxt.options.alias['#og-image-cache'] = resolve('./runtime/nitro/og-image/cache/mock')
+        nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/mock')
       }
     }
 
@@ -298,7 +298,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // convert ogImage key to head data
     if (hasNuxtModule('@nuxt/content')) {
-      addServerPlugin(resolve('./runtime/nitro/plugins/nuxt-content'))
+      addServerPlugin(resolve('./runtime/server/plugins/nuxt-content'))
     }
 
     // default font is inter
@@ -377,7 +377,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.experimental.componentIslands ||= true
 
-    const basePath = config.zeroRuntime ? './runtime/nitro/routes/__zero-runtime' : './runtime/nitro/routes'
+    const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
     addServerHandler({
       lazy: true,
       route: '/__og-image__/font/**',
@@ -387,7 +387,7 @@ export default defineNuxtModule<ModuleOptions>({
       addServerHandler({
         lazy: true,
         route: '/__og-image__/debug.json',
-        handler: resolve('./runtime/nitro/routes/debug.json'),
+        handler: resolve('./runtime/server/routes/debug.json'),
       })
     }
     addServerHandler({
@@ -407,7 +407,7 @@ export default defineNuxtModule<ModuleOptions>({
       .forEach((name) => {
         addImports({
           name,
-          from: resolve(`./runtime/nuxt/composables/${name}`),
+          from: resolve(`./runtime/app/composables/${name}`),
         })
         nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
       })
@@ -415,7 +415,7 @@ export default defineNuxtModule<ModuleOptions>({
     // community templates must be copy+pasted!
     if (!config.zeroRuntime || nuxt.options.dev) {
       await addComponentsDir({
-        path: resolve('./runtime/nuxt/components/Templates/Community'),
+        path: resolve('./runtime/app/components/Templates/Community'),
         island: true,
         // watch: true,
       })
@@ -429,12 +429,12 @@ export default defineNuxtModule<ModuleOptions>({
       .forEach((name) => {
         addComponent({
           name,
-          filePath: resolve(`./runtime/nuxt/components/OgImage/${name}`),
+          filePath: resolve(`./runtime/app/components/OgImage/${name}`),
           ...config.componentOptions,
         })
       })
 
-    const basePluginPath = `./runtime/nuxt/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
+    const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
@@ -454,7 +454,7 @@ export default defineNuxtModule<ModuleOptions>({
             valid = true
           }
         })
-        if (component.filePath.includes(resolve('./runtime/nuxt/components/Templates')))
+        if (component.filePath.includes(resolve('./runtime/app/components/Templates')))
           valid = true
 
         if (valid && fs.existsSync(component.filePath)) {
@@ -463,7 +463,7 @@ export default defineNuxtModule<ModuleOptions>({
           component.mode = 'server'
           validComponents.push(component)
           let category: OgImageComponent['category'] = 'app'
-          if (component.filePath.includes(resolve('./runtime/nuxt/components/Templates/Community')))
+          if (component.filePath.includes(resolve('./runtime/app/components/Templates/Community')))
             category = 'community'
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
           // see if we can extract credits from the component file, just find the line that starts with * @credits and return the rest of the line
@@ -616,7 +616,7 @@ declare module '#og-image/unocss-config' {
     }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
-      addServerPlugin(resolve('./runtime/nitro/plugins/prerender'))
+      addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolve)
   },

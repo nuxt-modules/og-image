@@ -3,7 +3,7 @@ import type { DefineOgImageInput, OgImageOptions } from '../../types'
 import { useNuxtApp, useRequestEvent, useRoute } from '#imports'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
-import { createNitroRouteRuleMatcher } from '../../nitro/util/kit'
+import { createNitroRouteRuleMatcher } from '../../server/util/kit'
 import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { createOgImageMeta, normaliseOptions } from '../utils'
 
