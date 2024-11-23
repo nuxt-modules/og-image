@@ -37,6 +37,7 @@ export interface OgImageRuntimeConfig {
   colorPreference: 'light' | 'dark'
 
   isNuxtContentDocumentDriven: boolean
+  strictNuxtContentPaths: boolean
   zeroRuntime: boolean
 }
 

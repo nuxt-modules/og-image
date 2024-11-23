@@ -594,6 +594,7 @@ declare module '#og-image/unocss-config' {
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
+        strictNuxtContentPaths: config.strictNuxtContentPaths,
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
       }
