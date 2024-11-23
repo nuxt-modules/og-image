@@ -75,7 +75,7 @@
     "satori-html": "^0.3.2",
     "sirv": "^3.0.0",
     "std-env": "^3.8.0",
-    "strip-literal": "^2.1.0",
+    "strip-literal": "^2.1.1",
     "ufo": "^1.5.4",
     "unplugin": "^1.16.0",
     "unwasm": "^0.3.9",
