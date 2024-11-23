@@ -115,17 +115,20 @@
     "playwright": "^1.49.0",
     "sass": "^1.81.0",
     "sharp": "^0.33.5",
-    "typescript": "^5.7.2",
+    "typescript": "5.6.3",
     "unocss": "^0.64.1",
     "vitest": "^2.1.5"
   },
   "resolutions": {
-    "@vue/server-renderer": "3.5.12",
-    "vue": "3.5.12",
-    "vue-router": "4.4.4"
+    "@vue/server-renderer": "3.5.13",
+    "vue": "3.5.13",
+    "vue-router": "4.4.5"
   },
   "build": {
     "externals": [
+      "nuxt",
+      "#app",
+      "nuxt/app",
       "h3",
       "nitropack",
       "@vue/runtime-core",
