@@ -31,7 +31,7 @@ onDevtoolsClientConnected(async (client) => {
   client.devtools.extendClientRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
     refreshRouteData(path) {
       // if path matches
-      if (devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file.includes(path))
+      if (devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file.includes(path) || path.endsWith('.md'))
         refreshSources()
     },
     refresh() {

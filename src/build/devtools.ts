@@ -45,7 +45,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     nuxt.hook('builder:watch', (e, path) => {
       path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
       // needs to be for a page change
-      if ((e === 'change' || e.includes('link')) && path.startsWith('pages')) {
+      if ((e === 'change' || e.includes('link')) && (path.startsWith('pages') || path.startsWith('content'))) {
         rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
           .catch(() => {}) // ignore errors
       }
