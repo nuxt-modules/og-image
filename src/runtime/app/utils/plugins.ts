@@ -8,7 +8,7 @@ import { parse, stringify } from 'devalue'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { parseURL, withoutBase } from 'ufo'
 import { toValue } from 'vue'
-import { createOgImageMeta, normaliseOptions } from '../../nuxt/utils'
+import { createOgImageMeta, normaliseOptions } from '../../app/utils'
 import { isInternalRoute, separateProps } from '../../pure'
 import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
 
