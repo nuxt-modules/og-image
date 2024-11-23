@@ -1,9 +1,10 @@
 import type { ParsedContent } from '@nuxt/content'
-import type { NitroApp } from 'nitropack'
+import type { NitroApp } from 'nitropack/runtime/app'
 import type { UseHeadInput } from 'unhead'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
-import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { withQuery } from 'ufo'
+import { generateMeta, getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
 import { normaliseOptions } from './options'
 
 export function nuxtContentPlugin(nitroApp: NitroApp) {
@@ -26,7 +27,15 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       const optionsWithDefault = defu(ogImageConfig, defaults)
       // Note: we can't resolve the site URL here because we don't have access to the request
       // the plugin nuxt-content-canonical-urls.ts fixes this
-      const src = getOgImagePath(path, optionsWithDefault)
+      let src = optionsWithDefault.url || getOgImagePath(path, optionsWithDefault)
+      if (optionsWithDefault._query && Object.keys(optionsWithDefault._query).length)
+        src = withQuery(src, { _query: optionsWithDefault._query })
+      const meta = generateMeta(src, optionsWithDefault)
+      // user has provided a prebuilt og image
+      if (optionsWithDefault.url) {
+        content.head = defu(<UseHeadInput<any>> { meta }, content.head)
+        return content
+      }
 
       const payload = {
         title: content.title,
@@ -64,7 +73,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
           { name: 'twitter:image:height', content: optionsWithDefault.height },
           { name: 'twitter:image:alt', content: optionsWithDefault.alt },
         ],
-      })
+      }, content.head)
     }
     return content
   })

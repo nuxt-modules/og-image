@@ -2,12 +2,12 @@ import type { Head } from '@unhead/schema'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import { unref, useServerHead } from '#imports'
-import { resolveUnrefHeadInput } from '@unhead/vue'
+import { resolveUnrefHeadInput, useServerHead } from '@unhead/vue'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { withQuery } from 'ufo'
-import { getExtension, separateProps } from '../shared'
+import { unref } from 'vue'
+import { generateMeta, separateProps } from '../shared'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: NuxtSSRContext) {
   const _input = separateProps(defu(input, ssrContext._ogImagePayload))
@@ -16,29 +16,7 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
     return
   if (input._query && Object.keys(input._query).length && url)
     url = withQuery(url, { _query: input._query })
-  let urlExtension = getExtension(url) || resolvedOptions.extension
-  if (urlExtension === 'jpg')
-    urlExtension = 'jpeg'
-  const meta: Head['meta'] = [
-    { property: 'og:image', content: url },
-    { property: 'og:image:type', content: `image/${urlExtension}` },
-    { name: 'twitter:card', content: 'summary_large_image' },
-    // we don't need this but avoids issue when using useSeoMeta({ twitterImage })
-    { name: 'twitter:image', content: url },
-    { name: 'twitter:image:src', content: url },
-  ]
-  if (resolvedOptions.width) {
-    meta.push({ property: 'og:image:width', content: resolvedOptions.width })
-    meta.push({ name: 'twitter:image:width', content: resolvedOptions.width })
-  }
-  if (resolvedOptions.height) {
-    meta.push({ property: 'og:image:height', content: resolvedOptions.height })
-    meta.push({ name: 'twitter:image:height', content: resolvedOptions.height })
-  }
-  if (resolvedOptions.alt) {
-    meta.push({ property: 'og:image:alt', content: resolvedOptions.alt })
-    meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
-  }
+  const meta = generateMeta(url, resolvedOptions)
   ssrContext._ogImageInstances = ssrContext._ogImageInstances || []
   const script: Head['script'] = []
   if (src) {
