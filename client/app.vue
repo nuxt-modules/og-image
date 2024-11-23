@@ -149,7 +149,7 @@ const socialSiteUrl = computed(() => {
   // need to turn this URL into just an origin
   const url = parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url || '/'
   if (url === '/') {
-    return globalDebug.value?.siteConfigUrl
+    return globalDebug.value?.siteConfigUrl || '/'
   }
   return url
 })
