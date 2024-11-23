@@ -59,7 +59,7 @@ npx nuxi@latest module add og-image
 
 ## License
 
-Licensed under the [MIT license](https://github.com/nuxt-modules/nuxt-og-image/blob/main/LICENSE.md).
+Licensed under the [MIT license](https://github.com/nuxt-modules/og-image/blob/main/LICENSE.md).
 
 <!-- Badges -->
 [npm-version-src]: https://img.shields.io/npm/v/nuxt-og-image/latest.svg?style=flat&colorA=18181B&colorB=28CF8D
@@ -68,8 +68,8 @@ Licensed under the [MIT license](https://github.com/nuxt-modules/nuxt-og-image/b
 [npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
 [npm-downloads-href]: https://npmjs.com/package/nuxt-og-image
 
-[license-src]: https://img.shields.io/github/license/nuxt-modules/nuxt-og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
-[license-href]: https://github.com/nuxt-modules/nuxt-og-image/blob/main/LICENSE.md
+[license-src]: https://img.shields.io/github/license/nuxt-modules/og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
+[license-href]: https://github.com/nuxt-modules/og-image/blob/main/LICENSE.md
 
 [nuxt-src]: https://img.shields.io/badge/Nuxt-18181B?logo=nuxt.js
 [nuxt-href]: https://nuxt.com
