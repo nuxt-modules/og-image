@@ -363,6 +363,7 @@ describe('dev', () => {
           "sharpOptions": {},
           "strictNuxtContentPaths": "",
         },
+        "siteConfigUrl": "https://nuxtseo.com",
       }
     `)
   }, 60000)
