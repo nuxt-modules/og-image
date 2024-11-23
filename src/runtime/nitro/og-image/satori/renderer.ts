@@ -20,7 +20,8 @@ async function resolveFonts(event: OgImageRenderEventContext) {
       if (await fontCache.hasItem(font.cacheKey)) {
         font.data = await fontCache.getItemRaw(font.cacheKey)
         preloadedFonts.push(font)
-      } else {
+      }
+      else {
         if (!fontPromises[font.cacheKey]) {
           fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
             if (_font?.data)
