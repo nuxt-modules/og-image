@@ -354,12 +354,14 @@ describe('dev', () => {
               "weight": 700,
             },
           ],
+          "hasNuxtContent": false,
           "hasNuxtIcon": false,
           "isNuxtContentDocumentDriven": false,
           "publicStoragePath": "root:public",
           "resvgOptions": {},
           "satoriOptions": {},
           "sharpOptions": {},
+          "strictNuxtContentPaths": "",
         },
       }
     `)
