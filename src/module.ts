@@ -31,7 +31,7 @@ import {
   useLogger,
 } from '@nuxt/kit'
 import { defu } from 'defu'
-import { installNuxtSiteConfig } from 'nuxt-site-config-kit'
+import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { basename, isAbsolute, relative } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
