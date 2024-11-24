@@ -30,7 +30,6 @@ describe('dev', () => {
         "cacheKey": "satori:5Hzq5ZrLws",
         "compatibilityHints": [],
         "options": {
-          "_query": {},
           "cacheMaxAgeSeconds": 259200,
           "component": "NuxtSeo",
           "emojis": "noto",
