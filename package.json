@@ -62,7 +62,7 @@
     "execa": "^9.5.1",
     "image-size": "^1.1.1",
     "magic-string": "^0.30.13",
-    "nuxt-site-config": "^2.2.21",
+    "nuxt-site-config": "^3.0.1",
     "nuxt-site-config-kit": "^2.2.21",
     "nypm": "^0.3.12",
     "ofetch": "^1.4.1",
