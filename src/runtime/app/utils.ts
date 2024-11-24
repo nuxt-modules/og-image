@@ -29,7 +29,7 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
         if (typeof payload.props.title === 'undefined')
           payload.props.title = '%s'
         delete payload.url
-        if (Object.keys(payload._query).length === 0) {
+        if (payload._query && Object.keys(payload._query).length === 0) {
           delete payload._query
         }
         // don't apply defaults
