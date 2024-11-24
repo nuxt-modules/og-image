@@ -1,4 +1,5 @@
 import type { H3Error, H3Event } from 'h3'
+import type { FetchResponse, FetchOptions } from 'ofetch'
 import type {
   OgImageOptions,
   OgImageRenderEventContext,
@@ -64,9 +65,9 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const key = resolvePathCacheKey(e, basePath)
   let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions
   if (!options) {
-    if (import.meta.prerender)
-      options = await prerenderOptionsCache?.getItem(key)
-
+    if (import.meta.prerender) {
+      options = await prerenderOptionsCache!.getItem(key)
+    }
     if (!options) {
       const payload = await fetchPathHtmlAndExtractOptions(e, basePath, key)
       if (payload instanceof Error)
@@ -189,6 +190,24 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   return payload
 }
 
+function handleNon200Response(res: FetchResponse<string>, path: string) {
+  let errorDescription
+  // if its a redirect let's get the redirect path
+  if (res.status >= 300 && res.status < 400) {
+    errorDescription = `${res.status} redirected to ${res.headers.get('location') || 'unknown'}`
+  }
+  else if (res.status >= 400) {
+    // try get the error message from the response
+    errorDescription = `${res.status} error: res.statusText`
+  }
+  if (errorDescription) {
+    return createError({
+      statusCode: 500,
+      statusMessage: `[Nuxt OG Image] Failed to parse \`${path}\` for og-image extraction. ${errorDescription}`,
+    })
+  }
+}
+
 // TODO caching
 async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: string): Promise<H3Error | OgImageOptions> {
   const cachedHtmlPayload = await htmlPayloadCache.getItem(key)
@@ -198,41 +217,46 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   // extract the payload from the original path
   let _payload: string | null = null
   let html: string
-  try {
-    html = await e.$fetch(path, {
-      // follow redirects
-      redirect: 'follow',
-      headers: {
-        accept: 'text/html',
-      },
-    })
-    _payload = getPayloadFromHtml(html)
-    // fallback to globalThis.fetch
-    if (!_payload) {
-      const fallbackHtml = await globalThis.$fetch(path, {
-        // follow redirects
-        redirect: 'follow',
-        headers: {
-          accept: 'text/html',
-        },
-      })
-      _payload = getPayloadFromHtml(fallbackHtml)
-      if (_payload) {
-        html = fallbackHtml
-      }
+  const fetchOptions: FetchOptions = {
+    // follow redirects
+    redirect: 'follow',
+    ignoreResponseError: true,
+    headers: {
+      accept: 'text/html',
+    },
+  } as const
+  const htmlRes = await e.fetch(path, fetchOptions)
+  const err = handleNon200Response(htmlRes, path)
+  if (err) {
+    return err
+  }
+  html = await htmlRes.text()
+  _payload = getPayloadFromHtml(html)
+  // fallback to globalThis.fetch
+  if (!_payload) {
+    const fallbackHtmlRes = await globalThis.$fetch.raw(path, fetchOptions)
+    const err = handleNon200Response(fallbackHtmlRes, path)
+    if (err) {
+      return err
+    }
+    const fallbackHtml = await fallbackHtmlRes.text()
+    _payload = getPayloadFromHtml(fallbackHtml)
+    if (_payload) {
+      html = fallbackHtml
     }
   }
-  catch (err) {
+
+  if (!html) {
     return createError({
       statusCode: 500,
-      statusMessage: `[Nuxt OG Image] Failed to read the path ${path} for og-image extraction. ${err.message}.`,
+      statusMessage: `[Nuxt OG Image] Failed to read the path ${path} for og-image extraction, returning no HTML.`,
     })
   }
 
-  if (!_payload || !html) {
+  if (!_payload) {
     return createError({
       statusCode: 500,
-      statusMessage: `[Nuxt OG Image] Got invalid response from ${path} for og-image extraction.`,
+      statusMessage: `[Nuxt OG Image] HTML response from ${path} is missing the #nuxt-og-image-options script tag. Check you have used defined an og image for this page.`,
     })
   }
 
