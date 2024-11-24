@@ -115,11 +115,12 @@
     "playwright": "^1.49.0",
     "sass": "^1.81.0",
     "sharp": "^0.33.5",
-    "typescript": "5.6.3",
     "unocss": "^0.64.1",
-    "vitest": "^2.1.5"
+    "vitest": "^2.1.5",
+    "typescript": "5.6.3"
   },
   "resolutions": {
+    "typescript": "5.6.3",
     "@vue/server-renderer": "3.5.13",
     "vue": "3.5.13",
     "vue-router": "4.4.5"
