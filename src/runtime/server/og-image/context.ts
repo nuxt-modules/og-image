@@ -198,7 +198,7 @@ function handleNon200Response(res: FetchResponse<string>, path: string) {
   }
   else if (res.status >= 400) {
     // try get the error message from the response
-    errorDescription = `${res.status} error: res.statusText`
+    errorDescription = `${res.status} error: ${res.statusText}`
   }
   if (errorDescription) {
     return createError({
