@@ -20,6 +20,7 @@ import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
+import {logger} from "#og-image/server/util/logger";
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
@@ -228,7 +229,7 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   const htmlRes = await e.fetch(path, fetchOptions)
   const err = handleNon200Response(htmlRes, path)
   if (err) {
-    return err
+    logger.warn(err)
   }
   html = await htmlRes.text()
   _payload = getPayloadFromHtml(html)
