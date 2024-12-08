@@ -6,7 +6,7 @@
     "@nuxt/devtools-kit": "^1.6.1",
     "@nuxt/devtools-ui-kit": "^1.6.1",
     "@nuxt/kit": "^3.14.1592",
-    "@vueuse/core": "^11.3.0",
+    "@vueuse/core": "^12.0.0",
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.17.3",
     "nuxt": "latest",
