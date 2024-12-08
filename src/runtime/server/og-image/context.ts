@@ -1,5 +1,5 @@
 import type { H3Error, H3Event } from 'h3'
-import type { FetchResponse, FetchOptions } from 'ofetch'
+import type { FetchOptions, FetchResponse } from 'ofetch'
 import type {
   OgImageOptions,
   OgImageRenderEventContext,
@@ -9,6 +9,9 @@ import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
 import { useNitroApp } from '#imports'
 import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
+import { theme } from '#og-image-virtual/unocss-config.mjs'
+import { createGenerator } from '@unocss/core'
+import presetWind from '@unocss/preset-wind'
 import { defu } from 'defu'
 import { parse } from 'devalue'
 import { createError, getQuery } from 'h3'
@@ -18,9 +21,9 @@ import { normalizeKey } from 'unstorage'
 import { separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
+import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
-import {logger} from "#og-image/server/util/logger";
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
@@ -110,7 +113,13 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       statusMessage: `[Nuxt OG Image] Renderer ${options.renderer} is missing.`,
     })
   }
+  const unocss = await createGenerator({ theme }, {
+    presets: [
+      presetWind(),
+    ],
+  })
   const ctx: OgImageRenderEventContext = {
+    unocss,
     e,
     key,
     renderer,

@@ -1,5 +1,6 @@
 import type { OgImageComponents } from '#og-image/components'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
+import type { UnoGenerator } from '@unocss/core'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { H3Error, H3Event } from 'h3'
 import type { NitroApp, NitroOptions } from 'nitropack'
@@ -8,6 +9,7 @@ import type { html } from 'satori-html'
 import type { SharpOptions } from 'sharp'
 
 export interface OgImageRenderEventContext {
+  unocss: UnoGenerator
   e: H3Event
   extension: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html' | 'json'
   key: string

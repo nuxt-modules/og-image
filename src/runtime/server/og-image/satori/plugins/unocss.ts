@@ -1,26 +1,17 @@
 import type { VNode } from '../../../../types'
-import { theme } from '#og-image-virtual/unocss-config.mjs'
-import { createGenerator } from '@unocss/core'
-import presetWind from '@unocss/preset-wind'
 import { defineSatoriTransformer } from '../utils'
-
-const uno = createGenerator({ theme }, {
-  presets: [
-    presetWind(),
-  ],
-})
 
 // convert classes to inline style using unocss, provides more robust API than satori
 export default defineSatoriTransformer({
   filter: (node: VNode) => !!node.props?.class,
-  transform: async (node: VNode) => {
+  transform: async (node: VNode, ctx) => {
     const classes: string = node.props.class || ''
     // normalise the styles
     const styles = node.props.style as Record<string, string> || {}
 
     const replacedClasses = new Set()
     for (const token of classes.split(' ').filter(c => c.trim())) {
-      const parsedToken = await uno.parseToken(token)
+      const parsedToken = await ctx.unocss.parseToken(token)
       if (parsedToken) {
         const inlineStyles = parsedToken[0][2].split(';').filter(s => !!s?.trim())
         const vars: Record<string, string> = {
