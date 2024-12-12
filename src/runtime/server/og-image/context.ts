@@ -7,7 +7,7 @@ import type {
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
-import { useNitroApp } from '#imports'
+import { useNitroApp } from 'nitropack/runtime'
 import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { createGenerator } from '@unocss/core'
@@ -24,6 +24,7 @@ import { createNitroRouteRuleMatcher } from '../util/kit'
 import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
+import { createSitePathResolver } from '#site-config/server/composables/utils'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
@@ -40,7 +41,12 @@ export function resolvePathCacheKey(e: H3Event, path?: string) {
 
 export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {
   const runtimeConfig = useOgImageRuntimeConfig()
-  const path = parseURL(e.path).pathname
+  // we need to resolve the url ourselves as Nitro may be stripping the base
+  const resolvePathWithBase = createSitePathResolver(e, {
+    absolute: false,
+    withBase: true,
+  })
+  const path = resolvePathWithBase(parseURL(e.path).pathname)
 
   const extension = path.split('.').pop() as OgImageRenderEventContext['extension']
   if (!extension) {
@@ -235,13 +241,14 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
       accept: 'text/html',
     },
   } as const
-  const htmlRes = await e.fetch(path, fetchOptions)
+  const htmlRes = await e.fetch(path, fetchOptions) as FetchResponse<string>
   const err = handleNon200Response(htmlRes, path)
   if (err) {
     logger.warn(err)
+  } else {
+    html = htmlRes._data || await htmlRes.text()
+    _payload = getPayloadFromHtml(html)
   }
-  html = await htmlRes.text()
-  _payload = getPayloadFromHtml(html)
   // fallback to globalThis.fetch
   if (!_payload) {
     const fallbackHtmlRes = await globalThis.$fetch.raw(path, fetchOptions)
@@ -249,7 +256,7 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
     if (err) {
       return err
     }
-    const fallbackHtml = await fallbackHtmlRes.text()
+    const fallbackHtml = fallbackHtmlRes._data || await fallbackHtmlRes.text()
     _payload = getPayloadFromHtml(fallbackHtml)
     if (_payload) {
       html = fallbackHtml

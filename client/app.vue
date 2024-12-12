@@ -432,7 +432,7 @@ const currentPageFile = computed(() => {
             </div>
           </div>
           <div v-else-if="error">
-            <div v-if="error.message.includes('missing the Nuxt OG Image payload') || error.message.includes('Got invalid response')">
+            <div v-if="error.message.includes('missing the #nuxt-og-') || error.message.includes('missing the Nuxt OG Image payload') || error.message.includes('Got invalid response')">
               <!-- nicely tell the user they should use defineOgImage to get started -->
               <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
                 <div class="">
