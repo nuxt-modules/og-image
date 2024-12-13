@@ -43,5 +43,11 @@ export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptio
 }
 
 export function useOgImageRuntimeConfig() {
-  return useRuntimeConfig()['nuxt-og-image'] as any as OgImageRuntimeConfig
+  const c = useRuntimeConfig()
+  return {
+    ...(c['nuxt-og-image'] as Record<string, any>),
+    app: {
+      baseURL: c.app.baseURL,
+    },
+  } as any as OgImageRuntimeConfig
 }

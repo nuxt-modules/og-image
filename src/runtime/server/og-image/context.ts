@@ -7,14 +7,15 @@ import type {
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
-import { useNitroApp } from 'nitropack/runtime'
 import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
+import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { createGenerator } from '@unocss/core'
 import presetWind from '@unocss/preset-wind'
 import { defu } from 'defu'
 import { parse } from 'devalue'
 import { createError, getQuery } from 'h3'
+import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
@@ -24,7 +25,6 @@ import { createNitroRouteRuleMatcher } from '../util/kit'
 import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
-import { createSitePathResolver } from '#site-config/server/composables/utils'
 
 export function resolvePathCacheKey(e: H3Event, path?: string) {
   const siteConfig = e.context.siteConfig.get()
@@ -130,6 +130,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     key,
     renderer,
     isDebugJsonPayload,
+    runtimeConfig,
     publicStoragePath: runtimeConfig.publicStoragePath,
     extension,
     basePath,
@@ -245,7 +246,8 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   const err = handleNon200Response(htmlRes, path)
   if (err) {
     logger.warn(err)
-  } else {
+  }
+  else {
     html = htmlRes._data || await htmlRes.text()
     _payload = getPayloadFromHtml(html)
   }

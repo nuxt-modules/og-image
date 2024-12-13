@@ -1,5 +1,6 @@
 import { defineNitroPlugin } from '#imports'
 import { prerenderOptionsCache } from '#og-image-cache'
+import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { parseURL } from 'ufo'
 import { isInternalRoute } from '../../pure'
 import { extractAndNormaliseOgImageOptions, resolvePathCacheKey } from '../og-image/context'
@@ -26,7 +27,11 @@ export default defineNitroPlugin(async (nitro) => {
     ].join('\n'))
     if (!options)
       return
-    const key = resolvePathCacheKey(ctx.event)
+    const resolvePathWithBase = createSitePathResolver(ctx.event, {
+      absolute: false,
+      withBase: true,
+    })
+    const key = resolvePathCacheKey(ctx.event, resolvePathWithBase(path))
     await prerenderOptionsCache!.setItem(key, options)
     // if we're prerendering then we don't need these options in the final HTML
     const index = html.bodyAppend.findIndex(script => script.includes('id="nuxt-og-image-options"'))

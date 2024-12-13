@@ -20,7 +20,7 @@ export default defineSatoriTransformer([
   // fix <img src="">
   {
     filter: (node: VNode) => node.type === 'img' && node.props?.src,
-    transform: async (node: VNode, { e, publicStoragePath }: OgImageRenderEventContext) => {
+    transform: async (node: VNode, { e, publicStoragePath, runtimeConfig }: OgImageRenderEventContext) => {
       const src = node.props.src!
       const isRelative = src.startsWith('/')
       let dimensions
@@ -32,10 +32,11 @@ export default defineSatoriTransformer([
 
       if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
+          const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '')
           // try hydrating from storage
           // we need to read the file using unstorage
           // because we can't fetch public files using $fetch when prerendering
-          imageBuffer = await resolveLocalFilePathImage(publicStoragePath, src)
+          imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
         }
         else {
           // see if we can fetch it from a kv host if we're using an edge provider
@@ -96,14 +97,15 @@ export default defineSatoriTransformer([
   // fix style="background-image: url('')"
   {
     filter: (node: VNode) => node.props?.style?.backgroundImage?.includes('url('),
-    transform: async (node: VNode, { e, publicStoragePath }: OgImageRenderEventContext) => {
+    transform: async (node: VNode, { e, publicStoragePath, runtimeConfig }: OgImageRenderEventContext) => {
       // same as the above, need to swap out relative background images for absolute
       const backgroundImage = node.props.style!.backgroundImage!
       const src = backgroundImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '')
       const isRelative = src?.startsWith('/')
       if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
-          const imageBuffer = await resolveLocalFilePathImage(publicStoragePath, src)
+          const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')
+          const imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
           if (imageBuffer) {
             const base64 = toBase64Image(Buffer.from(imageBuffer as ArrayBuffer))
             node.props.style!.backgroundImage = `url(${base64})`

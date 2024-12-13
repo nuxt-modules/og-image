@@ -19,6 +19,7 @@ export interface OgImageRenderEventContext {
   options: OgImageOptions
   isDebugJsonPayload: boolean
   publicStoragePath: string
+  runtimeConfig: OgImageRuntimeConfig
   _nitro: NitroApp
 }
 
@@ -43,6 +44,10 @@ export interface OgImageRuntimeConfig {
   isNuxtContentDocumentDriven: boolean
   strictNuxtContentPaths: boolean
   zeroRuntime: boolean
+
+  app: {
+    baseURL: string
+  }
 }
 
 export interface OgImageComponent {
