@@ -1,9 +1,9 @@
 import { useSiteConfig } from '#imports'
-// @ts-expect-error virtual module
-import compatibility from '#og-image/compatibility'
-
 // @ts-expect-error untyped
 import { componentNames } from '#og-image-virtual/component-names.mjs'
+
+// @ts-expect-error virtual module
+import compatibility from '#og-image/compatibility'
 
 import { defineEventHandler, setHeader } from 'h3'
 import { useOgImageRuntimeConfig } from '../../shared'
