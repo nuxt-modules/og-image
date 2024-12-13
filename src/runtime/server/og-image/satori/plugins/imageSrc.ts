@@ -38,13 +38,18 @@ export default defineSatoriTransformer([
           // because we can't fetch public files using $fetch when prerendering
           imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
         }
-        else {
+        if (!imageBuffer) {
           // see if we can fetch it from a kv host if we're using an edge provider
-          imageBuffer = (await e.$fetch(src, {
-            baseURL: useNitroOrigin(e),
-            responseType: 'arrayBuffer',
-          })
+          imageBuffer = (await e.$fetch(src, { responseType: 'arrayBuffer' })
             .catch(() => {})) as BufferSource | undefined
+          if (!imageBuffer && !import.meta.prerender) {
+            // see if we can fetch it from a kv host if we're using an edge provider
+            imageBuffer = (await e.$fetch(src, {
+              baseURL: useNitroOrigin(e),
+              responseType: 'arrayBuffer',
+            })
+              .catch(() => {})) as BufferSource | undefined
+          }
         }
         // convert relative images to base64 as satori will have no chance of resolving
         if (imageBuffer)
