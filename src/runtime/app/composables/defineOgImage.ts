@@ -19,7 +19,7 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   if (import.meta.dev && !import.meta.server) {
     // should be tree shaken
     if (!state.value) {
-      throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup.' })
+      throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup, see https://github.com/nuxt-modules/og-image/pull/293.' })
     }
     return
   }
