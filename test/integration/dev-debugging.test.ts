@@ -326,6 +326,9 @@ describe('dev', () => {
           "sharp": false,
         },
         "runtimeConfig": {
+          "app": {
+            "baseURL": "/",
+          },
           "colorPreference": "light",
           "debug": true,
           "defaults": {
