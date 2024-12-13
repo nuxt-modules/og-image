@@ -1,22 +1,32 @@
 import type { ActiveHeadEntry } from '@unhead/schema'
 import type { DefineOgImageInput, OgImageOptions } from '../../types'
-import { useNuxtApp, useRequestEvent, useRoute } from '#imports'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
+import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
+import { ref } from 'vue'
 import { createNitroRouteRuleMatcher } from '../../server/util/kit'
 import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../../shared'
 import { createOgImageMeta, normaliseOptions } from '../utils'
 
+// In non-dev client-side environments this is treeshaken
 export function defineOgImage(_options: DefineOgImageInput = {}) {
-  // string is supported as an easy way to override the generated og image data
+  const route = useRoute()
+  const basePath = route.path || '/' // (pages may be disabled)
+  // we keep track of how this function is used, correct usage is that it should have been called
+  // server-side before client side, if we're only calling it client-side then it means it's being used incorrectly
+  const state = import.meta.dev ? useState(`og-image:ssr-exists:${basePath}`, () => false) : ref(false)
   // clone to avoid any issues
-  if (!import.meta.server)
+  if (import.meta.dev && !import.meta.server) {
+    // should be tree shaken
+    if (!state.value) {
+      throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup.' })
+    }
     return
+  }
+  state.value = true
 
   const nuxtApp = useNuxtApp()
   const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
-  const route = useRoute()
-  const basePath = route.path || '/' // (pages may be disabled)
 
   // need to check route rules hasn't disabled this
   const routeRuleMatcher = createNitroRouteRuleMatcher()

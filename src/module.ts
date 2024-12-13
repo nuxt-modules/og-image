@@ -28,7 +28,6 @@ import {
   defineNuxtModule,
   hasNuxtModule,
   tryResolveModule,
-  useLogger,
 } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -52,6 +51,7 @@ import {
 } from './compatibility'
 import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { normaliseFontInput } from './pure'
+import { logger } from './runtime/logger'
 import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
 
 export interface ModuleOptions {
@@ -183,8 +183,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
   async setup(config, nuxt) {
     const { resolve } = createResolver(import.meta.url)
-    const { name, version } = await readPackageJSON(resolve('../package.json'))
-    const logger = useLogger(name)
+    const { version } = await readPackageJSON(resolve('../package.json'))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
       logger.debug('The module is disabled, skipping setup.')
@@ -402,14 +401,18 @@ export default defineNuxtModule<ModuleOptions>({
       handler: resolve(`${basePath}/image`),
     })
 
-    nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
+    if (!nuxt.options.dev) {
+      nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
+    }
     ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
       .forEach((name) => {
         addImports({
           name,
           from: resolve(`./runtime/app/composables/${name}`),
         })
-        nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
+        if (!nuxt.options.dev) {
+          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
+        }
       })
 
     // community templates must be copy+pasted!
