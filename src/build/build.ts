@@ -23,6 +23,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     nitroConfig.alias!['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
     // - image-size
     nitroConfig.alias!.queue = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!['chromium-bidi'] = 'unenv/runtime/mock/proxy-cjs'
   })
 
   // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
