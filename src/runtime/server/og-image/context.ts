@@ -1,5 +1,4 @@
 import type { H3Error, H3Event } from 'h3'
-import type { FetchOptions, FetchResponse } from 'ofetch'
 import type {
   OgImageOptions,
   OgImageRenderEventContext,
@@ -207,10 +206,23 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   return payload
 }
 
-function handleNon200Response(res: FetchResponse<string>, path: string) {
+async function doFetchWithErrorHandling(fetch: any, path: string) {
+  const res = await fetch(path, {
+    redirect: 'follow',
+    headers: {
+      accept: 'text/html',
+    },
+  })
+    .catch((err: any) => {
+      return err
+    })
   let errorDescription
   // if its a redirect let's get the redirect path
   if (res.status >= 300 && res.status < 400) {
+    // follow valid redirects
+    if (res.headers.has('location')) {
+      return await doFetchWithErrorHandling(fetch, res.headers.get('location') || '')
+    }
     errorDescription = `${res.status} redirected to ${res.headers.get('location') || 'unknown'}`
   }
   else if (res.status >= 400) {
@@ -218,11 +230,12 @@ function handleNon200Response(res: FetchResponse<string>, path: string) {
     errorDescription = `${res.status} error: ${res.statusText}`
   }
   if (errorDescription) {
-    return createError({
+    return [null, createError({
       statusCode: 500,
       statusMessage: `[Nuxt OG Image] Failed to parse \`${path}\` for og-image extraction. ${errorDescription}`,
-    })
+    })]
   }
+  return [res._data || await res.text(), null]
 }
 
 // TODO caching
@@ -233,32 +246,19 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
 
   // extract the payload from the original path
   let _payload: string | null = null
-  let html: string
-  const fetchOptions: FetchOptions = {
-    // follow redirects
-    redirect: 'follow',
-    ignoreResponseError: true,
-    headers: {
-      accept: 'text/html',
-    },
-  } as const
-  const htmlRes = await e.fetch(path, fetchOptions) as FetchResponse<string>
-  const err = handleNon200Response(htmlRes, path)
+  let [html, err] = await doFetchWithErrorHandling(e.fetch, path)
   if (err) {
     logger.warn(err)
   }
   else {
-    html = htmlRes._data || await htmlRes.text()
     _payload = getPayloadFromHtml(html)
   }
   // fallback to globalThis.fetch
   if (!_payload) {
-    const fallbackHtmlRes = await globalThis.$fetch.raw(path, fetchOptions)
-    const err = handleNon200Response(fallbackHtmlRes, path)
+    const [fallbackHtml, err] = await doFetchWithErrorHandling(globalThis.$fetch.raw, path)
     if (err) {
       return err
     }
-    const fallbackHtml = fallbackHtmlRes._data || await fallbackHtmlRes.text()
     _payload = getPayloadFromHtml(fallbackHtml)
     if (_payload) {
       html = fallbackHtml
