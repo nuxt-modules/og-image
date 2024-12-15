@@ -33,7 +33,7 @@
     "virtual.d.ts"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
