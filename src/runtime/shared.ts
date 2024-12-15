@@ -2,7 +2,7 @@ import type { Head } from '@unhead/schema'
 import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
 import { defu } from 'defu'
-import { joinURL } from 'ufo'
+import { joinURL, withQuery } from 'ufo'
 import { getExtension } from './pure'
 
 // must work in both Nuxt an
@@ -39,7 +39,11 @@ export function generateMeta(url: string, resolvedOptions: OgImageOptions) {
 export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
   const baseURL = useRuntimeConfig().app.baseURL
   const options = defu(_options, useOgImageRuntimeConfig().defaults)
-  return joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${options.extension}`)
+  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${options.extension}`)
+  if (Object.keys(options._query || {}).length) {
+    return withQuery(path, options._query)
+  }
+  return path
 }
 
 export function useOgImageRuntimeConfig() {

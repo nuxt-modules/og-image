@@ -25,9 +25,9 @@ import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 
-export function resolvePathCacheKey(e: H3Event, path?: string) {
+export function resolvePathCacheKey(e: H3Event, path: string) {
   const siteConfig = e.context.siteConfig.get()
-  const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path || e.path)))
+  const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
     hash([

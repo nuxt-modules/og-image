@@ -54,9 +54,10 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext!)
   }
   else {
-    const path = getOgImagePath(basePath, resolvedOptions)
-    if (import.meta.prerender)
-      appendHeader(useRequestEvent(), 'x-nitro-prerender', path)
+    const path = getOgImagePath(basePath, defu(resolvedOptions, { _query: options._query }))
+    if (import.meta.prerender) {
+      appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path)
+    }
     createOgImageMeta(path, options, resolvedOptions, nuxtApp.ssrContext!)
   }
 }
