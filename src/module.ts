@@ -66,7 +66,7 @@ export interface ModuleOptions {
    *
    * You can use this to change the default template, image sizing and more.
    *
-   * @default { component: 'OgImageTemplateFallback', width: 1200, height: 630, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
+   * @default { component: 'NuxtSeo', width: 1200, height: 630, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
    */
   defaults: OgImageOptions
   /**
