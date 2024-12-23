@@ -49,10 +49,14 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
 
           for (const tag of ctx.tags) {
             if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name))) {
+              if (!tag.props.content) {
+                tag.props = {} // equivalent to removing
+                continue
+              }
               // looking for:
               // property og:image
               // property twitter:image:src
-              if (!tag.props.content.startsWith('https')) {
+              if (!tag.props.content?.startsWith('https')) {
                 await nuxtApp.runWithContext(() => {
                   tag.props.content = toValue(withSiteUrl(tag.props.content, {
                     withBase: true,
