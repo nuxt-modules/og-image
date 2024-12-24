@@ -33,7 +33,7 @@
     "virtual.d.ts"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.20.5"
   },
   "scripts": {
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
@@ -81,7 +81,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^3.12.0",
+    "@antfu/eslint-config": "^3.12.1",
     "@css-inline/css-inline": "^0.14.3",
     "@headlessui/vue": "^1.7.23",
     "@iconify-json/carbon": "^1.2.5",
@@ -106,7 +106,7 @@
     "@unocss/preset-icons": "^0.65.2",
     "@unocss/preset-uno": "^0.65.2",
     "@unocss/runtime": "^0.65.2",
-    "@vueuse/nuxt": "^12.1.0",
+    "@vueuse/nuxt": "^12.2.0",
     "bumpp": "^9.9.2",
     "eslint": "9.17.0",
     "jest-image-snapshot": "^6.4.0",
@@ -114,13 +114,13 @@
     "playwright": "^1.49.1",
     "sass": "^1.83.0",
     "sharp": "^0.33.5",
-    "typescript": "5.6.3",
+    "typescript": "5.7.2",
     "unocss": "^0.65.2",
     "vitest": "^2.1.8"
   },
   "resolutions": {
     "@vue/server-renderer": "3.5.13",
-    "typescript": "5.6.3",
+    "typescript": "5.7.2",
     "vue": "3.5.13",
     "vue-router": "4.5.0"
   },
