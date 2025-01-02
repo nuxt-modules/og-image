@@ -200,6 +200,8 @@ export default defineNuxtModule<ModuleOptions>({
     }
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
+    // legacy support
+    nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
