@@ -66,7 +66,7 @@
     "nypm": "^0.4.1",
     "ofetch": "^1.4.1",
     "ohash": "^1.1.4",
-    "pathe": "^1.1.2",
+    "pathe": "^2.0.1",
     "pkg-types": "^1.2.1",
     "playwright-core": "^1.49.1",
     "radix3": "^1.1.2",
