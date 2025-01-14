@@ -25,14 +25,14 @@ export async function checkPlaywrightDependency() {
 }
 
 export async function downloadFont(font: ResolvedFontConfig, storage: Storage, mirror?: true | string) {
-  const { name, weight } = font
-  const key = `${name}-${weight}.ttf.base64`
+  const { name, weight, style } = font
+  const key = `${name}-${style}-${weight}.ttf.base64`
   if (await storage.hasItem(key))
     return true
 
   const host = typeof mirror === 'undefined' ? 'fonts.googleapis.com' : mirror === true ? 'fonts.font.im' : mirror
   // using H3Event $fetch will cause the request headers not to be sent
-  const css = await $fetch(`https://${host}/css2?family=${name}:wght@${weight}`, {
+  const css = await $fetch(`https://${host}/css2?family=${name}:${style === 'ital' ? `ital,wght@1,${weight}` : `wght@${weight}`}`, {
     timeout: 10 * 1000, // 10 second timeout
     headers: {
       // Make sure it returns TTF.

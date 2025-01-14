@@ -323,17 +323,19 @@ export default defineNuxtModule<ModuleOptions>({
     })
     config.fonts = (await Promise.all(normaliseFontInput(config.fonts)
       .map(async (f) => {
+        const fontKey = `${f.name}:${f.style}:${f.weight}`
+        const fontFileBase = fontKey.replaceAll(':', '-')
         if (!f.key && !f.path) {
           if (preset === 'stackblitz') {
-            logger.warn(`The ${f.name}:${f.weight} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
+            logger.warn(`The ${fontKey} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
             return false
           }
           if (await downloadFont(f, fontStorage, config.googleFontMirror)) {
             // move file to serverFontsDir
-            f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.ttf.base64`
+            f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.base64`
           }
           else {
-            logger.warn(`Failed to download font ${f.name}:${f.weight}. You may be offline or behind a firewall blocking Google. Consider setting \`googleFontMirror: true\`.`)
+            logger.warn(`Failed to download font ${fontKey}. You may be offline or behind a firewall blocking Google. Consider setting \`googleFontMirror: true\`.`)
             return false
           }
         }
@@ -341,7 +343,7 @@ export default defineNuxtModule<ModuleOptions>({
           // validate the extension, can only be woff, ttf or otf
           const extension = basename(f.path.replace('.base64', '')).split('.').pop()!
           if (!['woff', 'ttf', 'otf'].includes(extension)) {
-            logger.warn(`The ${f.name}:${f.weight} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
+            logger.warn(`The ${fontKey} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
             return false
           }
           // resolve relative paths from public dir
@@ -349,12 +351,12 @@ export default defineNuxtModule<ModuleOptions>({
           if (!f.absolutePath)
             f.path = resolve(publicDirAbs, withoutLeadingSlash(f.path))
           if (!existsSync(f.path)) {
-            logger.warn(`The ${f.name}:${f.weight} font was skipped because the file does not exist at path ${f.path}.`)
+            logger.warn(`The ${fontKey} font was skipped because the file does not exist at path ${f.path}.`)
             return false
           }
           const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
-          f.key = `nuxt-og-image:fonts:${f.name}-${f.weight}.${extension}.base64`
-          await fontStorage.setItem(`${f.name}-${f.weight}.${extension}.base64`, fontData)
+          f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.base64`
+          await fontStorage.setItem(`${fontFileBase}.${extension}.base64`, fontData)
           delete f.path
           delete f.absolutePath
         }
