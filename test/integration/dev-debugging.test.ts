@@ -284,7 +284,7 @@ describe('dev', () => {
                   font-family: 'Inter';
                   font-style: normal;
                   font-weight: 400;
-                  src: url('/__og-image__/font/nuxt-og-image:fonts:Inter-400.ttf.base64') format('truetype');
+                  src: url('/__og-image__/font/nuxt-og-image:fonts:Inter-normal-400.ttf.base64') format('truetype');
                 }
                 </style>
       <style>
@@ -292,7 +292,7 @@ describe('dev', () => {
                   font-family: 'Inter';
                   font-style: normal;
                   font-weight: 700;
-                  src: url('/__og-image__/font/nuxt-og-image:fonts:Inter-700.ttf.base64') format('truetype');
+                  src: url('/__og-image__/font/nuxt-og-image:fonts:Inter-normal-700.ttf.base64') format('truetype');
                 }
                 </style>
       <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime/preset-wind.global.js"></script>
@@ -342,15 +342,15 @@ describe('dev', () => {
           },
           "fonts": [
             {
-              "cacheKey": "Inter:400",
-              "key": "nuxt-og-image:fonts:Inter-400.ttf.base64",
+              "cacheKey": "Inter:undefined:400",
+              "key": "nuxt-og-image:fonts:Inter-normal-400.ttf.base64",
               "name": "Inter",
               "style": "normal",
               "weight": 400,
             },
             {
-              "cacheKey": "Inter:700",
-              "key": "nuxt-og-image:fonts:Inter-700.ttf.base64",
+              "cacheKey": "Inter:undefined:700",
+              "key": "nuxt-og-image:fonts:Inter-normal-700.ttf.base64",
               "name": "Inter",
               "style": "normal",
               "weight": 700,
