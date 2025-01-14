@@ -12,8 +12,9 @@ function detectBase64MimeType(data: string) {
   }
 
   for (const s in signatures) {
-    if (data.indexOf(s) === 0)
+    if (data.startsWith(s)) {
       return signatures[s as keyof typeof signatures]
+    }
   }
   return 'image/svg+xml'
 }
@@ -21,7 +22,6 @@ function detectBase64MimeType(data: string) {
 export function toBase64Image(data: string | ArrayBuffer) {
   const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
   const type = detectBase64MimeType(base64)
-
   return `data:${type};base64,${base64}`
 }
 
