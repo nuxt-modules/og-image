@@ -58,6 +58,7 @@
     "@unocss/core": "^65.4.0",
     "@unocss/preset-wind": "^65.4.0",
     "chrome-launcher": "^1.1.2",
+    "consola": "^3.4.0",
     "defu": "^6.1.4",
     "execa": "^9.5.2",
     "image-size": "^1.2.0",
