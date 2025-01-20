@@ -24,16 +24,29 @@
       "types": "./dist/module.d.ts",
       "import": "./dist/module.mjs",
       "require": "./dist/module.cjs"
+    },
+    "./content": {
+      "types": "./dist/content.d.ts",
+      "import": "./dist/content.mjs",
+      "require": "./dist/content.cjs"
     }
   },
   "main": "./dist/module.cjs",
   "types": "./dist/module.d.ts",
   "files": [
     "dist",
-    "virtual.d.ts"
+    "virtual.d.ts",
+    "content.d.ts"
   ],
   "engines": {
     "node": ">=18.0.0"
+  },
+  "typesVersions": {
+    "*": {
+      "content": [
+        "dist/content"
+      ]
+    }
   },
   "scripts": {
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
@@ -121,20 +134,5 @@
   },
   "resolutions": {
     "typescript": "5.6.3"
-  },
-  "build": {
-    "externals": [
-      "nuxt",
-      "#app",
-      "nuxt/app",
-      "h3",
-      "nitropack",
-      "@vue/runtime-core",
-      "#og-image/components",
-      "sharp",
-      "unstorage",
-      "unstorage/drivers/fs",
-      "consola/utils"
-    ]
   }
 }
