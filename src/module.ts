@@ -27,6 +27,7 @@ import {
   createResolver,
   defineNuxtModule,
   hasNuxtModule,
+  hasNuxtModuleCompatibility,
   tryResolveModule,
 } from '@nuxt/kit'
 import { defu } from 'defu'
@@ -145,7 +146,7 @@ export interface ModuleOptions {
    *
    * This is similar behavior to using `nuxt/content` with `documentDriven: true`.
    */
-  strictNuxtContentPaths: boolean
+  strictNuxtContentPaths?: boolean
 }
 
 export interface ModuleHooks {
@@ -297,8 +298,19 @@ export default defineNuxtModule<ModuleOptions>({
 
     await installNuxtSiteConfig()
 
-    // convert ogImage key to head data
-    if (hasNuxtModule('@nuxt/content')) {
+    const usingNuxtContent = hasNuxtModule('@nuxt/content')
+    const isNuxtContentV3 = usingNuxtContent && await hasNuxtModuleCompatibility('@nuxt/content', '^3')
+    const isNuxtContentV2 = usingNuxtContent && await hasNuxtModuleCompatibility('@nuxt/content', '^2')
+    if (isNuxtContentV3) {
+      if (typeof config.strictNuxtContentPaths !== 'undefined') {
+        // deprecated
+        logger.warn('The `strictNuxtContentPaths` option is deprecated and has no effect in Nuxt Content v3.')
+      }
+      // we just have user pass the ogImage to the defineOgImage function
+      // less magic, more control
+    }
+    else if (isNuxtContentV2) {
+      // convert ogImage key to head data
       addServerPlugin(resolve('./runtime/server/plugins/nuxt-content'))
     }
 
@@ -601,7 +613,6 @@ declare module '#og-image/unocss-config' {
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
-        hasNuxtContent: hasNuxtModule('@nuxt/content'),
         strictNuxtContentPaths: config.strictNuxtContentPaths,
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
