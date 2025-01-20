@@ -40,7 +40,6 @@ export interface OgImageRuntimeConfig {
   hasNuxtIcon: boolean
   colorPreference: 'light' | 'dark'
 
-  hasNuxtContent: boolean
   isNuxtContentDocumentDriven: boolean
   strictNuxtContentPaths: boolean
   zeroRuntime: boolean
