@@ -17,7 +17,7 @@ export interface OgImageRenderEventContext {
   basePath: string
   renderer: Renderer
   options: OgImageOptions
-  isDebugJsonPayload: boolean
+  isDevToolsContextRequest: boolean
   publicStoragePath: string
   runtimeConfig: OgImageRuntimeConfig
   _nitro: NitroApp
@@ -135,6 +135,10 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    * @internal
    */
   _query?: Record<string, any>
+  /**
+   * Allow multiple og images to be generated for the same route by setting a unique key.
+   */
+  key?: string
 }
 
 export interface FontConfig {
@@ -188,4 +192,4 @@ export interface SatoriTransformer {
   transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void> | void
 }
 
-export interface SocialPreviewMetaData { twitter?: Record<string, string>, og?: Record<string, string> }
+export interface DevToolsMetaDataExtraction { key: string, twitter?: Record<string, string>, og?: Record<string, string> }

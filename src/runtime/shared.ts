@@ -2,6 +2,7 @@ import type { Head } from '@unhead/schema'
 import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
 import { defu } from 'defu'
+import { stringify } from 'devalue'
 import { joinURL, withQuery } from 'ufo'
 import { getExtension } from './pure'
 
@@ -9,7 +10,7 @@ import { getExtension } from './pure'
 
 export * from './pure'
 
-export function generateMeta(url: string, resolvedOptions: OgImageOptions) {
+export function generateMeta(url: string, resolvedOptions: OgImageOptions): Required<Head>['meta'] {
   let urlExtension = getExtension(url) || resolvedOptions.extension
   if (urlExtension === 'jpg')
     urlExtension = 'jpeg'
@@ -37,13 +38,17 @@ export function generateMeta(url: string, resolvedOptions: OgImageOptions) {
 }
 
 export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
+  _options = _options || {}
   const baseURL = useRuntimeConfig().app.baseURL
   const options = defu(_options, useOgImageRuntimeConfig().defaults)
-  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${options.extension}`)
-  if (Object.keys(options._query || {}).length) {
-    return withQuery(path, options._query)
+  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `${_options?.key || 'og'}.${options.extension}`)
+  // TODO remove all defaults
+  if (useOgImageRuntimeConfig().defaults.component === _options.component) {
+    delete _options.component
   }
-  return path
+  const props = _options.props
+  delete _options.props
+  return decodeURIComponent(withQuery(path, { s: stringify(defu(_options, props, { title: '%s', description: '%description' })) }))
 }
 
 export function useOgImageRuntimeConfig() {

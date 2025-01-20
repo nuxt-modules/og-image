@@ -1,4 +1,3 @@
-import type { ActiveHeadEntry } from '@unhead/schema'
 import type { DefineOgImageInput, OgImageOptions } from '../../types'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
@@ -26,7 +25,6 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   state.value = true
 
   const nuxtApp = useNuxtApp()
-  const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
 
   // need to check route rules hasn't disabled this
   const routeRuleMatcher = createNitroRouteRuleMatcher()
@@ -34,10 +32,8 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   // has been disabled by route rules
   if (!_options || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false || (typeof routeRules !== 'undefined' && routeRules === false)) {
     // remove the previous entries
-    ogImageInstances.forEach((e: ActiveHeadEntry<any>) => {
-      e.dispose()
-    })
-    nuxtApp.ssrContext!._ogImageInstances = undefined
+    nuxtApp.ssrContext!._ogImageInstance?.dispose()
+    nuxtApp.ssrContext!._ogImageInstance = undefined
     return
   }
   const { defaults } = useOgImageRuntimeConfig()
@@ -54,9 +50,11 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext!)
   }
   else {
-    const path = getOgImagePath(basePath, defu(resolvedOptions, { _query: options._query }))
+    const path = getOgImagePath(basePath, _options)
     if (import.meta.prerender) {
-      appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path)
+      // prerender without query params
+      // TODO need to insert a payload that can be used for the prerender
+      appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path.split('?')[0])
     }
     createOgImageMeta(path, options, resolvedOptions, nuxtApp.ssrContext!)
   }

@@ -58,12 +58,12 @@ declare module '#og-image-virtual/unocss-config.mjs' {
 }
 
 declare module '#og-image-cache' {
-  import type { OgImageOptions } from '#og-image/types'
+  import type { DevToolsMetaDataExtraction, OgImageOptions } from '#og-image/types'
   import type { Storage } from 'unstorage'
 
   export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }>
 
-  export const prerenderOptionsCache: Storage<OgImageOptions> | undefined
+  export const prerenderOptionsCache: Storage<[OgImageOptions], DevToolsMetaDataExtraction | undefined> | undefined
 
   export const fontCache: Storage<BufferSource> | undefined
 

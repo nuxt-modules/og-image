@@ -4,7 +4,6 @@ import {
   colorMode,
   computed,
   fetchPathDebug,
-  unref,
   useHead,
   watch,
 } from '#imports'
@@ -12,23 +11,19 @@ import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
 import JsonEditorVue from 'json-editor-vue'
 import { Pane, Splitpanes } from 'splitpanes'
-import { hasProtocol, joinURL, parseURL, withHttps, withQuery } from 'ufo'
+import { parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { fetchGlobalDebug } from '~/composables/fetch'
 import { devtoolsClient } from '~/composables/rpc'
 import { loadShiki } from '~/composables/shiki'
-import { separateProps } from '../src/runtime/shared'
 import {
   description,
   hasMadeChanges,
-  host,
+  ogImageKey,
   options,
   optionsOverrides,
-  path,
   propEditor,
-  query,
   refreshSources,
-  refreshTime,
   slowRefreshSources,
 } from './util/logic'
 import 'floating-vue/dist/style.css'
@@ -46,23 +41,28 @@ const emojis = ref('noto')
 
 const debugAsyncData = fetchPathDebug()
 const { data: debug, pending, error } = debugAsyncData
+const selectedOgImage = computed(() => {
+  return debug.value?.extract?.[1]?.find((e) => {
+    return e.key === (ogImageKey.value || 'og')
+  }) || debug.value?.extract?.[1]?.[0]
+})
 const isCustomOgImage = computed(() => {
-  return debug.value?.custom
+  return !selectedOgImage.value?.og?.image.includes('/__og-image__/image/')
 })
-watch(debug, (val) => {
-  if (!val)
-    return
-  options.value = separateProps(unref(val.options), ['socialPreview', 'options'])
-  emojis.value = options.value.emojis
-  propEditor.value = options.value.props
-}, {
-  immediate: true,
-})
+// watch(debug, (val) => {
+//   if (!val)
+//     return
+//   options.value = separateProps(unref(val.options), ['socialPreview', 'options'])
+//   emojis.value = options.value.emojis
+//   propEditor.value = options.value.props
+// }, {
+//   immediate: true,
+// })
 
 const isDark = computed(() => colorMode.value === 'dark')
 useHead({
   htmlAttrs: {
-    class: isDark.value ? 'dark' : '',
+    class: () => isDark.value ? 'dark' : '',
   },
 })
 
@@ -93,18 +93,18 @@ async function resetProps(fetch = true) {
 await resetProps(false)
 
 const defaults = computed(() => {
-  return globalDebug.value?.runtimeConfig.defaults || {
+  return defu(globalDebug.value?.runtimeConfig.defaults, {
     height: 600,
     width: 1200,
-  }
+  })
 })
 
 const height = computed(() => {
-  return optionsOverrides.value?.height || options.value?.height || defaults.value.height
+  return optionsOverrides.value?.height || selectedOgImage.value?.og?.['image:height'] || defaults.value.height
 })
 
 const width = computed(() => {
-  return optionsOverrides.value?.width || options.value?.width || defaults.value.width
+  return optionsOverrides.value?.width || selectedOgImage.value?.og?.['image:width'] || defaults.value.width
 })
 
 const aspectRatio = computed(() => {
@@ -120,41 +120,27 @@ const src = computed(() => {
   // wait until we know what we're rendering
   if (!debug.value)
     return ''
-  if (isCustomOgImage.value) {
-    if (hasProtocol(debug.value.options.url, { acceptRelative: true })) {
-      return debug.value.options.url
-    }
-    return joinURL(host.value, debug.value.options.url)
-  }
-  return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/og.${imageFormat.value}`), {
-    timestamp: refreshTime.value,
-    ...optionsOverrides.value,
-    _query: query.value,
-  })
+  return selectedOgImage.value?.og?.image || ''
 })
 
 const socialPreviewTitle = computed(() => {
-  if (socialPreview.value === 'twitter' && options.value?.socialPreview?.twitter?.title)
-    return options.value?.socialPreview?.twitter.title
-  return options.value?.socialPreview?.og.title
+  if (socialPreview.value === 'twitter' && debug.value?.extract?.[0]?.['twitter:title'])
+    return debug.value?.extract?.[0]?.['twitter:title']
+  return debug.value?.extract?.[0]?.['og:title']
 })
 
 const socialPreviewDescription = computed(() => {
-  if (socialPreview.value === 'twitter' && options.value?.socialPreview?.twitter?.description)
-    return options.value?.socialPreview?.twitter.description
-  return options.value?.socialPreview?.og.description
+  if (socialPreview.value === 'twitter' && debug.value?.extract?.[0]?.['twitter:description'])
+    return debug.value?.extract?.[0]?.['twitter:description']
+  return debug.value?.extract?.[0]?.['og:description']
 })
 
 const socialSiteUrl = computed(() => {
   // need to turn this URL into just an origin
-  const url = parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url || '/'
-  if (url === '/') {
-    return globalDebug.value?.siteConfigUrl || '/'
-  }
-  return url
+  return parseURL(globalDebug.value?.siteConfigUrl || '/').host || globalDebug.value?.siteConfigUrl || '/'
 })
 const slackSocialPreviewSiteName = computed(() => {
-  return options.value?.socialPreview?.og.site_name || socialSiteUrl.value
+  return selectedOgImage.value?.og?.site_name || socialSiteUrl.value
 })
 
 function toggleSocialPreview(preview?: string) {
@@ -217,10 +203,17 @@ function generateLoadTime(payload: { timeTaken: string, sizeKb: string }) {
       break
   }
   isLoading.value = false
-  if (extension !== 'HTML')
-    description.value = `Generated ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} ${rendererLabel ? `with ${rendererLabel}` : ''} in ${payload.timeTaken}ms.`
-  else
+  if (extension !== 'HTML') {
+    if (isCustomOgImage.value) {
+      description.value = `Loaded ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} in ${payload.timeTaken}ms.`
+    }
+    else {
+      description.value = `Generated ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} ${rendererLabel ? `with ${rendererLabel}` : ''} in ${payload.timeTaken}ms.`
+    }
+  }
+  else {
     description.value = ''
+  }
 }
 watch([renderer, optionsOverrides], () => {
   description.value = 'Loading...'
@@ -358,15 +351,8 @@ const currentPageFile = computed(() => {
         </div>
         <div class="items-center space-x-3 hidden lg:flex">
           <div class="opacity-80 text-sm">
-            <NLink href="https://github.com/sponsors/harlan-zw" target="_blank">
-              <NIcon icon="carbon:favorite" class="mr-[2px]" />
-              Sponsor
-            </NLink>
-          </div>
-          <div class="opacity-80 text-sm">
             <NLink href="https://github.com/nuxt-modules/og-image" target="_blank">
-              <NIcon icon="logos:github-icon" class="mr-[2px]" />
-              Submit an issue
+              GitHub
             </NLink>
           </div>
           <a href="https://nuxtseo.com" target="_blank" class="flex items-end gap-1.5 font-semibold text-xl dark:text-white font-title">
@@ -378,60 +364,7 @@ const currentPageFile = computed(() => {
     <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
       <main class="mx-auto flex flex-col w-full">
         <div v-if="tab === 'design'" class="h-full relative max-h-full">
-          <div v-if="isCustomOgImage" class="w-full flex h-full justify-center items-center relative pr-4" style="padding-top: 30px;">
-            <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
-              <div class="text-xs">
-                Your prebuilt OG Image: {{ debug?.options.url }}
-              </div>
-              <div class="flex items-center w-[100px]">
-                <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
-                <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
-                <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
-              </div>
-            </div>
-            <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle">
-              <template #domain>
-                <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
-              </template>
-              <ImageLoader
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @click="openImage"
-                @refresh="refreshSources"
-              />
-            </TwitterCardRenderer>
-            <SlackCardRenderer v-else-if="socialPreview === 'slack'">
-              <template #favIcon>
-                <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`">
-              </template>
-              <template #siteName>
-                {{ slackSocialPreviewSiteName }}
-              </template>
-              <template #title>
-                {{ socialPreviewTitle }}
-              </template>
-              <template #description>
-                {{ socialPreviewDescription }}
-              </template>
-              <ImageLoader
-                :src="src"
-                class="!h-[300px]"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </SlackCardRenderer>
-            <div v-else class="w-full h-full">
-              <ImageLoader
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </div>
-          </div>
-          <div v-else-if="error">
+          <div v-if="error">
             <div v-if="error.message.includes('missing the #nuxt-og-') || error.message.includes('missing the Nuxt OG Image payload') || error.message.includes('Got invalid response')">
               <!-- nicely tell the user they should use defineOgImage to get started -->
               <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
@@ -461,14 +394,17 @@ const currentPageFile = computed(() => {
           <Splitpanes v-else class="default-theme" @resize="slowRefreshSources">
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
-                <div class="flex items-center text-lg space-x-1 w-[100px]">
+                <div v-if="!isCustomOgImage" class="flex items-center text-lg space-x-1 w-[100px]">
                   <NButton v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium'" icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchOptions({ extension: 'jpg' })" />
                   <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchOptions({ extension: 'png' })" />
                   <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchOptions({ extension: 'svg' })" />
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchOptions({ extension: 'html' })" />
                 </div>
                 <div class="text-xs">
-                  <div v-if="!isPageScreenshot" class="opacity-70 space-x-1 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
+                  <div v-if="isCustomOgImage">
+                    Prebuilt image
+                  </div>
+                  <div v-else-if="!isPageScreenshot" class="opacity-70 space-x-1 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
                     <span>{{ activeComponentName.replace('OgImage', '') }}</span>
                     <span class="underline">View source</span>
                   </div>
@@ -476,13 +412,13 @@ const currentPageFile = computed(() => {
                     Screenshot of the current page.
                   </div>
                 </div>
-                <div class="flex items-center w-[100px]">
-                  <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
-                  <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
+                <div class="flex items-center space-x-1 w-[100px]">
+                  <NButton class="p-4" icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
+                  <NButton class="p-4" icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
                   <!--                  <NButton icon="logos:facebook" :border="socialPreview === 'facebook'" @click="socialPreview = 'facebook'" /> -->
-                  <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
-                  <!--                  <NButton icon="logos:whatsapp-icon" :border="socialPreview === 'discord'" @click="socialPreview = 'discord'" /> -->
-                  <VTooltip>
+                  <NButton class="p-4" icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
+                  <NButton class="p-4" icon="logos:whatsapp-icon" :border="socialPreview === 'whatsapp'" @click="socialPreview = 'whatsapp'" />
+                  <VTooltip v-if="!isCustomOgImage">
                     <button text-lg="" type="button" class=" n-icon-button n-button n-transition n-disabled:n-disabled" @click="sidePanelOpen = !sidePanelOpen">
                       <div v-if="sidePanelOpen" class="n-icon carbon:side-panel-open" />
                       <div v-else class="n-icon carbon:open-panel-right" />
@@ -543,6 +479,37 @@ const currentPageFile = computed(() => {
                   @refresh="refreshSources"
                 />
               </SlackCardRenderer>
+              <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'">
+                <template #siteName>
+                  {{ slackSocialPreviewSiteName }}
+                </template>
+                <template #title>
+                  {{ socialPreviewTitle }}
+                </template>
+                <template #description>
+                  {{ socialPreviewDescription }}
+                </template>
+                <template #url>
+                  {{ socialSiteUrl }}
+                </template>
+                <ImageLoader
+                  v-if="imageFormat !== 'html'"
+                  :src="src"
+                  class="!h-[90px]"
+                  min-height="90"
+                  :aspect-ratio="1"
+                  style="background-size: cover; background-position: center center;"
+                  @load="generateLoadTime"
+                  @refresh="refreshSources"
+                />
+                <IFrameLoader
+                  v-else
+                  :src="src"
+                  :aspect-ratio="1 / 1"
+                  @load="generateLoadTime"
+                  @refresh="refreshSources"
+                />
+              </WhatsAppRenderer>
               <div v-else class="w-full h-full">
                 <ImageLoader
                   v-if="imageFormat !== 'html'"
@@ -559,8 +526,13 @@ const currentPageFile = computed(() => {
                   @refresh="refreshSources"
                 />
               </div>
-              <div v-if="description" class="mt-3 text-sm opacity-50 absolute bottom-3">
+              <div v-if="description" class="mt-5 text-sm opacity-50">
                 {{ description }}
+              </div>
+              <div v-if="debug?.extract?.[1]?.length > 1" class="space-x-1">
+                <NButton v-for="(p, idx) in debug?.extract?.[1] || []" :key="idx" class="text-xs" type="button" :class="(ogImageKey === p.key || (!ogImageKey && p.key === 'default')) ? 'bg-neutral-700' : ''" @click="ogImageKey = p.key">
+                  {{ p.key }}
+                </NButton>
               </div>
             </Pane>
             <Pane v-if="sidePanelOpen" size="40">
