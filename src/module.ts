@@ -311,7 +311,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
     else if (isNuxtContentV2) {
       // convert ogImage key to head data
-      addServerPlugin(resolve('./runtime/server/plugins/nuxt-content'))
+      addServerPlugin(resolve('./runtime/server/plugins/nuxt-content-v2'))
     }
 
     // default font is inter
