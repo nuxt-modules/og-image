@@ -77,7 +77,7 @@
     "image-size": "^1.2.0",
     "magic-string": "^0.30.17",
     "nuxt-site-config": "^3.0.6",
-    "nypm": "^0.4.1",
+    "nypm": "^0.5.0",
     "ofetch": "^1.4.1",
     "ohash": "^1.1.4",
     "pathe": "^2.0.2",
@@ -130,7 +130,7 @@
     "sharp": "^0.33.5",
     "typescript": "5.6.3",
     "unocss": "^65.4.2",
-    "vitest": "^2.1.8"
+    "vitest": "^3.0.2"
   },
   "resolutions": {
     "typescript": "5.6.3"
