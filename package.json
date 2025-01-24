@@ -130,7 +130,7 @@
     "sharp": "^0.33.5",
     "typescript": "5.6.3",
     "unocss": "^65.4.2",
-    "vitest": "^2.1.8"
+    "vitest": "^3.0.4"
   },
   "resolutions": {
     "typescript": "5.6.3"
