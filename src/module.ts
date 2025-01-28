@@ -433,7 +433,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // community templates must be copy+pasted!
     if (!config.zeroRuntime || nuxt.options.dev) {
-      await addComponentsDir({
+      addComponentsDir({
         path: resolve('./runtime/app/components/Templates/Community'),
         island: true,
         // watch: true,
