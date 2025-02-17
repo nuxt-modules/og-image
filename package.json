@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "4.1.2",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@10.4.1",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -33,20 +33,20 @@
   },
   "main": "./dist/module.cjs",
   "types": "./dist/module.d.ts",
-  "files": [
-    "dist",
-    "virtual.d.ts",
-    "content.d.ts"
-  ],
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "typesVersions": {
     "*": {
       "content": [
         "dist/content"
       ]
     }
+  },
+  "files": [
+    "content.d.ts",
+    "dist",
+    "virtual.d.ts"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
   },
   "scripts": {
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
@@ -64,12 +64,12 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "dependencies": {
-    "@nuxt/devtools-kit": "2.0.0-beta.3",
-    "@nuxt/kit": "^3.15.2",
+    "@nuxt/devtools-kit": "2.1.0",
+    "@nuxt/kit": "^3.15.4",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
-    "@unocss/core": "^65.4.2",
-    "@unocss/preset-wind": "^65.4.2",
+    "@unocss/core": "^65.5.0",
+    "@unocss/preset-wind": "^65.5.0",
     "chrome-launcher": "^1.1.2",
     "consola": "^3.4.0",
     "defu": "^6.1.4",
@@ -77,12 +77,12 @@
     "image-size": "^1.2.0",
     "magic-string": "^0.30.17",
     "nuxt-site-config": "^3.0.6",
-    "nypm": "^0.5.0",
+    "nypm": "^0.5.2",
     "ofetch": "^1.4.1",
     "ohash": "^1.1.4",
-    "pathe": "^2.0.2",
+    "pathe": "^2.0.3",
     "pkg-types": "^1.3.1",
-    "playwright-core": "^1.49.1",
+    "playwright-core": "^1.50.1",
     "radix3": "^1.1.2",
     "satori": "^0.12.1",
     "satori-html": "^0.3.2",
@@ -90,23 +90,23 @@
     "std-env": "^3.8.0",
     "strip-literal": "^3.0.0",
     "ufo": "^1.5.4",
-    "unplugin": "^2.1.2",
+    "unplugin": "^2.2.0",
     "unwasm": "^0.3.9",
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^3.14.0",
+    "@antfu/eslint-config": "^4.2.1",
     "@css-inline/css-inline": "^0.14.3",
     "@headlessui/vue": "^1.7.23",
-    "@iconify-json/carbon": "^1.2.5",
+    "@iconify-json/carbon": "^1.2.7",
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/noto": "^1.2.2",
     "@iconify-json/ri": "^1.2.5",
-    "@iconify-json/tabler": "^1.2.14",
+    "@iconify-json/tabler": "^1.2.16",
     "@img/sharp-linux-x64": "0.33.5",
-    "@nuxt/content": "^3.0.0",
-    "@nuxt/devtools": "2.0.0-beta.3",
-    "@nuxt/devtools-ui-kit": "2.0.0-beta.3",
+    "@nuxt/content": "^3.1.1",
+    "@nuxt/devtools": "2.1.0",
+    "@nuxt/devtools-ui-kit": "2.1.0",
     "@nuxt/icon": "^1.10.3",
     "@nuxt/image": "^1.9.0",
     "@nuxt/module-builder": "^0.8.4",
@@ -114,23 +114,33 @@
     "@nuxt/ui": "^2.21.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "^9.1.1",
+    "@nuxtjs/i18n": "^9.2.0",
     "@nuxtjs/tailwindcss": "^6.13.1",
-    "@unocss/nuxt": "^65.4.2",
-    "@unocss/preset-icons": "^65.4.2",
-    "@unocss/preset-uno": "^65.4.2",
-    "@unocss/runtime": "^65.4.2",
-    "@vueuse/nuxt": "^12.4.0",
-    "bumpp": "^9.10.1",
-    "eslint": "9.18.0",
+    "@unocss/nuxt": "^65.5.0",
+    "@unocss/preset-icons": "^65.5.0",
+    "@unocss/preset-uno": "^65.5.0",
+    "@unocss/runtime": "^65.5.0",
+    "@vueuse/nuxt": "^12.7.0",
+    "bumpp": "^10.0.3",
+    "eslint": "9.20.1",
     "jest-image-snapshot": "^6.4.0",
-    "nuxt": "^3.15.2",
-    "playwright": "^1.49.1",
-    "sass": "^1.83.4",
+    "nuxt": "^3.15.4",
+    "playwright": "^1.50.1",
+    "sass": "^1.85.0",
     "sharp": "^0.33.5",
     "typescript": "5.6.3",
-    "unocss": "^65.4.2",
-    "vitest": "^2.1.8"
+    "unocss": "^65.5.0",
+    "vitest": "^3.0.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "better-sqlite3",
+      "esbuild",
+      "json-editor-vue",
+      "sharp",
+      "vue-demi"
+    ]
   },
   "resolutions": {
     "typescript": "5.6.3"
