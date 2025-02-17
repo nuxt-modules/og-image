@@ -144,6 +144,6 @@
   },
   "resolutions": {
     "typescript": "5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "https://pkg.pr.new/vitest@7bfa70cffd5ecbaa356855b37dea5dc75a901eea"
   }
 }
