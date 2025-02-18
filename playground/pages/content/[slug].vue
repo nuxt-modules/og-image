@@ -1,19 +1,27 @@
-<script lang="ts" setup>
-import { queryContent, useAsyncData, useContentHead, useRoute } from '#imports'
+<script setup lang="ts">
+import { queryCollection, useRoute } from '#imports'
 
 const route = useRoute()
-
-const path = route.path.replace('/content', '')
-const { data: page } = await useAsyncData(`docs-${path}`, () => queryContent(path).findOne())
-if (!page.value)
-  throw createError({ statusCode: 404, statusMessage: 'Page not found' })
-
-// console.log(page.value)
-useContentHead(page.value)
+const { data: page } = await useAsyncData(`page-${route.path}`, () => {
+  return queryCollection('content').path(route.path).first()
+})
+useSeoMeta({
+  title: page.value?.seo?.title || 'Nuxt OG Image',
+  description: page.value?.seo?.description || 'The quickest and easiest way to build Open Graph images for Nuxt.',
+})
+if (page.value.ogImage) {
+  defineOgImage(page.value.ogImage)
+}
 </script>
 
 <template>
   <div>
-    {{ page }}
+    <ContentRenderer
+      v-if="page"
+      :value="page"
+    />
+    <div v-else>
+      Page not found
+    </div>
   </div>
 </template>
