@@ -10,9 +10,7 @@ export default defineBuildConfig({
   ],
   externals: [
     'h3',
-    'std-env',
     'nitropack',
-    'consola',
     '@nuxt/content',
     'zod',
     'nuxt',

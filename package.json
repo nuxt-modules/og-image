@@ -94,6 +94,9 @@
     "unwasm": "^0.3.9",
     "yoga-wasm-web": "^0.3.3"
   },
+  "peerDependencies": {
+    "unstorage": "^1.0.0"
+  },
   "devDependencies": {
     "@antfu/eslint-config": "^4.3.0",
     "@css-inline/css-inline": "^0.14.3",
