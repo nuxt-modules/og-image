@@ -68,8 +68,8 @@
     "@nuxt/kit": "^3.15.4",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
-    "@unocss/core": "^65.5.0",
-    "@unocss/preset-wind": "^65.5.0",
+    "@unocss/core": "^66.0.0",
+    "@unocss/preset-wind3": "^66.0.0",
     "chrome-launcher": "^1.1.2",
     "consola": "^3.4.0",
     "defu": "^6.1.4",
@@ -95,7 +95,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.2.1",
+    "@antfu/eslint-config": "^4.3.0",
     "@css-inline/css-inline": "^0.14.3",
     "@headlessui/vue": "^1.7.23",
     "@iconify-json/carbon": "^1.2.7",
@@ -116,10 +116,9 @@
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@nuxtjs/i18n": "^9.2.0",
     "@nuxtjs/tailwindcss": "^6.13.1",
-    "@unocss/nuxt": "^65.5.0",
-    "@unocss/preset-icons": "^65.5.0",
-    "@unocss/preset-uno": "^65.5.0",
-    "@unocss/runtime": "^65.5.0",
+    "@unocss/nuxt": "^66.0.0",
+    "@unocss/preset-icons": "^66.0.0",
+    "@unocss/runtime": "^66.0.0",
     "@vueuse/nuxt": "^12.7.0",
     "bumpp": "^10.0.3",
     "eslint": "9.20.1",
@@ -129,8 +128,8 @@
     "sass": "^1.85.0",
     "sharp": "^0.33.5",
     "typescript": "5.6.3",
-    "unocss": "^65.5.0",
-    "vitest": "^3.0.5"
+    "unocss": "^66.0.0",
+    "vitest": "^3.0.6"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
