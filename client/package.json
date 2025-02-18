@@ -10,6 +10,7 @@
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.17.3",
     "nuxt": "latest",
+    "shiki": "^3.0.0",
     "splitpanes": "^3.1.8",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
