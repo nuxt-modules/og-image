@@ -1,27 +1,29 @@
 import type { MaybeRef } from '@vueuse/core'
-import type { BundledLanguage, Highlighter } from 'shiki'
-import { createHighlighter } from 'shiki'
+import type { HighlighterCore } from 'shiki'
+import { createHighlighterCore } from 'shiki/core'
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 import { computed, ref, toValue } from 'vue'
 import { devtools } from './rpc'
 
-export const shiki = ref<Highlighter>()
+export const shiki = ref<HighlighterCore>()
 
 export async function loadShiki() {
-  // Only loading when needed
-  shiki.value = await createHighlighter({
+  shiki.value = await createHighlighterCore({
     themes: [
-      'vitesse-dark',
-      'vitesse-light',
+      import('@shikijs/themes/vitesse-light'),
+      import('@shikijs/themes/vitesse-dark'),
     ],
     langs: [
-      'html',
-      'json',
+      import('@shikijs/langs/xml'),
+      import('@shikijs/langs/json'),
     ],
+    engine: createJavaScriptRegexEngine(),
   })
+
   return shiki.value
 }
 
-export function renderCodeHighlight(code: MaybeRef<string>, lang: BundledLanguage) {
+export function renderCodeHighlight(code: MaybeRef<string>, lang: 'json' | 'xml') {
   return computed(() => {
     const colorMode = devtools.value?.colorMode || 'light'
     return shiki.value!.codeToHtml(toValue(code) || '', {
