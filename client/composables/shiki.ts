@@ -14,7 +14,7 @@ export async function loadShiki() {
       import('@shikijs/themes/vitesse-dark'),
     ],
     langs: [
-      import('@shikijs/langs/html'),
+      import('@shikijs/langs/xml'),
       import('@shikijs/langs/json'),
     ],
     engine: createJavaScriptRegexEngine(),
@@ -23,7 +23,7 @@ export async function loadShiki() {
   return shiki.value
 }
 
-export function renderCodeHighlight(code: MaybeRef<string>, lang: 'json' | 'html') {
+export function renderCodeHighlight(code: MaybeRef<string>, lang: 'json' | 'xml') {
   return computed(() => {
     const colorMode = devtools.value?.colorMode || 'light'
     return shiki.value!.codeToHtml(toValue(code) || '', {

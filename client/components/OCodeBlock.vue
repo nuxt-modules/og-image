@@ -5,7 +5,7 @@ import { renderCodeHighlight } from '../composables/shiki'
 const props = withDefaults(
   defineProps<{
     code: string
-    lang: 'json' | 'html'
+    lang: 'json' | 'xml'
     lines?: boolean
     transformRendered?: (code: string) => string
   }>(),
