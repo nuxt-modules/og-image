@@ -76,8 +76,8 @@
     "execa": "^9.5.2",
     "image-size": "^1.2.0",
     "magic-string": "^0.30.17",
-    "nuxt-site-config": "^3.0.7",
-    "nypm": "^0.5.2",
+    "nuxt-site-config": "^3.1.0",
+    "nypm": "^0.5.4",
     "ofetch": "^1.4.1",
     "ohash": "^1.1.4",
     "pathe": "^2.0.3",
@@ -95,7 +95,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "peerDependencies": {
-    "unstorage": "^1.0.0"
+    "unstorage": "^1.15.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.3.0",
@@ -107,17 +107,17 @@
     "@iconify-json/ri": "^1.2.5",
     "@iconify-json/tabler": "^1.2.16",
     "@img/sharp-linux-x64": "0.33.5",
-    "@nuxt/content": "^3.1.1",
+    "@nuxt/content": "^3.2.1",
     "@nuxt/devtools": "2.1.0",
     "@nuxt/devtools-ui-kit": "2.1.0",
     "@nuxt/icon": "^1.10.3",
     "@nuxt/image": "^1.9.0",
     "@nuxt/module-builder": "^0.8.4",
-    "@nuxt/test-utils": "3.15.4",
+    "@nuxt/test-utils": "3.17.0",
     "@nuxt/ui": "^2.21.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "^9.2.0",
+    "@nuxtjs/i18n": "^9.2.1",
     "@nuxtjs/tailwindcss": "^6.13.1",
     "@unocss/nuxt": "^66.0.0",
     "@unocss/preset-icons": "^66.0.0",
@@ -130,7 +130,7 @@
     "playwright": "^1.50.1",
     "sass": "^1.85.0",
     "sharp": "^0.33.5",
-    "typescript": "5.6.3",
+    "typescript": "5.7.3",
     "unocss": "^66.0.0",
     "vitest": "^3.0.6"
   },
@@ -145,7 +145,7 @@
     ]
   },
   "resolutions": {
-    "typescript": "5.6.3",
+    "typescript": "5.7.3",
     "vitest": "https://pkg.pr.new/vitest@7bfa70cffd5ecbaa356855b37dea5dc75a901eea"
   }
 }
