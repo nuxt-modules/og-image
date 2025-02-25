@@ -15,21 +15,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import {
-  addBuildPlugin,
-  addComponent,
-  addComponentsDir,
-  addImports,
-  addPlugin,
-  addServerHandler,
-  addServerPlugin,
-  addTemplate,
-  createResolver,
-  defineNuxtModule,
-  hasNuxtModule,
-  hasNuxtModuleCompatibility,
-  tryResolveModule,
-} from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -53,7 +39,7 @@ import {
 import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
-import { checkLocalChrome, checkPlaywrightDependency, downloadFont, isUndefinedOrTruthy } from './util'
+import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 
 export interface ModuleOptions {
   /**
@@ -227,7 +213,7 @@ export default defineNuxtModule<ModuleOptions>({
     const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
     if (!!config.sharpOptions || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')) {
       isUsingSharp = true
-      const hasSharpDependency = !!(await tryResolveModule('sharp'))
+      const hasSharpDependency = await hasResolvableDependency('sharp')
       if (hasSharpDependency && !targetCompatibility.sharp) {
         logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
         config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
@@ -253,7 +239,7 @@ export default defineNuxtModule<ModuleOptions>({
     // in dev and prerender we rely on local chrome or playwright dependency
     // for runtime we need playwright dependency
     const hasChromeLocally = checkLocalChrome()
-    const hasPlaywrightDependency = await checkPlaywrightDependency()
+    const hasPlaywrightDependency = await hasResolvableDependency('playwright')
     const chromeCompatibilityFlags = {
       prerender: config.compatibility?.prerender?.chromium,
       dev: config.compatibility?.dev?.chromium,

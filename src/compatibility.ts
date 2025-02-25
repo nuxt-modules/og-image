@@ -1,12 +1,13 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
-import { addTemplate, tryResolveModule, useNuxt } from '@nuxt/kit'
+import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import {
   ensureDependencyInstalled,
 } from 'nypm'
 import { env, provider } from 'std-env'
+import { hasResolvableDependency } from './util'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -132,8 +133,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
 
-  const hasCssInlineNode = !!(await tryResolveModule('@css-inline/css-inline'))
-  const hasCssInlineWasm = !!(await tryResolveModule('@css-inline/css-inline-wasm'))
+  const hasCssInlineNode = await hasResolvableDependency('@css-inline/css-inline')
+  const hasCssInlineWasm = await hasResolvableDependency('@css-inline/css-inline-wasm')
 
   const { resolve } = options
 

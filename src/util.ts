@@ -1,6 +1,6 @@
 import type { Storage } from 'unstorage'
 import type { ResolvedFontConfig } from './runtime/types'
-import { tryResolveModule } from '@nuxt/kit'
+import { resolvePath } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
 import { $fetch } from 'ofetch'
 import { isCI } from 'std-env'
@@ -20,8 +20,10 @@ export function checkLocalChrome() {
   return hasChromeLocally
 }
 
-export async function checkPlaywrightDependency() {
-  return !!(await tryResolveModule('playwright'))
+export async function hasResolvableDependency(dep: string) {
+  return await resolvePath(dep, { fallbackToOriginal: true })
+    .catch(() => null)
+    .then(r => r && r !== dep)
 }
 
 export async function downloadFont(font: ResolvedFontConfig, storage: Storage, mirror?: true | string) {
