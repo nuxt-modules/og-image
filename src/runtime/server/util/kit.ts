@@ -10,7 +10,7 @@ import { withoutBase, withoutTrailingSlash } from 'ufo'
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>): Promise<NuxtIslandResponse> {
   // using Nuxt Island, generate the og:image HTML
   const hashId = hash([component, props])
-  return e.$fetch<NuxtIslandResponse>(`/__nuxt_island/${component}_${hashId}.json`, {
+  return e.$fetch<NuxtIslandResponse>(`/__nuxt_island/${component}_${hashId.replace('_', '-')}.json`, {
     params: {
       props: JSON.stringify(props),
     },
