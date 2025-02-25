@@ -475,7 +475,7 @@ export default defineNuxtModule<ModuleOptions>({
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
           ogImageComponentCtx.components.push({
             // purge cache when component changes
-            hash: hash(componentFile),
+            hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
             path: nuxt.options.dev ? component.filePath : undefined,

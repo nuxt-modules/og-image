@@ -27,7 +27,7 @@ describe('dev', () => {
     json.options.component = json.options.component.replace('OgImage', '')
     expect(json).toMatchInlineSnapshot(`
       {
-        "cacheKey": "satori:5Hzq5ZrLws",
+        "cacheKey": "satori:85xUPyRysj54MgqRPbu0CZWgsg_WmC4BeJvBJez5bVw",
         "compatibilityHints": [],
         "options": {
           "cacheMaxAgeSeconds": 259200,
