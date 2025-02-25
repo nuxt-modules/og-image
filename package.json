@@ -63,6 +63,9 @@
     "test": "vitest",
     "test:chrome": "HAS_CHROME=true vitest"
   },
+  "peerDependencies": {
+    "unstorage": "^1.0.0"
+  },
   "dependencies": {
     "@nuxt/devtools-kit": "2.1.0",
     "@nuxt/kit": "^3.15.4",
@@ -93,9 +96,6 @@
     "unplugin": "^2.2.0",
     "unwasm": "^0.3.9",
     "yoga-wasm-web": "^0.3.3"
-  },
-  "peerDependencies": {
-    "unstorage": "^1.0.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.3.0",
