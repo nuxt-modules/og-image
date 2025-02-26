@@ -64,6 +64,7 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
+    "unhead": "^1.0.0 || ^2.0.0",
     "unstorage": "^1.0.0"
   },
   "dependencies": {
@@ -71,6 +72,7 @@
     "@nuxt/kit": "^3.15.4",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
+    "@unhead/ssr": "^1.11.20",
     "@unocss/core": "^66.0.0",
     "@unocss/preset-wind3": "^66.0.0",
     "chrome-launcher": "^1.1.2",
