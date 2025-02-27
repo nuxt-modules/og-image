@@ -31,9 +31,6 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     return
   }
 
-  const nuxtApp = useNuxtApp()
-  const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
-
   // need to check route rules hasn't disabled this
   const routeRuleMatcher = createNitroRouteRuleMatcher()
   const routeRules = routeRuleMatcher(basePath).ogImage
