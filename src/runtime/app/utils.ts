@@ -1,8 +1,9 @@
-import type { Head } from '@unhead/schema'
+import type { Head } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import { resolveUnrefHeadInput, useServerHead } from '@unhead/vue'
+import { useHead } from '#imports'
+import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { withQuery } from 'ufo'
@@ -10,6 +11,9 @@ import { unref } from 'vue'
 import { generateMeta, separateProps } from '../shared'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: NuxtSSRContext) {
+  if (import.meta.client) {
+    return
+  }
   const _input = separateProps(defu(input, ssrContext._ogImagePayload))
   let url = src || input.url || resolvedOptions.url
   if (!url)
@@ -40,11 +44,11 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
     })
   }
 
-  const instance = useServerHead({
+  const instance = useHead({
     script,
     meta,
   }, {
-    tagPriority: 35,
+    tagPriority: 'high',
   })
   ssrContext._ogImagePayload = _input
   ssrContext._ogImageInstances.push(instance)

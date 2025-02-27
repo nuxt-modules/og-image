@@ -1,4 +1,4 @@
-import type { Head } from '@unhead/schema'
+import type { Head } from '@unhead/vue'
 import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
 import { defu } from 'defu'
@@ -9,7 +9,7 @@ import { getExtension } from './pure'
 
 export * from './pure'
 
-export function generateMeta(url: string, resolvedOptions: OgImageOptions) {
+export function generateMeta(url: string, resolvedOptions: OgImageOptions): Head['meta'] {
   let urlExtension = getExtension(url) || resolvedOptions.extension
   if (urlExtension === 'jpg')
     urlExtension = 'jpeg'

@@ -1,6 +1,6 @@
 import type { ParsedContent } from '@nuxt/content'
+import type { Head } from '@unhead/vue'
 import type { NitroApp } from 'nitropack/runtime/app'
-import type { UseHeadInput } from 'unhead'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { withQuery } from 'ufo'
@@ -33,7 +33,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       const meta = generateMeta(src, optionsWithDefault)
       // user has provided a prebuilt og image
       if (optionsWithDefault.url) {
-        content.head = defu(<UseHeadInput<any>> { meta }, content.head)
+        content.head = defu(<Head> { meta }, content.head)
         return content
       }
 
@@ -48,7 +48,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
         payload[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
       })
 
-      content.head = defu(<UseHeadInput<any>> {
+      content.head = defu(<Head> {
         script: [
           {
             id: 'nuxt-og-image-overrides',

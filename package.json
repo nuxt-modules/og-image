@@ -64,7 +64,7 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "unhead": "^1.0.0 || ^2.0.0",
+    "@unhead/vue": "^1.0.0 || ^2.0.0",
     "unstorage": "^1.0.0"
   },
   "dependencies": {

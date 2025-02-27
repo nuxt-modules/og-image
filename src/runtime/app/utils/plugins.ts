@@ -1,4 +1,4 @@
-import type { ActiveHeadEntry, HeadPlugin } from '@unhead/schema'
+import type { ActiveHeadEntry } from '@unhead/vue'
 import type { NitroRouteRules } from 'nitropack'
 import type { NuxtApp } from 'nuxt/app'
 import type { OgImageOptions } from '../../types'
@@ -22,7 +22,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
       return
 
     // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
-    ssrContext?.head.use(<HeadPlugin>{
+    ssrContext?.head.use({
       key: 'nuxt-og-image:overrides-and-canonical-urls',
       hooks: {
         'tags:resolve': async (ctx) => {
