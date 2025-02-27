@@ -3,6 +3,7 @@ import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '..
 import { fontCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { defu } from 'defu'
+import { sendError } from 'h3'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
@@ -58,7 +59,9 @@ export async function createSvg(event: OgImageRenderEventContext) {
     width: options.width!,
     height: options.height!,
   }) as SatoriOptions
-  return satori(vnodes, satoriOptions)
+  return satori(vnodes, satoriOptions).catch((err) => {
+    return sendError(event.e, err, import.meta.dev)
+  })
 }
 
 async function createPng(event: OgImageRenderEventContext) {
@@ -93,9 +96,13 @@ const SatoriRenderer: Renderer = {
     }
   },
   async debug(e) {
+    const [vnodes, svg] = await Promise.all([
+      createVNodes(e),
+      createSvg(e),
+    ])
     return {
-      vnodes: await createVNodes(e),
-      svg: await createSvg(e),
+      vnodes,
+      svg,
     }
   },
 }

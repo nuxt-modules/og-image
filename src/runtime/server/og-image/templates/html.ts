@@ -1,8 +1,8 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { renderSSRHead } from '@unhead/ssr'
-import { createHeadCore } from '@unhead/vue'
 import { createError } from 'h3'
+import { createHeadCore } from 'unhead'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../satori/transforms/emojis'
@@ -28,7 +28,7 @@ export async function html(ctx: OgImageRenderEventContext) {
   const normalisedFonts = normaliseFontInput([...options.fonts || [], ...fonts])
   const firstFont = normalisedFonts[0] as FontConfig
   if (firstFont)
-    defaultFontFamily = firstFont.name
+    defaultFontFamily = firstFont.name.replaceAll('+', ' ')
 
   await applyEmojis(ctx, island)
   let html = island.html
@@ -37,7 +37,7 @@ export async function html(ctx: OgImageRenderEventContext) {
     style: [
       {
         // default font is the first font family
-        innerHTML: `body { font-family: \'${defaultFontFamily.replace('+', ' ')}\', sans-serif;  }`,
+        innerHTML: `body { font-family: \'${defaultFontFamily}\', sans-serif;  }`,
       },
       {
         innerHTML: `body {
@@ -73,7 +73,7 @@ svg[data-emoji] {
         .map((font) => {
           return `
           @font-face {
-            font-family: '${font.name}';
+            font-family: '${font.name.replaceAll('+', ' ')}';
             font-style: normal;
             font-weight: ${font.weight};
             src: url('/__og-image__/font/${font.key}') format('truetype');

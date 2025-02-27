@@ -53,6 +53,11 @@ defineOgImageComponent('NuxtSeo', {
             Satori Multiple
           </NuxtLink>
         </li>
+        <li>
+          <NuxtLink to="/satori/mounted">
+            Satori onMounted
+          </NuxtLink>
+        </li>
       </ul>
     </div>
   </div>

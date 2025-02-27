@@ -706,7 +706,7 @@ const currentPageFile = computed(() => {
                 SVG
               </h3>
             </template>
-            <OCodeBlock :code="debug?.svg.replaceAll('>', '>\n')" lang="html" />
+            <OCodeBlock :code="debug?.svg.replaceAll('>', '>\n')" lang="xml" />
           </OSectionBlock>
           <OSectionBlock>
             <template #text>

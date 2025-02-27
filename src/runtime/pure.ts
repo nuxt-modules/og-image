@@ -50,8 +50,9 @@ function detectBase64MimeType(data: string) {
   }
 
   for (const s in signatures) {
-    if (data.indexOf(s) === 0)
+    if (data.startsWith(s)) {
       return signatures[s as keyof typeof signatures]
+    }
   }
   return 'image/svg+xml'
 }
@@ -59,7 +60,6 @@ function detectBase64MimeType(data: string) {
 export function toBase64Image(data: string | ArrayBuffer) {
   const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
   const type = detectBase64MimeType(base64)
-
   return `data:${type};base64,${base64}`
 }
 
@@ -118,17 +118,28 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
 export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig[] {
   return fonts.map((f) => {
     if (typeof f === 'string') {
-      const [name, weight] = f.split(':')
+      const vals = f.split(':')
+      const includesStyle = vals.length === 3
+      let name, weight, style
+      if (includesStyle) {
+        name = vals[0]
+        style = vals[1]
+        weight = vals[2]
+      }
+      else {
+        name = vals[0]
+        weight = vals[1]
+      }
       return <ResolvedFontConfig> {
         cacheKey: f,
         name,
         weight: weight || 400,
-        style: 'normal',
+        style: style || 'normal',
         path: undefined,
       }
     }
     return <ResolvedFontConfig> {
-      cacheKey: f.key || `${f.name}:${f.weight}`,
+      cacheKey: f.key || `${f.name}:${f.style}:${f.weight}`,
       style: 'normal',
       weight: 400,
       ...f,

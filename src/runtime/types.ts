@@ -40,7 +40,6 @@ export interface OgImageRuntimeConfig {
   hasNuxtIcon: boolean
   colorPreference: 'light' | 'dark'
 
-  hasNuxtContent: boolean
   isNuxtContentDocumentDriven: boolean
   strictNuxtContentPaths: boolean
   zeroRuntime: boolean
@@ -143,7 +142,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
 
 export interface FontConfig {
   name: string
-  style?: string
+  style?: 'normal' | 'ital'
   weight?: string | number
   path?: string
   key?: string
@@ -151,7 +150,7 @@ export interface FontConfig {
 }
 export interface ResolvedFontConfig extends FontConfig { cacheKey: string, data?: BufferSource }
 
-export type InputFontConfig = (`${string}:${number}` | string | FontConfig)
+export type InputFontConfig = (`${string}:${number}` | `${string}:${'normal' | 'ital'}:${number}` | string | FontConfig)
 
 export interface RuntimeCompatibilitySchema {
   chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false

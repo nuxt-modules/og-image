@@ -1,8 +1,9 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { useNitroOrigin, useStorage } from '#imports'
 import sizeOf from 'image-size'
-import { withBase } from 'ufo'
+import { withBase, withoutLeadingSlash } from 'ufo'
 import { toBase64Image } from '../../../../pure'
+import { decodeHtml } from '../../../util/encoding'
 import { logger } from '../../../util/logger'
 import { defineSatoriTransformer } from '../utils'
 
@@ -10,7 +11,12 @@ async function resolveLocalFilePathImage(publicStoragePath: string, src: string)
   // try hydrating from storage
   // we need to read the file using unstorage
   // because we can't fetch public files using $fetch when prerendering
-  const key = `${publicStoragePath}${src.replace('./', ':').replace('/', ':')}`
+  const normalizedSrc = withoutLeadingSlash(src
+    .replace('_nuxt/@fs/', '')
+    .replace('_nuxt/', '')
+    .replace('./', ''),
+  )
+  const key = `${publicStoragePath}:${normalizedSrc}`
   if (await useStorage().hasItem(key))
     return await useStorage().getItemRaw(key)
 }
@@ -21,7 +27,7 @@ export default defineSatoriTransformer([
   {
     filter: (node: VNode) => node.type === 'img' && node.props?.src,
     transform: async (node: VNode, { e, publicStoragePath, runtimeConfig }: OgImageRenderEventContext) => {
-      const src = node.props.src!
+      let src: string = node.props.src!
       const isRelative = src.startsWith('/')
       let dimensions
       let imageBuffer: BufferSource | undefined
@@ -57,6 +63,8 @@ export default defineSatoriTransformer([
       }
       // avoid trying to fetch base64 image uris
       else if (!src.startsWith('data:')) {
+        src = decodeHtml(src)
+        node.props.src = src
         // see if we can fetch it from a kv host if we're using an edge provider
         imageBuffer = (await $fetch(src, {
           responseType: 'arrayBuffer',
