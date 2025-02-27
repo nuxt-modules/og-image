@@ -1,5 +1,6 @@
 <script setup lang="ts">
 defineProps<{
+  aspectRatio: number
   title?: string
 }>()
 </script>
@@ -7,7 +8,7 @@ defineProps<{
 <template>
   <div class="root max-h-full relative flex">
     <div class="max-h-full border-1 border-solid border-[#cfd9de] rounded-[16px] overflow-hidden">
-      <div class="image-wrap">
+      <div class="image-wrap" :style="{ aspectRatio }">
         <slot />
       </div>
     </div>
@@ -24,7 +25,6 @@ defineProps<{
 
 <style scoped>
 .image-wrap {
-  aspect-ratio: 2 / 1;
   background-color: rgba(0, 0, 0, 0.1);
   opacity: 1;
   height: 300px;
