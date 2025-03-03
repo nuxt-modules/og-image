@@ -155,9 +155,10 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
   let options: OgImageOptions | false = false
   try {
     const payload = parse(_payload)
-    // remove empty values, allow route rules to override, these comes from template param values like title
+    // remove empty values, allow route rules to override, these come from template param values like title,
+    // but allow zero values, for example cacheMaxAgeSeconds = 0
     Object.entries(payload).forEach(([key, value]) => {
-      if (!value)
+      if (!value && value !== 0)
         delete payload[key]
     })
     options = payload
