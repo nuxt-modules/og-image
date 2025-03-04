@@ -21,17 +21,17 @@ export default defineNuxtConfig({
     locales: [
       {
         code: 'en',
-        iso: 'en-US',
+        language: 'en-US',
         file: 'en',
       },
       {
         code: 'es',
-        iso: 'es-ES',
+        language: 'es-ES',
         file: 'en',
       },
       {
         code: 'fr',
-        iso: 'fr-FR',
+        language: 'fr-FR',
         file: 'fr',
       },
     ],
