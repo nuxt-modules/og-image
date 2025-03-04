@@ -8,6 +8,7 @@ import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
 import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
+import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { createGenerator } from '@unocss/core'
 import presetWind from '@unocss/preset-wind3'
@@ -26,7 +27,9 @@ import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 
 export function resolvePathCacheKey(e: H3Event, path: string) {
-  const siteConfig = e.context.siteConfig.get()
+  const siteConfig = useSiteConfig(e, {
+    resolveRefs: true,
+  })
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,

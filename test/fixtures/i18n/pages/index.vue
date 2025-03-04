@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { switchLocalePath, useI18n } from '#imports'
+import { useI18n } from '#imports'
 
-const { locales, t } = useI18n()
+const { locale, locales, t } = useI18n();
+const switchLocalePath = useSwitchLocalePath();
+
+const availableLocales = computed(() => {
+  return locales.value.filter((i) => i.code !== locale.value);
+});
 
 defineOgImageComponent('NuxtSeo', {
   title: t('welcome'),
@@ -15,13 +20,11 @@ defineOgImageComponent('NuxtSeo', {
     <h1>{{ $t('welcome') }}</h1>
     <div>
       <NuxtLink
-        v-for="locale in locales"
+        v-for="locale in availableLocales"
         :key="locale.code"
         :to="switchLocalePath(locale.code)"
       >
-        <button type="button">
-          {{ locale.code }}
-        </button>
+        <button type="button">{{ locale.code }}</button>
       </NuxtLink>
     </div>
   </div>
