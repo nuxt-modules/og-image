@@ -217,7 +217,7 @@ async function doFetchWithErrorHandling(fetch: any, path: string) {
     .catch((err: any) => {
       return err
     })
-  let errorDescription
+  let errorDescription: string
   // if its a redirect let's get the redirect path
   if (res.status >= 300 && res.status < 400) {
     // follow valid redirects
@@ -226,17 +226,28 @@ async function doFetchWithErrorHandling(fetch: any, path: string) {
     }
     errorDescription = `${res.status} redirected to ${res.headers.get('location') || 'unknown'}`
   }
-  else if (res.status >= 400) {
+  // if its an internal error, return the error
+  else if (res.status >= 500) {
     // try get the error message from the response
     errorDescription = `${res.status} error: ${res.statusText}`
   }
+  // status codes 400-499 are not handled here to allow displaying og images for error pages
+
   if (errorDescription) {
     return [null, createError({
       statusCode: 500,
       statusMessage: `[Nuxt OG Image] Failed to parse \`${path}\` for og-image extraction. ${errorDescription}`,
     })]
   }
-  return [res._data || await res.text(), null]
+
+  if (res._data) {
+    return [res._data, null]
+  }
+  else if (res.text) {
+    return [await res.text(), null]
+  }
+
+  return ['', null]
 }
 
 // TODO caching
@@ -276,7 +287,7 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   if (!_payload) {
     return createError({
       statusCode: 500,
-      statusMessage: `[Nuxt OG Image] HTML response from ${path} is missing the #nuxt-og-image-options script tag. Check you have used defined an og image for this page.`,
+      statusMessage: `[Nuxt OG Image] HTML response from ${path} is missing the #nuxt-og-image-options script tag. Make sure you have defined an og image for this page.`,
     })
   }
 
