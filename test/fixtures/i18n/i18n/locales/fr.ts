@@ -1,3 +1,4 @@
 export default {
-  welcome: 'Bienvenue à l\'exemple i18n',
+  welcome: 'Nuxt OG Image x I18n: FR',
+  description: 'Vous pouvez modifier l\'og:image en changeant ces propriétés',
 }
