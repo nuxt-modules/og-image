@@ -32,7 +32,7 @@ export function resolvePathCacheKey(e: H3Event, path: string) {
     (!basePath || basePath === '/') ? 'index' : basePath,
     hash([
       basePath,
-      siteConfig.url,
+      import.meta.prerender ? '' : siteConfig.url,
       hash(getQuery(e)),
     ]),
   ].join(':')
