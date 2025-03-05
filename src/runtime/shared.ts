@@ -1,4 +1,4 @@
-import type { Head } from '@unhead/schema'
+import type { Head } from '@unhead/vue'
 import type { OgImageOptions, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
 import { defu } from 'defu'

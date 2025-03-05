@@ -1,14 +1,19 @@
-import type { Head } from '@unhead/schema'
+import type { Head } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import { useServerHead } from '@unhead/vue'
+import { useHead } from '#imports'
+import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
 import { withQuery } from 'ufo'
 import { unref } from 'vue'
 import { generateMeta, separateProps } from '../shared'
 
 export function createOgImageMeta(src: string | null, input: OgImageOptions | OgImagePrebuilt, resolvedOptions: OgImageOptions, ssrContext: NuxtSSRContext) {
+  if (import.meta.client) {
+    return
+  }
+  const _input = separateProps(defu(input, ssrContext._ogImagePayload))
   const payloads = ssrContext._ogImagePayloads as [string, OgImageOptions, Required<Head>['meta']] || []
   resolvedOptions.key = resolvedOptions.key || 'default'
   const currentPayload = payloads.find(([k]) => k === resolvedOptions.key)
@@ -19,6 +24,34 @@ export function createOgImageMeta(src: string | null, input: OgImageOptions | Og
   if (input._query && Object.keys(input._query).length && url)
     url = withQuery(url, { _query: input._query })
   const meta = generateMeta(url, resolvedOptions)
+  ssrContext._ogImageInstances = ssrContext._ogImageInstances || []
+  const script: Head['script'] = []
+  if (src) {
+    script.push({
+      id: 'nuxt-og-image-options',
+      type: 'application/json',
+      processTemplateParams: true,
+      innerHTML: () => {
+        const payload = resolveUnrefHeadInput(_input)
+        if (typeof payload.props.title === 'undefined')
+          payload.props.title = '%s'
+        delete payload.url
+        if (payload._query && Object.keys(payload._query).length === 0) {
+          delete payload._query
+        }
+        // don't apply defaults
+        return stringify(payload)
+      },
+      // we want this to be last in our head
+      tagPosition: 'bodyClose',
+    })
+  }
+
+  const instance = useHead({
+    script,
+    meta,
+  }, {
+    tagPriority: 'high',
   if (!currentPayload) {
     payloads.push([resolvedOptions.key, _input, meta])
   }

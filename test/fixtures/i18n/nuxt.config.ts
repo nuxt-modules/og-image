@@ -13,25 +13,23 @@ export default defineNuxtConfig({
     debug: true,
   },
   i18n: {
-    baseUrl: 'https://nuxtseo.com',
-    detectBrowserLanguage: false,
+    // baseUrl: 'https://nuxtseo.com',
     defaultLocale: 'en',
     langDir: 'locales',
-    strategy: 'prefix',
     locales: [
       {
         code: 'en',
-        iso: 'en-US',
+        language: 'en-US',
         file: 'en',
       },
       {
         code: 'es',
-        iso: 'es-ES',
+        language: 'es-ES',
         file: 'en',
       },
       {
         code: 'fr',
-        iso: 'fr-FR',
+        language: 'fr-FR',
         file: 'fr',
       },
     ],

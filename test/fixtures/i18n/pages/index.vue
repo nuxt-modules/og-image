@@ -1,19 +1,33 @@
 <script setup lang="ts">
-import { prerenderRoutes } from '#imports'
+import { useI18n } from '#imports'
 
-prerenderRoutes([
-  '/en/dynamic/foo',
-  '/en/dynamic/bar',
-])
+const { locale, locales, t } = useI18n()
+const switchLocalePath = useSwitchLocalePath()
 
-const i18n = useNuxtApp().$i18n
-defineOgImage({
-  title: i18n.t('welcome'),
+const availableLocales = computed(() => {
+  return locales.value.filter(i => i.code !== locale.value)
+})
+
+defineOgImageComponent('NuxtSeo', {
+  title: t('welcome'),
+  description: t('description'),
+  colorMode: 'dark',
 })
 </script>
 
 <template>
   <div>
     <h1>{{ $t('welcome') }}</h1>
+    <div>
+      <NuxtLink
+        v-for="locale in availableLocales"
+        :key="locale.code"
+        :to="switchLocalePath(locale.code)"
+      >
+        <button type="button">
+          {{ locale.code }}
+        </button>
+      </NuxtLink>
+    </div>
   </div>
 </template>
