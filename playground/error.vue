@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { defineOgImageComponent } from '#imports'
 import type { NuxtError } from '#app'
+import { defineOgImageComponent } from '#imports'
 
 const props = defineProps<{
   error: NuxtError
@@ -13,6 +13,7 @@ defineOgImageComponent('NuxtSeo', {
   colorMode: 'dark',
 })
 </script>
+
 <template>
   <p>{{ error.statusCode }} - {{ error.statusMessage }}</p>
 </template>

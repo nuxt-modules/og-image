@@ -3,9 +3,10 @@ import { createError } from '#imports'
 
 throw createError({
   statusCode: 404,
-  statusMessage: 'Not found'
+  statusMessage: 'Not found',
 })
 </script>
+
 <template>
   <p>not found page</p>
 </template>

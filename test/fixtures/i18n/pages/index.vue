@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from '#imports'
 
-const { locale, locales, t } = useI18n();
-const switchLocalePath = useSwitchLocalePath();
+const { locale, locales, t } = useI18n()
+const switchLocalePath = useSwitchLocalePath()
 
 const availableLocales = computed(() => {
-  return locales.value.filter((i) => i.code !== locale.value);
-});
+  return locales.value.filter(i => i.code !== locale.value)
+})
 
 defineOgImageComponent('NuxtSeo', {
   title: t('welcome'),
@@ -24,7 +24,9 @@ defineOgImageComponent('NuxtSeo', {
         :key="locale.code"
         :to="switchLocalePath(locale.code)"
       >
-        <button type="button">{{ locale.code }}</button>
+        <button type="button">
+          {{ locale.code }}
+        </button>
       </NuxtLink>
     </div>
   </div>
