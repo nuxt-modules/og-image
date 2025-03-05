@@ -44,6 +44,12 @@ describe('build', () => {
     })
 
     expect(Buffer.from(defaults)).toMatchImageSnapshot()
+
+    const errorPageImage: ArrayBuffer = await $fetch('/prefix/__og-image__/image/not-found/og.png', {
+      responseType: 'arrayBuffer',
+    })
+
+    expect(Buffer.from(errorPageImage)).toMatchImageSnapshot()
   }, 60000)
 
   it('dynamic images', async () => {
