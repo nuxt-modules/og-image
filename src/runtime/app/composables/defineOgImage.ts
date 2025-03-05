@@ -1,4 +1,3 @@
-import type { ActiveHeadEntry } from '@unhead/vue'
 import type { DefineOgImageInput, OgImageOptions } from '../../types'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
