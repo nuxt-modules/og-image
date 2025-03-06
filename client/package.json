@@ -11,7 +11,7 @@
     "json-editor-vue": "^0.18.1",
     "nuxt": "latest",
     "shiki": "^3.1.0",
-    "splitpanes": "^3.1.8",
+    "splitpanes": "^4.0.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   }
