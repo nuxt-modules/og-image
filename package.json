@@ -128,7 +128,7 @@
     "bumpp": "^10.0.3",
     "eslint": "9.21.0",
     "jest-image-snapshot": "^6.4.0",
-    "nuxt": "^3.15.4",
+    "nuxt": "npm:nuxt-nightly@3.16.0-29018824.25cd5bff",
     "playwright": "^1.50.1",
     "sass": "^1.85.1",
     "sharp": "^0.33.5",

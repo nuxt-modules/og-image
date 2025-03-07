@@ -2,8 +2,8 @@ import { defineNitroPlugin } from '#imports'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { parseURL } from 'ufo'
-import { isInternalRoute } from '../../pure'
-import { extractAndNormaliseOgImageOptions, resolvePathCacheKey } from '../og-image/context'
+import { extractSocialPreviewTags, isInternalRoute } from '../../pure'
+import { resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 
 export default defineNitroPlugin(async (nitro) => {
@@ -21,7 +21,7 @@ export default defineNitroPlugin(async (nitro) => {
     if (routeRules.ogImage === false)
       return
     // when prerendering we want to cache the options for a quicker response when we render the image
-    const options = extractAndNormaliseOgImageOptions([
+    const options = extractSocialPreviewTags([
       head.join('\n'),
       bodyAppend.join('\n'),
     ].join('\n'))

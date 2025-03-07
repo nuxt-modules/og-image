@@ -2,11 +2,10 @@ import type { H3Error, H3Event } from 'h3'
 import type {
   OgImageOptions,
   OgImageRenderEventContext,
-  SocialPreviewMetaData,
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
-import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
+import { prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
@@ -20,9 +19,7 @@ import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
 import { separateProps, useOgImageRuntimeConfig } from '../../shared'
-import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
-import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 
@@ -64,28 +61,26 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     })
   }
   let queryParams = { ...getQuery(e) }
-  queryParams.props = JSON.parse(queryParams.props || '{}')
-  queryParams = separateProps(queryParams)
+  queryParams = separateProps(defu(queryParams.s ? parse(queryParams.s) : {}, { ...queryParams, s: undefined }))
+  // the key is the name of the file without the extension, i.e 2.png -> 2
+  const ogImageKey = (path.split('/').pop() as string).replace(`.${extension}`, '')
   let basePath = withoutTrailingSlash(path
     .replace(`/__og-image__/image`, '')
     .replace(`/__og-image__/static`, '')
-    .replace(`/og.${extension}`, ''),
+    .replace(`/${ogImageKey}.${extension}`, ''),
   )
   if (queryParams._query)
     basePath = withQuery(basePath, JSON.parse(queryParams._query))
-  const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
-  const key = resolvePathCacheKey(e, basePath)
+  const isDevToolsContextRequest = extension === 'json'
+  const cacheKey = resolvePathCacheKey(e, basePath)
   let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions
   if (!options) {
+    let payloads = []
     if (import.meta.prerender) {
-      options = await prerenderOptionsCache!.getItem(key)
+      const res = await prerenderOptionsCache!.getItem(cacheKey)
+      payloads = res?.[0] || []
     }
-    if (!options) {
-      const payload = await fetchPathHtmlAndExtractOptions(e, basePath, key)
-      if (payload instanceof Error)
-        return payload
-      options = payload
-    }
+    options = payloads?.find(([k]) => String(k) === ogImageKey)?.[1] || {}
   }
   // no matter how we get the options, apply the defaults and the normalisation
   delete queryParams.options
@@ -105,6 +100,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       statusMessage: '[Nuxt OG Image] OG Image not found.',
     })
   }
+
   // TODO merge in component data from component-names, we want the hash to use as a cache key
   let renderer: typeof SatoriRenderer | typeof ChromiumRenderer | undefined
   switch (options.renderer) {
@@ -129,9 +125,9 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const ctx: OgImageRenderEventContext = {
     unocss,
     e,
-    key,
+    key: cacheKey,
     renderer,
-    isDebugJsonPayload,
+    isDevToolsContextRequest,
     runtimeConfig,
     publicStoragePath: runtimeConfig.publicStoragePath,
     extension,

@@ -42,7 +42,7 @@
   word-wrap: break-word;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  height: 300px;
+  min-height: 300px;
 }
 .siteName {
   font-weight: bold;
@@ -51,7 +51,9 @@
   word-wrap: break-word;
 }
 .description {
-  color: #2c2d30;
+  color: white;
+  opacity: 0.7;
+  margin-bottom: 8px;
 }
 .title {
   color: #0576b9;

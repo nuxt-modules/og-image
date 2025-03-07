@@ -1,5 +1,7 @@
 import type { H3Event } from 'h3'
 import type { ResolvedFontConfig } from '../../types'
+import { fetchPathHtmlAndExtractOptions } from '#og-image/server/og-image/devtools'
+import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
 import { parseURL } from 'ufo'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../shared'
@@ -102,26 +104,21 @@ export async function imageEventHandler(e: H3Event) {
   if (ctx instanceof H3Error)
     return ctx
 
-  const { isDebugJsonPayload, extension, options, renderer } = ctx
+  const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey } = useOgImageRuntimeConfig()
-  const compatibilityHints: string[] = []
+  // const compatibilityHints: string[] = []
   // debug
-  if (isDebugJsonPayload) {
-    const queryExtension = getQuery(e).extension || ctx.options.extension
+  if (import.meta.dev && isDevToolsContextRequest) {
+    // const queryExtension = getQuery(e).extension || ctx.options.extension
     // figure out compatibilityHints based on what we're using
-    if (['jpeg', 'jpg'].includes(queryExtension) && options.renderer === 'satori')
-      compatibilityHints.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
-    if (options.renderer === 'chromium')
-      compatibilityHints.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
+    // if (['jpeg', 'jpg'].includes(queryExtension) && options.renderer === 'satori')
+    //   compatibilityHints.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
+    // if (options.renderer === 'chromium')
+    //   compatibilityHints.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
     setHeader(e, 'Content-Type', 'application/json')
     return {
-      siteConfig: {
-        url: e.context.siteConfig.get().url,
-      },
-      compatibilityHints,
-      cacheKey: ctx.key,
-      options: ctx.options,
-      ...(options.renderer === 'satori' ? await renderer.debug(ctx) : undefined),
+      extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
+      siteUrl: useSiteConfig(e).url,
     }
   }
   switch (extension) {

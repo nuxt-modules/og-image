@@ -5,6 +5,7 @@ const props = defineProps<{
   src: string
   aspectRatio: number
   maxHeight?: number
+  minHeight?: number
   maxWidth?: number
 }>()
 // emits a load event
@@ -52,7 +53,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div ref="image" :style="{ aspectRatio }">
+  <div ref="image" :style="{ aspectRatio, minHeight }">
     <NLoading v-if="loading" />
   </div>
 </template>
@@ -60,14 +61,11 @@ onMounted(() => {
 <style scoped>
 div {
   cursor: pointer;
-  max-height: 600px;
-  height: auto;
-  width: auto;
+  height: 100%;
   margin: 0 auto;
-  max-width: 1200px;
+  width: 100%;
   transition: 0.4s ease-in-out;
   background-color: white;
   background-size: contain;
-  aspect-ratio: 2 / 1
 }
 </style>
