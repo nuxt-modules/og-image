@@ -1,7 +1,4 @@
-const empty = Object.freeze(
-  Object.create(null, {
-    __mock__: { get: () => true },
-  }),
-)
+// @ts-expect-error missing types
+import empty from 'mocked-exports/empty'
 
 export default empty
