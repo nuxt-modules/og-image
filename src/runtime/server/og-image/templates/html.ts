@@ -1,7 +1,7 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
-import { renderSSRHead } from '@unhead/ssr'
 import { createHeadCore } from '@unhead/vue'
+import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { fetchIsland } from '../../util/kit'

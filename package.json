@@ -64,7 +64,7 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^1.0.0 || ^2.0.0",
+    "@unhead/vue": "^2.0.0-rc.1",
     "unstorage": "^1.0.0"
   },
   "dependencies": {
@@ -72,7 +72,6 @@
     "@nuxt/kit": "^3.16.0",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
-    "@unhead/ssr": "^1.11.20",
     "@unocss/core": "^66.0.0",
     "@unocss/preset-wind3": "^66.0.0",
     "chrome-launcher": "^1.1.2",
@@ -100,7 +99,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.7.0",
+    "@antfu/eslint-config": "^4.8.1",
     "@css-inline/css-inline": "^0.14.3",
     "@headlessui/vue": "^1.7.23",
     "@iconify-json/carbon": "^1.2.8",
@@ -119,14 +118,14 @@
     "@nuxt/ui": "^2.21.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "^9.2.1",
+    "@nuxtjs/i18n": "^9.3.0",
     "@nuxtjs/tailwindcss": "^6.13.1",
     "@unocss/nuxt": "^66.0.0",
     "@unocss/preset-icons": "^66.0.0",
     "@unocss/runtime": "^66.0.0",
     "@vueuse/nuxt": "^12.8.2",
     "bumpp": "^10.0.3",
-    "eslint": "9.21.0",
+    "eslint": "9.22.0",
     "jest-image-snapshot": "^6.4.0",
     "nuxt": "^3.16.0",
     "playwright": "^1.51.0",
