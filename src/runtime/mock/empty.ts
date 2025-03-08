@@ -1,3 +1,7 @@
-import empty from 'unenv/mock/empty'
+const empty = Object.freeze(
+  Object.create(null, {
+    __mock__: { get: () => true },
+  }),
+)
 
 export default empty
