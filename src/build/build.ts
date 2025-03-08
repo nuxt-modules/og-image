@@ -18,12 +18,12 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
     // patch implicit dependencies:
     // - playwright-core
-    nitroConfig.alias!.electron = 'unenv/runtime/mock/proxy-cjs'
-    nitroConfig.alias!.bufferutil = 'unenv/runtime/mock/proxy-cjs'
-    nitroConfig.alias!['utf-8-validate'] = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!.electron = 'unenv/mock/proxy-cjs'
+    nitroConfig.alias!.bufferutil = 'unenv/mock/proxy-cjs'
+    nitroConfig.alias!['utf-8-validate'] = 'unenv/mock/proxy-cjs'
     // - image-size
-    nitroConfig.alias!.queue = 'unenv/runtime/mock/proxy-cjs'
-    nitroConfig.alias!['chromium-bidi'] = 'unenv/runtime/mock/proxy-cjs'
+    nitroConfig.alias!.queue = 'unenv/mock/proxy-cjs'
+    nitroConfig.alias!['chromium-bidi'] = 'unenv/mock/proxy-cjs'
   })
 
   // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
