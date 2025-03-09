@@ -80,6 +80,7 @@
     "execa": "^9.5.2",
     "image-size": "^2.0.0",
     "magic-string": "^0.30.17",
+    "mocked-exports": "^0.1.0",
     "nuxt-site-config": "^3.1.4",
     "nypm": "^0.6.0",
     "ofetch": "^1.4.1",
@@ -94,7 +95,6 @@
     "std-env": "^3.8.1",
     "strip-literal": "^3.0.0",
     "ufo": "^1.5.4",
-    "unenv": "^2.0.0-rc.12",
     "unplugin": "^2.2.0",
     "unwasm": "^0.3.9",
     "yoga-wasm-web": "^0.3.3"
