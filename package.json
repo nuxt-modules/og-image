@@ -124,7 +124,7 @@
     "@unocss/nuxt": "^66.0.0",
     "@unocss/preset-icons": "^66.0.0",
     "@unocss/runtime": "^66.0.0",
-    "@vueuse/nuxt": "^12.8.2",
+    "@vueuse/nuxt": "^13.0.0",
     "bumpp": "^10.0.3",
     "eslint": "9.22.0",
     "jest-image-snapshot": "^6.4.0",
