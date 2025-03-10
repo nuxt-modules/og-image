@@ -64,8 +64,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.0-rc.1",
-    "unstorage": "^1.0.0"
+    "@unhead/vue": "^2.0.0-rc.9",
+    "unstorage": "^1.15.0"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.2.1",
@@ -80,7 +80,7 @@
     "execa": "^9.5.2",
     "image-size": "^2.0.0",
     "magic-string": "^0.30.17",
-    "mocked-exports": "^0.1.0",
+    "mocked-exports": "^0.1.1",
     "nuxt-site-config": "^3.1.4",
     "nypm": "^0.6.0",
     "ofetch": "^1.4.1",
@@ -115,11 +115,11 @@
     "@nuxt/icon": "^1.10.3",
     "@nuxt/image": "^1.9.0",
     "@nuxt/module-builder": "^0.8.4",
-    "@nuxt/test-utils": "3.17.1",
-    "@nuxt/ui": "^2.21.0",
+    "@nuxt/test-utils": "3.17.2",
+    "@nuxt/ui": "^2.21.1",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "^9.3.0",
+    "@nuxtjs/i18n": "^9.3.1",
     "@nuxtjs/tailwindcss": "^6.13.1",
     "@unocss/nuxt": "^66.0.0",
     "@unocss/preset-icons": "^66.0.0",
@@ -132,7 +132,7 @@
     "playwright": "^1.51.0",
     "sass": "^1.85.1",
     "sharp": "^0.33.5",
-    "typescript": "5.6.3",
+    "typescript": "5.8.2",
     "unocss": "^66.0.0",
     "vitest": "^3.0.8"
   },
@@ -147,6 +147,6 @@
     ]
   },
   "resolutions": {
-    "typescript": "5.6.3"
+    "typescript": "5.8.2"
   }
 }
