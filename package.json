@@ -116,7 +116,7 @@
     "@nuxt/image": "^1.9.0",
     "@nuxt/module-builder": "^0.8.4",
     "@nuxt/test-utils": "3.17.1",
-    "@nuxt/ui": "^2.21.0",
+    "@nuxt/ui": "^3.0.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@nuxtjs/i18n": "^9.3.0",
