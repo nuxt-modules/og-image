@@ -20,7 +20,8 @@ defineOgImageComponent('NuxtSeo', {
     <h1>{{ $t('welcome') }}</h1>
     <div>
       <NuxtLink
-        v-for="locale in availableLocales"
+        v-for="(locale, key) in availableLocales"
+        :key="key"
         :key="locale.code"
         :to="switchLocalePath(locale.code)"
       >

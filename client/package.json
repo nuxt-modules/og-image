@@ -6,12 +6,12 @@
     "@nuxt/devtools-kit": "2.1.0",
     "@nuxt/devtools-ui-kit": "2.1.0",
     "@nuxt/kit": "^3.16.0",
-    "@vueuse/core": "^12.8.2",
+    "@vueuse/core": "^13.0.0",
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.18.1",
     "nuxt": "3.16.0",
-    "shiki": "^3.1.0",
-    "splitpanes": "^4.0.0",
+    "shiki": "^3.2.1",
+    "splitpanes": "^4.0.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   }
