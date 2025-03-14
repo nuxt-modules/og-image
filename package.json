@@ -64,8 +64,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.0-rc.1",
-    "unstorage": "^1.0.0"
+    "@unhead/vue": "^2.0.0-rc.13",
+    "unstorage": "^1.15.0"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.3.0",
@@ -110,12 +110,12 @@
     "@iconify-json/tabler": "^1.2.17",
     "@img/sharp-linux-x64": "0.33.5",
     "@nuxt/content": "^3.3.0",
-    "@nuxt/devtools": "2.2.1",
-    "@nuxt/devtools-ui-kit": "2.2.1",
+    "@nuxt/devtools": "2.3.0",
+    "@nuxt/devtools-ui-kit": "2.3.0",
     "@nuxt/icon": "^1.11.0",
     "@nuxt/image": "^1.9.0",
     "@nuxt/module-builder": "^0.8.4",
-    "@nuxt/test-utils": "3.17.1",
+    "@nuxt/test-utils": "3.17.2",
     "@nuxt/ui": "^3.0.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
@@ -132,7 +132,7 @@
     "playwright": "^1.51.0",
     "sass": "^1.85.1",
     "sharp": "^0.33.5",
-    "typescript": "5.6.3",
+    "typescript": "5.8.2",
     "unocss": "^66.0.0",
     "vitest": "^3.0.8"
   },
@@ -147,6 +147,6 @@
     ]
   },
   "resolutions": {
-    "typescript": "5.6.3"
+    "typescript": "5.8.2"
   }
 }
