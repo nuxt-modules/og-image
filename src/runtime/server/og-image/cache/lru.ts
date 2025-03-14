@@ -5,12 +5,12 @@ import lruCacheDriver from 'unstorage/drivers/lru-cache'
 
 export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }> = createStorage<{ expiresAt: number, value: OgImageOptions }>({
   // short cache time so we don't need many entries at runtime
-  driver: lruCacheDriver({ max: import.meta.prerender ? 10000 : 50 }),
+  driver: lruCacheDriver({ max: import.meta.prerender ? 100 : 50 }),
 })
 
 export const prerenderOptionsCache: Storage<OgImageOptions> | undefined = import.meta.prerender
   ? createStorage<OgImageOptions>({
-      driver: lruCacheDriver({ max: 10000 }),
+      driver: lruCacheDriver({ max: 100 }),
     })
   : undefined
 
