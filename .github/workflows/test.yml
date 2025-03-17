@@ -1,12 +1,15 @@
 name: Test
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
       - main
     paths-ignore:
       - '**/README.md'
-  pull_request:
+  pull_request_target:
     branches:
       - main
 
