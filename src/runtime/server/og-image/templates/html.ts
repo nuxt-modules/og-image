@@ -114,7 +114,11 @@ svg[data-emoji] {
   })
 
   // need to remove ALL script tags from the html
-  html = html.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  let previousHtml;
+  do {
+    previousHtml = html;
+    html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  } while (html !== previousHtml);
 
   const headChunk = await renderSSRHead(head)
   return `<!DOCTYPE html>
