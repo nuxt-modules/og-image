@@ -3580,6 +3580,8 @@ export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIs
       if (!svg) {
         svg = await $fetch(`https://api.iconify.design/${ctx.options.emojis}/${emoji}.svg`, {
           responseType: 'text',
+          retry: 3,
+          retryDelay: 1000,
         })
         if (svg === '404')
           svg = undefined
