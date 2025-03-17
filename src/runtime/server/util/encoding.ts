@@ -7,7 +7,6 @@ export function htmlDecodeQuotes(html: string) {
 export function decodeHtml(html: string) {
   return html.replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
     // money symbols
     .replace(/&cent;/g, '¢')
     .replace(/&pound;/g, '£')
@@ -22,6 +21,7 @@ export function decodeHtml(html: string) {
     .replace(/&#(\d+);/g, (full, int) => {
       return String.fromCharCode(Number.parseInt(int))
     })
+    .replace(/&amp;/g, '&')
 }
 export function decodeObjectHtmlEntities(obj: Record<string, string | any>) {
   Object.entries(obj).forEach(([key, value]) => {
