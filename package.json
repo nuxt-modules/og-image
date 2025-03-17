@@ -81,7 +81,7 @@
     "image-size": "^2.0.1",
     "magic-string": "^0.30.17",
     "mocked-exports": "^0.1.1",
-    "nuxt-site-config": "^3.1.5",
+    "nuxt-site-config": "^3.1.6",
     "nypm": "^0.6.0",
     "ofetch": "^1.4.1",
     "ohash": "^2.0.11",
@@ -134,7 +134,7 @@
     "sharp": "^0.33.5",
     "typescript": "5.6.3",
     "unocss": "^66.0.0",
-    "vitest": "^3.0.8"
+    "vitest": "^3.0.9"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
