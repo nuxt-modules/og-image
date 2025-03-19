@@ -3,6 +3,7 @@ import type { NitroRouteRules } from 'nitropack'
 import type { NuxtApp } from 'nuxt/app'
 import type { OgImageOptions } from '../../types'
 import { useRequestEvent, withSiteUrl } from '#imports'
+import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
 import { parse, stringify } from 'devalue'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
@@ -21,6 +22,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
     if (isInternalRoute(path))
       return
 
+    ssrContext?.head.use(TemplateParamsPlugin)
     // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
     ssrContext?.head.use({
       key: 'nuxt-og-image:overrides-and-canonical-urls',

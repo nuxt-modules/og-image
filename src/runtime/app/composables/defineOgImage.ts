@@ -14,8 +14,6 @@ import { createOgImageMeta, normaliseOptions } from '../utils'
 export function defineOgImage(_options: DefineOgImageInput = {}) {
   const nuxtApp = useNuxtApp()
   const route = useRoute()
-  const head = injectHead()
-  head.use(TemplateParamsPlugin)
   const basePath = route.path || '/' // (pages may be disabled)'
   // if we're loading the same path as the SSR response
   if (nuxtApp.payload.path === basePath) {
