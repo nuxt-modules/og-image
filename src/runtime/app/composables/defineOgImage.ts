@@ -1,5 +1,7 @@
 import type { ActiveHeadEntry } from '@unhead/vue'
 import type { DefineOgImageInput, OgImageOptions } from '../../types'
+import { injectHead } from '#imports'
+import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
 import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
@@ -12,6 +14,8 @@ import { createOgImageMeta, normaliseOptions } from '../utils'
 export function defineOgImage(_options: DefineOgImageInput = {}) {
   const nuxtApp = useNuxtApp()
   const route = useRoute()
+  const head = injectHead()
+  head.use(TemplateParamsPlugin)
   const basePath = route.path || '/' // (pages may be disabled)'
   // if we're loading the same path as the SSR response
   if (nuxtApp.payload.path === basePath) {
