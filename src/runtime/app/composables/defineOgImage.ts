@@ -1,7 +1,5 @@
 import type { ActiveHeadEntry } from '@unhead/vue'
 import type { DefineOgImageInput, OgImageOptions } from '../../types'
-import { injectHead } from '#imports'
-import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
 import { appendHeader } from 'h3'
 import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
