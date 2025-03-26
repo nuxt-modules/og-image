@@ -7,13 +7,13 @@ declare module '#og-image/components' {
 declare module '#og-image/renderers/satori' {
   import type Renderer from './src/runtime/types'
 
-  const renderer: Renderer | { __unenv__: true } | undefined
+  const renderer: Renderer | { __mock__: true } | undefined
   export default renderer
 }
 declare module '#og-image/renderers/chromium' {
   import type Renderer from './src/runtime/types'
 
-  const renderer: Renderer | { __unenv__: true } | undefined
+  const renderer: Renderer | { __mock__: true } | undefined
   export default renderer
 }
 
