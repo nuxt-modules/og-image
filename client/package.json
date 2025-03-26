@@ -9,7 +9,7 @@
     "@vueuse/core": "^13.0.0",
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.18.1",
-    "nuxt": "3.16.0",
+    "nuxt": "3.16.1",
     "shiki": "^3.2.1",
     "splitpanes": "^4.0.3",
     "vue": "^3.5.13",
