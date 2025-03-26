@@ -44,6 +44,8 @@ export interface OgImageRuntimeConfig {
   strictNuxtContentPaths: boolean
   zeroRuntime: boolean
 
+  componentDirs?: string[]
+
   app: {
     baseURL: string
   }
