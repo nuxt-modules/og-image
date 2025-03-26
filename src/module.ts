@@ -109,7 +109,7 @@ export interface ModuleOptions {
   /**
    * Extra component directories that should be used to resolve components.
    *
-   * @default ['OgImage', 'OgImageTemplate']
+   * @default ['OgImage', 'og-image', 'OgImageTemplate']
    */
   componentDirs: string[]
   /**
@@ -146,6 +146,8 @@ function isProviderEnabledForEnv(provider: keyof CompatibilityFlags, nuxt: Nuxt,
   return (nuxt.options.dev && config.compatibility?.dev?.[provider] !== false) || (!nuxt.options.dev && (config.compatibility?.runtime?.[provider] !== false || config.compatibility?.prerender?.[provider] !== false))
 }
 
+const defaultComponentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
+
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
@@ -168,7 +170,7 @@ export default defineNuxtModule<ModuleOptions>({
         // default is to cache the image for 3 day (72 hours)
         cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
-      componentDirs: ['OgImage', 'OgImageTemplate'],
+      componentDirs: defaultComponentDirs,
       fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
@@ -475,6 +477,19 @@ export default defineNuxtModule<ModuleOptions>({
     // allows us to add og images using route rules without calling defineOgImage
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
+
+    for (const componentDir of config.componentDirs) {
+      const path = resolve(nuxt.options.srcDir, 'components', componentDir)
+      if (existsSync(path)) {
+        addComponentsDir({
+          path,
+          island: true,
+        })
+      }
+      else if (!defaultComponentDirs.includes(componentDir)) {
+        logger.warn(`The configured component directory \`./${relative(nuxt.options.rootDir, path)}\` does not exist. Skipping.`)
+      }
+    }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[] } = { components: [] }
