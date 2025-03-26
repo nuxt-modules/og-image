@@ -1,4 +1,4 @@
-import type { V as VueHeadClient } from '@unhead/vue/dist/shared/vue.71760da0'
+import type { VueHeadClient } from '@unhead/vue'
 import type { OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from '../../src/runtime/types'
 import { appFetch, devtoolsClient, useAsyncData } from '#imports'
 import { joinURL } from 'ufo'
