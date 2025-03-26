@@ -169,7 +169,8 @@ export default defineNuxtModule<ModuleOptions>({
     }
   },
   async setup(config, nuxt) {
-    const { resolve } = createResolver(import.meta.url)
+    const resolver = createResolver(import.meta.url)
+    const { resolve } = resolver
     const { version } = await readPackageJSON(resolve('../package.json'))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
@@ -611,19 +612,19 @@ declare module '#og-image/unocss-config' {
 
     // Setup playground. Only available in development
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolve)
+      setupDevHandler(config, resolver)
       setupDevToolsUI(config, resolve)
     }
     else if (isNuxtGenerate()) {
-      setupGenerateHandler(config, resolve)
+      setupGenerateHandler(config, resolver)
     }
     else if (nuxt.options.build) {
-      await setupBuildHandler(config, resolve)
+      await setupBuildHandler(config, resolver)
     }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
-    setupPrerenderHandler(config, resolve)
+    setupPrerenderHandler(config, resolver)
   },
 })
