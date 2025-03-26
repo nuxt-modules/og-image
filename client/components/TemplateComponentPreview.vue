@@ -10,6 +10,8 @@ const props = defineProps<{
   component: OgImageComponent
   active: boolean
   imageFormat: string
+  width: string
+  height: string
 }>()
 
 function openComponent() {
@@ -39,7 +41,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
     </div>
     <div class="border-2 group-hover:shadow-sm rounded-[0.35rem] border-transparent hover:border-yellow-500 transition-all">
       <VTooltip>
-        <div class="w-[300px] h-[150px] relative">
+        <div class="h-[150px] relative" :style="{ aspectRatio }">
           <NIcon v-if="active" icon="carbon:checkmark-filled" class="absolute top-2 right-2 text-green-500" />
           <ImageLoader
             v-if="!isHtml"

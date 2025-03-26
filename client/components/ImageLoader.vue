@@ -6,6 +6,7 @@ const props = defineProps<{
   aspectRatio: number
   maxHeight?: number
   maxWidth?: number
+  minHeight?: number
 }>()
 // emits a load event
 const emit = defineEmits(['load'])
@@ -20,6 +21,10 @@ function setSource(src: string) {
     lastSrc.value = src
     loading.value = true
     img.style.backgroundImage = ''
+    img.style.backgroundRepeat = 'no-repeat'
+    img.style.backgroundSize = 'contain'
+    img.style.backgroundPosition = 'center'
+    img.style.maxWidth = '1200px'
     const now = Date.now()
     // we want to do a fetch of the image so we can get the size of it in kb
     $fetch.raw(src, {
@@ -52,7 +57,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div ref="image" :style="{ aspectRatio }">
+  <div ref="image" :style="{ aspectRatio, minHeight }">
     <NLoading v-if="loading" />
   </div>
 </template>
@@ -60,14 +65,11 @@ onMounted(() => {
 <style scoped>
 div {
   cursor: pointer;
-  max-height: 600px;
-  height: auto;
-  width: auto;
+  height: 100%;
   margin: 0 auto;
-  max-width: 1200px;
+  width: 100%;
   transition: 0.4s ease-in-out;
   background-color: white;
   background-size: contain;
-  aspect-ratio: 2 / 1
 }
 </style>

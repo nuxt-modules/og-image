@@ -161,7 +161,7 @@ const slackSocialPreviewSiteName = computed(() => {
 })
 
 function toggleSocialPreview(preview?: string) {
-  if (!preview || preview === socialPreview.value)
+  if (!preview)
     socialPreview.value = ''
   else
     socialPreview.value = preview!
@@ -381,15 +381,8 @@ async function ejectComponent(component: string) {
         </div>
         <div class="items-center space-x-3 hidden lg:flex">
           <div class="opacity-80 text-sm">
-            <NLink href="https://github.com/sponsors/harlan-zw" target="_blank">
-              <NIcon icon="carbon:favorite" class="mr-[2px]" />
-              Sponsor
-            </NLink>
-          </div>
-          <div class="opacity-80 text-sm">
             <NLink href="https://github.com/nuxt-modules/og-image" target="_blank">
-              <NIcon icon="logos:github-icon" class="mr-[2px]" />
-              Submit an issue
+              GitHub
             </NLink>
           </div>
           <a href="https://nuxtseo.com" target="_blank" class="flex items-end gap-1.5 font-semibold text-xl dark:text-white font-title">
@@ -408,13 +401,13 @@ async function ejectComponent(component: string) {
               </div>
               <div class="flex items-center w-[100px]">
                 <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
-                <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
+                <NButton icon="fa6-brands:x-twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
                 <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
               </div>
             </div>
             <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle">
               <template #domain>
-                <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
+                <a target="_blank" :href="withHttps(socialSiteUrl)">{{ socialSiteUrl }}</a>
               </template>
               <ImageLoader
                 :src="src"
@@ -485,10 +478,10 @@ async function ejectComponent(component: string) {
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
-                  <NButton v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium'" icon="carbon:jpg" :border="imageFormat === 'jpeg' || imageFormat === 'jpg'" @click="patchOptions({ extension: 'jpg' })" />
-                  <NButton icon="carbon:png" :border="imageFormat === 'png'" @click="patchOptions({ extension: 'png' })" />
-                  <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :border="imageFormat === 'svg'" @click="patchOptions({ extension: 'svg' })" />
-                  <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchOptions({ extension: 'html' })" />
+                  <NButton v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium'" icon="carbon:jpg" :class="imageFormat === 'jpeg' || imageFormat === 'jpg' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'jpg' })" />
+                  <NButton icon="carbon:png" :class="imageFormat === 'png' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'png' })" />
+                  <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :class="imageFormat === 'svg' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'svg' })" />
+                  <NButton v-if="!isPageScreenshot" icon="carbon:html" :class="imageFormat === 'html' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'html' })" />
                 </div>
                 <div class="text-xs">
                   <div v-if="!isPageScreenshot" class="opacity-70 space-x-1 hover:opacity-90 transition cursor-pointer">
@@ -500,13 +493,18 @@ async function ejectComponent(component: string) {
                     Screenshot of the current page.
                   </div>
                 </div>
-                <div class="flex items-center w-[100px]">
-                  <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
-                  <NButton icon="logos:twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
+                <div class="flex items-center space-x-1">
+                  <VTooltip v-if="!isCustomOgImage">
+                    <NButton class="p-4" icon="carbon:drag-horizontal" :class="!socialPreview ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="toggleSocialPreview()" />
+                    <template #popper>
+                      Preview full width
+                    </template>
+                  </VTooltip>
+                  <NButton class="p-4" :class="socialPreview === 'twitter' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:x" @click="toggleSocialPreview('twitter')" />
                   <!--                  <NButton icon="logos:facebook" :border="socialPreview === 'facebook'" @click="socialPreview = 'facebook'" /> -->
-                  <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
-                  <!--                  <NButton icon="logos:whatsapp-icon" :border="socialPreview === 'discord'" @click="socialPreview = 'discord'" /> -->
-                  <VTooltip>
+                  <NButton class="p-4" :class="socialPreview === 'slack' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:slack" @click="toggleSocialPreview('slack')" />
+                  <NButton class="p-4" :class="socialPreview === 'whatsapp' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:whatsapp" @click="toggleSocialPreview('whatsapp')" />
+                  <VTooltip v-if="!isCustomOgImage">
                     <button text-lg="" type="button" class=" n-icon-button n-button n-transition n-disabled:n-disabled" @click="sidePanelOpen = !sidePanelOpen">
                       <div v-if="sidePanelOpen" class="n-icon carbon:side-panel-open" />
                       <div v-else class="n-icon carbon:open-panel-right" />
@@ -517,7 +515,7 @@ async function ejectComponent(component: string) {
                   </VTooltip>
                 </div>
               </div>
-              <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle">
+              <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle" :aspect-ratio="aspectRatio">
                 <template #domain>
                   <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
                 </template>
@@ -567,6 +565,37 @@ async function ejectComponent(component: string) {
                   @refresh="refreshSources"
                 />
               </SlackCardRenderer>
+              <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'">
+                <template #siteName>
+                  {{ slackSocialPreviewSiteName }}
+                </template>
+                <template #title>
+                  {{ socialPreviewTitle }}
+                </template>
+                <template #description>
+                  {{ socialPreviewDescription }}
+                </template>
+                <template #url>
+                  {{ socialSiteUrl }}
+                </template>
+                <ImageLoader
+                  v-if="imageFormat !== 'html'"
+                  :src="src"
+                  class="!h-[90px]"
+                  min-height="90"
+                  :aspect-ratio="1"
+                  style="background-size: cover; background-position: center center;"
+                  @load="generateLoadTime"
+                  @refresh="refreshSources"
+                />
+                <IFrameLoader
+                  v-else
+                  :src="src"
+                  :aspect-ratio="1 / 1"
+                  @load="generateLoadTime"
+                  @refresh="refreshSources"
+                />
+              </WhatsAppRenderer>
               <div v-else class="w-full h-full">
                 <ImageLoader
                   v-if="imageFormat !== 'html'"
@@ -583,7 +612,7 @@ async function ejectComponent(component: string) {
                   @refresh="refreshSources"
                 />
               </div>
-              <div v-if="description" class="mt-3 text-sm opacity-50 absolute bottom-3">
+              <div v-if="description" class="mt-5 text-sm opacity-50">
                 {{ description }}
               </div>
             </Pane>
