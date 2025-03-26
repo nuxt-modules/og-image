@@ -24,7 +24,7 @@ const creditName = computed(() => {
   return props.component.credits?.split('<')[0].trim()
 })
 const creditSite = computed(() => {
-  return props.component.credits?.split('<')[1].trim().replace('>', '')
+  return props.component.credits?.split('<')[1].trim().replace(/>/g, '')
 })
 
 const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
