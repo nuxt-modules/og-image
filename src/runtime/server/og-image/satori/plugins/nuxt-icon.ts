@@ -17,9 +17,9 @@ export default defineSatoriTransformer([
   {
     filter: (node: VNode) =>
       node.type === 'svg' && node.props?.class?.includes('iconify'),
-    transform: (node: VNode, e) => {
+    transform: (node: VNode) => {
       // strip classes
-      node.props.class = node.props.class
+      node.props.class = String(node.props.class)
         .split(' ')
         .filter(c => !c.startsWith('iconify'))
         .join(' ')
