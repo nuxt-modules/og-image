@@ -269,6 +269,11 @@ describe('dev', () => {
             "baseURL": "/",
           },
           "colorPreference": "light",
+          "componentDirs": [
+            "OgImage",
+            "og-image",
+            "OgImageTemplate",
+          ],
           "debug": true,
           "defaults": {
             "cacheMaxAgeSeconds": 259200,
