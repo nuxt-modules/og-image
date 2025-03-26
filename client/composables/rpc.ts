@@ -1,4 +1,5 @@
 import type { NuxtDevtoolsClient, NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
+import type { BirpcReturn } from 'birpc'
 import type { $Fetch } from 'nitropack'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
 import { onDevtoolsClientConnected } from '@nuxt/devtools-kit/iframe-client'
@@ -12,6 +13,8 @@ export const devtools = ref<NuxtDevtoolsClient>()
 export const devtoolsClient = ref<NuxtDevtoolsIframeClient>()
 
 export const colorMode = ref<'dark' | 'light'>('dark')
+
+export const ogImageRpc = ref<BirpcReturn<ServerFunctions>>()
 
 onDevtoolsClientConnected(async (client) => {
   appFetch.value = client.host.app.$fetch
@@ -28,7 +31,7 @@ onDevtoolsClientConnected(async (client) => {
   })
   devtools.value = client.devtools
   devtoolsClient.value = client
-  client.devtools.extendClientRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
+  ogImageRpc.value = client.devtools.extendClientRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
     refreshRouteData(path) {
       // if path matches
       if (devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file.includes(path) || path.endsWith('.md'))

@@ -42,7 +42,7 @@ export function fetchPathDebug() {
 }
 
 export function fetchGlobalDebug() {
-  return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>(() => {
+  return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>('global-debug', () => {
     if (!appFetch.value)
       return { runtimeConfig: {} }
     return appFetch.value('/__og-image__/debug.json')
