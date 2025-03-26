@@ -46,7 +46,7 @@ export async function applyInlineCss(ctx: OgImageRenderEventContext, island: Nux
     return false
   const cssInline = await useCssInline()
   // dependency missing
-  if (!cssInline || cssInline?.__unenv__) {
+  if (!cssInline || cssInline?.__mock__) {
     if (componentInlineStyles.length) {
       const logger = createConsola().withTag('Nuxt OG Image')
       logger.warn('To have inline styles applied you need to install either the `@css-inline/css-inline` or `@css-inline/css-inline-wasm` package.')

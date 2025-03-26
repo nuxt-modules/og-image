@@ -106,7 +106,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     })
   }
   // TODO merge in component data from component-names, we want the hash to use as a cache key
-  let renderer: typeof SatoriRenderer | typeof ChromiumRenderer | undefined
+  let renderer: ((typeof SatoriRenderer | typeof ChromiumRenderer) & { __mock__?: true }) | undefined
   switch (options.renderer) {
     case 'satori':
       renderer = await useSatoriRenderer()
@@ -115,10 +115,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       renderer = await useChromiumRenderer()
       break
   }
-  if (!renderer || renderer.__unenv__) {
+  if (!renderer || renderer.__mock__) {
     throw createError({
       statusCode: 400,
-      statusMessage: `[Nuxt OG Image] Renderer ${options.renderer} is missing.`,
+      statusMessage: `[Nuxt OG Image] Renderer ${options.renderer} is not enabled.`,
     })
   }
   const unocss = await createGenerator({ theme }, {
