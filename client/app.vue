@@ -17,7 +17,10 @@ import { ref } from 'vue'
 import { fetchGlobalDebug } from '~/composables/fetch'
 import { devtoolsClient } from '~/composables/rpc'
 import { loadShiki } from '~/composables/shiki'
+import { CreateOgImageDialogPromise } from '~/composables/templates'
 import { separateProps } from '../src/runtime/shared'
+import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
+import { ogImageRpc } from './composables/rpc'
 import {
   description,
   hasMadeChanges,
@@ -165,7 +168,16 @@ function toggleSocialPreview(preview?: string) {
 }
 
 const activeComponentName = computed(() => {
-  return optionsOverrides.value?.component || options.value?.component || 'NuxtSeo'
+  let componentName = optionsOverrides.value?.component || options.value?.component || 'NuxtSeo'
+  for (const componentDirName of (globalDebug?.value?.runtimeConfig.componentDirs || [])) {
+    componentName = componentName.replace(componentDirName, '')
+  }
+  return componentName
+})
+
+const isOgImageTemplate = computed(() => {
+  const component = globalDebug.value?.componentNames?.find(c => c.pascalName === activeComponentName.value)
+  return component?.path.includes('node_modules') || component?.path.includes('og-image/src/runtime/app/components/Templates/Community/')
 })
 
 const renderer = computed(() => {
@@ -261,10 +273,21 @@ const currentPageFile = computed(() => {
   // get the path only from the `pages/<path>`
   return `pages/${path?.split('pages/')[1]}`
 })
+
+async function ejectComponent(component: string) {
+  const dir = await CreateOgImageDialogPromise.start(component)
+  if (!dir)
+    return
+  // do fix
+  const v = await ogImageRpc.value!.ejectCommunityTemplate(`${dir}/${component}.vue`)
+  // open
+  await devtoolsClient.value?.devtools.rpc.openInEditor(v)
+}
 </script>
 
 <template>
   <div class="relative n-bg-base flex flex-col">
+    <CreateOgImageDialog />
     <header class="sticky top-0 z-2 px-4 pt-4">
       <div class="flex justify-between items-start" mb2>
         <div class="flex space-x-5">
@@ -468,9 +491,10 @@ const currentPageFile = computed(() => {
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :border="imageFormat === 'html'" @click="patchOptions({ extension: 'html' })" />
                 </div>
                 <div class="text-xs">
-                  <div v-if="!isPageScreenshot" class="opacity-70 space-x-1 hover:opacity-90 transition cursor-pointer" @click="openCurrentComponent">
-                    <span>{{ activeComponentName.replace('OgImage', '') }}</span>
-                    <span class="underline">View source</span>
+                  <div v-if="!isPageScreenshot" class="opacity-70 space-x-1 hover:opacity-90 transition cursor-pointer">
+                    <span>{{ activeComponentName }}</span>
+                    <span v-if="isOgImageTemplate" class="underline" @click="ejectComponent(activeComponentName)">Eject Component</span>
+                    <span v-else class="underline" @click="openCurrentComponent">View Source</span>
                   </div>
                   <div v-else>
                     Screenshot of the current page.

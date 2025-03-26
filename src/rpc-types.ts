@@ -1,4 +1,6 @@
-export interface ServerFunctions {}
+export interface ServerFunctions {
+  ejectCommunityTemplate: (path: string) => Promise<string>
+}
 
 export interface ClientFunctions {
   refresh: () => void

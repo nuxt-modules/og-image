@@ -542,6 +542,7 @@ export default defineNuxtModule<ModuleOptions>({
       },
       options: { mode: 'server' },
     })
+
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
@@ -649,6 +650,9 @@ declare module '#og-image/unocss-config' {
         strictNuxtContentPaths: config.strictNuxtContentPaths,
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
+      }
+      if (nuxt.options.dev) {
+        runtimeConfig.componentDirs = config.componentDirs
       }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)

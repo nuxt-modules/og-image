@@ -32,7 +32,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 
 <template>
   <div class="group">
-    <div class="opacity-70 text-sm transition group-hover:opacity-100">
+    <div class="opacity-70 flex px-3 justify-between text-sm transition group-hover:opacity-100">
       <NLink :href="creditSite" external class="underline">
         {{ component.pascalName }}
       </NLink>

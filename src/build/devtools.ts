@@ -1,11 +1,13 @@
 import type { Resolver } from '@nuxt/kit'
+import type { Nitro } from 'nitropack'
 import type { Nuxt } from 'nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { ClientFunctions, ServerFunctions } from '../rpc-types'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
 import { relative } from 'node:path'
 import { extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
-import { useNuxt } from '@nuxt/kit'
+import { updateTemplates, useNuxt } from '@nuxt/kit'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030
@@ -38,9 +40,31 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     })
   }
 
+  const useNitro = new Promise<Nitro>((resolve) => {
+    nuxt.hooks.hook('nitro:init', resolve)
+  })
+
   // wait for DevTools to be initialized
   onDevToolsInitialized(async () => {
-    const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {})
+    const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
+      async ejectCommunityTemplate(path: string) {
+        const [dirName, componentName] = path.split('/')
+        const dir = resolve(nuxt.options.rootDir, 'components', dirName)
+        if (!existsSync(dir)) {
+          mkdirSync(dir)
+        }
+        const newPath = resolve(dir, componentName)
+        const templatePath = resolve(`./runtime/app/components/Templates/Community/${componentName}`)
+        // readFile, we need to modify it
+        const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)
+        // copy the file over
+        await writeFile(newPath, template, { encoding: 'utf-8' })
+        await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
+        const nitro = await useNitro
+        await nitro.hooks.callHook('rollup:reload')
+        return newPath
+      },
+    })
 
     nuxt.hook('builder:watch', (e, path) => {
       path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
