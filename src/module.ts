@@ -652,6 +652,7 @@ declare module '#og-image/unocss-config' {
         isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
       }
       if (nuxt.options.dev) {
+        // @ts-expect-error untyped
         runtimeConfig.componentDirs = config.componentDirs
       }
       // @ts-expect-error untyped
