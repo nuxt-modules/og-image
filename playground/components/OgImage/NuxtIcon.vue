@@ -21,8 +21,8 @@ const containerStyles = {
   <div :style="containerStyles">
     <div>{{ title }}</div>
     <div>{{ description }}</div>
-    <Icon name="carbon:book" size="250px" class="text-blue-500/30" style="margin: 0 auto;" />
-    <Icon name="carbon:star" size="250px" class="text-blue-500" style="margin: 0 auto;" />
-    <Icon name="uil:github" size="250px" class="text-blue-500" style="margin: 0 auto;" />
+    <Icon mode="svg" name="carbon:book" size="250px" class="size-30 text-blue-500/30" style="margin: 0 auto;" />
+    <Icon name="carbon:star" size="250px" class="size-30 text-blue-500" style="margin: 0 auto;" />
+    <Icon mode="svg" name="uil:github" size="250px" class="size-30 text-blue-500" style="margin: 0 auto;" />
   </div>
 </template>

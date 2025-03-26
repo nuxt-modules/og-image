@@ -7,6 +7,7 @@ import emojis from './plugins/emojis'
 import encoding from './plugins/encoding'
 import flex from './plugins/flex'
 import imageSrc from './plugins/imageSrc'
+import nuxtIcon from './plugins/nuxt-icon'
 import unocss from './plugins/unocss'
 import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
@@ -38,6 +39,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     classes,
     flex,
     encoding,
+    nuxtIcon,
   ])
   // do async transforms
   await Promise.all(walkSatoriTree(ctx, satoriTree, [
