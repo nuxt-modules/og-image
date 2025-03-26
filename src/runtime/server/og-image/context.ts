@@ -153,11 +153,9 @@ function getPayloadFromHtml(html: string | unknown): string | null {
 
 export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions | false {
   const _payload = getPayloadFromHtml(html)
-  if (!_payload)
-    return false
   let options: OgImageOptions | false = false
   try {
-    const payload = parse(_payload)
+    const payload = parse(_payload || '{}')
     // remove empty values, allow route rules to override, these come from template param values like title,
     // but allow zero values, for example cacheMaxAgeSeconds = 0
     Object.entries(payload).forEach(([key, value]) => {
@@ -171,10 +169,8 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
     if (import.meta.dev)
       console.warn('Failed to parse #nuxt-og-image-options', e, options)
   }
-  if (!options)
-    return false
 
-  if (typeof options.props?.description === 'undefined') {
+  if (options && typeof options?.props?.description === 'undefined') {
     // load in the description
     const description = html.match(/<meta[^>]+name="description"[^>]*>/)?.[0]
     if (description) {
@@ -184,7 +180,7 @@ export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions 
     }
   }
 
-  const payload = decodeObjectHtmlEntities(options) as OgImageOptions & { socialPreview?: SocialPreviewMetaData }
+  const payload = decodeObjectHtmlEntities(options || {}) as OgImageOptions & { socialPreview?: SocialPreviewMetaData }
 
   // only needed for nuxt dev tools
   if (import.meta.dev) {
@@ -288,6 +284,21 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
   }
 
   if (!_payload) {
+    const payload = extractAndNormaliseOgImageOptions(html)
+    if (payload?.socialPreview?.og?.image) {
+      const p = {
+        custom: true,
+        url: payload.socialPreview.og.image,
+      }
+      if (payload.socialPreview.og.image['image:width']) {
+        p.width = payload.socialPreview.og.image['image:width']
+      }
+      if (payload.socialPreview.og.image['image:height']) {
+        p.height = payload.socialPreview.og.image['image:height']
+      }
+      return p
+    }
+
     return createError({
       statusCode: 500,
       statusMessage: `[Nuxt OG Image] HTML response from ${path} is missing the #nuxt-og-image-options script tag. Make sure you have defined an og image for this page.`,

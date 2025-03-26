@@ -50,7 +50,16 @@ const emojis = ref('noto')
 const debugAsyncData = fetchPathDebug()
 const { data: debug, pending, error } = debugAsyncData
 const isCustomOgImage = computed(() => {
-  return debug.value?.custom
+  return debug.value?.options.custom
+})
+const isValidDebugError = computed(() => {
+  if (error.value) {
+    const message = error.value.message
+    if (message) {
+      return message.includes('missing the #nuxt-og-') || message.includes('missing the Nuxt OG Image payload') || message.includes('Got invalid response')
+    }
+  }
+  return false
 })
 watch(debug, (val) => {
   if (!val)
@@ -121,8 +130,8 @@ const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
 
 const src = computed(() => {
   // wait until we know what we're rendering
-  if (!debug.value)
-    return ''
+  // if (!debug.value)
+  //   return ''
   if (isCustomOgImage.value) {
     if (hasProtocol(debug.value.options.url, { acceptRelative: true })) {
       return debug.value.options.url
@@ -399,21 +408,30 @@ async function ejectComponent(component: string) {
               <div class="text-xs">
                 Your prebuilt OG Image: {{ debug?.options.url }}
               </div>
-              <div class="flex items-center w-[100px]">
-                <NButton icon="carbon:drag-horizontal" :border="!socialPreview" @click="toggleSocialPreview()" />
-                <NButton icon="fa6-brands:x-twitter" :border="socialPreview === 'twitter'" @click="toggleSocialPreview('twitter')" />
-                <NButton icon="logos:slack-icon" :border="socialPreview === 'slack'" @click="toggleSocialPreview('slack')" />
+              <div class="flex items-center">
+                <NButton class="p-4" :class="socialPreview === 'twitter' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:x" @click="toggleSocialPreview('twitter')" />
+                <NButton class="p-4" :class="socialPreview === 'slack' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:slack" @click="toggleSocialPreview('slack')" />
+                <NButton class="p-4" :class="socialPreview === 'whatsapp' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:whatsapp" @click="toggleSocialPreview('whatsapp')" />
               </div>
             </div>
-            <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle">
+            <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle" :aspect-ratio="aspectRatio">
               <template #domain>
-                <a target="_blank" :href="withHttps(socialSiteUrl)">{{ socialSiteUrl }}</a>
+                <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
               </template>
               <ImageLoader
+                v-if="imageFormat !== 'html'"
                 :src="src"
                 :aspect-ratio="aspectRatio"
                 @load="generateLoadTime"
                 @click="openImage"
+                @refresh="refreshSources"
+              />
+              <IFrameLoader
+                v-else
+                :src="src"
+                max-height="300"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
                 @refresh="refreshSources"
               />
             </TwitterCardRenderer>
@@ -431,13 +449,52 @@ async function ejectComponent(component: string) {
                 {{ socialPreviewDescription }}
               </template>
               <ImageLoader
+                v-if="imageFormat !== 'html'"
                 :src="src"
                 class="!h-[300px]"
                 :aspect-ratio="aspectRatio"
                 @load="generateLoadTime"
                 @refresh="refreshSources"
               />
+              <IFrameLoader
+                v-else
+                :src="src"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
             </SlackCardRenderer>
+            <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'">
+              <template #siteName>
+                {{ slackSocialPreviewSiteName }}
+              </template>
+              <template #title>
+                {{ socialPreviewTitle }}
+              </template>
+              <template #description>
+                {{ socialPreviewDescription }}
+              </template>
+              <template #url>
+                {{ socialSiteUrl }}
+              </template>
+              <ImageLoader
+                v-if="imageFormat !== 'html'"
+                :src="src"
+                class="!h-[90px]"
+                min-height="90"
+                :aspect-ratio="1"
+                style="background-size: cover; background-position: center center;"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
+              <IFrameLoader
+                v-else
+                :src="src"
+                :aspect-ratio="1 / 1"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
+            </WhatsAppRenderer>
             <div v-else class="w-full h-full">
               <ImageLoader
                 :src="src"
@@ -447,9 +504,8 @@ async function ejectComponent(component: string) {
               />
             </div>
           </div>
-          <div v-else-if="error">
-            <div v-if="error.message.includes('missing the #nuxt-og-') || error.message.includes('missing the Nuxt OG Image payload') || error.message.includes('Got invalid response')">
-              <!-- nicely tell the user they should use defineOgImage to get started -->
+          <div v-else-if="isValidDebugError">
+            <div>
               <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
                 <div class="">
                   <h2 class="text-2xl font-semibold mb-3">
@@ -469,9 +525,6 @@ async function ejectComponent(component: string) {
                   </p>
                 </div>
               </div>
-            </div>
-            <div v-else>
-              {{ error }}
             </div>
           </div>
           <Splitpanes v-else class="default-theme" @resize="slowRefreshSources">
@@ -501,7 +554,6 @@ async function ejectComponent(component: string) {
                     </template>
                   </VTooltip>
                   <NButton class="p-4" :class="socialPreview === 'twitter' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:x" @click="toggleSocialPreview('twitter')" />
-                  <!--                  <NButton icon="logos:facebook" :border="socialPreview === 'facebook'" @click="socialPreview = 'facebook'" /> -->
                   <NButton class="p-4" :class="socialPreview === 'slack' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:slack" @click="toggleSocialPreview('slack')" />
                   <NButton class="p-4" :class="socialPreview === 'whatsapp' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:whatsapp" @click="toggleSocialPreview('whatsapp')" />
                   <VTooltip v-if="!isCustomOgImage">
