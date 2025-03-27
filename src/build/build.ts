@@ -43,16 +43,16 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       if (compatibility.wasm?.esmImport !== true)
         return
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
-      const serverEntry = resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
+      const serverEntry = resolve.resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
         ? configuredEntry
         : 'index.mjs')
       const wasmEntries = [serverEntry]
       if (isCloudflarePagesOrModule) {
         // this is especially hacky, basically need to add all paths the wasm import can exist on
         // TODO maybe implement https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128
-        wasmEntries.push(resolve(dirname(serverEntry), './chunks/wasm.mjs'))
-        wasmEntries.push(resolve(dirname(serverEntry), './chunks/_/wasm.mjs'))
-        wasmEntries.push(resolve(dirname(serverEntry), './chunks/index_bg.mjs'))
+        wasmEntries.push(resolve.resolve(dirname(serverEntry), './chunks/wasm.mjs'))
+        wasmEntries.push(resolve.resolve(dirname(serverEntry), './chunks/_/wasm.mjs'))
+        wasmEntries.push(resolve.resolve(dirname(serverEntry), './chunks/index_bg.mjs'))
       }
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
       const yogaHash = await resolveFilePathSha1('yoga-wasm-web/dist/yoga.wasm')
