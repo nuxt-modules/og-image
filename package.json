@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "5.1.1",
-  "packageManager": "pnpm@10.6.5",
+  "packageManager": "pnpm@10.7.0",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -64,8 +64,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.0-rc.1",
-    "unstorage": "^1.0.0"
+    "@unhead/vue": "^2.0.2",
+    "unstorage": "^1.15.0"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.3.2",
@@ -89,7 +89,7 @@
     "pkg-types": "^2.1.0",
     "playwright-core": "^1.51.1",
     "radix3": "^1.1.2",
-    "satori": "^0.12.1",
+    "satori": "^0.12.2",
     "satori-html": "^0.3.2",
     "sirv": "^3.0.1",
     "std-env": "^3.8.1",
@@ -116,7 +116,7 @@
     "@nuxt/image": "^1.10.0",
     "@nuxt/module-builder": "^0.8.4",
     "@nuxt/test-utils": "3.17.2",
-    "@nuxt/ui": "^3.0.1",
+    "@nuxt/ui": "^3.0.2",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@nuxtjs/i18n": "^9.4.0",
@@ -147,6 +147,6 @@
     ]
   },
   "resolutions": {
-    "typescript": "5.6.3"
+    "typescript": "5.8.2"
   }
 }
