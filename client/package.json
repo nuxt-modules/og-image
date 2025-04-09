@@ -3,11 +3,11 @@
   "private": true,
   "devDependencies": {
     "@iconify-json/carbon": "^1.2.8",
-    "@iconify-json/simple-icons": "^1.2.29",
+    "@iconify-json/simple-icons": "^1.2.31",
     "@nuxt/devtools-kit": "^2.3.2",
     "@nuxt/devtools-ui-kit": "^2.3.2",
     "@nuxt/kit": "^3.16.1",
-    "@vueuse/core": "^13.0.0",
+    "@vueuse/core": "^13.1.0",
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.18.1",
     "nuxt": "^3.16.1",
