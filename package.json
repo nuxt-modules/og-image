@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "5.1.1",
-  "packageManager": "pnpm@10.8.0",
+  "packageManager": "pnpm@10.8.1",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -21,27 +21,23 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/module.d.ts",
-      "import": "./dist/module.mjs",
-      "require": "./dist/module.cjs"
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
     },
-    "./content": {
-      "types": "./dist/content.d.ts",
-      "import": "./dist/content.mjs",
-      "require": "./dist/content.cjs"
-    }
+    "./content": "./dist/content.mjs"
   },
-  "main": "./dist/module.cjs",
-  "types": "./dist/module.d.ts",
+  "main": "./dist/module.mjs",
   "typesVersions": {
     "*": {
+      ".": [
+        "./dist/types.d.mts"
+      ],
       "content": [
-        "dist/content"
+        "./dist/content.d.mts"
       ]
     }
   },
   "files": [
-    "content.d.ts",
     "dist",
     "virtual.d.ts"
   ],
@@ -68,8 +64,8 @@
     "unstorage": "^1.15.0"
   },
   "dependencies": {
-    "@nuxt/devtools-kit": "^2.3.2",
-    "@nuxt/kit": "^3.16.1",
+    "@nuxt/devtools-kit": "^2.4.0",
+    "@nuxt/kit": "^3.16.2",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
     "@unocss/core": "^66.0.0",
@@ -95,12 +91,12 @@
     "std-env": "^3.9.0",
     "strip-literal": "^3.0.0",
     "ufo": "^1.6.1",
-    "unplugin": "^2.2.2",
+    "unplugin": "^2.3.2",
     "unwasm": "^0.3.9",
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.11.0",
+    "@antfu/eslint-config": "^4.12.0",
     "@css-inline/css-inline": "^0.14.3",
     "@headlessui/vue": "^1.7.23",
     "@iconify-json/carbon": "^1.2.8",
@@ -110,11 +106,11 @@
     "@iconify-json/tabler": "^1.2.17",
     "@img/sharp-linux-x64": "0.34.1",
     "@nuxt/content": "^3.4.0",
-    "@nuxt/devtools": "2.3.2",
-    "@nuxt/devtools-ui-kit": "2.3.2",
-    "@nuxt/icon": "^1.11.0",
+    "@nuxt/devtools": "^2.4.0",
+    "@nuxt/devtools-ui-kit": "^2.4.0",
+    "@nuxt/icon": "^1.12.0",
     "@nuxt/image": "^1.10.0",
-    "@nuxt/module-builder": "^0.8.4",
+    "@nuxt/module-builder": "^1.0.1",
     "@nuxt/test-utils": "3.17.2",
     "@nuxt/ui": "^3.0.2",
     "@nuxtjs/color-mode": "^3.5.2",
@@ -128,13 +124,14 @@
     "bumpp": "^10.1.0",
     "eslint": "9.24.0",
     "jest-image-snapshot": "^6.4.0",
-    "nuxt": "^3.16.1",
+    "nuxt": "^3.16.2",
     "playwright": "^1.51.1",
     "sass": "^1.86.3",
     "sharp": "^0.34.1",
     "typescript": "5.8.3",
     "unocss": "^66.0.0",
-    "vitest": "^3.1.1"
+    "vitest": "^3.1.1",
+    "vue-tsc": "^2.2.8"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
