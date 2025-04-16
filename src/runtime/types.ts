@@ -8,6 +8,7 @@ import type { NitroApp } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { html } from 'satori-html'
 import type { SharpOptions } from 'sharp'
+import type { Ref } from 'vue'
 
 export interface OgImageRenderEventContext {
   unocss: UnoGenerator
@@ -82,7 +83,8 @@ export interface ScreenshotOptions {
   delay?: number
 }
 
-export type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt' | '_query'>
+export interface OgImagePrebuilt extends OgImageOptions {
+}
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 
@@ -92,23 +94,23 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    *
    * @default 1200
    */
-  width?: number
+  width?: number | (() => number) | Ref<number>
   /**
    * The height of the screenshot.
    *
    * @default 630
    */
-  height?: number
+  height?: number | (() => number) | Ref<number>
   /**
    * The alt text for the image.
    */
-  alt?: string
+  alt?: string | (() => string) | Ref<string>
   /**
    * Use a prebuilt image instead of generating one.
    *
    * Should be an absolute URL.
    */
-  url?: string
+  url?: string | (() => string) | Ref<string>
   /**
    * The name of the component to render.
    */

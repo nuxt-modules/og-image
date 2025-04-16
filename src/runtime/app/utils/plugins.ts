@@ -9,9 +9,9 @@ import { parse, stringify } from 'devalue'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { parseURL, withoutBase } from 'ufo'
 import { toValue } from 'vue'
-import { createOgImageMeta, normaliseOptions } from '../../app/utils'
+import { createOgImageMeta } from '../../app/utils'
 import { isInternalRoute, separateProps } from '../../pure'
-import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { getOgImagePath } from '../../shared'
 
 export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
@@ -106,13 +106,8 @@ export function routeRuleOgImage(nuxtApp: NuxtApp) {
       nuxtApp.ssrContext!._ogImageInstances = undefined
       return
     }
-    const { defaults } = useOgImageRuntimeConfig()
-    routeRules = normaliseOptions(defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules, {
-      component: defaults.component,
-    }))
-
-    const resolvedOptions = normaliseOptions(defu(routeRules, defaults) as OgImageOptions)
-    const src = getOgImagePath(ssrContext!.url, resolvedOptions)
-    createOgImageMeta(src, routeRules, resolvedOptions, nuxtApp.ssrContext!)
+    routeRules = defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules)
+    const src = getOgImagePath(ssrContext!.url, routeRules)
+    createOgImageMeta(src, routeRules, nuxtApp.ssrContext!)
   })
 }

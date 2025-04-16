@@ -1,21 +1,18 @@
-import type { Head } from '@unhead/vue'
-import type { OgImageOptions, OgImageRuntimeConfig } from './types'
+import type { ResolvableMeta } from '@unhead/vue'
+import type { OgImageOptions, OgImagePrebuilt, OgImageRuntimeConfig } from './types'
 import { useRuntimeConfig } from '#imports'
-import { defu } from 'defu'
 import { joinURL, withQuery } from 'ufo'
+import { toValue } from 'vue'
 import { getExtension } from './pure'
 
 // must work in both Nuxt an
 
 export * from './pure'
 
-export function generateMeta(url: string, resolvedOptions: OgImageOptions): Head['meta'] {
-  let urlExtension = getExtension(url) || resolvedOptions.extension
-  if (urlExtension === 'jpg')
-    urlExtension = 'jpeg'
-  const meta: Head['meta'] = [
+export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
+  const meta: ResolvableMeta[] = [
     { property: 'og:image', content: url },
-    { property: 'og:image:type', content: `image/${urlExtension}` },
+    { property: 'og:image:type', content: () => `image/${resolvedOptions.extension || getExtension(toValue(url))}` },
     { name: 'twitter:card', content: 'summary_large_image' },
     // we don't need this but avoids issue when using useSeoMeta({ twitterImage })
     { name: 'twitter:image', content: url },
@@ -38,10 +35,10 @@ export function generateMeta(url: string, resolvedOptions: OgImageOptions): Head
 
 export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
   const baseURL = useRuntimeConfig().app.baseURL
-  const options = defu(_options, useOgImageRuntimeConfig().defaults)
-  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${options.extension}`)
-  if (Object.keys(options._query || {}).length) {
-    return withQuery(path, options._query)
+  const extension = _options?.extension || useOgImageRuntimeConfig().defaults.extension
+  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${extension}`)
+  if (Object.keys(_options?._query || {}).length) {
+    return withQuery(path, _options!._query!)
   }
   return path
 }
