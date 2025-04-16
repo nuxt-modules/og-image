@@ -115,5 +115,8 @@ export function withoutQuery(path: string) {
 export function getExtension(path: string) {
   path = withoutQuery(path)
   const lastSegment = (path.split('/').pop() || path)
-  return lastSegment.split('.').pop() || lastSegment
+  const extension = lastSegment.split('.').pop() || lastSegment
+  if (extension === 'jpg')
+    return 'jpeg'
+  return extension
 }

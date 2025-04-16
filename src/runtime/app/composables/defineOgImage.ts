@@ -1,12 +1,11 @@
 import type { ActiveHeadEntry } from '@unhead/vue'
-import type { DefineOgImageInput, OgImageOptions } from '../../types'
-import { defu } from 'defu'
+import type { DefineOgImageInput } from '../../types'
 import { appendHeader } from 'h3'
 import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
-import { ref } from 'vue'
+import { ref, toValue } from 'vue'
 import { createNitroRouteRuleMatcher } from '../../server/util/kit'
-import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../../shared'
-import { createOgImageMeta, normaliseOptions } from '../utils'
+import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { createOgImageMeta, setHeadOgImagePrebuilt } from '../utils'
 
 // In non-dev client-side environments this is treeshaken
 export function defineOgImage(_options: DefineOgImageInput = {}) {
@@ -47,23 +46,25 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     return
   }
   const { defaults } = useOgImageRuntimeConfig()
-  const options = normaliseOptions(defu({
-    ..._options,
-  }, {
-    component: defaults.component,
-  }))
+  const options = toValue(_options)
+  for (const key in routeRules) {
+    if (options[key] === undefined)
+      options[key] = routeRules[key]
+  }
+  for (const key in defaults) {
+    if (options[key] === undefined)
+      options[key] = defaults[key]
+  }
   if (route.query)
     options._query = route.query
-  const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
   // allow overriding using a prebuild config
-  if (resolvedOptions.url) {
-    createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext!)
+  if (options.url) {
+    setHeadOgImagePrebuilt(options)
+    return
   }
-  else {
-    const path = getOgImagePath(basePath, defu(resolvedOptions, { _query: options._query }))
-    if (import.meta.prerender) {
-      appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path)
-    }
-    createOgImageMeta(path, options, resolvedOptions, nuxtApp.ssrContext!)
+  const path = getOgImagePath(basePath, options)
+  if (import.meta.prerender) {
+    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path)
   }
+  createOgImageMeta(path, options, nuxtApp.ssrContext!)
 }
