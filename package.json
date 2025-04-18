@@ -60,7 +60,7 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.5",
+    "@unhead/vue": "^2.0.8",
     "unstorage": "^1.15.0"
   },
   "dependencies": {
@@ -83,7 +83,7 @@
     "ohash": "^2.0.11",
     "pathe": "^2.0.3",
     "pkg-types": "^2.1.0",
-    "playwright-core": "^1.51.1",
+    "playwright-core": "^1.52.0",
     "radix3": "^1.1.2",
     "satori": "^0.12.2",
     "satori-html": "^0.3.2",
@@ -122,10 +122,10 @@
     "@unocss/runtime": "^66.0.0",
     "@vueuse/nuxt": "^13.1.0",
     "bumpp": "^10.1.0",
-    "eslint": "9.24.0",
+    "eslint": "9.25.0",
     "jest-image-snapshot": "^6.4.0",
     "nuxt": "^3.16.2",
-    "playwright": "^1.51.1",
+    "playwright": "^1.52.0",
     "sass": "^1.86.3",
     "sharp": "^0.34.1",
     "typescript": "5.8.3",
