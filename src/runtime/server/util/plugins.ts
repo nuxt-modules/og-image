@@ -30,7 +30,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       let src = optionsWithDefault.url || getOgImagePath(path, optionsWithDefault)
       if (optionsWithDefault._query && Object.keys(optionsWithDefault._query).length)
         src = withQuery(src, { _query: optionsWithDefault._query })
-      const meta = generateMeta(src, optionsWithDefault)
+      const meta = generateMeta(src, ogImageConfig)
       // user has provided a prebuilt og image
       if (optionsWithDefault.url) {
         content.head = defu(<Head> { meta }, content.head)
@@ -60,19 +60,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
             tagPriority: 30, // slighty higher priority
           },
         ],
-        meta: [
-          { property: 'og:image', content: src },
-          { property: 'og:image:width', content: optionsWithDefault.width },
-          { property: 'og:image:height', content: optionsWithDefault.height },
-          { property: 'og:image:type', content: `image/${optionsWithDefault.extension}` },
-          { property: 'og:image:alt', content: optionsWithDefault.alt },
-          // twitter
-          { name: 'twitter:card', content: 'summary_large_image' },
-          { name: 'twitter:image:src', content: src },
-          { name: 'twitter:image:width', content: optionsWithDefault.width },
-          { name: 'twitter:image:height', content: optionsWithDefault.height },
-          { name: 'twitter:image:alt', content: optionsWithDefault.alt },
-        ],
+        meta: generateMeta(src, optionsWithDefault),
       }, content.head)
     }
     return content
