@@ -43,6 +43,8 @@ import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 
+const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
+
 export interface ModuleOptions {
   /**
    * Whether the og:image images should be generated.
@@ -456,7 +458,7 @@ export default defineNuxtModule<ModuleOptions>({
       addComponentsDir({
         path: resolve('./runtime/app/components/Templates/Community'),
         island: true,
-        // watch: true,
+        watch: IS_MODULE_DEVELOPMENT,
       })
     }
 
@@ -484,6 +486,7 @@ export default defineNuxtModule<ModuleOptions>({
         addComponentsDir({
           path,
           island: true,
+          watch: IS_MODULE_DEVELOPMENT,
         })
       }
       else if (!defaultComponentDirs.includes(componentDir)) {
