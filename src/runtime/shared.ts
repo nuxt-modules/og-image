@@ -12,7 +12,7 @@ export * from './pure'
 export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
   const meta: ResolvableMeta[] = [
     { property: 'og:image', content: url },
-    { property: 'og:image:type', content: () => `image/${resolvedOptions.extension || getExtension(toValue(url))}` },
+    { property: 'og:image:type', content: () => `image/${getExtension(toValue(url)) || resolvedOptions.extension}` },
     { name: 'twitter:card', content: 'summary_large_image' },
     // we don't need this but avoids issue when using useSeoMeta({ twitterImage })
     { name: 'twitter:image', content: url },
