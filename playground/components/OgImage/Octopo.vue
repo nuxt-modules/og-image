@@ -14,7 +14,7 @@ const isClass = computed(() => props.bgColor?.startsWith('bg-'))
 <template>
   <div class="w-full h-full flex text-white items-center justify-center" :class="isClass ? [bgColor || 'bg-blue-500'] : []" :style="{ backgroundColor: !isClass ? `#${bgColor}` : undefined }">
     {{ description }}
-    <h1 :style="{ fontSize: '70px' }">
+    <h1 :style="{ fontSize: '70px' }" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
       {{ title }}
     </h1>
   </div>

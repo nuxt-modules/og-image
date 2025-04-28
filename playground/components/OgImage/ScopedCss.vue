@@ -16,7 +16,7 @@ const theme = computed(() => props.themeColor || '#dbf4ff')
 
 <template>
   <div class="main" :style="{ backgroundColor: theme }">
-    <h1 class="underline">
+    <h1 class="underline" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
       Hello World
     </h1>
   </div>

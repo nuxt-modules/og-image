@@ -106,13 +106,16 @@ if (typeof props.icon === 'string' && !runtimeConfig.hasNuxtIcon && process.dev)
     <div class="h-full w-full justify-between relative">
       <div class="flex flex-row justify-between items-start">
         <div class="flex flex-col w-full max-w-[65%]">
-          <h1 class="m-0 font-bold mb-[30px] text-[75px]">
+          <h1 class="m-0 font-bold mb-[30px] text-[75px]" style="display: block; text-overflow: ellipsis;" :style="{ lineClamp: description ? 2 : 3 }">
             {{ title }}
           </h1>
           <p
-            v-if="description" class="text-[35px]" :class="[
+            v-if="description"
+            class="text-[35px] leading-12"
+            :class="[
               colorMode === 'light' ? ['text-gray-700'] : ['text-gray-300'],
             ]"
+            style="display: block; line-clamp: 3; text-overflow: ellipsis;"
           >
             {{ description }}
           </p>

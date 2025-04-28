@@ -20,7 +20,7 @@ withDefaults(defineProps<{
     <div class="flex items-start justify-start h-full">
       <div class="flex flex-col justify-between w-full h-full p-20">
         <img :src="logo" height="50">
-        <h1 class="text-[60px] text-white font-bold text-left">
+        <h1 class="text-[60px] text-white font-bold text-left" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
           {{ title }}
         </h1>
       </div>

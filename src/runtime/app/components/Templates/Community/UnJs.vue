@@ -40,11 +40,17 @@ const description = computed(() => (props.description || '').slice(0, 200))
       <div class="flex flex-row justify-between">
         <div class="max-w-[700px]">
           <h1 class="mb-[30px] max-w-[700px] text-[60px] text-gray-900 font-normal flex flex-row">
-            <span>{{ org }}</span>
-            <span v-if="repo" class="ml-2">/</span>
-            <span v-if="repo" class="ml-2 font-bold">{{ repo }}</span>
+            <p style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;">
+              {{ org }}
+            </p>
+            <p v-if="repo" style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;" class="ml-2">
+              /
+            </p>
+            <p v-if="repo" style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;" class="ml-2 font-bold">
+              {{ repo }}
+            </p>
           </h1>
-          <p class="text-gray-500 max-w-[700px] text-[35px] leading-[60px]">
+          <p class="text-gray-500 max-w-[700px] text-[35px] leading-[60px]" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
             {{ description }}
           </p>
         </div>

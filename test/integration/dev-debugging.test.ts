@@ -99,10 +99,13 @@ describe('dev', () => {
                                                 "children": "Hello World",
                                                 "class": "",
                                                 "style": {
+                                                  "display": "block",
                                                   "fontSize": "75px",
                                                   "fontWeight": "700",
+                                                  "lineClamp": "3",
                                                   "margin": "0",
                                                   "marginBottom": "30px",
+                                                  "textOverflow": "ellipsis",
                                                 },
                                                 "tw": "",
                                               },

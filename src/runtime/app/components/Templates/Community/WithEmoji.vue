@@ -19,7 +19,7 @@ withDefaults(defineProps<{
         <p class="text-[120px] mx-auto text-center font-bold mb-0">
           {{ emoji }}
         </p>
-        <h1 class="text-[60px] font-bold">
+        <h1 class="text-[60px] font-bold" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
           {{ title }}
         </h1>
       </div>
