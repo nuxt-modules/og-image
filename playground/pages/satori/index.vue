@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { defineOgImage, useHead, useSeoMeta } from '#imports'
+import { defineOgImageComponent, useHead, useSeoMeta } from '#imports'
 
 useHead({
   title: 'Hello World',
@@ -14,10 +14,10 @@ useSeoMeta({
   description: 'This is a description of the page. It can be a bit longer than the title.',
 })
 
-defineOgImage({
-  props: {
-    test: '123',
-  },
+defineOgImageComponent('NuxtSeo', {
+  title: '<title>',
+  description: '<description>',
+  siteName: '<siteName>',
 })
 </script>
 

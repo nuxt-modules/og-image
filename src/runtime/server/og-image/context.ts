@@ -8,7 +8,6 @@ import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
 import { htmlPayloadCache, prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
-import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { createGenerator } from '@unocss/core'
 import presetWind from '@unocss/preset-wind3'
@@ -16,29 +15,18 @@ import { defu } from 'defu'
 import { parse } from 'devalue'
 import { createError, getQuery } from 'h3'
 import { useNitroApp } from 'nitropack/runtime'
-import { hash } from 'ohash'
-import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
-import { normalizeKey } from 'unstorage'
+import { parseURL, withoutTrailingSlash, withQuery } from 'ufo'
 import { separateProps, useOgImageRuntimeConfig } from '../../shared'
+import { generateCacheKey } from '../util/cacheKey'
 import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 
+// Legacy function kept for backward compatibility
 export function resolvePathCacheKey(e: H3Event, path: string) {
-  const siteConfig = useSiteConfig(e, {
-    resolveRefs: true,
-  })
-  const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
-  return [
-    (!basePath || basePath === '/') ? 'index' : basePath,
-    hash([
-      basePath,
-      import.meta.prerender ? '' : siteConfig.url,
-      hash(getQuery(e)),
-    ]),
-  ].join(':')
+  return generateCacheKey(e, path)
 }
 
 export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {

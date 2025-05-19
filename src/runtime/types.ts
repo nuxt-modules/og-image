@@ -37,6 +37,26 @@ export interface OgImageRuntimeConfig {
   defaults: OgImageOptions
   debug: boolean
   baseCacheKey: string
+  /**
+   * Custom cache key to override the default version-based key
+   * This can be used to maintain cache across package updates
+   */
+  key?: string
+  /**
+   * Whether to ignore URL query parameters when generating cache keys
+   * This prevents duplicate images from being generated for the same base path with different query params
+   */
+  cacheIgnoreQuery?: boolean
+  /**
+   * Custom function to generate cache keys
+   * This provides full control over how cache keys are created
+   */
+  cacheKeyHandler?: (path: string, event: H3Event) => string
+  /**
+   * Whether to use a persistent cache in node_modules/.cache directory
+   * This is useful in CI environments to persist the cache between builds
+   */
+  persistentCache?: boolean
   fonts: FontConfig[]
   hasNuxtIcon: boolean
   colorPreference: 'light' | 'dark'

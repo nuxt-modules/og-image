@@ -7,12 +7,35 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
 import { dirname } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { createPersistentCacheDriver } from './util/persistentCache'
 
 // we need all of the runtime dependencies when using build
 export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, nuxt: Nuxt = useNuxt()) {
   nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
-  if (typeof config.runtimeCacheStorage === 'object')
+
+  // Apply persistent cache configuration if enabled
+  if (config.persistentCache) {
+    // Create a persistent cache driver with the project root directory
+    const persistentCache = createPersistentCacheDriver({
+      key: config.key || 'og-image',
+      rootDir: nuxt.options.rootDir,
+    })
+
+    // Only set storage if the driver was created successfully
+    if (persistentCache) {
+      // Apply persistent storage for og-image if not otherwise specified
+      if (!nuxt.options.nitro.storage['og-image'] && persistentCache.driver) {
+        nuxt.options.nitro.storage['og-image'] = persistentCache.driver
+      }
+
+      // Log that persistent cache is being used
+      nuxt.logger.info(`Using persistent cache in ${persistentCache.path}`)
+    }
+  }
+  else if (typeof config.runtimeCacheStorage === 'object') {
+    // Use traditional runtime cache storage if specified
     nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
+  }
 
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
     await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })

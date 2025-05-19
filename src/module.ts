@@ -109,6 +109,28 @@ export interface ModuleOptions {
     driver: string
   })
   /**
+   * Custom cache key to override the default version-based key.
+   * This can be used to maintain cache across package updates.
+   *
+   * @example 'my-app-og-images'
+   */
+  key?: string
+  /**
+   * Whether to ignore URL query parameters when generating cache keys.
+   * This prevents duplicate images from being generated for the same base path with different query params.
+   *
+   * @default false
+   */
+  cacheIgnoreQuery?: boolean
+  /**
+   * Whether to persist the cache in node_modules/.cache directory.
+   * In CI environments, this helps maintain the cache between builds when node_modules is cached.
+   * This is automatically enabled only in CI environments by default.
+   *
+   * @default false
+   */
+  persistentCache?: boolean
+  /**
    * Extra component directories that should be used to resolve components.
    *
    * @default ['OgImage', 'og-image', 'OgImageTemplate']

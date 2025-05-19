@@ -5,6 +5,7 @@ import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from
 import { hash } from 'ohash'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+import { getCacheBase } from './cacheKey'
 
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
@@ -13,8 +14,26 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
 }): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
   let enabled = !import.meta.dev && import.meta.env.MODE !== 'test' && maxAge > 0
-  const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
+
+  // Use the configurable cache base instead of the fixed one
+  const cacheBase = getCacheBase()
+
+  // Use regular storage - persistent cache is handled at build time
+  const cache = prefixStorage(useStorage(), withTrailingSlash(cacheBase))
+
   const key = ctx.key
+
+  // Add cache debug headers in development mode
+  if (import.meta.dev || ctx.runtimeConfig.debug) {
+    setHeader(ctx.e, 'X-OG-Image-Cache-Key', key)
+    setHeader(ctx.e, 'X-OG-Image-Cache-Base', cacheBase)
+    setHeader(ctx.e, 'X-OG-Image-Cache-Enabled', String(enabled))
+
+    // Show if query params are being ignored
+    if (ctx.runtimeConfig.cacheIgnoreQuery) {
+      setHeader(ctx.e, 'X-OG-Image-Cache-Ignore-Query', 'true')
+    }
+  }
 
   // cache will invalidate if the options change
   let cachedItem: BufferSource | false = false
@@ -24,7 +43,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       return createError({
         cause: e,
         statusCode: 500,
-        statusMessage: `[Nuxt OG Image] Failed to connect to cache ${options.baseCacheKey}. Response from cache: ${e.message}`,
+        statusMessage: `[Nuxt OG Image] Failed to connect to cache ${cacheBase}. Response from cache: ${e.message}`,
       })
     })
     if (hasItem instanceof Error)
