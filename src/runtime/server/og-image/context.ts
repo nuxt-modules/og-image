@@ -63,8 +63,28 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       statusMessage: `[Nuxt OG Image] Unknown OG Image type ${extension}.`,
     })
   }
-  let queryParams = { ...getQuery(e) }
-  queryParams.props = JSON.parse(queryParams.props || '{}')
+
+  const query = getQuery(e)
+  let queryParams: Record<string, any> = {}
+  for (const k in query) {
+    const v = String(query[k])
+    if (!v)
+      continue
+    if (v.startsWith('{')) {
+      // we need to parse the JSON string
+      try {
+        queryParams[k] = JSON.parse(v)
+      }
+      catch (error) {
+        if (import.meta.dev) {
+          logger.error(`[Nuxt OG Image] Invalid JSON in ${k} parameter: ${error.message}`)
+        }
+      }
+    }
+    else {
+      queryParams[k] = v
+    }
+  }
   queryParams = separateProps(queryParams)
   let basePath = withoutTrailingSlash(path
     .replace(`/__og-image__/image`, '')
