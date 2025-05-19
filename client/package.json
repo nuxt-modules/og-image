@@ -3,17 +3,17 @@
   "private": true,
   "devDependencies": {
     "@iconify-json/carbon": "^1.2.8",
-    "@iconify-json/simple-icons": "^1.2.33",
-    "@nuxt/devtools-kit": "^2.4.0",
-    "@nuxt/devtools-ui-kit": "^2.4.0",
-    "@nuxt/kit": "^3.17.0",
-    "@vueuse/core": "^13.1.0",
+    "@iconify-json/simple-icons": "^1.2.34",
+    "@nuxt/devtools-kit": "^2.4.1",
+    "@nuxt/devtools-ui-kit": "^2.4.1",
+    "@nuxt/kit": "^3.17.3",
+    "@vueuse/core": "^13.2.0",
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.18.1",
-    "nuxt": "^3.17.0",
-    "shiki": "^3.3.0",
+    "nuxt": "^3.17.3",
+    "shiki": "^3.4.2",
     "splitpanes": "^4.0.3",
-    "vue": "^3.5.13",
+    "vue": "^3.5.14",
     "vue-router": "^4.5.1"
   }
 }
