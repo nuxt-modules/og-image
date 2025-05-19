@@ -91,8 +91,8 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     .replace(`/__og-image__/static`, '')
     .replace(`/og.${extension}`, ''),
   )
-  if (queryParams._query)
-    basePath = withQuery(basePath, JSON.parse(queryParams._query))
+  if (queryParams._query && typeof queryParams._query === 'object')
+    basePath = withQuery(basePath, queryParams._query)
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
   const key = resolvePathCacheKey(e, basePath)
   let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions
