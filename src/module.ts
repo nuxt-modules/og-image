@@ -201,6 +201,27 @@ export default defineNuxtModule<ModuleOptions>({
     // legacy support
     nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
 
+    // Check if we have any local iconify dependencies for emoji sets
+    const hasLocalIconify = await hasResolvableDependency(`@iconify-json/${config.defaults.emojis}`)
+    // Set emoji implementation based on dependency availability
+    // TODO & not edge environment
+    if (hasLocalIconify) {
+      logger.debug(`Using local dependency \`@iconify-json/${config.defaults.emojis}\` for emoji rendering.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
+      // add nitro server virtual template for the iconify import
+      addTemplate({
+        filename: 'iconify-json-icons.mjs',
+        getContents: () => {
+          return `export { default } from '@iconify-json/${config.defaults.emojis}/icons.json'`
+        },
+        write: false,
+      })
+    }
+    else {
+      logger.info(`Using iconify API for emojis, please install @iconify-json/${config.defaults.emojis} for local support.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
+    }
+
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
