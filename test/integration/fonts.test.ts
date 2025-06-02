@@ -15,7 +15,7 @@ describe('fonts', () => {
     expect(font).toMatchInlineSnapshot(`
       Blob {
         Symbol(kHandle): Blob {},
-        Symbol(kLength): 338084,
+        Symbol(kLength): 337936,
         Symbol(kType): "font/ttf",
       }
     `)
