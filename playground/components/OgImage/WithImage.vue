@@ -24,8 +24,8 @@ const containerStyles = {
     <div :style="{ position: 'absolute', top: '170px', left: '250px', fontSize: '25px', display: 'flex', alignItems: 'center' }">
       <img src="/harlan-wilton.jpeg" width="100" height="100" :style="{ borderRadius: '12px', marginRight: '8px' }">
     </div>
-    <img src="harlan-wilton.jpeg" width="100" height="100" :style="{ borderRadius: '12px', marginRight: '8px' }">
-    <img src="assets/static/images/picture.jpg" width="100" height="100" :style="{ borderRadius: '12px', marginRight: '8px' }">
+    <img src="/harlan-wilton.jpeg" width="100" height="100" :style="{ borderRadius: '12px', marginRight: '8px' }">
+    <img src="/assets/static/images/picture.jpg" width="100" height="100" :style="{ borderRadius: '12px', marginRight: '8px' }">
     <img src="https://avatars.githubusercontent.com/u/5326365?v=4" width="200" height="200" alt="absolute test">
   </div>
 </template>

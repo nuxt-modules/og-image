@@ -223,29 +223,37 @@ export default defineNuxtModule<ModuleOptions>({
       publicDirAbs = publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)
     }
     if (isProviderEnabledForEnv('satori', nuxt, config)) {
-      let isUsingSharp = false
+      let attemptSharpUsage = false
       if (isProviderEnabledForEnv('sharp', nuxt, config)) {
         // avoid any sharp logic if user explicitly opts-out
         const userConfiguredExtension = config.defaults.extension
         const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
-        if (!!config.sharpOptions || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')) {
-          isUsingSharp = true
-          const hasSharpDependency = await hasResolvableDependency('sharp')
-          if (hasSharpDependency && !targetCompatibility.sharp) {
+        const hasSharpDependency = await hasResolvableDependency('sharp')
+        if (hasSharpDependency) {
+          if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
             config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
               runtime: { sharp: false },
             })
           }
-          else if (!hasSharpDependency) {
-            // sharp is supported but not installed
-            logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
-            await ensureDependencies(['sharp'])
-            logger.warn('Support for `sharp` is limited so check the compatibility guide.')
+          else {
+            // if we can import it then we'll use it
+            await import('sharp')
+              .catch(() => {})
+              .then(() => {
+                attemptSharpUsage = true
+              })
           }
         }
+        else if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
+          // sharp is supported but not installed
+          logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
+          await ensureDependencies(['sharp'])
+          logger.warn('Support for `sharp` is limited so check the compatibility guide.')
+          attemptSharpUsage = true
+        }
       }
-      if (!isUsingSharp) {
+      if (!attemptSharpUsage) {
         // disable sharp
         config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
           runtime: { sharp: false },
@@ -635,6 +643,7 @@ declare module '#og-image/unocss-config' {
         colorPreference = 'light'
       const runtimeConfig = <OgImageRuntimeConfig> {
         version,
+        compatibility: config.compatibility || {},
         // binding options
         satoriOptions: config.satoriOptions || {},
         resvgOptions: config.resvgOptions || {},

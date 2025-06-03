@@ -531,7 +531,7 @@ async function ejectComponent(component: string) {
             <Pane size="60" class="flex h-full justify-center items-center relative n-panel-grids-center pr-4" style="padding-top: 30px;">
               <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
                 <div class="flex items-center text-lg space-x-1 w-[100px]">
-                  <NButton v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium'" icon="carbon:jpg" :class="imageFormat === 'jpeg' || imageFormat === 'jpg' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'jpg' })" />
+                  <NButton v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium' || options?.extension === 'jpeg'" icon="carbon:jpg" :class="imageFormat === 'jpeg' || imageFormat === 'jpg' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'jpg' })" />
                   <NButton icon="carbon:png" :class="imageFormat === 'png' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'png' })" />
                   <NButton v-if="renderer !== 'chromium'" icon="carbon:svg" :class="imageFormat === 'svg' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'svg' })" />
                   <NButton v-if="!isPageScreenshot" icon="carbon:html" :class="imageFormat === 'html' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" @click="patchOptions({ extension: 'html' })" />

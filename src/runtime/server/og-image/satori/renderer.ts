@@ -1,4 +1,5 @@
 import type { SatoriOptions } from 'satori'
+import type { JpegOptions } from 'sharp'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { fontCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
@@ -77,10 +78,34 @@ async function createPng(event: OgImageRenderEventContext) {
 }
 
 async function createJpeg(event: OgImageRenderEventContext) {
-  const { sharpOptions } = useOgImageRuntimeConfig()
-  const png = await createPng(event)
-  const sharp = await useSharp()
-  return sharp(png, defu(event.options.sharp, sharpOptions)).jpeg().toBuffer()
+  const { sharpOptions, compatibility } = useOgImageRuntimeConfig()
+  const key = import.meta.prerender ? 'prerender' : 'runtime'
+  if (compatibility[key].sharp === false) {
+    if (import.meta.dev) {
+      throw new Error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime.')
+    }
+    else {
+      // TODO this should be an error in next major
+      console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
+    }
+    return createPng(event)
+  }
+  const svg = await createSvg(event)
+  if (!svg) {
+    throw new Error('Failed to create SVG for JPEG rendering.')
+  }
+  const svgBuffer = Buffer.from(svg)
+  const sharp = await useSharp().catch(() => {
+    if (import.meta.dev) {
+      throw new Error('Sharp dependency could not be loaded. Please check you have it installed and are using a compatible runtime.')
+    }
+    return null
+  })
+  if (!sharp) {
+    // TODO this should be an error in next major
+    console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
+    return createPng(event)
+  }
   return sharp(svgBuffer, defu(event.options.sharp, sharpOptions))
     .jpeg(sharp as JpegOptions)
     .toBuffer()
