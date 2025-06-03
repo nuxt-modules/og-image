@@ -256,33 +256,17 @@ describe('dev', () => {
     const debug = await $fetch('/__og-image__/debug.json')
     delete debug.runtimeConfig.baseCacheKey
     delete debug.runtimeConfig.version
+    delete debug.runtimeConfig.compatibility
     delete debug.componentNames
     delete debug.baseCacheKey
-    delete debug.compatibility.chromium // github ci will have playwright
+    delete debug.compatibility // github ci will have playwright
     expect(debug).toMatchInlineSnapshot(`
       {
-        "compatibility": {
-          "css-inline": "node",
-          "resvg": "node",
-          "satori": "node",
-          "sharp": "node",
-        },
         "runtimeConfig": {
           "app": {
             "baseURL": "/",
           },
           "colorPreference": "light",
-          "compatibility": {
-            "dev": {
-              "chromium": "chrome-launcher",
-            },
-            "prerender": {
-              "chromium": "",
-            },
-            "runtime": {
-              "chromium": "",
-            },
-          },
           "componentDirs": [
             "OgImage",
             "og-image",

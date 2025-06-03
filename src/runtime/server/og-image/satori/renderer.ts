@@ -1,4 +1,5 @@
 import type { SatoriOptions } from 'satori'
+import type { JpegOptions } from 'sharp'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { fontCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
@@ -8,6 +9,8 @@ import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
+// @ts-expect-error untyped
+import compatibility from '#og-image/compatibility'
 
 const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
 
@@ -78,11 +81,35 @@ async function createPng(event: OgImageRenderEventContext) {
 
 async function createJpeg(event: OgImageRenderEventContext) {
   const { sharpOptions } = useOgImageRuntimeConfig()
-  const png = await createPng(event)
-  const sharp = await useSharp()
-  return sharp(png, defu(event.options.sharp, sharpOptions)).jpeg().toBuffer()
-  return sharp(svgBuffer, defu(event.options.sharp, sharpOptions))
-    .jpeg(sharp as JpegOptions)
+  if (compatibility.sharp === false) {
+    if (import.meta.dev) {
+      throw new Error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime.')
+    }
+    else {
+      // TODO this should be an error in next major
+      console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
+    }
+    return createPng(event)
+  }
+  const svg = await createSvg(event)
+  if (!svg) {
+    throw new Error('Failed to create SVG for JPEG rendering.')
+  }
+  const svgBuffer = Buffer.from(svg)
+  const sharp = await useSharp().catch(() => {
+    if (import.meta.dev) {
+      throw new Error('Sharp dependency could not be loaded. Please check you have it installed and are using a compatible runtime.')
+    }
+    return null
+  })
+  if (!sharp) {
+    // TODO this should be an error in next major
+    console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
+    return createPng(event)
+  }
+  const options = defu(event.options.sharp, sharpOptions)
+  return sharp(svgBuffer, options)
+    .jpeg(options as JpegOptions)
     .toBuffer()
 }
 

@@ -7,7 +7,7 @@ import type { NitroOptions } from 'nitropack'
 import type { NitroApp } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { html } from 'satori-html'
-import type { SharpOptions } from 'sharp'
+import type { JpegOptions, SharpOptions } from 'sharp'
 import type { Ref } from 'vue'
 
 export interface OgImageRenderEventContext {
@@ -130,7 +130,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   resvg?: ResvgRenderOptions
   satori?: SatoriOptions
   screenshot?: Partial<ScreenshotOptions>
-  sharp?: SharpOptions
+  sharp?: SharpOptions & JpegOptions
   fonts?: InputFontConfig[]
   // cache
   cacheMaxAgeSeconds?: number
