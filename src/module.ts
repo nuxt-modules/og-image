@@ -643,7 +643,6 @@ declare module '#og-image/unocss-config' {
         colorPreference = 'light'
       const runtimeConfig = <OgImageRuntimeConfig> {
         version,
-        compatibility: config.compatibility || {},
         // binding options
         satoriOptions: config.satoriOptions || {},
         resvgOptions: config.resvgOptions || {},

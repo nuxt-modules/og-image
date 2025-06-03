@@ -259,30 +259,19 @@ describe('dev', () => {
     delete debug.componentNames
     delete debug.baseCacheKey
     delete debug.compatibility.chromium // github ci will have playwright
+    delete debug.compatibility.sharp // github ci will have playwright
     expect(debug).toMatchInlineSnapshot(`
       {
         "compatibility": {
           "css-inline": "node",
           "resvg": "node",
           "satori": "node",
-          "sharp": "node",
         },
         "runtimeConfig": {
           "app": {
             "baseURL": "/",
           },
           "colorPreference": "light",
-          "compatibility": {
-            "dev": {
-              "chromium": "chrome-launcher",
-            },
-            "prerender": {
-              "chromium": "",
-            },
-            "runtime": {
-              "chromium": "",
-            },
-          },
           "componentDirs": [
             "OgImage",
             "og-image",

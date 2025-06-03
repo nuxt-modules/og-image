@@ -28,7 +28,6 @@ export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent
 
 export interface OgImageRuntimeConfig {
   version: string
-  compatibility: CompatibilityFlagEnvOverrides
   satoriOptions: SatoriOptions
   resvgOptions: ResvgRenderOptions
   sharpOptions: SharpOptions

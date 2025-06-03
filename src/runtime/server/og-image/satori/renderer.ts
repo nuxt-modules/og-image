@@ -9,6 +9,8 @@ import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
+// @ts-expect-error untyped
+import compatibility from '#og-image/compatibility'
 
 const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
 
@@ -78,9 +80,8 @@ async function createPng(event: OgImageRenderEventContext) {
 }
 
 async function createJpeg(event: OgImageRenderEventContext) {
-  const { sharpOptions, compatibility } = useOgImageRuntimeConfig()
-  const key = import.meta.prerender ? 'prerender' : 'runtime'
-  if (compatibility[key].sharp === false) {
+  const { sharpOptions } = useOgImageRuntimeConfig()
+  if (compatibility.sharp === false) {
     if (import.meta.dev) {
       throw new Error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime.')
     }
