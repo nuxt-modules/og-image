@@ -9,10 +9,10 @@ export async function applyInlineCss(ctx: OgImageRenderEventContext, island: Nux
   let html = island.html
   // inline styles from the island
   // empty.mjs returns an __unenv__ object as true
-  let css = island.head.style.map(s => s.innerHTML).filter(Boolean).join('\n')
+  let css = island.head.style?.map(s => s.innerHTML).filter(Boolean).join('\n') || ''
   // TODO this has an island bug in that it's rendering styles for components that aren't used because they're used in app.vue
   // TODO need to make an upstream issue
-  const componentInlineStyles = island.head.link.filter(l => l.href.startsWith('/_nuxt/components') && l.href.replaceAll('/', '').includes(ctx.options.component))
+  const componentInlineStyles = island.head.link?.filter(l => l.href.startsWith('/_nuxt/components') && l.href.replaceAll('/', '').includes(ctx.options.component)) || []
   // stricter opt-in for runtime
   if (!import.meta.prerender && !componentInlineStyles.length) {
     return false
