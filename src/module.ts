@@ -288,8 +288,8 @@ export default defineNuxtModule<ModuleOptions>({
         ]
       }
 
-      const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image@${version}`, '_fonts')
-      // mkdir@
+      // persist between versions
+      const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image`, '_fonts')
       const fontStorage = createStorage({
         driver: fsDriver({
           base: serverFontsDir,
