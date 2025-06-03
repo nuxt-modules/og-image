@@ -107,8 +107,9 @@ async function createJpeg(event: OgImageRenderEventContext) {
     console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
     return createPng(event)
   }
-  return sharp(svgBuffer, defu(event.options.sharp, sharpOptions))
-    .jpeg(sharp as JpegOptions)
+  const options = defu(event.options.sharp, sharpOptions)
+  return sharp(svgBuffer, options)
+    .jpeg(options as JpegOptions)
     .toBuffer()
 }
 
