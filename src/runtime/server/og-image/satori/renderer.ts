@@ -81,6 +81,9 @@ async function createJpeg(event: OgImageRenderEventContext) {
   const png = await createPng(event)
   const sharp = await useSharp()
   return sharp(png, defu(event.options.sharp, sharpOptions)).jpeg().toBuffer()
+  return sharp(svgBuffer, defu(event.options.sharp, sharpOptions))
+    .jpeg(sharp as JpegOptions)
+    .toBuffer()
 }
 
 const SatoriRenderer: Renderer = {
