@@ -182,6 +182,8 @@ export default defineNuxtModule<ModuleOptions>({
     const resolver = createResolver(import.meta.url)
     const { resolve } = resolver
     const { version } = await readPackageJSON(resolve('../package.json'))
+    const userAppPkgJson = await readPackageJSON(nuxt.options.rootDir)
+      .catch(() => ({ dependencies: {}, devDependencies: {} }))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
       logger.debug('The module is disabled, skipping setup.')
@@ -228,8 +230,12 @@ export default defineNuxtModule<ModuleOptions>({
         // avoid any sharp logic if user explicitly opts-out
         const userConfiguredExtension = config.defaults.extension
         const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
-        const hasSharpDependency = await hasResolvableDependency('sharp')
-        if (hasSharpDependency) {
+        const allDeps = {
+          ...(userAppPkgJson.dependencies || {}),
+          ...(userAppPkgJson.devDependencies || {}),
+        }
+        const hasExplicitSharpDependency = 'sharp' in allDeps || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')
+        if (hasExplicitSharpDependency) {
           if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
             config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
