@@ -234,7 +234,7 @@ export default defineNuxtModule<ModuleOptions>({
           ...(userAppPkgJson.dependencies || {}),
           ...(userAppPkgJson.devDependencies || {}),
         }
-        const hasExplicitSharpDependency = 'sharp' in allDeps || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')
+        const hasExplicitSharpDependency = !!config.sharpOptions || 'sharp' in allDeps || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')
         if (hasExplicitSharpDependency) {
           if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
