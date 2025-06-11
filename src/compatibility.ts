@@ -113,7 +113,7 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (nuxt.options.dev)
     return 'nitro-dev'
   // check for prerendering
-  if (nuxt.options._generate)
+  if ((nuxt.options as any)_generate /* TODO: remove in future major */ || nuxt.options.nitro.static)
     return 'nitro-prerender'
   let preset
   if (nitroConfig && nitroConfig?.preset)
