@@ -61,5 +61,5 @@ export {}
 }
 
 export function isNuxtGenerate(nuxt: Nuxt = useNuxt()) {
-  return nuxt.options._generate || nuxt.options.nitro.static || nuxt.options.nitro.preset === 'static'
+  return nuxt.options.nitro.static || nuxt.options.nitro.static || nuxt.options.nitro.preset === 'static'
 }
