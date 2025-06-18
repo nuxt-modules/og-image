@@ -28,7 +28,7 @@ describe('zeroRuntime', () => {
     console.log(`Size: ${stdout.split('	')[0]}`)
     const imagePath = resolve('../fixtures/zero-runtime/.output/public/__og-image__')
     // globby in image path
-    const images = await globby('**/*.png', { cwd: imagePath })
+    const images = await globby('**/*.png', { cwd: imagePath }).then(r => r.sort())
     // for each image we run a snapshot test
     for (const image of images) {
       const imageBuffer = await fs.readFile(resolve(imagePath, image))

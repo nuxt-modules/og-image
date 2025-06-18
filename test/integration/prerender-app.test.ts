@@ -23,7 +23,7 @@ describe('prerender', () => {
     // use globby and fs tools to read the images
     const imagePath = resolve('../fixtures/app-dir/.output/public/__og-image__')
     // globby in image path
-    const images = await globby('**/*.png', { cwd: imagePath })
+    const images = await globby('**/*.png', { cwd: imagePath }).then(r => r.sort())
     // for each image we run a snapshot test
     for (const image of images) {
       const imageBuffer = await fs.readFile(resolve(imagePath, image))
