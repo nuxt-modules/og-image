@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "@iconify-json/carbon": "^1.2.9",
-    "@iconify-json/simple-icons": "^1.2.37",
+    "@iconify-json/simple-icons": "^1.2.39",
     "@nuxt/devtools-kit": "^2.5.0",
     "@nuxt/devtools-ui-kit": "^2.5.0",
     "@nuxt/kit": "^3.17.5",
@@ -11,9 +11,9 @@
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.18.1",
     "nuxt": "^3.17.5",
-    "shiki": "^3.5.0",
+    "shiki": "^3.6.0",
     "splitpanes": "^4.0.4",
-    "vue": "^3.5.16",
+    "vue": "^3.5.17",
     "vue-router": "^4.5.1"
   }
 }
