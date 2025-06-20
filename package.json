@@ -60,8 +60,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.5",
-    "unstorage": "^1.15.0"
+    "@unhead/vue": "^2.0.10",
+    "unstorage": "^1.16.0"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.5.0",
@@ -96,19 +96,19 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.14.1",
+    "@antfu/eslint-config": "^4.15.0",
     "@css-inline/css-inline": "^0.14.3",
     "@headlessui/vue": "^1.7.23",
-    "@iconify-json/carbon": "^1.2.9",
+    "@iconify-json/carbon": "^1.2.10",
     "@iconify-json/logos": "^1.2.4",
     "@iconify-json/noto": "^1.2.3",
     "@iconify-json/ri": "^1.2.5",
     "@iconify-json/tabler": "^1.2.19",
     "@img/sharp-linux-x64": "^0.34.2",
-    "@nuxt/content": "^3.6.0",
+    "@nuxt/content": "^3.6.1",
     "@nuxt/devtools": "^2.5.0",
     "@nuxt/devtools-ui-kit": "^2.5.0",
-    "@nuxt/icon": "^1.13.0",
+    "@nuxt/icon": "^1.14.0",
     "@nuxt/image": "^1.10.0",
     "@nuxt/module-builder": "^1.0.1",
     "@nuxt/test-utils": "^3.19.1",
@@ -120,7 +120,7 @@
     "@unocss/nuxt": "^66.2.3",
     "@unocss/preset-icons": "^66.2.3",
     "@unocss/runtime": "^66.2.3",
-    "@vueuse/nuxt": "^13.3.0",
+    "@vueuse/nuxt": "^13.4.0",
     "bumpp": "^10.2.0",
     "eslint": "^9.29.0",
     "happy-dom": "^18.0.1",
