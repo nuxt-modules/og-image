@@ -21,7 +21,7 @@ export function withoutQuery(path: string) {
   return path.split('?')[0]
 }
 
-export function createNitroRouteRuleMatcher() : ((path: string) => NitroRouteRules) {
+export function createNitroRouteRuleMatcher(): ((path: string) => NitroRouteRules) {
   const { nitro, app } = useRuntimeConfig()
   const _routeRulesMatcher = toRouteMatcher(
     createRadixRouter({
