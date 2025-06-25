@@ -10,8 +10,8 @@
  */
 export const RE_MATCH_EMOJIS = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu
 
-// Re-export from the implementation determined at build time
-export { applyEmojis } from '#og-image/emoji-transform'
+// Re-export emoji service from the implementation determined at build time
+export { getEmojiSvg } from '#og-image/emoji-transform'
 
 // Export the emoji utility functions
 export * from './emoji-map'

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { getEmojiCodePoint } from '../../src/runtime/server/og-image/satori/transforms/emojis/emoji-map'
 import { getEmojiIconNames } from '../../src/runtime/server/og-image/satori/transforms/emojis/emoji-utils'
 

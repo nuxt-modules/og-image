@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 const { resolve } = createResolver(import.meta.url)
 
 await setup({
-  rootDir: resolve('../fixtures/emoji-test'),
+  rootDir: resolve('../fixtures/emojis'),
   server: true,
   browser: true,
 })

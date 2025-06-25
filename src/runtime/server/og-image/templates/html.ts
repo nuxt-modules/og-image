@@ -5,7 +5,6 @@ import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
 import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
-import { applyEmojis } from '../satori/transforms/emojis'
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
@@ -30,7 +29,6 @@ export async function html(ctx: OgImageRenderEventContext) {
   if (firstFont)
     defaultFontFamily = firstFont.name.replaceAll('+', ' ')
 
-  await applyEmojis(ctx, island)
   let html = island.html
 
   head.push({
