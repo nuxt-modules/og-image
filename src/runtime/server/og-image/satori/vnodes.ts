@@ -33,7 +33,6 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   const satoriTree = convertHtmlToSatori(template)
   // do sync transforms
   walkSatoriTree(ctx, satoriTree, [
-    emojis,
     classes,
     flex,
     encoding,
@@ -41,6 +40,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   ])
   // do async transforms
   await Promise.all(walkSatoriTree(ctx, satoriTree, [
+    emojis,
     unocss,
     imageSrc,
   ]))

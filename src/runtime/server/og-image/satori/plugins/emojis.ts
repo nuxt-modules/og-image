@@ -1,6 +1,7 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { getEmojiSvg } from '#og-image/emoji-transform'
-import { RE_MATCH_EMOJIS } from '../transforms/emojis'
+import { html as convertHtmlToSatori } from 'satori-html'
+import { RE_MATCH_EMOJIS } from '../transforms/emojis/emoji-utils'
 import { defineSatoriTransformer } from '../utils'
 
 function isEmojiSvg(node: VNode) {
@@ -8,20 +9,21 @@ function isEmojiSvg(node: VNode) {
     && typeof node.props?.['data-emoji'] !== 'undefined'
 }
 
-function hasEmojiInText(text: string): boolean {
-  return RE_MATCH_EMOJIS.test(text)
-}
-
 export default defineSatoriTransformer([
   // Transform text nodes that contain emojis to replace them with SVG nodes
   {
-    filter: (node: VNode) =>
-      typeof node.props?.children === 'string' && hasEmojiInText(node.props.children),
+    filter: (node: VNode) => {
+      if (typeof node.props?.children !== 'string') {
+        return false
+      }
+      node._emojiMatches = node.props.children.match(RE_MATCH_EMOJIS)
+      return node._emojiMatches
+    },
     transform: async (node: VNode, ctx: OgImageRenderEventContext) => {
       const text = node.props.children as string
 
       // Find all emojis in the text
-      const matches = text.match(RE_MATCH_EMOJIS)
+      const matches = node._emojiMatches
       if (!matches?.length)
         return
 
@@ -42,36 +44,24 @@ export default defineSatoriTransformer([
         // Try to get SVG for the emoji
         const svg = await getEmojiSvg(ctx, match)
         if (svg) {
-          // Parse the SVG string into a VNode
-          // Basic SVG parsing - this could be enhanced with a proper parser
-          const svgMatch = svg.match(/<svg([^>]*)>(.*)<\/svg>/s)
-          if (svgMatch) {
-            const [, attributes, body] = svgMatch
-
-            // Parse attributes
-            const props: Record<string, any> = { 'data-emoji': true }
-            const attrRegex = /(\w+)="([^"]*)"/g
-            let attrMatch
-            // eslint-disable-next-line no-cond-assign
-            while ((attrMatch = attrRegex.exec(attributes))) {
-              const [, name, value] = attrMatch
-              props[name] = value
+          // Parse the SVG and convert to Satori VNode instead of using img element
+          const node = convertHtmlToSatori(svg)
+          if (node?.props?.children?.[0]) {
+            const svgNode = node.props.children[0] as any as VNode
+            // Apply emoji styling
+            if (svgNode.props) {
+              svgNode.props['data-emoji'] = true
+              svgNode.props.style = {
+                ...svgNode.props.style,
+                width: '1em',
+                height: '1em',
+              }
             }
-
-            // Add our styling
-            props.style = {
-              margin: '0 .05em 0 .15em',
-              verticalAlign: '-0.1em',
-              ...props.style,
-            }
-
-            children.push({
-              type: 'svg',
-              props: {
-                ...props,
-                children: body,
-              },
-            })
+            children.push(svgNode)
+          }
+          else {
+            // Fallback to original emoji if parsing fails
+            children.push(match)
           }
         }
         else {
@@ -105,23 +95,19 @@ export default defineSatoriTransformer([
         })
 
         node.props.children = vnodeChildren
-        // Ensure the parent has proper display styles for mixed content
+        // Remove display styles as they're not supported by Satori
         node.props.style = node.props.style || {}
-        if (!node.props.style.display) {
-          node.props.style.display = 'flex'
-          node.props.style.alignItems = 'center'
-        }
       }
     },
   },
   // Keep the existing logic for styling containers with emoji SVGs
   {
     filter: (node: VNode) =>
-      ['div', 'p'].includes(node.type) && Array.isArray(node.props?.children) && (node.props.children as VNode[]).some(isEmojiSvg),
+      ['div', 'p'].includes(node.type) && Array.isArray(node.props?.children) && (node.props.children as VNode[]).some(child =>
+        (child.type === 'svg' && child.props?.['data-emoji']) || isEmojiSvg(child),
+      ),
     transform: (node: VNode) => {
       node.props.style = node.props.style || {}
-      node.props.style.display = 'flex'
-      node.props.style.alignItems = 'center'
       // check if any children nodes are just strings, wrap in a div
       node.props.children = (node.props.children as VNode[]).map((child) => {
         if (typeof child === 'string') {

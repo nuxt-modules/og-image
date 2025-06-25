@@ -1,7 +1,7 @@
 import type { OgImageRenderEventContext } from '../../../../../types'
 import { emojiCache } from '#og-image-cache'
 import { $fetch } from 'ofetch'
-import { getEmojiCodePoint, getEmojiIconNames } from './emoji-map'
+import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 
 /**
  * Service function to fetch emoji SVGs from the iconify API
@@ -9,7 +9,7 @@ import { getEmojiCodePoint, getEmojiIconNames } from './emoji-map'
  */
 export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: string): Promise<string | null> {
   const codePoint = getEmojiCodePoint(emojiChar)
-  const possibleNames = await getEmojiIconNames(codePoint, ctx.options.emojis!)
+  const possibleNames = getEmojiIconNames(codePoint, ctx.options.emojis!)
 
   // Try cache first with any of the possible names
   let svg = null

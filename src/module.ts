@@ -6,6 +6,7 @@ import type { SharpOptions } from 'sharp'
 import type {
   CompatibilityFlagEnvOverrides,
   CompatibilityFlags,
+  EmojiStrategy,
   FontConfig,
   InputFontConfig,
   OgImageComponent,
@@ -137,6 +138,17 @@ export interface ModuleOptions {
    * This is similar behavior to using `nuxt/content` with `documentDriven: true`.
    */
   strictNuxtContentPaths?: boolean
+
+  /**
+   * Strategy for resolving emoji icons.
+   *
+   * - 'auto': Automatically choose based on available dependencies (default)
+   * - 'local': Use local @iconify-json dependencies only
+   * - 'fetch': Use Iconify API to fetch emojis
+   *
+   * @default 'auto'
+   */
+  emojiStrategy?: EmojiStrategy
 }
 
 export interface ModuleHooks {
@@ -176,6 +188,7 @@ export default defineNuxtModule<ModuleOptions>({
       fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
+      emojiStrategy: 'auto',
     }
   },
   async setup(config, nuxt) {
@@ -201,24 +214,33 @@ export default defineNuxtModule<ModuleOptions>({
     // legacy support
     nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
 
-    // Check if we have any local iconify dependencies for emoji sets
+    // Determine emoji strategy based on configuration and dependencies
     const hasLocalIconify = await hasResolvableDependency(`@iconify-json/${config.defaults.emojis}`)
-    // Set emoji implementation based on dependency availability
-    // TODO & not edge environment
-    if (hasLocalIconify) {
+    let finalEmojiStrategy = config.emojiStrategy
+
+    // Handle 'auto' strategy
+    if (finalEmojiStrategy === 'auto') {
+      finalEmojiStrategy = hasLocalIconify ? 'local' : 'fetch'
+    }
+
+    // Validate strategy against available dependencies
+    if (finalEmojiStrategy === 'local' && !hasLocalIconify) {
+      logger.warn(`emojiStrategy is set to 'local' but @iconify-json/${config.defaults.emojis} is not installed. Falling back to 'fetch'.`)
+      finalEmojiStrategy = 'fetch'
+    }
+
+    // Set emoji implementation based on final strategy
+    if (finalEmojiStrategy === 'local') {
       logger.debug(`Using local dependency \`@iconify-json/${config.defaults.emojis}\` for emoji rendering.`)
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
-      // add nitro server virtual template for the iconify import
-      addTemplate({
-        filename: 'iconify-json-icons.mjs',
-        getContents: () => {
-          return `export { default } from '@iconify-json/${config.defaults.emojis}/icons.json'`
-        },
-        write: false,
-      })
+      // add nitro virtual import for the iconify import
+      nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
+      nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
+        return `export { icons } from '@iconify-json/${config.defaults.emojis}/icons.json'`
+      }
     }
     else {
-      logger.info(`Using iconify API for emojis, please install @iconify-json/${config.defaults.emojis} for local support.`)
+      logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, please install @iconify-json/${config.defaults.emojis} for local support`}.`)
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
 

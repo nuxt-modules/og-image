@@ -26,6 +26,8 @@ export interface OgImageRenderEventContext {
 
 export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'streamline-emojis' | 'openmoji'
 
+export type EmojiStrategy = 'auto' | 'local' | 'fetch'
+
 export interface OgImageRuntimeConfig {
   version: string
   satoriOptions: SatoriOptions
