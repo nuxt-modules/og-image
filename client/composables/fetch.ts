@@ -1,10 +1,12 @@
 import type { VueHeadClient } from '@unhead/vue'
 import type { OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from '../../src/runtime/types'
-import { appFetch, devtoolsClient, useAsyncData } from '#imports'
+import { useAsyncData } from '#imports'
 import { joinURL } from 'ufo'
-import { globalRefreshTime, optionsOverrides, path, refreshTime } from '~/util/logic'
+import { globalRefreshTime, optionsOverrides, path, refreshTime } from '../util/logic'
+import { appFetch, devtoolsClient } from './rpc'
 
 export function fetchPathDebug() {
+  // @ts-expect-error untyped
   return useAsyncData<{ siteConfig: { url?: string }, options: OgImageOptions, vnodes: Record<string, any> }>(async () => {
     if (!appFetch.value)
       return { siteCofig: {}, options: {}, vnodes: {} }
@@ -42,6 +44,7 @@ export function fetchPathDebug() {
 }
 
 export function fetchGlobalDebug() {
+  // @ts-expect-error untyped
   return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>('global-debug', () => {
     if (!appFetch.value)
       return { runtimeConfig: {} }

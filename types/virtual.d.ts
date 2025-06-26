@@ -5,13 +5,13 @@ declare module '#og-image/components' {
   export default components
 }
 declare module '#og-image/renderers/satori' {
-  import type Renderer from './src/runtime/types'
+  import type Renderer from '#og-image/types'
 
   const renderer: Renderer | { __mock__: true } | undefined
   export default renderer
 }
 declare module '#og-image/renderers/chromium' {
-  import type Renderer from './src/runtime/types'
+  import type Renderer from '#og-image/types'
 
   const renderer: Renderer | { __mock__: true } | undefined
   export default renderer
@@ -68,4 +68,13 @@ declare module '#og-image-cache' {
   export const fontCache: Storage<BufferSource> | undefined
 
   export const emojiCache: Storage<string>
+}
+
+declare module '@css-inline/css-inline-wasm' {
+  export function inline(css: string, html: string): string
+  export default function init(): Promise<void>
+  const cssInline: {
+    inline: (css: string, html: string) => string
+  }
+  export { cssInline }
 }

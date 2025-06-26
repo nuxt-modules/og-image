@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import type { NitroRouteRules } from 'nitropack'
-import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
+import type { NuxtIslandResponse } from 'nuxt/app'
 import { defu } from 'defu'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { hash } from 'ohash'

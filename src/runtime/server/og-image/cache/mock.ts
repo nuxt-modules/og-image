@@ -7,7 +7,7 @@ const storage = createStorage<OgImageOptions>({
   driver: memoryDriver(),
 })
 
-export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }> = storage
+export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }> = storage as any
 export const prerenderOptionsCache: Storage<OgImageOptions> | undefined = storage
 export const fontCache = storage
-export const emojiCache: Storage<string> = storage
+export const emojiCache: Storage<string> = storage as any

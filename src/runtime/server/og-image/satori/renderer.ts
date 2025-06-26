@@ -7,7 +7,8 @@ import { theme } from '#og-image-virtual/unocss-config.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { sendError } from 'h3'
-import { normaliseFontInput, useOgImageRuntimeConfig } from '../../../shared'
+import { normaliseFontInput } from '../../../shared'
+import { useOgImageRuntimeConfig } from '../../utils'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
@@ -22,7 +23,7 @@ async function resolveFonts(event: OgImageRenderEventContext) {
   if (fontCache) {
     for (const font of normalisedFonts) {
       if (await fontCache.hasItem(font.cacheKey)) {
-        font.data = await fontCache.getItemRaw(font.cacheKey)
+        font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
         preloadedFonts.push(font)
       }
       else {
@@ -70,6 +71,8 @@ export async function createSvg(event: OgImageRenderEventContext) {
 async function createPng(event: OgImageRenderEventContext) {
   const { resvgOptions } = useOgImageRuntimeConfig()
   const svg = await createSvg(event)
+  if (!svg)
+    throw new Error('Failed to create SVG')
   const Resvg = await useResvg()
   const resvg = new Resvg(svg, defu(
     event.options.resvg,

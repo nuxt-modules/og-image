@@ -2,7 +2,7 @@ import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { parseURL } from 'ufo'
-import { isInternalRoute } from '../../pure'
+import { isInternalRoute } from '../../shared'
 import { extractAndNormaliseOgImageOptions, resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 

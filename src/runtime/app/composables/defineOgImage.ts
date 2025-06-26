@@ -1,11 +1,9 @@
-import type { ActiveHeadEntry } from '@unhead/vue'
-import type { DefineOgImageInput } from '../../types'
+import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
 import { appendHeader } from 'h3'
 import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { ref, toValue } from 'vue'
-import { createNitroRouteRuleMatcher } from '../../server/util/kit'
-import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
-import { createOgImageMeta, setHeadOgImagePrebuilt } from '../utils'
+// import { createNitroRouteRuleMatcher } from '../../server/util/kit'
+import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 // In non-dev client-side environments this is treeshaken
 export function defineOgImage(_options: DefineOgImageInput = {}) {
@@ -31,40 +29,33 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     return
   }
 
-  const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
-
-  // need to check route rules hasn't disabled this
-  const routeRuleMatcher = createNitroRouteRuleMatcher()
-  const routeRules = routeRuleMatcher(basePath).ogImage
-  // has been disabled by route rules
-  if (!_options || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false || (typeof routeRules !== 'undefined' && routeRules === false)) {
-    // remove the previous entries
-    ogImageInstances.forEach((e: ActiveHeadEntry<any>) => {
-      e.dispose()
-    })
-    nuxtApp.ssrContext!._ogImageInstances = undefined
-    return
-  }
   const { defaults } = useOgImageRuntimeConfig()
   const options = toValue(_options)
-  for (const key in routeRules) {
-    if (options[key] === undefined)
-      options[key] = routeRules[key]
-  }
-  for (const key in defaults) {
-    if (options[key] === undefined)
-      options[key] = defaults[key]
-  }
-  if (route.query)
-    options._query = route.query
-  // allow overriding using a prebuild config
-  if (options.url) {
-    setHeadOgImagePrebuilt(options)
+
+  // If options is false, don't generate an OG image
+  if (options === false) {
     return
   }
-  const path = getOgImagePath(basePath, options)
+
+  // TypeScript now knows options is not false
+  const validOptions = options as OgImageOptions | OgImagePrebuilt
+
+  for (const key in defaults) {
+    // @ts-expect-error untyped
+    if (validOptions[key] === undefined)
+      // @ts-expect-error untyped
+      validOptions[key] = defaults[key]
+  }
+  if (route.query)
+    validOptions._query = route.query
+  // allow overriding using a prebuild config
+  if (validOptions.url) {
+    setHeadOgImagePrebuilt(validOptions)
+    return
+  }
+  const path = getOgImagePath(basePath, validOptions)
   if (import.meta.prerender) {
     appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path)
   }
-  createOgImageMeta(path, options, nuxtApp.ssrContext!)
+  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
 }

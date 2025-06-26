@@ -39,7 +39,7 @@
   },
   "files": [
     "dist",
-    "virtual.d.ts"
+    "types/virtual.d.ts"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -50,7 +50,8 @@
     "build:client": "nuxi generate client",
     "build:module": "nuxt-build-module build",
     "client:dev": "nuxi dev client --port 3030",
-    "lint": "eslint . --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground && nuxi prepare client",

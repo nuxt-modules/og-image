@@ -542,7 +542,7 @@ export default defineNuxtModule<ModuleOptions>({
             hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
-            path: nuxt.options.dev ? component.filePath : undefined,
+            path: component.filePath,
             category,
             credits,
           })
@@ -571,7 +571,6 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('tailwindcss:config', (tailwindConfig) => {
       unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
     })
-    // @ts-expect-error module optional
     nuxt.hook('unocss:config', (_unoCssConfig) => {
       unoCssConfig = { ..._unoCssConfig.theme }
     })

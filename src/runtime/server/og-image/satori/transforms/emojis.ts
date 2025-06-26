@@ -1,4 +1,4 @@
-import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
+import type { NuxtIslandResponse } from 'nuxt/app'
 import type { OgImageRenderEventContext } from '../../../../types'
 import { emojiCache } from '#og-image-cache'
 
@@ -3568,7 +3568,7 @@ export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIs
   if (!matches)
     return html
 
-  const replacements = await Promise.all(matches.map(async (match) => {
+  const replacements = await Promise.all(matches.map(async (match: string) => {
     // convert match to unicodeconst
     const unicode = match.codePointAt(0)!.toString(16) as keyof typeof charMap
     const emoji = charMap[unicode]

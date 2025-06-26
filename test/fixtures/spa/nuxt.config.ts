@@ -1,3 +1,4 @@
+import { defineNuxtConfig } from 'nuxt/config'
 import NuxtOgImage from '../../../src/module'
 
 // https://v3.nuxtjs.org/api/configuration/nuxt.config
@@ -11,6 +12,7 @@ export default defineNuxtConfig({
   ssr: false,
   ogImage: {
     debug: true,
+    // @ts-expect-error untyped
     runtimeBrowser: true,
   },
   routeRules: {

@@ -1,6 +1,6 @@
+import type { NuxtSSRContext } from '#app/nuxt'
 import type { ActiveHeadEntry } from '@unhead/vue'
 import type { NitroRouteRules } from 'nitropack'
-import type { NuxtApp } from 'nuxt/app'
 import type { OgImageOptions } from '../../types'
 import { useRequestEvent } from '#app'
 import { withSiteUrl } from '#site-config/app/composables'
@@ -11,15 +11,15 @@ import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { parseURL, withoutBase } from 'ufo'
 import { toValue } from 'vue'
 import { createOgImageMeta } from '../../app/utils'
-import { isInternalRoute, separateProps } from '../../pure'
-import { getOgImagePath } from '../../shared'
+import { isInternalRoute, separateProps } from '../../shared'
+import { getOgImagePath } from '../utils'
 
-export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
+export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
     const e = useRequestEvent()
-    const path = parseURL(e.path).pathname
+    const path = parseURL(e?.path || '').pathname
     if (isInternalRoute(path))
       return
 
@@ -69,7 +69,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
             }
             // need to insert the overrides into the payload
             else if (overrides && tag.tag === 'script' && tag.props.id === 'nuxt-og-image-options') {
-              tag.innerHTML = stringify(defu(overrides, parse(tag.innerHTML)))
+              tag.innerHTML = stringify(defu(overrides, parse(tag.innerHTML || '{}')))
             }
           }
         },
@@ -78,21 +78,23 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
   })
 }
 
-export function routeRuleOgImage(nuxtApp: NuxtApp) {
+export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
     const e = useRequestEvent()
-    const path = parseURL(e.path).pathname
+    const path = parseURL(e?.path || '').pathname
     if (isInternalRoute(path))
       return
 
     const _routeRulesMatcher = toRouteMatcher(
       createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
     )
-    let routeRules = defu({}, ..._routeRulesMatcher.matchAll(
-      withoutBase(path.split('?')[0], ssrContext?.runtimeConfig?.app.baseURL),
-    ).reverse()).ogImage as NitroRouteRules['ogImage']
+    const matchedRules = _routeRulesMatcher.matchAll(
+      withoutBase(path.split('?')[0], ssrContext?.runtimeConfig?.app.baseURL || ''),
+    ).reverse()
+    const combinedRules = defu({}, ...matchedRules) as any
+    let routeRules = combinedRules?.ogImage as NitroRouteRules['ogImage']
     if (typeof routeRules === 'undefined')
       return
 
@@ -100,15 +102,15 @@ export function routeRuleOgImage(nuxtApp: NuxtApp) {
     const ogImageInstances = nuxtApp.ssrContext!._ogImageInstances || []
     // if we've opted out of route rules, we need to remove this entry
     if (routeRules === false) {
-      ogImageInstances?.forEach((e: ActiveHeadEntry<any>) => {
+      (ogImageInstances as ActiveHeadEntry<any>[])?.forEach((e: ActiveHeadEntry<any>) => {
         e.dispose()
       })
       nuxtApp.ssrContext!._ogImagePayload = undefined
       nuxtApp.ssrContext!._ogImageInstances = undefined
       return
     }
-    routeRules = defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules)
-    const src = getOgImagePath(ssrContext!.url, routeRules)
-    createOgImageMeta(src, routeRules, nuxtApp.ssrContext!)
+    routeRules = defu((nuxtApp.ssrContext?.event as any)?.context._nitro?.routeRules?.ogImage, routeRules)
+    const src = getOgImagePath(ssrContext!.url, routeRules as any)
+    createOgImageMeta(src, routeRules as any, nuxtApp.ssrContext!)
   })
 }

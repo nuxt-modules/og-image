@@ -135,6 +135,11 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   // cache
   cacheMaxAgeSeconds?: number
   /**
+   * Social preview metadata
+   * @internal
+   */
+  socialPreview?: SocialPreviewMetaData
+  /**
    * @internal
    */
   _query?: Record<string, any>
@@ -191,4 +196,18 @@ export interface SatoriTransformer {
   transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void> | void
 }
 
-export interface SocialPreviewMetaData { twitter?: Record<string, string>, og?: Record<string, string> }
+export interface SocialPreviewMetaData {
+  twitter?: Record<string, string>
+  og?: Record<string, string> & {
+    image?: string | {
+      'image:width'?: string | number
+      'image:height'?: string | number
+      [key: string]: any
+    }
+  }
+}
+
+export interface RouteRulesOgImage extends Partial<OgImageOptions> {
+  // Allow for route rules to disable og:image by setting to false
+  [key: string]: any
+}

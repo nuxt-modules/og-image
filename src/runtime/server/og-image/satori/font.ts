@@ -19,7 +19,7 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
     }
     // fontData is a base64 string, need to turn it into a buffer
     // buf is a string need to convert it to a buffer
-    font.data = Buffer.from(fontData!, 'base64')
+    font.data = Buffer.from(String(fontData), 'base64')
     return font
   }
 
@@ -30,7 +30,7 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
     if (import.meta.dev || import.meta.prerender) {
       const key = `${publicStoragePath}${font.path.replace('./', ':').replace('/', ':')}`
       if (await useStorage().hasItem(key))
-        data = await useStorage().getItemRaw(key)
+        data = (await useStorage().getItemRaw(key)) || undefined
     }
     else {
       data = await e.$fetch(font.path, {

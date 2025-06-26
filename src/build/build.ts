@@ -74,7 +74,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
 
 async function resolveFilePathSha1(path: string) {
   const _path = await resolvePath(path)
-  return sha1(existsSync(_path) ? await readFile(_path) : path)
+  return sha1(existsSync(_path) ? await readFile(_path) : Buffer.from(path))
 }
 
 function sha1(source: Buffer) {

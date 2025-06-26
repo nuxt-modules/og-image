@@ -2,6 +2,7 @@ import type { H3Error, H3Event } from 'h3'
 import type {
   OgImageOptions,
   OgImageRenderEventContext,
+  RouteRulesOgImage,
   SocialPreviewMetaData,
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
@@ -19,11 +20,12 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
-import { separateProps, useOgImageRuntimeConfig } from '../../shared'
+import { separateProps } from '../../shared'
 import { decodeObjectHtmlEntities } from '../util/encoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { logger } from '../util/logger'
 import { normaliseOptions } from '../util/options'
+import { useOgImageRuntimeConfig } from '../utils'
 import { useChromiumRenderer, useSatoriRenderer } from './instances'
 
 export function resolvePathCacheKey(e: H3Event, path: string) {
@@ -77,6 +79,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       }
       catch (error) {
         if (import.meta.dev) {
+          // @ts-expect-error untyped
           logger.error(`[Nuxt OG Image] Invalid JSON in ${k} parameter: ${error.message}`)
         }
       }
@@ -117,7 +120,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       statusMessage: 'The route is missing the Nuxt OG Image payload or route rules.',
     })
   }
-  const ogImageRouteRules = separateProps(routeRules.ogImage)
+  const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
   options = defu(queryParams, options, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
   if (!options) {
     return createError({
@@ -236,7 +239,7 @@ async function doFetchWithErrorHandling(fetch: any, path: string) {
     .catch((err: any) => {
       return err
     })
-  let errorDescription: string
+  let errorDescription: string | undefined
   // if its a redirect let's get the redirect path
   if (res.status >= 300 && res.status < 400) {
     // follow valid redirects
@@ -305,16 +308,17 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
 
   if (!_payload) {
     const payload = extractAndNormaliseOgImageOptions(html)
-    if (payload?.socialPreview?.og?.image) {
-      const p = {
+    if (payload && typeof payload === 'object' && payload.socialPreview?.og?.image) {
+      const image = payload.socialPreview.og.image
+      const p: any = {
         custom: true,
-        url: payload.socialPreview.og.image,
+        url: typeof image === 'string' ? image : image,
       }
-      if (payload.socialPreview.og.image['image:width']) {
-        p.width = payload.socialPreview.og.image['image:width']
+      if (typeof image === 'object' && image['image:width']) {
+        p.width = image['image:width']
       }
-      if (payload.socialPreview.og.image['image:height']) {
-        p.height = payload.socialPreview.og.image['image:height']
+      if (typeof image === 'object' && image['image:height']) {
+        p.height = image['image:height']
       }
       return p
     }
@@ -334,5 +338,10 @@ async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: str
       value: payload,
     })
   }
-  return payload
+  return typeof payload === 'object'
+    ? payload
+    : createError({
+        statusCode: 500,
+        statusMessage: '[Nuxt OG Image] Invalid payload type.',
+      })
 }

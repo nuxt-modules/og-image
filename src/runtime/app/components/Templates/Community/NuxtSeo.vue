@@ -3,7 +3,7 @@
  * @credits Nuxt SEO <https://nuxtseo.com/>
  */
 
-import { useOgImageRuntimeConfig } from '#og-image/shared'
+import { useOgImageRuntimeConfig } from '#og-image/app/utils'
 import { useSiteConfig } from '#site-config/app/composables'
 import { computed, defineComponent, h, resolveComponent } from 'vue'
 

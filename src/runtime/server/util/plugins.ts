@@ -1,14 +1,17 @@
+// @ts-expect-error nuxt content v2
 import type { ParsedContent } from '@nuxt/content'
 import type { Head } from '@unhead/vue'
 import type { NitroApp } from 'nitropack/runtime/app'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { withQuery } from 'ufo'
-import { generateMeta, getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { generateMeta } from '../../shared'
+import { getOgImagePath, useOgImageRuntimeConfig } from '../utils'
 import { normaliseOptions } from './options'
 
 export function nuxtContentPlugin(nitroApp: NitroApp) {
   const { isNuxtContentDocumentDriven, strictNuxtContentPaths, defaults } = useOgImageRuntimeConfig()
+  // @ts-expect-error nuxt content v2
   nitroApp.hooks.hook('content:file:afterParse', async (content: ParsedContent) => {
     if (content._draft || content._extension !== 'md' || content._partial || content.indexable === false || content.index === false)
       return

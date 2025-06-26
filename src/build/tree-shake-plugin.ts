@@ -56,7 +56,9 @@ export const TreeShakeComposablesPlugin = createUnplugin(() => {
   ]
 
   const regexp = `(^\\s*)(${composableNames.join('|')})(?=\\((?!\\) \\{))`
+  // eslint-disable-next-line regexp/no-unused-capturing-group
   const COMPOSABLE_RE = new RegExp(regexp, 'm')
+
   const COMPOSABLE_RE_GLOBAL = new RegExp(regexp, 'gm')
 
   return {

@@ -15,15 +15,20 @@ export async function createBrowser(): Promise<Browser | void> {
       // avoid problems by installing playwright
       logger.info('Installing Chromium install for og:image generation...')
       const installChromeProcess = execa('npx', ['playwright', 'install', 'chromium'], {
-        stdio: 'inherit',
+        stdio: 'pipe',
       })
 
-      installChromeProcess.stderr?.pipe(process.stderr)
-      new Promise((resolve) => {
+      if (installChromeProcess.stderr) {
+        installChromeProcess.stderr.pipe(process.stderr)
+      }
+      if (installChromeProcess.stdout) {
+        installChromeProcess.stdout.pipe(process.stdout)
+      }
+      new Promise<void>((resolve) => {
         installChromeProcess.on('exit', (e) => {
           if (e !== 0)
             logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
-          resolve(true)
+          resolve()
         })
       }).then(() => {
         installChromeProcess.kill()

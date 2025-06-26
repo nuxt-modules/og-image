@@ -3,7 +3,8 @@ import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import type { OgImageRenderEventContext } from '../../../types'
 import { useNitroOrigin } from '#site-config/server/composables'
 import { joinURL, withQuery } from 'ufo'
-import { useOgImageRuntimeConfig } from '../../../shared'
+import { toValue } from 'vue'
+import { useOgImageRuntimeConfig } from '../../utils'
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
   const { colorPreference } = useOgImageRuntimeConfig()
@@ -15,11 +16,11 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
   try {
     if (import.meta.prerender && !options.html) {
       // we need to do a nitro fetch for the HTML instead of rendering with playwright
-      options.html = await e.$fetch(path).catch(() => undefined)
+      options.html = await e.$fetch(path).catch(() => undefined) as string
     }
     await page.setViewportSize({
-      width: options.width || 1200,
-      height: options.height || 630,
+      width: toValue(options.width) || 1200,
+      height: toValue(options.height) || 630,
     })
 
     if (options.html) {

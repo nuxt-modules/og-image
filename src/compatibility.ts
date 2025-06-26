@@ -76,6 +76,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'satori': 'node',
     'sharp': false,
     'wasm': {
+      // @ts-expect-error untyped
       rollup: {
         targetEnv: 'auto-inline',
         sync: ['@resvg/resvg-wasm/index_bg.wasm'],
