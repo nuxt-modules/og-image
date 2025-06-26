@@ -1,6 +1,6 @@
 import type { OgImageOptions } from '../../../types'
-import { defineOgImage } from '#imports'
 import { defineComponent } from 'vue'
+import { defineOgImage } from '../../composables/defineOgImage'
 
 export default defineComponent<OgImageOptions>({
   name: 'OgImage',

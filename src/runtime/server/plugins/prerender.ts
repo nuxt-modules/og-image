@@ -1,6 +1,6 @@
-import { defineNitroPlugin } from '#imports'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
+import { defineNitroPlugin } from 'nitropack/runtime'
 import { parseURL } from 'ufo'
 import { isInternalRoute } from '../../pure'
 import { extractAndNormaliseOgImageOptions, resolvePathCacheKey } from '../og-image/context'

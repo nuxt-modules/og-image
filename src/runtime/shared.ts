@@ -1,6 +1,6 @@
 import type { ResolvableMeta } from '@unhead/vue'
 import type { OgImageOptions, OgImagePrebuilt, OgImageRuntimeConfig } from './types'
-import { useRuntimeConfig } from '#imports'
+import { useRuntimeConfig } from '#app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { getExtension } from './pure'

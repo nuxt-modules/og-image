@@ -3,8 +3,8 @@
  * @credits Nuxt SEO <https://nuxtseo.com/>
  */
 
-import { useSiteConfig } from '#imports'
 import { useOgImageRuntimeConfig } from '#og-image/shared'
+import { useSiteConfig } from '#site-config/app/composables'
 import { computed, defineComponent, h, resolveComponent } from 'vue'
 
 // convert to typescript props

@@ -1,6 +1,6 @@
 import type { NuxtIslandResponse } from 'nuxt/dist/core/runtime/nitro/renderer'
 import type { OgImageRenderEventContext } from '../../../../types'
-import { useNitroOrigin } from '#imports'
+import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { createConsola } from 'consola'
 import { useCssInline } from '../instances'
 

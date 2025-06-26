@@ -1,7 +1,7 @@
 import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import type { OgImageRenderEventContext } from '../../../types'
-import { useNitroOrigin } from '#imports'
+import { useNitroOrigin } from '#site-config/server/composables'
 import { joinURL, withQuery } from 'ufo'
 import { useOgImageRuntimeConfig } from '../../../shared'
 

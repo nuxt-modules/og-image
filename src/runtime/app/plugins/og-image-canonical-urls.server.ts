@@ -1,4 +1,4 @@
-import { defineNuxtPlugin } from '#imports'
+import { defineNuxtPlugin } from '#app'
 import { ogImageCanonicalUrls as setup } from '../utils/plugins'
 
 export default defineNuxtPlugin({

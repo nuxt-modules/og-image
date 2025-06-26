@@ -3,8 +3,9 @@
  * @credits Full Stack Heroes <https://fullstackheroes.com/>
  */
 
-import { computed, useSiteConfig } from '#imports'
+import { useSiteConfig } from '#site-config/app/composables'
 import { parseURL } from 'ufo'
+import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{
   title?: string

@@ -1,7 +1,7 @@
 import type { H3Error } from 'h3'
 import type { OgImageRenderEventContext } from '../../types'
-import { useStorage } from '#imports'
 import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import { useStorage } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'

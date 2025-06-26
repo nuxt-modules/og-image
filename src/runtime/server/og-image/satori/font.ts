@@ -1,5 +1,6 @@
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../types'
-import { useNitroOrigin, useStorage } from '#imports'
+import { useNitroOrigin } from '#site-config/server/composables'
+import { useStorage } from 'nitropack/runtime'
 import { prefixStorage } from 'unstorage'
 
 export const assets = prefixStorage(useStorage(), '/assets')

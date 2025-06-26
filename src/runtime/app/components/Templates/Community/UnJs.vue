@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from '#imports'
+import { computed } from 'vue'
 
 /**
  * @credits UnJS <https://unjs.io/>
