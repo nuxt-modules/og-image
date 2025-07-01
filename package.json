@@ -66,7 +66,7 @@
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.5.0",
-    "@nuxt/kit": "^3.17.5",
+    "@nuxt/kit": "^3.17.6",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
     "@unocss/core": "^66.3.1",
@@ -126,7 +126,7 @@
     "eslint": "^9.29.0",
     "happy-dom": "^18.0.1",
     "jest-image-snapshot": "^6.5.1",
-    "nuxt": "^3.17.5",
+    "nuxt": "^3.17.6",
     "playwright": "^1.53.1",
     "sass": "^1.89.2",
     "sharp": "^0.34.2",
