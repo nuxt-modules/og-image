@@ -90,7 +90,7 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
   Object.entries(_props)
     .forEach(([key, val]) => {
       // with a simple kebab case conversion
-      props[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
+      props[key.replace(/-([a-z])/g, g => String(g[1]).toUpperCase())] = val
     })
   return {
     ...Object.fromEntries(
@@ -139,7 +139,7 @@ export function withoutQuery(path: string) {
 }
 
 export function getExtension(path: string) {
-  path = withoutQuery(path)
+  path = withoutQuery(path)!
   const lastSegment = (path.split('/').pop() || path)
   const extension = lastSegment.split('.').pop() || lastSegment
   if (extension === 'jpg')

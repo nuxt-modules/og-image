@@ -17,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -38,7 +38,7 @@ import {
   getPresetNitroPresetCompatibility,
   resolveNitroPreset,
 } from './compatibility'
-import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
+import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
@@ -155,7 +155,6 @@ export default defineNuxtModule<ModuleOptions>({
     name: 'nuxt-og-image',
     compatibility: {
       nuxt: '>=3.16.0',
-      bridge: false,
     },
     configKey: 'ogImage',
   },
@@ -222,7 +221,7 @@ export default defineNuxtModule<ModuleOptions>({
     const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
     let publicDirAbs = nuxt.options.dir.public
     if (!isAbsolute(publicDirAbs)) {
-      publicDirAbs = publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)
+      publicDirAbs = (publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)) || ''
     }
     if (isProviderEnabledForEnv('satori', nuxt, config)) {
       let attemptSharpUsage = false
@@ -463,6 +462,8 @@ export default defineNuxtModule<ModuleOptions>({
           from: resolve(`./runtime/app/composables/${name}`),
         })
         if (!nuxt.options.dev) {
+          nuxt.options.optimization.treeShake.composables.client = nuxt.options.optimization.treeShake.composables.client || {}
+          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] || []
           nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
         }
       })
@@ -578,23 +579,24 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
-    extendTypes('nuxt-og-image', ({ typesPath }) => {
-      // need to map our components to types so we can import them
-      const componentImports = ogImageComponentCtx.components.map((component) => {
-        const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
-        // remove dirNames from component name
-        const name = config.componentDirs
-          // need to sort by longest first so we don't replace the wrong part of the string
-          .sort((a, b) => b.length - a.length)
-          .reduce((name, dir) => {
-            // only replace from the start of the string
-            return name.replace(new RegExp(`^${dir}`), '')
-          }, component.pascalName)
-        return `    '${name}': typeof import('${relativeComponentPath}')['default']`
-      }).join('\n')
-      return `
-declare module 'nitropack' {
-  interface NitroRouteRules {
+    addTypeTemplate({
+      filename: 'module/nuxt-og-image.d.ts',
+      getContents: (data) => {
+        const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
+        // need to map our components to types so we can import them
+        const componentImports = ogImageComponentCtx.components.map((component) => {
+          const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
+          // remove dirNames from component name
+          const name = config.componentDirs
+            // need to sort by longest first so we don't replace the wrong part of the string
+            .sort((a, b) => b.length - a.length)
+            .reduce((name, dir) => {
+              // only replace from the start of the string
+              return name.replace(new RegExp(`^${dir}`), '')
+            }, component.pascalName)
+          return `    '${name}': typeof import('${relativeComponentPath}')['default']`
+        }).join('\n')
+        const types = `interface NitroRouteRules {
     ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
   }
   interface NitroRouteConfig {
@@ -603,7 +605,14 @@ declare module 'nitropack' {
   interface NitroRuntimeHooks {
     'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
     'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-  }
+  }`
+        return `
+declare module 'nitropack' {
+${types}
+}
+
+declare module 'nitropack/types' {
+${types}
 }
 
 declare module '#og-image/components' {
@@ -614,7 +623,13 @@ ${componentImports}
 declare module '#og-image/unocss-config' {
   export type theme = any
 }
+
+export {}
 `
+      },
+    }, {
+      nitro: true,
+      nuxt: true,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false

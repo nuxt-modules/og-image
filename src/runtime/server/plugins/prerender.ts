@@ -37,7 +37,7 @@ export default defineNitroPlugin(async (nitro) => {
     const index = html.bodyAppend.findIndex(script => script.includes('id="nuxt-og-image-options"'))
     if (index !== -1) {
       // we need to remove `<script id="nuxt-og-image-options" type="application/json">...anything...</script>`
-      html.bodyAppend[index] = html.bodyAppend[index].replace(/<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/, '')
+      html.bodyAppend[index] = String(html.bodyAppend[index]).replace(/<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/, '')
       html.bodyAppend[index] = html.bodyAppend[index].replace(/<script id="nuxt-og-image-overrides" type="application\/json">[\s\S]*?<\/script>/, '')
     }
   })

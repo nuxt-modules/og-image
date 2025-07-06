@@ -51,7 +51,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
           ctx.tags = ctx.tags.filter(Boolean)
 
           for (const tag of ctx.tags) {
-            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name))) {
+            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name || ''))) {
               if (!tag.props.content) {
                 tag.props = {} // equivalent to removing
                 continue
@@ -61,7 +61,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
               // property twitter:image:src
               if (!tag.props.content?.startsWith('https')) {
                 await nuxtApp.runWithContext(() => {
-                  tag.props.content = toValue(withSiteUrl(tag.props.content, {
+                  tag.props.content = toValue(withSiteUrl(tag.props.content || '', {
                     withBase: true,
                   }))
                 })
@@ -91,7 +91,7 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
       createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
     )
     const matchedRules = _routeRulesMatcher.matchAll(
-      withoutBase(path.split('?')[0], ssrContext?.runtimeConfig?.app.baseURL || ''),
+      withoutBase(path.split('?')?.[0] || '', ssrContext?.runtimeConfig?.app.baseURL || ''),
     ).reverse()
     const combinedRules = defu({}, ...matchedRules) as any
     let routeRules = combinedRules?.ogImage as NitroRouteRules['ogImage']

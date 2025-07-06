@@ -15,7 +15,7 @@ export async function fontEventHandler(e: H3Event) {
 
   // used internally for html previews
   const key = path.split('/font/')[1]
-  if (key.includes(':')) {
+  if (key && key.includes(':')) {
     const font = fonts.find(f => f.key === key)
     // use as storage key
     if (font?.key && await assets.hasItem(font.key)) {
@@ -41,13 +41,13 @@ export async function fontEventHandler(e: H3Event) {
     }
   }
 
-  const [_name, _weight] = key.split('.')[0].split('/')
+  const [_name, _weight] = String(key?.split('.')[0]).split('/')
 
   if (!_name || !_weight)
     return 'Provide a font name and weight'
 
   // make sure name starts with a capital letter
-  const name = _name[0].toUpperCase() + _name.slice(1)
+  const name = String(_name[0]).toUpperCase() + _name.slice(1)
   // make sure weight is a valid number between 100 to 900 in 100 increments
   const weight = Math.round(Number.parseInt(_weight) / 100) * 100
 

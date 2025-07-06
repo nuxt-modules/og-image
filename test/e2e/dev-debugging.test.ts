@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
 
-describe.skipIf(!import.meta.env.TEST_DEV)('dev', async () => {
+describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   await setup({
     rootDir: resolve('../fixtures/basic'),
     dev: true,

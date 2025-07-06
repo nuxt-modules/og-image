@@ -34,7 +34,7 @@ async function resolveFonts(event: OgImageRenderEventContext) {
             return _font
           })
         }
-        localFontPromises.push(fontPromises[font.cacheKey])
+        localFontPromises.push(fontPromises[font.cacheKey]!)
       }
     }
   }

@@ -48,7 +48,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       // options is an object which has keys that may be kebab case, we need to convert the keys to camel case
       Object.entries(ogImageConfig).forEach(([key, val]) => {
         // with a simple kebab case conversion
-        payload[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
+        payload[key.replace(/-([a-z])/g, g => String(g[1]).toUpperCase())] = val
       })
 
       content.head = defu(<Head> {

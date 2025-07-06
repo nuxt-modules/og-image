@@ -49,11 +49,11 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
       async ejectCommunityTemplate(path: string) {
         const [dirName, componentName] = path.split('/')
-        const dir = resolve(nuxt.options.rootDir, 'components', dirName)
+        const dir = resolve(nuxt.options.rootDir, 'components', dirName || '')
         if (!existsSync(dir)) {
           mkdirSync(dir)
         }
-        const newPath = resolve(dir, componentName)
+        const newPath = resolve(dir, componentName || '')
         const templatePath = resolve(`./runtime/app/components/Templates/Community/${componentName}`)
         // readFile, we need to modify it
         const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)

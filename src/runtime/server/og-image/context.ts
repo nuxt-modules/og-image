@@ -171,7 +171,7 @@ const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
 
 function getPayloadFromHtml(html: string | unknown): string | null {
   const match = String(html).match(PAYLOAD_REGEX)
-  return match ? match[1] : null
+  return match ? String(match[1]) : null
 }
 
 export function extractAndNormaliseOgImageOptions(html: string): OgImageOptions | false {

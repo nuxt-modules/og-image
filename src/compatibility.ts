@@ -125,9 +125,9 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
 }
 
 export function getPresetNitroPresetCompatibility(target: string) {
-  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
+  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]!
   if (!compatibility)
-    compatibility = RuntimeCompatibility['nitro-dev']
+    compatibility = RuntimeCompatibility['nitro-dev']!
   return compatibility
 }
 
