@@ -1,7 +1,7 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import sizeOf from 'image-size'
-import { useStorage } from 'nitropack/runtime/storage'
+import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
