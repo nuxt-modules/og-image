@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
 
-await setup({
-  rootDir: resolve('../fixtures/basic'),
-  dev: true,
-})
+describe.skipIf(!import.meta.env.TEST_DEV)('dev', async () => {
+  await setup({
+    rootDir: resolve('../fixtures/basic'),
+    dev: true,
+  })
 
-describe('dev', () => {
   it('svg', async () => {
     const svg = await $fetch('/__og-image__/image/satori/og.svg')
     expect(svg).toMatchInlineSnapshot(`

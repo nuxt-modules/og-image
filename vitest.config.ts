@@ -1,4 +1,3 @@
-import { defineVitestProject } from '@nuxt/test-utils/config'
 import { defineConfig, defineProject } from 'vitest/config'
 
 export default defineConfig({
@@ -19,7 +18,7 @@ export default defineConfig({
         },
       }),
       // e2e tests in test/e2e
-      defineVitestProject({
+      defineProject({
         test: {
           name: 'e2e',
           include: [

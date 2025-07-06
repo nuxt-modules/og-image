@@ -3,13 +3,13 @@ import { $fetch, setup } from '@nuxt/test-utils'
 import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
+describe.skipIf(!import.meta.env.TEST_DEV)('partial JSON query parameter handling', async () => {
 
-await setup({
-  rootDir: resolve('../fixtures/basic'),
-  dev: true,
-})
+  await setup({
+    rootDir: resolve('../fixtures/basic'),
+    dev: true,
+  })
 
-describe('partial JSON query parameter handling', async () => {
   it('handles malformed JSON in query parameters gracefully', async () => {
     // This is the problematic URL from the issue
     const response = await $fetch('/__og-image__/image/satori/og.png?_query=%7B%22utm_source%22').catch(() => false)

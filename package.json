@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "5.1.8",
-  "packageManager": "pnpm@10.12.3",
+  "packageManager": "pnpm@10.12.4",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -65,12 +65,12 @@
     "unstorage": "^1.15.0"
   },
   "dependencies": {
-    "@nuxt/devtools-kit": "^2.5.0",
-    "@nuxt/kit": "^3.17.5",
+    "@nuxt/devtools-kit": "^2.6.2",
+    "@nuxt/kit": "^3.17.6",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
-    "@unocss/core": "^66.3.1",
-    "@unocss/preset-wind3": "^66.3.1",
+    "@unocss/core": "^66.3.2",
+    "@unocss/preset-wind3": "^66.3.2",
     "chrome-launcher": "^1.2.0",
     "consola": "^3.4.2",
     "defu": "^6.1.4",
@@ -83,8 +83,8 @@
     "ofetch": "^1.4.1",
     "ohash": "^2.0.11",
     "pathe": "^2.0.3",
-    "pkg-types": "^2.1.0",
-    "playwright-core": "^1.53.1",
+    "pkg-types": "^2.2.0",
+    "playwright-core": "^1.53.2",
     "radix3": "^1.1.2",
     "satori": "^0.15.2",
     "satori-html": "^0.3.2",
@@ -97,7 +97,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.16.1",
+    "@antfu/eslint-config": "^4.16.2",
     "@css-inline/css-inline": "^0.15.0",
     "@headlessui/vue": "^1.7.23",
     "@iconify-json/carbon": "^1.2.10",
@@ -106,34 +106,34 @@
     "@iconify-json/ri": "^1.2.5",
     "@iconify-json/tabler": "^1.2.19",
     "@img/sharp-linux-x64": "^0.34.2",
-    "@nuxt/content": "^3.6.1",
-    "@nuxt/devtools": "^2.5.0",
-    "@nuxt/devtools-ui-kit": "^2.5.0",
-    "@nuxt/icon": "^1.14.0",
+    "@nuxt/content": "^3.6.3",
+    "@nuxt/devtools": "^2.6.2",
+    "@nuxt/devtools-ui-kit": "^2.6.2",
+    "@nuxt/icon": "^1.15.0",
     "@nuxt/image": "^1.10.0",
     "@nuxt/module-builder": "^1.0.1",
-    "@nuxt/test-utils": "^3.19.1",
+    "@nuxt/test-utils": "^3.19.2",
     "@nuxt/ui": "^3.2.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@nuxtjs/i18n": "^9.5.6",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@unocss/nuxt": "^66.3.1",
-    "@unocss/preset-icons": "^66.3.1",
-    "@unocss/runtime": "^66.3.1",
-    "@vueuse/nuxt": "^13.4.0",
+    "@unocss/nuxt": "^66.3.2",
+    "@unocss/preset-icons": "^66.3.2",
+    "@unocss/runtime": "^66.3.2",
+    "@vueuse/nuxt": "^13.5.0",
     "bumpp": "^10.2.0",
-    "eslint": "^9.29.0",
+    "eslint": "^9.30.1",
     "happy-dom": "^18.0.1",
     "jest-image-snapshot": "^6.5.1",
-    "nuxt": "^3.17.5",
-    "playwright": "^1.53.1",
+    "nuxt": "^3.17.6",
+    "playwright": "^1.53.2",
     "sass": "^1.89.2",
     "sharp": "^0.34.2",
     "typescript": "^5.8.3",
-    "unocss": "^66.3.1",
+    "unocss": "^66.3.2",
     "vitest": "^3.2.4",
-    "vue-tsc": "^2.2.10"
+    "vue-tsc": "^3.0.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -146,5 +146,10 @@
       "unrs-resolver",
       "vue-demi"
     ]
+  },
+  "resolutions": {
+    "@nuxt/kit": "npm:@nuxt/kit-nightly@4.0.0-29191554.69345c32",
+    "@nuxt/schema": "npm:@nuxt/schema-nightly@4.0.0-29191554.69345c32",
+    "nuxt": "npm:nuxt-nightly@4.0.0-29191554.69345c32"
   }
 }
