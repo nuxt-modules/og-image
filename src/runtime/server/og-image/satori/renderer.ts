@@ -1,27 +1,26 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { fontCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 // @ts-expect-error untyped
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { sendError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
 
-const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
+const fontPromises: Record<string, Promise<any>> = {}
 
 async function resolveFonts(event: OgImageRenderEventContext) {
   const { fonts } = useOgImageRuntimeConfig()
-  const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
-  const localFontPromises: Promise<ResolvedFontConfig>[] = []
-  const preloadedFonts: ResolvedFontConfig[] = []
+  const allFonts = [...event.options.fonts || [], ...fonts]
+  const localFontPromises: Promise<any>[] = []
+  const preloadedFonts: any[] = []
   if (fontCache) {
-    for (const font of normalisedFonts) {
+    for (const font of allFonts) {
       if (await fontCache.hasItem(font.cacheKey)) {
         font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
         preloadedFonts.push(font)

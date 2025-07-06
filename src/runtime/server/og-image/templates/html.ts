@@ -1,9 +1,8 @@
-import type { FontConfig, OgImageRenderEventContext } from '../../../types'
+import type { OgImageRenderEventContext } from '../../../types'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from '../satori/transforms/emojis'
@@ -26,8 +25,8 @@ export async function html(ctx: OgImageRenderEventContext) {
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
-  const normalisedFonts = normaliseFontInput([...options.fonts || [], ...fonts])
-  const firstFont = normalisedFonts[0] as FontConfig
+  const allFonts = [...options.fonts || [], ...fonts]
+  const firstFont = allFonts[0]
   if (firstFont)
     defaultFontFamily = firstFont.name.replaceAll('+', ' ')
 
@@ -69,7 +68,7 @@ svg[data-emoji] {
 }
 `,
       },
-      ...(fonts as FontConfig[])
+      ...(fonts as any[])
         // .filter(font => font.path)
         .map((font) => {
           return `

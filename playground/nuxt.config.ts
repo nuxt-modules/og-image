@@ -6,6 +6,7 @@ import NuxtOgImage from '../src/module'
 
 export default defineNuxtConfig({
   modules: [
+    '@nuxt/fonts',
     '@vueuse/nuxt',
     '@nuxt/ui',
     '@nuxt/content',
@@ -77,15 +78,21 @@ export default defineNuxtConfig({
     enabled: true,
   },
 
-  ogImage: {
-    fonts: [
+  // Configure fonts through @nuxt/fonts
+  fonts: {
+    families: [
+      // Default fonts
+      { name: 'Inter', weights: [400, 700] },
+      // Custom local font
       {
-        name: 'optieinstein',
+        name: 'OPTIEinstein',
+        src: '/OPTIEinstein-Black.otf',
         weight: 800,
-        // path must point to a public font file
-        path: '/OPTIEinstein-Black.otf',
       },
     ],
+  },
+
+  ogImage: {
     // compatibility: {
     //   runtime: {
     //     resvg: 'wasm',

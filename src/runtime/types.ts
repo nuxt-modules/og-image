@@ -37,7 +37,7 @@ export interface OgImageRuntimeConfig {
   defaults: OgImageOptions
   debug: boolean
   baseCacheKey: string
-  fonts: FontConfig[]
+  fonts: any[]
   hasNuxtIcon: boolean
   colorPreference: 'light' | 'dark'
 
@@ -131,7 +131,6 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   satori?: SatoriOptions
   screenshot?: Partial<ScreenshotOptions>
   sharp?: SharpOptions & JpegOptions
-  fonts?: InputFontConfig[]
   // cache
   cacheMaxAgeSeconds?: number
   /**
@@ -144,18 +143,6 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    */
   _query?: Record<string, any>
 }
-
-export interface FontConfig {
-  name: string
-  style?: 'normal' | 'ital'
-  weight?: string | number
-  path?: string
-  key?: string
-  absolutePath?: boolean
-}
-export interface ResolvedFontConfig extends FontConfig { cacheKey: string, data?: BufferSource }
-
-export type InputFontConfig = (`${string}:${number}` | `${string}:${'normal' | 'ital'}:${number}` | string | FontConfig)
 
 export interface RuntimeCompatibilitySchema {
   chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false

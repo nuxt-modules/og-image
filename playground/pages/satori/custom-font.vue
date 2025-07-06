@@ -1,19 +1,14 @@
 <script setup lang="ts">
 import { defineOgImage } from '#imports'
 
+// Note: Custom fonts should now be configured in nuxt.config.ts
+// under the fonts module configuration
 defineOgImage({
   component: 'CustomFont',
   props: {
     title: 'Custom Font',
-    description: 'Using a custom font loaded from the public directory',
+    description: 'Using a custom font configured through @nuxt/fonts',
   },
-  fonts: [
-    {
-      name: 'optieinstein',
-      weight: 800,
-      path: '/OPTIEinstein-Black.otf',
-    },
-  ],
 })
 </script>
 

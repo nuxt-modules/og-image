@@ -6,27 +6,20 @@ import type { SharpOptions } from 'sharp'
 import type {
   CompatibilityFlagEnvOverrides,
   CompatibilityFlags,
-  FontConfig,
-  InputFontConfig,
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
-  ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
-import { basename, isAbsolute, relative } from 'pathe'
+import { isAbsolute, relative } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isDevelopment } from 'std-env'
-import { withoutLeadingSlash } from 'ufo'
-import { createStorage } from 'unstorage'
-import fsDriver from 'unstorage/drivers/fs'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
@@ -38,10 +31,10 @@ import {
   getPresetNitroPresetCompatibility,
   resolveNitroPreset,
 } from './compatibility'
+import { setupNuxtFontsIntegration } from './integrations/nuxt-fonts'
 import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
-import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
-import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+import { checkLocalChrome, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
@@ -60,12 +53,6 @@ export interface ModuleOptions {
    * @default { component: 'NuxtSeo', width: 1200, height: 630, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
    */
   defaults: OgImageOptions
-  /**
-   * Fonts to use when rendering the og:image.
-   *
-   * @example ['Roboto:400', 'Roboto:700', { path: 'path/to/font.ttf', weight: 400, name: 'MyFont' }]
-   */
-  fonts: InputFontConfig[]
   /**
    * Options to pass to satori.
    *
@@ -173,7 +160,6 @@ export default defineNuxtModule<ModuleOptions>({
         cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
       componentDirs: defaultComponentDirs,
-      fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
     }
@@ -202,6 +188,16 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
     // legacy support
     nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
+
+    // Check if Nuxt Fonts is available and set up integration
+    const hasNuxtFonts = hasNuxtModule('@nuxt/fonts', nuxt)
+    if (!hasNuxtFonts) {
+      logger.error('The @nuxt/fonts module is required for nuxt-og-image to work. Please install it:\n\nnpm install @nuxt/fonts\n\nThen add it to your nuxt.config.ts:\n\nexport default defineNuxtConfig({\n  modules: [\'@nuxt/fonts\', \'nuxt-og-image\']\n})')
+      throw new Error('@nuxt/fonts module is required but not installed')
+    }
+
+    logger.info('Setting up @nuxt/fonts integration...')
+    const nuxtFontsIntegration = await setupNuxtFontsIntegration(nuxt)
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -284,91 +280,6 @@ export default defineNuxtModule<ModuleOptions>({
             }
           })
       }
-      // default font is inter
-      if (!config.fonts.length) {
-        config.fonts = [
-          {
-            name: 'Inter',
-            weight: 400,
-            path: resolve('./runtime/assets/Inter-normal-400.ttf.base64'),
-            absolutePath: true,
-          },
-          {
-            name: 'Inter',
-            weight: 700,
-            path: resolve('./runtime/assets/Inter-normal-700.ttf.base64'),
-            absolutePath: true,
-          },
-        ]
-      }
-
-      // persist between versions
-      const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image`, '_fonts')
-      const fontStorage = createStorage({
-        driver: fsDriver({
-          base: serverFontsDir,
-        }),
-      })
-      config.fonts = (await Promise.all(normaliseFontInput(config.fonts)
-        .map(async (f) => {
-          const fontKey = `${f.name}:${f.style}:${f.weight}`
-          const fontFileBase = fontKey.replaceAll(':', '-')
-          if (!f.key && !f.path) {
-            if (preset === 'stackblitz') {
-              logger.warn(`The ${fontKey} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
-              return false
-            }
-            if (await downloadFont(f, fontStorage, config.googleFontMirror)) {
-              // move file to serverFontsDir
-              f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.base64`
-            }
-            else {
-              logger.warn(`Failed to download font ${fontKey}. You may be offline or behind a firewall blocking Google. Consider setting \`googleFontMirror: true\`.`)
-              return false
-            }
-          }
-          else if (f.path) {
-            // validate the extension, can only be woff, ttf or otf
-            const extension = basename(f.path.replace('.base64', '')).split('.').pop()!
-            if (!['woff', 'ttf', 'otf'].includes(extension)) {
-              logger.warn(`The ${fontKey} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
-              return false
-            }
-            // resolve relative paths from public dir
-            // move to assets folder as base64 and set key
-            if (!f.absolutePath)
-              f.path = resolve(publicDirAbs, withoutLeadingSlash(f.path))
-            if (!existsSync(f.path)) {
-              logger.warn(`The ${fontKey} font was skipped because the file does not exist at path ${f.path}.`)
-              return false
-            }
-            const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
-            f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.base64`
-            await fontStorage.setItem(`${fontFileBase}.${extension}.base64`, fontData)
-            delete f.path
-            delete f.absolutePath
-          }
-          return f
-        }))).filter(Boolean) as InputFontConfig[]
-
-      const fontKeys = (config.fonts as ResolvedFontConfig[]).map(f => f.key?.split(':').pop())
-      const fontStorageKeys = await fontStorage.getKeys()
-      await Promise.all(fontStorageKeys
-        .filter(key => !fontKeys.includes(key))
-        .map(async (key) => {
-          logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
-          await fontStorage.removeItem(key)
-        }))
-      if (!config.zeroRuntime) {
-        // bundle fonts within nitro runtime
-        nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
-        nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
-      }
-      addServerHandler({
-        lazy: true,
-        route: '/__og-image__/font/**',
-        handler: resolve(`${basePath}/font`),
-      })
     }
 
     if (isProviderEnabledForEnv('chromium', nuxt, config)) {
@@ -614,6 +525,15 @@ ${componentImports}
 declare module '#og-image/unocss-config' {
   export type theme = any
 }
+declare module '#nuxt-og-image/fonts-integration' {
+  export const hasNuxtFonts: boolean
+  export const nuxtFontsConfig: any
+  export const nuxtFontFamilies: Array<{
+    name: string
+    weight?: string | number
+    style?: string
+  }>
+}
 `
     })
 
@@ -627,8 +547,13 @@ declare module '#og-image/unocss-config' {
       nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
     }
     nuxt.hooks.hook('modules:done', async () => {
-      // allow other modules to modify runtime data
-      const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
+      // Get fonts from Nuxt Fonts integration
+      const fonts = nuxtFontsIntegration.getConfiguredFonts()
+      if (fonts.length === 0) {
+        logger.error('No fonts configured in @nuxt/fonts. Please configure at least one font family in your nuxt.config.ts:\n\nexport default defineNuxtConfig({\n  fonts: {\n    families: [\n      { name: \'Inter\', weights: [400, 700] }\n    ]\n  }\n})')
+        throw new Error('No fonts configured in @nuxt/fonts')
+      }
+      logger.info(`Using ${fonts.length} fonts from @nuxt/fonts configuration`)
       if (!isNuxtGenerate() && nuxt.options.build) {
         nuxt.options.nitro = nuxt.options.nitro || {}
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
@@ -658,14 +583,12 @@ declare module '#og-image/unocss-config' {
         debug: config.debug,
         // avoid adding credentials
         baseCacheKey,
-        // convert the fonts to uniform type to fix ts issue
-        fonts: normalisedFonts,
+        fonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
         strictNuxtContentPaths: config.strictNuxtContentPaths,
-        // @ts-expect-error runtime type
-        isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
+        isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!(nuxt.options as any).content?.documentDriven,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

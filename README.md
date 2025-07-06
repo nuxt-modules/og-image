@@ -32,13 +32,15 @@ need this module.
 - 🤖 Or prerender using the Browser: Supporting painless, complex templates
 - 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
 - ⚙️ Works on the edge: Vercel Edge, Netlify Edge and Cloudflare Workers
+- 🔤 Powered by [@nuxt/fonts](https://github.com/nuxt/fonts) for unified font management
 
 ## Installation
 
-Install `nuxt-og-image` dependency to your project:
+First, install the required dependencies:
 
 ```bash
-npx nuxi@latest module add og-image
+# Install both @nuxt/fonts and nuxt-og-image
+npx nuxi@latest module add fonts og-image
 ```
 
 ## Documentation

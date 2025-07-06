@@ -1,8 +1,5 @@
-import type { Storage } from 'unstorage'
-import type { ResolvedFontConfig } from './runtime/types'
 import { resolvePath } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
-import { $fetch } from 'ofetch'
 import { isCI } from 'std-env'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
@@ -24,37 +21,4 @@ export async function hasResolvableDependency(dep: string) {
   return await resolvePath(dep, { fallbackToOriginal: true })
     .catch(() => null)
     .then(r => r && r !== dep)
-}
-
-export async function downloadFont(font: ResolvedFontConfig, storage: Storage, mirror?: true | string) {
-  const { name, weight, style } = font
-  const key = `${name}-${style}-${weight}.ttf.base64`
-  if (await storage.hasItem(key))
-    return true
-
-  const host = typeof mirror === 'undefined' ? 'fonts.googleapis.com' : mirror === true ? 'fonts.font.im' : mirror
-  // using H3Event $fetch will cause the request headers not to be sent
-  const css = await $fetch(`https://${host}/css2?family=${name}:${style === 'ital' ? `ital,wght@1,${weight}` : `wght@${weight}`}`, {
-    timeout: 10 * 1000, // 10 second timeout
-    headers: {
-      // Make sure it returns TTF.
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1',
-    },
-  }).catch(() => {
-    return false
-  })
-  if (!css)
-    return false
-
-  const ttfResource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/)
-  if (ttfResource?.[1]) {
-    const buf = await $fetch(ttfResource[1], { baseURL: host, responseType: 'arrayBuffer' })
-    // need to base 64 the buf
-    const base64Font = Buffer.from(buf).toString('base64')
-    // output to outputPath
-    await storage.setItem(key, base64Font)
-    return true
-  }
-  return false
 }
