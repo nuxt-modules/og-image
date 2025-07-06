@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
 describe.skipIf(!import.meta.env.TEST_DEV)('partial JSON query parameter handling', async () => {
-
   await setup({
     rootDir: resolve('../fixtures/basic'),
     dev: true,
