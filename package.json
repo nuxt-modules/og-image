@@ -149,8 +149,8 @@
     ]
   },
   "resolutions": {
-    "@nuxt/kit": "npm:@nuxt/kit-nightly@4.0.0-29191554.69345c32",
-    "@nuxt/schema": "npm:@nuxt/schema-nightly@4.0.0-29191554.69345c32",
-    "nuxt": "npm:nuxt-nightly@4.0.0-29191554.69345c32"
+    "@nuxt/kit": "npm:@nuxt/kit-nightly@4.0.0-29198818.0344123b",
+    "@nuxt/schema": "npm:@nuxt/schema-nightly@4.0.0-29198818.0344123b",
+    "nuxt": "npm:nuxt-nightly@4.0.0-29198818.0344123b"
   }
 }
