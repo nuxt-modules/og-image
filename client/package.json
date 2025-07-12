@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "@iconify-json/carbon": "^1.2.10",
-    "@iconify-json/simple-icons": "^1.2.41",
+    "@iconify-json/simple-icons": "^1.2.42",
     "@nuxt/devtools-kit": "^2.6.2",
     "@nuxt/devtools-ui-kit": "^2.6.2",
     "@nuxt/kit": "^3.17.6",
