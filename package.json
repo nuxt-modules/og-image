@@ -67,7 +67,7 @@
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.6.2",
-    "@nuxt/kit": "^3.17.6",
+    "@nuxt/kit": "^3.17.7",
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
     "@unocss/core": "^66.3.2",
@@ -127,7 +127,7 @@
     "eslint": "^9.30.1",
     "happy-dom": "^18.0.1",
     "jest-image-snapshot": "^6.5.1",
-    "nuxt": "^3.17.6",
+    "nuxt": "^3.17.7",
     "playwright": "^1.53.2",
     "sass": "^1.89.2",
     "sharp": "^0.34.2",
@@ -149,8 +149,8 @@
     ]
   },
   "resolutions": {
-    "@nuxt/kit": "npm:@nuxt/kit-nightly@4.0.0-29198818.0344123b",
-    "@nuxt/schema": "npm:@nuxt/schema-nightly@4.0.0-29198818.0344123b",
-    "nuxt": "npm:nuxt-nightly@4.0.0-29198818.0344123b"
+    "@nuxt/kit": "^3.17.7",
+    "@nuxt/schema": "npm:@nuxt/schema-nightly@4.0.0-29210101.a4500793",
+    "nuxt": "^3.17.7"
   }
 }
