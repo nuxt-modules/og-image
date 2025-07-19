@@ -62,8 +62,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.5",
-    "unstorage": "^1.15.0"
+    "@unhead/vue": "^2.0.12",
+    "unstorage": "^1.16.1"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.6.2",
