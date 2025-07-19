@@ -81,6 +81,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         'cache-control': `public, s-maxage=${maxAge}, stale-while-revalidate`,
       }
       setHeaders(ctx.e, headers)
+      // @ts-expect-error untyped
       await cache.setItem(key, {
         value,
         headers,

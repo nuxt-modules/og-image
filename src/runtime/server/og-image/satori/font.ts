@@ -11,7 +11,7 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
     return font
 
   if (font.key && await assets.hasItem(font.key)) {
-    let fontData = await assets.getItem(font.key)
+    let fontData = await assets.getItem(font.key) as any as string | Uint8Array
     // if buffer
     if (fontData instanceof Uint8Array) {
       const decoder = new TextDecoder()

@@ -19,7 +19,7 @@ export async function fontEventHandler(e: H3Event) {
     const font = fonts.find(f => f.key === key)
     // use as storage key
     if (font?.key && await assets.hasItem(font.key)) {
-      let fontData = await assets.getItem(font.key)
+      let fontData = await assets.getItem(font.key) as any as string | Uint8Array
       // if buffer
       if (fontData instanceof Uint8Array) {
         const decoder = new TextDecoder()
