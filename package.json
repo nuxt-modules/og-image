@@ -62,8 +62,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.5",
-    "unstorage": "^1.15.0"
+    "@unhead/vue": "^2.0.12",
+    "unstorage": "^1.16.1"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "^2.6.2",
@@ -87,7 +87,7 @@
     "pkg-types": "^2.2.0",
     "playwright-core": "^1.54.1",
     "radix3": "^1.1.2",
-    "satori": "^0.15.2",
+    "satori": "^0.16.1",
     "satori-html": "^0.3.2",
     "sirv": "^3.0.1",
     "std-env": "^3.9.0",
@@ -98,33 +98,33 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.17.0",
+    "@antfu/eslint-config": "^4.19.0",
     "@css-inline/css-inline": "^0.16.0",
     "@headlessui/vue": "^1.7.23",
-    "@iconify-json/carbon": "^1.2.10",
-    "@iconify-json/logos": "^1.2.4",
+    "@iconify-json/carbon": "^1.2.11",
+    "@iconify-json/logos": "^1.2.5",
     "@iconify-json/noto": "^1.2.3",
     "@iconify-json/ri": "^1.2.5",
-    "@iconify-json/tabler": "^1.2.19",
+    "@iconify-json/tabler": "^1.2.20",
     "@img/sharp-linux-x64": "^0.34.3",
     "@nuxt/content": "^3.6.3",
     "@nuxt/devtools": "^2.6.2",
     "@nuxt/devtools-ui-kit": "^2.6.2",
     "@nuxt/icon": "^1.15.0",
     "@nuxt/image": "^1.10.0",
-    "@nuxt/module-builder": "^1.0.1",
+    "@nuxt/module-builder": "^1.0.2",
     "@nuxt/test-utils": "^3.19.2",
-    "@nuxt/ui": "^3.2.0",
+    "@nuxt/ui": "^3.3.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@nuxtjs/i18n": "^10.0.0",
+    "@nuxtjs/i18n": "^10.0.3",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@unocss/nuxt": "^66.3.3",
     "@unocss/preset-icons": "^66.3.3",
     "@unocss/runtime": "^66.3.3",
     "@vueuse/nuxt": "^13.5.0",
     "bumpp": "^10.2.0",
-    "eslint": "^9.31.0",
+    "eslint": "^9.32.0",
     "happy-dom": "^18.0.1",
     "jest-image-snapshot": "^6.5.1",
     "nuxt": "^4.0.0",
@@ -134,7 +134,7 @@
     "typescript": "^5.8.3",
     "unocss": "^66.3.3",
     "vitest": "^3.2.4",
-    "vue-tsc": "^3.0.3"
+    "vue-tsc": "^3.0.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
