@@ -87,7 +87,7 @@
     "pkg-types": "^2.3.0",
     "playwright-core": "^1.55.0",
     "radix3": "^1.1.2",
-    "satori": "^0.15.2",
+    "satori": "^0.18.3",
     "satori-html": "^0.3.2",
     "sirv": "^3.0.2",
     "std-env": "^3.9.0",
