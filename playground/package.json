@@ -8,6 +8,7 @@
     "generate": "nuxi generate"
   },
   "dependencies": {
+    "better-sqlite3": "^12.2.0",
     "nuxt-og-image": "workspace:*",
     "nuxt-og-image-devtools": "workspace:*"
   }

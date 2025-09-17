@@ -2,18 +2,18 @@
   "name": "nuxt-og-image-devtools",
   "private": true,
   "devDependencies": {
-    "@iconify-json/carbon": "^1.2.10",
-    "@iconify-json/simple-icons": "^1.2.43",
-    "@nuxt/devtools-kit": "^2.6.2",
-    "@nuxt/devtools-ui-kit": "^2.6.2",
-    "@nuxt/kit": "^4.0.0",
-    "@vueuse/core": "^13.5.0",
+    "@iconify-json/carbon": "^1.2.13",
+    "@iconify-json/simple-icons": "^1.2.52",
+    "@nuxt/devtools-kit": "^2.6.3",
+    "@nuxt/devtools-ui-kit": "^2.6.3",
+    "@nuxt/kit": "^4.1.2",
+    "@vueuse/core": "^13.9.0",
     "floating-vue": "^5.2.2",
     "json-editor-vue": "^0.18.1",
-    "nuxt": "^4.0.0",
-    "shiki": "^3.8.1",
+    "nuxt": "^4.1.2",
+    "shiki": "^3.12.2",
     "splitpanes": "^4.0.4",
-    "vue": "^3.5.17",
+    "vue": "^3.5.21",
     "vue-router": "^4.5.1"
   }
 }

@@ -14,16 +14,18 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   if (typeof config.runtimeCacheStorage === 'object')
     nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
 
+  const proxyCjs = await resolve.resolvePath('./runtime/mock/proxy-cjs')
+
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
     await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
     // patch implicit dependencies:
     // - playwright-core
-    nitroConfig.alias!.electron = await resolve.resolvePath('./runtime/mock/proxy-cjs')
-    nitroConfig.alias!.bufferutil = await resolve.resolvePath('./runtime/mock/proxy-cjs')
-    nitroConfig.alias!['utf-8-validate'] = await resolve.resolvePath('./runtime/mock/proxy-cjs')
+    nitroConfig.alias!.electron = proxyCjs
+    nitroConfig.alias!.bufferutil = proxyCjs
+    nitroConfig.alias!['utf-8-validate'] = proxyCjs
     // - image-size
-    nitroConfig.alias!.queue = await resolve.resolvePath('./runtime/mock/proxy-cjs')
-    nitroConfig.alias!['chromium-bidi'] = await resolve.resolvePath('./runtime/mock/proxy-cjs')
+    nitroConfig.alias!.queue = proxyCjs
+    nitroConfig.alias!['chromium-bidi'] = proxyCjs
   })
 
   // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
