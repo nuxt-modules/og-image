@@ -56,7 +56,7 @@
     "dev:build": "nuxi build playground",
     "prepare:fixtures": "nuxi prepare test/fixtures/basic",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground && nuxi prepare client && pnpm run prepare:fixtures",
-    "release": "pnpm build && bumpp && pnpm -r publish --no-git-checks",
+    "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
     "typecheck": "tsc --noEmit",
     "test": "pnpm run prepare:fixtures && vitest",
     "test:chrome": "HAS_CHROME=true vitest"
