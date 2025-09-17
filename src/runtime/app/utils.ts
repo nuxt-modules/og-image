@@ -1,11 +1,11 @@
 import type { Head } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageOptions, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
-import { useHead, useRuntimeConfig } from '#app'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
+import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { generateMeta, separateProps } from '../shared'
 
@@ -85,7 +85,7 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
 
 export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
   const baseURL = useRuntimeConfig().app.baseURL
-  const extension = _options?.extension || useOgImageRuntimeConfig().defaults.extension
+  const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
   const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${extension}`)
   if (Object.keys(_options?._query || {}).length) {
     return withQuery(path, _options!._query!)
@@ -96,6 +96,7 @@ export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptio
 export function useOgImageRuntimeConfig() {
   const c = useRuntimeConfig()
   return {
+    defaults: {},
     ...(c['nuxt-og-image'] as Record<string, any>),
     app: {
       baseURL: c.app.baseURL,
