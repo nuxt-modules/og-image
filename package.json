@@ -54,6 +54,7 @@
     "lint:fix": "eslint . --fix",
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
+    "prepack": "pnpm run build",
     "prepare:fixtures": "nuxi prepare test/fixtures/basic",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground && nuxi prepare client && pnpm run prepare:fixtures",
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
