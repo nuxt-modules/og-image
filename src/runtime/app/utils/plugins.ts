@@ -23,7 +23,6 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
     if (isInternalRoute(path))
       return
 
-    // @ts-expect-error untyped
     ssrContext?.head.use(TemplateParamsPlugin)
     // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
     ssrContext?.head.use({

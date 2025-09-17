@@ -173,7 +173,7 @@ export async function imageEventHandler(e: H3Event) {
   if (cacheApi instanceof H3Error)
     return cacheApi
 
-  let image: H3Error | BufferSource | false | void = cacheApi.cachedItem
+  let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
     image = await renderer.createImage(ctx)
     if (image instanceof H3Error)

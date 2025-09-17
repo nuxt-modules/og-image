@@ -1,5 +1,4 @@
 import type { Collection } from '@nuxt/content'
-import type { TypeOf, ZodRawShape } from 'zod'
 import { z } from '@nuxt/content'
 
 export const ogImageSchema = z.object({
@@ -12,16 +11,10 @@ export const schema = z.object({
   ogImage: ogImageSchema,
 })
 
-export type OgImageSchema = TypeOf<typeof schema>
-
-type ExtendedSchema<T extends ZodRawShape> = T & {
-  ogImage: typeof ogImageSchema
-}
-
-export function asOgImageCollection<T extends ZodRawShape>(collection: Collection<T>): Collection<ExtendedSchema<T>> {
+export function asOgImageCollection<T>(collection: Collection<T>): Collection<T> {
   if (collection.type === 'page') {
     // @ts-expect-error untyped
     collection.schema = collection.schema ? schema.extend(collection.schema.shape) : schema
   }
-  return collection as Collection<ExtendedSchema<T>>
+  return collection
 }

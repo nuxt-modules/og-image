@@ -10,7 +10,7 @@ import { prefixStorage } from 'unstorage'
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
-}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
+}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
   let enabled = !import.meta.dev && import.meta.env?.MODE !== 'test' && maxAge > 0
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
@@ -81,7 +81,6 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         'cache-control': `public, s-maxage=${maxAge}, stale-while-revalidate`,
       }
       setHeaders(ctx.e, headers)
-      // @ts-expect-error untyped
       await cache.setItem(key, {
         value,
         headers,

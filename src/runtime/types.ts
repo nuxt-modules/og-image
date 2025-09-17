@@ -179,7 +179,7 @@ export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: O
 export interface Renderer {
   name: 'chromium' | 'satori'
   supportedFormats: Partial<RendererOptions['extension']>[]
-  createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | void>
+  createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | Buffer | Uint8Array | void | undefined>
   debug: (e: OgImageRenderEventContext) => Promise<Record<string, any>>
 }
 
