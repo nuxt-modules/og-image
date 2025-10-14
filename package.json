@@ -147,6 +147,9 @@
       "sharp",
       "unrs-resolver",
       "vue-demi"
-    ]
+    ],
+    "overrides": {
+      "jiti": "^2.6.1"
+    }
   }
 }
