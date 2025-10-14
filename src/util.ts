@@ -54,7 +54,7 @@ export async function downloadFont(font: ResolvedFontConfig, storage: Storage, m
     const buf = await $fetch(ttfResource[1], { responseType: 'arrayBuffer' }).catch((err) => {
       return { error: err }
     })
-    if (buf?.error)
+    if (buf && 'error' in buf)
       return { success: false, error: buf.error, host, fontUrl: ttfResource[1] }
 
     // need to base 64 the buf
