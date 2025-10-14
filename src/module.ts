@@ -317,12 +317,18 @@ export default defineNuxtModule<ModuleOptions>({
               logger.warn(`The ${fontKey} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
               return false
             }
-            if (await downloadFont(f, fontStorage, config.googleFontMirror)) {
+            const result = await downloadFont(f, fontStorage, config.googleFontMirror)
+            if (result.success) {
               // move file to serverFontsDir
               f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.base64`
             }
             else {
-              logger.warn(`Failed to download font ${fontKey}. You may be offline or behind a firewall blocking Google. Consider setting \`googleFontMirror: true\`.`)
+              const mirrorMsg = config.googleFontMirror
+                ? `using mirror host \`${result.host}\``
+                : 'Consider setting `googleFontMirror: true` if you are in China or behind a firewall.'
+              logger.warn(`Failed to download font ${fontKey} ${mirrorMsg}`)
+              if (result.error)
+                logger.warn(`  Error: ${result.error.message || result.error}`)
               return false
             }
           }
