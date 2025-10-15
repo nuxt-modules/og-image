@@ -26,13 +26,13 @@ export async function hasResolvableDependency(dep: string) {
     .then(r => r && r !== dep)
 }
 
-export async function downloadFont(font: ResolvedFontConfig, storage: Storage, mirror?: true | string) {
+export async function downloadFont(font: ResolvedFontConfig, storage: Storage, mirror?: string) {
   const { name, weight, style } = font
   const key = `${name}-${style}-${weight}.ttf.base64`
   if (await storage.hasItem(key))
     return { success: true }
 
-  const host = typeof mirror === 'undefined' ? 'fonts.googleapis.com' : mirror === true ? 'fonts.font.im' : mirror
+  const host = mirror || 'fonts.googleapis.com'
   const cssUrl = `https://${host}/css2?family=${name}:${style === 'ital' ? `ital,wght@1,${weight}` : `wght@${weight}`}`
 
   // using H3Event $fetch will cause the request headers not to be sent

@@ -119,11 +119,13 @@ export interface ModuleOptions {
    */
   compatibility?: CompatibilityFlagEnvOverrides
   /**
-   * Use an alternative host for downloading Google Fonts. This is used to support China where Google Fonts is blocked.
+   * Use an alternative host for downloading Google Fonts.
    *
-   * When `true` is set will use `fonts.font.im`, otherwise will use a string as the host.
+   * Provide a custom mirror host (e.g., your own proxy server).
+   * Note: The mirror must serve TTF fonts for Satori compatibility.
+   * For China users, consider using local font files via the `path` option instead.
    */
-  googleFontMirror?: true | string
+  googleFontMirror?: string
   /**
    * Only allow the prerendering and dev runtimes to generate images.
    */
@@ -325,7 +327,7 @@ export default defineNuxtModule<ModuleOptions>({
             else {
               const mirrorMsg = config.googleFontMirror
                 ? `using mirror host \`${result.host}\``
-                : 'Consider setting `googleFontMirror: true` if you are in China or behind a firewall.'
+                : 'Consider using local font files via the `path` option if you are in China or behind a firewall.'
               logger.warn(`Failed to download font ${fontKey} ${mirrorMsg}`)
               if (result.error)
                 logger.warn(`  Error: ${result.error.message || result.error}`)
