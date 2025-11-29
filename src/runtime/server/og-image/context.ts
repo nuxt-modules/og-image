@@ -89,22 +89,23 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     }
   }
   queryParams = separateProps(queryParams)
-  let basePath = withoutTrailingSlash(path
+  const basePath = withoutTrailingSlash(path
     .replace(`/__og-image__/image`, '')
     .replace(`/__og-image__/static`, '')
     .replace(`/og.${extension}`, ''),
   )
-  if (queryParams._query && typeof queryParams._query === 'object')
-    basePath = withQuery(basePath, queryParams._query)
+  const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
+    ? withQuery(basePath, queryParams._query)
+    : basePath
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
-  const key = resolvePathCacheKey(e, basePath)
+  const key = resolvePathCacheKey(e, basePathWithQuery)
   let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions
   if (!options) {
     if (import.meta.prerender) {
       options = await prerenderOptionsCache!.getItem(key)
     }
     if (!options) {
-      const payload = await fetchPathHtmlAndExtractOptions(e, basePath, key)
+      const payload = await fetchPathHtmlAndExtractOptions(e, basePathWithQuery, key)
       if (payload instanceof Error)
         return payload
       options = payload
