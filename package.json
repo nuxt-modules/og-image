@@ -99,7 +99,7 @@
     "yoga-wasm-web": "^0.3.3"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^5.4.1",
+    "@antfu/eslint-config": "^6.3.0",
     "@css-inline/css-inline": "^0.17.0",
     "@headlessui/vue": "^1.7.23",
     "@iconify-json/carbon": "^1.2.14",
