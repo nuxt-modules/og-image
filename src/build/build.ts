@@ -14,12 +14,11 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   if (typeof config.runtimeCacheStorage === 'object')
     nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
 
-  const proxyCjs = await resolve.resolvePath('./runtime/mock/proxy-cjs')
-
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
     await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
     // patch implicit dependencies:
     // - playwright-core
+    const proxyCjs = 'mocked-exports/proxy-cjs'
     nitroConfig.alias!.electron = proxyCjs
     nitroConfig.alias!.bufferutil = proxyCjs
     nitroConfig.alias!['utf-8-validate'] = proxyCjs
