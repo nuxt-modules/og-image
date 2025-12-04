@@ -1,7 +1,11 @@
 catalogMode: prefer
+
 cleanupUnusedCatalogs: true
+
 shellEmulator: true
+
 trustPolicy: no-downgrade
+
 packages:
   - playground
   - client
@@ -26,7 +30,7 @@ catalog:
   '@nuxt/image': ^2.0.0
   '@nuxt/kit': ^4.2.1
   '@nuxt/module-builder': ^1.0.2
-  '@nuxt/test-utils': ^3.20.1
+  '@nuxt/test-utils': ^3.21.0
   '@nuxt/ui': ^4.2.1
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
@@ -66,7 +70,7 @@ catalog:
   playwright-core: ^1.57.0
   radix3: ^1.1.2
   sass: ^1.94.2
-  satori: ^0.15.2
+  satori: ^0.18.3
   satori-html: ^0.3.2
   sharp: ^0.34.5
   shiki: ^3.12.2
@@ -78,12 +82,13 @@ catalog:
   ufo: ^1.6.1
   unocss: ^66.5.10
   unplugin: ^2.3.11
-  unwasm: ^0.3.11
+  unwasm: ^0.5.2
   vitest: ^4.0.15
   vue: ^3.5.21
   vue-router: ^4.5.1
   vue-tsc: ^3.1.5
   yoga-wasm-web: ^0.3.3
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
