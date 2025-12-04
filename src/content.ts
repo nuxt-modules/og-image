@@ -1,5 +1,5 @@
 import type { Collection } from '@nuxt/content'
-import { z } from '@nuxt/content'
+import { z } from 'zod'
 
 export const ogImageSchema = z.object({
   url: z.string().optional(),
