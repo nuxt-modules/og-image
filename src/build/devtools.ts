@@ -29,9 +29,11 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
   // In local development, start a separate Nuxt Server and proxy to serve the client
   else {
     nuxt.hook('vite:extendConfig', (config) => {
-      config.server = config.server || {}
-      config.server.proxy = config.server.proxy || {}
-      config.server.proxy[DEVTOOLS_UI_ROUTE] = {
+      if (!config.server) {
+        (config as any).server = {}
+      }
+      (config.server as any).proxy ||= {}
+      config.server!.proxy![DEVTOOLS_UI_ROUTE] = {
         target: `http://localhost:${DEVTOOLS_UI_LOCAL_PORT}${DEVTOOLS_UI_ROUTE}`,
         changeOrigin: true,
         followRedirects: true,
