@@ -143,7 +143,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
   const chromiumEnabled = typeof options.compatibility?.chromium !== 'undefined' ? !!options.compatibility.chromium : !!compatibility.chromium
   // renderers
-  const emptyMock = 'mocked-exports/empty'
+  const emptyMock = await resolve.resolvePath('./runtime/mock/empty')
   nitroConfig.alias!['#og-image/renderers/satori'] = satoriEnabled ? await resolve.resolvePath('./runtime/server/og-image/satori/renderer') : emptyMock
   nitroConfig.alias!['#og-image/renderers/chromium'] = chromiumEnabled ? await resolve.resolvePath('./runtime/server/og-image/chromium/renderer') : emptyMock
 
