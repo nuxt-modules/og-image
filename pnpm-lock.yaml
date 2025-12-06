@@ -100,8 +100,8 @@ catalogs:
       specifier: ^66.5.10
       version: 66.5.10
     '@vueuse/core':
-      specifier: ^13.9.0
-      version: 13.9.0
+      specifier: ^14.1.0
+      version: 14.1.0
     '@vueuse/nuxt':
       specifier: ^14.1.0
       version: 14.1.0
@@ -470,7 +470,7 @@ importers:
         version: 4.2.1(magicast@0.5.1)
       '@vueuse/core':
         specifier: 'catalog:'
-        version: 13.9.0(vue@3.5.25(typescript@5.9.3))
+        version: 14.1.0(vue@3.5.25(typescript@5.9.3))
       floating-vue:
         specifier: 'catalog:'
         version: 5.2.2(@nuxt/kit@4.2.1(magicast@0.5.1))(vue@3.5.25(typescript@5.9.3))
