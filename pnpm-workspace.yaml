@@ -53,6 +53,7 @@ catalog:
   eslint: ^9.39.1
   execa: ^9.6.1
   floating-vue: ^5.2.2
+  globby: ^16.0.0
   happy-dom: ^20.0.11
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
