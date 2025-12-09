@@ -126,6 +126,7 @@
     "@vueuse/nuxt": "catalog:",
     "bumpp": "catalog:",
     "eslint": "catalog:",
+    "globby": "catalog:",
     "happy-dom": "catalog:",
     "jest-image-snapshot": "catalog:",
     "nuxt": "catalog:",
