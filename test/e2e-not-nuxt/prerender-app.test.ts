@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
 import { execa } from 'execa'
-import globby from 'globby'
+import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { describe, expect, it } from 'vitest'
 
