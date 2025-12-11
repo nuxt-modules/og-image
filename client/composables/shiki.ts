@@ -1,4 +1,3 @@
-import type { MaybeRef } from '@vueuse/core'
 import type { HighlighterCore } from 'shiki'
 import { createHighlighterCore } from 'shiki/core'
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
@@ -23,7 +22,7 @@ export async function loadShiki() {
   return shiki.value
 }
 
-export function renderCodeHighlight(code: MaybeRef<string>, lang: 'json' | 'xml') {
+export function renderCodeHighlight(code: Ref<string> | string, lang: 'json' | 'xml') {
   return computed(() => {
     const colorMode = devtools.value?.colorMode || 'light'
     return shiki.value!.codeToHtml(toValue(code) || '', {
