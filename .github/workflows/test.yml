@@ -9,7 +9,7 @@ on:
       - main
     paths-ignore:
       - '**/README.md'
-  pull_request_target:
+  pull_request:
     branches:
       - main
 
