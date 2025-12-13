@@ -50,7 +50,7 @@ catalog:
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   defu: ^6.1.4
-  eslint: ^9.39.1
+  eslint: ^9.39.2
   execa: ^9.6.1
   floating-vue: ^5.2.2
   globby: ^16.0.0
@@ -61,7 +61,7 @@ catalog:
   magic-string: ^0.30.21
   mocked-exports: ^0.1.1
   nuxt: ^4.2.2
-  nuxt-site-config: ^3.2.11
+  nuxt-site-config: ^3.2.14
   nypm: ^0.6.2
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -74,7 +74,7 @@ catalog:
   satori: ^0.18.3
   satori-html: ^0.3.2
   sharp: ^0.34.5
-  shiki: ^3.19.0
+  shiki: ^3.20.0
   sirv: ^3.0.2
   splitpanes: ^4.0.4
   std-env: ^3.10.0
