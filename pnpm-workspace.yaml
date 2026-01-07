@@ -5,6 +5,8 @@ cleanupUnusedCatalogs: true
 shellEmulator: true
 
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar@4.0.3 # https://github.com/paulmillr/chokidar/issues/1440
 
 packages:
   - playground
