@@ -26,7 +26,7 @@ defineOgImageComponent('NuxtSeo', {
   colorMode: 'dark',
   siteLogo: '/my-img.png',
 }, {
-  key: 2,
+  key: 'square',
   width: 450,
   height: 450,
 })

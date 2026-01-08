@@ -48,9 +48,13 @@ function processOgImageOptions(
   const { defaults } = useOgImageRuntimeConfig()
   const options = toValue(_options)
 
-  // If options is false or route rules disabled, don't generate an OG image
-  if (options === false || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false) {
-    // remove the previous entries
+  // If options is false, skip this image (used when passing arrays with conditional items)
+  if (options === false) {
+    return
+  }
+
+  // If route rules disabled og:image, clear all images
+  if (nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false) {
     nuxtApp.ssrContext!._ogImageInstance?.dispose()
     nuxtApp.ssrContext!._ogImageDevtoolsInstance?.dispose()
     nuxtApp.ssrContext!._ogImageInstance = undefined
