@@ -11,8 +11,9 @@ export const schema = z.object({
   ogImage: ogImageSchema,
 })
 
-export function asOgImageCollection(collection: Collection): Collection {
+export function asOgImageCollection<T>(collection: Collection<T>): Collection<T> {
   if (collection.type === 'page') {
+    // @ts-expect-error untyped
     collection.schema = collection.schema ? schema.extend(collection.schema.shape) : schema
   }
   return collection

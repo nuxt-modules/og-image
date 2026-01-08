@@ -5,8 +5,8 @@ const props = defineProps<{
   src: string
   aspectRatio: number
   maxHeight?: number
-  minHeight?: number
   maxWidth?: number
+  minHeight?: number
 }>()
 // emits a load event
 const emit = defineEmits(['load'])

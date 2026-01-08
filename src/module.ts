@@ -580,7 +580,7 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('tailwindcss:config', (tailwindConfig) => {
       unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
     })
-    nuxt.hook('unocss:config', (_unoCssConfig: any) => {
+    nuxt.hook('unocss:config', (_unoCssConfig) => {
       unoCssConfig = { ..._unoCssConfig.theme }
     })
     nuxt.options.nitro.virtual['#og-image-virtual/unocss-config.mjs'] = () => {
@@ -635,6 +635,9 @@ declare module '#og-image/unocss-config' {
 export {}
 `
       },
+    }, {
+      nitro: true,
+      nuxt: true,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
