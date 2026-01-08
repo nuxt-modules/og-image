@@ -30,7 +30,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
           let description = ''
           for (const tag of ctx.tags) {
             if (tag.tag === 'meta' && tag.props.name === 'description') {
-              description = tag.props.content
+              description = tag.props.content || ''
               break
             }
           }

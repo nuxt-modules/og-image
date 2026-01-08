@@ -97,7 +97,7 @@ function filterIsOgImageOption(key: string) {
   return keys.includes(key as keyof OgImageOptions)
 }
 
-export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []) {
+export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []): OgImageOptions {
   options = options || {}
   const _props = defu(options.props, Object.fromEntries(
     Object.entries({ ...options })
@@ -116,7 +116,7 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
         .filter(([k]) => filterIsOgImageOption(k) || ignoreKeys.includes(k)),
     ),
     props,
-  }
+  } as OgImageOptions
 }
 
 export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig[] {

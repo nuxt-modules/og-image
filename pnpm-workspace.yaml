@@ -49,10 +49,12 @@ catalog:
   '@vueuse/core': ^14.1.0
   '@vueuse/nuxt': ^14.1.0
   better-sqlite3: ^12.5.0
+  birpc: ^2.2.0
   bumpp: ^10.3.2
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   defu: ^6.1.4
+  devalue: ^5.1.1
   eslint: ^9.39.2
   execa: ^9.6.1
   floating-vue: ^5.2.2

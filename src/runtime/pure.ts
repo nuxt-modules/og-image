@@ -3,8 +3,8 @@ import { defu } from 'defu'
 
 export function extractSocialPreviewTags(html: string): [Record<string, string>, DevToolsMetaDataExtraction[]] {
   // we need to extract the social media tag data for description and title, allow property to be before and after
-  const data: DevToolsMetaDataExtraction[] = []
-  const rootData = {}
+  const data: Partial<DevToolsMetaDataExtraction>[] = []
+  const rootData: Record<string, string> = {}
   // support both property and name
   const socialMetaTags = html.match(/<meta[^>]+(property|name)="(twitter|og):([^"]+)"[^>]*>/g) || []
   // <meta property="og:title" content="Home & //<&quot;With Encoding&quot;>\\"
@@ -26,17 +26,17 @@ export function extractSocialPreviewTags(html: string): [Record<string, string>,
     // start adding to the array
     if (!data[currentArrayIdx])
       data[currentArrayIdx] = {}
-    if (!data[currentArrayIdx][type])
-      data[currentArrayIdx][type] = {}
-    data[currentArrayIdx][type]![key] = value
+    if (!data[currentArrayIdx]![type])
+      data[currentArrayIdx]![type] = {}
+    data[currentArrayIdx]![type]![key] = value
   })
   // for each group we need to compute the key value from the og:image file name without an extension
   data.forEach((preview) => {
     if (preview.og?.image && preview.og?.image.includes('/_og/d/')) {
-      preview.key = (withoutQuery(preview.og.image).split('/').pop() as string).replace(/\.\w+$/, '')
+      preview.key = (withoutQuery(preview.og.image)!.split('/').pop() as string).replace(/\.\w+$/, '')
     }
   })
-  return [rootData, data]
+  return [rootData, data as DevToolsMetaDataExtraction[]]
 }
 
 function detectBase64MimeType(data: string) {
@@ -92,7 +92,7 @@ function filterIsOgImageOption(key: string) {
   return keys.includes(key as keyof OgImageOptions)
 }
 
-export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []) {
+export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []): OgImageOptions {
   options = options || {}
   const _props = defu(options.props, Object.fromEntries(
     Object.entries({ ...options })
@@ -103,7 +103,7 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
   Object.entries(_props)
     .forEach(([key, val]) => {
       // with a simple kebab case conversion
-      props[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
+      props[key.replace(/-([a-z])/g, g => g[1]!.toUpperCase())] = val
     })
   return {
     ...Object.fromEntries(
@@ -111,7 +111,7 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
         .filter(([k]) => filterIsOgImageOption(k) || ignoreKeys.includes(k)),
     ),
     props,
-  }
+  } as OgImageOptions
 }
 
 // duplicate of ../pure.ts
@@ -152,7 +152,7 @@ export function withoutQuery(path: string) {
 }
 
 export function getExtension(path: string) {
-  path = withoutQuery(path)
+  path = withoutQuery(path)!
   const lastSegment = (path.split('/').pop() || path)
   return lastSegment.split('.').pop() || lastSegment
 }

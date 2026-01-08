@@ -39,18 +39,18 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   resolvedOptions.key = resolvedOptions.key || 'og'
   const payloads = ssrContext._ogImagePayloads || []
   const currentPayloadIdx = payloads.findIndex(([k]) => k === resolvedOptions.key)
-  const _input = separateProps(defu(input, currentPayloadIdx >= 0 ? payloads[currentPayloadIdx][1] : {}))
-  let url = src || input.url || resolvedOptions.url
+  const _input = separateProps(defu(input, currentPayloadIdx >= 0 ? payloads[currentPayloadIdx]![1] : {}))
+  let url: string | undefined = src || (input.url as string | undefined) || (resolvedOptions.url as string | undefined)
   if (!url)
     return
   if (input._query && Object.keys(input._query).length && url)
     url = withQuery(url, { _query: input._query })
   const meta = generateMeta(url, resolvedOptions)
   if (currentPayloadIdx === -1) {
-    payloads.push([resolvedOptions.key!, _input, meta])
+    payloads.push([resolvedOptions.key!, _input, meta as any])
   }
   else {
-    payloads[currentPayloadIdx] = [resolvedOptions.key!, _input, meta]
+    payloads[currentPayloadIdx] = [resolvedOptions.key!, _input, meta as any]
   }
 
   ssrContext._ogImageInstance?.dispose()

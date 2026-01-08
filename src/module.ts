@@ -580,7 +580,6 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('tailwindcss:config', (tailwindConfig) => {
       unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
     })
-    // @ts-expect-error module optional
     nuxt.hook('unocss:config', (_unoCssConfig: any) => {
       unoCssConfig = { ..._unoCssConfig.theme }
     })
