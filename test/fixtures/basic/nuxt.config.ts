@@ -37,6 +37,7 @@ export default defineNuxtConfig({
         '/satori/image',
         '/satori/png',
         '/satori/custom-font',
+        '/satori/multi-image',
       ],
     },
   },

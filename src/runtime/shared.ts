@@ -6,25 +6,40 @@ import { toValue } from 'vue'
 export { extractSocialPreviewTags } from './pure'
 
 export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
-  const meta: ResolvableMeta[] = [
-    { property: 'og:image', content: url },
-    { property: 'og:image:type', content: () => `image/${getExtension(toValue(url) as string) || resolvedOptions.extension}` },
-    { name: 'twitter:card', content: 'summary_large_image' },
-    // we don't need this but avoids issue when using useSeoMeta({ twitterImage })
-    { name: 'twitter:image', content: url },
-    { name: 'twitter:image:src', content: url },
-  ]
+  const key = resolvedOptions.key || 'og'
+  const isTwitterOnly = key === 'twitter'
+  const includeTwitter = key === 'og' || key === 'twitter'
+
+  const meta: ResolvableMeta[] = []
+
+  if (!isTwitterOnly) {
+    meta.push({ property: 'og:image', content: url })
+    meta.push({ property: 'og:image:type', content: () => `image/${getExtension(toValue(url) as string) || resolvedOptions.extension}` })
+  }
+
+  if (includeTwitter) {
+    meta.push({ name: 'twitter:card', content: 'summary_large_image' })
+    meta.push({ name: 'twitter:image', content: url })
+    meta.push({ name: 'twitter:image:src', content: url })
+  }
+
   if (resolvedOptions.width) {
-    meta.push({ property: 'og:image:width', content: resolvedOptions.width })
-    meta.push({ name: 'twitter:image:width', content: resolvedOptions.width })
+    if (!isTwitterOnly)
+      meta.push({ property: 'og:image:width', content: resolvedOptions.width })
+    if (includeTwitter)
+      meta.push({ name: 'twitter:image:width', content: resolvedOptions.width })
   }
   if (resolvedOptions.height) {
-    meta.push({ property: 'og:image:height', content: resolvedOptions.height })
-    meta.push({ name: 'twitter:image:height', content: resolvedOptions.height })
+    if (!isTwitterOnly)
+      meta.push({ property: 'og:image:height', content: resolvedOptions.height })
+    if (includeTwitter)
+      meta.push({ name: 'twitter:image:height', content: resolvedOptions.height })
   }
   if (resolvedOptions.alt) {
-    meta.push({ property: 'og:image:alt', content: resolvedOptions.alt })
-    meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
+    if (!isTwitterOnly)
+      meta.push({ property: 'og:image:alt', content: resolvedOptions.alt })
+    if (includeTwitter)
+      meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
   }
   return meta
 }

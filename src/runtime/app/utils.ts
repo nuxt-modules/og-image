@@ -64,8 +64,8 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
     tagPriority: 35,
   })
 
-  // devtools script injection for dev mode
-  if (import.meta.dev) {
+  // devtools script injection for dev mode and prerender cache
+  if (import.meta.dev || import.meta.prerender) {
     ssrContext._ogImageDevtoolsInstance?.dispose()
     ssrContext._ogImageDevtoolsInstance = useHead({
       script: [{

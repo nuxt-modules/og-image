@@ -5,7 +5,7 @@ import { ref, toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 // In non-dev client-side environments this is treeshaken
-export function defineOgImage(_options: DefineOgImageInput = {}) {
+export function defineOgImage(_options: DefineOgImageInput | DefineOgImageInput[] = {}) {
   const nuxtApp = useNuxtApp()
   const route = useRoute()
   const basePath = route.path || '/' // (pages may be disabled)'
@@ -28,6 +28,23 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     return
   }
 
+  // Handle array of options
+  if (Array.isArray(_options)) {
+    for (const opt of _options) {
+      processOgImageOptions(opt, nuxtApp, route, basePath)
+    }
+    return
+  }
+
+  processOgImageOptions(_options, nuxtApp, route, basePath)
+}
+
+function processOgImageOptions(
+  _options: DefineOgImageInput,
+  nuxtApp: ReturnType<typeof useNuxtApp>,
+  route: ReturnType<typeof useRoute>,
+  basePath: string,
+) {
   const { defaults } = useOgImageRuntimeConfig()
   const options = toValue(_options)
 
