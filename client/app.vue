@@ -1,14 +1,8 @@
 <script lang="ts" setup>
 import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
 import {
-  colorMode,
   computed,
   fetchPathDebug,
-  hasProtocol,
-  joinURL,
-  path,
-  query,
-  refreshTime,
   unref,
   useHead,
   watch,
@@ -17,10 +11,11 @@ import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
 import JsonEditorVue from 'json-editor-vue'
 import { Pane, Splitpanes } from 'splitpanes'
-import { parseURL, withHttps, withQuery } from 'ufo'
+import { hasProtocol, joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { fetchGlobalDebug } from '~/composables/fetch'
-import { devtoolsClient, ogImageRpc } from '~/composables/rpc'
+import { colorMode, devtoolsClient, ogImageRpc } from '~/composables/rpc'
+import { path, query, refreshTime } from '~/util/logic'
 import { loadShiki } from '~/composables/shiki'
 import { CreateOgImageDialogPromise } from '~/composables/templates'
 import { separateProps } from '../src/runtime/shared'
