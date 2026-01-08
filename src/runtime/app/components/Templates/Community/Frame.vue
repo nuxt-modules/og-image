@@ -28,14 +28,14 @@ withDefaults(defineProps<{
       :style="{ backgroundImage: `url(${image})` }"
     />
     <div class="flex flex-col items-center text-center">
-      <h1 class="flex gap-4 text-7xl font-bold">
+      <h1 class="flex gap-4 text-7xl font-bold" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
         <Icon
           v-if="icon"
           :name="icon"
         />
         {{ title }}
       </h1>
-      <p class="text-2xl max-w-3xl">
+      <p class="text-2xl max-w-3xl" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
         {{ description }}
       </p>
     </div>

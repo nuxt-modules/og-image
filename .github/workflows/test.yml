@@ -1,5 +1,8 @@
 name: Test
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -14,13 +17,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
       - name: Set node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: package.json
 
@@ -28,6 +31,12 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
 
       - name: Test
         run: pnpm run test

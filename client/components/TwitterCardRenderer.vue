@@ -3,72 +3,58 @@ defineProps<{
   aspectRatio: number
   title?: string
 }>()
+
+const currTime = computed(() => {
+  // need to return in format 2:17 AM · Mar 25, 2025
+  const date = new Date()
+  const options: Intl.DateTimeFormatOptions = {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  }
+  const formatter = new Intl.DateTimeFormat('en-US', options)
+  const parts = formatter.formatToParts(date)
+  const time = `${parts.find(part => part.type === 'hour')?.value}:${
+    parts.find(part => part.type === 'minute')?.value} ${
+    parts.find(part => part.type === 'dayPeriod')?.value} · ${
+    parts.find(part => part.type === 'month')?.value} ${
+    parts.find(part => part.type === 'day')?.value}, ${
+    parts.find(part => part.type === 'year')?.value}`
+  return time
+})
 </script>
 
 <template>
-  <div class="root max-h-full relative flex">
-    <div class="max-h-full border-1 border-solid border-[#cfd9de] rounded-[16px] overflow-hidden">
-      <div class="image-wrap" :style="{ aspectRatio }">
-        <slot />
+  <div class="root max-h-full relative flex flex-col">
+    <div class="w-[600px] mx-auto">
+      <div class="w-full flex items-start flex-col space-x-3">
+        <div class="w-full">
+          <div class="w-full">
+            <div class="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden">
+              <div class="-mx-px" :style="{ aspectRatio }">
+                <slot />
+              </div>
+              <div class="px-2 py-1">
+                <p class="opacity-50 text-sm">
+                  <slot name="domain" />
+                </p>
+                <p class="">
+                  <slot name="title">
+                    {{ title }}
+                  </slot>
+                </p>
+              </div>
+            </div>
+
+            <p class="text-gray-500 mt-3 text-sm">
+              {{ currTime }}
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
-    <div v-if="title" class="title absolute bottom-3 z-2 left-3 text-white">
-      <slot name="title">
-        {{ title }}
-      </slot>
-    </div>
-    <div class="domain absolute -bottom-5 z-2 left-0">
-      <slot name="domain" />
     </div>
   </div>
 </template>
-
-<style scoped>
-.image-wrap {
-  background-color: rgba(0, 0, 0, 0.1);
-  opacity: 1;
-  height: 300px;
-}
-.domain:hover {
-  text-decoration: underline;
-}
-.domain {
-  line-height: 16px;
-  cursor: pointer;
-  min-width: 0px;
-  word-wrap: break-word;
-  text-overflow: unset;
-  color: rgb(83, 100, 113);
-  font-weight: 400;
-  background-color: rgba(0,0,0,0.00);
-  border: 0 solid black;
-  box-sizing: border-box;
-  display: inline;
-  font: 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  list-style: none;
-  margin: 0px;
-  padding: 0px;
-  text-align: inherit;
-  text-decoration: none;
-  white-space: pre-wrap;
-}
-.title {
-  word-wrap: break-word;
-  text-overflow: unset;
-  min-width: 0px;
-  line-height: 16px;
-  font-weight: 400;
-  user-select: none;
-  font-size: 13px;
-  text-align: center;
-  height: 20px;
-  padding: 0 4px;
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.77);
-}
-.root {
-  outline-style: none;
-  cursor: pointer;
-  transition-duration: 0.2s;
-}
-</style>

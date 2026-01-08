@@ -12,7 +12,7 @@ withDefaults(defineProps<{
 
 <template>
   <div class="h-full w-full flex items-start justify-start bg-yellow-50 relative">
-    <h1 class="text-7xl p-20 font-bold text-left text-gray-900">
+    <h1 class="text-7xl p-20 font-bold text-left text-gray-900" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
       {{ title }}
     </h1>
 

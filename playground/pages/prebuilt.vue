@@ -2,7 +2,7 @@
 import { defineOgImage, useSeoMeta } from '#imports'
 
 defineOgImage({
-  url: 'https://nitro.build/_og/_index.png?name=Nitro&title=Next+Generation+Server+Toolkit&description=Create+web+servers+with+everything+you+need+and+deploy+them+wherever+you+prefer.',
+  url: 'https://nitro.build/_og/guide/tasks.png?name=Nitro&title=Tasks&description=Nitro+tasks+allow+on-off+operations+in+runtime.',
   width: 1200,
   height: 630,
   alt: 'Nitro UI',

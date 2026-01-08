@@ -1,3 +1,4 @@
+import { defineNuxtConfig } from 'nuxt/config'
 import NuxtOgImage from '../../../src/module'
 
 // https://v3.nuxtjs.org/api/configuration/nuxt.config
@@ -12,6 +13,7 @@ export default defineNuxtConfig({
   ogImage: {
     debug: true,
   },
+  // @ts-expect-error untyped
   i18n: {
     // baseUrl: 'https://nuxtseo.com',
     defaultLocale: 'en',

@@ -6,7 +6,7 @@ import { applyNitroPresetCompatibility } from '../compatibility'
 
 // prerender will always be called when using nuxi generate and sometimes be used when using nuxi build
 
-export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
+export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver, nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig) => {
       // bindings

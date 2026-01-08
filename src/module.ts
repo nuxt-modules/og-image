@@ -1,9 +1,11 @@
 import type { AddComponentOptions } from '@nuxt/kit'
+import type { Nuxt } from '@nuxt/schema'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type {
   CompatibilityFlagEnvOverrides,
+  CompatibilityFlags,
   FontConfig,
   InputFontConfig,
   OgImageComponent,
@@ -15,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -36,10 +38,12 @@ import {
   getPresetNitroPresetCompatibility,
   resolveNitroPreset,
 } from './compatibility'
-import { extendTypes, getNuxtModuleOptions, isNuxtGenerate } from './kit'
+import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+
+const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
 export interface ModuleOptions {
   /**
@@ -107,7 +111,7 @@ export interface ModuleOptions {
   /**
    * Extra component directories that should be used to resolve components.
    *
-   * @default ['OgImage', 'OgImageTemplate']
+   * @default ['OgImage', 'og-image', 'OgImageTemplate']
    */
   componentDirs: string[]
   /**
@@ -115,11 +119,13 @@ export interface ModuleOptions {
    */
   compatibility?: CompatibilityFlagEnvOverrides
   /**
-   * Use an alternative host for downloading Google Fonts. This is used to support China where Google Fonts is blocked.
+   * Use an alternative host for downloading Google Fonts.
    *
-   * When `true` is set will use `fonts.font.im`, otherwise will use a string as the host.
+   * Provide a custom mirror host (e.g., your own proxy server).
+   * Note: The mirror must serve TTF fonts for Satori compatibility.
+   * For China users, consider using local font files via the `path` option instead.
    */
-  googleFontMirror?: true | string
+  googleFontMirror?: string
   /**
    * Only allow the prerendering and dev runtimes to generate images.
    */
@@ -140,12 +146,17 @@ export interface ModuleHooks {
   'nuxt-og-image:runtime-config': (config: ModuleOptions) => Promise<void> | void
 }
 
+function isProviderEnabledForEnv(provider: keyof CompatibilityFlags, nuxt: Nuxt, config: ModuleOptions) {
+  return (nuxt.options.dev && config.compatibility?.dev?.[provider] !== false) || (!nuxt.options.dev && (config.compatibility?.runtime?.[provider] !== false || config.compatibility?.prerender?.[provider] !== false))
+}
+
+const defaultComponentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
+
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '>=3.10.3',
-      bridge: false,
+      nuxt: '>=3.16.0',
     },
     configKey: 'ogImage',
   },
@@ -162,15 +173,18 @@ export default defineNuxtModule<ModuleOptions>({
         // default is to cache the image for 3 day (72 hours)
         cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
-      componentDirs: ['OgImage', 'OgImageTemplate'],
+      componentDirs: defaultComponentDirs,
       fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
     }
   },
   async setup(config, nuxt) {
-    const { resolve } = createResolver(import.meta.url)
+    const resolver = createResolver(import.meta.url)
+    const { resolve } = resolver
     const { version } = await readPackageJSON(resolve('../package.json'))
+    const userAppPkgJson = await readPackageJSON(nuxt.options.rootDir)
+      .catch(() => ({ dependencies: {}, devDependencies: {} }))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
       logger.debug('The module is disabled, skipping setup.')
@@ -206,81 +220,195 @@ export default defineNuxtModule<ModuleOptions>({
         nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/mock')
       }
     }
-
-    let isUsingSharp = false
-    // avoid any sharp logic if user explicitly opts-out
-    const userConfiguredExtension = config.defaults.extension
-    const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
-    if (!!config.sharpOptions || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')) {
-      isUsingSharp = true
-      const hasSharpDependency = await hasResolvableDependency('sharp')
-      if (hasSharpDependency && !targetCompatibility.sharp) {
-        logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
+    const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
+    let publicDirAbs = nuxt.options.dir.public
+    if (!isAbsolute(publicDirAbs)) {
+      publicDirAbs = (publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)) || ''
+    }
+    if (isProviderEnabledForEnv('satori', nuxt, config)) {
+      let attemptSharpUsage = false
+      if (isProviderEnabledForEnv('sharp', nuxt, config)) {
+        // avoid any sharp logic if user explicitly opts-out
+        const userConfiguredExtension = config.defaults.extension
+        const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
+        const allDeps = {
+          ...(userAppPkgJson.dependencies || {}),
+          ...(userAppPkgJson.devDependencies || {}),
+        }
+        const hasExplicitSharpDependency = !!config.sharpOptions || 'sharp' in allDeps || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')
+        if (hasExplicitSharpDependency) {
+          if (!targetCompatibility.sharp) {
+            logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
+            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+              runtime: { sharp: false },
+            })
+          }
+          else {
+            // if we can import it then we'll use it
+            await import('sharp')
+              .catch(() => {})
+              .then(() => {
+                attemptSharpUsage = true
+              })
+          }
+        }
+        else if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
+          // sharp is supported but not installed
+          logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
+          await ensureDependencies(['sharp'])
+          logger.warn('Support for `sharp` is limited so check the compatibility guide.')
+          attemptSharpUsage = true
+        }
+      }
+      if (!attemptSharpUsage) {
+        // disable sharp
         config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
           runtime: { sharp: false },
+          dev: { sharp: false },
+          prerender: { sharp: false },
         })
       }
-      else if (!hasSharpDependency) {
-        // sharp is supported but not installed
-        logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
-        await ensureDependencies(['sharp'])
-        logger.warn('Support for `sharp` is limited so check the compatibility guide.')
-      }
-    }
-    if (!isUsingSharp) {
-      // disable sharp
-      config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-        runtime: { sharp: false },
-        dev: { sharp: false },
-        prerender: { sharp: false },
-      })
-    }
-
-    // in dev and prerender we rely on local chrome or playwright dependency
-    // for runtime we need playwright dependency
-    const hasChromeLocally = checkLocalChrome()
-    const hasPlaywrightDependency = await hasResolvableDependency('playwright')
-    const chromeCompatibilityFlags = {
-      prerender: config.compatibility?.prerender?.chromium,
-      dev: config.compatibility?.dev?.chromium,
-      runtime: config.compatibility?.runtime?.chromium,
-    }
-    const chromiumBinding: Record<string, RuntimeCompatibilitySchema['chromium'] | null> = {
-      dev: null,
-      prerender: null,
-      runtime: null,
-    }
-    if (nuxt.options.dev) {
-      if (isUndefinedOrTruthy(chromeCompatibilityFlags.dev))
-        chromiumBinding.dev = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
-    }
-    else {
-      if (isUndefinedOrTruthy(chromeCompatibilityFlags.prerender))
-        chromiumBinding.prerender = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
-      if (isUndefinedOrTruthy(chromeCompatibilityFlags.runtime))
-        chromiumBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
-    }
-    config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-      runtime: { chromium: chromiumBinding.runtime },
-      dev: { chromium: chromiumBinding.dev },
-      prerender: { chromium: chromiumBinding.prerender },
-    })
-
-    // let's check we can access resvg
-    await import('@resvg/resvg-js')
-      .catch(() => {
-        logger.warn('ReSVG is missing dependencies for environment. Falling back to WASM version, this may slow down PNG rendering.')
-        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-          dev: { resvg: 'wasm-fs' },
-          prerender: { resvg: 'wasm-fs' },
-        })
-        // swap out runtime node for wasm if we have a broken dependency
-        if (targetCompatibility.resvg === 'node') {
-          config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-            runtime: { resvg: 'wasm' },
+      if (isProviderEnabledForEnv('resvg', nuxt, config)) {
+        // let's check we can access resvg
+        await import('@resvg/resvg-js')
+          .catch(() => {
+            logger.warn('ReSVG is missing dependencies for environment. Falling back to WASM version, this may slow down PNG rendering.')
+            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+              dev: { resvg: 'wasm-fs' },
+              prerender: { resvg: 'wasm-fs' },
+            })
+            // swap out runtime node for wasm if we have a broken dependency
+            if (targetCompatibility.resvg === 'node') {
+              config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+                runtime: { resvg: 'wasm' },
+              })
+            }
           })
-        }
+      }
+      // default font is inter
+      if (!config.fonts.length) {
+        config.fonts = [
+          {
+            name: 'Inter',
+            weight: 400,
+            path: resolve('./runtime/assets/Inter-normal-400.ttf.base64'),
+            absolutePath: true,
+          },
+          {
+            name: 'Inter',
+            weight: 700,
+            path: resolve('./runtime/assets/Inter-normal-700.ttf.base64'),
+            absolutePath: true,
+          },
+        ]
+      }
+
+      // persist between versions
+      const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image`, '_fonts')
+      const fontStorage = createStorage({
+        driver: fsDriver({
+          base: serverFontsDir,
+        }),
       })
+      config.fonts = (await Promise.all(normaliseFontInput(config.fonts)
+        .map(async (f) => {
+          const fontKey = `${f.name}:${f.style}:${f.weight}`
+          const fontFileBase = fontKey.replaceAll(':', '-')
+          if (!f.key && !f.path) {
+            if (preset === 'stackblitz') {
+              logger.warn(`The ${fontKey} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
+              return false
+            }
+            const result = await downloadFont(f, fontStorage, config.googleFontMirror)
+            if (result.success) {
+              // move file to serverFontsDir
+              f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.base64`
+            }
+            else {
+              const mirrorMsg = config.googleFontMirror
+                ? `using mirror host \`${result.host}\``
+                : 'Consider using local font files via the `path` option if you are in China or behind a firewall.'
+              logger.warn(`Failed to download font ${fontKey} ${mirrorMsg}`)
+              if (result.error)
+                logger.warn(`  Error: ${result.error.message || result.error}`)
+              return false
+            }
+          }
+          else if (f.path) {
+            // validate the extension, can only be woff, ttf or otf
+            const extension = basename(f.path.replace('.base64', '')).split('.').pop()!
+            if (!['woff', 'ttf', 'otf'].includes(extension)) {
+              logger.warn(`The ${fontKey} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
+              return false
+            }
+            // resolve relative paths from public dir
+            // move to assets folder as base64 and set key
+            if (!f.absolutePath)
+              f.path = resolve(publicDirAbs, withoutLeadingSlash(f.path))
+            if (!existsSync(f.path)) {
+              logger.warn(`The ${fontKey} font was skipped because the file does not exist at path ${f.path}.`)
+              return false
+            }
+            const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
+            f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.base64`
+            await fontStorage.setItem(`${fontFileBase}.${extension}.base64`, fontData)
+            delete f.path
+            delete f.absolutePath
+          }
+          return f
+        }))).filter(Boolean) as InputFontConfig[]
+
+      const fontKeys = (config.fonts as ResolvedFontConfig[]).map(f => f.key?.split(':').pop())
+      const fontStorageKeys = await fontStorage.getKeys()
+      await Promise.all(fontStorageKeys
+        .filter(key => !fontKeys.includes(key))
+        .map(async (key) => {
+          logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
+          await fontStorage.removeItem(key)
+        }))
+      if (!config.zeroRuntime) {
+        // bundle fonts within nitro runtime
+        nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
+        nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
+      }
+      addServerHandler({
+        lazy: true,
+        route: '/__og-image__/font/**',
+        handler: resolve(`${basePath}/font`),
+      })
+    }
+
+    if (isProviderEnabledForEnv('chromium', nuxt, config)) {
+      // in dev and prerender we rely on local chrome or playwright dependency
+      // for runtime we need playwright dependency
+      const hasChromeLocally = checkLocalChrome()
+      const hasPlaywrightDependency = await hasResolvableDependency('playwright')
+      const chromeCompatibilityFlags = {
+        prerender: config.compatibility?.prerender?.chromium,
+        dev: config.compatibility?.dev?.chromium,
+        runtime: config.compatibility?.runtime?.chromium,
+      }
+      const chromiumBinding: Record<string, RuntimeCompatibilitySchema['chromium'] | null> = {
+        dev: null,
+        prerender: null,
+        runtime: null,
+      }
+      if (nuxt.options.dev) {
+        if (isUndefinedOrTruthy(chromeCompatibilityFlags.dev))
+          chromiumBinding.dev = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
+      }
+      else {
+        if (isUndefinedOrTruthy(chromeCompatibilityFlags.prerender))
+          chromiumBinding.prerender = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
+        if (isUndefinedOrTruthy(chromeCompatibilityFlags.runtime))
+          chromiumBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
+      }
+      config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+        runtime: { chromium: chromiumBinding.runtime },
+        dev: { chromium: chromiumBinding.dev },
+        prerender: { chromium: chromiumBinding.prerender },
+      })
+    }
 
     await installNuxtSiteConfig()
 
@@ -300,90 +428,8 @@ export default defineNuxtModule<ModuleOptions>({
       addServerPlugin(resolve('./runtime/server/plugins/nuxt-content-v2'))
     }
 
-    // default font is inter
-    if (!config.fonts.length) {
-      config.fonts = [
-        { name: 'Inter', weight: 400, path: resolve('./runtime/assets/Inter-normal-400.ttf.base64'), absolutePath: true },
-        { name: 'Inter', weight: 700, path: resolve('./runtime/assets/Inter-normal-700.ttf.base64'), absolutePath: true },
-      ]
-    }
-
-    let publicDirAbs = nuxt.options.dir.public
-    if (!isAbsolute(publicDirAbs)) {
-      publicDirAbs = publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)
-    }
-    const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image@${version}`, '_fonts')
-    // mkdir@
-    const fontStorage = createStorage({
-      driver: fsDriver({
-        base: serverFontsDir,
-      }),
-    })
-    config.fonts = (await Promise.all(normaliseFontInput(config.fonts)
-      .map(async (f) => {
-        const fontKey = `${f.name}:${f.style}:${f.weight}`
-        const fontFileBase = fontKey.replaceAll(':', '-')
-        if (!f.key && !f.path) {
-          if (preset === 'stackblitz') {
-            logger.warn(`The ${fontKey} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
-            return false
-          }
-          if (await downloadFont(f, fontStorage, config.googleFontMirror)) {
-            // move file to serverFontsDir
-            f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.base64`
-          }
-          else {
-            logger.warn(`Failed to download font ${fontKey}. You may be offline or behind a firewall blocking Google. Consider setting \`googleFontMirror: true\`.`)
-            return false
-          }
-        }
-        else if (f.path) {
-          // validate the extension, can only be woff, ttf or otf
-          const extension = basename(f.path.replace('.base64', '')).split('.').pop()!
-          if (!['woff', 'ttf', 'otf'].includes(extension)) {
-            logger.warn(`The ${fontKey} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
-            return false
-          }
-          // resolve relative paths from public dir
-          // move to assets folder as base64 and set key
-          if (!f.absolutePath)
-            f.path = resolve(publicDirAbs, withoutLeadingSlash(f.path))
-          if (!existsSync(f.path)) {
-            logger.warn(`The ${fontKey} font was skipped because the file does not exist at path ${f.path}.`)
-            return false
-          }
-          const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
-          f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.base64`
-          await fontStorage.setItem(`${fontFileBase}.${extension}.base64`, fontData)
-          delete f.path
-          delete f.absolutePath
-        }
-        return f
-      }))).filter(Boolean) as InputFontConfig[]
-
-    const fontKeys = (config.fonts as ResolvedFontConfig[]).map(f => f.key?.split(':').pop())
-    const fontStorageKeys = await fontStorage.getKeys()
-    await Promise.all(fontStorageKeys
-      .filter(key => !fontKeys.includes(key))
-      .map(async (key) => {
-        logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
-        await fontStorage.removeItem(key)
-      }))
-
-    if (!config.zeroRuntime) {
-      // bundle fonts within nitro runtime
-      nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
-      nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
-    }
-
     nuxt.options.experimental.componentIslands ||= true
 
-    const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
-    addServerHandler({
-      lazy: true,
-      route: '/__og-image__/font/**',
-      handler: resolve(`${basePath}/font`),
-    })
     if (config.debug || nuxt.options.dev) {
       addServerHandler({
         lazy: true,
@@ -406,13 +452,26 @@ export default defineNuxtModule<ModuleOptions>({
     if (!nuxt.options.dev) {
       nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     }
-    ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
+    ;[
+      'defineOgImage',
+      'defineOgImageComponent',
+      { name: 'defineOgImageScreenshot', enabled: isProviderEnabledForEnv('chromium', nuxt, config) },
+    ]
       .forEach((name) => {
+        if (typeof name === 'object') {
+          if (!name.enabled) {
+            addImports({ name: name.name, from: resolve(`./runtime/app/composables/mock`) })
+            return
+          }
+          name = name.name
+        }
         addImports({
           name,
           from: resolve(`./runtime/app/composables/${name}`),
         })
         if (!nuxt.options.dev) {
+          nuxt.options.optimization.treeShake.composables.client = nuxt.options.optimization.treeShake.composables.client || {}
+          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] || []
           nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
         }
       })
@@ -422,7 +481,7 @@ export default defineNuxtModule<ModuleOptions>({
       addComponentsDir({
         path: resolve('./runtime/app/components/Templates/Community'),
         island: true,
-        // watch: true,
+        watch: IS_MODULE_DEVELOPMENT,
       })
     }
 
@@ -443,6 +502,20 @@ export default defineNuxtModule<ModuleOptions>({
     // allows us to add og images using route rules without calling defineOgImage
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
+
+    for (const componentDir of config.componentDirs) {
+      const path = resolve(nuxt.options.srcDir, 'components', componentDir)
+      if (existsSync(path)) {
+        addComponentsDir({
+          path,
+          island: true,
+          watch: IS_MODULE_DEVELOPMENT,
+        })
+      }
+      else if (!defaultComponentDirs.includes(componentDir)) {
+        logger.warn(`The configured component directory \`./${relative(nuxt.options.rootDir, path)}\` does not exist. Skipping.`)
+      }
+    }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[] } = { components: [] }
@@ -478,7 +551,7 @@ export default defineNuxtModule<ModuleOptions>({
             hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
-            path: nuxt.options.dev ? component.filePath : undefined,
+            path: component.filePath,
             category,
             credits,
           })
@@ -495,6 +568,7 @@ export default defineNuxtModule<ModuleOptions>({
       },
       options: { mode: 'server' },
     })
+
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
@@ -506,7 +580,6 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.hook('tailwindcss:config', (tailwindConfig) => {
       unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
     })
-    // @ts-expect-error module optional
     nuxt.hook('unocss:config', (_unoCssConfig) => {
       unoCssConfig = { ..._unoCssConfig.theme }
     })
@@ -514,23 +587,24 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
-    extendTypes('nuxt-og-image', ({ typesPath }) => {
-      // need to map our components to types so we can import them
-      const componentImports = ogImageComponentCtx.components.map((component) => {
-        const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
-        // remove dirNames from component name
-        const name = config.componentDirs
-          // need to sort by longest first so we don't replace the wrong part of the string
-          .sort((a, b) => b.length - a.length)
-          .reduce((name, dir) => {
-            // only replace from the start of the string
-            return name.replace(new RegExp(`^${dir}`), '')
-          }, component.pascalName)
-        return `    '${name}': typeof import('${relativeComponentPath}')['default']`
-      }).join('\n')
-      return `
-declare module 'nitropack' {
-  interface NitroRouteRules {
+    addTypeTemplate({
+      filename: 'module/nuxt-og-image.d.ts',
+      getContents: (data) => {
+        const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
+        // need to map our components to types so we can import them
+        const componentImports = ogImageComponentCtx.components.map((component) => {
+          const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
+          // remove dirNames from component name
+          const name = config.componentDirs
+            // need to sort by longest first so we don't replace the wrong part of the string
+            .sort((a, b) => b.length - a.length)
+            .reduce((name, dir) => {
+              // only replace from the start of the string
+              return name.replace(new RegExp(`^${dir}`), '')
+            }, component.pascalName)
+          return `    '${name}': typeof import('${relativeComponentPath}')['default']`
+        }).join('\n')
+        const types = `interface NitroRouteRules {
     ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
   }
   interface NitroRouteConfig {
@@ -539,7 +613,14 @@ declare module 'nitropack' {
   interface NitroRuntimeHooks {
     'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
     'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-  }
+  }`
+        return `
+declare module 'nitropack' {
+${types}
+}
+
+declare module 'nitropack/types' {
+${types}
 }
 
 declare module '#og-image/components' {
@@ -550,7 +631,13 @@ ${componentImports}
 declare module '#og-image/unocss-config' {
   export type theme = any
 }
+
+export {}
 `
+      },
+    }, {
+      nitro: true,
+      nuxt: true,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
@@ -603,6 +690,9 @@ declare module '#og-image/unocss-config' {
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
       }
+      if (nuxt.options.dev) {
+        runtimeConfig.componentDirs = config.componentDirs
+      }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
       // @ts-expect-error runtime types
@@ -611,19 +701,19 @@ declare module '#og-image/unocss-config' {
 
     // Setup playground. Only available in development
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolve)
+      setupDevHandler(config, resolver)
       setupDevToolsUI(config, resolve)
     }
     else if (isNuxtGenerate()) {
-      setupGenerateHandler(config, resolve)
+      setupGenerateHandler(config, resolver)
     }
     else if (nuxt.options.build) {
-      await setupBuildHandler(config, resolve)
+      await setupBuildHandler(config, resolver)
     }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
-    setupPrerenderHandler(config, resolve)
+    setupPrerenderHandler(config, resolver)
   },
 })

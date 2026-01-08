@@ -4,10 +4,11 @@ import { fetchPathHtmlAndExtractOptions } from '#og-image/server/og-image/devtoo
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
 import { parseURL } from 'ufo'
-import { normaliseFontInput, useOgImageRuntimeConfig } from '../../shared'
+import { normaliseFontInput } from '../../shared'
 import { resolveContext } from '../og-image/context'
 import { assets } from '../og-image/satori/font'
 import { html } from '../og-image/templates/html'
+import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
 
 export async function fontEventHandler(e: H3Event) {
@@ -16,11 +17,11 @@ export async function fontEventHandler(e: H3Event) {
 
   // used internally for html previews
   const key = path.split('/font/')[1]
-  if (key.includes(':')) {
+  if (key && key.includes(':')) {
     const font = fonts.find(f => f.key === key)
     // use as storage key
     if (font?.key && await assets.hasItem(font.key)) {
-      let fontData = await assets.getItem(font.key)
+      let fontData = await assets.getItem(font.key) as any as string | Uint8Array
       // if buffer
       if (fontData instanceof Uint8Array) {
         const decoder = new TextDecoder()
@@ -38,17 +39,17 @@ export async function fontEventHandler(e: H3Event) {
       }
       // fontData is a base64 string, need to turn it into a buffer
       // buf is a string need to convert it to a buffer
-      return Buffer.from(fontData!, 'base64')
+      return Buffer.from(fontData as string, 'base64')
     }
   }
 
-  const [_name, _weight] = key.split('.')[0].split('/')
+  const [_name, _weight] = String(key?.split('.')[0]).split('/')
 
   if (!_name || !_weight)
     return 'Provide a font name and weight'
 
   // make sure name starts with a capital letter
-  const name = _name[0].toUpperCase() + _name.slice(1)
+  const name = String(_name[0]).toUpperCase() + _name.slice(1)
   // make sure weight is a valid number between 100 to 900 in 100 increments
   const weight = Math.round(Number.parseInt(_weight) / 100) * 100
 
@@ -106,15 +107,8 @@ export async function imageEventHandler(e: H3Event) {
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey } = useOgImageRuntimeConfig()
-  // const compatibilityHints: string[] = []
   // debug
   if (import.meta.dev && isDevToolsContextRequest) {
-    // const queryExtension = getQuery(e).extension || ctx.options.extension
-    // figure out compatibilityHints based on what we're using
-    // if (['jpeg', 'jpg'].includes(queryExtension) && options.renderer === 'satori')
-    //   compatibilityHints.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
-    // if (options.renderer === 'chromium')
-    //   compatibilityHints.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
     setHeader(e, 'Content-Type', 'application/json')
     return {
       extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
@@ -136,7 +130,7 @@ export async function imageEventHandler(e: H3Event) {
       if (ctx.renderer.name !== 'satori') {
         return createError({
           statusCode: 400,
-          statusMessage: `[Nuxt OG Image] Generating ${extension}\'s with ${renderer.name} is not supported.`,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
         })
       }
       // add svg headers
@@ -148,7 +142,7 @@ export async function imageEventHandler(e: H3Event) {
       if (!renderer.supportedFormats.includes(extension)) {
         return createError({
           statusCode: 400,
-          statusMessage: `[Nuxt OG Image] Generating ${extension}\'s with ${renderer.name} is not supported.`,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
         })
       }
       setHeader(e, 'Content-Type', `image/${extension === 'jpg' ? 'jpeg' : extension}`)
@@ -169,7 +163,7 @@ export async function imageEventHandler(e: H3Event) {
   if (cacheApi instanceof H3Error)
     return cacheApi
 
-  let image: H3Error | BufferSource | false | void = cacheApi.cachedItem
+  let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
     image = await renderer.createImage(ctx)
     if (image instanceof H3Error)

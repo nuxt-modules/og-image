@@ -1,8 +1,8 @@
-import { defineNitroPlugin } from '#imports'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
+import { defineNitroPlugin } from 'nitropack/runtime'
 import { parseURL } from 'ufo'
-import { extractSocialPreviewTags, isInternalRoute } from '../../pure'
+import { extractSocialPreviewTags, isInternalRoute } from '../../shared'
 import { resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 
@@ -37,7 +37,7 @@ export default defineNitroPlugin(async (nitro) => {
     const index = html.bodyAppend.findIndex(script => script.includes('id="nuxt-og-image-options"'))
     if (index !== -1) {
       // we need to remove `<script id="nuxt-og-image-options" type="application/json">...anything...</script>`
-      html.bodyAppend[index] = html.bodyAppend[index].replace(/<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/, '')
+      html.bodyAppend[index] = String(html.bodyAppend[index]).replace(/<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/, '')
       html.bodyAppend[index] = html.bodyAppend[index].replace(/<script id="nuxt-og-image-overrides" type="application\/json">[\s\S]*?<\/script>/, '')
     }
   })

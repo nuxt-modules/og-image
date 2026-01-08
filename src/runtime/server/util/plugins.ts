@@ -1,14 +1,17 @@
+// @ts-expect-error nuxt content v2
 import type { ParsedContent } from '@nuxt/content'
 import type { Head } from '@unhead/vue'
 import type { NitroApp } from 'nitropack/runtime/app'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { withQuery } from 'ufo'
-import { generateMeta, getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { generateMeta } from '../../shared'
+import { getOgImagePath, useOgImageRuntimeConfig } from '../utils'
 import { normaliseOptions } from './options'
 
 export function nuxtContentPlugin(nitroApp: NitroApp) {
   const { isNuxtContentDocumentDriven, strictNuxtContentPaths, defaults } = useOgImageRuntimeConfig()
+  // @ts-expect-error nuxt content v2
   nitroApp.hooks.hook('content:file:afterParse', async (content: ParsedContent) => {
     if (content._draft || content._extension !== 'md' || content._partial || content.indexable === false || content.index === false)
       return
@@ -30,7 +33,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       let src = optionsWithDefault.url || getOgImagePath(path, optionsWithDefault)
       if (optionsWithDefault._query && Object.keys(optionsWithDefault._query).length)
         src = withQuery(src, { _query: optionsWithDefault._query })
-      const meta = generateMeta(src, optionsWithDefault)
+      const meta = generateMeta(src, ogImageConfig)
       // user has provided a prebuilt og image
       if (optionsWithDefault.url) {
         content.head = defu(<Head> { meta }, content.head)
@@ -45,7 +48,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
       // options is an object which has keys that may be kebab case, we need to convert the keys to camel case
       Object.entries(ogImageConfig).forEach(([key, val]) => {
         // with a simple kebab case conversion
-        payload[key.replace(/-([a-z])/g, g => g[1].toUpperCase())] = val
+        payload[key.replace(/-([a-z])/g, g => String(g[1]).toUpperCase())] = val
       })
 
       content.head = defu(<Head> {
@@ -60,19 +63,7 @@ export function nuxtContentPlugin(nitroApp: NitroApp) {
             tagPriority: 30, // slighty higher priority
           },
         ],
-        meta: [
-          { property: 'og:image', content: src },
-          { property: 'og:image:width', content: optionsWithDefault.width },
-          { property: 'og:image:height', content: optionsWithDefault.height },
-          { property: 'og:image:type', content: `image/${optionsWithDefault.extension}` },
-          { property: 'og:image:alt', content: optionsWithDefault.alt },
-          // twitter
-          { name: 'twitter:card', content: 'summary_large_image' },
-          { name: 'twitter:image:src', content: src },
-          { name: 'twitter:image:width', content: optionsWithDefault.width },
-          { name: 'twitter:image:height', content: optionsWithDefault.height },
-          { name: 'twitter:image:alt', content: optionsWithDefault.alt },
-        ],
+        meta: generateMeta(src, optionsWithDefault),
       }, content.head)
     }
     return content

@@ -1,11 +1,8 @@
-import type { DefineOgImageInput, OgImageOptions } from '../../types'
-import { defu } from 'defu'
+import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
 import { appendHeader } from 'h3'
 import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
-import { ref } from 'vue'
-import { createNitroRouteRuleMatcher } from '../../server/util/kit'
-import { getOgImagePath, separateProps, useOgImageRuntimeConfig } from '../../shared'
-import { createOgImageMeta, normaliseOptions } from '../utils'
+import { ref, toValue } from 'vue'
+import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 // In non-dev client-side environments this is treeshaken
 export function defineOgImage(_options: DefineOgImageInput = {}) {
@@ -31,36 +28,38 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
     return
   }
 
-  // need to check route rules hasn't disabled this
-  const routeRuleMatcher = createNitroRouteRuleMatcher()
-  const routeRules = routeRuleMatcher(basePath).ogImage
-  // has been disabled by route rules
-  if (!_options || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false || (typeof routeRules !== 'undefined' && routeRules === false)) {
+  const { defaults } = useOgImageRuntimeConfig()
+  const options = toValue(_options)
+
+  // If options is false or route rules disabled, don't generate an OG image
+  if (options === false || nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false) {
     // remove the previous entries
     nuxtApp.ssrContext!._ogImageInstance?.dispose()
+    nuxtApp.ssrContext!._ogImageDevtoolsInstance?.dispose()
     nuxtApp.ssrContext!._ogImageInstance = undefined
+    nuxtApp.ssrContext!._ogImagePayloads = []
     return
   }
-  const { defaults } = useOgImageRuntimeConfig()
-  const options = normaliseOptions(defu({
-    ..._options,
-  }, {
-    component: defaults.component,
-  }))
+
+  // TypeScript now knows options is not false
+  const validOptions = options as OgImageOptions | OgImagePrebuilt
+
+  for (const key in defaults) {
+    // @ts-expect-error untyped
+    if (validOptions[key] === undefined)
+      // @ts-expect-error untyped
+      validOptions[key] = defaults[key]
+  }
   if (route.query)
-    options._query = route.query
-  const resolvedOptions = normaliseOptions(defu(separateProps(_options), separateProps(routeRules), defaults) as OgImageOptions)
+    validOptions._query = route.query
   // allow overriding using a prebuild config
-  if (resolvedOptions.url) {
-    createOgImageMeta(null, options, resolvedOptions, nuxtApp.ssrContext!)
+  if (validOptions.url) {
+    setHeadOgImagePrebuilt(validOptions)
+    return
   }
-  else {
-    const path = getOgImagePath(basePath, _options)
-    if (import.meta.prerender) {
-      // prerender without query params
-      // TODO need to insert a payload that can be used for the prerender
-      appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path.split('?')[0])
-    }
-    createOgImageMeta(path, options, resolvedOptions, nuxtApp.ssrContext!)
+  const path = getOgImagePath(basePath, validOptions)
+  if (import.meta.prerender) {
+    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path.split('?')[0])
   }
+  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
 }

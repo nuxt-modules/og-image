@@ -12,6 +12,7 @@ export default defineNuxtConfig({
 
   ogImage: {
     zeroRuntime: true,
+    sharpOptions: true,
   },
 
   routeRules: {

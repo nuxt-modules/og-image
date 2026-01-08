@@ -7,7 +7,8 @@ import type { NitroOptions } from 'nitropack'
 import type { NitroApp } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { html } from 'satori-html'
-import type { SharpOptions } from 'sharp'
+import type { JpegOptions, SharpOptions } from 'sharp'
+import type { Ref } from 'vue'
 
 export interface OgImageRenderEventContext {
   unocss: UnoGenerator
@@ -43,6 +44,8 @@ export interface OgImageRuntimeConfig {
   isNuxtContentDocumentDriven: boolean
   strictNuxtContentPaths: boolean
   zeroRuntime: boolean
+
+  componentDirs?: string[]
 
   app: {
     baseURL: string
@@ -80,7 +83,8 @@ export interface ScreenshotOptions {
   delay?: number
 }
 
-export type OgImagePrebuilt = { url: string } & Pick<OgImageOptions, 'width' | 'height' | 'alt' | '_query'>
+export interface OgImagePrebuilt extends OgImageOptions {
+}
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 
@@ -90,23 +94,23 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    *
    * @default 1200
    */
-  width?: number
+  width?: number | (() => number) | Ref<number>
   /**
    * The height of the screenshot.
    *
    * @default 630
    */
-  height?: number
+  height?: number | (() => number) | Ref<number>
   /**
    * The alt text for the image.
    */
-  alt?: string
+  alt?: string | (() => string) | Ref<string>
   /**
    * Use a prebuilt image instead of generating one.
    *
    * Should be an absolute URL.
    */
-  url?: string
+  url?: string | (() => string) | Ref<string>
   /**
    * The name of the component to render.
    */
@@ -126,10 +130,15 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   resvg?: ResvgRenderOptions
   satori?: SatoriOptions
   screenshot?: Partial<ScreenshotOptions>
-  sharp?: SharpOptions
+  sharp?: SharpOptions & JpegOptions
   fonts?: InputFontConfig[]
   // cache
   cacheMaxAgeSeconds?: number
+  /**
+   * Social preview metadata
+   * @internal
+   */
+  socialPreview?: SocialPreviewMetaData
   /**
    * @internal
    */
@@ -174,7 +183,7 @@ export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: O
 export interface Renderer {
   name: 'chromium' | 'satori'
   supportedFormats: Partial<RendererOptions['extension']>[]
-  createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | void>
+  createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | Buffer | Uint8Array | void | undefined>
   debug: (e: OgImageRenderEventContext) => Promise<Record<string, any>>
 }
 
@@ -191,4 +200,24 @@ export interface SatoriTransformer {
   transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void> | void
 }
 
-export interface DevToolsMetaDataExtraction { key: string, twitter?: Record<string, string>, og?: Record<string, string> }
+export interface DevToolsMetaDataExtraction {
+  key: string
+  twitter?: Record<string, string>
+  og?: Record<string, string>
+}
+
+export interface SocialPreviewMetaData {
+  twitter?: Record<string, string>
+  og?: Record<string, string> & {
+    image?: string | {
+      'image:width'?: string | number
+      'image:height'?: string | number
+      [key: string]: any
+    }
+  }
+}
+
+export interface RouteRulesOgImage extends Partial<OgImageOptions> {
+  // Allow for route rules to disable og:image by setting to false
+  [key: string]: any
+}

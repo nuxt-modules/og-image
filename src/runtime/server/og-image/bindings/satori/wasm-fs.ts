@@ -1,16 +1,11 @@
-import _satori, { init } from 'satori/wasm'
-import initYoga from 'yoga-wasm-web'
+import _satori, { init } from 'satori'
 import { readWasmFile } from '../../../util/wasm'
 
-const wasm = readWasmFile('yoga-wasm-web/dist/yoga.wasm')
-  .then(async yoga => await initYoga(yoga))
+const wasmBinary = readWasmFile('yoga-wasm-web/dist/yoga.wasm')
 
 export default {
-  initWasmPromise: new Promise<void>((resolve) => {
-    wasm.then((yoga) => {
-      init(yoga)
-      resolve()
-    })
+  initWasmPromise: wasmBinary.then(async (wasm) => {
+    await init(wasm)
   }),
   satori: _satori,
 }

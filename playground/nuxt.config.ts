@@ -56,6 +56,7 @@ export default defineNuxtConfig({
     prerender: {
       routes: [
         '/multiple',
+        '/satori/jpeg',
         '/chromium/component',
         '/chromium/delayed',
         '/chromium/screenshot',
@@ -151,6 +152,7 @@ export default defineNuxtConfig({
       },
     },
     '/satori/route-rules/**': {
+      // @ts-expect-error untyped
       site: {
         name: 'nuxt-og-image-route-rules',
       },

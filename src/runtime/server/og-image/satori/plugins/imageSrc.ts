@@ -1,8 +1,9 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
-import { useNitroOrigin, useStorage } from '#imports'
+import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import sizeOf from 'image-size'
+import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
-import { toBase64Image } from '../../../../pure'
+import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
 import { logger } from '../../../util/logger'
 import { defineSatoriTransformer } from '../utils'
@@ -58,8 +59,10 @@ export default defineSatoriTransformer([
           }
         }
         // convert relative images to base64 as satori will have no chance of resolving
-        if (imageBuffer)
-          node.props.src = toBase64Image(imageBuffer)
+        if (imageBuffer) {
+          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+          node.props.src = toBase64Image(buffer)
+        }
       }
       // avoid trying to fetch base64 image uris
       else if (!src.startsWith('data:')) {
@@ -75,7 +78,7 @@ export default defineSatoriTransformer([
       // if we're missing either a height or width on an image we can try and compute it using the image size
       if (imageBuffer && (!node.props.width || !node.props.height)) {
         try {
-          const imageSize = sizeOf(imageBuffer)
+          const imageSize = sizeOf(imageBuffer as Uint8Array)
           dimensions = { width: imageSize.width, height: imageSize.height }
         }
         catch {
@@ -98,7 +101,8 @@ export default defineSatoriTransformer([
       // if it's still relative, we need to swap out the src for an absolute URL
       if (typeof node.props.src === 'string' && node.props.src.startsWith('/')) {
         if (imageBuffer) {
-          node.props.src = toBase64Image(imageBuffer)
+          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+          node.props.src = toBase64Image(buffer)
         }
         else {
           // with query to avoid satori caching issue
@@ -120,7 +124,8 @@ export default defineSatoriTransformer([
           const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')
           const imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
           if (imageBuffer) {
-            const base64 = toBase64Image(Buffer.from(imageBuffer as ArrayBuffer))
+            const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+            const base64 = toBase64Image(buffer)
             node.props.style!.backgroundImage = `url(${base64})`
           }
         }

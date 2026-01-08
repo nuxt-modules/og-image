@@ -1,4 +1,4 @@
-import { defineNitroPlugin } from '#imports'
+import { defineNitroPlugin } from 'nitropack/runtime'
 import { nuxtContentPlugin } from '../../util/plugins'
 
 export default defineNitroPlugin((nitroApp) => {

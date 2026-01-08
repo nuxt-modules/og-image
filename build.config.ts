@@ -24,5 +24,6 @@ export default defineBuildConfig({
     'unstorage',
     'unstorage/drivers/fs',
     'consola/utils',
+    '#nitro-internal-virtual/storage',
   ],
 })

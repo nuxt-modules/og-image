@@ -1,3 +1,4 @@
+import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
@@ -75,6 +76,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'satori': 'node',
     'sharp': false,
     'wasm': {
+      // @ts-expect-error untyped
       rollup: {
         targetEnv: 'auto-inline',
         sync: ['@resvg/resvg-wasm/index_bg.wasm'],
@@ -112,7 +114,7 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (nuxt.options.dev)
     return 'nitro-dev'
   // check for prerendering
-  if (nuxt.options._generate)
+  if ((nuxt.options as any)._generate /* TODO: remove in future major */ || nuxt.options.nitro.static)
     return 'nitro-prerender'
   let preset
   if (nitroConfig && nitroConfig?.preset)
@@ -123,13 +125,13 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
 }
 
 export function getPresetNitroPresetCompatibility(target: string) {
-  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]
+  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]!
   if (!compatibility)
-    compatibility = RuntimeCompatibility['nitro-dev']
+    compatibility = RuntimeCompatibility['nitro-dev']!
   return compatibility
 }
 
-export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: (s: string) => string, overrides?: RuntimeCompatibilitySchema }): Promise<Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>> {
+export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: Resolver, overrides?: RuntimeCompatibilitySchema }): Promise<Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>> {
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
 
@@ -141,11 +143,12 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
   const chromiumEnabled = typeof options.compatibility?.chromium !== 'undefined' ? !!options.compatibility.chromium : !!compatibility.chromium
   // renderers
-  nitroConfig.alias!['#og-image/renderers/satori'] = satoriEnabled ? resolve('./runtime/server/og-image/satori/renderer') : 'unenv/runtime/mock/empty'
-  nitroConfig.alias!['#og-image/renderers/chromium'] = chromiumEnabled ? resolve('./runtime/server/og-image/chromium/renderer') : 'unenv/runtime/mock/empty'
+  const emptyMock = await resolve.resolvePath('./runtime/mock/empty')
+  nitroConfig.alias!['#og-image/renderers/satori'] = satoriEnabled ? await resolve.resolvePath('./runtime/server/og-image/satori/renderer') : emptyMock
+  nitroConfig.alias!['#og-image/renderers/chromium'] = chromiumEnabled ? await resolve.resolvePath('./runtime/server/og-image/chromium/renderer') : emptyMock
 
   const resolvedCompatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> = {}
-  function applyBinding(key: keyof Omit<RuntimeCompatibilitySchema, 'wasm'>) {
+  async function applyBinding(key: keyof Omit<RuntimeCompatibilitySchema, 'wasm'>) {
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')
       binding = compatibility[key]
@@ -160,15 +163,15 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {
-      [`#og-image/bindings/${key}`]: binding === false ? 'unenv/runtime/mock/empty' : resolve(`./runtime/server/og-image/bindings/${key}/${binding}`),
+      [`#og-image/bindings/${key}`]: binding === false ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
     }
   }
   nitroConfig.alias = defu(
-    applyBinding('chromium'),
-    applyBinding('satori'),
-    applyBinding('resvg'),
-    applyBinding('sharp'),
-    applyBinding('css-inline'),
+    await applyBinding('chromium'),
+    await applyBinding('satori'),
+    await applyBinding('resvg'),
+    await applyBinding('sharp'),
+    await applyBinding('css-inline'),
     nitroConfig.alias || {},
   )
   // if we're using any wasm modules we need to enable the wasm runtime

@@ -1,16 +1,27 @@
 import type {
   DevToolsMetaDataExtraction,
   OgImageComponent,
+  OgImageOptions,
   OgImageRuntimeConfig,
 } from '../../src/runtime/types'
-import { appFetch, useAsyncData } from '#imports'
+import { useAsyncData } from '#imports'
 import { joinURL } from 'ufo'
-import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from '~/util/logic'
+import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from '../util/logic'
+import { appFetch } from './rpc'
+
+export interface DevToolsPayload {
+  options: OgImageOptions[]
+  socialPreview: {
+    root: Record<string, string>
+    images: DevToolsMetaDataExtraction[]
+  }
+  siteUrl?: string
+}
 
 export function fetchPathDebug() {
-  return useAsyncData<DevToolsMetaDataExtraction[]>(async () => {
+  return useAsyncData<{ extract: DevToolsPayload, siteUrl?: string }>(async () => {
     if (!appFetch.value)
-      return []
+      return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
     return appFetch.value(joinURL('/__og-image__/image', path.value, `${ogImageKey.value || 'og'}.json`), {
       query: optionsOverrides.value,
     })
@@ -20,7 +31,8 @@ export function fetchPathDebug() {
 }
 
 export function fetchGlobalDebug() {
-  return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>(() => {
+  // @ts-expect-error untyped
+  return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>('global-debug', () => {
     if (!appFetch.value)
       return { runtimeConfig: {} }
     return appFetch.value('/__og-image__/debug.json')

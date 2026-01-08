@@ -1,7 +1,7 @@
 import type { H3Error } from 'h3'
 import type { OgImageRenderEventContext } from '../../types'
-import { useStorage } from '#imports'
 import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import { useStorage } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
@@ -10,9 +10,9 @@ import { prefixStorage } from 'unstorage'
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
-}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource) => Promise<void> }> {
+}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  let enabled = !import.meta.dev && import.meta.env.MODE !== 'test' && maxAge > 0
+  let enabled = !import.meta.dev && import.meta.env?.MODE !== 'test' && maxAge > 0
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
 
@@ -72,7 +72,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
     async update(item) {
       if (!enabled)
         return
-      const value = Buffer.from(item).toString('base64')
+      const value = Buffer.from(item as Uint8Array).toString('base64')
       const headers = {
         // avoid multi-tenancy cache issues
         'Vary': 'accept-encoding, host',

@@ -1,55 +1,31 @@
-import type { ActiveHeadEntry } from '@unhead/vue'
+import type { NuxtSSRContext } from '#app/nuxt'
 import type { NitroRouteRules } from 'nitropack'
-import type { NuxtApp } from 'nuxt/app'
 import type { OgImageOptions } from '../../types'
-import { createSitePathResolver } from '#site-config/app/composables/utils'
+import { useRequestEvent } from '#app'
+import { withSiteUrl } from '#site-config/app/composables'
+import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
-import { useRequestEvent } from 'nuxt/app'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { parseURL, withoutBase } from 'ufo'
 import { toValue } from 'vue'
-import { createOgImageMeta, normaliseOptions } from '../../app/utils'
-import { isInternalRoute } from '../../pure'
-import { getOgImagePath, useOgImageRuntimeConfig } from '../../shared'
+import { createOgImageMeta, getOgImagePath } from '../../app/utils'
+import { isInternalRoute } from '../../shared'
 
-export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
+export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
     const e = useRequestEvent()
-    const path = parseURL(e.path).pathname
+    const path = parseURL(e?.path || '').pathname
     if (isInternalRoute(path))
       return
-    const resolve = createSitePathResolver({
-      absolute: true,
-      canonical: false,
-    })
+
+    ssrContext?.head.use(TemplateParamsPlugin)
     // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
     ssrContext?.head.use({
       key: 'nuxt-og-image:overrides-and-canonical-urls',
       hooks: {
         'tags:afterResolve': async (ctx) => {
-          // check if script id 'nuxt-og-image-options' exists
-          // const hasPrimaryPayload = ctx.tags.some(tag => tag.tag === 'script' && tag.props.id === 'nuxt-og-image-options')
-          // // see if id "nuxt-og-image-overrides" exists
-          // let overrides: OgImageOptions | undefined
-          // for (const tag of ctx.tags) {
-          //   if (tag.tag === 'script' && tag.props.id === 'nuxt-og-image-overrides') {
-          //     if (hasPrimaryPayload) {
-          //       overrides = separateProps(parse(tag.innerHTML || '{}'))
-          //       delete ctx.tags[ctx.tags.indexOf(tag)]
-          //     }
-          //     else {
-          //       // make this the primary payload
-          //       tag.props.id = 'nuxt-og-image-options'
-          //       tag.innerHTML = stringify(separateProps(parse(tag.innerHTML || '{}')))
-          //       tag._d = 'script:id:nuxt-og-image-options'
-          //     }
-          //     break
-          //   }
-          // }
-          // ctx.tags = ctx.tags.filter(Boolean)
-
           // find the description as a first pass
           let description = ''
           for (const tag of ctx.tags) {
@@ -60,7 +36,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
           }
 
           for (const tag of ctx.tags) {
-            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name))) {
+            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name || ''))) {
               if (!tag.props.content) {
                 tag.props = {} // equivalent to removing
                 continue
@@ -74,14 +50,12 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
               // property twitter:image:src
               if (!tag.props.content?.startsWith('https')) {
                 await nuxtApp.runWithContext(() => {
-                  tag.props.content = toValue(resolve(tag.props.content))
+                  tag.props.content = toValue(withSiteUrl(tag.props.content || '', {
+                    withBase: true,
+                  }))
                 })
               }
             }
-            // // need to insert the overrides into the payload
-            // else if (overrides && tag.tag === 'script' && tag.props.id === 'nuxt-og-image-options') {
-            //   tag.innerHTML = stringify(defu(overrides, parse(tag.innerHTML)))
-            // }
           }
         },
       },
@@ -89,38 +63,36 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtApp) {
   })
 }
 
-export function routeRuleOgImage(nuxtApp: NuxtApp) {
+export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
     const e = useRequestEvent()
-    const path = parseURL(e.path).pathname
+    const path = parseURL(e?.path || '').pathname
     if (isInternalRoute(path))
       return
 
     const _routeRulesMatcher = toRouteMatcher(
       createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
     )
-    let routeRules = defu({}, ..._routeRulesMatcher.matchAll(
-      withoutBase(path.split('?')[0], ssrContext?.runtimeConfig?.app.baseURL),
-    ).reverse()).ogImage as NitroRouteRules['ogImage']
+    const matchedRules = _routeRulesMatcher.matchAll(
+      withoutBase(path.split('?')?.[0] || '', ssrContext?.runtimeConfig?.app.baseURL || ''),
+    ).reverse()
+    const combinedRules = defu({}, ...matchedRules) as any
+    let routeRules = combinedRules?.ogImage as NitroRouteRules['ogImage']
     if (typeof routeRules === 'undefined')
       return
 
     // if we've opted out of route rules, we need to remove all entries
     if (routeRules === false) {
       nuxtApp.ssrContext!._ogImageInstance?.dispose()
+      nuxtApp.ssrContext!._ogImageDevtoolsInstance?.dispose()
       nuxtApp.ssrContext!._ogImageInstance = undefined
       nuxtApp.ssrContext!._ogImagePayloads = []
       return
     }
-    const { defaults } = useOgImageRuntimeConfig()
-    routeRules = normaliseOptions(defu(nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage, routeRules, {
-      component: defaults.component,
-    }))
-
-    const resolvedOptions = normaliseOptions(defu(routeRules, defaults) as OgImageOptions)
-    const src = getOgImagePath(ssrContext!.url, resolvedOptions)
-    createOgImageMeta(src, routeRules, resolvedOptions, nuxtApp.ssrContext!)
+    routeRules = defu((nuxtApp.ssrContext?.event as any)?.context._nitro?.routeRules?.ogImage, routeRules)
+    const src = getOgImagePath(ssrContext!.url, routeRules as OgImageOptions)
+    createOgImageMeta(src, routeRules as OgImageOptions, nuxtApp.ssrContext!)
   })
 }

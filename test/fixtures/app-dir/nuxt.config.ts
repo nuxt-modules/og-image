@@ -11,6 +11,9 @@ export default defineNuxtConfig({
   ogImage: {
     debug: true,
   },
+  dir: {
+    public: 'app/public',
+  },
   srcDir: 'app/',
   devtools: { enabled: false },
 })
