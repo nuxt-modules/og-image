@@ -148,3 +148,10 @@ export function getExtension(path: string) {
     return 'jpeg'
   return extension
 }
+
+/**
+ * @deprecated Please use `#og-image/app/utils` instead.
+ */
+export function useOgImageRuntimeConfig() {
+  return {}
+}
