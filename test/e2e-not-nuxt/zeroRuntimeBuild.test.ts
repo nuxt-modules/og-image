@@ -45,6 +45,6 @@ describe('zeroRuntime', () => {
     })
     // check the og:image tag src
     const ogImage = /<meta property="og:image" content="(.+?)">/.exec(indexHtml)
-    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/og.png"`)
+    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/r_satori,title_Hello+World,em_noto,c_NuxtSeo,w_1200,h_600,cache_259200,q_e30,p_Ii8i.png"`)
   }, 60000)
 })

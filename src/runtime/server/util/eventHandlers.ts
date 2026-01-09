@@ -16,7 +16,7 @@ export async function fontEventHandler(e: H3Event) {
   const { fonts } = useOgImageRuntimeConfig()
 
   // used internally for html previews
-  const key = path.split('/font/')[1]
+  const key = path.split('/f/')[1]
   if (key && key.includes(':')) {
     const font = fonts.find(f => f.key === key)
     // use as storage key
