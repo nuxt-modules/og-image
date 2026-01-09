@@ -32,7 +32,7 @@ export default defineNitroPlugin(async (nitro) => {
     const _payload = getPayloadFromHtml([head.join('\n'), bodyAppend.join('\n')].join('\n'))
     if (!_payload)
       return
-    const parsed = parse(_payload) as { key?: string }[]
+    const parsed = parse(_payload) as { key?: string, _hash?: string }[]
     const payloads: [string, any][] = parsed.map(opt => [opt.key || 'og', opt])
     const resolvePathWithBase = createSitePathResolver(ctx.event, {
       absolute: false,
@@ -40,6 +40,13 @@ export default defineNitroPlugin(async (nitro) => {
     })
     const key = resolvePathCacheKey(ctx.event, resolvePathWithBase(path))
     await prerenderOptionsCache!.setItem(key, payloads)
+
+    // Also store by hash for hash-mode URLs (when path was too long)
+    for (const [_ogKey, opt] of payloads) {
+      if (opt._hash) {
+        await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, opt)
+      }
+    }
     // if we're prerendering then we don't need these options in the final HTML
     const index = html.bodyAppend.findIndex(script => script.includes('id="nuxt-og-image-options"'))
     if (index !== -1) {

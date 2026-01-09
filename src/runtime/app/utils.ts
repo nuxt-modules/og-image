@@ -115,14 +115,22 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
   return component
 }
 
-export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>) {
+export interface GetOgImagePathResult {
+  path: string
+  hash?: string
+}
+
+export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>): GetOgImagePathResult {
   const baseURL = useRuntimeConfig().app.baseURL
   const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
   const isStatic = import.meta.prerender
   // Build URL with encoded options (Cloudinary-style)
   // Include _path so the server knows which page to render
-  const url = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic)
-  return joinURL('/', baseURL, url)
+  const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic)
+  return {
+    path: joinURL('/', baseURL, result.url),
+    hash: result.hash,
+  }
 }
 
 export function useOgImageRuntimeConfig() {

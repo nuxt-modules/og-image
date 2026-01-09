@@ -143,6 +143,11 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    */
   _query?: Record<string, any>
   /**
+   * Hash for cache lookup when URL is too long for filesystem
+   * @internal
+   */
+  _hash?: string
+  /**
    * Allow multiple og images to be generated for the same route by setting a unique key.
    */
   key?: string

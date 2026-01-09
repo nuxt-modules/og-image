@@ -6,6 +6,7 @@ import type {
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
+import { prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
@@ -63,8 +64,39 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
 
   // Parse encoded params from URL path (Cloudinary-style)
   // URL format: /_og/d/w_1200,title_Hello.png
+  // Hash mode: /_og/d/o_<hash>.png (for long URLs)
   const encodedSegment = (path.split('/').pop() as string).replace(`.${extension}`, '')
-  const urlOptions = decodeOgImageParams(encodedSegment)
+
+  // Check for hash mode (o_<hash>)
+  const hashMatch = encodedSegment.match(/^o_([a-z0-9]+)$/i)
+  let urlOptions: Record<string, any> = {}
+
+  if (hashMatch) {
+    // Hash mode - look up options from prerender cache
+    const optionsHash = hashMatch[1]
+    if (import.meta.prerender && prerenderOptionsCache) {
+      const cached = await prerenderOptionsCache.getItem(`hash:${optionsHash}`)
+      if (cached && typeof cached === 'object') {
+        urlOptions = cached as Record<string, any>
+      }
+      else {
+        return createError({
+          statusCode: 404,
+          statusMessage: `[Nuxt OG Image] Options not found for hash: ${optionsHash}. This can happen if the page hasn't been prerendered yet.`,
+        })
+      }
+    }
+    else {
+      // At runtime without prerender, hash mode requires the page to have been prerendered
+      return createError({
+        statusCode: 400,
+        statusMessage: `[Nuxt OG Image] Hash-based URLs (o_${optionsHash}) are only supported during prerendering. Use encoded params or query params for runtime.`,
+      })
+    }
+  }
+  else {
+    urlOptions = decodeOgImageParams(encodedSegment)
+  }
 
   // Also support query params for backwards compat and dynamic overrides
   const query = getQuery(e)
@@ -90,6 +122,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // basePath is used for route rules matching - can be provided via _path param
   const basePath = withoutTrailingSlash(urlOptions._path || '/')
   delete urlOptions._path
+  delete urlOptions._hash // Remove internal hash field
 
   const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
     ? withQuery(basePath, queryParams._query)

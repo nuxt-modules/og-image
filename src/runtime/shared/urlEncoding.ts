@@ -3,10 +3,16 @@
  *
  * Format: /_og/s/w_1200,h_630,c_NuxtSeo,title_Hello+World.png
  *
+ * When the encoded path exceeds MAX_PATH_LENGTH (200 chars), falls back to hash mode:
+ * Format: /_og/s/o_<hash>.png
+ *
  * - Known OgImageOptions use short aliases (w, h, c, etc.)
  * - Component props are encoded directly (title_Hello)
  * - Complex objects are base64 encoded JSON
  */
+
+// Maximum path segment length (filesystem limit is 255, leave room for prefix/extension)
+const MAX_PATH_LENGTH = 200
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -67,6 +73,31 @@ function b64Decode(str: string): string {
   if (typeof atob === 'function')
     return atob(padded)
   return Buffer.from(padded, 'base64').toString()
+}
+
+/**
+ * Simple hash function for creating short deterministic hashes
+ * Works in both browser and Node environments
+ */
+function simpleHash(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  // Convert to base36 for shorter string, ensure positive
+  return Math.abs(hash).toString(36)
+}
+
+/**
+ * Generate a deterministic hash from options object
+ * Excludes _path so images with same options can be cached across pages
+ */
+export function hashOgImageOptions(options: Record<string, any>): string {
+  const { _path, _hash, ...hashableOptions } = options
+  const json = JSON.stringify(hashableOptions)
+  return simpleHash(json)
 }
 
 /**
@@ -223,30 +254,56 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
   return options
 }
 
+export interface BuildOgImageUrlResult {
+  url: string
+  hash?: string
+}
+
 /**
  * Build full OG image URL
+ *
+ * When encoded params exceed MAX_PATH_LENGTH, falls back to hash mode:
+ * - Returns short path: /_og/s/o_<hash>.png
+ * - Returns hash in result for cache storage
+ *
  * @example buildOgImageUrl({ width: 1200, props: { title: 'Hello' } }, 'png', true)
- * // Returns: "/_og/s/w_1200,title_Hello.png"
+ * // Returns: { url: "/_og/s/w_1200,title_Hello.png" }
  */
 export function buildOgImageUrl(
   options: Record<string, any>,
   extension: string = 'png',
   isStatic: boolean = false,
-): string {
+): BuildOgImageUrlResult {
   const encoded = encodeOgImageParams(options)
   const prefix = isStatic ? '/_og/s' : '/_og/d'
-  return encoded ? `${prefix}/${encoded}.${extension}` : `${prefix}/default.${extension}`
+
+  // Check if encoded path is too long for filesystem
+  if (encoded.length > MAX_PATH_LENGTH) {
+    // Use hash mode - short deterministic path
+    const hash = hashOgImageOptions(options)
+    return {
+      url: `${prefix}/o_${hash}.${extension}`,
+      hash,
+    }
+  }
+
+  return {
+    url: encoded ? `${prefix}/${encoded}.${extension}` : `${prefix}/default.${extension}`,
+  }
 }
 
 /**
  * Parse OG image URL back into options
  * @example parseOgImageUrl("/_og/s/w_1200,h_630.png")
- * // Returns: { options: { width: 1200, height: 630 }, extension: 'png', isStatic: true }
+ * // Returns: { options: { width: 1200, height: 630 }, extension: 'png', isStatic: true, hash: undefined }
+ * @example parseOgImageUrl("/_og/s/o_abc123.png")
+ * // Returns: { options: {}, extension: 'png', isStatic: true, hash: 'abc123' }
  */
 export function parseOgImageUrl(url: string): {
   options: Record<string, any>
   extension: string
   isStatic: boolean
+  hash?: string
 } {
   const isStatic = url.includes('/_og/s/')
   const path = url.replace(/^\/_og\/[ds]\//, '')
@@ -257,6 +314,17 @@ export function parseOgImageUrl(url: string): {
 
   // Get encoded params (without extension)
   const encoded = path.replace(/\.\w+$/, '')
+
+  // Check for hash mode (o_<hash>)
+  const hashMatch = encoded.match(/^o_([a-z0-9]+)$/i)
+  if (hashMatch) {
+    return {
+      options: {},
+      extension,
+      isStatic,
+      hash: hashMatch[1],
+    }
+  }
 
   return {
     options: decodeOgImageParams(encoded),

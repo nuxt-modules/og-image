@@ -92,7 +92,11 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
       return
     }
     routeRules = defu((nuxtApp.ssrContext?.event as any)?.context._nitro?.routeRules?.ogImage, routeRules)
-    const src = getOgImagePath(ssrContext!.url, routeRules as OgImageOptions)
+    const { path: src, hash } = getOgImagePath(ssrContext!.url, routeRules as OgImageOptions)
+    // Include hash in options if hash mode was used (for prerender cache lookup)
+    if (hash) {
+      (routeRules as OgImageOptions)._hash = hash
+    }
     createOgImageMeta(src, routeRules as OgImageOptions, nuxtApp.ssrContext!)
   })
 }

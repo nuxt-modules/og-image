@@ -164,23 +164,38 @@ describe('urlEncoding', () => {
 
   describe('buildOgImageUrl', () => {
     it('builds static URL', () => {
-      const url = buildOgImageUrl({ width: 1200 }, 'png', true)
-      expect(url).toBe('/_og/s/w_1200.png')
+      const result = buildOgImageUrl({ width: 1200 }, 'png', true)
+      expect(result.url).toBe('/_og/s/w_1200.png')
+      expect(result.hash).toBeUndefined()
     })
 
     it('builds dynamic URL', () => {
-      const url = buildOgImageUrl({ width: 1200 }, 'png', false)
-      expect(url).toBe('/_og/d/w_1200.png')
+      const result = buildOgImageUrl({ width: 1200 }, 'png', false)
+      expect(result.url).toBe('/_og/d/w_1200.png')
     })
 
     it('uses jpeg extension', () => {
-      const url = buildOgImageUrl({ width: 1200 }, 'jpeg', true)
-      expect(url).toBe('/_og/s/w_1200.jpeg')
+      const result = buildOgImageUrl({ width: 1200 }, 'jpeg', true)
+      expect(result.url).toBe('/_og/s/w_1200.jpeg')
     })
 
     it('handles empty options', () => {
-      const url = buildOgImageUrl({}, 'png', true)
-      expect(url).toBe('/_og/s/default.png')
+      const result = buildOgImageUrl({}, 'png', true)
+      expect(result.url).toBe('/_og/s/default.png')
+    })
+
+    it('uses hash mode for long URLs', () => {
+      const longTitle = 'A'.repeat(250)
+      const result = buildOgImageUrl({ props: { title: longTitle } }, 'png', true)
+      expect(result.url).toMatch(/^\/_og\/s\/o_[a-z0-9]+\.png$/)
+      expect(result.hash).toBeDefined()
+    })
+
+    it('excludes _path from hash', () => {
+      const opts = { props: { title: 'A'.repeat(250) } }
+      const result1 = buildOgImageUrl({ ...opts, _path: '/page1' }, 'png', true)
+      const result2 = buildOgImageUrl({ ...opts, _path: '/page2' }, 'png', true)
+      expect(result1.hash).toBe(result2.hash)
     })
   })
 
