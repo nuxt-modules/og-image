@@ -38,7 +38,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       nitro.options.cloudflare.pages = nitro.options.cloudflare.pages || {}
       nitro.options.cloudflare.pages.routes = nitro.options.cloudflare.pages.routes || { exclude: [] }
       nitro.options.cloudflare.pages.routes.exclude = nitro.options.cloudflare.pages.routes.exclude || []
-      nitro.options.cloudflare.pages.routes.exclude.push('/__og-image__/static/*')
+      nitro.options.cloudflare.pages.routes.exclude.push('/_og/s/*')
     }
     nitro.hooks.hook('compiled', async (_nitro) => {
       const compatibility = getPresetNitroPresetCompatibility(target)

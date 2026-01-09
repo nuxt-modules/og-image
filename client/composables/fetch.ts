@@ -22,7 +22,7 @@ export function fetchPathDebug() {
   return useAsyncData<{ extract: DevToolsPayload, siteUrl?: string }>(async () => {
     if (!appFetch.value)
       return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
-    return appFetch.value(joinURL('/__og-image__/image', path.value, `${ogImageKey.value || 'og'}.json`), {
+    return appFetch.value(joinURL('/_og/d', path.value, `${ogImageKey.value || 'og'}.json`), {
       query: optionsOverrides.value,
     })
   }, {
@@ -35,7 +35,7 @@ export function fetchGlobalDebug() {
   return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>('global-debug', () => {
     if (!appFetch.value)
       return { runtimeConfig: {} }
-    return appFetch.value('/__og-image__/debug.json')
+    return appFetch.value('/_og/debug.json')
   }, {
     watch: [globalRefreshTime],
   })

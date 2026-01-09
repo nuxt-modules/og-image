@@ -119,7 +119,7 @@ export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptio
   const baseURL = useRuntimeConfig().app.baseURL
   const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
   const key = _options?.key || 'og'
-  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `${key}.${extension}`)
+  const path = joinURL('/', baseURL, `_og/${import.meta.prerender ? 's' : 'd'}`, pagePath, `${key}.${extension}`)
   if (Object.keys(_options?._query || {}).length) {
     return withQuery(path, _options!._query!)
   }

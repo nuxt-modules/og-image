@@ -59,7 +59,7 @@ const currentOptions = computed(() => {
 })
 
 const isCustomOgImage = computed(() => {
-  return currentOptions.value?.url && !currentOptions.value?.url?.includes('/__og-image__/image/')
+  return currentOptions.value?.url && !currentOptions.value?.url?.includes('/_og/')
 })
 
 const isValidDebugError = computed(() => {
@@ -147,7 +147,7 @@ const src = computed(() => {
     return joinURL(host.value, currentOptions.value?.url || '')
   }
   const key = ogImageKey.value || 'og'
-  return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/${key}.${imageFormat.value}`), {
+  return withQuery(joinURL(host.value, '/_og/d', path.value, `/${key}.${imageFormat.value}`), {
     timestamp: refreshTime.value,
     ...optionsOverrides.value,
     _query: query.value,

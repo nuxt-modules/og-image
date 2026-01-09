@@ -26,7 +26,7 @@ describe('zeroRuntime', () => {
     const { stdout } = await execa('du', ['-sh', serverOutputPath])
     // eslint-disable-next-line no-console,style/no-tabs
     console.log(`Size: ${stdout.split('	')[0]}`)
-    const imagePath = resolve('../fixtures/zero-runtime/.output/public/__og-image__')
+    const imagePath = resolve('../fixtures/zero-runtime/.output/public/_og')
     // globby in image path
     const images = await globby('**/*.png', { cwd: imagePath }).then((r: string[]) => r.sort())
     // for each image we run a snapshot test
@@ -45,6 +45,6 @@ describe('zeroRuntime', () => {
     })
     // check the og:image tag src
     const ogImage = /<meta property="og:image" content="(.+?)">/.exec(indexHtml)
-    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/__og-image__/static/og.png"`)
+    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/og.png"`)
   }, 60000)
 })

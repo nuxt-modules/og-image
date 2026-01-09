@@ -15,26 +15,26 @@ expect.extend({ toMatchImageSnapshot })
 
 describe('build', () => {
   it.runIf(process.env.HAS_CHROME)('chromium tests', async () => {
-    const chromium: ArrayBuffer = await $fetch('/__og-image__/image/chromium/og.png', {
+    const chromium: ArrayBuffer = await $fetch('/_og/d/chromium/og.png', {
       responseType: 'arrayBuffer',
     })
 
     expect(Buffer.from(chromium)).toMatchImageSnapshot()
   })
   it('static images', async () => {
-    const customFont: ArrayBuffer = await $fetch('/__og-image__/static/satori/custom-font/og.png', {
+    const customFont: ArrayBuffer = await $fetch('/_og/s/satori/custom-font/og.png', {
       responseType: 'arrayBuffer',
     })
 
     expect(Buffer.from(customFont)).toMatchImageSnapshot()
 
-    const image: ArrayBuffer = await $fetch('/__og-image__/static/satori/image/og.png', {
+    const image: ArrayBuffer = await $fetch('/_og/s/satori/image/og.png', {
       responseType: 'arrayBuffer',
     })
 
     expect(Buffer.from(image)).toMatchImageSnapshot()
 
-    const defaults: ArrayBuffer = await $fetch('/__og-image__/static/satori/og.png', {
+    const defaults: ArrayBuffer = await $fetch('/_og/s/satori/og.png', {
       responseType: 'arrayBuffer',
     })
 
@@ -42,19 +42,19 @@ describe('build', () => {
   }, 60000)
 
   it('dynamic images', async () => {
-    const inlineRouteRules: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/inline/og.png', {
+    const inlineRouteRules: ArrayBuffer = await $fetch('/_og/d/satori/route-rules/inline/og.png', {
       responseType: 'arrayBuffer',
     })
 
     expect(Buffer.from(inlineRouteRules)).toMatchImageSnapshot()
 
-    const overrideRouteRules: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/config/og.png', {
+    const overrideRouteRules: ArrayBuffer = await $fetch('/_og/d/satori/route-rules/config/og.png', {
       responseType: 'arrayBuffer',
     })
 
     expect(Buffer.from(overrideRouteRules)).toMatchImageSnapshot()
 
-    const globalRouteRules: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/og.png', {
+    const globalRouteRules: ArrayBuffer = await $fetch('/_og/d/satori/route-rules/og.png', {
       responseType: 'arrayBuffer',
     })
 

@@ -8,7 +8,7 @@ import { useOgImageRuntimeConfig } from '../../utils'
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
   const { colorPreference } = useOgImageRuntimeConfig()
-  const path = options.component === 'PageScreenshot' ? basePath : joinURL('/__og-image__/image', basePath, `og.html`)
+  const path = options.component === 'PageScreenshot' ? basePath : joinURL('/_og/d', basePath, `${options.key || 'og'}.html`)
   const page = await browser.newPage({
     colorScheme: colorPreference || 'no-preference',
     baseURL: useNitroOrigin(e),

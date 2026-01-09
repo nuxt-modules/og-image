@@ -27,7 +27,7 @@ function getImageDimensions(buffer: Buffer): { width: number, height: number } {
 describe('multiple og images', () => {
   it('prerender generates images with correct dimensions', async () => {
     // Twitter image (1200x600)
-    const twitterImage: ArrayBuffer = await $fetch('/__og-image__/static/satori/multi-image/twitter.png', {
+    const twitterImage: ArrayBuffer = await $fetch('/_og/s/satori/multi-image/twitter.png', {
       responseType: 'arrayBuffer',
     })
     const twitterBuffer = Buffer.from(twitterImage)
@@ -37,7 +37,7 @@ describe('multiple og images', () => {
     expect(twitterBuffer).toMatchImageSnapshot()
 
     // WhatsApp image (800x800)
-    const whatsappImage: ArrayBuffer = await $fetch('/__og-image__/static/satori/multi-image/whatsapp.png', {
+    const whatsappImage: ArrayBuffer = await $fetch('/_og/s/satori/multi-image/whatsapp.png', {
       responseType: 'arrayBuffer',
     })
     const whatsappBuffer = Buffer.from(whatsappImage)

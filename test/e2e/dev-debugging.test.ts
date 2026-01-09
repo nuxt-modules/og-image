@@ -11,7 +11,7 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   })
 
   it('svg', async () => {
-    const svg = await $fetch('/__og-image__/image/satori/og.svg')
+    const svg = await $fetch('/_og/d/satori/og.svg')
     expect(svg).toMatchInlineSnapshot(`
       Blob {
         Symbol(kHandle): Blob {},
@@ -22,7 +22,7 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   }, 60000)
 
   it('json', async () => {
-    const json = await $fetch('/__og-image__/image/satori/og.json')
+    const json = await $fetch('/_og/d/satori/og.json')
     delete json.key
     json.options.component = json.options.component.replace('OgImage', '')
     expect(json).toMatchInlineSnapshot(`
@@ -41,16 +41,16 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
           "renderer": "satori",
           "socialPreview": {
             "og": {
-              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image": "https://nuxtseo.com/_og/d/satori/og.png",
               "image:height": "600",
               "image:type": "image/png",
               "image:width": "1200",
             },
             "twitter": {
               "card": "summary_large_image",
-              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image": "https://nuxtseo.com/_og/d/satori/og.png",
               "image:height": "600",
-              "image:src": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image:src": "https://nuxtseo.com/_og/d/satori/og.png",
               "image:width": "1200",
             },
           },
@@ -249,11 +249,11 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   }, 60000)
 
   it('html', async () => {
-    const font = await $fetch('/__og-image__/image/satori/og.html')
+    const font = await $fetch('/_og/d/satori/og.html')
     expect(font).toContain('<!DOCTYPE html>')
   }, 60000)
   it('debug.json', async () => {
-    const debug = await $fetch('/__og-image__/debug.json')
+    const debug = await $fetch('/_og/debug.json')
     delete debug.runtimeConfig.baseCacheKey
     delete debug.runtimeConfig.version
     delete debug.runtimeConfig.compatibility

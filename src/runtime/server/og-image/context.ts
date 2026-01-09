@@ -85,8 +85,8 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // the key is the name of the file without the extension, i.e 2.png -> 2
   const ogImageKey = (path.split('/').pop() as string).replace(`.${extension}`, '')
   const basePath = withoutTrailingSlash(path
-    .replace(`/__og-image__/image`, '')
-    .replace(`/__og-image__/static`, '')
+    .replace(`/_og/d`, '')
+    .replace(`/_og/s`, '')
     .replace(`/${ogImageKey}.${extension}`, ''),
   )
   const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
