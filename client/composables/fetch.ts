@@ -5,7 +5,6 @@ import type {
   OgImageRuntimeConfig,
 } from '../../src/runtime/types'
 import { useAsyncData } from '#imports'
-import { withQuery } from 'ufo'
 import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
 import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from '../util/logic'
 import { appFetch } from './rpc'

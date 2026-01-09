@@ -30,9 +30,26 @@ const PARAM_TO_ALIAS = Object.fromEntries(
 
 // Known OgImageOptions keys (not component props)
 const KNOWN_PARAMS = new Set([
-  'width', 'height', 'component', 'renderer', 'emojis', 'key', 'alt', 'url',
-  'cacheMaxAgeSeconds', 'extension', 'html', 'satori', 'resvg', 'sharp',
-  'screenshot', 'fonts', '_query', 'socialPreview', 'props', '_path',
+  'width',
+  'height',
+  'component',
+  'renderer',
+  'emojis',
+  'key',
+  'alt',
+  'url',
+  'cacheMaxAgeSeconds',
+  'extension',
+  'html',
+  'satori',
+  'resvg',
+  'sharp',
+  'screenshot',
+  'fonts',
+  '_query',
+  'socialPreview',
+  'props',
+  '_path',
 ])
 
 // Params that need base64 encoding (complex objects, or values with slashes)
@@ -170,10 +187,12 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         .replace(/%2F/g, '/')
         .replace(/__/g, '_')
       // Try to parse as number or boolean
-      if (value === 'true')
+      if (value === 'true') {
         options[paramName] = true
-      else if (value === 'false')
+      }
+      else if (value === 'false') {
         options[paramName] = false
+      }
       else {
         const num = Number(value)
         options[paramName] = Number.isNaN(num) ? value : num
@@ -188,10 +207,12 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         .replace(/__/g, '_')
       options.props = options.props || {}
       // Try to parse as number or boolean
-      if (value === 'true')
+      if (value === 'true') {
         options.props[paramName] = true
-      else if (value === 'false')
+      }
+      else if (value === 'false') {
         options.props[paramName] = false
+      }
       else {
         const num = Number(value)
         options.props[paramName] = Number.isNaN(num) ? value : num

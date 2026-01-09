@@ -9,7 +9,8 @@ const { resolve } = createResolver(import.meta.url)
 function extractOgImageUrl(html: string): string | null {
   const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
     || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  if (!match?.[1]) return null
+  if (!match?.[1])
+    return null
   // Extract just the path from absolute URL (e.g., https://nuxtseo.com/_og/d/... -> /_og/d/...)
   try {
     const url = new URL(match[1])
