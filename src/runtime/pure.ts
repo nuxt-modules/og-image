@@ -32,7 +32,7 @@ export function extractSocialPreviewTags(html: string): [Record<string, string>,
   })
   // for each group we need to compute the key value from the og:image file name without an extension
   data.forEach((preview) => {
-    if (preview.og?.image && preview.og?.image.includes('/_og/d/')) {
+    if (preview.og?.image && preview.og?.image.includes('/__og-image__/')) {
       preview.key = (withoutQuery(preview.og.image)!.split('/').pop() as string).replace(/\.\w+$/, '')
     }
   })
