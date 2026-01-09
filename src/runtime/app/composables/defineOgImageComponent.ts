@@ -10,7 +10,7 @@ export function defineOgImageComponent<T extends keyof OgImageComponents>(
   component: T,
   propsOrOptions: Partial<ExtractComponentProps<OgImageComponents[T]>> | OgImageComponentOptions<T>[] = {},
   options: OgImageOptions = {},
-) {
+): string[] {
   // Handle array of options
   if (Array.isArray(propsOrOptions)) {
     return defineOgImage(propsOrOptions.map(opt => ({

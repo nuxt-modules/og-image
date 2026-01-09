@@ -5,7 +5,7 @@ import { ref, toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 // In non-dev client-side environments this is treeshaken
-export function defineOgImage(_options: DefineOgImageInput | DefineOgImageInput[] = {}) {
+export function defineOgImage(_options: DefineOgImageInput | DefineOgImageInput[] = {}): string[] {
   const nuxtApp = useNuxtApp()
   const route = useRoute()
   const basePath = route.path || '/' // (pages may be disabled)'
@@ -20,23 +20,30 @@ export function defineOgImage(_options: DefineOgImageInput | DefineOgImageInput[
       if (!state.value) {
         throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup, see https://github.com/nuxt-modules/og-image/pull/293.' })
       }
-      return
+      return []
     }
     state.value = true
   }
   if (!import.meta.server) {
-    return
+    return []
   }
+
+  const paths: string[] = []
 
   // Handle array of options
   if (Array.isArray(_options)) {
     for (const opt of _options) {
-      processOgImageOptions(opt, nuxtApp, route, basePath)
+      const path = processOgImageOptions(opt, nuxtApp, route, basePath)
+      if (path)
+        paths.push(path)
     }
-    return
+    return paths
   }
 
-  processOgImageOptions(_options, nuxtApp, route, basePath)
+  const path = processOgImageOptions(_options, nuxtApp, route, basePath)
+  if (path)
+    paths.push(path)
+  return paths
 }
 
 function processOgImageOptions(
@@ -44,7 +51,7 @@ function processOgImageOptions(
   nuxtApp: ReturnType<typeof useNuxtApp>,
   route: ReturnType<typeof useRoute>,
   basePath: string,
-) {
+): string | undefined {
   const { defaults } = useOgImageRuntimeConfig()
   const options = toValue(_options)
 
@@ -76,11 +83,12 @@ function processOgImageOptions(
   // allow overriding using a prebuild config
   if (validOptions.url) {
     setHeadOgImagePrebuilt(validOptions)
-    return
+    return toValue(validOptions.url)
   }
   const path = getOgImagePath(basePath, validOptions)
   if (import.meta.prerender) {
     appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path.split('?')[0])
   }
   createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
+  return path
 }
