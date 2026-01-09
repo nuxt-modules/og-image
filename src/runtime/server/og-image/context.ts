@@ -6,7 +6,6 @@ import type {
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
-import { prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
@@ -88,7 +87,6 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   }
   queryParams = separateProps(queryParams)
 
-  const ogImageKey = urlOptions.key || 'og'
   // basePath is used for route rules matching - can be provided via _path param
   const basePath = withoutTrailingSlash(urlOptions._path || '/')
   delete urlOptions._path
@@ -103,7 +101,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const routeRuleMatcher = createNitroRouteRuleMatcher()
   const routeRules = routeRuleMatcher(basePath)
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
-  let options: OgImageOptions = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
+  const options: OgImageOptions = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
   if (!options) {
     return createError({
       statusCode: 404,
