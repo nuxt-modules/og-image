@@ -85,14 +85,7 @@ async function createPng(event: OgImageRenderEventContext) {
 async function createJpeg(event: OgImageRenderEventContext) {
   const { sharpOptions } = useOgImageRuntimeConfig()
   if (compatibility.sharp === false) {
-    if (import.meta.dev) {
-      throw new Error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime.')
-    }
-    else {
-      // TODO this should be an error in next major
-      console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
-    }
-    return createPng(event)
+    throw new Error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime.')
   }
   const svg = await createSvg(event)
   if (!svg) {
@@ -100,16 +93,8 @@ async function createJpeg(event: OgImageRenderEventContext) {
   }
   const svgBuffer = Buffer.from(svg)
   const sharp = await useSharp().catch(() => {
-    if (import.meta.dev) {
-      throw new Error('Sharp dependency could not be loaded. Please check you have it installed and are using a compatible runtime.')
-    }
-    return null
+    throw new Error('Sharp dependency could not be loaded. Please check you have it installed and are using a compatible runtime.')
   })
-  if (!sharp) {
-    // TODO this should be an error in next major
-    console.error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime. Falling back to png.')
-    return createPng(event)
-  }
   const options = defu(event.options.sharp, sharpOptions)
   return sharp(svgBuffer, options)
     .jpeg(options as JpegOptions)

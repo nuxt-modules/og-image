@@ -114,7 +114,7 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (nuxt.options.dev)
     return 'nitro-dev'
   // check for prerendering
-  if ((nuxt.options as any)._generate /* TODO: remove in future major */ || nuxt.options.nitro.static)
+  if (nuxt.options.nitro.static)
     return 'nitro-prerender'
   let preset
   if (nitroConfig && nitroConfig?.preset)
@@ -152,9 +152,6 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')
       binding = compatibility[key]
-    // TODO avoid breaking changes, remove this in v4
-    if (key === 'chromium' && binding === 'node')
-      binding = 'playwright'
     if (key === 'css-inline' && typeof binding === 'string') {
       if ((binding === 'node' && !hasCssInlineNode) || (['wasm', 'wasm-fs'].includes(binding) && !hasCssInlineWasm)) {
         binding = false
