@@ -17,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -131,14 +131,6 @@ export interface ModuleOptions {
    */
   zeroRuntime?: boolean
 
-  /**
-   * Enable when your nuxt/content files match your pages.
-   *
-   * This will automatically map the `ogImage` frontmatter key to the correct path.
-   *
-   * This is similar behavior to using `nuxt/content` with `documentDriven: true`.
-   */
-  strictNuxtContentPaths?: boolean
 }
 
 export interface ModuleHooks {
@@ -159,6 +151,12 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt: '>=3.16.0',
     },
     configKey: 'ogImage',
+  },
+  moduleDependencies: {
+    '@nuxt/content': {
+      version: '>=3',
+      optional: true,
+    },
   },
   defaults() {
     return {
@@ -201,8 +199,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
-    // legacy support
-    nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -411,22 +407,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     await installNuxtSiteConfig()
-
-    const usingNuxtContent = hasNuxtModule('@nuxt/content')
-    const isNuxtContentV3 = usingNuxtContent && await hasNuxtModuleCompatibility('@nuxt/content', '^3')
-    const isNuxtContentV2 = usingNuxtContent && await hasNuxtModuleCompatibility('@nuxt/content', '^2')
-    if (isNuxtContentV3) {
-      if (typeof config.strictNuxtContentPaths !== 'undefined') {
-        // deprecated
-        logger.warn('The `strictNuxtContentPaths` option is deprecated and has no effect in Nuxt Content v3.')
-      }
-      // we just have user pass the ogImage to the defineOgImage function
-      // less magic, more control
-    }
-    else if (isNuxtContentV2) {
-      // convert ogImage key to head data
-      addServerPlugin(resolve('./runtime/server/plugins/nuxt-content-v2'))
-    }
 
     nuxt.options.experimental.componentIslands ||= true
 
@@ -686,9 +666,8 @@ export {}
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
-        strictNuxtContentPaths: config.strictNuxtContentPaths,
         // @ts-expect-error runtime type
-        isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
+        isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
