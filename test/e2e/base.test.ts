@@ -36,7 +36,7 @@ function extractOgImageUrl(html: string): string | null {
 
 describe('build', () => {
   it.runIf(process.env.HAS_CHROME)('chromium tests', async () => {
-    const html = await $fetch<string>('/prefix/chromium')
+    const html = await $fetch('/prefix/chromium') as string
     const ogImageUrl = extractOgImageUrl(html)
     expect(ogImageUrl).toBeTruthy()
 
@@ -48,7 +48,7 @@ describe('build', () => {
 
   it('static images', async () => {
     // Custom font page
-    const customFontHtml = await $fetch<string>('/prefix/satori/custom-font')
+    const customFontHtml = await $fetch('/prefix/satori/custom-font') as string
     const customFontUrl = extractOgImageUrl(customFontHtml)
     expect(customFontUrl).toBeTruthy()
     const customFont: ArrayBuffer = await $fetch(customFontUrl!, {
@@ -57,7 +57,7 @@ describe('build', () => {
     expect(Buffer.from(customFont)).toMatchImageSnapshot()
 
     // Image page
-    const imageHtml = await $fetch<string>('/prefix/satori/image')
+    const imageHtml = await $fetch('/prefix/satori/image') as string
     const imageUrl = extractOgImageUrl(imageHtml)
     expect(imageUrl).toBeTruthy()
     const image: ArrayBuffer = await $fetch(imageUrl!, {
@@ -66,7 +66,7 @@ describe('build', () => {
     expect(Buffer.from(image)).toMatchImageSnapshot()
 
     // Default satori page
-    const defaultsHtml = await $fetch<string>('/prefix/satori')
+    const defaultsHtml = await $fetch('/prefix/satori') as string
     const defaultsUrl = extractOgImageUrl(defaultsHtml)
     expect(defaultsUrl).toBeTruthy()
     const defaults: ArrayBuffer = await $fetch(defaultsUrl!, {
@@ -75,7 +75,7 @@ describe('build', () => {
     expect(Buffer.from(defaults)).toMatchImageSnapshot()
 
     // Error page (404)
-    const errorHtml = await $fetch<string>('/prefix/not-found').catch(() => '')
+    const errorHtml = await $fetch('/prefix/not-found').catch(() => '') as string
     const errorUrl = extractOgImageUrl(errorHtml)
     if (errorUrl) {
       const errorPageImage: ArrayBuffer = await $fetch(errorUrl, {
@@ -87,7 +87,7 @@ describe('build', () => {
 
   it('dynamic images', async () => {
     // Inline route rules
-    const inlineHtml = await $fetch<string>('/prefix/satori/route-rules/inline')
+    const inlineHtml = await $fetch('/prefix/satori/route-rules/inline') as string
     const inlineUrl = extractOgImageUrl(inlineHtml)
     expect(inlineUrl).toBeTruthy()
     const inlineRouteRules: ArrayBuffer = await $fetch(inlineUrl!, {
@@ -96,7 +96,7 @@ describe('build', () => {
     expect(Buffer.from(inlineRouteRules)).toMatchImageSnapshot()
 
     // Config route rules
-    const configHtml = await $fetch<string>('/prefix/satori/route-rules/config')
+    const configHtml = await $fetch('/prefix/satori/route-rules/config') as string
     const configUrl = extractOgImageUrl(configHtml)
     expect(configUrl).toBeTruthy()
     const overrideRouteRules: ArrayBuffer = await $fetch(configUrl!, {
@@ -105,7 +105,7 @@ describe('build', () => {
     expect(Buffer.from(overrideRouteRules)).toMatchImageSnapshot()
 
     // Global route rules
-    const globalHtml = await $fetch<string>('/prefix/satori/route-rules')
+    const globalHtml = await $fetch('/prefix/satori/route-rules') as string
     const globalUrl = extractOgImageUrl(globalHtml)
     expect(globalUrl).toBeTruthy()
     const globalRouteRules: ArrayBuffer = await $fetch(globalUrl!, {

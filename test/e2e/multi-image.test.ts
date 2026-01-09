@@ -40,8 +40,8 @@ function extractImageUrls(html: string): { og: string[], twitter: string[] } {
   const ogMatches = html.matchAll(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/g)
   const twitterMatches = html.matchAll(/<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"/g)
   return {
-    og: [...ogMatches].map(m => extractPath(m[1])),
-    twitter: [...twitterMatches].map(m => extractPath(m[1])),
+    og: [...ogMatches].map(m => extractPath(m[1]!)),
+    twitter: [...twitterMatches].map(m => extractPath(m[1]!)),
   }
 }
 

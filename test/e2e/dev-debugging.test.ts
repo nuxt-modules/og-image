@@ -29,7 +29,7 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
 
   it('svg', async () => {
     // Get the page to extract the og:image URL, then change extension to svg
-    const html = await $fetch<string>('/satori')
+    const html = await $fetch('/satori') as string
     const ogUrl = extractOgImageUrl(html)
     expect(ogUrl).toBeTruthy()
     const svgUrl = ogUrl!.replace(/\.png$/, '.svg')
