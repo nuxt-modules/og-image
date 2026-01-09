@@ -30,10 +30,15 @@ export function extractSocialPreviewTags(html: string): [Record<string, string>,
       data[currentArrayIdx]![type] = {}
     data[currentArrayIdx]![type]![key] = value
   })
-  // for each group we need to compute the key value from the og:image file name without an extension
+  // for each group we need to extract the key from the og:image URL
+  // New URL format: /_og/d/w_1200,k_twitter,title_Hello.png
+  // Key is encoded as k_<value> in the URL path
   data.forEach((preview) => {
     if (preview.og?.image && preview.og?.image.includes('/_og/')) {
-      preview.key = (withoutQuery(preview.og.image)!.split('/').pop() as string).replace(/\.\w+$/, '')
+      const url = withoutQuery(preview.og.image)!
+      // Extract key from encoded params (k_<value>)
+      const keyMatch = url.match(/[,/]k_([^,./]+)/)
+      preview.key = keyMatch?.[1] || 'og'
     }
   })
   return [rootData, data as DevToolsMetaDataExtraction[]]

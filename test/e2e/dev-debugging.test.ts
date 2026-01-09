@@ -1,8 +1,16 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
+import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
 
 const { resolve } = createResolver(import.meta.url)
+
+// Helper to extract og:image URL from HTML
+function extractOgImageUrl(html: string): string | null {
+  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+  return match?.[1] || null
+}
 
 describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   await setup({
@@ -11,7 +19,12 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   })
 
   it('svg', async () => {
-    const svg = await $fetch('/_og/d/satori/og.svg')
+    // Get the page to extract the og:image URL, then change extension to svg
+    const html = await $fetch<string>('/satori')
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const svgUrl = ogUrl!.replace(/\.png$/, '.svg')
+    const svg = await $fetch(svgUrl)
     expect(svg).toMatchInlineSnapshot(`
       Blob {
         Symbol(kHandle): Blob {},

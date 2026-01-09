@@ -6,8 +6,8 @@ import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
-import { joinURL, withQuery } from 'ufo'
-import { generateMeta, separateProps } from '../shared'
+import { joinURL } from 'ufo'
+import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 type OgImagePayload = [string, OgImageOptions, Required<Head>['meta']]
 
@@ -115,15 +115,13 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
   return component
 }
 
-export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
+export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>) {
   const baseURL = useRuntimeConfig().app.baseURL
   const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
-  const key = _options?.key || 'og'
-  const path = joinURL('/', baseURL, `_og/${import.meta.prerender ? 's' : 'd'}`, pagePath, `${key}.${extension}`)
-  if (Object.keys(_options?._query || {}).length) {
-    return withQuery(path, _options!._query!)
-  }
-  return path
+  const isStatic = import.meta.prerender
+  // Build URL with encoded options (Cloudinary-style)
+  const url = buildOgImageUrl(_options || {}, extension, isStatic)
+  return joinURL('/', baseURL, url)
 }
 
 export function useOgImageRuntimeConfig() {

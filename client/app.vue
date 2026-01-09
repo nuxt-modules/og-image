@@ -18,7 +18,7 @@ import { colorMode, devtoolsClient, ogImageRpc } from '~/composables/rpc'
 import { loadShiki } from '~/composables/shiki'
 import { CreateOgImageDialogPromise } from '~/composables/templates'
 import { path, query, refreshTime } from '~/util/logic'
-import { separateProps } from '../src/runtime/shared'
+import { encodeOgImageParams, separateProps } from '../src/runtime/shared'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
 import {
   description,
@@ -146,11 +146,16 @@ const src = computed(() => {
     }
     return joinURL(host.value, currentOptions.value?.url || '')
   }
-  const key = ogImageKey.value || 'og'
-  return withQuery(joinURL(host.value, '/_og/d', path.value, `/${key}.${imageFormat.value}`), {
-    timestamp: refreshTime.value,
+  // Build encoded URL with options (Cloudinary-style)
+  const params = {
     ...optionsOverrides.value,
+    key: ogImageKey.value || 'og',
+    _path: path.value,
     _query: query.value,
+  }
+  const encoded = encodeOgImageParams(params)
+  return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
+    timestamp: refreshTime.value, // Cache bust for devtools
   })
 })
 

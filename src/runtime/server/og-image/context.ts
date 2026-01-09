@@ -18,7 +18,7 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
-import { separateProps } from '../../shared'
+import { decodeOgImageParams, separateProps } from '../../shared'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { useOgImageRuntimeConfig } from '../utils'
@@ -62,6 +62,12 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     })
   }
 
+  // Parse encoded params from URL path (Cloudinary-style)
+  // URL format: /_og/d/w_1200,title_Hello.png
+  const encodedSegment = (path.split('/').pop() as string).replace(`.${extension}`, '')
+  const urlOptions = decodeOgImageParams(encodedSegment)
+
+  // Also support query params for backwards compat and dynamic overrides
   const query = getQuery(e)
   let queryParams: Record<string, any> = {}
   for (const k in query) {
@@ -69,7 +75,6 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     if (!v)
       continue
     if (v.startsWith('{')) {
-      // we need to parse the JSON string
       try {
         queryParams[k] = JSON.parse(v)
       }
@@ -82,39 +87,23 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     }
   }
   queryParams = separateProps(queryParams)
-  // the key is the name of the file without the extension, i.e 2.png -> 2
-  const ogImageKey = (path.split('/').pop() as string).replace(`.${extension}`, '')
-  const basePath = withoutTrailingSlash(path
-    .replace(`/_og/d`, '')
-    .replace(`/_og/s`, '')
-    .replace(`/${ogImageKey}.${extension}`, ''),
-  )
+
+  const ogImageKey = urlOptions.key || 'og'
+  // basePath is used for route rules matching - can be provided via _path param
+  const basePath = withoutTrailingSlash(urlOptions._path || '/')
+  delete urlOptions._path
+
   const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
     ? withQuery(basePath, queryParams._query)
     : basePath
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
   const key = resolvePathCacheKey(e, basePathWithQuery)
-  let options: OgImageOptions | null | undefined = queryParams.options as OgImageOptions
-  if (!options) {
-    let payloads: [string, OgImageOptions][] = []
-    if (import.meta.prerender) {
-      const res = await prerenderOptionsCache!.getItem(key)
-      payloads = res || []
-    }
-    options = payloads?.find(([k]) => String(k) === ogImageKey)?.[1] || {}
-  }
-  // no matter how we get the options, apply the defaults and the normalisation
-  delete queryParams.options
+
+  // Options come from: URL encoded params > query params > route rules > defaults
   const routeRuleMatcher = createNitroRouteRuleMatcher()
   const routeRules = routeRuleMatcher(basePath)
-  if (typeof routeRules.ogImage === 'undefined' && !options) {
-    return createError({
-      statusCode: 400,
-      statusMessage: 'The route is missing the Nuxt OG Image payload or route rules.',
-    })
-  }
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
-  options = defu(queryParams, options, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
+  let options: OgImageOptions = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
   if (!options) {
     return createError({
       statusCode: 404,

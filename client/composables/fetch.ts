@@ -5,7 +5,8 @@ import type {
   OgImageRuntimeConfig,
 } from '../../src/runtime/types'
 import { useAsyncData } from '#imports'
-import { joinURL } from 'ufo'
+import { withQuery } from 'ufo'
+import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
 import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from '../util/logic'
 import { appFetch } from './rpc'
 
@@ -22,9 +23,15 @@ export function fetchPathDebug() {
   return useAsyncData<{ extract: DevToolsPayload, siteUrl?: string }>(async () => {
     if (!appFetch.value)
       return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
-    return appFetch.value(joinURL('/_og/d', path.value, `${ogImageKey.value || 'og'}.json`), {
-      query: optionsOverrides.value,
-    })
+    // Build encoded URL with options for debug JSON
+    const params = {
+      ...optionsOverrides.value,
+      key: ogImageKey.value || 'og',
+      _path: path.value, // Include path for context
+    }
+    const encoded = encodeOgImageParams(params)
+    const url = `/_og/d/${encoded || 'default'}.json`
+    return appFetch.value(url)
   }, {
     watch: [path, refreshTime, ogImageKey],
   })

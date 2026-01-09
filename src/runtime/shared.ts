@@ -4,6 +4,7 @@ import { defu } from 'defu'
 import { toValue } from 'vue'
 
 export { extractSocialPreviewTags } from './pure'
+export { encodeOgImageParams, decodeOgImageParams, buildOgImageUrl, parseOgImageUrl } from './shared/urlEncoding'
 
 export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
   const key = resolvedOptions.key || 'og'
