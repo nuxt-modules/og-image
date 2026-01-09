@@ -5,11 +5,19 @@ import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
 
 const { resolve } = createResolver(import.meta.url)
 
-// Helper to extract og:image URL from HTML
+// Helper to extract og:image URL path from HTML (handles both absolute and relative URLs)
 function extractOgImageUrl(html: string): string | null {
   const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
     || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  return match?.[1] || null
+  if (!match?.[1]) return null
+  // Extract just the path from absolute URL (e.g., https://nuxtseo.com/_og/d/... -> /_og/d/...)
+  try {
+    const url = new URL(match[1])
+    return url.pathname
+  }
+  catch {
+    return match[1] // Already a relative path
+  }
 }
 
 describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
@@ -35,7 +43,9 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   }, 60000)
 
   it('json', async () => {
-    const json = await $fetch('/_og/d/satori/og.json')
+    // Build URL with encoded params for /satori page
+    const encoded = encodeOgImageParams({ _path: '/satori' })
+    const json = await $fetch(`/_og/d/${encoded}.json`)
     delete json.key
     json.options.component = json.options.component.replace('OgImage', '')
     expect(json).toMatchInlineSnapshot(`
@@ -262,8 +272,9 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   }, 60000)
 
   it('html', async () => {
-    const font = await $fetch('/_og/d/satori/og.html')
-    expect(font).toContain('<!DOCTYPE html>')
+    const encoded = encodeOgImageParams({ _path: '/satori' })
+    const html = await $fetch(`/_og/d/${encoded}.html`)
+    expect(html).toContain('<!DOCTYPE html>')
   }, 60000)
   it('debug.json', async () => {
     const debug = await $fetch('/_og/debug.json')

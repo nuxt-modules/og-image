@@ -8,7 +8,8 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
   const baseURL = useRuntimeConfig().app.baseURL
   const extension = _options?.extension || useOgImageRuntimeConfig().defaults.extension
   const isStatic = import.meta.prerender
-  const url = buildOgImageUrl(_options || {}, extension, isStatic)
+  // Include _path so the server knows which page to render
+  const url = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic)
   return joinURL('/', baseURL, url)
 }
 

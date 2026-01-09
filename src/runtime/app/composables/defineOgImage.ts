@@ -87,7 +87,9 @@ function processOgImageOptions(
   }
   const path = getOgImagePath(basePath, validOptions)
   if (import.meta.prerender) {
-    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path.split('?')[0])
+    // Encode commas to prevent HTTP header splitting (commas separate header values)
+    const prerenderPath = path.split('?')[0].replace(/,/g, '%2C')
+    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', prerenderPath)
   }
   createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
   return path

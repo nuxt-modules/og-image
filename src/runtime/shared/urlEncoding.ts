@@ -19,6 +19,8 @@ const PARAM_ALIASES: Record<string, string> = {
   a: 'alt',
   u: 'url',
   cache: 'cacheMaxAgeSeconds',
+  p: '_path', // page path - needs alias since _path starts with underscore
+  q: '_query', // query params - needs alias since _query starts with underscore
 }
 
 // Reverse mapping (param name -> alias)
@@ -30,11 +32,11 @@ const PARAM_TO_ALIAS = Object.fromEntries(
 const KNOWN_PARAMS = new Set([
   'width', 'height', 'component', 'renderer', 'emojis', 'key', 'alt', 'url',
   'cacheMaxAgeSeconds', 'extension', 'html', 'satori', 'resvg', 'sharp',
-  'screenshot', 'fonts', '_query', 'socialPreview', 'props',
+  'screenshot', 'fonts', '_query', 'socialPreview', 'props', '_path',
 ])
 
-// Params that need base64 encoding (complex objects)
-const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'fonts', '_query'])
+// Params that need base64 encoding (complex objects, or values with slashes)
+const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'fonts', '_query', '_path'])
 
 // Base64 encode/decode helpers (works in both browser and Node)
 function b64Encode(str: string): string {
@@ -101,10 +103,11 @@ export function encodeOgImageParams(options: Record<string, any>): string {
       parts.push(`${alias}_${b64}`)
     }
     else {
-      // Simple value - URL encode spaces as +, escape commas and underscores
+      // Simple value - URL encode spaces as +, escape commas, underscores, and slashes
       const encoded = String(value)
         .replace(/_/g, '__')
         .replace(/,/g, '%2C')
+        .replace(/\//g, '%2F')
         .replace(/ /g, '+')
       parts.push(`${alias}_${encoded}`)
     }
@@ -164,6 +167,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
       value = value
         .replace(/\+/g, ' ')
         .replace(/%2C/g, ',')
+        .replace(/%2F/g, '/')
         .replace(/__/g, '_')
       // Try to parse as number or boolean
       if (value === 'true')
@@ -180,6 +184,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
       value = value
         .replace(/\+/g, ' ')
         .replace(/%2C/g, ',')
+        .replace(/%2F/g, '/')
         .replace(/__/g, '_')
       options.props = options.props || {}
       // Try to parse as number or boolean

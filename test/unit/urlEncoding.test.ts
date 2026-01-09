@@ -148,6 +148,18 @@ describe('urlEncoding', () => {
       const decoded = decodeOgImageParams(encoded)
       expect(decoded).toEqual(original)
     })
+
+    it('preserves _path with slashes (base64 encoded)', () => {
+      const original = {
+        _path: '/satori/custom-font',
+        width: 1200,
+      }
+      const encoded = encodeOgImageParams(original)
+      expect(encoded).not.toContain('/satori') // slashes should not appear
+      expect(encoded).toMatch(/p_[A-Za-z0-9+/]+/) // base64 encoded
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual(original)
+    })
   })
 
   describe('buildOgImageUrl', () => {

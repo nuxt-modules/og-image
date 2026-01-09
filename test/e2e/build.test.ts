@@ -13,11 +13,19 @@ await setup({
 
 expect.extend({ toMatchImageSnapshot })
 
-// Helper to extract og:image URL from HTML
+// Helper to extract og:image URL path from HTML (handles both absolute and relative URLs)
 function extractOgImageUrl(html: string): string | null {
   const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
     || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  return match?.[1] || null
+  if (!match?.[1]) return null
+  // Extract just the path from absolute URL (e.g., https://nuxtseo.com/_og/d/... -> /_og/d/...)
+  try {
+    const url = new URL(match[1])
+    return url.pathname
+  }
+  catch {
+    return match[1] // Already a relative path
+  }
 }
 
 describe('build', () => {

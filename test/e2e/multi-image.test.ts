@@ -24,10 +24,37 @@ function getImageDimensions(buffer: Buffer): { width: number, height: number } {
   throw new Error('Not a valid PNG')
 }
 
+// Helper to extract URL path from absolute URL
+function extractPath(urlStr: string): string {
+  try {
+    const url = new URL(urlStr)
+    return url.pathname
+  }
+  catch {
+    return urlStr // Already a relative path
+  }
+}
+
+// Helper to extract all og:image and twitter:image URL paths from HTML
+function extractImageUrls(html: string): { og: string[], twitter: string[] } {
+  const ogMatches = html.matchAll(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/g)
+  const twitterMatches = html.matchAll(/<meta[^>]+name="twitter:image"[^>]+content="([^"]+)"/g)
+  return {
+    og: [...ogMatches].map(m => extractPath(m[1])),
+    twitter: [...twitterMatches].map(m => extractPath(m[1])),
+  }
+}
+
 describe('multiple og images', () => {
   it('prerender generates images with correct dimensions', async () => {
-    // Twitter image (1200x600)
-    const twitterImage: ArrayBuffer = await $fetch('/_og/s/satori/multi-image/twitter.png', {
+    // Get the page HTML to extract image URLs
+    const html: string = await $fetch('/satori/multi-image')
+    const urls = extractImageUrls(html)
+
+    // Twitter image should be in twitter:image (1200x600)
+    expect(urls.twitter.length).toBeGreaterThan(0)
+    const twitterUrl = urls.twitter[0]
+    const twitterImage: ArrayBuffer = await $fetch(twitterUrl, {
       responseType: 'arrayBuffer',
     })
     const twitterBuffer = Buffer.from(twitterImage)
@@ -36,8 +63,10 @@ describe('multiple og images', () => {
     expect(twitterDims.height).toBe(600)
     expect(twitterBuffer).toMatchImageSnapshot()
 
-    // WhatsApp image (800x800)
-    const whatsappImage: ArrayBuffer = await $fetch('/_og/s/satori/multi-image/whatsapp.png', {
+    // WhatsApp image should be in og:image (800x800)
+    expect(urls.og.length).toBeGreaterThan(0)
+    const whatsappUrl = urls.og[0]
+    const whatsappImage: ArrayBuffer = await $fetch(whatsappUrl, {
       responseType: 'arrayBuffer',
     })
     const whatsappBuffer = Buffer.from(whatsappImage)
@@ -52,20 +81,19 @@ describe('multiple og images', () => {
 
     // Twitter key should only have twitter:* meta tags
     expect(html).toContain('twitter:image')
-    expect(html).toContain('multi-image/twitter.png')
     expect(html).toContain('twitter:image:width" content="1200"')
     expect(html).toContain('twitter:image:height" content="600"')
 
     // Whatsapp key should only have og:image meta tags
     expect(html).toContain('og:image')
-    expect(html).toContain('multi-image/whatsapp.png')
     expect(html).toContain('og:image:width" content="800"')
     expect(html).toContain('og:image:height" content="800"')
 
-    // Twitter image should NOT have og:image tags
-    expect(html).not.toMatch(/og:image"[^>]*twitter\.png/)
+    // Check that twitter URL contains k_twitter in encoded params
+    const urls = extractImageUrls(html)
+    expect(urls.twitter[0]).toContain('k_twitter')
 
-    // Whatsapp image should NOT have twitter:image tags
-    expect(html).not.toMatch(/twitter:image"[^>]*whatsapp\.png/)
+    // Check that og URL contains k_whatsapp in encoded params
+    expect(urls.og[0]).toContain('k_whatsapp')
   })
 })
