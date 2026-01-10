@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "5.1.13",
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@10.28.0",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -63,8 +63,8 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@unhead/vue": "^2.0.5",
-    "unstorage": "^1.15.0"
+    "@unhead/vue": "^2.1.1",
+    "unstorage": "^1.17.3"
   },
   "dependencies": {
     "@nuxt/devtools-kit": "catalog:",
