@@ -63,7 +63,7 @@ declare module '#og-image-cache' {
 
   export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }>
 
-  export const prerenderOptionsCache: Storage<[OgImageOptions], DevToolsMetaDataExtraction | undefined> | undefined
+  export const prerenderOptionsCache: Storage<OgImageOptions> | undefined
 
   export const fontCache: Storage<BufferSource> | undefined
 

@@ -24,6 +24,7 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
 export function useOgImageRuntimeConfig(e?: H3Event) {
   const c = useRuntimeConfig(e)
   return {
+    defaults: {},
     ...(c['nuxt-og-image'] as Record<string, any>),
     app: {
       baseURL: c.app.baseURL,

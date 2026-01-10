@@ -58,7 +58,7 @@ async function doFetchWithErrorHandling(fetch: any, path: string) {
 // this is only needed by devtools
 export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, cacheKey: string): Promise<H3Error | DevToolsExtractPayload> {
   const cachedHtmlPayload = await htmlPayloadCache.getItem(cacheKey) as { expiresAt: number, value: DevToolsExtractPayload } | null
-  if (!import.meta.dev && cachedHtmlPayload && cachedHtmlPayload.expiresAt < Date.now())
+  if (!import.meta.dev && cachedHtmlPayload && cachedHtmlPayload.expiresAt > Date.now())
     return cachedHtmlPayload.value
 
   // extract the payload from the original path
