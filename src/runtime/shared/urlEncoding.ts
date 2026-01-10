@@ -93,11 +93,18 @@ function simpleHash(str: string): string {
 /**
  * Generate a deterministic hash from options object
  * Excludes _path so images with same options can be cached across pages
+ * Optionally includes componentHash and version for cache busting
  */
-export function hashOgImageOptions(options: Record<string, any>): string {
+export function hashOgImageOptions(
+  options: Record<string, any>,
+  componentHash?: string,
+  version?: string,
+): string {
   const { _path, _hash, ...hashableOptions } = options
-  const json = JSON.stringify(hashableOptions)
-  return simpleHash(json)
+  const hashInput = componentHash || version
+    ? [hashableOptions, componentHash || '', version || '']
+    : hashableOptions
+  return simpleHash(JSON.stringify(hashInput))
 }
 
 /**

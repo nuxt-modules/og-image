@@ -3,6 +3,7 @@ import {
   buildOgImageUrl,
   decodeOgImageParams,
   encodeOgImageParams,
+  hashOgImageOptions,
   parseOgImageUrl,
 } from '../../src/runtime/shared/urlEncoding'
 
@@ -225,6 +226,60 @@ describe('urlEncoding', () => {
         extension: 'png',
         isStatic: true,
       })
+    })
+  })
+
+  describe('hashOgImageOptions', () => {
+    it('generates consistent hash for same options', () => {
+      const options = { width: 1200, props: { title: 'Hello' } }
+      const hash1 = hashOgImageOptions(options)
+      const hash2 = hashOgImageOptions(options)
+      expect(hash1).toBe(hash2)
+    })
+
+    it('excludes _path from hash', () => {
+      const hash1 = hashOgImageOptions({ width: 1200, _path: '/page1' })
+      const hash2 = hashOgImageOptions({ width: 1200, _path: '/page2' })
+      expect(hash1).toBe(hash2)
+    })
+
+    it('excludes _hash from hash', () => {
+      const hash1 = hashOgImageOptions({ width: 1200, _hash: 'abc123' })
+      const hash2 = hashOgImageOptions({ width: 1200, _hash: 'def456' })
+      expect(hash1).toBe(hash2)
+    })
+
+    it('includes componentHash when provided', () => {
+      const options = { width: 1200 }
+      const hash1 = hashOgImageOptions(options, 'componentHash1')
+      const hash2 = hashOgImageOptions(options, 'componentHash2')
+      expect(hash1).not.toBe(hash2)
+    })
+
+    it('includes version when provided', () => {
+      const options = { width: 1200 }
+      const hash1 = hashOgImageOptions(options, undefined, '1.0.0')
+      const hash2 = hashOgImageOptions(options, undefined, '2.0.0')
+      expect(hash1).not.toBe(hash2)
+    })
+
+    it('includes both componentHash and version', () => {
+      const options = { width: 1200 }
+      const hash1 = hashOgImageOptions(options, 'compHash', '1.0.0')
+      const hash2 = hashOgImageOptions(options, 'compHash', '1.0.0')
+      const hash3 = hashOgImageOptions(options, 'otherHash', '1.0.0')
+      const hash4 = hashOgImageOptions(options, 'compHash', '2.0.0')
+      expect(hash1).toBe(hash2) // Same inputs = same hash
+      expect(hash1).not.toBe(hash3) // Different componentHash = different hash
+      expect(hash1).not.toBe(hash4) // Different version = different hash
+    })
+
+    it('without componentHash/version produces same hash as before', () => {
+      const options = { width: 1200, props: { title: 'Test' } }
+      const hashWithout = hashOgImageOptions(options)
+      const hashWithEmpty = hashOgImageOptions(options, '', '')
+      // Empty strings are treated as not providing values (backward compatible)
+      expect(hashWithout).toBe(hashWithEmpty)
     })
   })
 })

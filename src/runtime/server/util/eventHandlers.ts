@@ -5,6 +5,7 @@ import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
 import { parseURL } from 'ufo'
 import { normaliseFontInput } from '../../shared'
+import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
 import { assets } from '../og-image/satori/font'
 import { html } from '../og-image/templates/html'
@@ -153,6 +154,14 @@ export async function imageEventHandler(e: H3Event) {
         statusMessage: `[Nuxt OG Image] Invalid request for og.${extension}.`,
       })
   }
+  // Check build cache first (CI persistence)
+  const buildCachedImage = import.meta.prerender
+    ? getBuildCachedImage(ctx.options, extension)
+    : null
+  if (buildCachedImage) {
+    return buildCachedImage
+  }
+
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
@@ -175,6 +184,10 @@ export async function imageEventHandler(e: H3Event) {
       })
     }
     await cacheApi.update(image)
+    // Save to build cache for CI persistence
+    if (import.meta.prerender && ctx.options.cacheMaxAgeSeconds) {
+      setBuildCachedImage(ctx.options, extension, image as Buffer, ctx.options.cacheMaxAgeSeconds)
+    }
   }
   return image
 }
