@@ -45,6 +45,8 @@ export interface OgImageRuntimeConfig {
   zeroRuntime: boolean
 
   componentDirs?: string[]
+  /** Directory for persistent build cache (CI caching) */
+  buildCacheDir?: string
 
   app: {
     baseURL: string
