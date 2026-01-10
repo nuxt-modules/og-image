@@ -8,8 +8,8 @@ export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOption
   driver: lruCacheDriver({ max: import.meta.prerender ? 10000 : 50 }),
 })
 
-export const prerenderOptionsCache: Storage<OgImageOptions> | undefined = import.meta.prerender
-  ? createStorage<OgImageOptions>({
+export const prerenderOptionsCache: Storage<OgImageOptions | [string, OgImageOptions][]> | undefined = import.meta.prerender
+  ? createStorage<OgImageOptions | [string, OgImageOptions][]>({
       driver: lruCacheDriver({ max: 10000 }),
     })
   : undefined
