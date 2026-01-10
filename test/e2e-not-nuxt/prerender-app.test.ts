@@ -21,7 +21,7 @@ describe('prerender', () => {
     // use execa to run `nuxi generate` in the rootDir
     await execa('nuxt', ['generate'], { cwd: resolve('../fixtures/app-dir') })
     // use globby and fs tools to read the images
-    const imagePath = resolve('../fixtures/app-dir/.output/public/__og-image__')
+    const imagePath = resolve('../fixtures/app-dir/.output/public/_og')
     // globby in image path
     const images = await globby('**/*.png', { cwd: imagePath }).then((r: string[]) => r.sort())
     // for each image we run a snapshot test

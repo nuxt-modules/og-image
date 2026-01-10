@@ -55,6 +55,7 @@ export default defineNuxtConfig({
     plugins: ['plugins/hooks.ts'],
     prerender: {
       routes: [
+        '/multiple',
         '/satori/jpeg',
         '/chromium/component',
         '/chromium/delayed',

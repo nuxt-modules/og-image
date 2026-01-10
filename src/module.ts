@@ -369,7 +369,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
       addServerHandler({
         lazy: true,
-        route: '/__og-image__/font/**',
+        route: '/_og/f/**',
         handler: resolve(`${basePath}/font`),
       })
     }
@@ -413,19 +413,19 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.debug || nuxt.options.dev) {
       addServerHandler({
         lazy: true,
-        route: '/__og-image__/debug.json',
+        route: '/_og/debug.json',
         handler: resolve('./runtime/server/routes/debug.json'),
       })
     }
     addServerHandler({
       lazy: true,
-      route: '/__og-image__/image/**',
+      route: '/_og/d/**',
       handler: resolve(`${basePath}/image`),
     })
     // prerender only
     addServerHandler({
       lazy: true,
-      route: '/__og-image__/static/**',
+      route: '/_og/s/**',
       handler: resolve(`${basePath}/image`),
     })
 

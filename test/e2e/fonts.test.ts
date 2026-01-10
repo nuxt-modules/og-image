@@ -11,7 +11,7 @@ await setup({
 })
 describe('fonts', () => {
   it('basic', async () => {
-    const font = await $fetch('/__og-image__/font/Inter/400')
+    const font = await $fetch('/_og/f/Inter/400')
     expect(font).toMatchInlineSnapshot(`
       Blob {
         Symbol(kHandle): Blob {},

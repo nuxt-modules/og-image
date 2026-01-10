@@ -8,7 +8,9 @@ definePageMeta({
 })
 
 useServerSeoMeta({
+  description: 'page description',
   title: 'Welcome to the playground',
+  ogDescription: 'This is an og:image description for the multiple page for whatsapp preview.',
   ogTitle: 'Welcome to the playground',
 })
 
@@ -16,6 +18,17 @@ defineOgImageComponent('NuxtSeo', {
   theme: '#fcfcfc',
   colorMode: 'dark',
   siteLogo: '/my-img.png',
+})
+
+defineOgImageComponent('NuxtSeo', {
+  title: 'Square Image',
+  theme: '#fcfcfc',
+  colorMode: 'dark',
+  siteLogo: '/my-img.png',
+}, {
+  key: 'square',
+  width: 450,
+  height: 450,
 })
 </script>
 
@@ -41,7 +54,7 @@ defineOgImageComponent('NuxtSeo', {
           </NuxtLink>
         </li>
         <li>
-          <a target="_blank" href="/_og/d/satori/og.png">Satori png</a>
+          <a target="_blank" href="/_og/image/satori/og.png">Satori png</a>
         </li>
         <li>
           <NuxtLink to="/satori/image">

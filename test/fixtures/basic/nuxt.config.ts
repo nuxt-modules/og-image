@@ -37,10 +37,11 @@ export default defineNuxtConfig({
         '/satori/image',
         '/satori/png',
         '/satori/custom-font',
+        '/satori/multi-image',
       ],
     },
   },
 
-  devtools: { enabled: false },
+  devtools: { enabled: true },
   compatibilityDate: '2024-07-13',
 })

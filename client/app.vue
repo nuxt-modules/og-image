@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
 import {
-  colorMode,
   computed,
   fetchPathDebug,
   unref,
@@ -15,23 +14,21 @@ import { Pane, Splitpanes } from 'splitpanes'
 import { hasProtocol, joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { fetchGlobalDebug } from '~/composables/fetch'
-import { devtoolsClient } from '~/composables/rpc'
+import { colorMode, devtoolsClient, ogImageRpc } from '~/composables/rpc'
 import { loadShiki } from '~/composables/shiki'
 import { CreateOgImageDialogPromise } from '~/composables/templates'
-import { separateProps } from '../src/runtime/shared'
+import { path, query, refreshTime } from '~/util/logic'
+import { encodeOgImageParams, separateProps } from '../src/runtime/shared'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
-import { ogImageRpc } from './composables/rpc'
 import {
   description,
   hasMadeChanges,
   host,
+  ogImageKey,
   options,
   optionsOverrides,
-  path,
   propEditor,
-  query,
   refreshSources,
-  refreshTime,
   slowRefreshSources,
 } from './util/logic'
 import 'floating-vue/dist/style.css'
@@ -49,9 +46,22 @@ const emojis = ref('noto')
 
 const debugAsyncData = fetchPathDebug()
 const { data: debug, pending, error } = debugAsyncData
-const isCustomOgImage = computed(() => {
-  return debug.value?.options.custom
+
+// Multi-image support
+const selectedOgImage = computed(() => {
+  const images = debug.value?.extract?.socialPreview?.images || []
+  return images.find(e => e.key === (ogImageKey.value || 'og')) || images[0]
 })
+
+const currentOptions = computed(() => {
+  const opts = debug.value?.extract?.options || []
+  return opts.find(o => o.key === (ogImageKey.value || 'og')) || opts[0]
+})
+
+const isCustomOgImage = computed(() => {
+  return currentOptions.value?.url && !currentOptions.value?.url?.includes('/_og/')
+})
+
 const isValidDebugError = computed(() => {
   if (error.value) {
     const message = error.value.message
@@ -61,10 +71,11 @@ const isValidDebugError = computed(() => {
   }
   return false
 })
+
 watch(debug, (val) => {
   if (!val)
     return
-  options.value = separateProps(unref(val.options), ['socialPreview', 'options'])
+  options.value = separateProps(unref(currentOptions.value || {}), ['socialPreview', 'options'])
   emojis.value = options.value.emojis
   propEditor.value = options.value.props
 }, {
@@ -74,7 +85,7 @@ watch(debug, (val) => {
 const isDark = computed(() => colorMode.value === 'dark')
 useHead({
   htmlAttrs: {
-    class: isDark.value ? 'dark' : '',
+    class: () => isDark.value ? 'dark' : '',
   },
 })
 
@@ -105,18 +116,18 @@ async function resetProps(fetch = true) {
 await resetProps(false)
 
 const defaults = computed(() => {
-  return globalDebug.value?.runtimeConfig.defaults || {
+  return defu(globalDebug.value?.runtimeConfig.defaults, {
     height: 600,
     width: 1200,
-  }
+  })
 })
 
 const height = computed(() => {
-  return optionsOverrides.value?.height || options.value?.height || defaults.value.height
+  return optionsOverrides.value?.height || selectedOgImage.value?.og?.['image:height'] || defaults.value.height
 })
 
 const width = computed(() => {
-  return optionsOverrides.value?.width || options.value?.width || defaults.value.width
+  return optionsOverrides.value?.width || selectedOgImage.value?.og?.['image:width'] || defaults.value.width
 })
 
 const aspectRatio = computed(() => {
@@ -129,44 +140,44 @@ const imageFormat = computed(() => {
 const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
 
 const src = computed(() => {
-  // wait until we know what we're rendering
-  // if (!debug.value)
-  //   return ''
   if (isCustomOgImage.value) {
-    if (hasProtocol(debug.value.options.url, { acceptRelative: true })) {
-      return debug.value.options.url
+    if (hasProtocol(currentOptions.value?.url || '', { acceptRelative: true })) {
+      return currentOptions.value?.url || ''
     }
-    return joinURL(host.value, debug.value.options.url)
+    return joinURL(host.value, currentOptions.value?.url || '')
   }
-  return withQuery(joinURL(host.value, '/__og-image__/image', path.value, `/og.${imageFormat.value}`), {
-    timestamp: refreshTime.value,
+  // Build encoded URL with options (Cloudinary-style)
+  const params = {
     ...optionsOverrides.value,
+    key: ogImageKey.value || 'og',
+    _path: path.value,
     _query: query.value,
+  }
+  const encoded = encodeOgImageParams(params)
+  return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
+    timestamp: refreshTime.value, // Cache bust for devtools
   })
 })
 
 const socialPreviewTitle = computed(() => {
-  if (socialPreview.value === 'twitter' && options.value?.socialPreview?.twitter?.title)
-    return options.value?.socialPreview?.twitter.title
-  return options.value?.socialPreview?.og.title
+  const root = debug.value?.extract?.socialPreview?.root || {}
+  if (socialPreview.value === 'twitter' && root['twitter:title'])
+    return root['twitter:title']
+  return root['og:title']
 })
 
 const socialPreviewDescription = computed(() => {
-  if (socialPreview.value === 'twitter' && options.value?.socialPreview?.twitter?.description)
-    return options.value?.socialPreview?.twitter.description
-  return options.value?.socialPreview?.og.description
+  const root = debug.value?.extract?.socialPreview?.root || {}
+  if (socialPreview.value === 'twitter' && root['twitter:description'])
+    return root['twitter:description']
+  return root['og:description']
 })
 
 const socialSiteUrl = computed(() => {
-  // need to turn this URL into just an origin
-  const url = parseURL(debug.value?.siteConfig?.url || '/').host || debug.value?.siteConfig?.url || '/'
-  if (url === '/') {
-    return globalDebug.value?.siteConfigUrl || '/'
-  }
-  return url
+  return parseURL(globalDebug.value?.siteConfigUrl || '/').host || globalDebug.value?.siteConfigUrl || '/'
 })
 const slackSocialPreviewSiteName = computed(() => {
-  return options.value?.socialPreview?.og.site_name || socialSiteUrl.value
+  return selectedOgImage.value?.og?.site_name || socialSiteUrl.value
 })
 
 function toggleSocialPreview(preview?: string) {
@@ -197,7 +208,6 @@ const componentNames = computed<OgImageComponent[]>(() => {
   const components = globalDebug.value?.componentNames || []
   return [
     components.find(name => name.pascalName === activeComponentName.value),
-    // filter out the current component
     ...components.filter(name => name.pascalName !== activeComponentName.value),
   ].filter(Boolean)
 })
@@ -212,7 +222,6 @@ const appComponents = computed(() => {
 const windowSize = useWindowSize()
 const sidePanelOpen = useLocalStorage('nuxt-og-image:side-panel-open', windowSize.width.value >= 1024)
 
-// close side panel if it's too small
 watch(windowSize.width, (v) => {
   if (v < 1024 && sidePanelOpen.value)
     sidePanelOpen.value = false
@@ -238,10 +247,17 @@ function generateLoadTime(payload: { timeTaken: string, sizeKb: string }) {
       break
   }
   isLoading.value = false
-  if (extension !== 'HTML')
-    description.value = `Generated ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} ${rendererLabel ? `with ${rendererLabel}` : ''} in ${payload.timeTaken}ms.`
-  else
+  if (extension !== 'HTML') {
+    if (isCustomOgImage.value) {
+      description.value = `Loaded ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} in ${payload.timeTaken}ms.`
+    }
+    else {
+      description.value = `Generated ${width.value}x${height.value} ${payload.sizeKb ? `${payload.sizeKb}kB` : ''} ${extension} ${rendererLabel ? `with ${rendererLabel}` : ''} in ${payload.timeTaken}ms.`
+    }
+  }
+  else {
     description.value = ''
+  }
 }
 watch([renderer, optionsOverrides], () => {
   description.value = 'Loading...'
@@ -249,7 +265,6 @@ watch([renderer, optionsOverrides], () => {
 })
 
 function openImage() {
-  // open new tab to source
   window.open(src.value, '_blank')
 }
 
@@ -279,7 +294,6 @@ watch(emojis, (v) => {
 
 const currentPageFile = computed(() => {
   const path = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file
-  // get the path only from the `pages/<path>`
   return `pages/${path?.split('pages/')[1]}`
 })
 
@@ -287,11 +301,14 @@ async function ejectComponent(component: string) {
   const dir = await CreateOgImageDialogPromise.start(component)
   if (!dir)
     return
-  // do fix
   const v = await ogImageRpc.value!.ejectCommunityTemplate(`${dir}/${component}.vue`)
-  // open
   await devtoolsClient.value?.devtools.rpc.openInEditor(v)
 }
+
+// Multi-image keys
+const allImageKeys = computed(() => {
+  return debug.value?.extract?.socialPreview?.images?.map(i => i.key) || []
+})
 </script>
 
 <template>
@@ -406,7 +423,7 @@ async function ejectComponent(component: string) {
           <div v-if="isCustomOgImage" class="w-full flex h-full justify-center items-center relative pr-4" style="padding-top: 30px;">
             <div class="flex justify-between items-center text-sm w-full absolute pr-[30px] top-0 left-0">
               <div class="text-xs">
-                Your prebuilt OG Image: {{ debug?.options.url }}
+                Your prebuilt OG Image: {{ currentOptions?.url }}
               </div>
               <div class="flex items-center">
                 <NButton class="p-4" :class="socialPreview === 'twitter' ? 'border border-zinc-300 dark:border-zinc-700 opacity-100' : ''" icon="simple-icons:x" @click="toggleSocialPreview('twitter')" />
@@ -505,25 +522,23 @@ async function ejectComponent(component: string) {
             </div>
           </div>
           <div v-else-if="isValidDebugError">
-            <div>
-              <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
-                <div class="">
-                  <h2 class="text-2xl font-semibold mb-3">
-                    <NIcon icon="carbon:information" class="text-blue-500" />
-                    Oops! Did you forget <code>defineOgImageComponent()</code>?
-                  </h2>
-                  <p class="text-lg opacity-80 my-3">
-                    Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImageComponent()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
-                  </p>
-                  <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-lg">
-                    Using Nuxt Content? Follow the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="underline">Nuxt Content guide</a>.
-                  </div>
-                  <p v-else class="text-lg opacity-80">
-                    <a href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="underline">
-                      Learn more
-                    </a>
-                  </p>
+            <div class="flex flex-col items-center justify-center mx-auto max-w-135 h-85vh">
+              <div class="">
+                <h2 class="text-2xl font-semibold mb-3">
+                  <NIcon icon="carbon:information" class="text-blue-500" />
+                  Oops! Did you forget <code>defineOgImageComponent()</code>?
+                </h2>
+                <p class="text-lg opacity-80 my-3">
+                  Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImageComponent()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
+                </p>
+                <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-lg">
+                  Using Nuxt Content? Follow the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="underline">Nuxt Content guide</a>.
                 </div>
+                <p v-else class="text-lg opacity-80">
+                  <a href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="underline">
+                    Learn more
+                  </a>
+                </p>
               </div>
             </div>
           </div>
@@ -666,6 +681,12 @@ async function ejectComponent(component: string) {
               </div>
               <div v-if="description" class="mt-5 text-sm opacity-50">
                 {{ description }}
+              </div>
+              <!-- Multi-image key selector -->
+              <div v-if="allImageKeys.length > 1" class="space-x-1 mt-3">
+                <NButton v-for="key in allImageKeys" :key="key" class="text-xs" type="button" :class="(ogImageKey === key || (!ogImageKey && key === 'og')) ? 'bg-neutral-700' : ''" @click="ogImageKey = key">
+                  {{ key }}
+                </NButton>
               </div>
             </Pane>
             <Pane v-if="sidePanelOpen" size="40">
@@ -893,14 +914,13 @@ html {
   --at-apply: font-sans;
   overflow-y: scroll;
   overscroll-behavior: none;
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 body::-webkit-scrollbar {
   display: none;
 }
 body {
-  /* trap scroll inside iframe */
   height: calc(100vh + 1px);
 }
 
@@ -909,7 +929,6 @@ html.dark {
   color-scheme: dark;
 }
 
-/* Markdown */
 .n-markdown a {
   --at-apply: text-primary hover:underline;
 }
@@ -926,7 +945,6 @@ html.dark {
   --uno: border-solid border-1 border-b border-base h-1px w-full block my-2 op50;
 }
 
-/* JSON Editor */
 textarea {
   background: #8881
 }
@@ -961,7 +979,6 @@ textarea {
   border-radius: 5px !important;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }

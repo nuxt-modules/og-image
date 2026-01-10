@@ -1,4 +1,4 @@
-import type { Head } from '@unhead/vue'
+import type { ActiveHeadEntry, Head } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageOptions, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
@@ -7,7 +7,17 @@ import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
-import { generateMeta, separateProps } from '../shared'
+import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+
+type OgImagePayload = [string, OgImageOptions, Required<Head>['meta']]
+
+declare module 'nuxt/app' {
+  interface NuxtSSRContext {
+    _ogImagePayloads?: OgImagePayload[]
+    _ogImageInstance?: ActiveHeadEntry<Head>
+    _ogImageDevtoolsInstance?: ActiveHeadEntry<Head>
+  }
+}
 
 export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   if (import.meta.client) {
@@ -25,48 +35,70 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
     return
   }
   const { defaults } = useOgImageRuntimeConfig()
-  const _input = separateProps(defu(input, (ssrContext as any)._ogImagePayload))
-  if (input._query && Object.keys(input._query).length)
-    src = withQuery(src, { _query: input._query })
-  const meta = generateMeta(src, input)
-  ssrContext._ogImageInstances = ssrContext._ogImageInstances || []
-  const script: Head['script'] = []
-  if (src) {
-    script.push({
-      id: 'nuxt-og-image-options',
-      type: 'application/json',
-      processTemplateParams: true,
-      innerHTML: () => {
-        const payload = resolveUnrefHeadInput(_input) as any
-        if (payload.props && typeof payload.props.title === 'undefined')
-          payload.props.title = '%s'
-        payload.component = resolveComponentName(input.component, defaults.component || '')
-        delete payload.url
-        if (payload._query && Object.keys(payload._query).length === 0) {
-          delete payload._query
-        }
-        const final: Record<string, any> = {}
-        for (const k in payload) {
-          if (payload[k] !== (defaults as any)[k]) {
-            final[k] = payload[k]
-          }
-        }
-        // don't apply defaults
-        return stringify(final)
-      },
-      // we want this to be last in our head
-      tagPosition: 'bodyClose',
+  const resolvedOptions = separateProps(defu(input, defaults))
+  resolvedOptions.key = resolvedOptions.key || 'og'
+  const payloads = ssrContext._ogImagePayloads || []
+  const currentPayloadIdx = payloads.findIndex(([k]) => k === resolvedOptions.key)
+  const _input = separateProps(defu(input, currentPayloadIdx >= 0 ? payloads[currentPayloadIdx]![1] : {}))
+  let url: string | undefined = src || (input.url as string | undefined) || (resolvedOptions.url as string | undefined)
+  if (!url)
+    return
+  if (input._query && Object.keys(input._query).length && url)
+    url = withQuery(url, { _query: input._query })
+  const meta = generateMeta(url, resolvedOptions)
+  if (currentPayloadIdx === -1) {
+    payloads.push([resolvedOptions.key!, _input, meta as any])
+  }
+  else {
+    payloads[currentPayloadIdx] = [resolvedOptions.key!, _input, meta as any]
+  }
+
+  ssrContext._ogImageInstance?.dispose()
+  ssrContext._ogImageInstance = useHead({
+    meta() {
+      const finalPayload = ssrContext._ogImagePayloads || []
+      return finalPayload.flatMap(([_, __, meta]) => meta)
+    },
+  }, {
+    processTemplateParams: true,
+    tagPriority: 35,
+  })
+
+  // devtools script injection for dev mode and prerender cache
+  if (import.meta.dev || import.meta.prerender) {
+    ssrContext._ogImageDevtoolsInstance?.dispose()
+    ssrContext._ogImageDevtoolsInstance = useHead({
+      script: [{
+        id: 'nuxt-og-image-options',
+        type: 'application/json',
+        processTemplateParams: true,
+        innerHTML: () => {
+          const devtoolsPayload = (ssrContext._ogImagePayloads || []).map(([key, options]) => {
+            const payload = resolveUnrefHeadInput(options) as any
+            if (payload.props && typeof payload.props.title === 'undefined')
+              payload.props.title = '%s'
+            payload.component = resolveComponentName(options.component, defaults.component || '')
+            payload.key = key
+            delete payload.url
+            if (payload._query && Object.keys(payload._query).length === 0) {
+              delete payload._query
+            }
+            const final: Record<string, any> = {}
+            for (const k in payload) {
+              if (payload[k] !== (defaults as any)[k]) {
+                final[k] = payload[k]
+              }
+            }
+            return final
+          })
+          return stringify(devtoolsPayload)
+        },
+        tagPosition: 'bodyClose',
+      }],
     })
   }
 
-  const instance = useHead({
-    script,
-    meta,
-  }, {
-    tagPriority: 'high',
-  })
-  ;(ssrContext as any)._ogImagePayload = _input
-  ;(ssrContext._ogImageInstances as any[]).push(instance)
+  ssrContext._ogImagePayloads = payloads
 }
 
 export function resolveComponentName(component: OgImageOptions['component'], fallback: string): OgImageOptions['component'] {
@@ -83,14 +115,22 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
   return component
 }
 
-export function getOgImagePath(pagePath: string, _options?: Partial<OgImageOptions>) {
+export interface GetOgImagePathResult {
+  path: string
+  hash?: string
+}
+
+export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>): GetOgImagePathResult {
   const baseURL = useRuntimeConfig().app.baseURL
   const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
-  const path = joinURL('/', baseURL, `__og-image__/${import.meta.prerender ? 'static' : 'image'}`, pagePath, `og.${extension}`)
-  if (Object.keys(_options?._query || {}).length) {
-    return withQuery(path, _options!._query!)
+  const isStatic = import.meta.prerender
+  // Build URL with encoded options (Cloudinary-style)
+  // Include _path so the server knows which page to render
+  const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic)
+  return {
+    path: joinURL('/', baseURL, result.url),
+    hash: result.hash,
   }
-  return path
 }
 
 export function useOgImageRuntimeConfig() {

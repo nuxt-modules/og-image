@@ -40,7 +40,7 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
     }
   }
   else {
-    data = await e.$fetch(`/__og-image__/font/${name}/${weight}.ttf`, {
+    data = await e.$fetch(`/_og/f/${name}/${weight}.ttf`, {
       responseType: 'arrayBuffer',
       query: {
         font,

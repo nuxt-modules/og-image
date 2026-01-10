@@ -3,6 +3,11 @@ defineOgImage({
   renderer: 'satori',
   extension: 'png',
 })
+
+useSeoMeta({
+  title: 'Satori PNG',
+  description: 'This is the Satori PNG page',
+})
 </script>
 
 <template>
