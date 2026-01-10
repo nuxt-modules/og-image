@@ -47,7 +47,7 @@ export function getBuildCachedImage(
     return null
 
   const cacheKey = generateBuildCacheKey(options, extension)
-  const cachePath = join(process.cwd(), buildCacheDir, cacheKey)
+  const cachePath = join(buildCacheDir, cacheKey)
 
   if (!existsSync(cachePath))
     return null
@@ -76,12 +76,11 @@ export function setBuildCachedImage(
     return
 
   const cacheKey = generateBuildCacheKey(options, extension)
-  const cacheDir = join(process.cwd(), buildCacheDir)
-  const cachePath = join(cacheDir, cacheKey)
+  const cachePath = join(buildCacheDir, cacheKey)
 
   // Ensure cache directory exists
-  if (!existsSync(cacheDir)) {
-    mkdirSync(cacheDir, { recursive: true })
+  if (!existsSync(buildCacheDir)) {
+    mkdirSync(buildCacheDir, { recursive: true })
   }
 
   const cached: CachedImage = {

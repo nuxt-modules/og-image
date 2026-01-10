@@ -638,11 +638,12 @@ export {}
       nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
     }
 
-    // Build cache for CI persistence
+    // Build cache for CI persistence (absolute path)
+    const buildCachePath = typeof config.buildCache === 'object' && config.buildCache.base
+      ? config.buildCache.base
+      : 'node_modules/.cache/nuxt/og-image'
     const buildCacheDir = config.buildCache
-      ? (typeof config.buildCache === 'object' && config.buildCache.base
-          ? config.buildCache.base
-          : 'node_modules/.cache/nuxt/og-image')
+      ? resolve(nuxt.options.rootDir, buildCachePath)
       : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
