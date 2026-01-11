@@ -2,6 +2,7 @@ import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../typ
 import { useNitroOrigin } from '#site-config/server/composables'
 import { useStorage } from 'nitropack/runtime'
 import { prefixStorage } from 'unstorage'
+import { tryResolveNuxtFont } from '../../util/nuxt-fonts'
 
 export const assets = prefixStorage(useStorage(), '/assets')
 
@@ -9,6 +10,11 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
   const { name, weight } = font
   if (font.data)
     return font
+
+  // try @nuxt/fonts first
+  const nuxtFont = await tryResolveNuxtFont(font)
+  if (nuxtFont?.data)
+    return nuxtFont
 
   if (font.key && await assets.hasItem(font.key)) {
     let fontData = await assets.getItem(font.key) as any as string | Uint8Array

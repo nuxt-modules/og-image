@@ -2,8 +2,6 @@ import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '..
 import { fontCache } from '#og-image-cache'
 import { defu } from 'defu'
 import { sendError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
-import { useOgImageRuntimeConfig } from '../../utils'
 import { loadFont } from '../satori/font'
 import { useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -11,13 +9,22 @@ import { createTakumiNodes } from './nodes'
 const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
 
 async function resolveFonts(event: OgImageRenderEventContext) {
-  const { fonts } = useOgImageRuntimeConfig()
-  const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
+  // get fonts from @nuxt/fonts virtual module
+  const fontsModule = await import('#nuxt-og-image/fonts').catch(() => ({ resolvedFonts: [] }))
+  const resolvedFonts = fontsModule.resolvedFonts || []
+
+  const fontConfigs: ResolvedFontConfig[] = resolvedFonts.map((f: { family: string, weight: number, style: string }) => ({
+    name: f.family,
+    weight: f.weight,
+    style: (f.style === 'italic' ? 'ital' : 'normal') as 'normal' | 'ital',
+    cacheKey: `${f.family}-${f.weight}-${f.style}`,
+  }))
+
   const localFontPromises: Promise<ResolvedFontConfig>[] = []
   const preloadedFonts: ResolvedFontConfig[] = []
 
   if (fontCache) {
-    for (const font of normalisedFonts) {
+    for (const font of fontConfigs) {
       if (await fontCache.hasItem(font.cacheKey)) {
         font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
         preloadedFonts.push(font)

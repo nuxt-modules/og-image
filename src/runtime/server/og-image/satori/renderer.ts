@@ -7,7 +7,6 @@ import { theme } from '#og-image-virtual/unocss-config.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { sendError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
@@ -16,12 +15,23 @@ import { createVNodes } from './vnodes'
 const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
 
 async function resolveFonts(event: OgImageRenderEventContext) {
-  const { fonts } = useOgImageRuntimeConfig()
-  const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
+  // get fonts from @nuxt/fonts virtual module
+  const fontsModule = await import('#nuxt-og-image/fonts').catch(() => ({ resolvedFonts: [] }))
+  const resolvedFonts = fontsModule.resolvedFonts || []
+
+  // create font configs from resolved fonts
+  const fontConfigs: ResolvedFontConfig[] = resolvedFonts.map((f: { family: string, weight: number, style: string }) => ({
+    name: f.family,
+    weight: f.weight,
+    style: (f.style === 'italic' ? 'ital' : 'normal') as 'normal' | 'ital',
+    cacheKey: `${f.family}-${f.weight}-${f.style}`,
+  }))
+
   const localFontPromises: Promise<ResolvedFontConfig>[] = []
   const preloadedFonts: ResolvedFontConfig[] = []
+
   if (fontCache) {
-    for (const font of normalisedFonts) {
+    for (const font of fontConfigs) {
       if (await fontCache.hasItem(font.cacheKey)) {
         font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
         preloadedFonts.push(font)
@@ -38,11 +48,14 @@ async function resolveFonts(event: OgImageRenderEventContext) {
       }
     }
   }
+
   const awaitedFonts = await Promise.all(localFontPromises)
-  return [...preloadedFonts, ...awaitedFonts].map((_f) => {
-    // weight must be a number
-    return { name: _f.name, data: _f.data, style: _f.style, weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'] }
-  })
+  return [...preloadedFonts, ...awaitedFonts].map(_f => ({
+    name: _f.name,
+    data: _f.data,
+    style: _f.style,
+    weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'],
+  }))
 }
 
 export async function createSvg(event: OgImageRenderEventContext) {

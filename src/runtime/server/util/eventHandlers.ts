@@ -64,6 +64,17 @@ export async function fontEventHandler(e: H3Event) {
       return font.name.toLowerCase() === name.toLowerCase() && weight === Number(font.weight)
     })
   }
+
+  // try @nuxt/fonts if not found in config
+  if (!font) {
+    const { tryResolveNuxtFont } = await import('./nuxt-fonts')
+    const nuxtFont = await tryResolveNuxtFont({ name, weight, style: 'normal' })
+    if (nuxtFont?.data) {
+      setResponseHeader(e, 'Content-Type', 'font/ttf')
+      return nuxtFont.data
+    }
+  }
+
   if (!font) {
     return createError({
       statusCode: 404,
