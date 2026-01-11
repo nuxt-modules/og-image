@@ -118,7 +118,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    * Props to pass to the component.
    */
   props?: OgImageComponents[T] | Record<string, any>
-  renderer?: 'chromium' | 'satori'
+  renderer?: 'chromium' | 'satori' | 'takumi'
   extension?: 'png' | 'jpeg' | 'jpg'
   emojis?: IconifyEmojiIconSets
   /**
@@ -130,6 +130,10 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
   satori?: SatoriOptions
   screenshot?: Partial<ScreenshotOptions>
   sharp?: SharpOptions & JpegOptions
+  takumi?: {
+    format?: 'png' | 'jpeg' | 'webp'
+    persistentImages?: Array<{ src: string, data: ArrayBuffer }>
+  }
   fonts?: InputFontConfig[]
   // cache
   cacheMaxAgeSeconds?: number
@@ -170,6 +174,7 @@ export interface RuntimeCompatibilitySchema {
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'wasm' | 'wasm-fs' | false
   satori: 'node' | 'wasm' | 'wasm-fs' | false
+  takumi: 'node' | 'wasm' | false
   sharp: 'node' | false
   wasm?: NitroOptions['wasm']
 }
@@ -185,7 +190,7 @@ export interface CompatibilityFlagEnvOverrides {
 export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: Omit<OgImageOptions['extension'], 'html'> }
 
 export interface Renderer {
-  name: 'chromium' | 'satori'
+  name: 'chromium' | 'satori' | 'takumi'
   supportedFormats: Partial<RendererOptions['extension']>[]
   createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | Buffer | Uint8Array | void | undefined>
   debug: (e: OgImageRenderEventContext) => Promise<Record<string, any>>

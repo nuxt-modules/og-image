@@ -6,6 +6,7 @@ import type {
 } from '../../types'
 import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
+import type TakumiRenderer from './takumi/renderer'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
@@ -22,7 +23,7 @@ import { decodeOgImageParams, separateProps } from '../../shared'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { useOgImageRuntimeConfig } from '../utils'
-import { useChromiumRenderer, useSatoriRenderer } from './instances'
+import { useChromiumRenderer, useSatoriRenderer, useTakumiRenderer } from './instances'
 
 export function resolvePathCacheKey(e: H3Event, path: string) {
   const siteConfig = useSiteConfig(e, {
@@ -143,13 +144,16 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   }
 
   // TODO merge in component data from component-names, we want the hash to use as a cache key
-  let renderer: ((typeof SatoriRenderer | typeof ChromiumRenderer) & { __mock__?: true }) | undefined
+  let renderer: ((typeof SatoriRenderer | typeof ChromiumRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (options.renderer) {
     case 'satori':
       renderer = await useSatoriRenderer()
       break
     case 'chromium':
       renderer = await useChromiumRenderer()
+      break
+    case 'takumi':
+      renderer = await useTakumiRenderer()
       break
   }
   if (!renderer || renderer.__mock__) {
