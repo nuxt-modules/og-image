@@ -1,4 +1,3 @@
-// @ts-expect-error optional dependency
 import init, { Renderer } from '@takumi-rs/wasm'
 
 const wasmBinary = import('@takumi-rs/wasm/takumi_wasm_bg.wasm?module' as string)

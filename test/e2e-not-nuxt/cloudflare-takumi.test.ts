@@ -65,7 +65,7 @@ async function startWrangler(): Promise<string> {
     proc.stdout?.on('data', (data) => {
       output += data.toString()
       const match = output.match(/Ready on (http:\/\/\S+)/)
-      if (match) {
+      if (match?.[1]) {
         resolve(match[1])
       }
     })
@@ -130,9 +130,9 @@ describe('cloudflare-takumi', () => {
 
       expect(ogImageMatch?.[1]).toBeTruthy()
 
-      const ogImagePath = new URL(ogImageMatch![1]).pathname
-      const image = await $fetch<ArrayBuffer>(`${serverUrl}${ogImagePath}`, {
-        responseType: 'arrayBuffer',
+      const ogImagePath = new URL(ogImageMatch![1]!).pathname
+      const image = await $fetch(`${serverUrl}${ogImagePath}`, {
+        responseType: 'arrayBuffer' as const,
       })
 
       expect(Buffer.from(image)).toMatchImageSnapshot({
