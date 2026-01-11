@@ -1,0 +1,61 @@
+import { createResolver } from '@nuxt/kit'
+import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { describe, expect, it } from 'vitest'
+
+const { resolve } = createResolver(import.meta.url)
+
+// Check if takumi packages are available
+let hasTakumi = false
+try {
+  await import('@takumi-rs/core')
+  hasTakumi = true
+}
+catch {
+  hasTakumi = false
+}
+
+await setup({
+  rootDir: resolve('../fixtures/basic'),
+  server: true,
+  build: true,
+  nuxtConfig: {
+    app: {
+      baseURL: '/prefix/',
+    },
+  },
+})
+
+expect.extend({ toMatchImageSnapshot })
+
+function extractOgImageUrl(html: string): string | null {
+  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+  if (!match?.[1])
+    return null
+  try {
+    const url = new URL(match[1])
+    return url.pathname
+  }
+  catch {
+    return match[1]
+  }
+}
+
+describe('takumi renderer', () => {
+  it.runIf(hasTakumi)('renders basic takumi image', async () => {
+    const html = await $fetch('/prefix/takumi') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(image)).toMatchImageSnapshot()
+  }, 60000)
+
+  it.runIf(!hasTakumi)('skips takumi tests when @takumi-rs/core not installed', () => {
+    console.log('Skipping takumi tests - @takumi-rs/core not installed')
+    expect(true).toBe(true)
+  })
+})
