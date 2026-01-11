@@ -4,6 +4,7 @@ import type { BindingVariant, ProviderName } from './utils/dependencies'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
+import { isCI } from 'std-env'
 import { getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
 import { logger } from './runtime/logger'
 import {
@@ -50,6 +51,25 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
   // skip if NUXT_OG_IMAGE_SKIP_ONBOARDING=1
   if (process.env.NUXT_OG_IMAGE_SKIP_ONBOARDING === '1') {
     logger.info('Skipping onboarding (NUXT_OG_IMAGE_SKIP_ONBOARDING=1)')
+    return
+  }
+
+  // skip in nuxt prepare
+  if (nuxt.options._prepare)
+    return
+
+  // in CI, validate deps exist or throw
+  if (isCI) {
+    const installedProviders = await getInstalledProviders()
+    if (installedProviders.length === 0) {
+      throw new Error(
+        '[nuxt-og-image] No OG image provider dependencies found. '
+        + 'Install a provider before running in CI:\n'
+        + '  npm add @resvg/resvg-js satori yoga-wasm-web  # for satori\n'
+        + '  npm add @playwright/core                      # for chromium\n'
+        + 'See: https://nuxtseo.com/og-image/getting-started',
+      )
+    }
     return
   }
 
