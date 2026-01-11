@@ -39,9 +39,14 @@ import {
   resolveNitroPreset,
 } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
+import { onInstall, onUpgrade } from './onboarding'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+import {
+  getMissingDependencies,
+  getProviderDependencies,
+} from './utils/dependencies'
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
@@ -185,6 +190,12 @@ export default defineNuxtModule<ModuleOptions>({
       debug: isDevelopment,
     }
   },
+  async onInstall(nuxt: Nuxt) {
+    await onInstall(nuxt)
+  },
+  async onUpgrade(nuxt: Nuxt, options: ModuleOptions, previousVersion: string) {
+    await onUpgrade(nuxt, options, previousVersion)
+  },
   async setup(config, nuxt) {
     const resolver = createResolver(import.meta.url)
     const { resolve } = resolver
@@ -205,6 +216,18 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
+
+    // validate provider dependencies
+    const selectedRenderer = config.defaults.renderer || 'satori'
+    const rendererMissing = await getMissingDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
+    if (rendererMissing.length > 0) {
+      const deps = getProviderDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
+      logger.error(`Missing dependencies for ${selectedRenderer} renderer: ${rendererMissing.join(', ')}`)
+      logger.info(`Install with: npm add ${deps.join(' ')}`)
+      logger.info('Or run the module again to trigger the onInstall wizard.')
+      return
+    }
+
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 

@@ -63,14 +63,50 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
+    "@css-inline/css-inline": "^0.19.0",
+    "@css-inline/css-inline-wasm": "^0.19.0",
+    "@resvg/resvg-js": "^2.6.0",
+    "@resvg/resvg-wasm": "^2.6.0",
+    "@takumi-rs/core": "^0.62.0",
+    "@takumi-rs/wasm": "^0.62.0",
     "@unhead/vue": "^2.0.5",
+    "playwright-core": "^1.50.0",
+    "satori": "^0.18.0",
+    "sharp": "^0.34.0",
     "unstorage": "^1.15.0"
+  },
+  "peerDependenciesMeta": {
+    "@css-inline/css-inline": {
+      "optional": true
+    },
+    "@css-inline/css-inline-wasm": {
+      "optional": true
+    },
+    "@resvg/resvg-js": {
+      "optional": true
+    },
+    "@resvg/resvg-wasm": {
+      "optional": true
+    },
+    "@takumi-rs/core": {
+      "optional": true
+    },
+    "@takumi-rs/wasm": {
+      "optional": true
+    },
+    "playwright-core": {
+      "optional": true
+    },
+    "satori": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@nuxt/devtools-kit": "catalog:",
     "@nuxt/kit": "catalog:",
-    "@resvg/resvg-js": "catalog:",
-    "@resvg/resvg-wasm": "catalog:",
     "@unocss/core": "catalog:",
     "@unocss/preset-wind3": "catalog:",
     "birpc": "catalog:",
@@ -89,9 +125,7 @@
     "ohash": "catalog:",
     "pathe": "catalog:",
     "pkg-types": "catalog:",
-    "playwright-core": "catalog:",
     "radix3": "catalog:",
-    "satori": "catalog:",
     "satori-html": "catalog:",
     "sirv": "catalog:",
     "std-env": "catalog:",
@@ -104,6 +138,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@css-inline/css-inline": "catalog:",
+    "@css-inline/css-inline-wasm": "catalog:",
     "@headlessui/vue": "catalog:",
     "@iconify-json/carbon": "catalog:",
     "@iconify-json/logos": "catalog:",
@@ -123,6 +158,8 @@
     "@nuxtjs/eslint-config-typescript": "catalog:",
     "@nuxtjs/i18n": "catalog:",
     "@nuxtjs/tailwindcss": "catalog:",
+    "@resvg/resvg-js": "catalog:",
+    "@resvg/resvg-wasm": "catalog:",
     "@takumi-rs/core": "catalog:",
     "@takumi-rs/wasm": "catalog:",
     "@unocss/nuxt": "catalog:",
@@ -136,7 +173,9 @@
     "jest-image-snapshot": "catalog:",
     "nuxt": "catalog:",
     "playwright": "catalog:",
+    "playwright-core": "catalog:",
     "sass": "catalog:",
+    "satori": "catalog:",
     "sharp": "catalog:",
     "typescript": "catalog:",
     "unocss": "catalog:",

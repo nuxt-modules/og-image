@@ -21,6 +21,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^6.7.3
   '@css-inline/css-inline': ^0.19.1
+  '@css-inline/css-inline-wasm': ^0.19.1
   '@headlessui/vue': ^1.7.23
   '@iconify-json/carbon': ^1.2.15
   '@iconify-json/logos': ^1.2.10
