@@ -1,4 +1,5 @@
 import type { OgImageRenderEventContext } from '../../../types'
+// @ts-expect-error optional dependency
 import { parseHTML } from 'linkedom'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
@@ -60,7 +61,8 @@ function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode 
   }
 
   // Handle text-only elements
-  if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+  const firstChild = el.childNodes[0]
+  if (el.childNodes.length === 1 && firstChild?.nodeType === 3) {
     return {
       text: el.textContent || '',
       tw: el.getAttribute('class') || undefined,

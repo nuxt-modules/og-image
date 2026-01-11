@@ -1,4 +1,3 @@
-import type { Renderer as TakumiRendererType } from '@takumi-rs/core'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { fontCache } from '#og-image-cache'
 import { defu } from 'defu'
@@ -42,7 +41,8 @@ async function resolveFonts(event: OgImageRenderEventContext) {
   }))
 }
 
-let _takumiRenderer: InstanceType<typeof TakumiRendererType> | undefined
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _takumiRenderer: any
 
 async function getTakumiRenderer(fonts: Array<{ name: string, data?: BufferSource }>) {
   if (_takumiRenderer)
@@ -60,6 +60,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     resolveFonts(event),
   ])
 
+  // @ts-expect-error runtime hook
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes', nodes, event)
 
   const renderer = await getTakumiRenderer(fonts)
@@ -73,7 +74,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
 const TakumiRenderer: Renderer = {
   name: 'takumi',
-  supportedFormats: ['png', 'jpeg', 'jpg', 'webp'],
+  supportedFormats: ['png', 'jpeg', 'jpg'],
 
   async createImage(e) {
     switch (e.extension) {

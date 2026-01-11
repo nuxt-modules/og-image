@@ -19,6 +19,7 @@ export async function useChromiumRenderer() {
 }
 
 export async function useTakumiRenderer() {
+  // @ts-expect-error virtual module
   takumiRendererInstance.instance = takumiRendererInstance.instance || await import('#og-image/renderers/takumi').then(m => m.default)
   return takumiRendererInstance.instance!
 }
