@@ -61,7 +61,7 @@ describe('takumi renderer', () => {
 })
 
 describe('renderer comparison', () => {
-  it.runIf(hasTakumi)('satori vs takumi - same component', async () => {
+  it.runIf(hasTakumi)('simple component - satori vs takumi', async () => {
     // Render with satori
     const satoriHtml = await $fetch('/prefix/comparison/satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)
@@ -70,7 +70,7 @@ describe('renderer comparison', () => {
       responseType: 'arrayBuffer',
     })
     expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'comparison-satori',
+      customSnapshotIdentifier: 'comparison-simple-satori',
     })
 
     // Render with takumi
@@ -81,7 +81,32 @@ describe('renderer comparison', () => {
       responseType: 'arrayBuffer',
     })
     expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'comparison-takumi',
+      customSnapshotIdentifier: 'comparison-simple-takumi',
+    })
+  }, 60000)
+
+  // Skip NuxtSeo - uses hash-based URLs only supported during prerendering
+  it.skip('NuxtSeo template - satori vs takumi', async () => {
+    // Render with satori
+    const satoriHtml = await $fetch('/prefix/comparison/nuxtseo-satori') as string
+    const satoriUrl = extractOgImageUrl(satoriHtml)
+    expect(satoriUrl).toBeTruthy()
+    const satoriImage: ArrayBuffer = await $fetch(satoriUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-nuxtseo-satori',
+    })
+
+    // Render with takumi
+    const takumiHtml = await $fetch('/prefix/comparison/nuxtseo-takumi') as string
+    const takumiUrl = extractOgImageUrl(takumiHtml)
+    expect(takumiUrl).toBeTruthy()
+    const takumiImage: ArrayBuffer = await $fetch(takumiUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-nuxtseo-takumi',
     })
   }, 60000)
 })
