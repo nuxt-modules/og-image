@@ -1,5 +1,6 @@
 import NuxtOgImage from '../../../src/module'
 
+// Tests takumi renderer with WASM bindings on Cloudflare Workers
 export default defineNuxtConfig({
   modules: [
     NuxtOgImage,
@@ -14,20 +15,10 @@ export default defineNuxtConfig({
     defaults: {
       renderer: 'takumi',
     },
-    // force wasm bindings for edge
-    compatibility: {
-      runtime: {
-        takumi: 'wasm',
-        resvg: 'wasm',
-        satori: false,
-        chromium: false,
-        sharp: false,
-      },
-    },
   },
 
   nitro: {
-    preset: 'cloudflare-pages',
+    preset: 'cloudflare-module',
     prerender: {
       routes: [
         '/',

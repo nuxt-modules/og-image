@@ -188,6 +188,14 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
 
+  // linkedom has optional canvas dependency that doesn't exist on edge runtimes
+  const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(target)
+  if (isEdgePreset) {
+    const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
+    nitroConfig.virtual = nitroConfig.virtual || {}
+    nitroConfig.virtual.canvas = mockCode
+  }
+
   nitroConfig.virtual!['#og-image/compatibility'] = () => `export default ${JSON.stringify(resolvedCompatibility)}`
   addTemplate({
     filename: 'nuxt-og-image/compatibility.mjs',
