@@ -1,0 +1,10 @@
+name = "og-image-cloudflare-satori-test"
+main = ".output/server/index.mjs"
+compatibility_date = "2024-07-13"
+compatibility_flags = ["nodejs_compat"]
+
+[site]
+bucket = ".output/public"
+
+[build]
+command = ""
