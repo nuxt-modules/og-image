@@ -107,6 +107,8 @@ export default defineNuxtConfig({
     //     port: 6379,
     //   },
     // },
+    // Enable for CI persistent caching:
+    // buildCache: true,
     debug: true,
   },
 

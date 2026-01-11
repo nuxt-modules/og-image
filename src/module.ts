@@ -130,7 +130,15 @@ export interface ModuleOptions {
    * Only allow the prerendering and dev runtimes to generate images.
    */
   zeroRuntime?: boolean
-
+  /**
+   * Enable persistent build cache for CI environments.
+   * Caches rendered images to disk so they persist between CI runs.
+   *
+   * @default false
+   * @example true
+   * @example { base: '.cache/og-image' }
+   */
+  buildCache?: boolean | { base?: string }
 }
 
 export interface ModuleHooks {
@@ -629,6 +637,14 @@ export {}
       nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
       nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
     }
+
+    // Build cache for CI persistence (absolute path)
+    const buildCachePath = typeof config.buildCache === 'object' && config.buildCache.base
+      ? config.buildCache.base
+      : 'node_modules/.cache/nuxt/og-image'
+    const buildCacheDir = config.buildCache
+      ? resolve(nuxt.options.rootDir, buildCachePath)
+      : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
       const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
@@ -661,6 +677,7 @@ export {}
         debug: config.debug,
         // avoid adding credentials
         baseCacheKey,
+        buildCacheDir,
         // convert the fonts to uniform type to fix ts issue
         fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
