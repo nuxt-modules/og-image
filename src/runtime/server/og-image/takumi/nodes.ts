@@ -6,6 +6,7 @@ import { applyEmojis } from '../satori/transforms/emojis'
 import { applyInlineCss } from '../satori/transforms/inlineCss'
 
 export interface TakumiNode {
+  type: 'container' | 'image' | 'text'
   children?: TakumiNode[]
   text?: string
   src?: string
@@ -29,9 +30,10 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
 
   const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
   const { document } = parseHTML(template)
-  const root = document.body.firstElementChild || document.body
+  // linkedom puts the content at document.documentElement when parsing fragments
+  const root = document.documentElement as Element
 
-  return elementToNode(root as Element, ctx)
+  return elementToNode(root, ctx)
 }
 
 function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode {
@@ -40,6 +42,7 @@ function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode 
   // Handle images
   if (tagName === 'img') {
     return {
+      type: 'image',
       src: resolveImageSrc(el.getAttribute('src') || '', ctx),
       width: Number(el.getAttribute('width')) || undefined,
       height: Number(el.getAttribute('height')) || undefined,
@@ -53,6 +56,7 @@ function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode 
     const svgString = el.outerHTML
     const dataUri = `data:image/svg+xml;base64,${Buffer.from(svgString).toString('base64')}`
     return {
+      type: 'image',
       src: dataUri,
       width: Number(el.getAttribute('width')) || undefined,
       height: Number(el.getAttribute('height')) || undefined,
@@ -63,6 +67,7 @@ function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode 
   const firstChild = el.childNodes[0]
   if (el.childNodes.length === 1 && firstChild?.nodeType === 3) {
     return {
+      type: 'text',
       text: el.textContent || '',
       tw: el.getAttribute('class') || undefined,
       style: parseStyleAttr(el.getAttribute('style')),
@@ -75,10 +80,11 @@ function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode 
     if (child.nodeType === 1)
       children.push(elementToNode(child as Element, ctx))
     else if (child.nodeType === 3 && child.textContent?.trim())
-      children.push({ text: child.textContent.trim() })
+      children.push({ type: 'text', text: child.textContent.trim() })
   }
 
   return {
+    type: 'container',
     children: children.length ? children : undefined,
     tw: el.getAttribute('class') || undefined,
     style: parseStyleAttr(el.getAttribute('style')),

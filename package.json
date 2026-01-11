@@ -123,6 +123,8 @@
     "@nuxtjs/eslint-config-typescript": "catalog:",
     "@nuxtjs/i18n": "catalog:",
     "@nuxtjs/tailwindcss": "catalog:",
+    "@takumi-rs/core": "catalog:",
+    "@takumi-rs/wasm": "catalog:",
     "@unocss/nuxt": "catalog:",
     "@unocss/preset-icons": "catalog:",
     "@unocss/runtime": "catalog:",

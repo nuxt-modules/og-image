@@ -64,11 +64,13 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const renderer = await getTakumiRenderer(fonts)
 
-  return renderer.render(nodes, defu(options.takumi, {
+  const renderOptions = defu(options.takumi, {
     width: options.width!,
     height: options.height!,
     format,
-  })).catch((err: Error) => sendError(event.e, err, import.meta.dev))
+  })
+
+  return renderer.render(nodes, renderOptions).catch((err: Error) => sendError(event.e, err, import.meta.dev))
 }
 
 const TakumiRenderer: Renderer = {
