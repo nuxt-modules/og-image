@@ -55,7 +55,6 @@ describe('takumi renderer', () => {
   }, 60000)
 
   it.runIf(!hasTakumi)('skips takumi tests when @takumi-rs/core not installed', () => {
-    console.log('Skipping takumi tests - @takumi-rs/core not installed')
     expect(true).toBe(true)
   })
 })
@@ -110,7 +109,7 @@ describe('renderer comparison', () => {
   }, 60000)
 
   // Skip NuxtSeo - uses hash-based URLs only supported during prerendering
-  it.skip('NuxtSeo template - satori vs takumi', async () => {
+  it.skip('nuxtseo template - satori vs takumi', async () => {
     // Render with satori
     const satoriHtml = await $fetch('/prefix/comparison/nuxtseo-satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)
