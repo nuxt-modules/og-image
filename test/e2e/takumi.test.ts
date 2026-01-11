@@ -85,6 +85,30 @@ describe('renderer comparison', () => {
     })
   }, 60000)
 
+  it.runIf(hasTakumi)('complex component - satori vs takumi', async () => {
+    // Render with satori
+    const satoriHtml = await $fetch('/prefix/comparison/complex-satori') as string
+    const satoriUrl = extractOgImageUrl(satoriHtml)
+    expect(satoriUrl).toBeTruthy()
+    const satoriImage: ArrayBuffer = await $fetch(satoriUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-complex-satori',
+    })
+
+    // Render with takumi
+    const takumiHtml = await $fetch('/prefix/comparison/complex-takumi') as string
+    const takumiUrl = extractOgImageUrl(takumiHtml)
+    expect(takumiUrl).toBeTruthy()
+    const takumiImage: ArrayBuffer = await $fetch(takumiUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-complex-takumi',
+    })
+  }, 60000)
+
   // Skip NuxtSeo - uses hash-based URLs only supported during prerendering
   it.skip('NuxtSeo template - satori vs takumi', async () => {
     // Render with satori
