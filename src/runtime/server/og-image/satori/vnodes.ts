@@ -9,7 +9,6 @@ import flex from './plugins/flex'
 import imageSrc from './plugins/imageSrc'
 import nuxtIcon from './plugins/nuxt-icon'
 import unocss from './plugins/unocss'
-import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
 import { walkSatoriTree } from './utils'
 
@@ -22,7 +21,6 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     island.html = htmlDecodeQuotes(island.html)
     // pre-transform HTML
     await applyInlineCss(ctx, island)
-    await applyEmojis(ctx, island)
     html = island.html
     if (html?.includes('<body>')) {
       // get inner contents of body
@@ -35,7 +33,6 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   const satoriTree = convertHtmlToSatori(template)
   // do sync transforms
   walkSatoriTree(ctx, satoriTree, [
-    emojis,
     classes,
     flex,
     encoding,
@@ -43,6 +40,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   ])
   // do async transforms
   await Promise.all(walkSatoriTree(ctx, satoriTree, [
+    emojis,
     unocss,
     imageSrc,
   ]))

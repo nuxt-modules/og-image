@@ -1,2 +1,3 @@
 imports.autoImport=true
 typescript.includeWorkspace=true
+setups.nuxt-og-image="5.1.13"
