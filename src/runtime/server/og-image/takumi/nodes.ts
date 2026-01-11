@@ -1,5 +1,4 @@
 import type { OgImageRenderEventContext } from '../../../types'
-// @ts-expect-error optional dependency
 import { parseHTML } from 'linkedom'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'

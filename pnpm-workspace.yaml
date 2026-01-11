@@ -63,6 +63,7 @@ catalog:
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
   json-editor-vue: ^0.18.1
+  linkedom: ^0.18.9
   magic-string: ^0.30.21
   mocked-exports: ^0.1.1
   nuxt: ^4.2.2
