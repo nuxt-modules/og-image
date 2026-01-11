@@ -161,7 +161,8 @@ async function resolveFonts(event: OgImageRenderEventContext) {
 let _takumiRenderer: any
 
 async function getTakumiRenderer(fonts: Array<{ name: string, data?: BufferSource }>) {
-  if (_takumiRenderer) return _takumiRenderer
+  if (_takumiRenderer)
+    return _takumiRenderer
   const { Renderer } = await useTakumi()
   _takumiRenderer = new Renderer({ fonts: fonts.filter(f => f.data) })
   return _takumiRenderer
@@ -324,7 +325,8 @@ async function resolveImageSrc(src: string, ctx: OgImageRenderEventContext): Pro
 }
 
 function parseStyleAttr(style: string | null): Record<string, any> | undefined {
-  if (!style) return undefined
+  if (!style)
+    return undefined
   const result: Record<string, any> = {}
   for (const decl of style.split(';')) {
     const [prop, ...valParts] = decl.split(':')
@@ -349,7 +351,8 @@ Lazy-loading takumi binding:
 let _takumi: { Renderer: any } | undefined
 
 export async function useTakumi() {
-  if (_takumi) return _takumi
+  if (_takumi)
+    return _takumi
   const binding = await import('#og-image/bindings/takumi')
   await binding.initPromise
   _takumi = binding
@@ -371,7 +374,7 @@ export const initPromise = Promise.resolve()
 
 #### `src/runtime/server/og-image/bindings/takumi/wasm.ts`
 ```typescript
-import { Renderer, init } from '@takumi-rs/wasm'
+import { init, Renderer } from '@takumi-rs/wasm'
 
 // Dynamic import of WASM module
 const wasmBinary = import('@takumi-rs/wasm/wasm?module' as string)
@@ -570,7 +573,8 @@ Takumi uses WeakSet internally for font caching. Declare fonts at module scope f
 let _fonts: Font[] | undefined
 
 export async function getFonts(): Promise<Font[]> {
-  if (_fonts) return _fonts
+  if (_fonts)
+    return _fonts
   _fonts = await loadFonts()
   return _fonts
 }
@@ -584,7 +588,8 @@ For optimal performance, reuse the Renderer instance across requests:
 let _renderer: InstanceType<typeof Renderer> | undefined
 
 async function getRenderer() {
-  if (_renderer) return _renderer
+  if (_renderer)
+    return _renderer
   const { Renderer } = await import('#og-image/bindings/takumi')
   const fonts = await getFonts()
   _renderer = new Renderer({ fonts })

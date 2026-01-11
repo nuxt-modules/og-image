@@ -41,7 +41,6 @@ async function resolveFonts(event: OgImageRenderEventContext) {
   }))
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _takumiRenderer: any
 
 async function getTakumiRenderer(fonts: Array<{ name: string, data?: BufferSource }>) {

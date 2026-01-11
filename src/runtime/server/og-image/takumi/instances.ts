@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const takumiInstance: { instance?: { initWasmPromise: Promise<void>, Renderer: any } } = { instance: undefined }
 
 export async function useTakumi() {
