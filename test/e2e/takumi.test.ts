@@ -59,3 +59,29 @@ describe('takumi renderer', () => {
     expect(true).toBe(true)
   })
 })
+
+describe('renderer comparison', () => {
+  it.runIf(hasTakumi)('satori vs takumi - same component', async () => {
+    // Render with satori
+    const satoriHtml = await $fetch('/prefix/comparison/satori') as string
+    const satoriUrl = extractOgImageUrl(satoriHtml)
+    expect(satoriUrl).toBeTruthy()
+    const satoriImage: ArrayBuffer = await $fetch(satoriUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-satori',
+    })
+
+    // Render with takumi
+    const takumiHtml = await $fetch('/prefix/comparison/takumi') as string
+    const takumiUrl = extractOgImageUrl(takumiHtml)
+    expect(takumiUrl).toBeTruthy()
+    const takumiImage: ArrayBuffer = await $fetch(takumiUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-takumi',
+    })
+  }, 60000)
+})
