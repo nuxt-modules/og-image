@@ -64,7 +64,7 @@ async function startWrangler(): Promise<string> {
 
     proc.stdout?.on('data', (data) => {
       output += data.toString()
-      const match = output.match(/Ready on (http:\/\/[^\s]+)/)
+      const match = output.match(/Ready on (http:\/\/\S+)/)
       if (match) {
         resolve(match[1])
       }
