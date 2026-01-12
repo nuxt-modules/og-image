@@ -14,15 +14,22 @@
  * - Emoji with variation selectors (❤️)
  * - Emoji with skin tone modifiers (👋🏽)
  * - ZWJ sequences like family emojis (👨‍👩‍👧)
- * - Flag sequences (🏳️‍🌈)
+ * - Flag sequences (🇺🇸, 🏳️‍🌈)
+ * - Keycap sequences (1️⃣, #️⃣)
+ *
+ * Important: Uses \p{Extended_Pictographic} instead of \p{Emoji} to avoid matching
+ * plain digits (0-9), # and * which are technically emoji-capable but shouldn't
+ * be treated as emojis when appearing alone.
  *
  * Pattern breakdown:
- * - \p{Emoji} matches base emoji characters
- * - \uFE0F? optional variation selector for emoji presentation
+ * - \p{Extended_Pictographic} matches pictographic emoji characters
+ * - [\d#*]\uFE0F\u20E3 matches keycap sequences (digit/hash/asterisk + variation selector + combining enclosing keycap)
+ * - \p{Regional_Indicator}{2} matches flag emoji pairs
+ * - \p{Emoji_Modifier} handles skin tone modifiers
+ * - \uFE0F is variation selector for emoji presentation
  * - \u200D is Zero Width Joiner for combining emojis
- * - \p{Emoji_Modifier}? handles skin tone modifiers
  */
-export const RE_MATCH_EMOJIS = /\p{Emoji}(?:\p{Emoji_Modifier}|\uFE0F|\u200D\p{Emoji})*/gu
+export const RE_MATCH_EMOJIS = /(?:\p{Extended_Pictographic}|[\d#*]\uFE0F\u20E3|\p{Regional_Indicator}{2})(?:\p{Emoji_Modifier}|\uFE0F|\u200D[\p{Extended_Pictographic}\p{Emoji}])*/gu
 
 // Common emoji prefixes used by Iconify sets
 export const EMOJI_PREFIXES: Record<string, string[]> = {

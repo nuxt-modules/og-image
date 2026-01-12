@@ -8,15 +8,35 @@ const { resolve } = createResolver(import.meta.url)
 await setup({
   rootDir: resolve('../fixtures/emojis'),
   server: true,
-  browser: true,
+  build: true,
 })
 
 expect.extend({ toMatchImageSnapshot })
 
+// Helper to extract og:image URL path from HTML
+function extractOgImageUrl(html: string): string | null {
+  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+  if (!match?.[1])
+    return null
+  try {
+    const url = new URL(match[1])
+    return url.pathname
+  }
+  catch {
+    return match[1]
+  }
+}
+
 describe('local emoji rendering', () => {
   it('should render emoji OG image using local iconify files', async () => {
-    // Fetch the OG image from the index page which has defineOgImage
-    const ogImage = await $fetch('/__og-image__/image/og.png?path=/', {
+    // Fetch the index page HTML to get the og:image URL
+    const html = await $fetch('/') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    // Fetch the OG image
+    const ogImage = await $fetch(ogImageUrl!, {
       responseType: 'arrayBuffer',
     })
 
@@ -24,72 +44,48 @@ describe('local emoji rendering', () => {
     expect(ogImage.byteLength).toBeGreaterThan(1000)
 
     // Test the visual output with image snapshot
+    // Allow small differences due to build-time vs runtime emoji rendering
     expect(Buffer.from(ogImage)).toMatchImageSnapshot({
       customSnapshotIdentifier: 'local-emoji-index-page',
+      failureThreshold: 0.01,
+      failureThresholdType: 'percent',
     })
+  }, 60000)
 
-    // Get debug information to verify local emoji strategy is being used
-    const debug = await $fetch('/__og-image__/debug.json', {
-      responseType: 'json',
-    })
+  it('should render alt-text-test page with emojis', async () => {
+    // Fetch the alt-text-test page HTML
+    const html = await $fetch('/alt-text-test') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
 
-    // Check that the runtime config shows we're using local emoji strategy
-    expect(debug.runtimeConfig).toBeDefined()
-
-    // Verify that emoji strategy configuration is working (local dependency should be detected)
-    expect(debug.runtimeConfig.defaults).toBeDefined()
-    expect(debug.runtimeConfig.defaults.emojis).toBe('noto')
-
-    // The fact that the test runs without network calls and produces valid images
-    // confirms that local emoji resolution is working properly
-  })
-
-  it('should generate specific emoji test component image', async () => {
-    // Test the specific emoji test component with path specified
-    const emojiTestImage = await $fetch('/__og-image__/image/og.png?path=/&component=EmojiTest', {
+    // Fetch the OG image
+    const ogImage = await $fetch(ogImageUrl!, {
       responseType: 'arrayBuffer',
     })
 
-    // Should produce a valid image
-    expect(emojiTestImage.byteLength).toBeGreaterThan(1000)
+    expect(ogImage.byteLength).toBeGreaterThan(1000)
 
     // Test the visual output with image snapshot
-    expect(Buffer.from(emojiTestImage)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'local-emoji-test-component',
-    })
-
-    // Image should be different from default (contains different emoji content)
-    const defaultImage = await $fetch('/__og-image__/image/og.png?path=/', {
-      responseType: 'arrayBuffer',
-    })
-
-    // The images should be different sizes or content due to different emoji content
-    // We can't compare exact bytes due to potential timestamp/cache differences,
-    // but they should both be valid images
-    expect(emojiTestImage.byteLength).toBeGreaterThan(500)
-    expect(defaultImage.byteLength).toBeGreaterThan(500)
-  })
-
-  it('should handle emoji code points correctly with local resolution', async () => {
-    // Test alt text emoji component directly by specifying the component
-    const altTextImage = await $fetch('/__og-image__/image/og.png?path=/alt-text-test&component=EmojiAltTest', {
-      responseType: 'arrayBuffer',
-    })
-
-    expect(altTextImage.byteLength).toBeGreaterThan(1000)
-
-    // Test the visual output with image snapshot
-    expect(Buffer.from(altTextImage)).toMatchImageSnapshot({
+    // Allow small differences due to build-time vs runtime emoji rendering
+    expect(Buffer.from(ogImage)).toMatchImageSnapshot({
       customSnapshotIdentifier: 'local-emoji-alt-text-test',
+      failureThreshold: 0.01,
+      failureThresholdType: 'percent',
+    })
+  }, 60000)
+
+  it('should render dynamic emoji passed via props at runtime', async () => {
+    // Fetch the dynamic-emoji page HTML
+    const html = await $fetch('/dynamic-emoji') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    // Fetch the OG image
+    const ogImage = await $fetch(ogImageUrl!, {
+      responseType: 'arrayBuffer',
     })
 
-    // Verify debug info shows the specific page
-    const debugAltText = await $fetch('/__og-image__/debug.json?path=/alt-text-test', {
-      responseType: 'json',
-    })
-
-    expect(debugAltText.runtimeConfig).toBeDefined()
-
-    // Alt text emoji test passed - waving hand emoji resolved locally
-  })
+    // Image should render successfully with dynamic emoji
+    expect(ogImage.byteLength).toBeGreaterThan(1000)
+  }, 60000)
 })

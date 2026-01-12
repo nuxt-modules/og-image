@@ -14,18 +14,10 @@ import type {
   ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
-
-export type {
-  OgImageComponent,
-  OgImageOptions,
-  OgImageRuntimeConfig,
-  RuntimeCompatibilitySchema,
-} from './runtime/types'
-export type { OgImageRenderEventContext, VNode } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -56,6 +48,14 @@ import {
   getMissingDependencies,
   getProviderDependencies,
 } from './utils/dependencies'
+
+export type {
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
+} from './runtime/types'
+export type { OgImageRenderEventContext, VNode } from './runtime/types'
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
@@ -289,8 +289,12 @@ export default defineNuxtModule<ModuleOptions>({
       // add nitro virtual import for the iconify import
       nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
       nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
-        return `export { icons } from '${emojiPkg}/icons.json'`
+        return `export { icons, width, height } from '${emojiPkg}/icons.json'`
       }
+      // Add build-time emoji transform plugin to replace emojis in OgImage component templates
+      // This fixes satori issues where the first emoji in a sequence renders incorrectly
+      const { emojiTransformPlugin } = await import('./build/emoji-transform')
+      addVitePlugin(emojiTransformPlugin.vite({ emojiSet: config.defaults.emojis || 'noto', componentDirs: config.componentDirs }))
     }
     else {
       logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
