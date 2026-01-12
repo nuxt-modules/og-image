@@ -31,6 +31,8 @@ export interface OgImageRenderEventContext {
 
 export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'streamline-emojis' | 'openmoji'
 
+export type EmojiStrategy = 'auto' | 'local' | 'fetch'
+
 export interface OgImageRuntimeConfig {
   version: string
   satoriOptions: SatoriOptions
@@ -210,7 +212,9 @@ export type ExtractComponentProps<T extends Component> = T extends new (...args:
 
 export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'renderer' | 'component' | 'satori' | 'resvg' | 'sharp'>
 
-export type VNode = ReturnType<typeof html>
+export type VNode = ReturnType<typeof html> & {
+  _emojiMatches?: RegExpMatchArray | null
+}
 
 export interface SatoriTransformer {
   filter: (node: VNode) => boolean
