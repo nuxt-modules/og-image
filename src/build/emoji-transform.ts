@@ -1,7 +1,9 @@
 import type { IconifyJSON } from '@iconify/types'
 import MagicString from 'magic-string'
 import { createUnplugin } from 'unplugin'
-import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
+// Minimal emoji mapping (~100 common emojis), use Nuxt Icon for more
+import { EMOJI_CODEPOINT_TO_NAME } from '../runtime/server/og-image/satori/transforms/emojis/emoji-names-minimal'
+import { getEmojiCodePoint, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
 
 let emojiCounter = 0
 
@@ -42,12 +44,16 @@ function makeIdsUnique(svg: string): string {
   return result
 }
 
-function buildEmojiSvg(emoji: string, icons: IconifyJSON): string | null {
-  const codePoint = getEmojiCodePoint(emoji)
-  // Use noto as default since that's what module defaults to
-  const possibleNames = getEmojiIconNames(codePoint, 'noto')
+function getIconName(codePoint: string, emojiMap: Record<string, string>): string | undefined {
+  const baseCodePoint = codePoint.replace(/-fe0f$/i, '')
+  return emojiMap[codePoint] || emojiMap[baseCodePoint]
+}
 
-  for (const iconName of possibleNames) {
+function buildEmojiSvg(emoji: string, icons: IconifyJSON, emojiMap: Record<string, string>): string | null {
+  const codePoint = getEmojiCodePoint(emoji)
+  const iconName = getIconName(codePoint, emojiMap)
+
+  if (iconName) {
     const iconData = icons.icons?.[iconName]
     if (iconData) {
       const body = wrapDefsElements(iconData.body || '')
@@ -127,7 +133,7 @@ export const emojiTransformPlugin = createUnplugin((options: EmojiTransformOptio
         let newTextContent = textContent
         for (const match of emojiMatches) {
           const emoji = match[0]
-          const svg = buildEmojiSvg(emoji, loadedIcons)
+          const svg = buildEmojiSvg(emoji, loadedIcons, EMOJI_CODEPOINT_TO_NAME)
           if (svg) {
             hasChanges = true
             const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

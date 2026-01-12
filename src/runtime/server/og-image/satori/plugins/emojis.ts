@@ -1,5 +1,4 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
-// @ts-expect-error virtual module alias set in module.ts
 import { getEmojiSvg } from '#og-image/emoji-transform'
 import { html as convertHtmlToSatori } from 'satori-html'
 import { RE_MATCH_EMOJIS } from '../transforms/emojis/emoji-utils'
@@ -16,11 +15,15 @@ export default defineSatoriTransformer([
     filter: (node: VNode) => {
       if (typeof node.props?.children !== 'string')
         return false
+      // Reset lastIndex before test() to avoid issues with the global regex flag
+      RE_MATCH_EMOJIS.lastIndex = 0
       return RE_MATCH_EMOJIS.test(node.props.children)
     },
     transform: async (node: VNode, ctx: OgImageRenderEventContext) => {
       const text = node.props.children as string
 
+      // Reset lastIndex before matchAll to ensure all matches are found
+      RE_MATCH_EMOJIS.lastIndex = 0
       // Use matchAll to get matches with indices for proper handling of repeated emojis
       const matches = [...text.matchAll(RE_MATCH_EMOJIS)]
       if (!matches.length)
@@ -49,11 +52,15 @@ export default defineSatoriTransformer([
           const nodeChildren = parsedNode?.props?.children as VNode[] | undefined
           if (nodeChildren?.[0]) {
             const svgNode = nodeChildren[0] as VNode
-            // Apply emoji styling
+            // Apply emoji styling - remove unsupported display:inline-block
             if (svgNode.props) {
               svgNode.props['data-emoji'] = true
+              const existingStyle = svgNode.props.style || {}
+              // Remove display:inline-block as Satori doesn't support it
+              if (existingStyle.display === 'inline-block')
+                delete existingStyle.display
               svgNode.props.style = {
-                ...svgNode.props.style,
+                ...existingStyle,
                 width: '1em',
                 height: '1em',
               }
@@ -80,9 +87,9 @@ export default defineSatoriTransformer([
           children.push(afterText)
       }
 
-      // Update the node to have multiple children instead of a single text string
-      if (children.length > 1) {
-        // Convert all children to VNodes (wrap strings in divs)
+      // Update the node's children and ensure display:flex for Satori compatibility
+      if (children.length >= 1) {
+        // Convert all children to VNodes for consistent handling
         const vnodeChildren: VNode[] = children.map((child) => {
           if (typeof child === 'string') {
             return {
@@ -94,8 +101,11 @@ export default defineSatoriTransformer([
           }
           return child
         })
-
         node.props.children = vnodeChildren
+        // Satori requires explicit display:flex when element has array children
+        node.props.style = node.props.style || {}
+        node.props.style.display = 'flex'
+        node.props.style.alignItems = 'center'
       }
     },
   },
@@ -107,6 +117,9 @@ export default defineSatoriTransformer([
       ),
     transform: (node: VNode) => {
       node.props.style = node.props.style || {}
+      // Satori requires explicit display:flex when element has multiple children
+      node.props.style.display = 'flex'
+      node.props.style.alignItems = 'center'
       // check if any children nodes are just strings, wrap in a div
       node.props.children = (node.props.children as VNode[]).map((child) => {
         if (typeof child === 'string') {

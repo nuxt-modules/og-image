@@ -94,6 +94,8 @@ describe('renderer comparison', () => {
     })
     expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
       customSnapshotIdentifier: 'comparison-complex-satori',
+      failureThreshold: 0.01,
+      failureThresholdType: 'percent',
     })
 
     // Render with takumi

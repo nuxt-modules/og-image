@@ -97,7 +97,7 @@ catalog:
   unocss: ^66.5.12
   unplugin: ^2.3.11
   unwasm: ^0.5.2
-  vitest: ^4.0.16
+  vitest: ^4.0.17
   vue: ^3.5.26
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2

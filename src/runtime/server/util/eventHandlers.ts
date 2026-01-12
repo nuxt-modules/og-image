@@ -78,11 +78,11 @@ export async function fontEventHandler(e: H3Event) {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1',
     },
-  }) as string
+  }).catch(() => null) as string | null
   if (!css) {
     return createError({
-      statusCode: 500,
-      statusMessage: `[Nuxt OG Image] Invalid Google Font ${name}:${weight}`,
+      statusCode: 502,
+      statusMessage: `[Nuxt OG Image] Failed to fetch Google Font ${name}:${weight}. Network may be unavailable.`,
     })
   }
 

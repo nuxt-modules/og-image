@@ -61,18 +61,25 @@ const KNOWN_PARAMS = new Set([
 // Params that need base64 encoding (complex objects, or values with slashes)
 const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'fonts', '_query', '_path'])
 
-// Base64 encode/decode helpers (works in both browser and Node)
+// Base64 encode/decode helpers (works in both browser and Node, handles Unicode)
 function b64Encode(str: string): string {
-  if (typeof btoa === 'function')
-    return btoa(str).replace(/=/g, '')
-  return Buffer.from(str).toString('base64').replace(/=/g, '')
+  // UTF-8 encode first to handle Unicode (emojis, etc.)
+  if (typeof btoa === 'function') {
+    const utf8 = new TextEncoder().encode(str)
+    const binary = String.fromCharCode(...utf8)
+    return btoa(binary).replace(/=/g, '')
+  }
+  return Buffer.from(str, 'utf8').toString('base64').replace(/=/g, '')
 }
 
 function b64Decode(str: string): string {
   const padded = str + '='.repeat((4 - (str.length % 4)) % 4)
-  if (typeof atob === 'function')
-    return atob(padded)
-  return Buffer.from(padded, 'base64').toString()
+  if (typeof atob === 'function') {
+    const binary = atob(padded)
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+    return new TextDecoder().decode(bytes)
+  }
+  return Buffer.from(padded, 'base64').toString('utf8')
 }
 
 /**
@@ -158,12 +165,10 @@ export function encodeOgImageParams(options: Record<string, any>): string {
       parts.push(`${alias}_${b64}`)
     }
     else {
-      // Simple value - URL encode spaces as +, escape commas, underscores, and slashes
-      const encoded = String(value)
-        .replace(/_/g, '__')
-        .replace(/,/g, '%2C')
-        .replace(/\//g, '%2F')
-        .replace(/ /g, '+')
+      // Simple value - URL encode for special chars including emojis
+      // First encode underscores, then use encodeURIComponent for unicode
+      const encoded = encodeURIComponent(String(value).replace(/_/g, '__'))
+        .replace(/%20/g, '+') // spaces as +
       parts.push(`${alias}_${encoded}`)
     }
   }
@@ -219,11 +224,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else if (KNOWN_PARAMS.has(paramName)) {
       // Known OgImageOptions param - decode value
-      value = value
-        .replace(/\+/g, ' ')
-        .replace(/%2C/g, ',')
-        .replace(/%2F/g, '/')
-        .replace(/__/g, '_')
+      value = decodeURIComponent(value.replace(/\+/g, '%20')).replace(/__/g, '_')
       // Try to parse as number or boolean
       if (value === 'true') {
         options[paramName] = true
@@ -238,11 +239,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else {
       // Unknown param - treat as component prop
-      value = value
-        .replace(/\+/g, ' ')
-        .replace(/%2C/g, ',')
-        .replace(/%2F/g, '/')
-        .replace(/__/g, '_')
+      value = decodeURIComponent(value.replace(/\+/g, '%20')).replace(/__/g, '_')
       options.props = options.props || {}
       // Try to parse as number or boolean
       if (value === 'true') {
