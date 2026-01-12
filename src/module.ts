@@ -14,6 +14,14 @@ import type {
   ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
+
+export type {
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
+} from './runtime/types'
+export type { OgImageRenderEventContext, VNode } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -602,7 +610,7 @@ export default defineNuxtModule<ModuleOptions>({
     registerTypeTemplates({
       nuxt,
       config,
-      components: ogImageComponentCtx.components,
+      componentCtx: ogImageComponentCtx,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false

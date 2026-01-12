@@ -58,7 +58,7 @@
     "prepare:fixtures": "nuxt prepare test/fixtures/basic",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures",
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
-    "typecheck": "nuxt typecheck",
+    "typecheck": "nuxt-module-build prepare && nuxt typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
     "test:chrome": "HAS_CHROME=true vitest"
   },

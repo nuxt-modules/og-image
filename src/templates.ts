@@ -7,24 +7,17 @@ import { relative, resolve } from 'pathe'
 interface TemplateContext {
   nuxt: Nuxt
   config: ModuleOptions
-  components: OgImageComponent[]
-}
-
-function getTypesPath(nuxt: Nuxt) {
-  return relative(
-    resolve(nuxt.options.rootDir, nuxt.options.buildDir, 'module'),
-    resolve('runtime/types'),
-  )
+  componentCtx: { components: OgImageComponent[] }
 }
 
 export function registerTypeTemplates(ctx: TemplateContext) {
-  const { nuxt, config, components } = ctx
+  const { nuxt, config, componentCtx } = ctx
 
   // Nuxt-only: component types for client-side usage
   addTypeTemplate({
     filename: 'module/nuxt-og-image-components.d.ts',
     getContents: () => {
-      const componentImports = components.map((component) => {
+      const componentImports = componentCtx.components.map((component) => {
         const relativeComponentPath = relative(
           resolve(nuxt.options.rootDir, nuxt.options.buildDir, 'module'),
           component.path!,
@@ -46,11 +39,11 @@ declare module '#og-image/unocss-config' {
     },
   }, { nuxt: true })
 
-  // Nitro-only: server-side virtual modules
+  // Server-side virtual modules (for both nuxt and nitro typecheck)
   addTypeTemplate({
     filename: 'module/nuxt-og-image-server.d.ts',
     getContents: (data) => {
-      const typesPath = getTypesPath(data.nuxt!)
+      const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
       return `declare module '#og-image/compatibility' {
   const compatibility: Partial<Omit<import('${typesPath}').RuntimeCompatibilitySchema, 'wasm'>>
   export default compatibility
@@ -60,13 +53,13 @@ declare module '#og-image-virtual/component-names.mjs' {
 }
 `
     },
-  }, { nitro: true })
+  })
 
-  // Nitro-only: nitropack augmentations
+  // Nitropack augmentations (for both nuxt and nitro typecheck)
   addTypeTemplate({
     filename: 'module/nuxt-og-image-nitro.d.ts',
     getContents: (data) => {
-      const typesPath = getTypesPath(data.nuxt!)
+      const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
       const types = `interface NitroRouteRules {
     ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
   }
@@ -90,5 +83,5 @@ ${types}
 export {}
 `
     },
-  }, { nitro: true })
+  })
 }
