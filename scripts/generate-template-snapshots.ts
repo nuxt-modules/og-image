@@ -12,6 +12,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -81,13 +82,6 @@ const templates: { name: string, props: Record<string, any> }[] = [
     },
   },
   {
-    name: 'Aurora',
-    props: {
-      title: 'Discover the Northern Lights',
-      description: 'An ethereal journey through the cosmos',
-    },
-  },
-  {
     name: 'Retro',
     props: {
       title: 'Welcome to the Grid',
@@ -126,14 +120,15 @@ async function generateSnapshots() {
     console.log(`\n--- ${dim.label} (${dim.width}x${dim.height}) ---`)
 
     for (const template of templates) {
-      const params = new URLSearchParams()
-      params.set('component', template.name)
-      params.set('width', String(dim.width))
-      params.set('height', String(dim.height))
-      for (const [key, value] of Object.entries(template.props)) {
-        params.set(key, String(value))
-      }
-      const url = `${baseUrl}/__og-image__/image/templates/${template.name}/og.png?${params.toString()}`
+      // Build URL using new /_og/d/ format with encoded params in path
+      const encoded = encodeOgImageParams({
+        component: template.name,
+        width: dim.width,
+        height: dim.height,
+        emojis: 'noto',
+        props: template.props,
+      })
+      const url = `${baseUrl}/_og/d/${encoded}.png`
       const outputPath = join(outputDir, `${dim.prefix}${template.name}.png`)
 
       process.stdout.write(`  ${dim.prefix}${template.name}... `)

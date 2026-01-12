@@ -40,7 +40,7 @@ const formattedDate = computed(() => {
     <div class="px-12 pt-6 pb-4 border-b-2 border-black">
       <div class="flex items-end justify-between">
         <p class="text-sm leading-1.5 tracking-[0.2em] uppercase text-black/60">
-          foo: {{ formattedDate }}
+          {{ formattedDate }}
         </p>
         <h2 class="text-4xl leading-1 font-black tracking-tight text-black uppercase" style="font-style: italic; line-height: 20px;">
           {{ publication }}

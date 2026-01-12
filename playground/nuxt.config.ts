@@ -74,7 +74,6 @@ export default defineNuxtConfig({
         '/templates/Pergel',
         '/templates/UnJs',
         '/templates/Brutalist',
-        '/templates/Aurora',
         '/templates/Retro',
         '/templates/Newspaper',
       ],

@@ -33,7 +33,7 @@ const title = computed(() => props.title.slice(0, 60))
       </defs>
     </svg>
 
-    <div class="max-w-[700px] pl-16 pr-[280px] relative z-10">
+    <div class="max-w-[60%] pl-16 relative z-10">
       <p v-if="headline" class="uppercase text-[22px] text-amber-400 mb-3 font-semibold tracking-wider">
         {{ headline }}
       </p>

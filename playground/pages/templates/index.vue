@@ -10,7 +10,6 @@ const templates = [
   { name: 'Pergel', description: 'Warm gradient blobs on dark' },
   { name: 'UnJs', description: 'Package stats display for repos' },
   { name: 'Brutalist', description: 'Neo-brutalist bold typography' },
-  { name: 'Aurora', description: 'Glassmorphism northern lights' },
   { name: 'Retro', description: 'Synthwave retro-futuristic' },
   { name: 'Newspaper', description: 'Editorial magazine style' },
 ]

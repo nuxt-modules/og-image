@@ -33,7 +33,7 @@ const website = computed(() => {
     <div class="absolute w-[200px] h-[200px] rounded-full opacity-[0.03]" style="background: #3b82f6; bottom: -50px; right: 200px;" />
 
     <div class="flex flex-col justify-between w-full h-full pl-12 pr-16 py-14 relative z-10">
-      <h1 class="text-[72px] font-bold text-slate-800 leading-[1.1] tracking-tight max-w-[950px]" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
+      <h1 class="text-[72px] font-bold text-slate-800 leading-[1.1] tracking-tight max-w-[90%]" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
         {{ title }}
       </h1>
       <div class="flex items-center gap-3">
