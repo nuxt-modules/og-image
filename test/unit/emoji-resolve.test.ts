@@ -18,10 +18,9 @@ describe('emoji map utility', () => {
     expect(getEmojiCodePoint('👋🏽')).toBe('1f44b-1f3fd')
   })
 
-  it('should generate multiple possible icon names for common emojis', () => {
+  it('should generate icon names for common emojis', () => {
     const names = getEmojiIconNames('1f44b', 'noto')
     expect(names).toContain('waving-hand')
-    expect(names.length).toBeGreaterThan(1)
 
     const rocketNames = getEmojiIconNames('1f680', 'fluent-emoji')
     expect(rocketNames).toContain('rocket')

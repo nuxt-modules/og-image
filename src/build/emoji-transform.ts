@@ -2,6 +2,7 @@ import type { IconifyJSON } from '@iconify/types'
 import MagicString from 'magic-string'
 import { createUnplugin } from 'unplugin'
 // Minimal emoji mapping (~100 common emojis), use Nuxt Icon for more
+import { EMOJI_CODEPOINT_TO_NAME } from '../runtime/server/og-image/satori/transforms/emojis/emoji-names-minimal'
 import { getEmojiCodePoint, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
 
 let emojiCounter = 0
@@ -43,16 +44,14 @@ function makeIdsUnique(svg: string): string {
   return result
 }
 
-function getIconName(codePoint: string): string | undefined {
-  // eslint-disable-next-line ts/no-require-imports
-  const { EMOJI_CODEPOINT_TO_NAME } = require('../runtime/server/og-image/satori/transforms/emojis/emoji-names-minimal') as { EMOJI_CODEPOINT_TO_NAME: Record<string, string> }
+function getIconName(codePoint: string, emojiMap: Record<string, string>): string | undefined {
   const baseCodePoint = codePoint.replace(/-fe0f$/i, '')
-  return EMOJI_CODEPOINT_TO_NAME[codePoint] || EMOJI_CODEPOINT_TO_NAME[baseCodePoint]
+  return emojiMap[codePoint] || emojiMap[baseCodePoint]
 }
 
-function buildEmojiSvg(emoji: string, icons: IconifyJSON): string | null {
+function buildEmojiSvg(emoji: string, icons: IconifyJSON, emojiMap: Record<string, string>): string | null {
   const codePoint = getEmojiCodePoint(emoji)
-  const iconName = getIconName(codePoint)
+  const iconName = getIconName(codePoint, emojiMap)
 
   if (iconName) {
     const iconData = icons.icons?.[iconName]
@@ -134,7 +133,7 @@ export const emojiTransformPlugin = createUnplugin((options: EmojiTransformOptio
         let newTextContent = textContent
         for (const match of emojiMatches) {
           const emoji = match[0]
-          const svg = buildEmojiSvg(emoji, loadedIcons)
+          const svg = buildEmojiSvg(emoji, loadedIcons, EMOJI_CODEPOINT_TO_NAME)
           if (svg) {
             hasChanges = true
             const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
