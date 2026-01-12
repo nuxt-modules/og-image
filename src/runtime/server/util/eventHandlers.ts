@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import type { ResolvedFontConfig } from '../../types'
+import type { FontConfig, ResolvedFontConfig } from '../../types'
 import { fetchPathHtmlAndExtractOptions } from '#og-image/server/og-image/devtools'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
@@ -19,7 +19,7 @@ export async function fontEventHandler(e: H3Event) {
   // used internally for html previews
   const key = path.split('/f/')[1]
   if (key && key.includes(':')) {
-    const font = fonts.find(f => f.key === key)
+    const font = fonts.find((f: FontConfig) => f.key === key)
     // use as storage key
     if (font?.key && await assets.hasItem(font.key)) {
       let fontData = await assets.getItem(font.key) as any as string | Uint8Array
@@ -89,11 +89,11 @@ export async function fontEventHandler(e: H3Event) {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1',
     },
-  })
+  }).catch(() => null) as string | null
   if (!css) {
     return createError({
-      statusCode: 500,
-      statusMessage: `[Nuxt OG Image] Invalid Google Font ${name}:${weight}`,
+      statusCode: 502,
+      statusMessage: `[Nuxt OG Image] Failed to fetch Google Font ${name}:${weight}. Network may be unavailable.`,
     })
   }
 

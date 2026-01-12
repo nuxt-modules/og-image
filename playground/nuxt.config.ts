@@ -154,7 +154,6 @@ export default defineNuxtConfig({
       },
     },
     '/satori/route-rules/**': {
-      // @ts-expect-error untyped
       site: {
         name: 'nuxt-og-image-route-rules',
       },

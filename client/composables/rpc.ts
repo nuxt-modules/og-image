@@ -1,6 +1,6 @@
 import type { NuxtDevtoolsClient, NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
 import type { BirpcReturn } from 'birpc'
-import type { $Fetch } from 'nitropack'
+import type { $Fetch } from 'nitropack/types'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
 import { onDevtoolsClientConnected } from '@nuxt/devtools-kit/iframe-client'
 import { ref, watchEffect } from 'vue'

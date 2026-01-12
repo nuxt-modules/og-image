@@ -3,12 +3,17 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { UnoGenerator } from '@unocss/core'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { H3Error, H3Event } from 'h3'
-import type { NitroOptions } from 'nitropack'
-import type { NitroApp } from 'nitropack/types'
+import type { Hookable } from 'hookable'
+import type { NitroRuntimeHooks } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { html } from 'satori-html'
 import type { JpegOptions, SharpOptions } from 'sharp'
 import type { Ref } from 'vue'
+
+interface NitroApp {
+  hooks: Hookable<NitroRuntimeHooks>
+  [key: string]: any
+}
 
 export interface OgImageRenderEventContext {
   unocss: UnoGenerator
@@ -26,6 +31,8 @@ export interface OgImageRenderEventContext {
 
 export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'streamline-emojis' | 'openmoji'
 
+export type EmojiStrategy = 'auto' | 'local' | 'fetch'
+
 export interface OgImageRuntimeConfig {
   version: string
   satoriOptions: SatoriOptions
@@ -38,6 +45,7 @@ export interface OgImageRuntimeConfig {
   debug: boolean
   baseCacheKey: string
   hasNuxtIcon: boolean
+  hasNuxtContent?: boolean
   colorPreference: 'light' | 'dark'
 
   isNuxtContentDocumentDriven: boolean
@@ -120,7 +128,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    */
   props?: OgImageComponents[T] | Record<string, any>
   renderer?: 'chromium' | 'satori' | 'takumi'
-  extension?: 'png' | 'jpeg' | 'jpg'
+  extension?: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html'
   emojis?: IconifyEmojiIconSets
   /**
    * Provide a static HTML template to render the OG Image instead of a component.
@@ -176,7 +184,7 @@ export interface RuntimeCompatibilitySchema {
   satori: 'node' | 'wasm' | 'wasm-fs' | false
   takumi: 'node' | 'wasm' | false
   sharp: 'node' | false
-  wasm?: NitroOptions['wasm']
+  wasm?: any
 }
 
 export type CompatibilityFlags = Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>
@@ -202,7 +210,9 @@ export type ExtractComponentProps<T extends Component> = T extends new (...args:
 
 export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'renderer' | 'component' | 'satori' | 'resvg' | 'sharp'>
 
-export type VNode = ReturnType<typeof html>
+export type VNode = ReturnType<typeof html> & {
+  _emojiMatches?: RegExpMatchArray | null
+}
 
 export interface SatoriTransformer {
   filter: (node: VNode) => boolean

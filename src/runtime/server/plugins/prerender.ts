@@ -1,3 +1,4 @@
+import type { Hookable } from 'hookable'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { parse } from 'devalue'
@@ -14,12 +15,12 @@ function getPayloadFromHtml(html: string): string | null {
   return match ? String(match[1]) : null
 }
 
-export default defineNitroPlugin(async (nitro) => {
+export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
   if (!import.meta.prerender)
     return
 
   const routeRuleMatcher = createNitroRouteRuleMatcher()
-  nitro.hooks.hook('render:html', async (html, ctx) => {
+  nitro.hooks.hook('render:html', async (html: { head: string[], bodyAppend: string[] }, ctx: { event: any }) => {
     const { head, bodyAppend } = html
     const path = parseURL(ctx.event.path).pathname
     if (isInternalRoute(path))
@@ -48,7 +49,7 @@ export default defineNitroPlugin(async (nitro) => {
       }
     }
     // if we're prerendering then we don't need these options in the final HTML
-    const index = html.bodyAppend.findIndex(script => script.includes('id="nuxt-og-image-options"'))
+    const index = html.bodyAppend.findIndex((script: string) => script.includes('id="nuxt-og-image-options"'))
     if (index !== -1) {
       // we need to remove `<script id="nuxt-og-image-options" type="application/json">...anything...</script>`
       html.bodyAppend[index] = String(html.bodyAppend[index]).replace(/<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/, '')

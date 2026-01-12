@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import type { OgImageComponent, OgImageOptions } from '../src/runtime/types'
+import type { Ref } from 'vue'
+import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions } from '../src/runtime/types'
+import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch'
 import {
   computed,
-  fetchPathDebug,
-  unref,
+  toValue,
   useHead,
   watch,
 } from '#imports'
@@ -13,24 +14,13 @@ import JsonEditorVue from 'json-editor-vue'
 import { Pane, Splitpanes } from 'splitpanes'
 import { hasProtocol, joinURL, parseURL, withHttps, withQuery } from 'ufo'
 import { ref } from 'vue'
-import { fetchGlobalDebug } from '~/composables/fetch'
-import { colorMode, devtoolsClient, ogImageRpc } from '~/composables/rpc'
-import { loadShiki } from '~/composables/shiki'
-import { CreateOgImageDialogPromise } from '~/composables/templates'
-import { path, query, refreshTime } from '~/util/logic'
 import { encodeOgImageParams, separateProps } from '../src/runtime/shared'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
-import {
-  description,
-  hasMadeChanges,
-  host,
-  ogImageKey,
-  options,
-  optionsOverrides,
-  propEditor,
-  refreshSources,
-  slowRefreshSources,
-} from './util/logic'
+import { fetchGlobalDebug, fetchPathDebug } from './composables/fetch'
+import { colorMode, devtoolsClient, ogImageRpc } from './composables/rpc'
+import { loadShiki } from './composables/shiki'
+import { CreateOgImageDialogPromise } from './composables/templates'
+import { description, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from './util/logic'
 import 'floating-vue/dist/style.css'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 import 'splitpanes/dist/splitpanes.css'
@@ -40,26 +30,27 @@ useHead({
 })
 await loadShiki()
 
-const { data: globalDebug } = fetchGlobalDebug()
+const { data: globalDebug } = fetchGlobalDebug() as { data: Ref<GlobalDebugResponse | null> }
 
-const emojis = ref('noto')
+const emojis = ref<OgImageOptions['emojis']>('noto')
 
 const debugAsyncData = fetchPathDebug()
-const { data: debug, pending, error } = debugAsyncData
+const { data: debug, pending, error } = debugAsyncData as { data: Ref<PathDebugResponse | null>, pending: Ref<boolean>, error: Ref<Error | null> }
 
 // Multi-image support
 const selectedOgImage = computed(() => {
   const images = debug.value?.extract?.socialPreview?.images || []
-  return images.find(e => e.key === (ogImageKey.value || 'og')) || images[0]
+  return images.find((e: DevToolsMetaDataExtraction) => e.key === (ogImageKey.value || 'og')) || images[0]
 })
 
 const currentOptions = computed(() => {
   const opts = debug.value?.extract?.options || []
-  return opts.find(o => o.key === (ogImageKey.value || 'og')) || opts[0]
+  return opts.find((o: OgImageOptions) => o.key === (ogImageKey.value || 'og')) || opts[0]
 })
 
 const isCustomOgImage = computed(() => {
-  return currentOptions.value?.url && !currentOptions.value?.url?.includes('/_og/')
+  const url = toValue(currentOptions.value?.url)
+  return url && !url.includes('/_og/')
 })
 
 const isValidDebugError = computed(() => {
@@ -75,8 +66,9 @@ const isValidDebugError = computed(() => {
 watch(debug, (val) => {
   if (!val)
     return
-  options.value = separateProps(unref(currentOptions.value || {}), ['socialPreview', 'options'])
+  options.value = separateProps(toValue(currentOptions.value) || {}, ['socialPreview', 'options'])
   emojis.value = options.value.emojis
+  // @ts-expect-error untyped
   propEditor.value = options.value.props
 }, {
   immediate: true,
@@ -97,10 +89,10 @@ function updateProps(props: Record<string, any>) {
 
 const tab = useLocalStorage('nuxt-og-image:tab', 'design')
 
-function patchOptions(options: OgImageOptions) {
+function patchOptions(options: OgImageOptions & { options?: unknown }) {
   tab.value = 'design'
   delete options.options
-  optionsOverrides.value = defu(options, optionsOverrides.value)
+  optionsOverrides.value = defu(options, optionsOverrides.value) as OgImageOptions
   hasMadeChanges.value = true
   refreshSources()
 }
@@ -122,12 +114,24 @@ const defaults = computed(() => {
   })
 })
 
-const height = computed(() => {
-  return optionsOverrides.value?.height || selectedOgImage.value?.og?.['image:height'] || defaults.value.height
+const height = computed((): number => {
+  const h = toValue(optionsOverrides.value?.height)
+  if (typeof h === 'number')
+    return h
+  const ogHeight = Number(selectedOgImage.value?.og?.['image:height'])
+  if (ogHeight)
+    return ogHeight
+  return toValue(defaults.value.height) || 600
 })
 
-const width = computed(() => {
-  return optionsOverrides.value?.width || selectedOgImage.value?.og?.['image:width'] || defaults.value.width
+const width = computed((): number => {
+  const w = toValue(optionsOverrides.value?.width)
+  if (typeof w === 'number')
+    return w
+  const ogWidth = Number(selectedOgImage.value?.og?.['image:width'])
+  if (ogWidth)
+    return ogWidth
+  return toValue(defaults.value.width) || 1200
 })
 
 const aspectRatio = computed(() => {
@@ -141,10 +145,11 @@ const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
 
 const src = computed(() => {
   if (isCustomOgImage.value) {
-    if (hasProtocol(currentOptions.value?.url || '', { acceptRelative: true })) {
-      return currentOptions.value?.url || ''
+    const url = toValue(currentOptions.value?.url) || ''
+    if (hasProtocol(url, { acceptRelative: true })) {
+      return url
     }
-    return joinURL(host.value, currentOptions.value?.url || '')
+    return joinURL(host.value, url)
   }
   // Build encoded URL with options (Cloudinary-style)
   const params = {
@@ -196,8 +201,8 @@ const activeComponentName = computed(() => {
 })
 
 const isOgImageTemplate = computed(() => {
-  const component = globalDebug.value?.componentNames?.find(c => c.pascalName === activeComponentName.value)
-  return component?.path.includes('node_modules') || component?.path.includes('og-image/src/runtime/app/components/Templates/Community/')
+  const component = globalDebug.value?.componentNames?.find((c: OgImageComponent) => c.pascalName === activeComponentName.value)
+  return component?.path?.includes('node_modules') || component?.path?.includes('og-image/src/runtime/app/components/Templates/Community/')
 })
 
 const renderer = computed(() => {
@@ -207,9 +212,9 @@ const renderer = computed(() => {
 const componentNames = computed<OgImageComponent[]>(() => {
   const components = globalDebug.value?.componentNames || []
   return [
-    components.find(name => name.pascalName === activeComponentName.value),
-    ...components.filter(name => name.pascalName !== activeComponentName.value),
-  ].filter(Boolean)
+    components.find((name: OgImageComponent) => name.pascalName === activeComponentName.value),
+    ...components.filter((name: OgImageComponent) => name.pascalName !== activeComponentName.value),
+  ].filter((c): c is OgImageComponent => Boolean(c))
 })
 
 const communityComponents = computed(() => {
@@ -269,15 +274,18 @@ function openImage() {
 }
 
 const pageFile = computed(() => {
-  return devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file
+  const component = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0]?.components?.default as { __file?: string } | undefined
+  return component?.__file
 })
 function openCurrentPageFile() {
-  devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
+  if (pageFile.value)
+    devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
 }
 
 function openCurrentComponent() {
   const component = componentNames.value.find(c => c.pascalName === activeComponentName.value)
-  devtoolsClient.value?.devtools.rpc.openInEditor(component.path)
+  if (component?.path)
+    devtoolsClient.value?.devtools.rpc.openInEditor(component.path)
 }
 
 const isPageScreenshot = computed(() => {
@@ -293,7 +301,8 @@ watch(emojis, (v) => {
 })
 
 const currentPageFile = computed(() => {
-  const path = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file
+  const component = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0]?.components?.default as { __file?: string } | undefined
+  const path = component?.__file
   return `pages/${path?.split('pages/')[1]}`
 })
 
@@ -307,7 +316,7 @@ async function ejectComponent(component: string) {
 
 // Multi-image keys
 const allImageKeys = computed(() => {
-  return debug.value?.extract?.socialPreview?.images?.map(i => i.key) || []
+  return debug.value?.extract?.socialPreview?.images?.map((i: DevToolsMetaDataExtraction) => i.key) || []
 })
 </script>
 
@@ -446,7 +455,7 @@ const allImageKeys = computed(() => {
               <IFrameLoader
                 v-else
                 :src="src"
-                max-height="300"
+                :max-height="300"
                 :aspect-ratio="aspectRatio"
                 @load="generateLoadTime"
                 @refresh="refreshSources"
@@ -498,7 +507,7 @@ const allImageKeys = computed(() => {
                 v-if="imageFormat !== 'html'"
                 :src="src"
                 class="!h-[90px]"
-                min-height="90"
+                :min-height="90"
                 :aspect-ratio="1"
                 style="background-size: cover; background-position: center center;"
                 @load="generateLoadTime"
@@ -597,7 +606,7 @@ const allImageKeys = computed(() => {
                 <IFrameLoader
                   v-else
                   :src="src"
-                  max-height="300"
+                  :max-height="300"
                   :aspect-ratio="aspectRatio"
                   @load="generateLoadTime"
                   @refresh="refreshSources"
@@ -649,7 +658,7 @@ const allImageKeys = computed(() => {
                   v-if="imageFormat !== 'html'"
                   :src="src"
                   class="!h-[90px]"
-                  min-height="90"
+                  :min-height="90"
                   :aspect-ratio="1"
                   style="background-size: cover; background-position: center center;"
                   @load="generateLoadTime"
@@ -860,7 +869,7 @@ const allImageKeys = computed(() => {
                 SVG
               </h3>
             </template>
-            <OCodeBlock :code="debug?.svg.replaceAll('>', '>\n')" lang="xml" />
+            <OCodeBlock :code="debug?.svg?.replaceAll('>', '>\n') || ''" lang="xml" />
           </OSectionBlock>
           <OSectionBlock>
             <template #text>

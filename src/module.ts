@@ -17,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -42,11 +42,20 @@ import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { onInstall, onUpgrade } from './onboarding'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
+import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 import {
   getMissingDependencies,
   getProviderDependencies,
 } from './utils/dependencies'
+
+export type {
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
+} from './runtime/types'
+export type { OgImageRenderEventContext, VNode } from './runtime/types'
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
@@ -144,6 +153,16 @@ export interface ModuleOptions {
    * @example { base: '.cache/og-image' }
    */
   buildCache?: boolean | { base?: string }
+  /**
+   * Strategy for resolving emoji icons.
+   *
+   * - 'auto': Automatically choose based on available dependencies (default)
+   * - 'local': Use local @iconify-json dependencies only
+   * - 'fetch': Use Iconify API to fetch emojis
+   *
+   * @default 'auto'
+   */
+  emojiStrategy?: 'auto' | 'local' | 'fetch'
 }
 
 export interface ModuleHooks {
@@ -235,6 +254,57 @@ export default defineNuxtModule<ModuleOptions>({
     // setup @nuxt/fonts integration (creates #nuxt-og-image/fonts virtual module)
     const { setupNuxtFontsIntegration } = await import('./integrations/nuxt-fonts')
     setupNuxtFontsIntegration(nuxt)
+
+    // Determine emoji strategy based on configuration and dependencies
+    const emojiPkg = `@iconify-json/${config.defaults.emojis}`
+    let hasLocalIconify = await hasResolvableDependency(emojiPkg)
+    let finalEmojiStrategy = config.emojiStrategy || 'auto'
+
+    // Prompt to install emoji package in dev mode (non-CI, non-prepare)
+    if (!hasLocalIconify && !nuxt.options._prepare && nuxt.options.dev) {
+      const shouldInstall = await logger.prompt(`Install ${emojiPkg} for local emoji support?`, {
+        type: 'confirm',
+        initial: true,
+      })
+      if (shouldInstall) {
+        await ensureDependencies([emojiPkg], nuxt)
+          .then(() => {
+            hasLocalIconify = true
+            logger.success(`Installed ${emojiPkg}`)
+          })
+          .catch(() => logger.warn(`Failed to install ${emojiPkg}, using API fallback`))
+      }
+    }
+
+    // Handle 'auto' strategy
+    if (finalEmojiStrategy === 'auto') {
+      finalEmojiStrategy = hasLocalIconify ? 'local' : 'fetch'
+    }
+
+    // Validate strategy against available dependencies
+    if (finalEmojiStrategy === 'local' && !hasLocalIconify) {
+      logger.warn(`emojiStrategy is set to 'local' but ${emojiPkg} is not installed. Falling back to 'fetch'.`)
+      finalEmojiStrategy = 'fetch'
+    }
+
+    // Set emoji implementation based on final strategy
+    if (finalEmojiStrategy === 'local') {
+      logger.debug(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
+      // add nitro virtual import for the iconify import
+      nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
+      nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
+        return `export { icons, width, height } from '${emojiPkg}/icons.json'`
+      }
+      // Add build-time emoji transform plugin to replace emojis in OgImage component templates
+      // This fixes satori issues where the first emoji in a sequence renders incorrectly
+      const { emojiTransformPlugin } = await import('./build/emoji-transform')
+      addVitePlugin(emojiTransformPlugin.vite({ emojiSet: config.defaults.emojis || 'noto', componentDirs: config.componentDirs }))
+    }
+    else {
+      logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
+    }
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -603,57 +673,10 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
-    addTypeTemplate({
-      filename: 'module/nuxt-og-image.d.ts',
-      getContents: (data) => {
-        const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
-        // need to map our components to types so we can import them
-        const componentImports = ogImageComponentCtx.components.map((component) => {
-          const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
-          // remove dirNames from component name
-          const name = config.componentDirs
-            // need to sort by longest first so we don't replace the wrong part of the string
-            .sort((a, b) => b.length - a.length)
-            .reduce((name, dir) => {
-              // only replace from the start of the string
-              return name.replace(new RegExp(`^${dir}`), '')
-            }, component.pascalName)
-          return `    '${name}': typeof import('${relativeComponentPath}')['default']`
-        }).join('\n')
-        const types = `interface NitroRouteRules {
-    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
-  }
-  interface NitroRouteConfig {
-    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
-  }
-  interface NitroRuntimeHooks {
-    'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-  }`
-        return `
-declare module 'nitropack' {
-${types}
-}
-
-declare module 'nitropack/types' {
-${types}
-}
-
-declare module '#og-image/components' {
-  export interface OgImageComponents {
-${componentImports}
-  }
-}
-declare module '#og-image/unocss-config' {
-  export type theme = any
-}
-
-export {}
-`
-      },
-    }, {
-      nitro: true,
-      nuxt: true,
+    registerTypeTemplates({
+      nuxt,
+      config,
+      componentCtx: ogImageComponentCtx,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
@@ -719,7 +742,7 @@ export {}
       }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
-      // @ts-expect-error runtime types
+      // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
     })
 

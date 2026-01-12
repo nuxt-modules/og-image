@@ -30,12 +30,12 @@ function setSource(src: string) {
     // we want to do a fetch of the image so we can get the size of it in kb
     $fetch.raw(src, {
       responseType: 'blob',
-    }).then((res) => {
+    }).then((res: any) => {
       const size = res.headers.get('content-length')
       const kb = Math.round(Number(size) / 1024)
       // set the image source using base 64 of the response
       const reader = new FileReader()
-      reader.readAsDataURL(res._data)
+      reader.readAsDataURL(res._data!)
       reader.onloadend = () => {
         const base64data = reader.result
         if (base64data) {
@@ -44,15 +44,15 @@ function setSource(src: string) {
           emit('load', { timeTaken: Date.now() - now, sizeKb: kb })
         }
       }
-    }).catch((err) => {
+    }).catch((err: { response?: { _data?: Blob } }) => {
       const res = err.response
       // res is a data blob we need to convert to json
       if (res && res._data) {
         const reader = new FileReader()
         reader.readAsText(res._data)
         reader.onloadend = () => {
-          error.value = JSON.parse(reader.result)?.stack as string[]
-          error.value.slice(1)
+          if (typeof reader.result === 'string')
+            error.value = JSON.parse(reader.result)?.stack as string[]
         }
       }
     }).finally(() => {
@@ -83,7 +83,7 @@ onMounted(() => {
         {{ error.join('\n').includes('satori') ? 'SatoriError' : 'ImageError' }}
       </p>
       <p class="text-black dark:text-white text-md font-bold mb-5">
-        {{ error[0].replace('Error:', '') }}
+        {{ error[0]?.replace('Error:', '') }}
       </p>
       <pre>{{ error.slice(1).join('\n') }}</pre>
     </div>

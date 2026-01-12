@@ -3,6 +3,7 @@ import type {
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
 } from '../../src/runtime/types'
 import { useAsyncData } from '#imports'
 import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
@@ -18,8 +19,23 @@ export interface DevToolsPayload {
   siteUrl?: string
 }
 
+export interface PathDebugResponse {
+  extract: DevToolsPayload
+  siteUrl?: string
+  compatibilityHints?: string[]
+  vnodes?: Record<string, unknown>
+  svg?: string
+}
+
+export interface GlobalDebugResponse {
+  runtimeConfig: OgImageRuntimeConfig
+  componentNames: OgImageComponent[]
+  siteConfigUrl?: string
+  compatibility?: RuntimeCompatibilitySchema
+}
+
 export function fetchPathDebug() {
-  return useAsyncData<{ extract: DevToolsPayload, siteUrl?: string }>(async () => {
+  return useAsyncData<PathDebugResponse>(async () => {
     if (!appFetch.value)
       return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
     // Build encoded URL with options for debug JSON
@@ -38,9 +54,9 @@ export function fetchPathDebug() {
 
 export function fetchGlobalDebug() {
   // @ts-expect-error untyped
-  return useAsyncData<{ runtimeConfig: OgImageRuntimeConfig, componentNames: OgImageComponent[] }>('global-debug', () => {
+  return useAsyncData<GlobalDebugResponse>('global-debug', () => {
     if (!appFetch.value)
-      return { runtimeConfig: {} }
+      return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
     return appFetch.value('/_og/debug.json')
   }, {
     watch: [globalRefreshTime],

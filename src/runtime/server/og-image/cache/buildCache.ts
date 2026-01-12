@@ -1,6 +1,5 @@
 import type { OgImageComponent } from '../../../types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-// @ts-expect-error untyped
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { join } from 'pathe'
 import { hashOgImageOptions } from '../../../shared/urlEncoding'
