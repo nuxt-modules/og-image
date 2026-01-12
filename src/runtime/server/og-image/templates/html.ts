@@ -33,7 +33,7 @@ export async function html(ctx: OgImageRenderEventContext) {
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
-  const normalisedFonts = normaliseFontInput([...options.fonts || [], ...fonts])
+  const normalisedFonts = normaliseFontInput(fonts)
   const firstFont = normalisedFonts[0] as FontConfig
   if (firstFont)
     defaultFontFamily = firstFont.name.replaceAll('+', ' ')

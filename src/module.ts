@@ -735,6 +735,10 @@ export default defineNuxtModule<ModuleOptions>({
 
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
+        zeroRuntime: config.zeroRuntime || false,
+        app: {
+          baseURL: nuxt.options.app.baseURL,
+        },
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

@@ -51,6 +51,9 @@ export interface OgImageRuntimeConfig {
   isNuxtContentDocumentDriven: boolean
   zeroRuntime: boolean
 
+  /** @deprecated Use @nuxt/fonts instead */
+  fonts: ResolvedFontConfig[]
+
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
   buildCacheDir?: string

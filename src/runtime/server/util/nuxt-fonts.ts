@@ -1,4 +1,4 @@
-import type { ResolvedFontConfig } from '../../types'
+import type { FontConfig, ResolvedFontConfig } from '../../types'
 import { $fetch } from 'ofetch'
 
 interface ResolvedNuxtFont {
@@ -9,7 +9,7 @@ interface ResolvedNuxtFont {
   localPath: string // /_fonts/{filename}
 }
 
-export async function tryResolveNuxtFont(font: ResolvedFontConfig): Promise<ResolvedFontConfig | null> {
+export async function tryResolveNuxtFont(font: FontConfig): Promise<ResolvedFontConfig | null> {
   const fontsModule = await import('#nuxt-og-image/fonts').catch(() => null)
   if (!fontsModule?.hasNuxtFonts)
     return null
