@@ -9,6 +9,7 @@ import flex from './plugins/flex'
 import imageSrc from './plugins/imageSrc'
 import nuxtIcon from './plugins/nuxt-icon'
 import unocss from './plugins/unocss'
+import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
 import { walkSatoriTree } from './utils'
 
@@ -19,7 +20,8 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     // this fixes any inline style props that need to be wrapped in single quotes, such as:
     // background image, fonts, etc
     island.html = htmlDecodeQuotes(island.html)
-    // pre-transform HTML
+    // pre-transform HTML - apply emoji replacements and inline CSS
+    await applyEmojis(ctx, island)
     await applyInlineCss(ctx, island)
     html = island.html
     if (html?.includes('<body>')) {
