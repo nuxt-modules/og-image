@@ -18,11 +18,11 @@ const templates = [
 const loading = ref<Record<string, boolean>>({})
 const errors = ref<Record<string, boolean>>({})
 
-const handleLoad = (name: string) => {
+function handleLoad(name: string) {
   loading.value[name] = false
 }
 
-const handleError = (name: string) => {
+function handleError(name: string) {
   loading.value[name] = false
   errors.value[name] = true
 }

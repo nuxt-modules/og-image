@@ -16,7 +16,8 @@ const props = withDefaults(defineProps<{
 })
 
 const formattedDate = computed(() => {
-  if (props.date) return props.date
+  if (props.date)
+    return props.date
   return new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
