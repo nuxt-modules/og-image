@@ -34,7 +34,7 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
         data = (await useStorage().getItemRaw(key)) || undefined
     }
     else {
-      // @ts-ignore excessive stack depth from Nuxt route types
+      // @ts-expect-error excessive stack depth from Nuxt route types
       data = await e.$fetch(font.path, {
         baseURL: useNitroOrigin(e),
         responseType: 'arrayBuffer',
