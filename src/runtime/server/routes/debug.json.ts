@@ -1,6 +1,4 @@
-// @ts-expect-error untyped
 import { componentNames } from '#og-image-virtual/component-names.mjs'
-// @ts-expect-error virtual module
 import compatibility from '#og-image/compatibility'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 

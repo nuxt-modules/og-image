@@ -1,5 +1,5 @@
 import type { Resolver } from '@nuxt/kit'
-import type { Nitro } from 'nitropack'
+import type { Nitro } from 'nitropack/types'
 import type { Nuxt } from 'nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { ClientFunctions, ServerFunctions } from '../rpc-types'

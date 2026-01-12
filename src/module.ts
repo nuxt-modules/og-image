@@ -17,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -42,6 +42,7 @@ import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { onInstall, onUpgrade } from './onboarding'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
+import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 import {
   getMissingDependencies,
@@ -598,57 +599,10 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
-    addTypeTemplate({
-      filename: 'module/nuxt-og-image.d.ts',
-      getContents: (data) => {
-        const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
-        // need to map our components to types so we can import them
-        const componentImports = ogImageComponentCtx.components.map((component) => {
-          const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
-          // remove dirNames from component name
-          const name = config.componentDirs
-            // need to sort by longest first so we don't replace the wrong part of the string
-            .sort((a, b) => b.length - a.length)
-            .reduce((name, dir) => {
-              // only replace from the start of the string
-              return name.replace(new RegExp(`^${dir}`), '')
-            }, component.pascalName)
-          return `    '${name}': typeof import('${relativeComponentPath}')['default']`
-        }).join('\n')
-        const types = `interface NitroRouteRules {
-    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
-  }
-  interface NitroRouteConfig {
-    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
-  }
-  interface NitroRuntimeHooks {
-    'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-  }`
-        return `
-declare module 'nitropack' {
-${types}
-}
-
-declare module 'nitropack/types' {
-${types}
-}
-
-declare module '#og-image/components' {
-  export interface OgImageComponents {
-${componentImports}
-  }
-}
-declare module '#og-image/unocss-config' {
-  export type theme = any
-}
-
-export {}
-`
-      },
-    }, {
-      nitro: true,
-      nuxt: true,
+    registerTypeTemplates({
+      nuxt,
+      config,
+      components: ogImageComponentCtx.components,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
@@ -714,7 +668,7 @@ export {}
       }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
-      // @ts-expect-error runtime types
+      // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
     })
 

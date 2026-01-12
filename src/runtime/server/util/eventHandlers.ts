@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import type { ResolvedFontConfig } from '../../types'
+import type { FontConfig, ResolvedFontConfig } from '../../types'
 import { fetchPathHtmlAndExtractOptions } from '#og-image/server/og-image/devtools'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
@@ -19,7 +19,7 @@ export async function fontEventHandler(e: H3Event) {
   // used internally for html previews
   const key = path.split('/f/')[1]
   if (key && key.includes(':')) {
-    const font = fonts.find(f => f.key === key)
+    const font = fonts.find((f: FontConfig) => f.key === key)
     // use as storage key
     if (font?.key && await assets.hasItem(font.key)) {
       let fontData = await assets.getItem(font.key) as any as string | Uint8Array

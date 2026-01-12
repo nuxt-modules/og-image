@@ -15,14 +15,14 @@ export function defineOgImageComponent<T extends keyof OgImageComponents>(
   if (Array.isArray(propsOrOptions)) {
     return defineOgImage(propsOrOptions.map(opt => ({
       ...opt,
-      component,
+      component: component as string,
     })))
   }
 
   // Single image (existing behavior)
   return defineOgImage({
     ...options,
-    component,
+    component: component as string,
     props: propsOrOptions,
   })
 }

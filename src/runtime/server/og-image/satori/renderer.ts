@@ -3,7 +3,6 @@ import type { JpegOptions } from 'sharp'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { fontCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
-// @ts-expect-error untyped
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { sendError } from 'h3'

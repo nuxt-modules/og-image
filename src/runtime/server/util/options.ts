@@ -1,5 +1,4 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
-// @ts-expect-error untyped
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 
 export function normaliseOptions(_options: DefineOgImageInput): OgImageOptions | OgImagePrebuilt {

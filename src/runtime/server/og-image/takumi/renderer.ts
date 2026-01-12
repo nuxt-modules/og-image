@@ -59,8 +59,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     resolveFonts(event),
   ])
 
-  // @ts-expect-error runtime hook
-  await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes', nodes, event)
+  await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
 
   const renderer = await getTakumiRenderer(fonts)
 

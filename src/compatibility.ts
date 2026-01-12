@@ -1,6 +1,6 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import type { NitroConfig } from 'nitropack'
+import type { NitroConfig } from 'nitropack/config'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
@@ -81,7 +81,6 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'takumi': 'wasm',
     'sharp': false,
     'wasm': {
-      // @ts-expect-error untyped
       rollup: {
         targetEnv: 'auto-inline',
         sync: ['@resvg/resvg-wasm/index_bg.wasm'],

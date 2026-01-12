@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { colorMode, computed, onMounted, ref, useHead, watch } from '#imports'
+import { computed, onMounted, ref, toValue, useHead, watch } from '#imports'
 import { useDebounceFn } from '@vueuse/core'
-import { options } from '~/util/logic'
+import { colorMode } from '../composables/rpc'
+import { options } from '../util/logic'
 
 const props = defineProps<{
   src: string
@@ -16,20 +17,20 @@ const src = ref()
 const iframe = ref()
 
 const maxWidth = computed(() => {
-  return props.maxWidth || options.value.width
+  return props.maxWidth || toValue(options.value.width) || 1200
 })
 const maxHeight = computed(() => {
-  return props.maxHeight || options.value.height
+  return props.maxHeight || toValue(options.value.height) || 600
 })
 
 const setSource = useDebounceFn(() => {
   const frame = iframe.value as HTMLImageElement
   const now = Date.now()
   frame.src = ''
-  const width = options.value.width || 1200
-  const height = options.value.height || 600
-  const parentHeight = maxHeight.value // frame.offsetHeight
-  const parentWidth = maxWidth.value // frame.offsetWidth
+  const width = toValue(options.value.width) || 1200
+  const height = toValue(options.value.height) || 600
+  const parentHeight = maxHeight.value
+  const parentWidth = maxWidth.value
   const parentHeightScale = parentHeight > height ? 1 : parentHeight / height
   const parentWidthScale = parentWidth > width ? 1 : parentWidth / width
   const scale = parentWidthScale > parentHeightScale ? parentHeightScale : parentWidthScale
