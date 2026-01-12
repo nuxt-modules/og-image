@@ -36,6 +36,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     }
     else {
       // avoid another fetch to the base path to resolve options
+      // @ts-expect-error untyped
       await page.goto(withQuery(path, options.props), {
         timeout: 10000,
         waitUntil: 'networkidle',
