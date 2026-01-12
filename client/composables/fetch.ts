@@ -48,7 +48,7 @@ export function fetchPathDebug() {
     const url = `/_og/d/${encoded || 'default'}.json`
     return appFetch.value(url)
   }, {
-    watch: [path, refreshTime, ogImageKey],
+    watch: [appFetch, path, refreshTime, ogImageKey],
   })
 }
 
@@ -59,6 +59,6 @@ export function fetchGlobalDebug() {
       return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
     return appFetch.value('/_og/debug.json')
   }, {
-    watch: [globalRefreshTime],
+    watch: [appFetch, globalRefreshTime],
   })
 }

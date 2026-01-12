@@ -4,7 +4,7 @@ import type { $Fetch } from 'nitropack/types'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
 import { onDevtoolsClientConnected } from '@nuxt/devtools-kit/iframe-client'
 import { ref, watchEffect } from 'vue'
-import { globalRefreshTime, path, query, refreshSources } from '../util/logic'
+import { base, globalRefreshTime, path, query, refreshSources } from '../util/logic'
 
 export const appFetch = ref<$Fetch>()
 
@@ -19,6 +19,9 @@ export const ogImageRpc = ref<BirpcReturn<ServerFunctions>>()
 onDevtoolsClientConnected(async (client) => {
   // @ts-expect-error untyped
   appFetch.value = client.host.app.$fetch
+  // Sync base URL from host app for proper OG image URL construction
+  // @ts-expect-error untyped
+  base.value = client.host.nuxt.vueApp.config.globalProperties?.$router?.options?.history?.base || client.host.app.baseURL || '/'
   watchEffect(() => {
     colorMode.value = client.host.app.colorMode.value
   })

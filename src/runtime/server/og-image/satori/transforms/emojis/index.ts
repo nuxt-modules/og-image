@@ -85,21 +85,23 @@ export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIs
     emojiToSvg.set(emoji, svg)
   }))
 
-  // Replace emojis in HTML
-  // Also capture surrounding whitespace to prevent text nodes from creating multiple children
-  // which causes satori to fail with "Expected <div> to have explicit display: flex"
+  // Replace emojis only in text content (between > and <), not in attributes
+  // This is important to avoid breaking alt attributes or other attribute values
   let html = island.html
-  for (const [emoji, svg] of emojiToSvg) {
-    if (svg) {
-      // Escape special regex characters in the emoji
-      const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      // Match emoji with surrounding whitespace between tags: ">  emoji  <" -> ">svg<"
-      // This removes whitespace text nodes that confuse satori
-      html = html.replace(new RegExp(`>\\s*${escaped}\\s*<`, 'g'), `>${svg}<`)
-      // Also handle emojis not directly between tags (e.g., inline with text)
-      html = html.replace(new RegExp(escaped, 'g'), svg)
+  html = html.replace(/>([^<]*)</g, (fullMatch, textContent) => {
+    if (!textContent)
+      return fullMatch
+
+    let newTextContent = textContent
+    for (const [emoji, svg] of emojiToSvg) {
+      if (svg) {
+        // Escape special regex characters in the emoji
+        const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        newTextContent = newTextContent.replace(new RegExp(escaped, 'g'), svg)
+      }
     }
-  }
+    return `>${newTextContent}<`
+  })
 
   island.html = html
 }
