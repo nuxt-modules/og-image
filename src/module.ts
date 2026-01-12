@@ -179,7 +179,6 @@ const defaultComponentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
 export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
-    version: '5.1.13', // keep in sync with package.json
     compatibility: {
       nuxt: '>=3.16.0',
     },
