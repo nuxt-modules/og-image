@@ -14,14 +14,6 @@ import type {
   ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
-
-export type {
-  OgImageComponent,
-  OgImageOptions,
-  OgImageRuntimeConfig,
-  RuntimeCompatibilitySchema,
-} from './runtime/types'
-export type { OgImageRenderEventContext, VNode } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -56,6 +48,14 @@ import {
   getMissingDependencies,
   getProviderDependencies,
 } from './utils/dependencies'
+
+export type {
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
+} from './runtime/types'
+export type { OgImageRenderEventContext, VNode } from './runtime/types'
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
