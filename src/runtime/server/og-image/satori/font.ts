@@ -1,3 +1,4 @@
+
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../types'
 import { useNitroOrigin } from '#site-config/server/composables'
 import { useStorage } from 'nitropack/runtime'

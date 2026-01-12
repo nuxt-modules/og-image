@@ -17,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -153,6 +153,16 @@ export interface ModuleOptions {
    * @example { base: '.cache/og-image' }
    */
   buildCache?: boolean | { base?: string }
+  /**
+   * Strategy for resolving emoji icons.
+   *
+   * - 'auto': Automatically choose based on available dependencies (default)
+   * - 'local': Use local @iconify-json dependencies only
+   * - 'fetch': Use Iconify API to fetch emojis
+   *
+   * @default 'auto'
+   */
+  emojiStrategy?: 'auto' | 'local' | 'fetch'
 }
 
 export interface ModuleHooks {
@@ -239,6 +249,57 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
+
+    // Determine emoji strategy based on configuration and dependencies
+    const emojiPkg = `@iconify-json/${config.defaults.emojis}`
+    let hasLocalIconify = await hasResolvableDependency(emojiPkg)
+    let finalEmojiStrategy = config.emojiStrategy || 'auto'
+
+    // Prompt to install emoji package in dev mode (non-CI, non-prepare)
+    if (!hasLocalIconify && !nuxt.options._prepare && nuxt.options.dev) {
+      const shouldInstall = await logger.prompt(`Install ${emojiPkg} for local emoji support?`, {
+        type: 'confirm',
+        initial: true,
+      })
+      if (shouldInstall) {
+        await ensureDependencies([emojiPkg], nuxt)
+          .then(() => {
+            hasLocalIconify = true
+            logger.success(`Installed ${emojiPkg}`)
+          })
+          .catch(() => logger.warn(`Failed to install ${emojiPkg}, using API fallback`))
+      }
+    }
+
+    // Handle 'auto' strategy
+    if (finalEmojiStrategy === 'auto') {
+      finalEmojiStrategy = hasLocalIconify ? 'local' : 'fetch'
+    }
+
+    // Validate strategy against available dependencies
+    if (finalEmojiStrategy === 'local' && !hasLocalIconify) {
+      logger.warn(`emojiStrategy is set to 'local' but ${emojiPkg} is not installed. Falling back to 'fetch'.`)
+      finalEmojiStrategy = 'fetch'
+    }
+
+    // Set emoji implementation based on final strategy
+    if (finalEmojiStrategy === 'local') {
+      logger.debug(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
+      // add nitro virtual import for the iconify import
+      nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
+      nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
+        return `export { icons, width, height } from '${emojiPkg}/icons.json'`
+      }
+      // Add build-time emoji transform plugin to replace emojis in OgImage component templates
+      // This fixes satori issues where the first emoji in a sequence renders incorrectly
+      const { emojiTransformPlugin } = await import('./build/emoji-transform')
+      addVitePlugin(emojiTransformPlugin.vite({ emojiSet: config.defaults.emojis || 'noto', componentDirs: config.componentDirs }))
+    }
+    else {
+      logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
+    }
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
