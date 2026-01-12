@@ -147,4 +147,8 @@ describe('cloudflare-satori', () => {
   it.runIf(!canRunTests)('skips tests (missing satori, @resvg/resvg-wasm, or wrangler)', () => {
     expect(true).toBe(true)
   })
+
+  it.runIf(canRunTests && isCI)('skips wrangler runtime in CI (inspector port conflicts)', () => {
+    expect(true).toBe(true)
+  })
 })
