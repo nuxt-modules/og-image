@@ -52,7 +52,7 @@ export default defineSatoriTransformer({
           const camelCasedKey = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
           // we need to replace any occurances of a var key with the var values
           // responsive styles should override base styles, so don't check if already set
-          styles[camelCasedKey] = value.replace(/var\((.*?)\)/g, (_, k) => vars[k.trim()])
+          styles[camelCasedKey] = value.replace(/var\((.*?)\)/g, (_, k) => vars[k.trim()] ?? '')
 
           // we need to replace this rgba syntax with either a regular rgb if opacity is 1
           // rgb(59 130 246 / 1) -> rgba(59, 130, 246)
@@ -90,7 +90,7 @@ export default defineSatoriTransformer({
     const breakpointOrder = ['sm', 'md', 'whatsapp', 'lg', 'xl', '2xl']
     for (const bp of breakpointOrder) {
       const breakpointWidth = BREAKPOINTS[bp]
-      if (renderWidth < breakpointWidth)
+      if (!breakpointWidth || renderWidth < breakpointWidth)
         continue // Skip breakpoints larger than render width
 
       for (const token of classes.split(' ').filter(c => c.trim())) {
@@ -98,7 +98,7 @@ export default defineSatoriTransformer({
         if (!match || match[1] !== bp)
           continue
 
-        const baseClass = match[2]
+        const baseClass = match[2]!
         const parsedToken = await ctx.unocss.parseToken(baseClass)
         if (parsedToken) {
           const inlineStyles = String(parsedToken?.[0]?.[2]).split(';').filter(s => !!s?.trim())
