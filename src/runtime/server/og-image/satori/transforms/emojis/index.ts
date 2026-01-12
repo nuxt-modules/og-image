@@ -1,6 +1,5 @@
 import type { NuxtIslandResponse } from 'nuxt/app'
 import type { OgImageRenderEventContext } from '../../../../../types'
-// @ts-expect-error virtual module alias set in module.ts
 import { getEmojiSvg } from '#og-image/emoji-transform'
 import { RE_MATCH_EMOJIS } from './emoji-utils'
 

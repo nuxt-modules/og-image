@@ -1,7 +1,8 @@
 import type { IconifyJSON } from '@iconify/types'
 import MagicString from 'magic-string'
 import { createUnplugin } from 'unplugin'
-import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
+// Minimal emoji mapping (~100 common emojis), use Nuxt Icon for more
+import { getEmojiCodePoint, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
 
 let emojiCounter = 0
 
@@ -42,12 +43,18 @@ function makeIdsUnique(svg: string): string {
   return result
 }
 
+function getIconName(codePoint: string): string | undefined {
+  // eslint-disable-next-line ts/no-require-imports
+  const { EMOJI_CODEPOINT_TO_NAME } = require('../runtime/server/og-image/satori/transforms/emojis/emoji-names-minimal') as { EMOJI_CODEPOINT_TO_NAME: Record<string, string> }
+  const baseCodePoint = codePoint.replace(/-fe0f$/i, '')
+  return EMOJI_CODEPOINT_TO_NAME[codePoint] || EMOJI_CODEPOINT_TO_NAME[baseCodePoint]
+}
+
 function buildEmojiSvg(emoji: string, icons: IconifyJSON): string | null {
   const codePoint = getEmojiCodePoint(emoji)
-  // Use noto as default since that's what module defaults to
-  const possibleNames = getEmojiIconNames(codePoint, 'noto')
+  const iconName = getIconName(codePoint)
 
-  for (const iconName of possibleNames) {
+  if (iconName) {
     const iconData = icons.icons?.[iconName]
     if (iconData) {
       const body = wrapDefsElements(iconData.body || '')
