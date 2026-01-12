@@ -55,6 +55,7 @@ export default defineNuxtConfig({
     plugins: ['plugins/hooks.ts'],
     prerender: {
       routes: [
+        '/multiple',
         '/satori/jpeg',
         '/chromium/component',
         '/chromium/delayed',
@@ -118,6 +119,8 @@ export default defineNuxtConfig({
     //     port: 6379,
     //   },
     // },
+    // Enable for CI persistent caching:
+    // buildCache: true,
     debug: true,
   },
 
@@ -163,7 +166,6 @@ export default defineNuxtConfig({
       },
     },
     '/satori/route-rules/**': {
-      // @ts-expect-error untyped
       site: {
         name: 'nuxt-og-image-route-rules',
       },

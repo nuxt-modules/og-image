@@ -8,21 +8,26 @@ trustPolicy: no-downgrade
 
 trustPolicyExclude:
   - chokidar@4.0.3 # https://github.com/paulmillr/chokidar/issues/1440
-
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
 packages:
   - playground
   - client
 overrides:
   jiti: ^2.6.1
+
 catalog:
   '@antfu/eslint-config': ^6.7.3
   '@css-inline/css-inline': ^0.19.1
+  '@css-inline/css-inline-wasm': ^0.19.1
   '@headlessui/vue': ^1.7.23
-  '@iconify-json/carbon': ^1.2.15
+  '@iconify-json/carbon': ^1.2.16
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.7
-  '@iconify-json/simple-icons': ^1.2.65
+  '@iconify-json/simple-icons': ^1.2.66
   '@iconify-json/tabler': ^1.2.26
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.10.0
@@ -41,6 +46,8 @@ catalog:
   '@nuxtjs/tailwindcss': ^6.14.0
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
+  '@takumi-rs/core': ^0.62.7
+  '@takumi-rs/wasm': ^0.62.7
   '@unocss/core': ^66.5.12
   '@unocss/nuxt': ^66.5.12
   '@unocss/preset-icons': ^66.5.12
@@ -48,11 +55,13 @@ catalog:
   '@unocss/runtime': ^66.5.12
   '@vueuse/core': ^14.1.0
   '@vueuse/nuxt': ^14.1.0
-  better-sqlite3: ^12.5.0
+  better-sqlite3: ^12.6.0
+  birpc: ^4.0.0
   bumpp: ^10.3.2
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   defu: ^6.1.4
+  devalue: ^5.6.1
   eslint: ^9.39.2
   execa: ^9.6.1
   floating-vue: ^5.2.2
@@ -61,6 +70,7 @@ catalog:
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
   json-editor-vue: ^0.18.1
+  linkedom: ^0.18.12
   magic-string: ^0.30.21
   mocked-exports: ^0.1.1
   nuxt: ^4.2.2
@@ -92,7 +102,6 @@ catalog:
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2
   yoga-wasm-web: ^0.3.3
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'

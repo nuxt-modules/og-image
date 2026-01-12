@@ -13,51 +13,83 @@ await setup({
 
 expect.extend({ toMatchImageSnapshot })
 
+// Helper to extract og:image URL path from HTML (handles both absolute and relative URLs)
+function extractOgImageUrl(html: string): string | null {
+  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+  if (!match?.[1])
+    return null
+  // Extract just the path from absolute URL (e.g., https://nuxtseo.com/_og/d/... -> /_og/d/...)
+  try {
+    const url = new URL(match[1])
+    return url.pathname
+  }
+  catch {
+    return match[1] // Already a relative path
+  }
+}
+
 describe('build', () => {
   it.runIf(process.env.HAS_CHROME)('chromium tests', async () => {
-    const chromium: ArrayBuffer = await $fetch('/__og-image__/image/chromium/og.png', {
+    const html = await $fetch('/chromium')
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    const chromium: ArrayBuffer = await $fetch(ogImageUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(chromium)).toMatchImageSnapshot()
   })
+
   it('static images', async () => {
-    const customFont: ArrayBuffer = await $fetch('/__og-image__/static/satori/custom-font/og.png', {
+    const customFontHtml = await $fetch('/satori/custom-font')
+    const customFontUrl = extractOgImageUrl(customFontHtml)
+    expect(customFontUrl).toBeTruthy()
+    const customFont: ArrayBuffer = await $fetch(customFontUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(customFont)).toMatchImageSnapshot()
 
-    const image: ArrayBuffer = await $fetch('/__og-image__/static/satori/image/og.png', {
+    const imageHtml = await $fetch('/satori/image')
+    const imageUrl = extractOgImageUrl(imageHtml)
+    expect(imageUrl).toBeTruthy()
+    const image: ArrayBuffer = await $fetch(imageUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(image)).toMatchImageSnapshot()
 
-    const defaults: ArrayBuffer = await $fetch('/__og-image__/static/satori/og.png', {
+    const defaultsHtml = await $fetch('/satori')
+    const defaultsUrl = extractOgImageUrl(defaultsHtml)
+    expect(defaultsUrl).toBeTruthy()
+    const defaults: ArrayBuffer = await $fetch(defaultsUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(defaults)).toMatchImageSnapshot()
   }, 60000)
 
   it('dynamic images', async () => {
-    const inlineRouteRules: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/inline/og.png', {
+    const inlineHtml = await $fetch('/satori/route-rules/inline')
+    const inlineUrl = extractOgImageUrl(inlineHtml)
+    expect(inlineUrl).toBeTruthy()
+    const inlineRouteRules: ArrayBuffer = await $fetch(inlineUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(inlineRouteRules)).toMatchImageSnapshot()
 
-    const overrideRouteRules: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/config/og.png', {
+    const configHtml = await $fetch('/satori/route-rules/config')
+    const configUrl = extractOgImageUrl(configHtml)
+    expect(configUrl).toBeTruthy()
+    const overrideRouteRules: ArrayBuffer = await $fetch(configUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(overrideRouteRules)).toMatchImageSnapshot()
 
-    const globalRouteRules: ArrayBuffer = await $fetch('/__og-image__/image/satori/route-rules/og.png', {
+    const globalHtml = await $fetch('/satori/route-rules')
+    const globalUrl = extractOgImageUrl(globalHtml)
+    expect(globalUrl).toBeTruthy()
+    const globalRouteRules: ArrayBuffer = await $fetch(globalUrl!, {
       responseType: 'arrayBuffer',
     })
-
     expect(Buffer.from(globalRouteRules)).toMatchImageSnapshot()
   })
 })

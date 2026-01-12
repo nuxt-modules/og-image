@@ -1,8 +1,25 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
+import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
 
 const { resolve } = createResolver(import.meta.url)
+
+// Helper to extract og:image URL path from HTML (handles both absolute and relative URLs)
+function extractOgImageUrl(html: string): string | null {
+  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+  if (!match?.[1])
+    return null
+  // Extract just the path from absolute URL (e.g., https://nuxtseo.com/_og/d/... -> /_og/d/...)
+  try {
+    const url = new URL(match[1])
+    return url.pathname
+  }
+  catch {
+    return match[1] // Already a relative path
+  }
+}
 
 describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   await setup({
@@ -11,7 +28,12 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   })
 
   it('svg', async () => {
-    const svg = await $fetch('/__og-image__/image/satori/og.svg')
+    // Get the page to extract the og:image URL, then change extension to svg
+    const html = await $fetch('/satori') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const svgUrl = ogUrl!.replace(/\.png$/, '.svg')
+    const svg = await $fetch(svgUrl)
     expect(svg).toMatchInlineSnapshot(`
       Blob {
         Symbol(kHandle): Blob {},
@@ -22,7 +44,9 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   }, 60000)
 
   it('json', async () => {
-    const json = await $fetch('/__og-image__/image/satori/og.json')
+    // Build URL with encoded params for /satori page
+    const encoded = encodeOgImageParams({ _path: '/satori' })
+    const json = await $fetch(`/_og/d/${encoded}.json`)
     delete json.key
     json.options.component = json.options.component.replace('OgImage', '')
     expect(json).toMatchInlineSnapshot(`
@@ -41,16 +65,16 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
           "renderer": "satori",
           "socialPreview": {
             "og": {
-              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image": "https://nuxtseo.com/_og/d/satori/og.png",
               "image:height": "600",
               "image:type": "image/png",
               "image:width": "1200",
             },
             "twitter": {
               "card": "summary_large_image",
-              "image": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image": "https://nuxtseo.com/_og/d/satori/og.png",
               "image:height": "600",
-              "image:src": "https://nuxtseo.com/__og-image__/image/satori/og.png",
+              "image:src": "https://nuxtseo.com/_og/d/satori/og.png",
               "image:width": "1200",
             },
           },
@@ -249,11 +273,12 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
   }, 60000)
 
   it('html', async () => {
-    const font = await $fetch('/__og-image__/image/satori/og.html')
-    expect(font).toContain('<!DOCTYPE html>')
+    const encoded = encodeOgImageParams({ _path: '/satori' })
+    const html = await $fetch(`/_og/d/${encoded}.html`)
+    expect(html).toContain('<!DOCTYPE html>')
   }, 60000)
   it('debug.json', async () => {
-    const debug = await $fetch('/__og-image__/debug.json')
+    const debug = await $fetch('/_og/debug.json')
     delete debug.runtimeConfig.baseCacheKey
     delete debug.runtimeConfig.version
     delete debug.runtimeConfig.compatibility

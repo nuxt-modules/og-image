@@ -2,13 +2,15 @@ import type { Buffer } from 'node:buffer'
 import type { Browser, PageScreenshotOptions } from 'playwright-core'
 import type { OgImageRenderEventContext } from '../../../types'
 import { useNitroOrigin } from '#site-config/server/composables'
-import { joinURL, withQuery } from 'ufo'
+import { withQuery } from 'ufo'
 import { toValue } from 'vue'
+import { buildOgImageUrl } from '../../../shared'
 import { useOgImageRuntimeConfig } from '../../utils'
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
   const { colorPreference } = useOgImageRuntimeConfig()
-  const path = options.component === 'PageScreenshot' ? basePath : joinURL('/__og-image__/image', basePath, `og.html`)
+  // For chromium, we need to load the HTML template with options encoded in URL
+  const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false).url
   const page = await browser.newPage({
     colorScheme: colorPreference || 'no-preference',
     baseURL: useNitroOrigin(e),
@@ -34,6 +36,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     }
     else {
       // avoid another fetch to the base path to resolve options
+      // @ts-expect-error untyped
       await page.goto(withQuery(path, options.props), {
         timeout: 10000,
         waitUntil: 'networkidle',

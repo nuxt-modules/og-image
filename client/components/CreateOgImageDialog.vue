@@ -1,17 +1,20 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
+import type { GlobalDebugResponse } from '../composables/fetch'
 import {
   RadioGroup,
   RadioGroupLabel,
   RadioGroupOption,
 } from '@headlessui/vue'
-import { fetchGlobalDebug } from '~/composables/fetch'
+import { ref } from 'vue'
+import { fetchGlobalDebug } from '../composables/fetch'
 import { CreateOgImageDialogPromise } from '../composables/templates'
 
-function handleClose(a: any, resolve: (value: boolean) => void) {
+function handleClose(_a: unknown, resolve: (value: string | false) => void) {
   resolve(false)
 }
 
-const { data: globalDebug } = await fetchGlobalDebug()
+const { data: globalDebug } = await fetchGlobalDebug() as { data: Ref<GlobalDebugResponse | null> }
 
 const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
 </script>
@@ -88,7 +91,7 @@ const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
             <NButton @click="resolve(false)">
               Cancel
             </NButton>
-            <NButton n="solid" capitalize class="n-blue px-3 py-1.5 rounded" @click="resolve(component)">
+            <NButton n="solid" capitalize class="n-blue px-3 py-1.5 rounded" @click="resolve(component || false)">
               Create Component
             </NButton>
           </div>

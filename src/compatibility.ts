@@ -1,6 +1,6 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
-import type { NitroConfig } from 'nitropack'
+import type { NitroConfig } from 'nitropack/config'
 import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
@@ -31,6 +31,7 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
   'css-inline': 'node',
   'resvg': 'node',
   'satori': 'node',
+  'takumi': 'node',
   'sharp': 'node', // will be disabled if they're missing the dependency
 }
 
@@ -39,6 +40,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
   'css-inline': false,
   'resvg': 'wasm',
   'satori': 'node',
+  'takumi': 'wasm',
   'sharp': false,
   'wasm': {
     esmImport: true,
@@ -50,6 +52,7 @@ const awsLambda: RuntimeCompatibilitySchema = {
   'css-inline': 'wasm',
   'resvg': 'node',
   'satori': 'node',
+  'takumi': 'node',
   'sharp': false, // 0.33.x has issues
 }
 
@@ -58,6 +61,7 @@ export const WebContainer: RuntimeCompatibilitySchema = {
   'css-inline': 'wasm-fs',
   'resvg': 'wasm-fs',
   'satori': 'wasm-fs',
+  'takumi': 'wasm',
   'sharp': false,
 }
 
@@ -74,9 +78,9 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'css-inline': 'wasm',
     'resvg': 'wasm',
     'satori': 'node',
+    'takumi': 'wasm',
     'sharp': false,
     'wasm': {
-      // @ts-expect-error untyped
       rollup: {
         targetEnv: 'auto-inline',
         sync: ['@resvg/resvg-wasm/index_bg.wasm'],
@@ -90,6 +94,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'css-inline': false, // size constraint (2mb is max)
     'resvg': 'wasm',
     'satori': 'node',
+    'takumi': 'wasm',
     'sharp': false,
     'wasm': {
       // lowers workers kb size
@@ -114,7 +119,7 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
   if (nuxt.options.dev)
     return 'nitro-dev'
   // check for prerendering
-  if ((nuxt.options as any)._generate /* TODO: remove in future major */ || nuxt.options.nitro.static)
+  if (nuxt.options.nitro.static)
     return 'nitro-prerender'
   let preset
   if (nitroConfig && nitroConfig?.preset)
@@ -142,19 +147,18 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
 
   const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
   const chromiumEnabled = typeof options.compatibility?.chromium !== 'undefined' ? !!options.compatibility.chromium : !!compatibility.chromium
+  const takumiEnabled = typeof options.compatibility?.takumi !== 'undefined' ? !!options.compatibility.takumi : !!compatibility.takumi
   // renderers
   const emptyMock = await resolve.resolvePath('./runtime/mock/empty')
   nitroConfig.alias!['#og-image/renderers/satori'] = satoriEnabled ? await resolve.resolvePath('./runtime/server/og-image/satori/renderer') : emptyMock
   nitroConfig.alias!['#og-image/renderers/chromium'] = chromiumEnabled ? await resolve.resolvePath('./runtime/server/og-image/chromium/renderer') : emptyMock
+  nitroConfig.alias!['#og-image/renderers/takumi'] = takumiEnabled ? await resolve.resolvePath('./runtime/server/og-image/takumi/renderer') : emptyMock
 
   const resolvedCompatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> = {}
   async function applyBinding(key: keyof Omit<RuntimeCompatibilitySchema, 'wasm'>) {
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')
       binding = compatibility[key]
-    // TODO avoid breaking changes, remove this in v4
-    if (key === 'chromium' && binding === 'node')
-      binding = 'playwright'
     if (key === 'css-inline' && typeof binding === 'string') {
       if ((binding === 'node' && !hasCssInlineNode) || (['wasm', 'wasm-fs'].includes(binding) && !hasCssInlineWasm)) {
         binding = false
@@ -169,6 +173,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   nitroConfig.alias = defu(
     await applyBinding('chromium'),
     await applyBinding('satori'),
+    await applyBinding('takumi'),
     await applyBinding('resvg'),
     await applyBinding('sharp'),
     await applyBinding('css-inline'),
@@ -181,6 +186,14 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   }
   nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
+
+  // linkedom has optional canvas dependency that doesn't exist on edge runtimes
+  const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(target)
+  if (isEdgePreset) {
+    const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
+    nitroConfig.virtual = nitroConfig.virtual || {}
+    nitroConfig.virtual.canvas = mockCode
+  }
 
   nitroConfig.virtual!['#og-image/compatibility'] = () => `export default ${JSON.stringify(resolvedCompatibility)}`
   addTemplate({

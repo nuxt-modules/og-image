@@ -9,6 +9,7 @@ definePageMeta({
 
 useServerSeoMeta({
   title: 'Welcome to the playground',
+  description: 'Test description',
   ogTitle: 'Welcome to the playground',
 })
 
@@ -48,11 +49,16 @@ defineOgImageComponent('NuxtSeo', {
           </NuxtLink>
         </li>
         <li>
-          <a target="_blank" href="/__og-image__/image/satori/og.png">Satori png</a>
+          <a target="_blank" href="/_og/d/satori/og.png">Satori png</a>
         </li>
         <li>
           <NuxtLink to="/satori/image">
             Satori image
+          </NuxtLink>
+        </li>
+        <li>
+          <NuxtLink to="/multiple">
+            Satori Multiple
           </NuxtLink>
         </li>
         <li>

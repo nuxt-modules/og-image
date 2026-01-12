@@ -1,1 +1,2 @@
 site.url=https://nuxtseo.com
+modules[]=nuxt-og-image

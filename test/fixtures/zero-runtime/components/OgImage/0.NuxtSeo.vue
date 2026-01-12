@@ -4,7 +4,7 @@
  */
 
 import { useSiteConfig } from '#imports'
-import { useOgImageRuntimeConfig } from '#og-image/shared'
+import { useOgImageRuntimeConfig } from '#og-image/app/utils'
 import { computed, defineComponent, h, resolveComponent } from 'vue'
 
 // convert to typescript props

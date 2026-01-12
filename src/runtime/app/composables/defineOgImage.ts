@@ -2,11 +2,10 @@ import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../
 import { appendHeader } from 'h3'
 import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { ref, toValue } from 'vue'
-// import { createNitroRouteRuleMatcher } from '../../server/util/kit'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 // In non-dev client-side environments this is treeshaken
-export function defineOgImage(_options: DefineOgImageInput = {}) {
+export function defineOgImage(_options: DefineOgImageInput | DefineOgImageInput[] = {}): string[] {
   const nuxtApp = useNuxtApp()
   const route = useRoute()
   const basePath = route.path || '/' // (pages may be disabled)'
@@ -21,19 +20,52 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
       if (!state.value) {
         throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup, see https://github.com/nuxt-modules/og-image/pull/293.' })
       }
-      return
+      return []
     }
     state.value = true
   }
   if (!import.meta.server) {
-    return
+    return []
   }
 
+  const paths: string[] = []
+
+  // Handle array of options
+  if (Array.isArray(_options)) {
+    for (const opt of _options) {
+      const path = processOgImageOptions(opt, nuxtApp, route, basePath)
+      if (path)
+        paths.push(path)
+    }
+    return paths
+  }
+
+  const path = processOgImageOptions(_options, nuxtApp, route, basePath)
+  if (path)
+    paths.push(path)
+  return paths
+}
+
+function processOgImageOptions(
+  _options: DefineOgImageInput,
+  nuxtApp: ReturnType<typeof useNuxtApp>,
+  route: ReturnType<typeof useRoute>,
+  basePath: string,
+): string | undefined {
   const { defaults } = useOgImageRuntimeConfig()
   const options = toValue(_options)
 
-  // If options is false, don't generate an OG image
+  // If options is false, skip this image (used when passing arrays with conditional items)
   if (options === false) {
+    return
+  }
+
+  // If route rules disabled og:image, clear all images
+  if (nuxtApp.ssrContext?.event.context._nitro?.routeRules?.ogImage === false) {
+    nuxtApp.ssrContext!._ogImageInstance?.dispose()
+    nuxtApp.ssrContext!._ogImageDevtoolsInstance?.dispose()
+    nuxtApp.ssrContext!._ogImageInstance = undefined
+    nuxtApp.ssrContext!._ogImagePayloads = []
     return
   }
 
@@ -51,11 +83,18 @@ export function defineOgImage(_options: DefineOgImageInput = {}) {
   // allow overriding using a prebuild config
   if (validOptions.url) {
     setHeadOgImagePrebuilt(validOptions)
-    return
+    return toValue(validOptions.url)
   }
-  const path = getOgImagePath(basePath, validOptions)
+  const { path, hash } = getOgImagePath(basePath, validOptions)
   if (import.meta.prerender) {
-    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', path)
+    // Encode commas to prevent HTTP header splitting (commas separate header values)
+    const prerenderPath = (path.split('?')[0] || path).replace(/,/g, '%2C')
+    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', prerenderPath)
+  }
+  // Include hash in options if hash mode was used (for prerender cache lookup)
+  if (hash) {
+    validOptions._hash = hash
   }
   createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
+  return path
 }

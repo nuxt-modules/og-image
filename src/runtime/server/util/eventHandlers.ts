@@ -1,8 +1,11 @@
 import type { H3Event } from 'h3'
-import type { ResolvedFontConfig } from '../../types'
+import type { FontConfig, ResolvedFontConfig } from '../../types'
+import { fetchPathHtmlAndExtractOptions } from '#og-image/server/og-image/devtools'
+import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
 import { parseURL } from 'ufo'
 import { normaliseFontInput } from '../../shared'
+import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
 import { assets } from '../og-image/satori/font'
 import { html } from '../og-image/templates/html'
@@ -14,9 +17,9 @@ export async function fontEventHandler(e: H3Event) {
   const { fonts } = useOgImageRuntimeConfig()
 
   // used internally for html previews
-  const key = path.split('/font/')[1]
+  const key = path.split('/f/')[1]
   if (key && key.includes(':')) {
-    const font = fonts.find(f => f.key === key)
+    const font = fonts.find((f: FontConfig) => f.key === key)
     // use as storage key
     if (font?.key && await assets.hasItem(font.key)) {
       let fontData = await assets.getItem(font.key) as any as string | Uint8Array
@@ -75,7 +78,7 @@ export async function fontEventHandler(e: H3Event) {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1',
     },
-  })
+  }) as string
   if (!css) {
     return createError({
       statusCode: 500,
@@ -103,26 +106,14 @@ export async function imageEventHandler(e: H3Event) {
   if (ctx instanceof H3Error)
     return ctx
 
-  const { isDebugJsonPayload, extension, options, renderer } = ctx
+  const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey } = useOgImageRuntimeConfig()
-  const compatibilityHints: string[] = []
   // debug
-  if (isDebugJsonPayload) {
-    const queryExtension = getQuery(e).extension || ctx.options.extension
-    // figure out compatibilityHints based on what we're using
-    if (['jpeg', 'jpg'].includes(queryExtension as string) && options.renderer === 'satori')
-      compatibilityHints.push('Converting PNGs to JPEGs requires Sharp which only runs on Node based systems.')
-    if (options.renderer === 'chromium')
-      compatibilityHints.push('Using Chromium to generate images is only supported in Node based environments. It\'s recommended to only use this if you\'re prerendering')
+  if (import.meta.dev && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
     return {
-      siteConfig: {
-        url: e.context.siteConfig.get().url,
-      },
-      compatibilityHints,
-      cacheKey: ctx.key,
-      options: ctx.options,
-      ...(options.renderer === 'satori' ? await renderer.debug(ctx) : undefined),
+      extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
+      siteUrl: useSiteConfig(e).url,
     }
   }
   switch (extension) {
@@ -140,7 +131,7 @@ export async function imageEventHandler(e: H3Event) {
       if (ctx.renderer.name !== 'satori') {
         return createError({
           statusCode: 400,
-          statusMessage: `[Nuxt OG Image] Generating ${extension}\'s with ${renderer.name} is not supported.`,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
         })
       }
       // add svg headers
@@ -152,7 +143,7 @@ export async function imageEventHandler(e: H3Event) {
       if (!renderer.supportedFormats.includes(extension)) {
         return createError({
           statusCode: 400,
-          statusMessage: `[Nuxt OG Image] Generating ${extension}\'s with ${renderer.name} is not supported.`,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
         })
       }
       setHeader(e, 'Content-Type', `image/${extension === 'jpg' ? 'jpeg' : extension}`)
@@ -163,6 +154,14 @@ export async function imageEventHandler(e: H3Event) {
         statusMessage: `[Nuxt OG Image] Invalid request for og.${extension}.`,
       })
   }
+  // Check build cache first (CI persistence)
+  const buildCachedImage = import.meta.prerender
+    ? getBuildCachedImage(ctx.options, extension)
+    : null
+  if (buildCachedImage) {
+    return buildCachedImage
+  }
+
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
@@ -185,6 +184,10 @@ export async function imageEventHandler(e: H3Event) {
       })
     }
     await cacheApi.update(image)
+    // Save to build cache for CI persistence
+    if (import.meta.prerender && ctx.options.cacheMaxAgeSeconds) {
+      setBuildCachedImage(ctx.options, extension, image as Buffer, ctx.options.cacheMaxAgeSeconds)
+    }
   }
   return image
 }

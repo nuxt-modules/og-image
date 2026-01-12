@@ -1,5 +1,5 @@
 import type { OgImageRenderEventContext, ResolvedFontConfig } from '../../../types'
-import { useNitroOrigin } from '#site-config/server/composables'
+import { getNitroOrigin } from '#site-config/server/composables'
 import { useStorage } from 'nitropack/runtime'
 import { prefixStorage } from 'unstorage'
 
@@ -34,13 +34,13 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
     }
     else {
       data = await e.$fetch(font.path, {
-        baseURL: useNitroOrigin(e),
+        baseURL: getNitroOrigin(e),
         responseType: 'arrayBuffer',
       })
     }
   }
   else {
-    data = await e.$fetch(`/__og-image__/font/${name}/${weight}.ttf`, {
+    data = await e.$fetch(`/_og/f/${name}/${weight}.ttf`, {
       responseType: 'arrayBuffer',
       query: {
         font,

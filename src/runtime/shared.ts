@@ -3,26 +3,44 @@ import type { InputFontConfig, OgImageOptions, OgImagePrebuilt, ResolvedFontConf
 import { defu } from 'defu'
 import { toValue } from 'vue'
 
+export { extractSocialPreviewTags } from './pure'
+export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, hashOgImageOptions, parseOgImageUrl } from './shared/urlEncoding'
+
 export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
-  const meta: ResolvableMeta[] = [
-    { property: 'og:image', content: url },
-    { property: 'og:image:type', content: () => `image/${getExtension(toValue(url) as string) || resolvedOptions.extension}` },
-    { name: 'twitter:card', content: 'summary_large_image' },
-    // we don't need this but avoids issue when using useSeoMeta({ twitterImage })
-    { name: 'twitter:image', content: url },
-    { name: 'twitter:image:src', content: url },
-  ]
+  const key = resolvedOptions.key || 'og'
+  const isTwitterOnly = key === 'twitter'
+  const includeTwitter = key === 'og' || key === 'twitter'
+
+  const meta: ResolvableMeta[] = []
+
+  if (!isTwitterOnly) {
+    meta.push({ property: 'og:image', content: url })
+    meta.push({ property: 'og:image:type', content: () => `image/${getExtension(toValue(url) as string) || resolvedOptions.extension}` })
+  }
+
+  if (includeTwitter) {
+    meta.push({ name: 'twitter:card', content: 'summary_large_image' })
+    meta.push({ name: 'twitter:image', content: url })
+    meta.push({ name: 'twitter:image:src', content: url })
+  }
+
   if (resolvedOptions.width) {
-    meta.push({ property: 'og:image:width', content: resolvedOptions.width })
-    meta.push({ name: 'twitter:image:width', content: resolvedOptions.width })
+    if (!isTwitterOnly)
+      meta.push({ property: 'og:image:width', content: resolvedOptions.width })
+    if (includeTwitter)
+      meta.push({ name: 'twitter:image:width', content: resolvedOptions.width })
   }
   if (resolvedOptions.height) {
-    meta.push({ property: 'og:image:height', content: resolvedOptions.height })
-    meta.push({ name: 'twitter:image:height', content: resolvedOptions.height })
+    if (!isTwitterOnly)
+      meta.push({ property: 'og:image:height', content: resolvedOptions.height })
+    if (includeTwitter)
+      meta.push({ name: 'twitter:image:height', content: resolvedOptions.height })
   }
   if (resolvedOptions.alt) {
-    meta.push({ property: 'og:image:alt', content: resolvedOptions.alt })
-    meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
+    if (!isTwitterOnly)
+      meta.push({ property: 'og:image:alt', content: resolvedOptions.alt })
+    if (includeTwitter)
+      meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
   }
   return meta
 }
@@ -70,16 +88,18 @@ function filterIsOgImageOption(key: string) {
     'renderer',
     'emojis',
     '_query',
+    '_hash',
     'satori',
     'resvg',
     'sharp',
     'screenshot',
     'cacheMaxAgeSeconds',
+    'key',
   ]
   return keys.includes(key as keyof OgImageOptions)
 }
 
-export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []) {
+export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []): OgImageOptions {
   options = options || {}
   const _props = defu(options.props, Object.fromEntries(
     Object.entries({ ...options })
@@ -98,10 +118,9 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
         .filter(([k]) => filterIsOgImageOption(k) || ignoreKeys.includes(k)),
     ),
     props,
-  }
+  } as OgImageOptions
 }
 
-// duplicate of ../pure.ts
 export function normaliseFontInput(fonts: InputFontConfig[]): ResolvedFontConfig[] {
   return fonts.map((f) => {
     if (typeof f === 'string') {
@@ -145,11 +164,4 @@ export function getExtension(path: string) {
   if (extension === 'jpg')
     return 'jpeg'
   return extension
-}
-
-/**
- * @deprecated Please use `#og-image/app/utils` instead.
- */
-export function useOgImageRuntimeConfig() {
-  return {}
 }

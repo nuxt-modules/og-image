@@ -17,7 +17,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule, hasNuxtModuleCompatibility } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -39,9 +39,23 @@ import {
   resolveNitroPreset,
 } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
+import { onInstall, onUpgrade } from './onboarding'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
+import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+import {
+  getMissingDependencies,
+  getProviderDependencies,
+} from './utils/dependencies'
+
+export type {
+  OgImageComponent,
+  OgImageOptions,
+  OgImageRuntimeConfig,
+  RuntimeCompatibilitySchema,
+} from './runtime/types'
+export type { OgImageRenderEventContext, VNode } from './runtime/types'
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
@@ -130,15 +144,25 @@ export interface ModuleOptions {
    * Only allow the prerendering and dev runtimes to generate images.
    */
   zeroRuntime?: boolean
-
   /**
-   * Enable when your nuxt/content files match your pages.
+   * Enable persistent build cache for CI environments.
+   * Caches rendered images to disk so they persist between CI runs.
    *
-   * This will automatically map the `ogImage` frontmatter key to the correct path.
-   *
-   * This is similar behavior to using `nuxt/content` with `documentDriven: true`.
+   * @default false
+   * @example true
+   * @example { base: '.cache/og-image' }
    */
-  strictNuxtContentPaths?: boolean
+  buildCache?: boolean | { base?: string }
+  /**
+   * Strategy for resolving emoji icons.
+   *
+   * - 'auto': Automatically choose based on available dependencies (default)
+   * - 'local': Use local @iconify-json dependencies only
+   * - 'fetch': Use Iconify API to fetch emojis
+   *
+   * @default 'auto'
+   */
+  emojiStrategy?: 'auto' | 'local' | 'fetch'
 }
 
 export interface ModuleHooks {
@@ -160,6 +184,12 @@ export default defineNuxtModule<ModuleOptions>({
     },
     configKey: 'ogImage',
   },
+  moduleDependencies: {
+    '@nuxt/content': {
+      version: '>=3',
+      optional: true,
+    },
+  },
   defaults() {
     return {
       enabled: true,
@@ -178,6 +208,12 @@ export default defineNuxtModule<ModuleOptions>({
       runtimeCacheStorage: true,
       debug: isDevelopment,
     }
+  },
+  async onInstall(nuxt: Nuxt) {
+    await onInstall(nuxt)
+  },
+  async onUpgrade(nuxt: Nuxt, options: ModuleOptions, previousVersion: string) {
+    await onUpgrade(nuxt, options, previousVersion)
   },
   async setup(config, nuxt) {
     const resolver = createResolver(import.meta.url)
@@ -199,10 +235,71 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
     }
+
+    // validate provider dependencies
+    const selectedRenderer = config.defaults.renderer || 'satori'
+    const rendererMissing = await getMissingDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
+    if (rendererMissing.length > 0) {
+      const deps = getProviderDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
+      logger.error(`Missing dependencies for ${selectedRenderer} renderer: ${rendererMissing.join(', ')}`)
+      logger.info(`Install with: npm add ${deps.join(' ')}`)
+      logger.info('Or run the module again to trigger the onInstall wizard.')
+      return
+    }
+
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
-    // legacy support
-    nuxt.options.alias['#nuxt-og-image-utils'] = resolve('./runtime/shared')
+
+    // Determine emoji strategy based on configuration and dependencies
+    const emojiPkg = `@iconify-json/${config.defaults.emojis}`
+    let hasLocalIconify = await hasResolvableDependency(emojiPkg)
+    let finalEmojiStrategy = config.emojiStrategy || 'auto'
+
+    // Prompt to install emoji package in dev mode (non-CI, non-prepare)
+    if (!hasLocalIconify && !nuxt.options._prepare && nuxt.options.dev) {
+      const shouldInstall = await logger.prompt(`Install ${emojiPkg} for local emoji support?`, {
+        type: 'confirm',
+        initial: true,
+      })
+      if (shouldInstall) {
+        await ensureDependencies([emojiPkg], nuxt)
+          .then(() => {
+            hasLocalIconify = true
+            logger.success(`Installed ${emojiPkg}`)
+          })
+          .catch(() => logger.warn(`Failed to install ${emojiPkg}, using API fallback`))
+      }
+    }
+
+    // Handle 'auto' strategy
+    if (finalEmojiStrategy === 'auto') {
+      finalEmojiStrategy = hasLocalIconify ? 'local' : 'fetch'
+    }
+
+    // Validate strategy against available dependencies
+    if (finalEmojiStrategy === 'local' && !hasLocalIconify) {
+      logger.warn(`emojiStrategy is set to 'local' but ${emojiPkg} is not installed. Falling back to 'fetch'.`)
+      finalEmojiStrategy = 'fetch'
+    }
+
+    // Set emoji implementation based on final strategy
+    if (finalEmojiStrategy === 'local') {
+      logger.debug(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
+      // add nitro virtual import for the iconify import
+      nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
+      nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
+        return `export { icons, width, height } from '${emojiPkg}/icons.json'`
+      }
+      // Add build-time emoji transform plugin to replace emojis in OgImage component templates
+      // This fixes satori issues where the first emoji in a sequence renders incorrectly
+      const { emojiTransformPlugin } = await import('./build/emoji-transform')
+      addVitePlugin(emojiTransformPlugin.vite({ emojiSet: config.defaults.emojis || 'noto', componentDirs: config.componentDirs }))
+    }
+    else {
+      logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
+    }
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -373,7 +470,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
       addServerHandler({
         lazy: true,
-        route: '/__og-image__/font/**',
+        route: '/_og/f/**',
         handler: resolve(`${basePath}/font`),
       })
     }
@@ -412,40 +509,24 @@ export default defineNuxtModule<ModuleOptions>({
 
     await installNuxtSiteConfig()
 
-    const usingNuxtContent = hasNuxtModule('@nuxt/content')
-    const isNuxtContentV3 = usingNuxtContent && await hasNuxtModuleCompatibility('@nuxt/content', '^3')
-    const isNuxtContentV2 = usingNuxtContent && await hasNuxtModuleCompatibility('@nuxt/content', '^2')
-    if (isNuxtContentV3) {
-      if (typeof config.strictNuxtContentPaths !== 'undefined') {
-        // deprecated
-        logger.warn('The `strictNuxtContentPaths` option is deprecated and has no effect in Nuxt Content v3.')
-      }
-      // we just have user pass the ogImage to the defineOgImage function
-      // less magic, more control
-    }
-    else if (isNuxtContentV2) {
-      // convert ogImage key to head data
-      addServerPlugin(resolve('./runtime/server/plugins/nuxt-content-v2'))
-    }
-
     nuxt.options.experimental.componentIslands ||= true
 
     if (config.debug || nuxt.options.dev) {
       addServerHandler({
         lazy: true,
-        route: '/__og-image__/debug.json',
+        route: '/_og/debug.json',
         handler: resolve('./runtime/server/routes/debug.json'),
       })
     }
     addServerHandler({
       lazy: true,
-      route: '/__og-image__/image/**',
+      route: '/_og/d/**',
       handler: resolve(`${basePath}/image`),
     })
     // prerender only
     addServerHandler({
       lazy: true,
-      route: '/__og-image__/static/**',
+      route: '/_og/s/**',
       handler: resolve(`${basePath}/image`),
     })
 
@@ -587,57 +668,10 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
 
-    addTypeTemplate({
-      filename: 'module/nuxt-og-image.d.ts',
-      getContents: (data) => {
-        const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'module'), resolve('runtime/types'))
-        // need to map our components to types so we can import them
-        const componentImports = ogImageComponentCtx.components.map((component) => {
-          const relativeComponentPath = relative(resolve(nuxt!.options.rootDir, nuxt!.options.buildDir, 'module'), component.path!)
-          // remove dirNames from component name
-          const name = config.componentDirs
-            // need to sort by longest first so we don't replace the wrong part of the string
-            .sort((a, b) => b.length - a.length)
-            .reduce((name, dir) => {
-              // only replace from the start of the string
-              return name.replace(new RegExp(`^${dir}`), '')
-            }, component.pascalName)
-          return `    '${name}': typeof import('${relativeComponentPath}')['default']`
-        }).join('\n')
-        const types = `interface NitroRouteRules {
-    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
-  }
-  interface NitroRouteConfig {
-    ogImage?: false | import('${typesPath}').OgImageOptions & Record<string, any>
-  }
-  interface NitroRuntimeHooks {
-    'nuxt-og-image:context': (ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: import('${typesPath}').VNode, ctx: import('${typesPath}').OgImageRenderEventContext) => void | Promise<void>
-  }`
-        return `
-declare module 'nitropack' {
-${types}
-}
-
-declare module 'nitropack/types' {
-${types}
-}
-
-declare module '#og-image/components' {
-  export interface OgImageComponents {
-${componentImports}
-  }
-}
-declare module '#og-image/unocss-config' {
-  export type theme = any
-}
-
-export {}
-`
-      },
-    }, {
-      nitro: true,
-      nuxt: true,
+    registerTypeTemplates({
+      nuxt,
+      config,
+      componentCtx: ogImageComponentCtx,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
@@ -649,6 +683,14 @@ export {}
       nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
       nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
     }
+
+    // Build cache for CI persistence (absolute path)
+    const buildCachePath = typeof config.buildCache === 'object' && config.buildCache.base
+      ? config.buildCache.base
+      : 'node_modules/.cache/nuxt/og-image'
+    const buildCacheDir = config.buildCache
+      ? resolve(nuxt.options.rootDir, buildCachePath)
+      : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
       const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
@@ -681,21 +723,21 @@ export {}
         debug: config.debug,
         // avoid adding credentials
         baseCacheKey,
+        buildCacheDir,
         // convert the fonts to uniform type to fix ts issue
         fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
-        strictNuxtContentPaths: config.strictNuxtContentPaths,
         // @ts-expect-error runtime type
-        isNuxtContentDocumentDriven: config.strictNuxtContentPaths || !!nuxt.options.content?.documentDriven,
+        isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
       }
       // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
-      // @ts-expect-error runtime types
+      // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
     })
 

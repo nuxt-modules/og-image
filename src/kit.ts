@@ -33,5 +33,5 @@ export async function getNuxtModuleOptions(module: string | NuxtModule, nuxt: Nu
 }
 
 export function isNuxtGenerate(nuxt: Nuxt = useNuxt()) {
-  return (nuxt.options as any)._generate /* TODO: remove in future major */ || nuxt.options.nitro.static || nuxt.options.nitro.preset === 'static'
+  return nuxt.options.nitro.static || nuxt.options.nitro.preset === 'static'
 }

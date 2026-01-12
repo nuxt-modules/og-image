@@ -2,16 +2,16 @@
 import type { OgImageComponent } from '../../src/runtime/types'
 import { withQuery } from 'ufo'
 import { computed, ref } from 'vue'
-import { devtoolsClient } from '~/composables/rpc'
+import { devtoolsClient } from '../composables/rpc'
 
 const props = defineProps<{
   src: string
   aspectRatio: number
   component: OgImageComponent
   active: boolean
-  imageFormat: string
-  width: string
-  height: string
+  imageFormat?: string
+  width?: string
+  height?: string
 }>()
 
 function openComponent() {
@@ -23,10 +23,10 @@ const isHtml = computed(() => {
 })
 
 const creditName = computed(() => {
-  return props.component.credits?.split('<')[0].trim()
+  return props.component.credits?.split('<')[0]?.trim()
 })
 const creditSite = computed(() => {
-  return props.component.credits?.split('<')[1].trim().replace(/>/g, '')
+  return props.component.credits?.split('<')[1]?.trim().replace(/>/g, '')
 })
 
 const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
@@ -49,7 +49,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
             :aspect-ratio="aspectRatio"
             class="rounded overflow-hidden"
             :class="active ? ['ring-2 ring-green-500'] : []"
-            @load="e => loadStats = e"
+            @load="(e: { timeTaken: string, sizeKb: string }) => loadStats = e"
           />
           <IFrameLoader
             v-else
@@ -57,7 +57,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
             class="pointer-events-none"
             :max-height="120"
             :aspect-ratio="aspectRatio"
-            @load="e => loadStats = e"
+            @load="(e: { timeTaken: string, sizeKb: string }) => loadStats = e"
           />
         </div>
         <template #popper>

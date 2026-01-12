@@ -77,7 +77,7 @@ svg[data-emoji] {
             font-family: '${font.name.replaceAll('+', ' ')}';
             font-style: normal;
             font-weight: ${font.weight};
-            src: url('/__og-image__/font/${font.key}') format('truetype');
+            src: url('/_og/f/${font.key}') format('truetype');
           }
           `
         }),
