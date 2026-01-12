@@ -96,6 +96,14 @@ const templates: { name: string, props: Record<string, any> }[] = [
       publication: 'The Daily Chronicle',
     },
   },
+  {
+    name: 'SaaS',
+    props: {
+      title: 'Build better products, ship faster, delight customers.',
+      siteName: 'Acme',
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80',
+    },
+  },
 ]
 
 const baseUrl = process.argv[2] || 'http://localhost:3000'

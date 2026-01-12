@@ -39,7 +39,7 @@ withDefaults(defineProps<{
     <div class="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/30" />
     <div class="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/30" />
 
-    <div class="flex flex-col items-center text-center px-20 relative z-10">
+    <div class="flex flex-col items-center text-center px-8 lg:px-20 relative z-10">
       <h1 class="flex items-center gap-5 text-[72px] font-bold leading-tight tracking-tight" style="display: block; line-clamp: 2; text-overflow: ellipsis; text-shadow: 0 4px 30px rgba(0,0,0,0.5);">
         <Icon
           v-if="icon"

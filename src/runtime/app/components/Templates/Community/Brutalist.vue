@@ -28,7 +28,7 @@ withDefaults(defineProps<{
     >
       <!-- Accent bar -->
       <div
-        class="absolute w-32"
+        class="absolute w-32 hidden lg:flex"
         :style="{ background: accent, top: '-2px', right: '-4px', bottom: '-4px' }"
       />
 
