@@ -46,7 +46,6 @@ export function fetchPathDebug() {
     }
     const encoded = encodeOgImageParams(params)
     const url = `/_og/d/${encoded || 'default'}.json`
-    // @ts-expect-error excessive stack depth from Nuxt route types
     return appFetch.value(url)
   }, {
     watch: [path, refreshTime, ogImageKey],
