@@ -1,6 +1,6 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
 import { appendHeader } from 'h3'
-import { createError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
+import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { ref, toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
@@ -17,7 +17,8 @@ export function defineOgImage(_options: DefineOgImageInput | DefineOgImageInput[
     // clone to avoid any issues
     if (import.meta.dev && !import.meta.server) {
       // should be tree shaken
-      if (!state.value) {
+      // skip validation in error context - error pages have special lifecycle that confuses state tracking
+      if (!state.value && !useError().value) {
         throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup, see https://github.com/nuxt-modules/og-image/pull/293.' })
       }
       return []
