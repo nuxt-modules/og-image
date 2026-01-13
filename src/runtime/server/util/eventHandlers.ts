@@ -3,6 +3,7 @@ import type { FontConfig, ResolvedFontConfig } from '../../types'
 import { fetchPathHtmlAndExtractOptions } from '#og-image/server/og-image/devtools'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, getQuery, H3Error, proxyRequest, sendRedirect, setHeader, setResponseHeader } from 'h3'
+import { useStorage } from 'nitropack/runtime'
 import { parseURL } from 'ufo'
 import { normaliseFontInput } from '../../shared'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
@@ -20,27 +21,39 @@ export async function fontEventHandler(e: H3Event) {
   const key = path.split('/f/')[1]
   if (key && key.includes(':')) {
     const font = fonts.find((f: FontConfig) => f.key === key)
-    // use as storage key
-    if (font?.key && await assets.hasItem(font.key)) {
-      let fontData = await assets.getItem(font.key) as any as string | Uint8Array
-      // if buffer
-      if (fontData instanceof Uint8Array) {
-        const decoder = new TextDecoder()
-        fontData = decoder.decode(fontData)
+    if (font?.key) {
+      let fontData: string | Uint8Array | null = null
+      if (await assets.hasItem(font.key)) {
+        fontData = await assets.getItem(font.key) as any as string | Uint8Array
       }
-      // set header either as ttf, otf or woff2
-      if (key.includes('.oft')) {
-        setResponseHeader(e, 'Content-Type', 'font/otf')
+      // zeroRuntime: fonts available via devStorage during dev/prerender
+      else if (import.meta.dev || import.meta.prerender) {
+        const fontFileName = font.key.split(':').pop()
+        if (fontFileName) {
+          const fontsStorage = useStorage('nuxt-og-image:fonts')
+          if (await fontsStorage.hasItem(fontFileName))
+            fontData = await fontsStorage.getItem(fontFileName) as string | Uint8Array
+        }
       }
-      else if (key.includes('.woff2')) {
-        setResponseHeader(e, 'Content-Type', 'font/woff2')
+      if (fontData) {
+        // if buffer
+        if (fontData instanceof Uint8Array) {
+          const decoder = new TextDecoder()
+          fontData = decoder.decode(fontData)
+        }
+        // set header either as ttf, otf or woff2
+        if (key.includes('.oft')) {
+          setResponseHeader(e, 'Content-Type', 'font/otf')
+        }
+        else if (key.includes('.woff2')) {
+          setResponseHeader(e, 'Content-Type', 'font/woff2')
+        }
+        else if (key.includes('.ttf')) {
+          setResponseHeader(e, 'Content-Type', 'font/ttf')
+        }
+        // fontData is a base64 string, need to turn it into a buffer
+        return Buffer.from(fontData as string, 'base64')
       }
-      else if (key.includes('.ttf')) {
-        setResponseHeader(e, 'Content-Type', 'font/ttf')
-      }
-      // fontData is a base64 string, need to turn it into a buffer
-      // buf is a string need to convert it to a buffer
-      return Buffer.from(fontData as string, 'base64')
     }
   }
 
