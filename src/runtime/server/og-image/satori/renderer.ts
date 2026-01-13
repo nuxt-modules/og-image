@@ -72,11 +72,9 @@ async function createPng(event: OgImageRenderEventContext) {
   const svg = await createSvg(event)
   if (!svg)
     throw new Error('Failed to create SVG')
+  const options = defu(event.options.resvg, resvgOptions)
   const Resvg = await useResvg()
-  const resvg = new Resvg(svg, defu(
-    event.options.resvg,
-    resvgOptions,
-  ))
+  const resvg = new Resvg(svg, options)
   const pngData = resvg.render()
   return pngData.asPng()
 }

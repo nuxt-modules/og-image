@@ -35,6 +35,11 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
   'sharp': 'node', // will be disabled if they're missing the dependency
 }
 
+const NodeDevRuntime: RuntimeCompatibilitySchema = {
+  ...NodeRuntime,
+  resvg: 'node-dev', // use worker to prevent crashes from killing process
+}
+
 const cloudflare: RuntimeCompatibilitySchema = {
   'chromium': false,
   'css-inline': false,
@@ -66,7 +71,7 @@ export const WebContainer: RuntimeCompatibilitySchema = {
 }
 
 export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
-  'nitro-dev': NodeRuntime,
+  'nitro-dev': NodeDevRuntime,
   'nitro-prerender': NodeRuntime,
   'node-server': NodeRuntime,
   'stackblitz': WebContainer,

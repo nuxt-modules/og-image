@@ -189,7 +189,7 @@ export type InputFontConfig = (`${string}:${number}` | `${string}:${'normal' | '
 export interface RuntimeCompatibilitySchema {
   chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
-  resvg: 'node' | 'wasm' | 'wasm-fs' | false
+  resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | false
   satori: 'node' | 'wasm' | 'wasm-fs' | false
   takumi: 'node' | 'wasm' | false
   sharp: 'node' | false
