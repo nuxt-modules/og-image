@@ -12,7 +12,7 @@ import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resol
 export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, nuxt: Nuxt = useNuxt()) {
   nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
   if (typeof config.runtimeCacheStorage === 'object')
-    nuxt.options.nitro.storage['og-image'] = config.runtimeCacheStorage
+    nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
 
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
     await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
