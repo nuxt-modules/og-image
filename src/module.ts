@@ -176,7 +176,7 @@ function isProviderEnabledForEnv(provider: keyof CompatibilityFlags, nuxt: Nuxt,
   return (nuxt.options.dev && config.compatibility?.dev?.[provider] !== false) || (!nuxt.options.dev && (config.compatibility?.runtime?.[provider] !== false || config.compatibility?.prerender?.[provider] !== false))
 }
 
-const defaultComponentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
+const defaultComponentDirs = ['OgImage', 'OgImageCommunity', 'og-image', 'OgImageTemplate']
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -611,6 +611,8 @@ export default defineNuxtModule<ModuleOptions>({
           path,
           island: true,
           watch: IS_MODULE_DEVELOPMENT,
+          // OgImageCommunity components should be named OgImage* not OgImageCommunity*
+          prefix: componentDir === 'OgImageCommunity' ? 'OgImage' : undefined,
         })
       }
       else if (!defaultComponentDirs.includes(componentDir)) {
