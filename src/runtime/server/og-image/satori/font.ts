@@ -10,17 +10,30 @@ export async function loadFont({ e, publicStoragePath }: OgImageRenderEventConte
   if (font.data)
     return font
 
-  if (font.key && await assets.hasItem(font.key)) {
-    let fontData = await assets.getItem(font.key) as any as string | Uint8Array
-    // if buffer
-    if (fontData instanceof Uint8Array) {
-      const decoder = new TextDecoder()
-      fontData = decoder.decode(fontData)
+  if (font.key) {
+    let fontData: string | Uint8Array | null = null
+    if (await assets.hasItem(font.key)) {
+      fontData = await assets.getItem(font.key) as any as string | Uint8Array
     }
-    // fontData is a base64 string, need to turn it into a buffer
-    // buf is a string need to convert it to a buffer
-    font.data = Buffer.from(String(fontData), 'base64')
-    return font
+    // zeroRuntime: fonts available via devStorage during dev/prerender
+    else if (import.meta.dev || import.meta.prerender) {
+      const fontFileName = font.key.split(':').pop()
+      if (fontFileName) {
+        const fontsStorage = useStorage('nuxt-og-image:fonts')
+        if (await fontsStorage.hasItem(fontFileName))
+          fontData = await fontsStorage.getItem(fontFileName) as string | Uint8Array
+      }
+    }
+    if (fontData) {
+      // if buffer
+      if (fontData instanceof Uint8Array) {
+        const decoder = new TextDecoder()
+        fontData = decoder.decode(fontData)
+      }
+      // fontData is a base64 string, need to turn it into a buffer
+      font.data = Buffer.from(String(fontData), 'base64')
+      return font
+    }
   }
 
   // TODO we may not need this anymore

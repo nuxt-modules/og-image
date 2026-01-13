@@ -1,9 +1,9 @@
-import fs, { readFile } from 'node:fs/promises'
+import fs, { readFile, writeFile } from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
 import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -16,7 +16,20 @@ const toMatchImageSnapshot = configureToMatchImageSnapshot({
 })
 expect.extend({ toMatchImageSnapshot })
 
+const fixtureDir = resolve('../fixtures/zero-runtime')
+const nuxtConfigPath = resolve(fixtureDir, 'nuxt.config.ts')
+
 describe('zeroRuntime', () => {
+  let originalConfig: string | null = null
+
+  afterEach(async () => {
+    // restore original config if modified
+    if (originalConfig) {
+      await writeFile(nuxtConfigPath, originalConfig)
+      originalConfig = null
+    }
+  })
+
   it('basic', async () => {
     // use execa to run `nuxi generate` in the rootDir
     await execa('nuxt', ['build'], { cwd: resolve('../fixtures/zero-runtime') })
@@ -46,5 +59,41 @@ describe('zeroRuntime', () => {
     // check the og:image tag src
     const ogImage = /<meta property="og:image" content="(.+?)">/.exec(indexHtml)
     expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/r_satori,title_Hello+World,em_noto,c_NuxtSeo,w_1200,h_600,cache_259200,q_e30,p_Ii8i.png"`)
+  }, 120000)
+
+  it('local fonts in config', async () => {
+    // save original config
+    originalConfig = await readFile(nuxtConfigPath, 'utf-8')
+
+    // modify config to add local font
+    const modifiedConfig = originalConfig.replace(
+      'ogImage: {\n    zeroRuntime: true,\n    sharpOptions: true,\n  },',
+      `ogImage: {
+    zeroRuntime: true,
+    sharpOptions: true,
+    fonts: [
+      {
+        name: 'OPTIEinstein',
+        weight: 800,
+        path: '/OPTIEinstein-Black.otf',
+      },
+    ],
+  },`,
+    )
+    await writeFile(nuxtConfigPath, modifiedConfig)
+
+    // clean and build
+    await execa('nuxt', ['cleanup'], { cwd: fixtureDir })
+    await execa('nuxt', ['build'], { cwd: fixtureDir })
+
+    // verify images were generated (build would fail if fonts couldn't be resolved)
+    const imagePath = resolve(fixtureDir, '.output/public/_og')
+    const images = await globby('**/*.png', { cwd: imagePath })
+    expect(images.length).toBeGreaterThan(0)
+
+    // verify font is NOT bundled in server output (zeroRuntime keeps bundle small)
+    const serverChunks = await globby('**/*.mjs', { cwd: resolve(fixtureDir, '.output/server/chunks') })
+    const fontChunk = serverChunks.find(c => c.includes('OPTIEinstein'))
+    expect(fontChunk).toBeUndefined()
   }, 120000)
 })

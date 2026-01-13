@@ -504,7 +504,15 @@ export default defineNuxtModule<ModuleOptions>({
           logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
           await fontStorage.removeItem(key)
         }))
-      if (!config.zeroRuntime) {
+      if (config.zeroRuntime) {
+        // Make fonts available during dev/prerender via storage (not bundled in production)
+        nuxt.options.nitro.devStorage = nuxt.options.nitro.devStorage || {}
+        nuxt.options.nitro.devStorage['nuxt-og-image:fonts'] = {
+          driver: 'fs',
+          base: serverFontsDir,
+        }
+      }
+      else {
         // bundle fonts within nitro runtime
         nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
         nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
