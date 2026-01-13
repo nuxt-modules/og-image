@@ -35,6 +35,9 @@ coverage
 *.lcov
 .nyc_output
 
+# Generated community templates in fixtures (created by prepare-fixtures script)
+test/fixtures/**/OgImageCommunity
+
 # VSCode
 .vscode
 
