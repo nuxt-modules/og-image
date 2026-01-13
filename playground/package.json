@@ -8,6 +8,7 @@
     "generate": "nuxi generate"
   },
   "dependencies": {
+    "@iconify-json/noto": "catalog:",
     "better-sqlite3": "catalog:",
     "nuxt-og-image": "workspace:*",
     "nuxt-og-image-devtools": "workspace:*"

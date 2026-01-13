@@ -537,6 +537,9 @@ importers:
 
   playground:
     dependencies:
+      '@iconify-json/noto':
+        specifier: 'catalog:'
+        version: 1.2.7
       better-sqlite3:
         specifier: 'catalog:'
         version: 12.6.0

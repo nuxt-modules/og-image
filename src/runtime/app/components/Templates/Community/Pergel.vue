@@ -14,35 +14,38 @@ const title = computed(() => props.title.slice(0, 60))
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col justify-center bg-[#212121]">
+  <div class="w-full h-full flex flex-col justify-center relative overflow-hidden" style="background: linear-gradient(145deg, #262626 0%, #1a1a1a 100%);">
+    <!-- Subtle noise texture -->
+    <div class="absolute inset-0 opacity-[0.03]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%270 0 256 256%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27noise%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.8%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23noise)%27/%3E%3C/svg%3E');" />
+
     <svg class="absolute top-0 right-0" width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <g style="mix-blend-mode:overlay" opacity="0.7" filter="url(#filter0_f_448_25)">
-        <circle cx="901.5" cy="45.5" r="199.5" fill="#FFA7A7" />
-        <circle cx="600.5" cy="216.5" r="199.5" fill="#FFCC49" />
-        <circle cx="179.5" cy="317.5" r="199.5" fill="#FFA149" />
+      <g style="mix-blend-mode:overlay" opacity="0.6" filter="url(#filter0_f_448_25)">
+        <circle cx="950" cy="30" r="220" fill="#FF9B9B" />
+        <circle cx="620" cy="200" r="200" fill="#FFD166" />
+        <circle cx="200" cy="340" r="180" fill="#FF9F43" />
       </g>
       <defs>
         <filter id="filter0_f_448_25" x="-240" y="-374" width="1561" height="1111" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
           <feFlood flood-opacity="0" result="BackgroundImageFix" />
           <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur stdDeviation="110" result="effect1_foregroundBlur_448_25" />
+          <feGaussianBlur stdDeviation="120" result="effect1_foregroundBlur_448_25" />
         </filter>
       </defs>
     </svg>
 
-    <div class="w-[600px] pl-[100px]">
-      <p v-if="headline" class="uppercase text-[24px] text-[#FEC476] mb-4 font-semibold">
+    <div class="max-w-full lg:max-w-[60%] pl-8 lg:pl-16 pr-8 relative z-10">
+      <p v-if="headline" class="uppercase text-[22px] text-amber-400 mb-3 font-semibold tracking-wider">
         {{ headline }}
       </p>
-      <h1 class="w-[600px] m-0 text-[75px] font-semibold mb-4 text-white" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
+      <h1 class="m-0 text-[68px] font-bold mb-5 text-white leading-[1.1] tracking-tight" style="display: block; line-clamp: 2; text-overflow: ellipsis; text-shadow: 0 4px 30px rgba(0,0,0,0.3);">
         {{ title }}
       </h1>
-      <p class="text-[32px] text-[#E4E4E7] leading-tight" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
+      <p v-if="description" class="text-[30px] text-neutral-400 leading-[1.4]" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
         {{ description }}
       </p>
     </div>
 
-    <svg class="absolute top-[250px] right-[190px]" width="241" height="184" viewBox="0 0 241 184" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg class="absolute top-[250px] right-[190px] hidden lg:flex" width="241" height="184" viewBox="0 0 241 184" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g filter="url(#filter0_ddd_563_6)">
         <path d="M204.852 126.822C204.852 127.098 204.677 128.114 202.583 129.748C200.551 131.335 197.276 133.034 192.613 134.687C183.325 137.979 169.872 140.62 153.875 142.19C137.92 143.755 120.334 144.166 103.363 143.367C86.3776 142.566 70.8801 140.594 58.8213 137.738C52.7901 136.31 47.8449 134.713 44.0617 133.037C40.1988 131.325 37.891 129.679 36.7621 128.335C36.2309 127.702 36.0703 127.267 36.0227 127.035C35.9829 126.842 35.9842 126.629 36.1192 126.305C36.459 125.488 37.6413 124.038 40.7165 122.28C46.7614 118.823 57.5073 115.641 71.9244 113.359C86.2251 111.096 103.109 109.879 120.426 109.879" stroke="url(#paint0_angular_563_6)" stroke-width="8" />
       </g>

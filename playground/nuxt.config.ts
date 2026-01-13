@@ -65,6 +65,17 @@ export default defineNuxtConfig({
         '/satori/image',
         '/prebuilt',
         '/virtual-image',
+        '/templates',
+        '/templates/NuxtSeo',
+        '/templates/Nuxt',
+        '/templates/WithEmoji',
+        '/templates/SimpleBlog',
+        '/templates/Frame',
+        '/templates/Pergel',
+        '/templates/UnJs',
+        '/templates/Brutalist',
+        '/templates/Retro',
+        '/templates/Newspaper',
       ],
       ignore: [
         '/not-prerendered',
@@ -79,14 +90,14 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    fonts: [
-      {
-        name: 'optieinstein',
-        weight: 800,
-        // path must point to a public font file
-        path: '/OPTIEinstein-Black.otf',
-      },
-    ],
+    // fonts: [
+    //   {
+    //     name: 'optieinstein',
+    //     weight: 800,
+    //     // path must point to a public font file
+    //     path: '/OPTIEinstein-Black.otf',
+    //   },
+    // ],
     // compatibility: {
     //   runtime: {
     //     resvg: 'wasm',

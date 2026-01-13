@@ -22,6 +22,14 @@ defineOgImageComponent('NuxtSeo', {
 <template>
   <div class="px-7 my-5">
     <div>
+      <div class="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+        <NuxtLink href="/templates" class="text-lg font-semibold text-green-700 hover:text-green-900">
+          Template Gallery &rarr;
+        </NuxtLink>
+        <p class="text-sm text-green-600 mt-1">
+          Browse all community OG image templates
+        </p>
+      </div>
       <ul>
         <li>
           <NuxtLink href="/chromium/screenshot">
