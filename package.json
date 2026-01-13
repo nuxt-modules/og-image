@@ -55,7 +55,7 @@
     "dev": "nuxt dev playground",
     "dev:build": "nuxt build playground",
     "prepack": "pnpm run build",
-    "prepare:fixtures": "nuxt prepare test/fixtures/basic && nuxt prepare test/fixtures/emojis",
+    "prepare:fixtures": "nuxt prepare test/fixtures/basic && nuxt prepare test/fixtures/emojis && nuxt prepare test/fixtures/build-transforms",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures",
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
     "typecheck": "nuxt-module-build prepare && nuxt typecheck",
