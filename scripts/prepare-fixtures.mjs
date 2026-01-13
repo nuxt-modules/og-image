@@ -18,8 +18,8 @@ const templates = readdirSync(communityDir).filter(f => f.endsWith('.vue'))
 for (const fixture of fixtures) {
   console.log(`\nPreparing ${fixture}...`)
 
-  // Eject community templates
-  const targetDir = join(root, fixture, 'components/OgImage')
+  // Eject community templates to OgImageCommunity folder (separate from user's OgImage components)
+  const targetDir = join(root, fixture, 'components/OgImageCommunity')
   if (existsSync(targetDir))
     rmSync(targetDir, { recursive: true })
   mkdirSync(targetDir, { recursive: true })
@@ -27,7 +27,7 @@ for (const fixture of fixtures) {
   for (const template of templates) {
     cpSync(join(communityDir, template), join(targetDir, template))
   }
-  console.log(`  Ejected ${templates.length} templates`)
+  console.log(`  Ejected ${templates.length} community templates to OgImageCommunity/`)
 
   // Run nuxt prepare
   execSync(`nuxt prepare ${fixture}`, { cwd: root, stdio: 'inherit' })
