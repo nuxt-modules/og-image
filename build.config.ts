@@ -7,6 +7,7 @@ export default defineBuildConfig({
   },
   entries: [
     { input: 'src/content', name: 'content' },
+    { input: 'src/cli', name: 'cli' },
   ],
   externals: [
     'h3',

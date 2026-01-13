@@ -576,8 +576,8 @@ export default defineNuxtModule<ModuleOptions>({
         }
       })
 
-    // community templates must be copy+pasted!
-    if (!config.zeroRuntime || nuxt.options.dev) {
+    // community templates only in dev - must be ejected for production
+    if (nuxt.options.dev) {
       addComponentsDir({
         path: resolve('./runtime/app/components/Templates/Community'),
         island: true,
@@ -657,6 +657,28 @@ export default defineNuxtModule<ModuleOptions>({
           })
         }
       })
+      // in production, add community template metadata for validation (not registered as components)
+      if (!nuxt.options.dev) {
+        const communityDir = resolve('./runtime/app/components/Templates/Community')
+        if (fs.existsSync(communityDir)) {
+          fs.readdirSync(communityDir)
+            .filter(f => f.endsWith('.vue'))
+            .forEach((file) => {
+              const name = file.replace('.vue', '')
+              const filePath = resolve(communityDir, file)
+              // skip if already added (user ejected with same name)
+              if (ogImageComponentCtx.components.some(c => c.pascalName === name))
+                return
+              ogImageComponentCtx.components.push({
+                hash: '',
+                pascalName: name,
+                kebabName: name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+                path: filePath,
+                category: 'community',
+              })
+            })
+        }
+      }
       // TODO add hook and types
       // @ts-expect-error untyped
       nuxt.hooks.hook('nuxt-og-image:components', ogImageComponentCtx)

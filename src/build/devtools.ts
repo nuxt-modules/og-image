@@ -51,7 +51,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
       async ejectCommunityTemplate(path: string) {
         const [dirName, componentName] = path.split('/')
-        const dir = resolve(nuxt.options.rootDir, 'components', dirName || '')
+        const dir = resolve(nuxt.options.srcDir, 'components', dirName || '')
         if (!existsSync(dir)) {
           mkdirSync(dir)
         }

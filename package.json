@@ -37,6 +37,9 @@
       ]
     }
   },
+  "bin": {
+    "nuxt-og-image": "./dist/cli.mjs"
+  },
   "files": [
     "dist",
     "types/virtual.d.ts"
