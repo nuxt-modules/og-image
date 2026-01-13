@@ -16,7 +16,7 @@ async function resolveLocalFilePathImage(publicStoragePath: string, src: string)
     .replace('_nuxt/@fs/', '')
     .replace('_nuxt/', '')
     .replace('./', ''),
-  )
+  ).replaceAll('/', ':')
   const key = `${publicStoragePath}:${normalizedSrc}`
   if (await useStorage().hasItem(key))
     return await useStorage().getItemRaw(key)
@@ -74,6 +74,12 @@ export default defineSatoriTransformer([
         })
           .catch(() => {})) as BufferSource | undefined
       }
+
+      // convert string dimensions to numbers for Satori
+      if (typeof node.props.width === 'string')
+        node.props.width = Number(node.props.width) || undefined
+      if (typeof node.props.height === 'string')
+        node.props.height = Number(node.props.height) || undefined
 
       // if we're missing either a height or width on an image we can try and compute it using the image size
       if (imageBuffer && (!node.props.width || !node.props.height)) {

@@ -33,6 +33,7 @@ import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
+import { AssetTransformPlugin } from './build/vite-asset-transform'
 import {
   ensureDependencies,
   getPresetNitroPresetCompatibility,
@@ -303,15 +304,21 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
         return `export { icons, width, height } from '${emojiPkg}/icons.json'`
       }
-      // Add build-time emoji transform plugin to replace emojis in OgImage component templates
-      // This fixes satori issues where the first emoji in a sequence renders incorrectly
-      const { emojiTransformPlugin } = await import('./build/emoji-transform')
-      addVitePlugin(emojiTransformPlugin.vite({ emojiSet: config.defaults.emojis || 'noto', componentDirs: config.componentDirs }))
     }
     else {
       logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
+
+    // Add build-time asset transform plugin for OgImage components
+    // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI
+    addVitePlugin(AssetTransformPlugin.vite({
+      emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
+      componentDirs: config.componentDirs,
+      rootDir: nuxt.options.rootDir,
+      srcDir: nuxt.options.srcDir,
+      publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+    }))
 
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
