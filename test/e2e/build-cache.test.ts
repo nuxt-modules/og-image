@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/basic')
-const cacheDir = join(fixtureDir, 'node_modules/.cache/nuxt/og-image')
+const cacheDir = join(fixtureDir, 'node_modules/.cache/nuxt-seo/og-image')
 
 // Clean up cache before test
 if (existsSync(cacheDir)) {
