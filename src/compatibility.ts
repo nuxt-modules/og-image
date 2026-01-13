@@ -33,6 +33,7 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
   'satori': 'node',
   'takumi': 'node',
   'sharp': 'node', // will be disabled if they're missing the dependency
+  'emoji': 'local', // can bundle icons, no size constraints
 }
 
 const NodeDevRuntime: RuntimeCompatibilitySchema = {
@@ -47,6 +48,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
   'satori': 'node',
   'takumi': 'wasm',
   'sharp': false,
+  'emoji': 'fetch', // edge size limits - use API instead of bundling 24MB icons
   'wasm': {
     esmImport: true,
     lazy: true,
@@ -59,6 +61,7 @@ const awsLambda: RuntimeCompatibilitySchema = {
   'satori': 'node',
   'takumi': 'node',
   'sharp': false, // 0.33.x has issues
+  'emoji': 'local', // serverless has larger size limits
 }
 
 export const WebContainer: RuntimeCompatibilitySchema = {
@@ -68,6 +71,7 @@ export const WebContainer: RuntimeCompatibilitySchema = {
   'satori': 'wasm-fs',
   'takumi': 'wasm',
   'sharp': false,
+  'emoji': 'fetch', // webcontainer has size constraints
 }
 
 export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
@@ -85,6 +89,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'satori': 'node',
     'takumi': 'wasm',
     'sharp': false,
+    'emoji': 'fetch', // edge size limits
     'wasm': {
       rollup: {
         targetEnv: 'auto-inline',
@@ -101,6 +106,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'satori': 'node',
     'takumi': 'wasm',
     'sharp': false,
+    'emoji': 'fetch', // edge size limits - bundling 24MB icons not viable
     'wasm': {
       // lowers workers kb size
       esmImport: true,

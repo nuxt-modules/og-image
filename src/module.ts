@@ -246,7 +246,7 @@ export default defineNuxtModule<ModuleOptions>({
       .catch(() => ({ dependencies: {}, devDependencies: {} }))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
-      logger.debug('The module is disabled, skipping setup.')
+      logger.info('The module is disabled, skipping setup.')
       // need to mock the composables to allow module still to work when disabled
       ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
         .forEach((name) => {
@@ -285,6 +285,10 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
+    // Resolve preset early to check compatibility settings
+    const preset = resolveNitroPreset(nuxt.options.nitro)
+    const targetCompatibility = getPresetNitroPresetCompatibility(preset)
+
     // Determine emoji strategy based on configuration and dependencies
     const emojiPkg = `@iconify-json/${config.defaults.emojis}`
     let hasLocalIconify = await hasResolvableDependency(emojiPkg)
@@ -317,9 +321,14 @@ export default defineNuxtModule<ModuleOptions>({
       finalEmojiStrategy = 'fetch'
     }
 
-    // Set emoji implementation based on final strategy
-    if (finalEmojiStrategy === 'local') {
-      logger.debug(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+    // Use preset compatibility to determine runtime emoji strategy
+    // Edge presets use 'fetch' to avoid bundling 24MB of emoji icons
+    // Build-time transforms (vite plugin) still use local icons for prerendering
+    const runtimeEmojiStrategy = targetCompatibility.emoji === 'fetch' ? 'fetch' : finalEmojiStrategy
+
+    // Set emoji implementation based on runtime strategy
+    if (runtimeEmojiStrategy === 'local') {
+      logger.info(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
       // add nitro virtual import for the iconify import
       nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
@@ -328,7 +337,12 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
     else {
-      logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
+      if (targetCompatibility.emoji === 'fetch' && finalEmojiStrategy === 'local') {
+        logger.info(`Using iconify API for runtime emojis on ${preset} (local icons used at build time).`)
+      }
+      else {
+        logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
+      }
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
 
@@ -341,9 +355,6 @@ export default defineNuxtModule<ModuleOptions>({
       srcDir: nuxt.options.srcDir,
       publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
     }))
-
-    const preset = resolveNitroPreset(nuxt.options.nitro)
-    const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
     if (config.zeroRuntime) {
       config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
