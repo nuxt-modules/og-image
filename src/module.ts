@@ -110,17 +110,18 @@ export interface ModuleOptions {
    */
   componentOptions?: Pick<AddComponentOptions, 'global'>
   /**
-   * Modify the cache behavior.
-   *
-   * Passing a boolean will enable or disable the runtime cache with the default options.
-   *
-   * Providing a record will allow you to configure the runtime cache fully.
+   * Configure the runtime cache storage for generated OG images.
+   * - `true` - Use Nitro's default cache storage (default)
+   * - `false` - Disable caching
+   * - `string` - Use a custom storage mount key (e.g., `'redis'`). You must mount the storage yourself via a Nitro plugin.
+   * - `object` - Provide a driver config that the module will mount for you (build-time only)
    *
    * @default true
    * @see https://nitro.unjs.io/guide/storage#mountpoints
-   * @example { driver: 'redis', host: 'localhost', port: 6379, password: 'password' }
+   * @example runtimeCacheStorage: 'redis' // Use your own mounted 'redis' storage
+   * @example runtimeCacheStorage: { driver: 'redis', host: 'localhost', port: 6379 }
    */
-  runtimeCacheStorage: boolean | (Record<string, any> & {
+  runtimeCacheStorage: boolean | string | (Record<string, any> & {
     driver: string
   })
   /**
@@ -716,14 +717,28 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
-    const runtimeCacheStorage = typeof config.runtimeCacheStorage === 'boolean' ? 'default' : config.runtimeCacheStorage.driver
-    let baseCacheKey: string | false = runtimeCacheStorage === 'default' ? `/cache/nuxt-og-image/${version}` : `/nuxt-og-image/${version}`
+    let baseCacheKey: string | false
+    if (config.runtimeCacheStorage === true) {
+      // default: use nitro's built-in cache storage
+      baseCacheKey = `/cache/nuxt-og-image/${version}`
+    }
+    else if (typeof config.runtimeCacheStorage === 'string') {
+      // string: user provides their own storage mount key
+      baseCacheKey = `/${config.runtimeCacheStorage}/nuxt-og-image/${version}`
+    }
+    else if (typeof config.runtimeCacheStorage === 'object') {
+      // object: module mounts the storage
+      baseCacheKey = `/nuxt-og-image/${version}`
+      if (!nuxt.options.dev) {
+        nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
+        nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
+      }
+    }
+    else {
+      baseCacheKey = false
+    }
     if (!cacheEnabled)
       baseCacheKey = false
-    if (!nuxt.options.dev && config.runtimeCacheStorage && typeof config.runtimeCacheStorage === 'object') {
-      nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
-      nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
-    }
 
     // Build cache for CI persistence (absolute path)
     const buildCachePath = typeof config.buildCache === 'object' && config.buildCache.base
