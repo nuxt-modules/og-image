@@ -1,5 +1,10 @@
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'pathe'
 import { describe, expect, it } from 'vitest'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const fixtureDir = resolve(__dirname, '../fixtures/build-transforms')
 
 describe('asset-transform plugin', () => {
   const componentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
@@ -189,10 +194,12 @@ const msg = '👋'
   describe('image transform', () => {
     const plugin = AssetTransformPlugin.raw({
       componentDirs,
-      rootDir: '/home/harlan/pkg/og-image/test/fixtures/build-transforms',
-      srcDir: '/home/harlan/pkg/og-image/test/fixtures/build-transforms',
-      publicDir: '/home/harlan/pkg/og-image/test/fixtures/build-transforms/public',
+      rootDir: fixtureDir,
+      srcDir: fixtureDir,
+      publicDir: resolve(fixtureDir, 'public'),
     }, { framework: 'vite' })
+
+    const testVuePath = resolve(fixtureDir, 'components/OgImage/Test.vue')
 
     it('should inline public directory images', async () => {
       const code = `<template>
@@ -201,7 +208,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       expect(result).toBeDefined()
       expect(result?.code).toContain('data:image/png;base64,')
       expect(result?.code).not.toContain('src="/images/test.png"')
@@ -214,7 +221,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       expect(result).toBeDefined()
       expect(result?.code).toContain('data:image/png;base64,')
       expect(result?.code).not.toContain('src="~/assets/logo.png"')
@@ -227,7 +234,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       expect(result).toBeDefined()
       expect(result?.code).toContain('data:image/png;base64,')
       expect(result?.code).not.toContain('src="@/assets/logo.png"')
@@ -240,7 +247,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       // Should return undefined since transform is skipped
       expect(result).toBeUndefined()
     })
@@ -252,7 +259,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       // Should return undefined since no local images to transform
       expect(result).toBeUndefined()
     })
@@ -264,7 +271,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       // Should return undefined since :src is a binding
       expect(result).toBeUndefined()
     })
@@ -277,7 +284,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/home/harlan/pkg/og-image/test/fixtures/build-transforms/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, testVuePath)
       expect(result).toBeDefined()
       // Should have 2 base64 images
       const base64Count = (result?.code.match(/data:image\/png;base64,/g) || []).length
