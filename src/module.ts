@@ -766,7 +766,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Build cache for CI persistence (absolute path)
     const buildCachePath = typeof config.buildCache === 'object' && config.buildCache.base
       ? config.buildCache.base
-      : 'node_modules/.cache/nuxt/og-image'
+      : 'node_modules/.cache/nuxt-seo/og-image'
     const buildCacheDir = config.buildCache
       ? resolve(nuxt.options.rootDir, buildCachePath)
       : undefined
