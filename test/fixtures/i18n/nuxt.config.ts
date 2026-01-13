@@ -15,24 +15,23 @@ export default defineNuxtConfig({
   },
   // @ts-expect-error untyped
   i18n: {
-    // baseUrl: 'https://nuxtseo.com',
     defaultLocale: 'en',
     langDir: 'locales',
     locales: [
       {
         code: 'en',
         language: 'en-US',
-        file: 'en',
+        file: 'en.ts',
       },
       {
         code: 'es',
         language: 'es-ES',
-        file: 'en',
+        file: 'es.ts',
       },
       {
         code: 'fr',
         language: 'fr-FR',
-        file: 'fr',
+        file: 'fr.ts',
       },
     ],
   },
