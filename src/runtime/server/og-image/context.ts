@@ -8,11 +8,8 @@ import type ChromiumRenderer from './chromium/renderer'
 import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { prerenderOptionsCache } from '#og-image-cache'
-import { theme } from '#og-image-virtual/unocss-config.mjs'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
-import { createGenerator } from '@unocss/core'
-import presetWind from '@unocss/preset-wind3'
 import { defu } from 'defu'
 import { createError, getQuery } from 'h3'
 import { useNitroApp } from 'nitropack/runtime'
@@ -165,13 +162,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       statusMessage: `[Nuxt OG Image] Renderer ${options.renderer} is not enabled.`,
     })
   }
-  const unocss = await createGenerator({ theme }, {
-    presets: [
-      presetWind(),
-    ],
-  })
   const ctx: OgImageRenderEventContext = {
-    unocss,
     e,
     key,
     renderer,

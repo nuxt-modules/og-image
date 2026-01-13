@@ -59,7 +59,7 @@ function buildIconSvg(iconData: { body: string, width?: number, height?: number 
   }
   const attrsStr = filteredAttrs.length > 0 ? ` ${filteredAttrs.join(' ')}` : ''
 
-  let svg = `<span${attrsStr} style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="1em" height="1em" fill="currentColor">${body}</svg></span>`
+  let svg = `<span${attrsStr} style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
   svg = makeIdsUnique(svg)
   return svg
 }
@@ -110,12 +110,60 @@ function getMimeType(ext: string): string {
   return mimeTypes[ext] || 'application/octet-stream'
 }
 
+// Satori unsupported utility patterns - filtered at build time
+// Reference: https://github.com/vercel/satori#css
+const SATORI_UNSUPPORTED_PATTERNS = [
+  /^ring(-|$)/, // Ring utilities
+  /^divide(-|$)/, // Divide utilities
+  /^space-(x|y)(-|$)/, // Space utilities
+  // Note: Gradients (bg-gradient-*, from-*, via-*, to-*) work as inline CSS
+  /^backdrop-/, // Backdrop utilities
+  /^blur(-|$)/, // Filter utilities
+  /^brightness(-|$)/,
+  /^contrast(-|$)/,
+  /^grayscale(-|$)/,
+  /^hue-rotate(-|$)/,
+  /^invert(-|$)/,
+  /^saturate(-|$)/,
+  /^sepia(-|$)/,
+  /^drop-shadow(-|$)/,
+  /^skew-(x|y)(-|$)/, // Transform utilities (limited)
+  /^transition(-|$)/, // Animation (static image)
+  /^animate(-|$)/,
+  /^duration(-|$)/,
+  /^ease(-|$)/,
+  /^delay(-|$)/,
+  /^scroll(-|$)/, // Scroll utilities
+  /^snap(-|$)/,
+  /^touch(-|$)/, // Touch/pointer
+  /^pointer-events(-|$)/,
+  /^cursor(-|$)/,
+  /^select(-|$)/, // User select
+  /^will-change(-|$)/,
+  /^placeholder(-|$)/,
+  /^caret(-|$)/,
+  /^accent(-|$)/,
+  /^columns(-|$)/,
+  /^break-(before|after|inside)(-|$)/,
+  /^hyphens(-|$)/,
+  /^content-(?!center|start|end|between|around|evenly|stretch)/, // content-* except flex alignment
+]
+
+function isSatoriUnsupported(cls: string): boolean {
+  return SATORI_UNSUPPORTED_PATTERNS.some(p => p.test(cls))
+}
+
 export interface AssetTransformOptions {
   componentDirs: string[]
   rootDir: string
   srcDir: string
   publicDir: string
   emojiSet?: string
+  /**
+   * Mutable config ref for TW4 on-demand class resolution
+   * Populated after app:templates hook resolves paths
+   */
+  tw4Config?: { cssPath?: string, nuxtUiColors?: Record<string, string> }
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -222,6 +270,41 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             hasChanges = true
             return buildIconSvg(iconData, icons.width || 24, icons.height || 24, attrs)
           })
+        }
+      }
+
+      // Transform Tailwind classes to inline styles using Vue AST
+      if (options.tw4Config?.cssPath) {
+        const { transformVueTemplate } = await import('./vue-template-transform')
+        const { resolveClassesToStyles } = await import('./tw4-transform')
+
+        // Wrap current template back into full SFC for AST parsing
+        const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
+
+        const result = await transformVueTemplate(fullCode, {
+          resolveStyles: async (classes) => {
+            // Filter unsupported classes first
+            const supported = classes.filter(cls => !isSatoriUnsupported(cls))
+            const unsupported = classes.filter(cls => isSatoriUnsupported(cls))
+
+            if (unsupported.length > 0) {
+              const componentName = id.split('/').pop()
+              console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
+            }
+
+            return resolveClassesToStyles(supported, {
+              cssPath: options.tw4Config!.cssPath!,
+              nuxtUiColors: options.tw4Config!.nuxtUiColors,
+            })
+          },
+        })
+
+        if (result) {
+          // Extract the transformed template
+          const newTemplateStart = result.code.indexOf('<template>') + '<template>'.length
+          const newTemplateEnd = result.code.indexOf('</template>')
+          template = result.code.slice(newTemplateStart, newTemplateEnd)
+          hasChanges = true
         }
       }
 

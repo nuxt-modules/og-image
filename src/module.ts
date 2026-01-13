@@ -186,6 +186,15 @@ export interface ModuleOptions {
    * @default false
    */
   cacheQueryParams?: boolean
+  /**
+   * Path to your Tailwind CSS 4 entry file for OG image styling.
+   *
+   * Use this when using Tailwind 4 with the Vite plugin instead of @nuxtjs/tailwindcss.
+   * The CSS file should include `@import "tailwindcss"` and any `@theme` customizations.
+   *
+   * @example '~/assets/css/main.css'
+   */
+  tailwindCss?: string
 }
 
 export interface ModuleHooks {
@@ -332,18 +341,102 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
 
-    // Add build-time asset transform plugin for OgImage components
-    // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI
-    addVitePlugin(AssetTransformPlugin.vite({
-      emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
-      componentDirs: config.componentDirs,
-      rootDir: nuxt.options.rootDir,
-      srcDir: nuxt.options.srcDir,
-      publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
-    }))
+    // Add build-time asset transform plugin for OgImage components in modules:done
+    // to access #tailwindcss alias set by @nuxtjs/tailwindcss
+    let tw4FontVars: Record<string, string> = {}
+    let tw4Breakpoints: Record<string, number> = {}
+    let tw4Colors: Record<string, string | Record<string, string>> = {}
+    // TW4 config passed to asset transform plugin for on-demand class resolution
+    // Use mutable ref because Vite plugin is added before app:templates resolves paths
+    const tw4Config: { cssPath?: string, nuxtUiColors?: Record<string, string> } = {}
 
-    const preset = resolveNitroPreset(nuxt.options.nitro)
-    const targetCompatibility = getPresetNitroPresetCompatibility(preset)
+    // Use app:templates hook to access resolved app.configs paths
+    nuxt.hook('app:templates', async (app) => {
+      const resolvedCssPath = config.tailwindCss
+        ? await resolver.resolvePath(config.tailwindCss)
+        : nuxt.options.alias['#tailwindcss'] as string | undefined
+
+      if (resolvedCssPath && existsSync(resolvedCssPath)) {
+        const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
+        if (tw4CssContent.includes('@theme') || tw4CssContent.includes('@import "tailwindcss"')) {
+          tw4Config.cssPath = resolvedCssPath
+
+          // Get Nuxt UI colors from app.config files if @nuxt/ui is installed
+          const nuxtUiDefaults = {
+            primary: 'green',
+            secondary: 'blue',
+            success: 'green',
+            info: 'blue',
+            warning: 'yellow',
+            error: 'red',
+            neutral: 'slate',
+          }
+
+          if (hasNuxtModule('@nuxt/ui')) {
+            // Load user's app.config files to get color overrides
+            // nuxt.options.appConfig only has module-set defaults, user configs loaded at runtime
+            const { createJiti } = await import('jiti')
+            const jiti = createJiti(nuxt.options.rootDir, {
+              interopDefault: true,
+              moduleCache: false,
+              // Provide defineAppConfig since it's a Nuxt auto-import
+              alias: { '#app/config': 'nuxt/app' },
+            })
+            // Stub defineAppConfig - it just returns the config object
+            ;(globalThis as Record<string, unknown>).defineAppConfig = (c: unknown) => c
+
+            const userConfigs = await Promise.all(
+              app.configs.map(configPath =>
+                jiti.import(configPath)
+                  .then((m: unknown) => (m && typeof m === 'object' && 'default' in m ? (m as { default: unknown }).default : m))
+                  .catch(() => ({})),
+              ),
+            )
+
+            delete (globalThis as Record<string, unknown>).defineAppConfig
+
+            // Merge user configs (later = higher priority)
+            const { defuFn } = await import('defu')
+            const mergedUserConfig = defuFn(...userConfigs) as { ui?: { colors?: Record<string, string> } }
+
+            tw4Config.nuxtUiColors = {
+              ...nuxtUiDefaults,
+              ...mergedUserConfig.ui?.colors,
+            }
+            logger.info(`Nuxt UI colors: ${JSON.stringify(tw4Config.nuxtUiColors)}`)
+          }
+
+          // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
+          const { extractTw4Metadata } = await import('./build/tw4-transform')
+          const metadata = await extractTw4Metadata({
+            cssPath: tw4Config.cssPath,
+            nuxtUiColors: tw4Config.nuxtUiColors,
+          }).catch((e) => {
+            logger.warn(`TW4 metadata extraction failed: ${e.message}`)
+            return { fontVars: {}, breakpoints: {}, colors: {} }
+          })
+
+          tw4FontVars = metadata.fontVars
+          tw4Breakpoints = metadata.breakpoints
+          tw4Colors = metadata.colors
+
+          logger.info(`TW4 on-demand resolution enabled from ${relative(nuxt.options.rootDir, tw4Config.cssPath!)}`)
+        }
+      }
+    })
+
+    // Add Vite plugin in modules:done (after all aliases registered)
+    nuxt.hook('modules:done', () => {
+      // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
+      addVitePlugin(AssetTransformPlugin.vite({
+        emojiSet: hasLocalIconify ? (config.defaults.emojis || 'noto') : undefined,
+        componentDirs: config.componentDirs,
+        rootDir: nuxt.options.rootDir,
+        srcDir: nuxt.options.srcDir,
+        publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        tw4Config, // Mutable ref for on-demand class resolution
+      }))
+    })
 
     if (config.zeroRuntime) {
       config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
@@ -728,17 +821,12 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
 
-    // support simple theme extends
-    let unoCssConfig: any = {}
-    // @ts-expect-error module optional
-    nuxt.hook('tailwindcss:config', (tailwindConfig) => {
-      unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
-    })
-    nuxt.hook('unocss:config', (_unoCssConfig) => {
-      unoCssConfig = { ..._unoCssConfig.theme }
-    })
-    nuxt.options.nitro.virtual['#og-image-virtual/unocss-config.mjs'] = () => {
-      return `export const theme = ${JSON.stringify(unoCssConfig)}`
+    // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
+    // Note: classMap is NOT included here as it's too heavy - transforms happen at build time via AssetTransformPlugin
+    nuxt.options.nitro.virtual['#og-image-virtual/tw4-theme.mjs'] = () => {
+      return `export const tw4FontVars = ${JSON.stringify(tw4FontVars)}
+export const tw4Breakpoints = ${JSON.stringify(tw4Breakpoints)}
+export const tw4Colors = ${JSON.stringify(tw4Colors)}`
     }
 
     registerTypeTemplates({

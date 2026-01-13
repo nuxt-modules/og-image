@@ -7,9 +7,9 @@ export default defineNuxtConfig({
     NuxtOgImage,
     '@nuxtjs/tailwindcss',
   ],
-  // @ts-expect-error untyped
-  tailwindcss: {
-    exposeConfig: true,
+  css: ['~/assets/css/main.css'],
+  ogImage: {
+    tailwindCss: '~/assets/css/main.css',
   },
   site: {
     url: 'https://nuxtseo.com',

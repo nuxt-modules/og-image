@@ -26,5 +26,6 @@ export default defineBuildConfig({
     'unstorage/drivers/fs',
     'consola/utils',
     '#nitro-internal-virtual/storage',
+    'tailwindcss',
   ],
 })

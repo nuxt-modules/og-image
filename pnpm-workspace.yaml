@@ -7,11 +7,12 @@ shellEmulator: true
 trustPolicy: no-downgrade
 
 trustPolicyExclude:
-  - chokidar@4.0.3 # https://github.com/paulmillr/chokidar/issues/1440
+  - chokidar@4.0.3
   - eslint-import-resolver-typescript@3.10.1
   - undici-types@6.21.0
   - semver@6.3.1
   - koa@2.16.3
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
 packages:
   - playground
   - client
@@ -43,16 +44,13 @@ catalog:
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.2.1
-  '@nuxtjs/tailwindcss': ^6.14.0
+  '@nuxtjs/tailwindcss': ^7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
+  '@tailwindcss/vite': ^4.1.18
   '@takumi-rs/core': ^0.62.7
   '@takumi-rs/wasm': ^0.62.7
-  '@unocss/core': ^66.5.12
-  '@unocss/nuxt': ^66.5.12
-  '@unocss/preset-icons': ^66.5.12
-  '@unocss/preset-wind3': ^66.5.12
-  '@unocss/runtime': ^66.5.12
+  '@vitejs/plugin-vue': ^6.0.3
   '@vueuse/core': ^14.1.0
   '@vueuse/nuxt': ^14.1.0
   better-sqlite3: ^12.6.0
@@ -60,11 +58,14 @@ catalog:
   bumpp: ^10.3.2
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
+  culori: ^4.0.2
   defu: ^6.1.4
   devalue: ^5.6.1
   eslint: ^9.39.2
   execa: ^9.6.1
+  exsolve: ^1.0.8
   floating-vue: ^5.2.2
+  get-image-colors: ^4.0.1
   globby: ^16.1.0
   happy-dom: ^20.1.0
   image-size: ^2.0.2
@@ -92,9 +93,9 @@ catalog:
   splitpanes: ^4.0.4
   std-env: ^3.10.0
   strip-literal: ^3.1.0
+  tailwindcss: ^4.1.18
   typescript: ^5.9.3
   ufo: ^1.6.2
-  unocss: ^66.5.12
   unplugin: ^2.3.11
   unwasm: ^0.5.2
   vitest: ^4.0.17
