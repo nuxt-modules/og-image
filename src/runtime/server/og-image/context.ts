@@ -9,7 +9,7 @@ import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
-import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { createGenerator } from '@unocss/core'
 import presetWind from '@unocss/preset-wind3'
@@ -25,18 +25,20 @@ import { normaliseOptions } from '../util/options'
 import { useOgImageRuntimeConfig } from '../utils'
 import { useChromiumRenderer, useSatoriRenderer, useTakumiRenderer } from './instances'
 
-export function resolvePathCacheKey(e: H3Event, path: string) {
-  const siteConfig = useSiteConfig(e, {
+export function resolvePathCacheKey(e: H3Event, path: string, includeQuery = false) {
+  const siteConfig = getSiteConfig(e, {
     resolveRefs: true,
   })
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
+  const hashParts = [
+    basePath,
+    import.meta.prerender ? '' : siteConfig.url,
+  ]
+  if (includeQuery)
+    hashParts.push(hash(getQuery(e)))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
-    hash([
-      basePath,
-      import.meta.prerender ? '' : siteConfig.url,
-      hash(getQuery(e)),
-    ]),
+    hash(hashParts),
   ].join(':')
 }
 
@@ -129,13 +131,14 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     ? withQuery(basePath, queryParams._query)
     : basePath
   const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
-  const key = resolvePathCacheKey(e, basePathWithQuery)
 
   // Options come from: URL encoded params > query params > route rules > defaults
   const routeRuleMatcher = createNitroRouteRuleMatcher()
   const routeRules = routeRuleMatcher(basePath)
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
   const options: OgImageOptions = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
+
+  const key = options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)
   if (!options) {
     return createError({
       statusCode: 404,

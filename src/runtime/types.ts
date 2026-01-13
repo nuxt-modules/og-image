@@ -51,6 +51,7 @@ export interface OgImageRuntimeConfig {
 
   isNuxtContentDocumentDriven: boolean
   zeroRuntime: boolean
+  cacheQueryParams: boolean
 
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
@@ -165,6 +166,12 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    * Allow multiple og images to be generated for the same route by setting a unique key.
    */
   key?: string
+  /**
+   * Custom cache key for this OG image.
+   *
+   * When set, this key is used directly for caching instead of the auto-generated key.
+   */
+  cacheKey?: string
 }
 
 export interface FontConfig {
