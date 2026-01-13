@@ -177,12 +177,14 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Transform icons: <Icon name="..." /> or <UIcon name="..." />
+      // eslint-disable-next-line regexp/no-super-linear-backtracking,regexp/optimal-quantifier-concatenation
       const iconRegex = /<(Icon|UIcon)\s+([^>]*name="([^"]+)"[^>]*)\/?>/g
       if (iconRegex.test(template)) {
         iconRegex.lastIndex = 0
 
         const prefixes = new Set<string>()
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = iconRegex.exec(template)) !== null) {
           const iconName = match[3]
           if (!iconName || iconName.includes('{'))
@@ -233,6 +235,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           const replacements: Array<{ from: string, to: string }> = []
 
           let match
+          // eslint-disable-next-line no-cond-assign
           while ((match = imgRegex.exec(template)) !== null) {
             const [fullMatch, srcPath, ext] = match
             if (!srcPath || !ext)
