@@ -121,14 +121,20 @@ export interface GetOgImagePathResult {
 }
 
 export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>): GetOgImagePathResult {
-  const baseURL = useRuntimeConfig().app.baseURL
+  const runtimeConfig = useRuntimeConfig()
+  const baseURL = runtimeConfig.app.baseURL
   const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
   const isStatic = import.meta.prerender
   // Build URL with encoded options (Cloudinary-style)
   // Include _path so the server knows which page to render
   const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic)
+  let path = joinURL('/', baseURL, result.url)
+  // For dynamic images, append build ID to bust external platform caches (Telegram, Facebook, etc.)
+  if (!isStatic && runtimeConfig.app.buildId) {
+    path = withQuery(path, { _v: runtimeConfig.app.buildId })
+  }
   return {
-    path: joinURL('/', baseURL, result.url),
+    path,
     hash: result.hash,
   }
 }
