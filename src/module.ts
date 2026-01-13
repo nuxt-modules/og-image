@@ -247,6 +247,18 @@ export default defineNuxtModule<ModuleOptions>({
       return
     }
 
+    // Warn about wildcard route rules that may break og-image routes
+    const routeRules = nuxt.options.routeRules || {}
+    const wildcardPatterns = ['/**', '/*', '*']
+    for (const pattern of wildcardPatterns) {
+      const rule = routeRules[pattern]
+      if (rule && (rule.swr || rule.isr || rule.cache)) {
+        logger.warn(`Wildcard route rule \`${pattern}\` with caching (swr/isr/cache) may break og-image routes.`)
+        logger.info('See: https://nuxtseo.com/og-image/guides/route-rules#wildcard-route-rules-warning')
+        break
+      }
+    }
+
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
