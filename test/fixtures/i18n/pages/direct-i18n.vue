@@ -1,32 +1,33 @@
 <script setup lang="ts">
 /**
- * Pattern 1: Props-based i18n (Recommended)
+ * Pattern 2: Locale prop with loadLocaleMessages
  *
- * Resolve translations at the page level and pass them as props.
- * This is the simplest and most reliable approach.
+ * Pass the locale as a prop and use loadLocaleMessages() inside
+ * the OG image component. This allows using useI18n() directly
+ * in the component while still getting correct translations.
  *
  * @see https://nuxtseo.com/og-image/guides/i18n
+ * @see https://github.com/nuxt-modules/og-image/issues/222
  */
 import { useI18n } from '#imports'
 
-const { locale, locales, t } = useI18n()
+const { locale, locales } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
 
 const availableLocales = computed(() => {
   return locales.value.filter(i => i.code !== locale.value)
 })
 
-// Pass already-translated strings as props
-defineOgImageComponent('NuxtSeo', {
-  title: t('welcome'),
-  description: t('description'),
-  colorMode: 'dark',
+// Pass locale as prop - component will load messages for this locale
+defineOgImageComponent('I18nDirect', {
+  locale: locale.value,
 })
 </script>
 
 <template>
   <div>
-    <h1>{{ $t('welcome') }}</h1>
+    <h1>Direct i18n in OG Component Test</h1>
+    <p>Current locale: {{ locale }}</p>
     <div>
       <NuxtLink
         v-for="availableLocale in availableLocales"
