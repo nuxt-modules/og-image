@@ -8,6 +8,7 @@ import { useOgImageRuntimeConfig } from '../../utils'
 interface CachedImage {
   data: string // base64
   expiresAt: number
+  createdAt: number
 }
 
 /**
@@ -85,6 +86,7 @@ export function setBuildCachedImage(
   const cached: CachedImage = {
     data: Buffer.from(data).toString('base64'),
     expiresAt: Date.now() + (maxAgeSeconds * 1000),
+    createdAt: Date.now(),
   }
 
   writeFileSync(cachePath, JSON.stringify(cached))
