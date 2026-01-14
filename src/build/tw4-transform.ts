@@ -175,10 +175,14 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
     if (!sel.startsWith('.') || sel.includes(':') || sel.includes(' ') || sel.includes('>'))
       return
 
-    // Handle escaped characters in class names (e.g., .\32xl -> 2xl)
+    // Handle escaped characters in class names
+    // - .\32xl -> 2xl (hex escapes)
+    // - .m-0\.5 -> m-0.5 (escaped special chars)
     let className = sel.slice(1)
-    if (className.startsWith('\\'))
-      className = className.replace(/\\([0-9a-f]+)\s?/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    // First handle hex escapes like \32 -> '2'
+    className = className.replace(/\\([0-9a-f]+)\s?/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    // Then handle escaped special chars like \. -> .
+    className = className.replace(/\\(.)/g, '$1')
 
     const styles: Record<string, string> = {}
     rule.walkDecls((decl) => {
@@ -196,12 +200,29 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
 }
 
 /**
+ * Evaluate simple calc() expressions that Satori can't handle.
+ * e.g., calc(1 / 0.75) -> 1.333...
+ */
+function evaluateCalc(value: string): string {
+  return value.replace(/calc\(([^)]+)\)/g, (match, expr) => {
+    // Only evaluate simple arithmetic (no units in the expression itself)
+    if (/^[\d.+\-*/\s]+$/.test(expr)) {
+      // eslint-disable-next-line no-new-func
+      const result = new Function(`return ${expr}`)()
+      if (typeof result === 'number' && Number.isFinite(result))
+        return String(result)
+    }
+    return match
+  })
+}
+
+/**
  * Resolve var() references in a value string.
  * Handles nested vars and calc() expressions.
  */
 function resolveVars(value: string, vars: Map<string, string>, depth = 0): string {
   if (depth > 10 || !value.includes('var('))
-    return value
+    return evaluateCalc(value)
 
   // Handle calc(var(--name) * N) pattern
   const calcMatch = value.match(/calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/)
@@ -241,11 +262,118 @@ function resolveVars(value: string, vars: Map<string, string>, depth = 0): strin
  * Convert oklch colors in gradient values to hex.
  */
 function convertGradientColors(value: string): string {
-  // Match oklch(...) or color function calls within gradients
   return value.replace(/oklch\([^)]+\)/g, (match) => {
     const hex = convertColorToHex(match)
     return hex.startsWith('#') ? hex : match
   })
+}
+
+// Linear gradient direction mapping
+const LINEAR_GRADIENT_DIRECTIONS: Record<string, string> = {
+  'bg-gradient-to-t': 'to top',
+  'bg-gradient-to-tr': 'to top right',
+  'bg-gradient-to-r': 'to right',
+  'bg-gradient-to-br': 'to bottom right',
+  'bg-gradient-to-b': 'to bottom',
+  'bg-gradient-to-bl': 'to bottom left',
+  'bg-gradient-to-l': 'to left',
+  'bg-gradient-to-tl': 'to top left',
+}
+
+// Radial gradient shape/position mapping
+const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
+  'bg-radial': 'circle at center',
+  'bg-radial-at-t': 'circle at top',
+  'bg-radial-at-tr': 'circle at top right',
+  'bg-radial-at-r': 'circle at right',
+  'bg-radial-at-br': 'circle at bottom right',
+  'bg-radial-at-b': 'circle at bottom',
+  'bg-radial-at-bl': 'circle at bottom left',
+  'bg-radial-at-l': 'circle at left',
+  'bg-radial-at-tl': 'circle at top left',
+  'bg-radial-at-c': 'circle at center',
+}
+
+/**
+ * Resolve gradient color from class name using theme vars.
+ */
+function resolveGradientColor(cls: string, vars: Map<string, string>): string | null {
+  const colorName = cls.replace(/^(from|via|to)-/, '')
+
+  // Check for color with shade (e.g., from-red-500)
+  const shadeMatch = colorName.match(/^(.+)-(\d+)$/)
+  if (shadeMatch?.[1] && shadeMatch?.[2]) {
+    const varName = `--color-${shadeMatch[1]}-${shadeMatch[2]}`
+    const value = vars.get(varName)
+    if (value) {
+      const resolved = resolveVars(value, vars)
+      if (!resolved.includes('var('))
+        return convertColorToHex(resolved)
+    }
+  }
+
+  // Check for single color (e.g., from-brand)
+  const varName = `--color-${colorName}`
+  const value = vars.get(varName)
+  if (value) {
+    const resolved = resolveVars(value, vars)
+    if (!resolved.includes('var('))
+      return convertColorToHex(resolved)
+  }
+
+  return null
+}
+
+/**
+ * Build gradient CSS from combination of classes.
+ * TW4 gradients use cascading --tw-* vars that are hard to resolve statically,
+ * so we manually construct the gradient from the component classes.
+ */
+function buildGradient(
+  classes: string[],
+  vars: Map<string, string>,
+): { gradientClass: string, value: string, colorClasses: string[] } | null {
+  const linearDir = classes.find(c => LINEAR_GRADIENT_DIRECTIONS[c])
+  const radialShape = classes.find(c => RADIAL_GRADIENT_SHAPES[c])
+  const fromClass = classes.find(c => c.startsWith('from-'))
+  const viaClass = classes.find(c => c.startsWith('via-'))
+  // to-* for colors, but NOT to-t/b/l/r/tl/tr/bl/br (inset positions)
+  const toClass = classes.find(c => c.startsWith('to-') && !/^to-([tblr]|tl|tr|bl|br)$/.test(c))
+
+  if (!linearDir && !radialShape)
+    return null
+  if (!fromClass && !toClass)
+    return null
+
+  const fromColor = fromClass ? resolveGradientColor(fromClass, vars) : null
+  const viaColor = viaClass ? resolveGradientColor(viaClass, vars) : null
+  const toColor = toClass ? resolveGradientColor(toClass, vars) : null
+
+  if (!fromColor && !toColor)
+    return null
+
+  const stops = [fromColor, viaColor, toColor].filter(Boolean).join(', ')
+  const colorClasses = [fromClass, viaClass, toClass].filter((c): c is string => !!c)
+
+  if (linearDir) {
+    const direction = LINEAR_GRADIENT_DIRECTIONS[linearDir]
+    return {
+      gradientClass: linearDir,
+      value: `linear-gradient(${direction}, ${stops})`,
+      colorClasses,
+    }
+  }
+
+  if (radialShape) {
+    const shape = RADIAL_GRADIENT_SHAPES[radialShape]
+    return {
+      gradientClass: radialShape,
+      value: `radial-gradient(${shape}, ${stops})`,
+      colorClasses,
+    }
+  }
+
+  return null
 }
 
 /**
@@ -308,6 +436,16 @@ export async function resolveClassesToStyles(
     const resolved = resolvedStyleCache.get(cls)
     if (resolved)
       result[cls] = resolved
+  }
+
+  // Handle gradient class combinations (TW4 uses cascading --tw-* vars that are hard to resolve)
+  const gradient = buildGradient(classes, vars)
+  if (gradient) {
+    result[gradient.gradientClass] = { 'background-image': gradient.value }
+    // Mark color classes as resolved (they contribute to the gradient)
+    for (const colorClass of gradient.colorClasses) {
+      result[colorClass] = {}
+    }
   }
 
   return result
