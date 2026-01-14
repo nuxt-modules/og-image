@@ -357,14 +357,14 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
 
-    // Add build-time asset transform plugin for OgImage components in modules:done
-    // to access #tailwindcss alias set by @nuxtjs/tailwindcss
+    // Add build-time asset transform plugin for OgImage components
+    // TW4 support: scan classes → compile with TW4 → resolve vars with postcss → style map
     let tw4FontVars: Record<string, string> = {}
     let tw4Breakpoints: Record<string, number> = {}
     let tw4Colors: Record<string, string | Record<string, string>> = {}
-    // TW4 config passed to asset transform plugin for on-demand class resolution
-    // Use mutable ref because Vite plugin is added before app:templates resolves paths
-    const tw4Config: { cssPath?: string, nuxtUiColors?: Record<string, string> } = {}
+    // Prebuilt style map: className → { prop: value }
+    // Populated after scanning all OG components in app:templates hook
+    let tw4StyleMap: Record<string, Record<string, string>> = {}
 
     // Use app:templates hook to access resolved app.configs paths
     nuxt.hook('app:templates', async (app) => {
@@ -375,8 +375,6 @@ export default defineNuxtModule<ModuleOptions>({
       if (resolvedCssPath && existsSync(resolvedCssPath)) {
         const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
         if (tw4CssContent.includes('@theme') || tw4CssContent.includes('@import "tailwindcss"')) {
-          tw4Config.cssPath = resolvedCssPath
-
           // Get Nuxt UI colors from app.config files if @nuxt/ui is installed
           const nuxtUiDefaults = {
             primary: 'green',
@@ -388,16 +386,14 @@ export default defineNuxtModule<ModuleOptions>({
             neutral: 'slate',
           }
 
+          let nuxtUiColors: Record<string, string> | undefined
           if (hasNuxtModule('@nuxt/ui')) {
             // Load user's app.config files to get color overrides
-            // nuxt.options.appConfig only has module-set defaults, user configs loaded at runtime
             const jiti = createJiti(nuxt.options.rootDir, {
               interopDefault: true,
               moduleCache: false,
-              // Provide defineAppConfig since it's a Nuxt auto-import
               alias: { '#app/config': 'nuxt/app' },
             })
-            // Stub defineAppConfig - it just returns the config object
             ;(globalThis as Record<string, unknown>).defineAppConfig = (c: unknown) => c
 
             const userConfigs = await Promise.all(
@@ -410,20 +406,15 @@ export default defineNuxtModule<ModuleOptions>({
 
             delete (globalThis as Record<string, unknown>).defineAppConfig
 
-            // Merge user configs (later = higher priority)
-            const mergedUserConfig = defuFn(...userConfigs) as { ui?: { colors?: Record<string, string> } }
-
-            tw4Config.nuxtUiColors = {
-              ...nuxtUiDefaults,
-              ...mergedUserConfig.ui?.colors,
-            }
-            logger.info(`Nuxt UI colors: ${JSON.stringify(tw4Config.nuxtUiColors)}`)
+            const mergedUserConfig = defuFn(...userConfigs as [object, ...object[]]) as { ui?: { colors?: Record<string, string> } }
+            nuxtUiColors = { ...nuxtUiDefaults, ...mergedUserConfig.ui?.colors }
+            logger.info(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
           }
 
           // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
           const metadata = await extractTw4Metadata({
-            cssPath: tw4Config.cssPath,
-            nuxtUiColors: tw4Config.nuxtUiColors,
+            cssPath: resolvedCssPath,
+            nuxtUiColors,
           }).catch((e) => {
             logger.warn(`TW4 metadata extraction failed: ${e.message}`)
             return { fontVars: {}, breakpoints: {}, colors: {} }
@@ -433,12 +424,45 @@ export default defineNuxtModule<ModuleOptions>({
           tw4Breakpoints = metadata.breakpoints
           tw4Colors = metadata.colors
 
-          logger.info(`TW4 on-demand resolution enabled from ${relative(nuxt.options.rootDir, tw4Config.cssPath!)}`)
+          // Scan all OG components for classes and generate style map
+          try {
+            const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
+            const { generateStyleMap } = await import('./build/tw4-generator')
+
+            // Scan for classes
+            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir)
+            const processableClasses = filterProcessableClasses(allClasses)
+
+            if (processableClasses.length > 0) {
+              logger.info(`TW4: Found ${processableClasses.length} unique classes in OG components`)
+
+              // Generate style map with postcss var resolution
+              const styleMap = await generateStyleMap({
+                cssPath: resolvedCssPath,
+                classes: processableClasses,
+                nuxtUiColors,
+              })
+
+              // Convert Map to plain object for plugin
+              tw4StyleMap = {}
+              for (const [cls, styles] of styleMap.classes) {
+                tw4StyleMap[cls] = styles
+              }
+
+              logger.info(`TW4: Generated style map with ${Object.keys(tw4StyleMap).length} resolved classes`)
+            }
+          }
+          catch (e) {
+            logger.warn(`TW4 style map generation failed: ${(e as Error).message}`)
+          }
+
+          logger.info(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
         }
       }
     })
 
     // Add Vite plugin in modules:done (after all aliases registered)
+    // Note: tw4StyleMap is populated by app:templates hook before transforms run
     nuxt.hook('modules:done', () => {
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
       addVitePlugin(AssetTransformPlugin.vite({
@@ -447,7 +471,7 @@ export default defineNuxtModule<ModuleOptions>({
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
         publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
-        tw4Config, // Mutable ref for on-demand class resolution
+        get tw4StyleMap() { return tw4StyleMap }, // Getter to access populated map
       }))
     })
 

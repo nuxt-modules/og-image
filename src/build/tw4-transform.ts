@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+// @ts-expect-error no types
 import { formatHex, parse, toGamut } from 'culori'
 import { dirname, join } from 'pathe'
 import postcss from 'postcss'
@@ -18,14 +19,20 @@ const toSrgbGamut = toGamut('rgb', 'oklch')
 
 // Convert any CSS color to hex with proper gamut mapping for oklch
 function convertColorToHex(value: string): string {
-  if (value.includes('var('))
+  if (!value || value.includes('var('))
     return value
-  const color = parse(value)
-  if (!color)
+  try {
+    const color = parse(value)
+    if (!color)
+      return value
+    const mapped = toSrgbGamut(color)
+    const hex = formatHex(mapped)
+    return hex || value
+  }
+  catch {
+    // If color parsing fails, return original value
     return value
-  const mapped = toSrgbGamut(color)
-  const hex = formatHex(mapped)
-  return hex || value
+  }
 }
 
 // Compiler instance cache
@@ -200,6 +207,61 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
 }
 
 /**
+ * Safely evaluate simple arithmetic expressions without using eval/Function.
+ * Supports: +, -, *, / with proper operator precedence.
+ */
+function safeEvaluateArithmetic(expr: string): number | null {
+  // Tokenize: numbers and operators only
+  const tokens = expr.match(/[\d.]+|[+\-*/]/g)
+  if (!tokens)
+    return null
+
+  const numbers: number[] = []
+  const operators: string[] = []
+
+  const applyOperator = () => {
+    const op = operators.pop()
+    const b = numbers.pop()
+    const a = numbers.pop()
+    if (a === undefined || b === undefined || !op)
+      return false
+    switch (op) {
+      case '+': numbers.push(a + b); break
+      case '-': numbers.push(a - b); break
+      case '*': numbers.push(a * b); break
+      case '/': numbers.push(b !== 0 ? a / b : 0); break
+      default: return false
+    }
+    return true
+  }
+
+  const precedence = (op: string) => (op === '+' || op === '-') ? 1 : 2
+
+  for (const token of tokens) {
+    if (/^[\d.]+$/.test(token)) {
+      const num = Number.parseFloat(token)
+      if (Number.isNaN(num))
+        return null
+      numbers.push(num)
+    }
+    else {
+      while (operators.length && precedence(operators[operators.length - 1]!) >= precedence(token)) {
+        if (!applyOperator())
+          return null
+      }
+      operators.push(token)
+    }
+  }
+
+  while (operators.length) {
+    if (!applyOperator())
+      return null
+  }
+
+  return numbers.length === 1 ? numbers[0]! : null
+}
+
+/**
  * Evaluate simple calc() expressions that Satori can't handle.
  * e.g., calc(1 / 0.75) -> 1.333...
  */
@@ -207,9 +269,8 @@ function evaluateCalc(value: string): string {
   return value.replace(/calc\(([^)]+)\)/g, (match, expr) => {
     // Only evaluate simple arithmetic (no units in the expression itself)
     if (/^[\d.+\-*/\s]+$/.test(expr)) {
-      // eslint-disable-next-line no-new-func
-      const result = new Function(`return ${expr}`)()
-      if (typeof result === 'number' && Number.isFinite(result))
+      const result = safeEvaluateArithmetic(expr)
+      if (result !== null && Number.isFinite(result))
         return String(result)
     }
     return match
@@ -217,14 +278,69 @@ function evaluateCalc(value: string): string {
 }
 
 /**
+ * Parse a var() expression handling nested parentheses in fallbacks.
+ * Returns { varName, fallback, endIndex } or null if not a valid var().
+ */
+function parseVarExpression(value: string, startIndex: number): { varName: string, fallback: string | null, endIndex: number } | null {
+  if (!value.startsWith('var(', startIndex))
+    return null
+
+  let depth = 1
+  let i = startIndex + 4 // Skip 'var('
+  let varName = ''
+  let fallback: string | null = null
+  let inFallback = false
+
+  // Extract variable name (until comma or closing paren)
+  while (i < value.length && depth > 0) {
+    const char = value[i]
+    if (char === '(') {
+      depth++
+      if (inFallback)
+        fallback += char
+    }
+    else if (char === ')') {
+      depth--
+      if (depth > 0 && inFallback)
+        fallback += char
+    }
+    else if (char === ',' && depth === 1 && !inFallback) {
+      inFallback = true
+      fallback = ''
+      i++
+      // Skip whitespace after comma
+      while (i < value.length && value[i] === ' ')
+        i++
+      continue
+    }
+    else if (inFallback && char) {
+      fallback += char
+    }
+    else {
+      varName += char
+    }
+    i++
+  }
+
+  if (depth !== 0 || !varName.startsWith('--'))
+    return null
+
+  return {
+    varName: varName.trim(),
+    fallback: fallback?.trim() || null,
+    endIndex: i,
+  }
+}
+
+/**
  * Resolve var() references in a value string.
- * Handles nested vars and calc() expressions.
+ * Handles nested vars, fallbacks with parentheses, and calc() expressions.
  */
 function resolveVars(value: string, vars: Map<string, string>, depth = 0): string {
   if (depth > 10 || !value.includes('var('))
     return evaluateCalc(value)
 
-  // Handle calc(var(--name) * N) pattern
+  // Handle calc(var(--name) * N) pattern first
   const calcMatch = value.match(/calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/)
   if (calcMatch?.[1] && calcMatch?.[2]) {
     const varValue = vars.get(calcMatch[1])
@@ -237,25 +353,40 @@ function resolveVars(value: string, vars: Map<string, string>, depth = 0): strin
     }
   }
 
-  // Replace all var() references iteratively
+  // Find and replace var() references one at a time
   let result = value
-  const varPattern = /var\((--[\w-]+)(?:,\s*([^)]+))?\)/g
-  let match
   let iterations = 0
+  const maxIterations = 50
 
-  while ((match = varPattern.exec(result)) !== null && iterations < 20) {
-    const [fullMatch, varName, fallback] = match
-    if (!varName)
+  while (result.includes('var(') && iterations < maxIterations) {
+    const varIndex = result.indexOf('var(')
+    if (varIndex === -1)
+      break
+
+    const parsed = parseVarExpression(result, varIndex)
+    if (!parsed) {
+      // Invalid var(), skip past it to avoid infinite loop
+      result = result.slice(0, varIndex) + result.slice(varIndex + 4)
+      iterations++
       continue
-    const resolved = vars.get(varName) ?? fallback
+    }
+
+    const resolved = vars.get(parsed.varName) ?? parsed.fallback
     if (resolved) {
-      result = result.replace(fullMatch, resolved)
-      varPattern.lastIndex = 0 // Reset to catch nested vars
+      result = result.slice(0, varIndex) + resolved + result.slice(parsed.endIndex)
+    }
+    else {
+      // Can't resolve, remove the var() to avoid infinite loop
+      result = result.slice(0, varIndex) + result.slice(parsed.endIndex)
     }
     iterations++
   }
 
-  return result.includes('var(') ? result : resolveVars(result, vars, depth + 1)
+  // Recursively resolve any newly introduced var() references
+  if (result.includes('var(') && depth < 10)
+    return resolveVars(result, vars, depth + 1)
+
+  return evaluateCalc(result)
 }
 
 /**

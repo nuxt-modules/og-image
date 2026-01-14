@@ -32,9 +32,11 @@ describe('tailwind-nuxt-ui', () => {
     const ogUrl = new URL(match![1]!)
     const basePath = ogUrl.pathname
 
-    // Test PNG endpoint (default)
+    // Test PNG endpoint with custom name
     const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot()
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'nuxt-ui-semantic-colors',
+    })
   })
 
   it('renders html preview with nuxt ui colors', async () => {
@@ -75,5 +77,39 @@ describe('tailwind-nuxt-ui', () => {
       return Math.abs(r - g) > 30 || Math.abs(g - b) > 30 || Math.abs(r - b) > 30
     })
     expect(hasChroma).toBe(true)
+  })
+
+  it('renders og image with nuxt ui components', async () => {
+    const html = await $fetch('/components') as string
+    expect(html).toContain('og:image')
+
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    expect(match?.[1]).toBeTruthy()
+
+    const ogUrl = new URL(match![1]!)
+    const basePath = ogUrl.pathname
+
+    // Test PNG snapshot with custom name to avoid overwriting semantic colors snapshot
+    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'nuxt-ui-components',
+    })
+  })
+
+  it('renders html preview with nuxt ui components', async () => {
+    const html = await $fetch('/components') as string
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    const ogUrl = new URL(match![1]!)
+
+    const htmlPath = ogUrl.pathname.replace(/\.png$/, '.html')
+    const htmlPreview = await $fetch(htmlPath) as string
+
+    // Verify component rendered with expected content
+    expect(htmlPreview).toContain('UI Components Test')
+    // Verify Nuxt UI components are rendered (check for component-specific classes or content)
+    expect(htmlPreview).toContain('Primary Button')
+    expect(htmlPreview).toContain('Primary')
   })
 }, 60000)

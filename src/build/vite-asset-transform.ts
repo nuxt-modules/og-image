@@ -113,21 +113,12 @@ function getMimeType(ext: string): string {
 // Satori unsupported utility patterns - filtered at build time
 // Reference: https://github.com/vercel/satori#css
 const SATORI_UNSUPPORTED_PATTERNS = [
-  /^ring(-|$)/, // Ring utilities
-  /^divide(-|$)/, // Divide utilities
-  /^space-(x|y)(-|$)/, // Space utilities
-  // Note: Gradients (bg-gradient-*, from-*, via-*, to-*) work as inline CSS
-  /^backdrop-/, // Backdrop utilities
-  /^blur(-|$)/, // Filter utilities
-  /^brightness(-|$)/,
-  /^contrast(-|$)/,
-  /^grayscale(-|$)/,
-  /^hue-rotate(-|$)/,
-  /^invert(-|$)/,
-  /^saturate(-|$)/,
-  /^sepia(-|$)/,
-  /^drop-shadow(-|$)/,
-  /^skew-(x|y)(-|$)/, // Transform utilities (limited)
+  /^ring(-|$)/, // Ring utilities - not supported
+  /^divide(-|$)/, // Divide utilities - not supported
+  /^space-(x|y)(-|$)/, // Space utilities - use gap instead
+  /^backdrop-/, // Backdrop utilities - not supported
+  // Note: filter utilities (blur, brightness, etc.) ARE supported by Satori
+  // Note: skew transforms ARE supported by Satori
   /^transition(-|$)/, // Animation (static image)
   /^animate(-|$)/,
   /^duration(-|$)/,
@@ -160,10 +151,10 @@ export interface AssetTransformOptions {
   publicDir: string
   emojiSet?: string
   /**
-   * Mutable config ref for TW4 on-demand class resolution
-   * Populated after app:templates hook resolves paths
+   * Prebuilt TW4 style map: className -> { prop: value }
+   * Generated at build time from scanning all OG components
    */
-  tw4Config?: { cssPath?: string, nuxtUiColors?: Record<string, string> }
+  tw4StyleMap?: Record<string, Record<string, string>>
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -273,38 +264,55 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
       }
 
-      // Transform Tailwind classes to inline styles using Vue AST
-      if (options.tw4Config?.cssPath) {
-        const { transformVueTemplate } = await import('./vue-template-transform')
-        const { resolveClassesToStyles } = await import('./tw4-transform')
+      // Transform Tailwind classes to inline styles using prebuilt style map
+      if (options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0) {
+        try {
+          const { transformVueTemplate } = await import('./vue-template-transform')
+          const styleMap = options.tw4StyleMap
 
-        // Wrap current template back into full SFC for AST parsing
-        const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
+          // Wrap current template back into full SFC for AST parsing
+          const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
 
-        const result = await transformVueTemplate(fullCode, {
-          resolveStyles: async (classes) => {
-            // Filter unsupported classes first
-            const supported = classes.filter(cls => !isSatoriUnsupported(cls))
-            const unsupported = classes.filter(cls => isSatoriUnsupported(cls))
+          const result = await transformVueTemplate(fullCode, {
+            resolveStyles: async (classes) => {
+              // Filter unsupported classes first
+              const supported = classes.filter(cls => !isSatoriUnsupported(cls))
+              const unsupported = classes.filter(cls => isSatoriUnsupported(cls))
 
-            if (unsupported.length > 0) {
-              const componentName = id.split('/').pop()
-              console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
-            }
+              if (unsupported.length > 0) {
+                const componentName = id.split('/').pop()
+                console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
+              }
 
-            return resolveClassesToStyles(supported, {
-              cssPath: options.tw4Config!.cssPath!,
-              nuxtUiColors: options.tw4Config!.nuxtUiColors,
-            })
-          },
-        })
+              // Simple map lookup - no async TW4 compilation needed
+              const resolved: Record<string, Record<string, string>> = {}
+              for (const cls of supported) {
+                // Handle responsive prefixes: extract base class
+                const baseClass = cls.replace(/^(sm|md|lg|xl|2xl):/, '')
+                if (styleMap[baseClass]) {
+                  resolved[cls] = styleMap[baseClass]
+                }
+                else if (styleMap[cls]) {
+                  resolved[cls] = styleMap[cls]
+                }
+                // Classes not in map will be kept in class attr for Satori's tw prop
+              }
+              return resolved
+            },
+          })
 
-        if (result) {
-          // Extract the transformed template
-          const newTemplateStart = result.code.indexOf('<template>') + '<template>'.length
-          const newTemplateEnd = result.code.indexOf('</template>')
-          template = result.code.slice(newTemplateStart, newTemplateEnd)
-          hasChanges = true
+          if (result) {
+            // Extract the transformed template
+            const newTemplateStart = result.code.indexOf('<template>') + '<template>'.length
+            const newTemplateEnd = result.code.indexOf('</template>')
+            template = result.code.slice(newTemplateStart, newTemplateEnd)
+            hasChanges = true
+          }
+        }
+        catch (err) {
+          const componentName = id.split('/').pop()
+          console.warn(`[nuxt-og-image] ${componentName}: TW4 template transform failed, using original template`, (err as Error).message)
+          // Continue without TW4 transforms - Satori will try to handle classes via tw prop
         }
       }
 
