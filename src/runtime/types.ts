@@ -191,6 +191,8 @@ export interface RuntimeCompatibilitySchema {
   satori: 'node' | 'wasm' | 'wasm-fs' | false
   takumi: 'node' | 'wasm' | false
   sharp: 'node' | false
+  // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime
+  emoji?: 'local' | 'fetch'
   wasm?: any
 }
 
