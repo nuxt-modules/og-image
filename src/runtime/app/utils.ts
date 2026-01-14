@@ -123,11 +123,13 @@ export interface GetOgImagePathResult {
 export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>): GetOgImagePathResult {
   const runtimeConfig = useRuntimeConfig()
   const baseURL = runtimeConfig.app.baseURL
-  const extension = _options?.extension || useOgImageRuntimeConfig().defaults?.extension || 'png'
+  const { defaults } = useOgImageRuntimeConfig()
+  const extension = _options?.extension || defaults?.extension || 'png'
   const isStatic = import.meta.prerender
   // Build URL with encoded options (Cloudinary-style)
   // Include _path so the server knows which page to render
-  const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic)
+  // Pass defaults to skip encoding default values in URL
+  const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic, defaults)
   let path = joinURL('/', baseURL, result.url)
   // For dynamic images, append build ID to bust external platform caches (Telegram, Facebook, etc.)
   if (!isStatic && runtimeConfig.app.buildId) {
