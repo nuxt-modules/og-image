@@ -18,7 +18,8 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
-import { defu } from 'defu'
+import { defu, defuFn } from 'defu'
+import { createJiti } from 'jiti'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { basename, isAbsolute, relative } from 'pathe'
@@ -33,6 +34,7 @@ import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
+import { extractTw4Metadata } from './build/tw4-transform'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import {
   ensureDependencies,
@@ -389,7 +391,6 @@ export default defineNuxtModule<ModuleOptions>({
           if (hasNuxtModule('@nuxt/ui')) {
             // Load user's app.config files to get color overrides
             // nuxt.options.appConfig only has module-set defaults, user configs loaded at runtime
-            const { createJiti } = await import('jiti')
             const jiti = createJiti(nuxt.options.rootDir, {
               interopDefault: true,
               moduleCache: false,
@@ -410,7 +411,6 @@ export default defineNuxtModule<ModuleOptions>({
             delete (globalThis as Record<string, unknown>).defineAppConfig
 
             // Merge user configs (later = higher priority)
-            const { defuFn } = await import('defu')
             const mergedUserConfig = defuFn(...userConfigs) as { ui?: { colors?: Record<string, string> } }
 
             tw4Config.nuxtUiColors = {
@@ -421,7 +421,6 @@ export default defineNuxtModule<ModuleOptions>({
           }
 
           // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
-          const { extractTw4Metadata } = await import('./build/tw4-transform')
           const metadata = await extractTw4Metadata({
             cssPath: tw4Config.cssPath,
             nuxtUiColors: tw4Config.nuxtUiColors,
