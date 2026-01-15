@@ -17,3 +17,8 @@ export const prerenderOptionsCache: Storage<OgImageOptions | [string, OgImageOpt
 export const emojiCache: Storage<string> = createStorage<string>({
   driver: lruCacheDriver({ max: 1000 }),
 })
+
+// cache loaded font data by cacheKey (family-weight-style)
+export const fontCache: Storage<BufferSource> = createStorage<BufferSource>({
+  driver: lruCacheDriver({ max: 100 }),
+})

@@ -1,12 +1,9 @@
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
 import { sendError } from 'h3'
+import { loadAllFonts } from '../fonts'
 import { useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
-
-async function resolveFonts(event: OgImageRenderEventContext) {
-  return []
-}
 
 let _takumiRenderer: any
 
@@ -23,7 +20,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const [nodes, fonts] = await Promise.all([
     createTakumiNodes(event),
-    resolveFonts(event),
+    loadAllFonts(event.e, { supportsWoff2: true }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)

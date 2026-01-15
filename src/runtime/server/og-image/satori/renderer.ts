@@ -1,35 +1,22 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { FontConfig, OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { resolve } from '#og-image-virtual/public-assets.mjs'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import compatibility from '#og-image/compatibility'
-import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { sendError } from 'h3'
 import { useOgImageRuntimeConfig } from '../../utils'
+import { loadAllFonts } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
-
-async function resolveFonts(event: OgImageRenderEventContext) {
-  // create font configs from resolved fonts
-  return await Promise.all((resolvedFonts as FontConfig[])
-    .map(async f => ({
-      ...f,
-      name: f.family,
-      cacheKey: `${f.family}-${f.weight}-${f.style}`,
-      data: await resolve(event.e, f),
-    } satisfies ResolvedFontConfig)))
-}
 
 export async function createSvg(event: OgImageRenderEventContext) {
   const { options } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
-  // perform operations async
   const [satori, vnodes, fonts] = await Promise.all([
     useSatori(),
     createVNodes(event),
-    resolveFonts(event),
+    loadAllFonts(event.e, { supportsWoff2: false }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)

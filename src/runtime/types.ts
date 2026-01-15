@@ -180,12 +180,11 @@ export interface FontConfig {
   localPath: string
 }
 
-export interface ResolvedFontConfig extends FontConfig {
+export interface SatoriFontConfig extends FontConfig {
   cacheKey: string
-  data?: BufferSource
+  name: string
+  data: BufferSource
 }
-
-export type InputFontConfig = (`${string}:${number}` | `${string}:${'normal' | 'ital'}:${number}` | string | FontConfig)
 
 export interface RuntimeCompatibilitySchema {
   chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false

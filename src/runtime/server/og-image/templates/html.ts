@@ -1,25 +1,15 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
+import resolvedFonts from '#og-image/fonts'
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../satori/transforms/emojis'
 
 export async function html(ctx: OgImageRenderEventContext) {
-  console.log('htmlk template')
   const { options } = ctx
-  // get fonts from @nuxt/fonts virtual module
-  const fontsModule = await import('#og-image/fonts').catch(() => ({ resolvedFonts: [] }))
-  const fonts = (fontsModule.resolvedFonts || []).map((f: { family: string, weight: number, style: string }) => ({
-    name: f.family,
-    weight: f.weight,
-    key: `${f.family}-${f.weight}-${f.style}`,
-  }))
-  // const scale = query.scale
-  // const mode = query.mode || 'light'
-  // extract the options from the original path
+  const fonts = resolvedFonts as FontConfig[]
 
   if (!options.component) {
     throw createError({
@@ -28,15 +18,13 @@ export async function html(ctx: OgImageRenderEventContext) {
     })
   }
   const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
-  console.log(island)
   const head = createHeadCore()
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
-  const normalisedFonts = normaliseFontInput(fonts)
-  const firstFont = normalisedFonts[0] as FontConfig
+  const firstFont = fonts[0]
   if (firstFont)
-    defaultFontFamily = firstFont.name.replaceAll('+', ' ')
+    defaultFontFamily = firstFont.family.replaceAll('+', ' ')
 
   await applyEmojis(ctx, island)
   let html = island.html
@@ -76,18 +64,17 @@ svg[data-emoji] {
 }
 `,
       },
-      ...(fonts as FontConfig[])
-        // .filter(font => font.path)
-        .map((font) => {
-          return `
+      ...fonts.map((font) => {
+        const cacheKey = `${font.family}-${font.weight}-${font.style}`
+        return `
           @font-face {
-            font-family: '${font.name.replaceAll('+', ' ')}';
-            font-style: normal;
+            font-family: '${font.family.replaceAll('+', ' ')}';
+            font-style: ${font.style};
             font-weight: ${font.weight};
-            src: url('/_og/f/${font.key}') format('truetype');
+            src: url('/_og/f/${cacheKey}') format('truetype');
           }
           `
-        }),
+      }),
     ],
     meta: [
       {

@@ -626,19 +626,20 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
       // find nuxt-fonts-global.css template
       const templates = nuxt.options.build.templates
-      const nuxtFontsTemplate = templates.find(t => t.filename.endsWith('nuxt-fonts-global.css'))
-      if (!nuxtFontsTemplate) {
-        return `export const fonts = []`
+      const nuxtFontsTemplate = templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
+      if (!nuxtFontsTemplate?.getContents) {
+        return `export default []`
       }
-      const contents = await nuxtFontsTemplate.getContents()
+      const contents = await nuxtFontsTemplate.getContents({} as any)
 
       // parse @font-face blocks
       const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g
       const fonts: Array<{ family: string, src: string, weight: number, style: string }> = []
 
-      let match
-      while ((match = fontFaceRegex.exec(contents)) !== null) {
+      for (const match of contents.matchAll(fontFaceRegex)) {
         const block = match[1]
+        if (!block)
+          continue
         const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
         const src = block.match(/url\(["']?([^)"']+)["']?\)/)?.[1]
         const weight = Number.parseInt(block.match(/font-weight:\s*(\d+)/)?.[1] || '400')
@@ -648,23 +649,17 @@ export default defineNuxtModule<ModuleOptions>({
           fonts.push({ family, src, weight, style })
         }
       }
-      // filter out woff2, only warn if family has no non-woff2 alternatives
-      const familiesWithValidFonts = new Set(fonts.filter(f => !f.src.endsWith('.woff2')).map(f => f.family))
+      // warn at build time if satori will have issues (no non-woff2 fonts)
+      const familiesWithNonWoff2 = new Set(fonts.filter(f => !f.src.endsWith('.woff2')).map(f => f.family))
       const warnedFamilies = new Set<string>()
-      const filtered = fonts.filter((f) => {
-        const isWoff2 = f.src.endsWith('.woff2')
-        if (isWoff2 && !familiesWithValidFonts.has(f.family) && !warnedFamilies.has(f.family)) {
+      for (const f of fonts) {
+        if (f.src.endsWith('.woff2') && !familiesWithNonWoff2.has(f.family) && !warnedFamilies.has(f.family)) {
           warnedFamilies.add(f.family)
-          logger.warn(`WOFF2 font detected (${f.family}). WOFF2 fonts are not supported in og:image generation and will be skipped. Use WOFF or TTF fonts instead.`)
+          logger.warn(`WOFF2-only font detected (${f.family}). Satori renderer does not support WOFF2 - use Takumi renderer or provide WOFF/TTF alternatives.`)
         }
-        return !isWoff2
-      })
-      // check for no fonts - throw warning
-      if (filtered.length === 0) {
-        logger.error('No valid fonts found from @nuxt/fonts for og:image generation. Please ensure you have configured at least one font with WOFF or TTF format.')
       }
-      logger.debug(`Extracted fonts from @nuxt/fonts: ${JSON.stringify(filtered)}`)
-      return `const fonts = ${JSON.stringify(filtered)}; export default fonts`
+      logger.debug(`Extracted fonts from @nuxt/fonts: ${JSON.stringify(fonts)}`)
+      return `export default ${JSON.stringify(fonts)}`
     }
 
     // support simple theme extends
