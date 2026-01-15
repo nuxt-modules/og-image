@@ -11,7 +11,7 @@ export async function html(ctx: OgImageRenderEventContext) {
   console.log('htmlk template')
   const { options } = ctx
   // get fonts from @nuxt/fonts virtual module
-  const fontsModule = await import('#nuxt-og-image/fonts').catch(() => ({ resolvedFonts: [] }))
+  const fontsModule = await import('#og-image/fonts').catch(() => ({ resolvedFonts: [] }))
   const fonts = (fontsModule.resolvedFonts || []).map((f: { family: string, weight: number, style: string }) => ({
     name: f.family,
     weight: f.weight,

@@ -1,51 +1,11 @@
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { fontCache } from '#og-image-cache'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
 import { sendError } from 'h3'
-import { loadFont } from '../satori/font'
 import { useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 
-const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
-
 async function resolveFonts(event: OgImageRenderEventContext) {
-  // get fonts from @nuxt/fonts virtual module
-  const fontsModule = await import('#nuxt-og-image/fonts').catch(() => ({ resolvedFonts: [] }))
-  const resolvedFonts = fontsModule.resolvedFonts || []
-
-  const fontConfigs: ResolvedFontConfig[] = resolvedFonts.map((f: { family: string, weight: number, style: string }) => ({
-    name: f.family,
-    weight: f.weight,
-    style: (f.style === 'italic' ? 'ital' : 'normal') as 'normal' | 'ital',
-    cacheKey: `${f.family}-${f.weight}-${f.style}`,
-  }))
-
-  const localFontPromises: Promise<ResolvedFontConfig>[] = []
-  const preloadedFonts: ResolvedFontConfig[] = []
-
-  if (fontCache) {
-    for (const font of fontConfigs) {
-      if (await fontCache.hasItem(font.cacheKey)) {
-        font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
-        preloadedFonts.push(font)
-      }
-      else {
-        if (!fontPromises[font.cacheKey]) {
-          fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
-            if (_font?.data)
-              await fontCache?.setItemRaw(_font.cacheKey, _font.data)
-            return _font
-          })
-        }
-        localFontPromises.push(fontPromises[font.cacheKey]!)
-      }
-    }
-  }
-  const awaitedFonts = await Promise.all(localFontPromises)
-  return [...preloadedFonts, ...awaitedFonts].map(_f => ({
-    name: _f.name,
-    data: _f.data,
-  }))
+  return []
 }
 
 let _takumiRenderer: any

@@ -1,60 +1,25 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { fontCache } from '#og-image-cache'
+import type { FontConfig, OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
+import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { theme } from '#og-image-virtual/unocss-config.mjs'
 import compatibility from '#og-image/compatibility'
+import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { sendError } from 'h3'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { loadFont } from './font'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
 
-const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
-
 async function resolveFonts(event: OgImageRenderEventContext) {
-  // get fonts from @nuxt/fonts virtual module
-  const fontsModule = await import('#nuxt-og-image/fonts').catch(() => ({ resolvedFonts: [] }))
-  const resolvedFonts = fontsModule.resolvedFonts || []
-
   // create font configs from resolved fonts
-  const fontConfigs: ResolvedFontConfig[] = resolvedFonts.map((f: { family: string, weight: number, style: string }) => ({
-    name: f.family,
-    weight: f.weight,
-    style: (f.style === 'italic' ? 'ital' : 'normal') as 'normal' | 'ital',
-    cacheKey: `${f.family}-${f.weight}-${f.style}`,
-  }))
-
-  const localFontPromises: Promise<ResolvedFontConfig>[] = []
-  const preloadedFonts: ResolvedFontConfig[] = []
-
-  if (fontCache) {
-    for (const font of fontConfigs) {
-      if (await fontCache.hasItem(font.cacheKey)) {
-        font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
-        preloadedFonts.push(font)
-      }
-      else {
-        if (!fontPromises[font.cacheKey]) {
-          fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
-            if (_font?.data)
-              await fontCache?.setItemRaw(_font.cacheKey, _font.data)
-            return _font
-          })
-        }
-        localFontPromises.push(fontPromises[font.cacheKey]!)
-      }
-    }
-  }
-
-  const awaitedFonts = await Promise.all(localFontPromises)
-  return [...preloadedFonts, ...awaitedFonts].map(_f => ({
-    name: _f.name,
-    data: _f.data,
-    style: _f.style,
-    weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'],
-  }))
+  return await Promise.all((resolvedFonts as FontConfig[])
+    .map(async f => ({
+      ...f,
+      name: f.family,
+      cacheKey: `${f.family}-${f.weight}-${f.style}`,
+      data: await resolve(event.e, f),
+    } satisfies ResolvedFontConfig)))
 }
 
 export async function createSvg(event: OgImageRenderEventContext) {

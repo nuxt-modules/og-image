@@ -52,9 +52,6 @@ export interface OgImageRuntimeConfig {
   zeroRuntime: boolean
   cacheQueryParams: boolean
 
-  /** @deprecated Use @nuxt/fonts instead */
-  fonts: ResolvedFontConfig[]
-
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
   buildCacheDir?: string
@@ -176,14 +173,17 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
 }
 
 export interface FontConfig {
-  name: string
-  style?: 'normal' | 'ital'
-  weight?: string | number
-  path?: string
-  key?: string
-  absolutePath?: boolean
+  family: string
+  weight: number
+  style: 'normal' | 'italic'
+  src: string
+  localPath: string
 }
-export interface ResolvedFontConfig extends FontConfig { cacheKey: string, data?: BufferSource }
+
+export interface ResolvedFontConfig extends FontConfig {
+  cacheKey: string
+  data?: BufferSource
+}
 
 export type InputFontConfig = (`${string}:${number}` | `${string}:${'normal' | 'ital'}:${number}` | string | FontConfig)
 

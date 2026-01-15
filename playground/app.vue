@@ -22,3 +22,9 @@
     <Footer />
   </div>
 </template>
+
+<style>
+:root {
+  font-family: 'HubotSans';
+}
+</style>

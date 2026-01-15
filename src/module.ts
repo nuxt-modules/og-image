@@ -6,27 +6,20 @@ import type { SharpOptions } from 'sharp'
 import type {
   CompatibilityFlagEnvOverrides,
   CompatibilityFlags,
-  FontConfig,
-  InputFontConfig,
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
-  ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
-import { basename, isAbsolute, relative } from 'pathe'
+import { isAbsolute, relative } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isDevelopment } from 'std-env'
-import { withoutLeadingSlash } from 'ufo'
-import { createStorage } from 'unstorage'
-import fsDriver from 'unstorage/drivers/fs'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
@@ -41,10 +34,9 @@ import {
 } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { onInstall, onUpgrade } from './onboarding'
-import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+import { checkLocalChrome, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 import {
   getMissingDependencies,
   getProviderDependencies,
@@ -75,12 +67,6 @@ export interface ModuleOptions {
    * @default { component: 'NuxtSeo', width: 1200, height: 630, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
    */
   defaults: OgImageOptions
-  /**
-   * Fonts to use when rendering the og:image.
-   *
-   * @example ['Roboto:400', 'Roboto:700', { path: 'path/to/font.ttf', weight: 400, name: 'MyFont' }]
-   */
-  fonts: InputFontConfig[]
   /**
    * Options to pass to satori.
    *
@@ -147,14 +133,6 @@ export interface ModuleOptions {
    */
   compatibility?: CompatibilityFlagEnvOverrides
   /**
-   * Use an alternative host for downloading Google Fonts.
-   *
-   * Provide a custom mirror host (e.g., your own proxy server).
-   * Note: The mirror must serve TTF fonts for Satori compatibility.
-   * For China users, consider using local font files via the `path` option instead.
-   */
-  googleFontMirror?: string
-  /**
    * Only allow the prerendering and dev runtimes to generate images.
    */
   zeroRuntime?: boolean
@@ -212,6 +190,9 @@ export default defineNuxtModule<ModuleOptions>({
       version: '>=3',
       optional: true,
     },
+    '@nuxt/fonts': {
+      version: '>=0.12.0',
+    },
   },
   defaults() {
     return {
@@ -227,7 +208,6 @@ export default defineNuxtModule<ModuleOptions>({
         cacheMaxAgeSeconds: 60 * 60 * 24 * 3,
       },
       componentDirs: defaultComponentDirs,
-      fonts: [],
       runtimeCacheStorage: true,
       debug: isDevelopment,
     }
@@ -284,10 +264,6 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
-
-    // setup @nuxt/fonts integration (creates #nuxt-og-image/fonts virtual module)
-    const { setupNuxtFontsIntegration } = await import('./integrations/nuxt-fonts')
-    setupNuxtFontsIntegration(nuxt)
 
     // Resolve preset early to check compatibility settings
     const preset = resolveNitroPreset(nuxt.options.nitro)
@@ -438,87 +414,6 @@ export default defineNuxtModule<ModuleOptions>({
             }
           })
       }
-      // default font is inter
-      if (!config.fonts.length) {
-        config.fonts = [
-          {
-            name: 'Inter',
-            weight: 400,
-            path: resolve('./runtime/assets/Inter-normal-400.ttf.base64'),
-            absolutePath: true,
-          },
-          {
-            name: 'Inter',
-            weight: 700,
-            path: resolve('./runtime/assets/Inter-normal-700.ttf.base64'),
-            absolutePath: true,
-          },
-        ]
-      }
-
-      // persist between versions
-      const serverFontsDir = resolve(nuxt.options.buildDir, 'cache', `nuxt-og-image`, '_fonts')
-      const fontStorage = createStorage({
-        driver: fsDriver({
-          base: serverFontsDir,
-        }),
-      })
-      config.fonts = (await Promise.all(normaliseFontInput(config.fonts)
-        .map(async (f) => {
-          const fontKey = `${f.name}:${f.style}:${f.weight}`
-          const fontFileBase = fontKey.replaceAll(':', '-')
-          if (!f.key && !f.path) {
-            if (preset === 'stackblitz') {
-              logger.warn(`The ${fontKey} font was skipped because remote fonts are not available in StackBlitz, please use a local font.`)
-              return false
-            }
-            const result = await downloadFont(f, fontStorage, config.googleFontMirror)
-            if (result.success) {
-              // move file to serverFontsDir
-              f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.txt`
-            }
-            else {
-              const mirrorMsg = config.googleFontMirror
-                ? `using mirror host \`${result.host}\``
-                : 'Consider using local font files via the `path` option if you are in China or behind a firewall.'
-              logger.warn(`Failed to download font ${fontKey} ${mirrorMsg}`)
-              if (result.error)
-                logger.warn(`  Error: ${result.error.message || result.error}`)
-              return false
-            }
-          }
-          else if (f.path) {
-            // validate the extension, can only be woff, ttf or otf
-            const extension = basename(f.path.replace('.base64', '')).split('.').pop()!
-            if (!['woff', 'ttf', 'otf'].includes(extension)) {
-              logger.warn(`The ${fontKey} font was skipped because the file extension ${extension} is not supported. Only woff, ttf and otf are supported.`)
-              return false
-            }
-            // resolve relative paths from public dir
-            // move to assets folder as base64 and set key
-            if (!f.absolutePath)
-              f.path = resolve(publicDirAbs, withoutLeadingSlash(f.path))
-            if (!existsSync(f.path)) {
-              logger.warn(`The ${fontKey} font was skipped because the file does not exist at path ${f.path}.`)
-              return false
-            }
-            const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
-            f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.txt`
-            await fontStorage.setItem(`${fontFileBase}.${extension}.txt`, fontData)
-            delete f.path
-            delete f.absolutePath
-          }
-          return f
-        }))).filter(Boolean) as InputFontConfig[]
-
-      const fontKeys = (config.fonts as ResolvedFontConfig[]).map(f => f.key?.split(':').pop())
-      const fontStorageKeys = await fontStorage.getKeys()
-      await Promise.all(fontStorageKeys
-        .filter(key => !fontKeys.includes(key))
-        .map(async (key) => {
-          logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
-          await fontStorage.removeItem(key)
-        }))
 
       // Detect edge runtimes where bundles have size constraints
       const isEdgeRuntime = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(preset)
@@ -749,9 +644,49 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
-    nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = () => {
+    nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
       // load from src/runtime/server/og-image/bindings/font-assets conditionally
-      return ''
+      return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
+    }
+    nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
+      // find nuxt-fonts-global.css template
+      const templates = nuxt.options.build.templates
+      const nuxtFontsTemplate = templates.find(t => t.filename.endsWith('nuxt-fonts-global.css'))
+      if (!nuxtFontsTemplate) {
+        return `export const fonts = []`
+      }
+      const contents = await nuxtFontsTemplate.getContents()
+
+      // parse @font-face blocks
+      const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g
+      const fonts: Array<{ family: string, src: string, weight: number, style: string }> = []
+
+      let match
+      while ((match = fontFaceRegex.exec(contents)) !== null) {
+        const block = match[1]
+        const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
+        const src = block.match(/url\(["']?([^)"']+)["']?\)/)?.[1]
+        const weight = Number.parseInt(block.match(/font-weight:\s*(\d+)/)?.[1] || '400')
+        const style = block.match(/font-style:\s*(\w+)/)?.[1] || 'normal'
+
+        if (family && src) {
+          fonts.push({ family, src, weight, style })
+        }
+      }
+
+      // filter out woff2 show warnings
+      const filtered = fonts.filter((f) => {
+        const isWoff2 = f.src.endsWith('.woff2')
+        if (isWoff2) {
+          logger.warn(`WOFF2 font detected (${f.family}). WOFF2 fonts are not supported in og:image generation and will be skipped. Use WOFF or TTF fonts instead.`)
+        }
+        return !isWoff2
+      })
+      // check for no fonts - throw warning
+      if (filtered.length === 0) {
+        logger.error('No valid fonts found from @nuxt/fonts for og:image generation. Please ensure you have configured at least one font with WOFF or TTF format.')
+      }
+      return `const fonts = ${JSON.stringify(filtered)}; export default fonts`
     }
 
     // support simple theme extends
@@ -808,7 +743,6 @@ export default defineNuxtModule<ModuleOptions>({
       : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
-      const normalisedFonts: FontConfig[] = normaliseFontInput(config.fonts)
       if (!isNuxtGenerate() && nuxt.options.build) {
         nuxt.options.nitro = nuxt.options.nitro || {}
         nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
@@ -839,8 +773,6 @@ export default defineNuxtModule<ModuleOptions>({
         // avoid adding credentials
         baseCacheKey,
         buildCacheDir,
-        // convert the fonts to uniform type to fix ts issue
-        fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
         preset,
