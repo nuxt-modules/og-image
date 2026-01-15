@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { isCI } from 'std-env'
 import { getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
+import { promptFontsMigration } from './migrations/fonts'
 import { logger } from './runtime/logger'
 import {
   ensureProviderDependencies,
@@ -257,6 +258,11 @@ export async function onUpgrade(
       if (key in ogImageConfig) {
         issues.push(`Config \`${key}\` is deprecated: ${replacement}`)
       }
+    }
+
+    // offer migration for fonts config
+    if ('fonts' in ogImageConfig && !nuxt.options._prepare && !isCI) {
+      await promptFontsMigration(nuxt.options.rootDir)
     }
   }
 

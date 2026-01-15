@@ -1,13 +1,11 @@
-import type _cssInline from '@css-inline/css-inline-wasm'
-import type { Resvg } from '@resvg/resvg-wasm'
 import type _satori from 'satori'
 import type _sharp from 'sharp'
 
-// we keep instances alive to avoid re-importing them on every request, maybe not needed but
-// also helps with type inference
-const cssInlineInstance: { instance?: { initWasmPromise: Promise<void>, cssInline: typeof _cssInline } } = { instance: undefined }
+// we keep instances alive to avoid re-importing them on every request
+// Using any for bindings since they differ between node/wasm variants
+const cssInlineInstance: { instance?: { initWasmPromise: Promise<void>, cssInline: any } } = { instance: undefined }
 const sharpInstance: { instance?: typeof _sharp } = { instance: undefined }
-const resvgInstance: { instance?: { initWasmPromise: Promise<void>, Resvg: typeof Resvg } } = { instance: undefined }
+const resvgInstance: { instance?: { initWasmPromise: Promise<void>, Resvg: any } } = { instance: undefined }
 const satoriInstance: { instance?: { initWasmPromise: Promise<void>, satori: typeof _satori } } = { instance: undefined }
 
 export async function useResvg() {

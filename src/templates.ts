@@ -58,7 +58,7 @@ declare module '#og-image-virtual/unocss-config.mjs' {
 }
 
 declare module '#og-image-virtual/iconify-json-icons.mjs' {
-  export const icons: Record<string, string>
+  export const icons: Record<string, { body: string, width?: number, height?: number }>
   export const width: number
   export const height: number
 }
@@ -88,13 +88,13 @@ declare module '#og-image/compatibility' {
 
 declare module '#og-image/bindings/satori' {
   import satori from 'satori'
-  const _default: typeof satori
+  const _default: { initWasmPromise: Promise<void>, satori: typeof satori }
   export default _default
 }
 
 declare module '#og-image/bindings/resvg' {
   import { Resvg } from '@resvg/resvg-js'
-  const _default: typeof Resvg
+  const _default: { initWasmPromise: Promise<void>, Resvg: typeof Resvg }
   export default _default
 }
 
@@ -105,7 +105,8 @@ declare module '#og-image/bindings/sharp' {
 }
 
 declare module '#og-image/bindings/css-inline' {
-  const _default: { inline: (html: string, options?: any) => string }
+  import cssInline from '@css-inline/css-inline'
+  const _default: { initWasmPromise: Promise<void>, cssInline: typeof cssInline }
   export default _default
 }
 
@@ -133,7 +134,8 @@ declare module '#og-image/renderers/takumi' {
 }
 
 declare module '#og-image/emoji-transform' {
-  export function getEmojiSvg(emoji: string): Promise<string | undefined>
+  import type { OgImageRenderEventContext } from '${typesPath}'
+  export function getEmojiSvg(ctx: OgImageRenderEventContext, emoji: string): Promise<string | null>
 }
 
 declare module '#og-image-cache' {

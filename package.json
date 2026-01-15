@@ -122,6 +122,7 @@
     "image-size": "catalog:",
     "linkedom": "catalog:",
     "magic-string": "catalog:",
+    "magicast": "catalog:",
     "mocked-exports": "catalog:",
     "nuxt-site-config": "catalog:",
     "nypm": "catalog:",

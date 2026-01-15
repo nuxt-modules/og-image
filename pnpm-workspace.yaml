@@ -73,6 +73,7 @@ catalog:
   json-editor-vue: ^0.18.1
   linkedom: ^0.18.12
   magic-string: ^0.30.21
+  magicast: ^0.5.1
   mocked-exports: ^0.1.1
   nuxt: ^4.2.2
   nuxt-site-config: ^3.2.17
