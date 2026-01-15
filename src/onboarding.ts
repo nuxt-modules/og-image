@@ -28,6 +28,7 @@ const DEPRECATED_CONFIG: Record<string, string> = {
   cache: 'Use cacheMaxAgeSeconds',
   cacheKey: 'Removed',
   static: 'Removed - use zeroRuntime',
+  fonts: 'Use @nuxt/fonts module instead',
 }
 
 const DEPRECATED_COMPOSABLES = [
