@@ -68,6 +68,10 @@ declare module '#og-image-virtual/component-names.mjs' {
   export const componentNames: OgImageComponent[]
 }
 
+declare module '#og-image-virtual/build-dir.mjs' {
+  export const buildDir: string
+}
+
 declare module '#og-image/compatibility' {
   import type { RuntimeCompatibilitySchema } from '${typesPath}'
   const compatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>

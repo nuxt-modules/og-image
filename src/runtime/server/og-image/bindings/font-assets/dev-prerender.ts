@@ -5,14 +5,14 @@ import { join } from 'node:path'
 import { buildDir } from '#og-image-virtual/build-dir.mjs'
 import { getNitroOrigin } from '#site-config/server/composables'
 
-let fontUrlMapping: Record<string, string> | null = null
+let fontUrlMapping: Record<string, string> | undefined
 
 async function loadFontUrlMapping(): Promise<Record<string, string>> {
   if (fontUrlMapping)
     return fontUrlMapping
   const content = await readFile(join(buildDir, 'cache', 'og-image', 'font-urls.json'), 'utf-8').catch(() => null)
   fontUrlMapping = content ? JSON.parse(content) : {}
-  return fontUrlMapping
+  return fontUrlMapping!
 }
 
 function getRootDir(): string {
@@ -51,9 +51,9 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   }
 
   // Runtime: HTTP fetch
-  const arrayBuffer = await $fetch<ArrayBuffer>(path, {
+  const arrayBuffer = await $fetch(path, {
     responseType: 'arrayBuffer',
     baseURL: getNitroOrigin(event),
-  })
+  }) as ArrayBuffer
   return Buffer.from(arrayBuffer)
 }
