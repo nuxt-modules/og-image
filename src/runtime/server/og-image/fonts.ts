@@ -11,10 +11,15 @@ export interface LoadFontsOptions {
 async function loadFont(event: H3Event, font: FontConfig): Promise<BufferSource> {
   const cacheKey = `${font.family}-${font.weight}-${font.style}`
   const cached = await fontCache.getItem(cacheKey)
-  if (cached)
-    return cached
+  if (cached) {
+    // Decode base64 back to Buffer
+    const data = Buffer.from(cached, 'base64')
+    return data
+  }
   const data = await resolve(event, font)
-  await fontCache.setItem(cacheKey, data)
+  // Encode as base64 for storage to avoid LRU cache serialization issues
+  const base64 = Buffer.from(data as Buffer).toString('base64')
+  await fontCache.setItem(cacheKey, base64)
   return data
 }
 

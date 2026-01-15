@@ -19,6 +19,7 @@ export const emojiCache: Storage<string> = createStorage<string>({
 })
 
 // cache loaded font data by cacheKey (family-weight-style)
-export const fontCache: Storage<BufferSource> = createStorage<BufferSource>({
+// Use base64 encoding to avoid Buffer serialization issues in LRU cache
+export const fontCache: Storage<string> = createStorage<string>({
   driver: lruCacheDriver({ max: 100 }),
 })

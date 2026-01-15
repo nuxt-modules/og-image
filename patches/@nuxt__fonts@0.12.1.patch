@@ -1,0 +1,15 @@
+diff --git a/dist/module.mjs b/dist/module.mjs
+index 37f0d66799b2abddb85b7e1e1dc1743e927df224..a1b2c3d4e5f6789012345678901234567890abcd 100644
+--- a/dist/module.mjs
++++ b/dist/module.mjs
+@@ -92,6 +92,10 @@ async function setupPublicAssetStrategy(options = {}) {
+     renderedFontURLs: /* @__PURE__ */ new Map(),
+     assetsBaseURL: options.prefix || "/_fonts"
+   };
++  // Expose context for other modules (e.g., og-image) after all modules are loaded
++  nuxt.hook('modules:done', () => {
++    nuxt.callHook('fonts:public-asset-context', context);
++  });
+   async function devEventHandler(event) {
+     const filename = event.path.slice(1);
+     const url = context.renderedFontURLs.get(event.path.slice(1));

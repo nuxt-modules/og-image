@@ -17,7 +17,7 @@ import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, 
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
-import { isAbsolute, relative } from 'pathe'
+import { isAbsolute, join, relative } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isDevelopment } from 'std-env'
 import { setupBuildHandler } from './build/build'
@@ -674,6 +674,26 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/unocss-config.mjs'] = () => {
       return `export const theme = ${JSON.stringify(unoCssConfig)}`
     }
+    nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
+      return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}`
+    }
+
+    // Hook into @nuxt/fonts to persist font URL mapping for prerender
+    // fonts:public-asset-context fires at modules:done, giving us a reference to the context
+    // We then read from renderedFontURLs in vite:compiled when it's populated
+    let fontContext: { renderedFontURLs: Map<string, string> } | null = null
+    nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
+      fontContext = ctx
+    })
+    nuxt.hook('vite:compiled', () => {
+      if (fontContext?.renderedFontURLs.size) {
+        const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
+        fs.mkdirSync(cacheDir, { recursive: true })
+        const mapping = Object.fromEntries(fontContext.renderedFontURLs)
+        fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(mapping))
+        logger.debug(`Persisted ${fontContext.renderedFontURLs.size} font URLs for prerender`)
+      }
+    })
 
     registerTypeTemplates({
       nuxt,

@@ -18,6 +18,9 @@ packages:
 overrides:
   jiti: ^2.6.1
 
+patchedDependencies:
+  '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
+
 catalog:
   '@antfu/eslint-config': ^7.0.1
   '@css-inline/css-inline': ^0.19.1
