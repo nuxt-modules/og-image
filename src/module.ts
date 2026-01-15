@@ -753,15 +753,10 @@ export default defineNuxtModule<ModuleOptions>({
         buildCacheDir,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
-        preset,
 
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cacheQueryParams: config.cacheQueryParams ?? false,
-        zeroRuntime: config.zeroRuntime || false,
-        app: {
-          baseURL: nuxt.options.app.baseURL,
-        },
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
