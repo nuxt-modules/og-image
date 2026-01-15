@@ -16,7 +16,7 @@ export function checkLocalChrome() {
   try {
     hasChromeLocally = !!Launcher.getFirstInstallation()
   }
-  catch {}
+  catch { }
   return hasChromeLocally
 }
 
@@ -28,7 +28,7 @@ export async function hasResolvableDependency(dep: string) {
 
 export async function downloadFont(font: ResolvedFontConfig, storage: Storage, mirror?: string) {
   const { name, weight, style } = font
-  const key = `${name}-${style}-${weight}.ttf.base64`
+  const key = `${name}-${style}-${weight}.ttf.txt`
   if (await storage.hasItem(key))
     return { success: true }
 

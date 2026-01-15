@@ -55,7 +55,7 @@ export async function createSvg(event: OgImageRenderEventContext) {
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
-  const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions> {
+  const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions>{
     fonts,
     tailwindConfig: { theme },
     embedFont: true,
@@ -63,7 +63,7 @@ export async function createSvg(event: OgImageRenderEventContext) {
     height: options.height!,
   }) as SatoriOptions
   return satori(vnodes, satoriOptions).catch((err) => {
-    return sendError(event.e, err, import.meta.dev)
+    return sendError(event.e, err, true)
   })
 }
 

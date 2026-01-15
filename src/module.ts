@@ -471,7 +471,7 @@ export default defineNuxtModule<ModuleOptions>({
             const result = await downloadFont(f, fontStorage, config.googleFontMirror)
             if (result.success) {
               // move file to serverFontsDir
-              f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.base64`
+              f.key = `nuxt-og-image:fonts:${fontFileBase}.ttf.txt`
             }
             else {
               const mirrorMsg = config.googleFontMirror
@@ -499,8 +499,8 @@ export default defineNuxtModule<ModuleOptions>({
               return false
             }
             const fontData = await readFile(f.path, f.path.endsWith('.base64') ? 'utf-8' : 'base64')
-            f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.base64`
-            await fontStorage.setItem(`${fontFileBase}.${extension}.base64`, fontData)
+            f.key = `nuxt-og-image:fonts:${fontFileBase}.${extension}.txt`
+            await fontStorage.setItem(`${fontFileBase}.${extension}.txt`, fontData)
             delete f.path
             delete f.absolutePath
           }
@@ -515,6 +515,10 @@ export default defineNuxtModule<ModuleOptions>({
           logger.info(`Nuxt OG Image removing outdated cached font file \`${key}\``)
           await fontStorage.removeItem(key)
         }))
+
+      // Detect edge runtimes where bundles have size constraints
+      const isEdgeRuntime = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(preset)
+
       if (config.zeroRuntime) {
         // Make fonts available during dev/prerender via storage (not bundled in production)
         nuxt.options.nitro.devStorage = nuxt.options.nitro.devStorage || {}
@@ -523,16 +527,19 @@ export default defineNuxtModule<ModuleOptions>({
           base: serverFontsDir,
         }
       }
+      else if (isEdgeRuntime) {
+        nuxt.options.nitro.publicAssets = nuxt.options.nitro.publicAssets || []
+        nuxt.options.nitro.publicAssets.push({
+          dir: serverFontsDir,
+          baseURL: '/_ogfonts',
+          maxAge: 60 * 60 * 24 * 365, // 1 year
+        })
+      }
       else {
-        // bundle fonts within nitro runtime
+        // bundle fonts within nitro runtime for non-edge environments
         nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
         nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
       }
-      addServerHandler({
-        lazy: true,
-        route: '/_og/f/**',
-        handler: resolve(`${basePath}/font`),
-      })
     }
 
     if (isProviderEnabledForEnv('chromium', nuxt, config)) {
@@ -738,6 +745,10 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
+    nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = () => {
+      // load from src/runtime/server/og-image/bindings/font-assets conditionally
+      return ''
+    }
 
     // support simple theme extends
     let unoCssConfig: any = {}
@@ -811,7 +822,7 @@ export default defineNuxtModule<ModuleOptions>({
         colorPreference = colorModeOptions.fallback
       if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
-      const runtimeConfig = <OgImageRuntimeConfig> {
+      const runtimeConfig = <OgImageRuntimeConfig>{
         version,
         // binding options
         satoriOptions: config.satoriOptions || {},
@@ -828,6 +839,7 @@ export default defineNuxtModule<ModuleOptions>({
         fonts: normalisedFonts,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
+        preset,
 
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
