@@ -52,6 +52,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
                 await nuxtApp.runWithContext(() => {
                   tag.props.content = toValue(withSiteUrl(tag.props.content || '', {
                     withBase: true,
+                    canonical: !import.meta.dev,
                   }))
                 })
               }

@@ -1,27 +1,25 @@
 import Module from '../../../src/module'
 
 export default defineNuxtConfig({
+  extends: ['../.base'],
+
   modules: [
-    '@nuxt/fonts',
     Module,
   ],
 
   fonts: {
     families: [
       {
-        name: 'Inter',
-        weights: [400, 700],
-        styles: ['normal'],
-      },
-      {
         name: 'Roboto',
         weights: [400, 500],
         styles: ['normal'],
+        global: true,
       },
     ],
   },
 
   ogImage: {
+    debug: true,
     defaults: {
       component: 'NuxtSeo',
     },

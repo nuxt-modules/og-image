@@ -414,31 +414,6 @@ export default defineNuxtModule<ModuleOptions>({
             }
           })
       }
-
-      // Detect edge runtimes where bundles have size constraints
-      const isEdgeRuntime = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(preset)
-
-      if (config.zeroRuntime) {
-        // Make fonts available during dev/prerender via storage (not bundled in production)
-        nuxt.options.nitro.devStorage = nuxt.options.nitro.devStorage || {}
-        nuxt.options.nitro.devStorage['nuxt-og-image:fonts'] = {
-          driver: 'fs',
-          base: serverFontsDir,
-        }
-      }
-      else if (isEdgeRuntime) {
-        nuxt.options.nitro.publicAssets = nuxt.options.nitro.publicAssets || []
-        nuxt.options.nitro.publicAssets.push({
-          dir: serverFontsDir,
-          baseURL: '/_ogfonts',
-          maxAge: 60 * 60 * 24 * 365, // 1 year
-        })
-      }
-      else {
-        // bundle fonts within nitro runtime for non-edge environments
-        nuxt.options.nitro.serverAssets = nuxt.options.nitro.serverAssets || []
-        nuxt.options.nitro.serverAssets!.push({ baseName: 'nuxt-og-image:fonts', dir: serverFontsDir })
-      }
     }
 
     if (isProviderEnabledForEnv('chromium', nuxt, config)) {
@@ -673,11 +648,13 @@ export default defineNuxtModule<ModuleOptions>({
           fonts.push({ family, src, weight, style })
         }
       }
-
-      // filter out woff2 show warnings
+      // filter out woff2, only warn if family has no non-woff2 alternatives
+      const familiesWithValidFonts = new Set(fonts.filter(f => !f.src.endsWith('.woff2')).map(f => f.family))
+      const warnedFamilies = new Set<string>()
       const filtered = fonts.filter((f) => {
         const isWoff2 = f.src.endsWith('.woff2')
-        if (isWoff2) {
+        if (isWoff2 && !familiesWithValidFonts.has(f.family) && !warnedFamilies.has(f.family)) {
+          warnedFamilies.add(f.family)
           logger.warn(`WOFF2 font detected (${f.family}). WOFF2 fonts are not supported in og:image generation and will be skipped. Use WOFF or TTF fonts instead.`)
         }
         return !isWoff2
@@ -686,6 +663,7 @@ export default defineNuxtModule<ModuleOptions>({
       if (filtered.length === 0) {
         logger.error('No valid fonts found from @nuxt/fonts for og:image generation. Please ensure you have configured at least one font with WOFF or TTF format.')
       }
+      logger.debug(`Extracted fonts from @nuxt/fonts: ${JSON.stringify(filtered)}`)
       return `const fonts = ${JSON.stringify(filtered)}; export default fonts`
     }
 
