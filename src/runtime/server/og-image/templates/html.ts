@@ -5,12 +5,18 @@ import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
 import { normaliseFontInput } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
-import { useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from '../satori/transforms/emojis'
 
 export async function html(ctx: OgImageRenderEventContext) {
+  console.log('htmlk template')
   const { options } = ctx
-  const { fonts } = useOgImageRuntimeConfig()
+  // get fonts from @nuxt/fonts virtual module
+  const fontsModule = await import('#nuxt-og-image/fonts').catch(() => ({ resolvedFonts: [] }))
+  const fonts = (fontsModule.resolvedFonts || []).map((f: { family: string, weight: number, style: string }) => ({
+    name: f.family,
+    weight: f.weight,
+    key: `${f.family}-${f.weight}-${f.style}`,
+  }))
   // const scale = query.scale
   // const mode = query.mode || 'light'
   // extract the options from the original path
@@ -22,11 +28,12 @@ export async function html(ctx: OgImageRenderEventContext) {
     })
   }
   const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
+  console.log(island)
   const head = createHeadCore()
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
-  const normalisedFonts = normaliseFontInput([...options.fonts || [], ...fonts])
+  const normalisedFonts = normaliseFontInput(fonts)
   const firstFont = normalisedFonts[0] as FontConfig
   if (firstFont)
     defaultFontFamily = firstFont.name.replaceAll('+', ' ')

@@ -79,7 +79,6 @@ function filterIsOgImageOption(key: string) {
     'extension',
     'width',
     'height',
-    'fonts',
     'alt',
     'props',
     'renderer',

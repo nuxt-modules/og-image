@@ -285,6 +285,10 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
+    // setup @nuxt/fonts integration (creates #nuxt-og-image/fonts virtual module)
+    const { setupNuxtFontsIntegration } = await import('./integrations/nuxt-fonts')
+    setupNuxtFontsIntegration(nuxt)
+
     // Resolve preset early to check compatibility settings
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
@@ -844,6 +848,10 @@ export default defineNuxtModule<ModuleOptions>({
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cacheQueryParams: config.cacheQueryParams ?? false,
+        zeroRuntime: config.zeroRuntime || false,
+        app: {
+          baseURL: nuxt.options.app.baseURL,
+        },
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

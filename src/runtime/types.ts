@@ -44,7 +44,6 @@ export interface OgImageRuntimeConfig {
   defaults: OgImageOptions
   debug: boolean
   baseCacheKey: string
-  fonts: FontConfig[]
   hasNuxtIcon: boolean
   hasNuxtContent?: boolean
   colorPreference: 'light' | 'dark'
@@ -52,6 +51,9 @@ export interface OgImageRuntimeConfig {
   isNuxtContentDocumentDriven: boolean
   zeroRuntime: boolean
   cacheQueryParams: boolean
+
+  /** @deprecated Use @nuxt/fonts instead */
+  fonts: ResolvedFontConfig[]
 
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
@@ -145,7 +147,6 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
     format?: 'png' | 'jpeg' | 'webp'
     persistentImages?: Array<{ src: string, data: ArrayBuffer }>
   }
-  fonts?: InputFontConfig[]
   // cache
   cacheMaxAgeSeconds?: number
   /**
