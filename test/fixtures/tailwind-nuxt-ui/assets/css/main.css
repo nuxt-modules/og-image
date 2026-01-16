@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+  /* Custom colors */
+  --color-brand: #f29101;
+  --color-accent: #8b5cf6;
+  --color-highlight: #ec4899;
+  --color-surface: #1e293b;
+  --color-ocean: #0ea5e9;
+  --color-forest: #22c55e;
+  --color-sunset: #f97316;
+
+  /* Color with shades */
+  --color-custom-50: #fdf4ff;
+  --color-custom-100: #fae8ff;
+  --color-custom-200: #f5d0fe;
+  --color-custom-300: #f0abfc;
+  --color-custom-400: #e879f9;
+  --color-custom-500: #d946ef;
+  --color-custom-600: #c026d3;
+  --color-custom-700: #a21caf;
+  --color-custom-800: #86198f;
+  --color-custom-900: #701a75;
+  --color-custom-950: #4a044e;
+}

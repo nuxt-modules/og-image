@@ -1,6 +1,5 @@
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
-import { sendError } from 'h3'
 import { loadAllFonts } from '../fonts'
 import { useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -33,7 +32,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     format,
   })
 
-  return renderer.render(nodes, renderOptions).catch((err: Error) => sendError(event.e, err, import.meta.dev))
+  return renderer.render(nodes, renderOptions)
 }
 
 const TakumiRenderer: Renderer = {

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('Frame', {
+defineOgImage('Frame', {
   title: 'Creative Developer',
   description: 'Building digital experiences that inspire and engage',
   icon: 'carbon:code',

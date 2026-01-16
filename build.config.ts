@@ -29,5 +29,12 @@ export default defineBuildConfig({
     // @nuxt/fonts integration - fontless is only used when @nuxt/fonts is present
     'fontless',
     'unifont',
+    'tailwindcss',
+    // postcss packages (transitive deps of tailwindcss peer dep)
+    'postcss-calc',
+    'postcss-selector-parser',
+    'postcss-value-parser',
+    'cssesc',
+    'util-deprecate',
   ],
 })

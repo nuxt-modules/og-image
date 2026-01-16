@@ -77,6 +77,11 @@ declare module '#og-image/compatibility' {
   const compatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>
   export default compatibility
 }
+declare module '#og-image-virtual/tw4-theme.mjs' {
+  export const tw4FontVars: Record<string, string>
+  export const tw4Breakpoints: Record<string, number>
+  export const tw4Colors: Record<string, string | Record<string, string>>
+}
 `
     },
   })

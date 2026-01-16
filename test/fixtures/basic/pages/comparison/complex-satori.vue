@@ -1,12 +1,8 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'satori',
-  component: 'ComplexTest',
-  props: {
-    title: 'Gradient & Layout Test',
-    subtitle: 'Nested flexbox, rounded corners, opacity',
-    tag: 'Satori',
-  },
+defineOgImage('ComplexTest', {
+  title: 'Gradient & Layout Test',
+  subtitle: 'Nested flexbox, rounded corners, opacity',
+  tag: 'Satori',
 })
 </script>
 

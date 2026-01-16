@@ -81,10 +81,9 @@ function filterIsOgImageOption(key: string) {
     'height',
     'alt',
     'props',
-    'renderer',
+    'renderer', // internal use only (screenshots)
     'html',
     'component',
-    'renderer',
     'emojis',
     '_query',
     '_hash',
@@ -100,7 +99,7 @@ function filterIsOgImageOption(key: string) {
 
 export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []): OgImageOptions {
   options = options || {}
-  const _props = defu(options.props, Object.fromEntries(
+  const _props = defu(options.props as Record<string, any>, Object.fromEntries(
     Object.entries({ ...options })
       .filter(([k]) => !filterIsOgImageOption(k) && !ignoreKeys.includes(k)),
   ))

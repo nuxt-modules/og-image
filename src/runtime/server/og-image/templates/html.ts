@@ -1,11 +1,40 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
-import { theme } from '#og-image-virtual/unocss-config.mjs'
+import { tw4Breakpoints, tw4Colors, tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import resolvedFonts from '#og-image/fonts'
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../satori/transforms/emojis'
+
+// Build Tailwind config from extracted TW4 theme
+function buildTailwindConfig() {
+  const theme: Record<string, any> = {}
+
+  // Add colors
+  if (Object.keys(tw4Colors).length > 0)
+    theme.colors = tw4Colors
+
+  // Add font families
+  const fontFamily: Record<string, string[]> = {}
+  if (tw4FontVars['font-sans'])
+    fontFamily.sans = [tw4FontVars['font-sans']]
+  if (tw4FontVars['font-serif'])
+    fontFamily.serif = [tw4FontVars['font-serif']]
+  if (tw4FontVars['font-mono'])
+    fontFamily.mono = [tw4FontVars['font-mono']]
+  if (Object.keys(fontFamily).length > 0)
+    theme.fontFamily = fontFamily
+
+  // Add breakpoints (screens)
+  if (Object.keys(tw4Breakpoints).length > 0) {
+    theme.screens = Object.fromEntries(
+      Object.entries(tw4Breakpoints).map(([k, v]) => [k, `${v}px`]),
+    )
+  }
+
+  return { theme: { extend: theme } }
+}
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
@@ -17,7 +46,7 @@ export async function html(ctx: OgImageRenderEventContext) {
       statusMessage: `[Nuxt OG Image] Rendering an invalid component. Received options: ${JSON.stringify(options)}.`,
     })
   }
-  const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
+  const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
   const head = createHeadCore()
   head.push(island.head)
 
@@ -37,14 +66,14 @@ export async function html(ctx: OgImageRenderEventContext) {
       },
       {
         innerHTML: `body {
-    transform: scale(${options.props?.scale || 1});
+    transform: scale(${(options.props as Record<string, any>)?.scale || 1});
     transform-origin: top left;
     max-height: 100vh;
     position: relative;
     width: ${options.width}px;
     height: ${options.height}px;
     overflow: hidden;
-    background-color: ${options.props?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
+    background-color: ${(options.props as Record<string, any>)?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
 }
 div {
   display: flex;
@@ -83,20 +112,10 @@ svg[data-emoji] {
     ],
     script: [
       {
-        src: 'https://cdn.jsdelivr.net/npm/@unocss/runtime/preset-wind.global.js',
+        src: 'https://cdn.tailwindcss.com',
       },
       {
-        innerHTML: `
-  window.__unocss = {
-    theme: ${JSON.stringify(theme)},
-    presets: [
-      () => window.__unocss_runtime.presets.presetWind(),
-    ],
-  }
-`,
-      },
-      {
-        src: 'https://cdn.jsdelivr.net/npm/@unocss/runtime/core.global.js',
+        innerHTML: `tailwind.config = ${JSON.stringify(buildTailwindConfig())}`,
       },
     ],
     link: [

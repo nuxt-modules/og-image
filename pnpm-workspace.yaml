@@ -1,25 +1,6 @@
-catalogMode: prefer
-
-cleanupUnusedCatalogs: true
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
 packages:
   - playground
   - client
-overrides:
-  jiti: ^2.6.1
-
-patchedDependencies:
-  '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
 
 catalog:
   '@antfu/eslint-config': ^7.0.1
@@ -47,16 +28,14 @@ catalog:
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.2.1
-  '@nuxtjs/tailwindcss': ^6.14.0
+  '@nuxtjs/tailwindcss': ^7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
+  '@tailwindcss/vite': ^4.1.18
   '@takumi-rs/core': ^0.62.8
   '@takumi-rs/wasm': ^0.62.8
-  '@unocss/core': ^66.6.0
-  '@unocss/nuxt': ^66.6.0
-  '@unocss/preset-icons': ^66.6.0
-  '@unocss/preset-wind3': ^66.6.0
-  '@unocss/runtime': ^66.6.0
+  '@vitejs/plugin-vue': ^6.0.3
+  '@vue/compiler-sfc': ^3.5.26
   '@vueuse/core': ^14.1.0
   '@vueuse/nuxt': ^14.1.0
   better-sqlite3: ^12.6.0
@@ -64,15 +43,19 @@ catalog:
   bumpp: ^10.4.0
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
+  culori: ^4.0.2
   defu: ^6.1.4
-  devalue: ^5.6.1
+  devalue: ^5.6.2
   eslint: ^9.39.2
   execa: ^9.6.1
+  exsolve: ^1.0.8
   floating-vue: ^5.2.2
+  get-image-colors: ^4.0.1
   globby: ^16.1.0
-  happy-dom: ^20.3.0
+  happy-dom: ^20.3.1
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
+  jiti: ^2.6.1
   json-editor-vue: ^0.18.1
   linkedom: ^0.18.12
   magic-string: ^0.30.21
@@ -87,6 +70,9 @@ catalog:
   pkg-types: ^2.3.0
   playwright: ^1.57.0
   playwright-core: ^1.57.0
+  postcss: ^8.5.6
+  postcss-calc: ^10.1.1
+  postcss-custom-properties: ^15.0.0
   radix3: ^1.1.2
   sass: ^1.97.2
   satori: ^0.18.3
@@ -97,9 +83,10 @@ catalog:
   splitpanes: ^4.0.4
   std-env: ^3.10.0
   strip-literal: ^3.1.0
+  tailwindcss: ^4.1.18
+  tinyglobby: ^0.2.15
   typescript: ^5.9.3
   ufo: ^1.6.3
-  unocss: ^66.6.0
   unplugin: ^2.3.11
   unwasm: ^0.5.3
   vitest: ^4.0.17
@@ -107,6 +94,11 @@ catalog:
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2
   yoga-wasm-web: ^0.3.3
+
+catalogMode: prefer
+
+cleanupUnusedCatalogs: true
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -116,3 +108,21 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
+
+overrides:
+  jiti: ^2.6.1
+
+patchedDependencies:
+  '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'

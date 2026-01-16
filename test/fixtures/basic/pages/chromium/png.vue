@@ -1,8 +1,5 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'chromium',
-  extension: 'jpeg',
-})
+defineOgImageScreenshot({ extension: 'jpeg' })
 </script>
 
 <template>

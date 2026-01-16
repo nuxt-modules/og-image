@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { defineOgImageComponent, onMounted } from '#imports'
+import { onMounted } from '#imports'
 
 onMounted(() => {
-  defineOgImageComponent('NuxtSeo', {
+  defineOgImage('NuxtSeo', {
     title: 'test',
   })
 })

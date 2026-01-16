@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('UnJs', {
+defineOgImage('UnJs', {
   title: 'unjs/nitro',
   description: 'Build and deploy universal JavaScript servers',
   emoji: '⚡',

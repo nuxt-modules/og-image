@@ -1,7 +1,5 @@
 <script lang="ts" setup>
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('NuxtSeo', {
+defineOgImage('NuxtSeo', {
   title: '中文測試中文測試中文測試中文測試中文測試中文測試中文測試中文測試',
 })
 </script>

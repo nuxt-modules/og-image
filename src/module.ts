@@ -9,12 +9,15 @@ import type {
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
+  RendererType,
+  ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
-import { defu } from 'defu'
+import { defu, defuFn } from 'defu'
+import { createJiti } from 'jiti'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { isAbsolute, join, relative } from 'pathe'
@@ -26,6 +29,7 @@ import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
+import { extractTw4Metadata } from './build/tw4-transform'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import {
   ensureDependencies,
@@ -36,11 +40,7 @@ import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, hasResolvableDependency, isUndefinedOrTruthy } from './util'
-import {
-  getMissingDependencies,
-  getProviderDependencies,
-} from './utils/dependencies'
+import { checkLocalChrome, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, stripRendererSuffix } from './util'
 
 export type {
   OgImageComponent,
@@ -164,6 +164,15 @@ export interface ModuleOptions {
    * @default false
    */
   cacheQueryParams?: boolean
+  /**
+   * Path to your Tailwind CSS 4 entry file for OG image styling.
+   *
+   * Use this when using Tailwind 4 with the Vite plugin instead of @nuxtjs/tailwindcss.
+   * The CSS file should include `@import "tailwindcss"` and any `@theme` customizations.
+   *
+   * @example '~/assets/css/main.css'
+   */
+  tailwindCss?: string
 }
 
 export interface ModuleHooks {
@@ -199,7 +208,6 @@ export default defineNuxtModule<ModuleOptions>({
       enabled: true,
       defaults: {
         emojis: 'noto',
-        renderer: 'satori',
         component: 'NuxtSeo',
         extension: 'png',
         width: 1200,
@@ -236,17 +244,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
-      return
-    }
-
-    // validate provider dependencies
-    const selectedRenderer = config.defaults.renderer || 'satori'
-    const rendererMissing = await getMissingDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
-    if (rendererMissing.length > 0) {
-      const deps = getProviderDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
-      logger.error(`Missing dependencies for ${selectedRenderer} renderer: ${rendererMissing.join(', ')}`)
-      logger.info(`Install with: npm add ${deps.join(' ')}`)
-      logger.info('Or run the module again to trigger the onInstall wizard.')
       return
     }
 
@@ -327,14 +324,130 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Add build-time asset transform plugin for OgImage components
-    // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI
-    addVitePlugin(AssetTransformPlugin.vite({
-      emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
-      componentDirs: config.componentDirs,
-      rootDir: nuxt.options.rootDir,
-      srcDir: nuxt.options.srcDir,
-      publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
-    }))
+    // TW4 support: scan classes → compile with TW4 → resolve vars with postcss → style map
+    let tw4FontVars: Record<string, string> = {}
+    let tw4Breakpoints: Record<string, number> = {}
+    let tw4Colors: Record<string, string | Record<string, string>> = {}
+    // Prebuilt style map: className → { prop: value }
+    // Populated after scanning all OG components in app:templates hook
+    let tw4StyleMap: Record<string, Record<string, string>> = {}
+    // Promise for synchronizing style map population with Vite transforms
+    let resolveTw4StyleMapReady: () => void
+    const tw4StyleMapReady = new Promise<void>((resolve) => {
+      resolveTw4StyleMapReady = resolve
+    })
+
+    // Use app:templates hook to access resolved app.configs paths
+    nuxt.hook('app:templates', async (app) => {
+      const resolvedCssPath = config.tailwindCss
+        ? await resolver.resolvePath(config.tailwindCss)
+        : nuxt.options.alias['#tailwindcss'] as string | undefined
+
+      if (resolvedCssPath && existsSync(resolvedCssPath)) {
+        const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
+        if (tw4CssContent.includes('@theme') || tw4CssContent.includes('@import "tailwindcss"')) {
+          // Get Nuxt UI colors from app.config files if @nuxt/ui is installed
+          const nuxtUiDefaults = {
+            primary: 'green',
+            secondary: 'blue',
+            success: 'green',
+            info: 'blue',
+            warning: 'yellow',
+            error: 'red',
+            neutral: 'slate',
+          }
+
+          let nuxtUiColors: Record<string, string> | undefined
+          if (hasNuxtModule('@nuxt/ui')) {
+            // Load user's app.config files to get color overrides
+            const jiti = createJiti(nuxt.options.rootDir, {
+              interopDefault: true,
+              moduleCache: false,
+              alias: { '#app/config': 'nuxt/app' },
+            })
+            ;(globalThis as Record<string, unknown>).defineAppConfig = (c: unknown) => c
+
+            const userConfigs = await Promise.all(
+              app.configs.map(configPath =>
+                jiti.import(configPath)
+                  .then((m: unknown) => (m && typeof m === 'object' && 'default' in m ? (m as { default: unknown }).default : m))
+                  .catch(() => ({})),
+              ),
+            )
+
+            delete (globalThis as Record<string, unknown>).defineAppConfig
+
+            const mergedUserConfig = defuFn(...userConfigs as [object, ...object[]]) as { ui?: { colors?: Record<string, string> } }
+            nuxtUiColors = { ...nuxtUiDefaults, ...mergedUserConfig.ui?.colors }
+            logger.info(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
+          }
+
+          // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
+          const metadata = await extractTw4Metadata({
+            cssPath: resolvedCssPath,
+            nuxtUiColors,
+          }).catch((e) => {
+            logger.warn(`TW4 metadata extraction failed: ${e.message}`)
+            return { fontVars: {}, breakpoints: {}, colors: {} }
+          })
+
+          tw4FontVars = metadata.fontVars
+          tw4Breakpoints = metadata.breakpoints
+          tw4Colors = metadata.colors
+
+          // Scan all OG components for classes and generate style map
+          try {
+            const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
+            const { generateStyleMap } = await import('./build/tw4-generator')
+
+            // Scan for classes
+            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir)
+            const processableClasses = filterProcessableClasses(allClasses)
+
+            if (processableClasses.length > 0) {
+              logger.info(`TW4: Found ${processableClasses.length} unique classes in OG components`)
+
+              // Generate style map with postcss var resolution
+              const styleMap = await generateStyleMap({
+                cssPath: resolvedCssPath,
+                classes: processableClasses,
+                nuxtUiColors,
+              })
+
+              // Convert Map to plain object for plugin
+              tw4StyleMap = {}
+              for (const [cls, styles] of styleMap.classes) {
+                tw4StyleMap[cls] = styles
+              }
+
+              logger.info(`TW4: Generated style map with ${Object.keys(tw4StyleMap).length} resolved classes`)
+            }
+          }
+          catch (e) {
+            logger.warn(`TW4 style map generation failed: ${(e as Error).message}`)
+          }
+
+          logger.info(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
+        }
+      }
+      // Signal that style map is ready (even if empty or TW4 not enabled)
+      resolveTw4StyleMapReady()
+    })
+
+    // Add Vite plugin in modules:done (after all aliases registered)
+    // Note: tw4StyleMap is populated by app:templates hook; plugin awaits tw4StyleMapReady
+    nuxt.hook('modules:done', () => {
+      // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
+      addVitePlugin(AssetTransformPlugin.vite({
+        emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
+        componentDirs: config.componentDirs,
+        rootDir: nuxt.options.rootDir,
+        srcDir: nuxt.options.srcDir,
+        publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        get tw4StyleMap() { return tw4StyleMap }, // Getter to access populated map
+        tw4StyleMapReady, // Promise to wait for style map population
+      }))
+    })
 
     if (config.zeroRuntime) {
       config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
@@ -364,7 +477,7 @@ export default defineNuxtModule<ModuleOptions>({
           ...(userAppPkgJson.dependencies || {}),
           ...(userAppPkgJson.devDependencies || {}),
         }
-        const hasExplicitSharpDependency = !!config.sharpOptions || 'sharp' in allDeps || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')
+        const hasExplicitSharpDependency = !!config.sharpOptions || 'sharp' in allDeps || hasConfiguredJpegs
         if (hasExplicitSharpDependency) {
           if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
@@ -381,8 +494,8 @@ export default defineNuxtModule<ModuleOptions>({
               })
           }
         }
-        else if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
-          // sharp is supported but not installed
+        else if (hasConfiguredJpegs) {
+          // sharp is supported but not installed, and JPEGs need sharp for satori/takumi
           logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
           await ensureDependencies(['sharp'])
           logger.warn('Support for `sharp` is limited so check the compatibility guide.')
@@ -507,18 +620,11 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
-    ;[
-      // new
-      'OgImage',
-      'OgImageScreenshot',
-    ]
-      .forEach((name) => {
-        addComponent({
-          name,
-          filePath: resolve(`./runtime/app/components/OgImage/${name}`),
-          ...config.componentOptions,
-        })
-      })
+    addComponent({
+      name: 'OgImageScreenshot',
+      filePath: resolve(`./runtime/app/components/OgImage/OgImageScreenshot`),
+      ...config.componentOptions,
+    })
 
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
@@ -542,17 +648,44 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponentCtx: { components: OgImageComponent[] } = { components: [] }
+    const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
+
+    // Pre-scan component directories to detect renderers early (before nitro hooks fire)
+    // This ensures detectedRenderers is populated when nitro:init runs
+    for (const componentDir of config.componentDirs) {
+      const path = resolve(nuxt.options.srcDir, 'components', componentDir)
+      if (fs.existsSync(path)) {
+        const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
+        for (const file of files) {
+          const renderer = getRendererFromFilename(file)
+          if (renderer)
+            ogImageComponentCtx.detectedRenderers.add(renderer)
+        }
+      }
+    }
+    // Also scan community templates in the module itself
+    const communityDir = resolve('./runtime/app/components/Templates/Community')
+    if (fs.existsSync(communityDir)) {
+      const files = fs.readdirSync(communityDir).filter(f => f.endsWith('.vue'))
+      for (const file of files) {
+        const renderer = getRendererFromFilename(file)
+        if (renderer)
+          ogImageComponentCtx.detectedRenderers.add(renderer)
+      }
+    }
     nuxt.hook('components:extend', (components) => {
       ogImageComponentCtx.components = []
-      const validComponents: typeof components = []
+      // Don't clear detectedRenderers - pre-scan already populated it and nitro:init may have already fired
+      const invalidComponents: string[] = []
+      const baseNameToRenderer = new Map<string, { renderer: RendererType, path: string }>()
+
       // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
       components.forEach((component) => {
         let valid = false
         config.componentDirs.forEach((dir) => {
           if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir)
-            // support non-prefixed components
-            || component.shortPath.includes(`/${dir}/`)) {
+            // support non-prefixed components - check for components/<dir>/ pattern
+            || component.shortPath.includes(`components/${dir}/`)) {
             valid = true
           }
         })
@@ -560,27 +693,42 @@ export default defineNuxtModule<ModuleOptions>({
           valid = true
 
         if (valid && fs.existsSync(component.filePath)) {
-          // get hash of the file
+          const renderer = getRendererFromFilename(component.filePath)
+
+          if (!renderer) {
+            invalidComponents.push(component.shortPath)
+            return
+          }
+
+          // Check for duplicate base names with different renderers
+          const baseName = stripRendererSuffix(component.pascalName)
+          const existing = baseNameToRenderer.get(baseName)
+          if (existing && existing.renderer !== renderer) {
+            logger.warn(`Duplicate OG Image component "${baseName}" with different renderers:\n  ${existing.path} (${existing.renderer})\n  ${component.filePath} (${renderer})`)
+          }
+          baseNameToRenderer.set(baseName, { renderer, path: component.filePath })
+
+          ogImageComponentCtx.detectedRenderers.add(renderer)
+
           component.island = true
           component.mode = 'server'
-          validComponents.push(component)
           let category: OgImageComponent['category'] = 'app'
           if (component.filePath.includes(resolve('./runtime/app/components/Templates/Community')))
             category = 'community'
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
-          // see if we can extract credits from the component file, just find the line that starts with * @credits and return the rest of the line
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
           ogImageComponentCtx.components.push({
-            // purge cache when component changes
             hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
             path: component.filePath,
             category,
             credits,
+            renderer,
           })
         }
       })
+
       // in production, add community template metadata for validation (not registered as components)
       if (!nuxt.options.dev) {
         const communityDir = resolve('./runtime/app/components/Templates/Community')
@@ -588,6 +736,9 @@ export default defineNuxtModule<ModuleOptions>({
           fs.readdirSync(communityDir)
             .filter(f => f.endsWith('.vue'))
             .forEach((file) => {
+              const renderer = getRendererFromFilename(file)
+              if (!renderer)
+                return
               const name = file.replace('.vue', '')
               const filePath = resolve(communityDir, file)
               // skip if already added (user ejected with same name)
@@ -599,11 +750,27 @@ export default defineNuxtModule<ModuleOptions>({
                 kebabName: name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
                 path: filePath,
                 category: 'community',
+                renderer,
               })
+              ogImageComponentCtx.detectedRenderers.add(renderer)
             })
         }
       }
-      // TODO add hook and types
+
+      // Validate: warn in dev, error in prod for missing suffix
+      if (invalidComponents.length > 0) {
+        const message = `OG Image components missing renderer suffix (.satori.vue, .chromium.vue, .takumi.vue):\n${
+          invalidComponents.map(c => `  ${c}`).join('\n')
+        }\n\nRun: npx nuxt-og-image migrate v6`
+
+        if (nuxt.options.dev) {
+          logger.warn(message)
+        }
+        else {
+          throw new Error(message)
+        }
+      }
+
       // @ts-expect-error untyped
       nuxt.hooks.hook('nuxt-og-image:components', ogImageComponentCtx)
     })
@@ -674,17 +841,12 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       return `export default ${JSON.stringify(fonts)}`
     }
 
-    // support simple theme extends
-    let unoCssConfig: any = {}
-    // @ts-expect-error module optional
-    nuxt.hook('tailwindcss:config', (tailwindConfig) => {
-      unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
-    })
-    nuxt.hook('unocss:config', (_unoCssConfig) => {
-      unoCssConfig = { ..._unoCssConfig.theme }
-    })
-    nuxt.options.nitro.virtual['#og-image-virtual/unocss-config.mjs'] = () => {
-      return `export const theme = ${JSON.stringify(unoCssConfig)}`
+    // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
+    // Note: classMap is NOT included here as it's too heavy - transforms happen at build time via AssetTransformPlugin
+    nuxt.options.nitro.virtual['#og-image-virtual/tw4-theme.mjs'] = () => {
+      return `export const tw4FontVars = ${JSON.stringify(tw4FontVars)}
+export const tw4Breakpoints = ${JSON.stringify(tw4Breakpoints)}
+export const tw4Colors = ${JSON.stringify(tw4Colors)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}`
@@ -795,20 +957,21 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     })
 
     // Setup playground. Only available in development
+    const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolver)
+      setupDevHandler(config, resolver, getDetectedRenderers)
       setupDevToolsUI(config, resolve)
     }
     else if (isNuxtGenerate()) {
-      setupGenerateHandler(config, resolver)
+      setupGenerateHandler(config, resolver, getDetectedRenderers)
     }
     else if (nuxt.options.build) {
-      await setupBuildHandler(config, resolver)
+      await setupBuildHandler(config, resolver, getDetectedRenderers)
     }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
-    setupPrerenderHandler(config, resolver)
+    setupPrerenderHandler(config, resolver, getDetectedRenderers)
   },
 })

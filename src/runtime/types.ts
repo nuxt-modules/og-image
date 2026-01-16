@@ -1,6 +1,5 @@
 import type { OgImageComponents } from '#og-image/components'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
-import type { UnoGenerator } from '@unocss/core'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { H3Error, H3Event } from 'h3'
 import type { Hookable } from 'hookable'
@@ -16,7 +15,6 @@ interface NitroApp {
 }
 
 export interface OgImageRenderEventContext {
-  unocss: UnoGenerator
   e: H3Event
   extension: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html' | 'json'
   key: string
@@ -61,6 +59,8 @@ export interface OgImageRuntimeConfig {
   }
 }
 
+export type RendererType = 'satori' | 'chromium' | 'takumi'
+
 export interface OgImageComponent {
   path?: string
   pascalName: string
@@ -68,6 +68,7 @@ export interface OgImageComponent {
   hash: string
   category: 'app' | 'community' | 'pro'
   credits?: string
+  renderer: RendererType
 }
 
 export interface ScreenshotOptions {
@@ -97,7 +98,7 @@ export interface OgImagePrebuilt extends OgImageOptions {
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 
-export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
+export interface OgImageOptions<T extends keyof OgImageComponents = keyof OgImageComponents> {
   /**
    * The width of the screenshot.
    *
@@ -128,7 +129,12 @@ export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
    * Props to pass to the component.
    */
   props?: OgImageComponents[T] | Record<string, any>
-  renderer?: 'chromium' | 'satori' | 'takumi'
+  /**
+   * Override renderer. Only used internally for screenshots.
+   * For normal usage, renderer is determined by component filename suffix.
+   * @internal
+   */
+  renderer?: RendererType
   extension?: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html'
   emojis?: IconifyEmojiIconSets
   /**
@@ -219,7 +225,7 @@ export type ExtractComponentProps<T extends Component> = T extends new (...args:
   ? Omit<InstanceType<T>['$props'], keyof ComponentCustomProps | keyof VNodeProps | keyof AllowedComponentProps>
   : never
 
-export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'renderer' | 'component' | 'satori' | 'resvg' | 'sharp'>
+export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'resvg' | 'sharp'>
 
 export type VNode = ReturnType<typeof html> & {
   _emojiMatches?: RegExpMatchArray | null

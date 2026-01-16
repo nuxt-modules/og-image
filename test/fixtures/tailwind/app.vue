@@ -1,9 +1,7 @@
 <script lang="ts" setup>
 import { defineOgImage } from '#imports'
 
-defineOgImage({
-  component: 'CustomClasses',
-})
+defineOgImage('CustomClasses', {})
 </script>
 
 <template>

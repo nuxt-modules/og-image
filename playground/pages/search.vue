@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { defineOgImageComponent, useRoute } from '#imports'
+import { useRoute } from '#imports'
 
 const route = useRoute()
-defineOgImageComponent('NuxtSeo', {
+defineOgImage('NuxtSeo', {
   title: String(route.query?.q) || 'no title',
 })
 </script>

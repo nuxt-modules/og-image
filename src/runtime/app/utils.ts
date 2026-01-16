@@ -107,7 +107,10 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
   if (component && componentNames) {
     const originalName = component
     for (const component of componentNames) {
-      if (component.pascalName.endsWith(originalName) || component.kebabName.endsWith(originalName)) {
+      // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
+      const basePascalName = component.pascalName.replace(/(Satori|Chromium|Takumi)$/, '')
+      const baseKebabName = component.kebabName.replace(/-(satori|chromium|takumi)$/, '')
+      if (basePascalName.endsWith(originalName) || baseKebabName.endsWith(originalName)) {
         return component.pascalName
       }
     }

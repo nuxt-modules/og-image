@@ -8,7 +8,7 @@ import encoding from './plugins/encoding'
 import flex from './plugins/flex'
 import imageSrc from './plugins/imageSrc'
 import nuxtIcon from './plugins/nuxt-icon'
-import unocss from './plugins/unocss'
+import twClasses from './plugins/twClasses'
 import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
 import { walkSatoriTree } from './utils'
@@ -16,7 +16,7 @@ import { walkSatoriTree } from './utils'
 export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNode> {
   let html = ctx.options.html
   if (!html) {
-    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
+    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
     // this fixes any inline style props that need to be wrapped in single quotes, such as:
     // background image, fonts, etc
     island.html = htmlDecodeQuotes(island.html)
@@ -39,11 +39,11 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     flex,
     encoding,
     nuxtIcon,
+    twClasses, // Convert class -> tw and handle breakpoints
   ])
   // do async transforms
   await Promise.all(walkSatoriTree(ctx, satoriTree, [
     emojis,
-    unocss,
     imageSrc,
   ]))
   return satoriTree
