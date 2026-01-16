@@ -6,6 +6,16 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  fonts: {
+    families: [
+      {
+        name: 'Inter',
+        global: true,
+        weights: [400, 700],
+      },
+    ],
+  },
+
   ogImage: {
     defaults: {
       component: 'NuxtUiTest',
