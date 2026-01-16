@@ -1,6 +1,26 @@
+catalogMode: prefer
+
+cleanupUnusedCatalogs: true
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
 packages:
   - playground
   - client
+overrides:
+  jiti: ^2.6.1
+
+patchedDependencies:
+  '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
 
 catalog:
   '@antfu/eslint-config': ^7.0.1
@@ -94,11 +114,6 @@ catalog:
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2
   yoga-wasm-web: ^0.3.3
-
-catalogMode: prefer
-
-cleanupUnusedCatalogs: true
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -108,21 +123,3 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
-
-overrides:
-  jiti: ^2.6.1
-
-patchedDependencies:
-  '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
-  - '@nuxtjs/tailwindcss@7.0.0-beta.1'

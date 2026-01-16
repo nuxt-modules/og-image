@@ -10,11 +10,11 @@ import type {
   OgImageOptions,
   OgImageRuntimeConfig,
   RendererType,
-  ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
 import { defu, defuFn } from 'defu'
 import { createJiti } from 'jiti'

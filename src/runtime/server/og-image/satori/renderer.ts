@@ -1,7 +1,6 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { fontCache } from '#og-image-cache'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
