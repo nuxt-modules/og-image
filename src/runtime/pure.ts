@@ -81,10 +81,9 @@ function filterIsOgImageOption(key: string) {
     'fonts',
     'alt',
     'props',
-    'renderer',
+    'renderer', // internal use only (screenshots)
     'html',
     'component',
-    'renderer',
     'emojis',
     '_query',
     'satori',
