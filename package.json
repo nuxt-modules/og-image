@@ -136,6 +136,7 @@
     "pathe": "catalog:",
     "pkg-types": "catalog:",
     "postcss": "catalog:",
+    "postcss-calc": "catalog:",
     "postcss-custom-properties": "catalog:",
     "radix3": "catalog:",
     "sirv": "catalog:",

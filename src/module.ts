@@ -350,6 +350,9 @@ export default defineNuxtModule<ModuleOptions>({
     // Prebuilt style map: className → { prop: value }
     // Populated after scanning all OG components in app:templates hook
     let tw4StyleMap: Record<string, Record<string, string>> = {}
+    // Promise for synchronizing style map population with Vite transforms
+    let resolveTw4StyleMapReady: () => void
+    const tw4StyleMapReady = new Promise<void>((resolve) => { resolveTw4StyleMapReady = resolve })
 
     // Use app:templates hook to access resolved app.configs paths
     nuxt.hook('app:templates', async (app) => {
@@ -444,10 +447,12 @@ export default defineNuxtModule<ModuleOptions>({
           logger.info(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
         }
       }
+      // Signal that style map is ready (even if empty or TW4 not enabled)
+      resolveTw4StyleMapReady()
     })
 
     // Add Vite plugin in modules:done (after all aliases registered)
-    // Note: tw4StyleMap is populated by app:templates hook before transforms run
+    // Note: tw4StyleMap is populated by app:templates hook; plugin awaits tw4StyleMapReady
     nuxt.hook('modules:done', () => {
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
       addVitePlugin(AssetTransformPlugin.vite({
@@ -457,6 +462,7 @@ export default defineNuxtModule<ModuleOptions>({
         srcDir: nuxt.options.srcDir,
         publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         get tw4StyleMap() { return tw4StyleMap }, // Getter to access populated map
+        tw4StyleMapReady, // Promise to wait for style map population
       }))
     })
 

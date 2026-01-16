@@ -155,6 +155,11 @@ export interface AssetTransformOptions {
    * Generated at build time from scanning all OG components
    */
   tw4StyleMap?: Record<string, Record<string, string>>
+  /**
+   * Promise that resolves when tw4StyleMap is ready.
+   * Ensures transforms don't race with style map population.
+   */
+  tw4StyleMapReady?: Promise<void>
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -265,6 +270,9 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Transform Tailwind classes to inline styles using prebuilt style map
+      // Wait for style map to be ready (prevents race with app:templates hook)
+      if (options.tw4StyleMapReady)
+        await options.tw4StyleMapReady
       if (options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0) {
         try {
           const { transformVueTemplate } = await import('./vue-template-transform')

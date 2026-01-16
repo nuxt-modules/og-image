@@ -102,10 +102,11 @@ export async function transformVueTemplate(
     // Merge with existing inline style
     if (collector.existingStyle) {
       for (const decl of collector.existingStyle.split(';')) {
-        const [prop, value] = decl.split(':').map(s => s.trim())
-        if (prop && value) {
+        const [prop, ...valParts] = decl.split(':')
+        const value = valParts.join(':').trim()
+        if (prop?.trim() && value) {
           // Existing style takes precedence
-          styleProps[prop] = value
+          styleProps[prop.trim()] = value
         }
       }
     }
