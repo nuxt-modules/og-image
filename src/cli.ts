@@ -146,7 +146,7 @@ function migrateDefineOgImageApi(dryRun: boolean) {
     }
 
     // Pattern 2: defineOgImage({ ... }) object syntax
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
+
     const defineOgImageRegex = /defineOgImage\s*\(\s*(\{[\s\S]*?\})\s*\)/g
 
     content = content.replace(defineOgImageRegex, (match, inner) => {
