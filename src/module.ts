@@ -620,7 +620,19 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
-      // load from src/runtime/server/og-image/bindings/font-assets conditionally
+      // Use dev-prerender binding which handles dev/prerender/runtime for node
+      // Use cloudflare binding for cloudflare presets at runtime
+      const isCloudflare = ['cloudflare', 'cloudflare-pages', 'cloudflare-module'].includes(preset)
+      if (isCloudflare) {
+        const devBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')
+        const cfBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/cloudflare')
+        return `
+import { resolve as devResolve } from '${devBinding}'
+import { resolve as cfResolve } from '${cfBinding}'
+export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : cfResolve
+`
+      }
+      // For non-cloudflare (node), use dev-prerender for everything
       return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
     }
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {

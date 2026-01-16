@@ -8,7 +8,7 @@ export interface LoadFontsOptions {
   supportsWoff2: boolean
 }
 
-async function loadFont(event: H3Event, font: FontConfig): Promise<BufferSource> {
+async function loadFont(event: H3Event, font: FontConfig): Promise<BufferSource | null> {
   const cacheKey = `${font.family}-${font.weight}-${font.style}`
   const cached = await fontCache.getItem(cacheKey)
   if (cached) {
@@ -16,7 +16,12 @@ async function loadFont(event: H3Event, font: FontConfig): Promise<BufferSource>
     const data = Buffer.from(cached, 'base64')
     return data
   }
-  const data = await resolve(event, font)
+  const data = await resolve(event, font).catch((err) => {
+    console.warn(`[nuxt-og-image] Failed to load font ${font.family}: ${err.message}`)
+    return null
+  })
+  if (!data)
+    return null
   // Encode as base64 for storage to avoid LRU cache serialization issues
   const base64 = Buffer.from(data as Buffer).toString('base64')
   await fontCache.setItem(cacheKey, base64)
@@ -30,12 +35,18 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
     return !f.src.endsWith('.woff2')
   })
 
-  return Promise.all(
-    fonts.map(async f => ({
-      ...f,
-      name: f.family,
-      cacheKey: `${f.family}-${f.weight}-${f.style}`,
-      data: await loadFont(event, f),
-    } satisfies SatoriFontConfig)),
+  const results = await Promise.all(
+    fonts.map(async (f) => {
+      const data = await loadFont(event, f)
+      if (!data)
+        return null
+      return {
+        ...f,
+        name: f.family,
+        cacheKey: `${f.family}-${f.weight}-${f.style}`,
+        data,
+      } satisfies SatoriFontConfig
+    }),
   )
+  return results.filter((f): f is SatoriFontConfig => f !== null)
 }

@@ -1,14 +1,13 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
-import { useStorage } from 'nitropack/runtime'
-import { prefixStorage } from 'unstorage'
+import { getNitroOrigin } from '#site-config/server/composables'
 
-export async function resolve(_event: H3Event, font: FontConfig) {
-  const assets = prefixStorage(useStorage(), '/assets')
-  let item = await assets.getItem(font.localPath) as any as string | Uint8Array
-  if (item instanceof Uint8Array) {
-    const decoder = new TextDecoder()
-    item = decoder.decode(item)
+export async function resolve(event: H3Event, font: FontConfig) {
+  const path = font.src || font.localPath
+  const origin = getNitroOrigin(event)
+  const res = await fetch(new URL(path, origin).href)
+  if (res.ok) {
+    return Buffer.from(await res.arrayBuffer())
   }
-  return Buffer.from(String(item), 'base64')
+  throw new Error(`[Nuxt OG Image] Failed to resolve font: ${path}`)
 }
