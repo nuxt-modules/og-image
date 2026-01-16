@@ -32,6 +32,7 @@ export default defineNuxtConfig({
   nitro: {
     compressPublicAssets: true,
     prerender: {
+      failOnError: false,
       routes: [
         '/',
         '/satori/',

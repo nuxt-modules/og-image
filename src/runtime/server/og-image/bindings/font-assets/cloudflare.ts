@@ -2,6 +2,8 @@ import type { H3Event } from 'h3'
 import type { FetchResponse } from 'ofetch'
 import type { FontConfig } from '../../../../types'
 import { getNitroOrigin } from '#site-config/server/composables'
+import { useRuntimeConfig } from 'nitropack/runtime'
+import { withBase } from 'ufo'
 
 export async function resolve(event: H3Event, font: FontConfig) {
   const path = font.src || font.localPath
@@ -11,13 +13,15 @@ export async function resolve(event: H3Event, font: FontConfig) {
     throw new Error('Cloudflare ASSETS binding not available')
   }
 
+  const { app } = useRuntimeConfig()
+  const fullPath = withBase(path, app.baseURL)
   const origin = getNitroOrigin(event)
-  const res = await assets.fetch(new URL(path, origin).href).catch(() => null) as FetchResponse<any> | null
+  const res = await assets.fetch(new URL(fullPath, origin).href).catch(() => null) as FetchResponse<any> | null
   if (res?.ok) {
     return Buffer.from(await res.arrayBuffer())
   }
   // fetch as public dir
-  const publicRes = await fetch(new URL(path, origin).href)
+  const publicRes = await fetch(new URL(fullPath, origin).href)
   if (publicRes.ok) {
     return Buffer.from(await publicRes.arrayBuffer())
   }

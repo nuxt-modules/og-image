@@ -64,7 +64,7 @@ describe('takumi renderer', () => {
 })
 
 describe('renderer comparison', () => {
-  it.runIf(hasTakumi)('simple component - satori vs takumi', async () => {
+  it('simple component - satori vs takumi', async () => {
     // Render with satori
     const satoriHtml = await $fetch('/prefix/comparison/satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)
@@ -88,7 +88,7 @@ describe('renderer comparison', () => {
     })
   }, 60000)
 
-  it.runIf(hasTakumi)('complex component - satori vs takumi', async () => {
+  it('complex component - satori vs takumi', async () => {
     // Render with satori
     const satoriHtml = await $fetch('/prefix/comparison/complex-satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)

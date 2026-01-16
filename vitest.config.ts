@@ -1,3 +1,4 @@
+import { isCI } from 'std-env'
 import { defineConfig, defineProject } from 'vitest/config'
 
 export default defineConfig({
@@ -17,10 +18,11 @@ export default defineConfig({
           ],
         },
       }),
-      // e2e tests in test/e2e
+      // e2e tests in test/e2e - run sequentially to avoid resource exhaustion
       defineProject({
         test: {
           name: 'e2e',
+          fileParallelism: isCI,
           include: [
             './test/e2e/**/*.test.ts',
           ],
