@@ -72,3 +72,9 @@ const themeColor = computed(() => props.isPro ? '124, 58, 237' : '34, 197, 94')
     </div>
   </div>
 </template>
+
+<style>
+:root {
+  font-family: 'Hubot Sans';
+}
+</style>

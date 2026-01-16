@@ -9,17 +9,15 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@nuxt/ui',
     '@nuxt/content',
-    NuxtOgImage,
-    /**
-     * Start a sub Nuxt Server for developing the client
-     *
-     * The terminal output can be found in the Terminals tab of the devtools.
-     */
+    NuxtOgImage, /**
+                  * Start a sub Nuxt Server for developing the client
+                  *
+                  * The terminal output can be found in the Terminals tab of the devtools.
+                  */
     defineNuxtModule({
       setup(_, nuxt) {
         if (!nuxt.options.dev)
           return
-
         const subprocess = startSubprocess(
           {
             command: 'npx',
@@ -43,6 +41,7 @@ export default defineNuxtConfig({
         })
       },
     }),
+    '@nuxt/fonts',
   ],
   components: [
     {
@@ -51,7 +50,7 @@ export default defineNuxtConfig({
     },
   ],
   nitro: {
-    preset: 'cloudflare_pages',
+    preset: 'cloudflare_module',
     plugins: ['plugins/hooks.ts'],
     prerender: {
       routes: [
@@ -87,6 +86,15 @@ export default defineNuxtConfig({
 
   devtools: {
     enabled: true,
+  },
+
+  fonts: {
+    providers: {
+      google: false,
+    },
+    families: [
+      { global: true, name: 'HubotSans', provider: 'local', weight: [200, 900], stretch: '75% 125%' },
+    ],
   },
 
   ogImage: {
@@ -131,27 +139,6 @@ export default defineNuxtConfig({
   experimental: {
     inlineRouteRules: true,
     componentIslands: true,
-  },
-
-  app: {
-    head: {
-      style: [
-        {
-          innerHTML: 'body { font-family: \'Inter\', sans-serif; }',
-        },
-      ],
-      link: [
-        {
-          // reset css to match svg output
-          href: 'https://cdn.jsdelivr.net/npm/gardevoir',
-          rel: 'stylesheet',
-        },
-        {
-          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
-          rel: 'stylesheet',
-        },
-      ],
-    },
   },
 
   routeRules: {

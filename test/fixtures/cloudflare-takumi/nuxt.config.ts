@@ -2,6 +2,7 @@ import NuxtOgImage from '../../../src/module'
 
 // Tests takumi renderer with WASM bindings on Cloudflare Workers
 export default defineNuxtConfig({
+  extends: ['../.base'],
   modules: [
     NuxtOgImage,
   ],

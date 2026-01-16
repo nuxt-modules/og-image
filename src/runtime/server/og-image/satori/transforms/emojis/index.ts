@@ -82,7 +82,7 @@ export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIs
       // Wrap gradient/filter definitions in <defs> for better compatibility
       svg = wrapDefsElements(svg)
     }
-    emojiToSvg.set(emoji, svg)
+    emojiToSvg.set(emoji, svg ?? null)
   }))
 
   // Replace emojis only in text content (between > and <), not in attributes

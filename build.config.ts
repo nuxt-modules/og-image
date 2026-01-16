@@ -26,6 +26,9 @@ export default defineBuildConfig({
     'unstorage/drivers/fs',
     'consola/utils',
     '#nitro-internal-virtual/storage',
+    // @nuxt/fonts integration - fontless is only used when @nuxt/fonts is present
+    'fontless',
+    'unifont',
     'tailwindcss',
     // postcss packages (transitive deps of tailwindcss peer dep)
     'postcss-calc',

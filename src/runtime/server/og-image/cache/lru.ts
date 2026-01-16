@@ -14,10 +14,12 @@ export const prerenderOptionsCache: Storage<OgImageOptions | [string, OgImageOpt
     })
   : undefined
 
-export const fontCache = createStorage<BufferSource>({
-  driver: lruCacheDriver({ max: 10 }),
-})
-
 export const emojiCache: Storage<string> = createStorage<string>({
   driver: lruCacheDriver({ max: 1000 }),
+})
+
+// cache loaded font data by cacheKey (family-weight-style)
+// Use base64 encoding to avoid Buffer serialization issues in LRU cache
+export const fontCache: Storage<string> = createStorage<string>({
+  driver: lruCacheDriver({ max: 100 }),
 })

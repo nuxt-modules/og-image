@@ -1,44 +1,8 @@
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { fontCache } from '#og-image-cache'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
-import { normaliseFontInput } from '../../../shared'
-import { useOgImageRuntimeConfig } from '../../utils'
-import { loadFont } from '../satori/font'
+import { loadAllFonts } from '../fonts'
 import { useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
-
-const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
-
-async function resolveFonts(event: OgImageRenderEventContext) {
-  const { fonts } = useOgImageRuntimeConfig()
-  const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
-  const localFontPromises: Promise<ResolvedFontConfig>[] = []
-  const preloadedFonts: ResolvedFontConfig[] = []
-
-  if (fontCache) {
-    for (const font of normalisedFonts) {
-      if (await fontCache.hasItem(font.cacheKey)) {
-        font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
-        preloadedFonts.push(font)
-      }
-      else {
-        if (!fontPromises[font.cacheKey]) {
-          fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
-            if (_font?.data)
-              await fontCache?.setItemRaw(_font.cacheKey, _font.data)
-            return _font
-          })
-        }
-        localFontPromises.push(fontPromises[font.cacheKey]!)
-      }
-    }
-  }
-  const awaitedFonts = await Promise.all(localFontPromises)
-  return [...preloadedFonts, ...awaitedFonts].map(_f => ({
-    name: _f.name,
-    data: _f.data,
-  }))
-}
 
 let _takumiRenderer: any
 
@@ -55,7 +19,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const [nodes, fonts] = await Promise.all([
     createTakumiNodes(event),
-    resolveFonts(event),
+    loadAllFonts(event.e, { supportsWoff2: true }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)

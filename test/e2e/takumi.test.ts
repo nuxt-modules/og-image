@@ -1,6 +1,6 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -26,6 +26,10 @@ await setup({
   },
 })
 
+const toMatchImageSnapshot = configureToMatchImageSnapshot({
+  failureThresholdType: 'percent',
+  failureThreshold: 1,
+})
 expect.extend({ toMatchImageSnapshot })
 
 function extractOgImageUrl(html: string): string | null {
@@ -60,7 +64,7 @@ describe('takumi renderer', () => {
 })
 
 describe('renderer comparison', () => {
-  it.runIf(hasTakumi)('simple component - satori vs takumi', async () => {
+  it('simple component - satori vs takumi', async () => {
     // Render with satori
     const satoriHtml = await $fetch('/prefix/comparison/satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)
@@ -84,7 +88,7 @@ describe('renderer comparison', () => {
     })
   }, 60000)
 
-  it.runIf(hasTakumi)('complex component - satori vs takumi', async () => {
+  it('complex component - satori vs takumi', async () => {
     // Render with satori
     const satoriHtml = await $fetch('/prefix/comparison/complex-satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)

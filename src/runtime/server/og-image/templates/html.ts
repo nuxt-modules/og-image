@@ -1,11 +1,10 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { tw4Breakpoints, tw4Colors, tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
+import resolvedFonts from '#og-image/fonts'
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
 import { fetchIsland } from '../../util/kit'
-import { useOgImageRuntimeConfig } from '../../utils'
 import { applyEmojis } from '../satori/transforms/emojis'
 
 // Build Tailwind config from extracted TW4 theme
@@ -39,10 +38,7 @@ function buildTailwindConfig() {
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
-  const { fonts } = useOgImageRuntimeConfig()
-  // const scale = query.scale
-  // const mode = query.mode || 'light'
-  // extract the options from the original path
+  const fonts = resolvedFonts as FontConfig[]
 
   if (!options.component) {
     throw createError({
@@ -55,10 +51,9 @@ export async function html(ctx: OgImageRenderEventContext) {
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
-  const normalisedFonts = normaliseFontInput([...options.fonts || [], ...fonts])
-  const firstFont = normalisedFonts[0] as FontConfig
+  const firstFont = fonts[0]
   if (firstFont)
-    defaultFontFamily = firstFont.name.replaceAll('+', ' ')
+    defaultFontFamily = firstFont.family.replaceAll('+', ' ')
 
   await applyEmojis(ctx, island)
   let html = island.html
@@ -98,18 +93,17 @@ svg[data-emoji] {
 }
 `,
       },
-      ...(fonts as FontConfig[])
-        // .filter(font => font.path)
-        .map((font) => {
-          return `
+      ...fonts.map((font) => {
+        const cacheKey = `${font.family}-${font.weight}-${font.style}`
+        return `
           @font-face {
-            font-family: '${font.name.replaceAll('+', ' ')}';
-            font-style: normal;
+            font-family: '${font.family.replaceAll('+', ' ')}';
+            font-style: ${font.style};
             font-weight: ${font.weight};
-            src: url('/_og/f/${font.key}') format('truetype');
+            src: url('/_og/f/${cacheKey}') format('truetype');
           }
           `
-        }),
+      }),
     ],
     meta: [
       {

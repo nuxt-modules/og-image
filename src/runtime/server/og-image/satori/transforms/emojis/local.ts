@@ -1,5 +1,4 @@
 import type { OgImageRenderEventContext } from '../../../../../types'
-// @ts-expect-error untyped
 import { icons, height as pkgHeight, width as pkgWidth } from '#og-image-virtual/iconify-json-icons.mjs'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 

@@ -9,5 +9,4 @@ const storage = createStorage<OgImageOptions>({
 
 export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }> = storage as any
 export const prerenderOptionsCache: Storage<OgImageOptions | [string, OgImageOptions][]> | undefined = storage as any
-export const fontCache = storage
 export const emojiCache: Storage<string> = storage as any

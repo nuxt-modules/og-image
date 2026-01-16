@@ -1,57 +1,22 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
-import { fontCache } from '#og-image-cache'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { sendError } from 'h3'
-import { normaliseFontInput } from '../../../shared'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { loadFont } from './font'
+import { loadAllFonts } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
-
-const fontPromises: Record<string, Promise<ResolvedFontConfig>> = {}
-
-async function resolveFonts(event: OgImageRenderEventContext) {
-  const { fonts } = useOgImageRuntimeConfig()
-  const normalisedFonts = normaliseFontInput([...event.options.fonts || [], ...fonts])
-  const localFontPromises: Promise<ResolvedFontConfig>[] = []
-  const preloadedFonts: ResolvedFontConfig[] = []
-  if (fontCache) {
-    for (const font of normalisedFonts) {
-      if (await fontCache.hasItem(font.cacheKey)) {
-        font.data = (await fontCache.getItemRaw(font.cacheKey)) || undefined
-        preloadedFonts.push(font)
-      }
-      else {
-        if (!fontPromises[font.cacheKey]) {
-          fontPromises[font.cacheKey] = loadFont(event, font).then(async (_font) => {
-            if (_font?.data)
-              await fontCache?.setItemRaw(_font.cacheKey, _font.data)
-            return _font
-          })
-        }
-        localFontPromises.push(fontPromises[font.cacheKey]!)
-      }
-    }
-  }
-  const awaitedFonts = await Promise.all(localFontPromises)
-  return [...preloadedFonts, ...awaitedFonts].map((_f) => {
-    // weight must be a number
-    return { name: _f.name, data: _f.data, style: _f.style, weight: Number(_f.weight) as SatoriOptions['fonts'][number]['weight'] }
-  })
-}
 
 export async function createSvg(event: OgImageRenderEventContext) {
   const { options } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
-  // perform operations async
   const [satori, vnodes, fonts] = await Promise.all([
     useSatori(),
     createVNodes(event),
-    resolveFonts(event),
+    loadAllFonts(event.e, { supportsWoff2: false }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
@@ -63,7 +28,7 @@ export async function createSvg(event: OgImageRenderEventContext) {
     fontFamily.serif = tw4FontVars['font-serif']
   if (tw4FontVars['font-mono'])
     fontFamily.mono = tw4FontVars['font-mono']
-  const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions> {
+  const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions>{
     fonts,
     tailwindConfig: Object.keys(fontFamily).length ? { theme: { fontFamily } } : undefined,
     embedFont: true,
@@ -71,7 +36,7 @@ export async function createSvg(event: OgImageRenderEventContext) {
     height: options.height!,
   }) as SatoriOptions
   return satori(vnodes, satoriOptions).catch((err) => {
-    return sendError(event.e, err, import.meta.dev)
+    return sendError(event.e, err, true)
   })
 }
 

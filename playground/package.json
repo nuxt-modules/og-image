@@ -3,12 +3,13 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "nuxi dev --https",
+    "dev": "nuxi dev",
     "build": "nuxi build",
     "generate": "nuxi generate"
   },
   "dependencies": {
     "@iconify-json/noto": "catalog:",
+    "@nuxt/fonts": "catalog:",
     "better-sqlite3": "catalog:",
     "nuxt-og-image": "workspace:*",
     "nuxt-og-image-devtools": "workspace:*"

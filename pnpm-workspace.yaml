@@ -16,9 +16,11 @@ trustPolicyExclude:
 packages:
   - playground
   - client
-
 overrides:
   jiti: ^2.6.1
+
+patchedDependencies:
+  '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
 
 catalog:
   '@antfu/eslint-config': ^7.0.1
@@ -36,6 +38,7 @@ catalog:
   '@nuxt/devtools': ^3.1.1
   '@nuxt/devtools-kit': ^3.1.1
   '@nuxt/devtools-ui-kit': ^3.1.1
+  '@nuxt/fonts': 0.12.1
   '@nuxt/icon': ^2.2.0
   '@nuxt/image': ^2.0.0
   '@nuxt/kit': ^4.2.2
@@ -76,6 +79,7 @@ catalog:
   json-editor-vue: ^0.18.1
   linkedom: ^0.18.12
   magic-string: ^0.30.21
+  magicast: ^0.5.1
   mocked-exports: ^0.1.1
   nuxt: ^4.2.2
   nuxt-site-config: ^3.2.17

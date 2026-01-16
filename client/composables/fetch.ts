@@ -1,3 +1,5 @@
+/* eslint-disable ts/ban-ts-comment */
+// @ts-nocheck - vue-router type recursion causes excessive stack depth
 import type {
   DevToolsMetaDataExtraction,
   OgImageComponent,
@@ -53,7 +55,6 @@ export function fetchPathDebug() {
 }
 
 export function fetchGlobalDebug() {
-  // @ts-expect-error untyped
   return useAsyncData<GlobalDebugResponse>('global-debug', () => {
     if (!appFetch.value)
       return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
