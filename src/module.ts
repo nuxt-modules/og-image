@@ -352,7 +352,9 @@ export default defineNuxtModule<ModuleOptions>({
     let tw4StyleMap: Record<string, Record<string, string>> = {}
     // Promise for synchronizing style map population with Vite transforms
     let resolveTw4StyleMapReady: () => void
-    const tw4StyleMapReady = new Promise<void>((resolve) => { resolveTw4StyleMapReady = resolve })
+    const tw4StyleMapReady = new Promise<void>((resolve) => {
+      resolveTw4StyleMapReady = resolve
+    })
 
     // Use app:templates hook to access resolved app.configs paths
     nuxt.hook('app:templates', async (app) => {
