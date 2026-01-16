@@ -242,7 +242,7 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
     postcssCustomProperties({
       preserve: false, // Remove var() after resolving
     }),
-    postcssCalc(), // Evaluate calc() expressions
+    postcssCalc({}), // Evaluate calc() expressions
   ]).process(fullCSS, { from: undefined })
 
   const resolvedCSS = result.css

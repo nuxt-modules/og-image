@@ -30,9 +30,7 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     const template = templateMatch[1]
 
     // Extract static class="..." attributes
-    const staticClassRegex = /\bclass="([^"]+)"/g
-    let match
-    while ((match = staticClassRegex.exec(template)) !== null) {
+    for (const match of template.matchAll(/\bclass="([^"]+)"/g)) {
       const classStr = match[1]
       if (!classStr)
         continue
@@ -45,8 +43,7 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
 
     // Extract static classes from :class="'...'" or :class="`...`"
     // This catches simple static strings in dynamic bindings
-    const dynamicStaticRegex = /:class="['`]([^'`]+)['`]"/g
-    while ((match = dynamicStaticRegex.exec(template)) !== null) {
+    for (const match of template.matchAll(/:class="['`]([^'`]+)['`]"/g)) {
       const classStr = match[1]
       if (!classStr)
         continue
@@ -57,15 +54,12 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     }
 
     // Extract from :class="{ 'class-name': condition }" - get the class names
-    const objectClassRegex = /:class="\{([^}]+)\}"/g
-    while ((match = objectClassRegex.exec(template)) !== null) {
+    for (const match of template.matchAll(/:class="\{([^}]+)\}"/g)) {
       const objContent = match[1]
       if (!objContent)
         continue
       // Match 'class-name' or "class-name" keys
-      const keyRegex = /['"]([^'"]+)['"]\s*:/g
-      let keyMatch
-      while ((keyMatch = keyRegex.exec(objContent)) !== null) {
+      for (const keyMatch of objContent.matchAll(/['"]([^'"]+)['"]\s*:/g)) {
         const cls = keyMatch[1]
         if (cls && !cls.includes('{') && !cls.includes('$'))
           classes.add(cls)
@@ -73,11 +67,10 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     }
 
     // Extract from :class="[condition ? 'class1' : 'class2']" - get both classes
-    const ternaryRegex = /['"]([\w:-]+)['"]/g
     const arrayClassMatch = template.match(/:class="\[[^\]]+\]"/g)
     if (arrayClassMatch) {
       for (const arrayExpr of arrayClassMatch) {
-        while ((match = ternaryRegex.exec(arrayExpr)) !== null) {
+        for (const match of arrayExpr.matchAll(/['"]([\w:-]+)['"]/g)) {
           const cls = match[1]
           if (cls && !cls.includes('{') && !cls.includes('$'))
             classes.add(cls)

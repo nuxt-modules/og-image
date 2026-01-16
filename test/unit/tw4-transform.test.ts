@@ -166,7 +166,7 @@ describe('vue-template-transform', () => {
       const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
 
       const code = `<template><div class="text-red">Hello</div></template>`
-      const result = await transformVueTemplate(code, {
+      await transformVueTemplate(code, {
         resolveStyles: async () => {
           throw new Error('Resolver failed')
         },

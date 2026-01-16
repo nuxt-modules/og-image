@@ -1,6 +1,24 @@
+catalogMode: prefer
+
+cleanupUnusedCatalogs: true
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
 packages:
   - playground
   - client
+
+overrides:
+  jiti: ^2.6.1
 
 catalog:
   '@antfu/eslint-config': ^7.0.1
@@ -31,15 +49,10 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@vitejs/plugin-vue': ^6.0.3
-  '@vue/compiler-sfc': ^3.5.26
   '@takumi-rs/core': ^0.62.8
   '@takumi-rs/wasm': ^0.62.8
-  '@unocss/core': ^66.6.0
-  '@unocss/nuxt': ^66.6.0
-  '@unocss/preset-icons': ^66.6.0
-  '@unocss/preset-wind3': ^66.6.0
-  '@unocss/runtime': ^66.6.0
+  '@vitejs/plugin-vue': ^6.0.3
+  '@vue/compiler-sfc': ^3.5.26
   '@vueuse/core': ^14.1.0
   '@vueuse/nuxt': ^14.1.0
   better-sqlite3: ^12.6.0
@@ -75,7 +88,7 @@ catalog:
   playwright-core: ^1.57.0
   postcss: ^8.5.6
   postcss-calc: ^10.1.1
-  postcss-custom-properties: ^14.0.6
+  postcss-custom-properties: ^15.0.0
   radix3: ^1.1.2
   sass: ^1.97.2
   satori: ^0.18.3
@@ -90,7 +103,6 @@ catalog:
   tinyglobby: ^0.2.15
   typescript: ^5.9.3
   ufo: ^1.6.3
-  unocss: ^66.6.0
   unplugin: ^2.3.11
   unwasm: ^0.5.3
   vitest: ^4.0.17
@@ -98,11 +110,6 @@ catalog:
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2
   yoga-wasm-web: ^0.3.3
-
-catalogMode: prefer
-
-cleanupUnusedCatalogs: true
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -112,18 +119,3 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
-
-overrides:
-  jiti: ^2.6.1
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
-  - '@nuxtjs/tailwindcss@7.0.0-beta.1'

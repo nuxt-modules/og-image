@@ -1,8 +1,5 @@
 <script setup lang="ts">
-defineOgImage({
-  component: 'NuxtUiComponents',
-  title: 'UI Components Test',
-})
+defineOgImage('NuxtUiComponents', { title: 'UI Components Test' })
 </script>
 
 <template>

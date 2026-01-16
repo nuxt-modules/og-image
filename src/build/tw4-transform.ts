@@ -226,11 +226,20 @@ function safeEvaluateArithmetic(expr: string): number | null {
     if (a === undefined || b === undefined || !op)
       return false
     switch (op) {
-      case '+': numbers.push(a + b); break
-      case '-': numbers.push(a - b); break
-      case '*': numbers.push(a * b); break
-      case '/': numbers.push(b !== 0 ? a / b : 0); break
-      default: return false
+      case '+':
+        numbers.push(a + b)
+        break
+      case '-':
+        numbers.push(a - b)
+        break
+      case '*':
+        numbers.push(a * b)
+        break
+      case '/':
+        numbers.push(b !== 0 ? a / b : 0)
+        break
+      default:
+        return false
     }
     return true
   }
@@ -469,7 +478,7 @@ function buildGradient(
   const fromClass = classes.find(c => c.startsWith('from-'))
   const viaClass = classes.find(c => c.startsWith('via-'))
   // to-* for colors, but NOT to-t/b/l/r/tl/tr/bl/br (inset positions)
-  const toClass = classes.find(c => c.startsWith('to-') && !/^to-([tblr]|tl|tr|bl|br)$/.test(c))
+  const toClass = classes.find(c => c.startsWith('to-') && !/^to-(?:[tblr]|tl|tr|bl|br)$/.test(c))
 
   if (!linearDir && !radialShape)
     return null
