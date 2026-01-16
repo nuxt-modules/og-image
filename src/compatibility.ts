@@ -142,7 +142,9 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
 }
 
 export function getPresetNitroPresetCompatibility(target: string) {
-  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]!
+  // Strip -legacy suffix as it doesn't affect compatibility
+  const normalizedTarget = target.replace(/-legacy$/, '')
+  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[normalizedTarget as keyof typeof RuntimeCompatibility]!
   if (!compatibility)
     compatibility = RuntimeCompatibility['nitro-dev']!
   return compatibility
@@ -209,7 +211,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
 
   // linkedom has optional canvas dependency that doesn't exist on edge runtimes
-  const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(target)
+  const normalizedTarget = target.replace(/-legacy$/, '')
+  const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(normalizedTarget)
   if (isEdgePreset) {
     const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
     nitroConfig.virtual = nitroConfig.virtual || {}

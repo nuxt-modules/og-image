@@ -43,7 +43,8 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed
     const target = resolveNitroPreset(nitro.options)
-    const isCloudflarePagesOrModule = target === 'cloudflare-pages' || target === 'cloudflare-module'
+    const normalizedTarget = target.replace(/-legacy$/, '')
+    const isCloudflarePagesOrModule = normalizedTarget === 'cloudflare-pages' || normalizedTarget === 'cloudflare-module'
     if (isCloudflarePagesOrModule) {
       nitro.options.cloudflare = nitro.options.cloudflare || {}
       nitro.options.cloudflare.pages = nitro.options.cloudflare.pages || {}
