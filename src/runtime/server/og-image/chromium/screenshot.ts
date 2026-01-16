@@ -8,9 +8,9 @@ import { buildOgImageUrl } from '../../../shared'
 import { useOgImageRuntimeConfig } from '../../utils'
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
-  const { colorPreference } = useOgImageRuntimeConfig()
+  const { colorPreference, defaults } = useOgImageRuntimeConfig()
   // For chromium, we need to load the HTML template with options encoded in URL
-  const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false).url
+  const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false, defaults).url
   const page = await browser.newPage({
     colorScheme: colorPreference || 'no-preference',
     baseURL: useNitroOrigin(e),

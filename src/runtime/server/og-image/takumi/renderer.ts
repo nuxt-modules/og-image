@@ -1,7 +1,6 @@
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { fontCache } from '#og-image-cache'
 import { defu } from 'defu'
-import { sendError } from 'h3'
 import { normaliseFontInput } from '../../../shared'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { loadFont } from '../satori/font'
@@ -69,7 +68,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     format,
   })
 
-  return renderer.render(nodes, renderOptions).catch((err: Error) => sendError(event.e, err, import.meta.dev))
+  return renderer.render(nodes, renderOptions)
 }
 
 const TakumiRenderer: Renderer = {

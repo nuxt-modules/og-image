@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('ScopedCss', {
+defineOgImage('ScopedCss', {
   // dark mode version of #dbf4ff
   themeColor: '#1a202c',
 })

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { defineOgImageComponent, ref } from '#imports'
+import { ref } from '#imports'
 
 const title = ref('foo')
-defineOgImageComponent('NuxtSeo', {
+defineOgImage('NuxtSeo', {
   title,
 })
 title.value = 'bar'

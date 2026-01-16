@@ -2,27 +2,17 @@ import type { OgImageComponents } from '#og-image/components'
 import type { ExtractComponentProps, OgImageOptions } from '../../types'
 import { defineOgImage } from './defineOgImage'
 
-type OgImageComponentOptions<T extends keyof OgImageComponents> = OgImageOptions & {
-  props?: Partial<ExtractComponentProps<OgImageComponents[T]>>
-}
-
+/**
+ * @deprecated Use `defineOgImage()` instead. This function will be removed in a future version.
+ * Migration: `defineOgImageComponent('X', props, options)` → `defineOgImage('X', props, options)`
+ */
 export function defineOgImageComponent<T extends keyof OgImageComponents>(
   component: T,
-  propsOrOptions: Partial<ExtractComponentProps<OgImageComponents[T]>> | OgImageComponentOptions<T>[] = {},
+  props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {} as Partial<ExtractComponentProps<OgImageComponents[T]>>,
   options: OgImageOptions = {},
 ): string[] {
-  // Handle array of options
-  if (Array.isArray(propsOrOptions)) {
-    return defineOgImage(propsOrOptions.map(opt => ({
-      ...opt,
-      component: component as string,
-    })))
+  if (import.meta.dev) {
+    console.warn('[nuxt-og-image] `defineOgImageComponent()` is deprecated. Use `defineOgImage()` instead. Run `npx nuxt-og-image migrate v6 --api` to auto-migrate.')
   }
-
-  // Single image (existing behavior)
-  return defineOgImage({
-    ...options,
-    component: component as string,
-    props: propsOrOptions,
-  })
+  return defineOgImage(component, props, options)
 }

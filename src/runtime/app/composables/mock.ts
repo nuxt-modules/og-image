@@ -1,20 +1,23 @@
 import type { OgImageComponents } from '#og-image/components'
-import type { DefineOgImageInput, ExtractComponentProps, OgImageOptions, OgImagePageScreenshotOptions } from '../../types'
+import type { ExtractComponentProps, OgImageOptions, OgImagePageScreenshotOptions } from '../../types'
 import { useRuntimeConfig } from 'nuxt/app'
 
-export function defineOgImage(_options: DefineOgImageInput = {}) {
+export function defineOgImage<T extends keyof OgImageComponents>(_component: T, _props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {}, _options: OgImageOptions = {}) {
   if (import.meta.dev) {
     console.warn('`defineOgImage()` is skipped as the OG Image module is not enabled.')
   }
 }
-// eslint-disable-next-line unused-imports/no-unused-vars
-export function defineOgImageComponent<T extends keyof OgImageComponents>(component: T, props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {}, options: OgImageOptions = {}) {
+
+/**
+ * @deprecated Use `defineOgImage()` instead.
+ */
+export function defineOgImageComponent<T extends keyof OgImageComponents>(_component: T, _props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {}, _options: OgImageOptions = {}) {
   if (import.meta.dev) {
-    console.warn('`defineOgImageComponent()` is skipped as the OG Image module is not enabled.')
+    console.warn('`defineOgImageComponent()` is deprecated and skipped. Use `defineOgImage()` instead.')
   }
 }
-// eslint-disable-next-line unused-imports/no-unused-vars
-export function defineOgImageScreenshot(options: OgImagePageScreenshotOptions = {}) {
+
+export function defineOgImageScreenshot(_options: OgImagePageScreenshotOptions = {}) {
   if (import.meta.dev) {
     if (useRuntimeConfig()['nuxt-og-image']) {
       console.warn('`defineOgImageScreenshot()` is skipped as the `chromium` compatibility is disabled.')

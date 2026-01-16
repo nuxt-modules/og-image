@@ -1,10 +1,6 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'satori',
-  component: 'TakumiTest',
-  props: {
-    title: 'Renderer Comparison',
-  },
+defineOgImage('TakumiTest', {
+  title: 'Renderer Comparison',
 })
 </script>
 

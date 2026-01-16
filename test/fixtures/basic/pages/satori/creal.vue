@@ -1,12 +1,9 @@
 <script lang="ts" setup>
-defineOgImage({
-  component: 'Creal',
-  props: {
-    title: 'Test Page',
-    siteConfigName: 'cReal',
-    headline: 'Adelaide DJ',
-    name: 'DJ cReal',
-  },
+defineOgImage('Creal', {
+  title: 'Test Page',
+  siteConfigName: 'cReal',
+  headline: 'Adelaide DJ',
+  name: 'DJ cReal',
 })
 </script>
 

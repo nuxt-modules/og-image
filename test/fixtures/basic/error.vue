@@ -1,9 +1,6 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'satori',
-  props: {
-    title: 'Hello World',
-  },
+defineOgImage('NuxtSeo', {
+  title: 'Hello World',
 })
 </script>
 

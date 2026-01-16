@@ -19,7 +19,6 @@ const PARAM_ALIASES: Record<string, string> = {
   w: 'width',
   h: 'height',
   c: 'component',
-  r: 'renderer',
   em: 'emojis',
   k: 'key',
   a: 'alt',
@@ -39,7 +38,6 @@ const KNOWN_PARAMS = new Set([
   'width',
   'height',
   'component',
-  'renderer',
   'emojis',
   'key',
   'alt',
@@ -116,10 +114,12 @@ export function hashOgImageOptions(
 
 /**
  * Encode OG image options into a URL path segment
+ * @param options - The options to encode
+ * @param defaults - Optional defaults to skip (values matching defaults won't be encoded)
  * @example encodeOgImageParams({ width: 1200, props: { title: 'Hello' } })
  * // Returns: "w_1200,title_Hello"
  */
-export function encodeOgImageParams(options: Record<string, any>): string {
+export function encodeOgImageParams(options: Record<string, any>, defaults?: Record<string, any>): string {
   const parts: string[] = []
 
   // First, flatten props to top level for readability
@@ -149,6 +149,10 @@ export function encodeOgImageParams(options: Record<string, any>): string {
 
     // Skip internal/meta fields
     if (key === 'extension' || key === 'socialPreview')
+      continue
+
+    // Skip values that match defaults
+    if (defaults && key in defaults && defaults[key] === value)
       continue
 
     // Use alias for known params, otherwise use key as-is (for props)
@@ -270,6 +274,10 @@ export interface BuildOgImageUrlResult {
  * - Returns short path: /_og/s/o_<hash>.png
  * - Returns hash in result for cache storage
  *
+ * @param options - The options to encode
+ * @param extension - Image extension (png, jpeg, etc.)
+ * @param isStatic - Whether this is a static/prerendered image
+ * @param defaults - Optional defaults to skip from URL (keeps URLs shorter)
  * @example buildOgImageUrl({ width: 1200, props: { title: 'Hello' } }, 'png', true)
  * // Returns: { url: "/_og/s/w_1200,title_Hello.png" }
  */
@@ -277,8 +285,9 @@ export function buildOgImageUrl(
   options: Record<string, any>,
   extension: string = 'png',
   isStatic: boolean = false,
+  defaults?: Record<string, any>,
 ): BuildOgImageUrlResult {
-  const encoded = encodeOgImageParams(options)
+  const encoded = encodeOgImageParams(options, defaults)
   const prefix = isStatic ? '/_og/s' : '/_og/d'
 
   // Check if encoded path is too long for filesystem

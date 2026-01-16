@@ -1,13 +1,14 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack/config'
-import type { CompatibilityFlags, RuntimeCompatibilitySchema } from './runtime/types'
+import type { CompatibilityFlags, RendererType, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import {
   ensureDependencyInstalled,
 } from 'nypm'
 import { env, provider } from 'std-env'
+import { logger } from './runtime/logger'
 import { hasResolvableDependency } from './util'
 
 const autodetectableProviders = {
@@ -141,24 +142,35 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
 }
 
 export function getPresetNitroPresetCompatibility(target: string) {
-  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[target as keyof typeof RuntimeCompatibility]!
+  // Strip -legacy suffix as it doesn't affect compatibility
+  const normalizedTarget = target.replace(/-legacy$/, '')
+  let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[normalizedTarget as keyof typeof RuntimeCompatibility]!
   if (!compatibility)
     compatibility = RuntimeCompatibility['nitro-dev']!
   return compatibility
 }
 
-export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: Resolver, overrides?: RuntimeCompatibilitySchema }): Promise<Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>> {
+export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: Resolver, overrides?: RuntimeCompatibilitySchema, detectedRenderers: Set<RendererType> }): Promise<Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>> {
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
 
   const hasCssInlineNode = await hasResolvableDependency('@css-inline/css-inline')
   const hasCssInlineWasm = await hasResolvableDependency('@css-inline/css-inline-wasm')
 
-  const { resolve } = options
+  const { resolve, detectedRenderers } = options
 
-  const satoriEnabled = typeof options.compatibility?.satori !== 'undefined' ? !!options.compatibility.satori : !!compatibility.satori
-  const chromiumEnabled = typeof options.compatibility?.chromium !== 'undefined' ? !!options.compatibility.chromium : !!compatibility.chromium
-  const takumiEnabled = typeof options.compatibility?.takumi !== 'undefined' ? !!options.compatibility.takumi : !!compatibility.takumi
+  // Enable renderers based on detected component suffixes
+  const satoriEnabled = detectedRenderers.has('satori')
+  const chromiumEnabled = detectedRenderers.has('chromium')
+  const takumiEnabled = detectedRenderers.has('takumi')
+
+  // Warn if detected renderer not supported on this preset
+  for (const renderer of detectedRenderers) {
+    if (!compatibility[renderer]) {
+      logger.warn(`Renderer "${renderer}" detected but not supported on "${target}" preset. OG images using .${renderer}.vue components may fail.`)
+    }
+  }
+
   // renderers
   const emptyMock = await resolve.resolvePath('./runtime/mock/empty')
   nitroConfig.alias!['#og-image/renderers/satori'] = satoriEnabled ? await resolve.resolvePath('./runtime/server/og-image/satori/renderer') : emptyMock
@@ -199,7 +211,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
 
   // linkedom has optional canvas dependency that doesn't exist on edge runtimes
-  const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(target)
+  const normalizedTarget = target.replace(/-legacy$/, '')
+  const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(normalizedTarget)
   if (isEdgePreset) {
     const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
     nitroConfig.virtual = nitroConfig.virtual || {}

@@ -74,6 +74,33 @@ describe('urlEncoding', () => {
       })
       expect(encoded).toBe('w_1200')
     })
+
+    it('skips values matching defaults', () => {
+      const defaults = { width: 1200, height: 600, emojis: 'noto', renderer: 'satori' }
+      const encoded = encodeOgImageParams({
+        width: 1200, // matches default
+        height: 600, // matches default
+        emojis: 'noto', // matches default
+        renderer: 'satori', // matches default
+        component: 'MyComponent', // not a default
+        props: { title: 'Test' },
+      }, defaults)
+      expect(encoded).toBe('c_MyComponent,title_Test')
+    })
+
+    it('includes values different from defaults', () => {
+      const defaults = { width: 1200, height: 600 }
+      const encoded = encodeOgImageParams({
+        width: 800, // different
+        height: 600, // matches default
+      }, defaults)
+      expect(encoded).toBe('w_800')
+    })
+
+    it('works without defaults parameter', () => {
+      const encoded = encodeOgImageParams({ width: 1200, height: 600 })
+      expect(encoded).toBe('w_1200,h_600')
+    })
   })
 
   describe('decodeOgImageParams', () => {
@@ -197,6 +224,17 @@ describe('urlEncoding', () => {
       const result1 = buildOgImageUrl({ ...opts, _path: '/page1' }, 'png', true)
       const result2 = buildOgImageUrl({ ...opts, _path: '/page2' }, 'png', true)
       expect(result1.hash).toBe(result2.hash)
+    })
+
+    it('skips default values when defaults provided', () => {
+      const defaults = { width: 1200, height: 600, emojis: 'noto', renderer: 'satori' }
+      const result = buildOgImageUrl({
+        width: 1200,
+        height: 600,
+        component: 'Test',
+        props: { title: 'Hello' },
+      }, 'png', true, defaults)
+      expect(result.url).toBe('/_og/s/c_Test,title_Hello.png')
     })
   })
 

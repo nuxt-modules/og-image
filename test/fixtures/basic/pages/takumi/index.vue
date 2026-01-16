@@ -1,10 +1,6 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'takumi',
-  component: 'TakumiTest',
-  props: {
-    title: 'Hello World from Takumi',
-  },
+defineOgImage('TakumiTest', {
+  title: 'Hello World from Takumi',
 })
 </script>
 

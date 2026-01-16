@@ -1,9 +1,5 @@
 <script lang="ts" setup>
-defineOgImage({
-  component: 'GithubAvatars',
-  renderer: 'satori',
-  extension: 'png',
-})
+defineOgImage('GithubAvatars', {}, { extension: 'png' })
 </script>
 
 <template>

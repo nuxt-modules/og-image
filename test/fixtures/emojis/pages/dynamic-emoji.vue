@@ -1,9 +1,5 @@
 <script setup>
-defineOgImage({
-  component: 'DynamicEmoji',
-  emoji: '👋',
-  title: 'Dynamic Emoji Test',
-})
+defineOgImage('DynamicEmoji', {}, { emoji: '👋', title: 'Dynamic Emoji Test' })
 </script>
 
 <template>

@@ -1,6 +1,7 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from '../module'
+import type { RendererType } from '../runtime/types'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -9,13 +10,12 @@ import { dirname } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 
 // we need all of the runtime dependencies when using build
-export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, nuxt: Nuxt = useNuxt()) {
+export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {
   nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
   if (typeof config.runtimeCacheStorage === 'object')
     nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
 
   nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
-    await applyNitroPresetCompatibility(nitroConfig, { compatibility: config.compatibility?.runtime, resolve })
     // stub packages that aren't available or used on edge runtimes
     const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
     nitroConfig.virtual = nitroConfig.virtual || {}
@@ -34,11 +34,17 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     nitroConfig.virtual.queue = mockCode
   })
 
-  // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
-  // TODO replace this once upstream is fixed
+  // Apply renderer compatibility and WASM patching in nitro:init
   nuxt.hooks.hook('nitro:init', async (nitro) => {
+    // Apply renderer compatibility based on detected component suffixes
+    const renderers = getDetectedRenderers()
+    await applyNitroPresetCompatibility(nitro.options, { compatibility: config.compatibility?.runtime, resolve, detectedRenderers: renderers })
+
+    // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
+    // TODO replace this once upstream is fixed
     const target = resolveNitroPreset(nitro.options)
-    const isCloudflarePagesOrModule = target === 'cloudflare-pages' || target === 'cloudflare-module'
+    const normalizedTarget = target.replace(/-legacy$/, '')
+    const isCloudflarePagesOrModule = normalizedTarget === 'cloudflare-pages' || normalizedTarget === 'cloudflare-module'
     if (isCloudflarePagesOrModule) {
       nitro.options.cloudflare = nitro.options.cloudflare || {}
       nitro.options.cloudflare.pages = nitro.options.cloudflare.pages || {}

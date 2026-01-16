@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('SimpleBlog', {
+defineOgImage('SimpleBlog', {
   title: 'How to Build Modern Web Applications in 2025',
 })
 </script>

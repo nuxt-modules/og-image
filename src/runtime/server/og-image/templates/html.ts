@@ -50,7 +50,7 @@ export async function html(ctx: OgImageRenderEventContext) {
       statusMessage: `[Nuxt OG Image] Rendering an invalid component. Received options: ${JSON.stringify(options)}.`,
     })
   }
-  const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
+  const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
   const head = createHeadCore()
   head.push(island.head)
 
@@ -71,14 +71,14 @@ export async function html(ctx: OgImageRenderEventContext) {
       },
       {
         innerHTML: `body {
-    transform: scale(${options.props?.scale || 1});
+    transform: scale(${(options.props as Record<string, any>)?.scale || 1});
     transform-origin: top left;
     max-height: 100vh;
     position: relative;
     width: ${options.width}px;
     height: ${options.height}px;
     overflow: hidden;
-    background-color: ${options.props?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
+    background-color: ${(options.props as Record<string, any>)?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
 }
 div {
   display: flex;

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-defineOgImageComponent('GithubAvatars', {
+defineOgImage('GithubAvatars', {
   title: 'Hello World',
 })
 </script>
