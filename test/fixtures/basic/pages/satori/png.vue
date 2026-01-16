@@ -1,8 +1,5 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'satori',
-  extension: 'png',
-})
+defineOgImage('NuxtSeo', {}, { extension: 'png' })
 
 useSeoMeta({
   title: 'Satori PNG',

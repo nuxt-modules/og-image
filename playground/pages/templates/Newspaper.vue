@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('Newspaper', {
+defineOgImage('Newspaper', {
   title: 'Revolutionary AI Changes Everything We Know About Technology',
   category: 'Technology',
   publication: 'The Daily Chronicle',

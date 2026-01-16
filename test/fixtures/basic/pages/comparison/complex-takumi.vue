@@ -1,12 +1,8 @@
 <script lang="ts" setup>
-defineOgImage({
-  renderer: 'takumi',
-  component: 'ComplexTest',
-  props: {
-    title: 'Gradient & Layout Test',
-    subtitle: 'Nested flexbox, rounded corners, opacity',
-    tag: 'Takumi',
-  },
+defineOgImage('ComplexTest', {
+  title: 'Gradient & Layout Test',
+  subtitle: 'Nested flexbox, rounded corners, opacity',
+  tag: 'Takumi',
 })
 </script>
 

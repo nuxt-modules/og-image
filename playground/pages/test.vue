@@ -1,7 +1,7 @@
 <script setup>
-import { defineOgImageComponent, useSeoMeta } from '#imports'
+import { useSeoMeta } from '#imports'
 
-defineOgImageComponent('Octopo')
+defineOgImage('Octopo')
 
 useSeoMeta({
   title: 'Camilo Fernández',

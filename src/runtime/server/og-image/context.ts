@@ -138,7 +138,6 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
   const options: OgImageOptions = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
 
-  const key = options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)
   if (!options) {
     return createError({
       statusCode: 404,
@@ -146,9 +145,13 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     })
   }
 
-  // TODO merge in component data from component-names, we want the hash to use as a cache key
+  // Normalise options and get renderer from component metadata
+  const normalised = normaliseOptions(options)
+  const rendererType = normalised.renderer
+  const key = normalised.options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)
+
   let renderer: ((typeof SatoriRenderer | typeof ChromiumRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
-  switch (options.renderer) {
+  switch (rendererType) {
     case 'satori':
       renderer = await useSatoriRenderer()
       break
@@ -162,7 +165,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   if (!renderer || renderer.__mock__) {
     throw createError({
       statusCode: 400,
-      statusMessage: `[Nuxt OG Image] Renderer ${options.renderer} is not enabled.`,
+      statusMessage: `[Nuxt OG Image] Renderer "${rendererType}" is not available. Component "${normalised.component?.pascalName}" requires the ${rendererType} renderer but it's not bundled for this preset.`,
     })
   }
   const unocss = await createGenerator({ theme }, {
@@ -180,7 +183,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     publicStoragePath: runtimeConfig.publicStoragePath,
     extension,
     basePath,
-    options: normaliseOptions(options),
+    options: normalised.options,
     _nitro: useNitroApp(),
   }
   // call the nitro hook

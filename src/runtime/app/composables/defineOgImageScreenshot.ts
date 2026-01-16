@@ -1,11 +1,11 @@
 import type { OgImagePageScreenshotOptions } from '../../types'
 import { useRouter } from '#app'
-import { defineOgImage } from './defineOgImage'
+import { _defineOgImageRaw } from './_defineOgImageRaw'
 
 export function defineOgImageScreenshot(options: OgImagePageScreenshotOptions = {}) {
   const router = useRouter()
   const route = router.currentRoute.value?.path || '/'
-  return defineOgImage({
+  return _defineOgImageRaw({
     alt: `Web page screenshot${route ? ` of ${route}` : ''}.`,
     renderer: 'chromium',
     extension: 'jpeg',

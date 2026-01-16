@@ -65,3 +65,22 @@ export async function downloadFont(font: ResolvedFontConfig, storage: Storage, m
   }
   return { success: false, error: new Error('No TTF resource found in CSS response'), host }
 }
+
+const VALID_RENDERER_SUFFIXES = ['satori', 'chromium', 'takumi'] as const
+
+export function getRendererFromFilename(filepath: string): 'satori' | 'chromium' | 'takumi' | null {
+  const filename = filepath.split('/').pop()?.replace('.vue', '') || ''
+  for (const suffix of VALID_RENDERER_SUFFIXES) {
+    if (filename.endsWith(`.${suffix}`))
+      return suffix
+  }
+  return null
+}
+
+export function stripRendererSuffix(name: string): string {
+  for (const suffix of VALID_RENDERER_SUFFIXES) {
+    if (name.endsWith(`.${suffix}`) || name.endsWith(suffix.charAt(0).toUpperCase() + suffix.slice(1)))
+      return name.replace(new RegExp(`[.]?${suffix}$`, 'i'), '')
+  }
+  return name
+}

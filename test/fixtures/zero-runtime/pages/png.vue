@@ -1,13 +1,9 @@
 <script lang="ts" setup>
 import { defineOgImage } from '#imports'
 
-defineOgImage({
-  renderer: 'satori',
-  extension: 'png',
-  props: {
-    title: 'png extension',
-  },
-})
+defineOgImage('NuxtSeo', {
+  title: 'png extension',
+}, { extension: 'png' })
 </script>
 
 <template>

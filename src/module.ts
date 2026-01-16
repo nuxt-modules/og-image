@@ -11,6 +11,7 @@ import type {
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
+  RendererType,
   ResolvedFontConfig,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
@@ -44,11 +45,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, downloadFont, hasResolvableDependency, isUndefinedOrTruthy } from './util'
-import {
-  getMissingDependencies,
-  getProviderDependencies,
-} from './utils/dependencies'
+import { checkLocalChrome, downloadFont, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, stripRendererSuffix } from './util'
 
 export type {
   OgImageComponent,
@@ -218,7 +215,6 @@ export default defineNuxtModule<ModuleOptions>({
       enabled: true,
       defaults: {
         emojis: 'noto',
-        renderer: 'satori',
         component: 'NuxtSeo',
         extension: 'png',
         width: 1200,
@@ -256,17 +252,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
-      return
-    }
-
-    // validate provider dependencies
-    const selectedRenderer = config.defaults.renderer || 'satori'
-    const rendererMissing = await getMissingDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
-    if (rendererMissing.length > 0) {
-      const deps = getProviderDependencies(selectedRenderer as 'satori' | 'takumi' | 'chromium', 'node')
-      logger.error(`Missing dependencies for ${selectedRenderer} renderer: ${rendererMissing.join(', ')}`)
-      logger.info(`Install with: npm add ${deps.join(' ')}`)
-      logger.info('Or run the module again to trigger the onInstall wizard.')
       return
     }
 
@@ -384,7 +369,7 @@ export default defineNuxtModule<ModuleOptions>({
           ...(userAppPkgJson.dependencies || {}),
           ...(userAppPkgJson.devDependencies || {}),
         }
-        const hasExplicitSharpDependency = !!config.sharpOptions || 'sharp' in allDeps || (hasConfiguredJpegs && config.defaults.renderer !== 'chromium')
+        const hasExplicitSharpDependency = !!config.sharpOptions || 'sharp' in allDeps || hasConfiguredJpegs
         if (hasExplicitSharpDependency) {
           if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
@@ -401,8 +386,8 @@ export default defineNuxtModule<ModuleOptions>({
               })
           }
         }
-        else if (hasConfiguredJpegs && config.defaults.renderer !== 'chromium') {
-          // sharp is supported but not installed
+        else if (hasConfiguredJpegs) {
+          // sharp is supported but not installed, and JPEGs need sharp for satori/takumi
           logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
           await ensureDependencies(['sharp'])
           logger.warn('Support for `sharp` is limited so check the compatibility guide.')
@@ -626,18 +611,11 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
-    ;[
-      // new
-      'OgImage',
-      'OgImageScreenshot',
-    ]
-      .forEach((name) => {
-        addComponent({
-          name,
-          filePath: resolve(`./runtime/app/components/OgImage/${name}`),
-          ...config.componentOptions,
-        })
-      })
+    addComponent({
+      name: 'OgImageScreenshot',
+      filePath: resolve(`./runtime/app/components/OgImage/OgImageScreenshot`),
+      ...config.componentOptions,
+    })
 
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
@@ -661,17 +639,44 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponentCtx: { components: OgImageComponent[] } = { components: [] }
+    const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
+
+    // Pre-scan component directories to detect renderers early (before nitro hooks fire)
+    // This ensures detectedRenderers is populated when nitro:init runs
+    for (const componentDir of config.componentDirs) {
+      const path = resolve(nuxt.options.srcDir, 'components', componentDir)
+      if (fs.existsSync(path)) {
+        const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
+        for (const file of files) {
+          const renderer = getRendererFromFilename(file)
+          if (renderer)
+            ogImageComponentCtx.detectedRenderers.add(renderer)
+        }
+      }
+    }
+    // Also scan community templates in the module itself
+    const communityDir = resolve('./runtime/app/components/Templates/Community')
+    if (fs.existsSync(communityDir)) {
+      const files = fs.readdirSync(communityDir).filter(f => f.endsWith('.vue'))
+      for (const file of files) {
+        const renderer = getRendererFromFilename(file)
+        if (renderer)
+          ogImageComponentCtx.detectedRenderers.add(renderer)
+      }
+    }
     nuxt.hook('components:extend', (components) => {
       ogImageComponentCtx.components = []
-      const validComponents: typeof components = []
+      // Don't clear detectedRenderers - pre-scan already populated it and nitro:init may have already fired
+      const invalidComponents: string[] = []
+      const baseNameToRenderer = new Map<string, { renderer: RendererType, path: string }>()
+
       // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
       components.forEach((component) => {
         let valid = false
         config.componentDirs.forEach((dir) => {
           if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir)
-            // support non-prefixed components
-            || component.shortPath.includes(`/${dir}/`)) {
+            // support non-prefixed components - check for components/<dir>/ pattern
+            || component.shortPath.includes(`components/${dir}/`)) {
             valid = true
           }
         })
@@ -679,27 +684,42 @@ export default defineNuxtModule<ModuleOptions>({
           valid = true
 
         if (valid && fs.existsSync(component.filePath)) {
-          // get hash of the file
+          const renderer = getRendererFromFilename(component.filePath)
+
+          if (!renderer) {
+            invalidComponents.push(component.shortPath)
+            return
+          }
+
+          // Check for duplicate base names with different renderers
+          const baseName = stripRendererSuffix(component.pascalName)
+          const existing = baseNameToRenderer.get(baseName)
+          if (existing && existing.renderer !== renderer) {
+            logger.warn(`Duplicate OG Image component "${baseName}" with different renderers:\n  ${existing.path} (${existing.renderer})\n  ${component.filePath} (${renderer})`)
+          }
+          baseNameToRenderer.set(baseName, { renderer, path: component.filePath })
+
+          ogImageComponentCtx.detectedRenderers.add(renderer)
+
           component.island = true
           component.mode = 'server'
-          validComponents.push(component)
           let category: OgImageComponent['category'] = 'app'
           if (component.filePath.includes(resolve('./runtime/app/components/Templates/Community')))
             category = 'community'
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
-          // see if we can extract credits from the component file, just find the line that starts with * @credits and return the rest of the line
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
           ogImageComponentCtx.components.push({
-            // purge cache when component changes
             hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
             path: component.filePath,
             category,
             credits,
+            renderer,
           })
         }
       })
+
       // in production, add community template metadata for validation (not registered as components)
       if (!nuxt.options.dev) {
         const communityDir = resolve('./runtime/app/components/Templates/Community')
@@ -707,6 +727,9 @@ export default defineNuxtModule<ModuleOptions>({
           fs.readdirSync(communityDir)
             .filter(f => f.endsWith('.vue'))
             .forEach((file) => {
+              const renderer = getRendererFromFilename(file)
+              if (!renderer)
+                return
               const name = file.replace('.vue', '')
               const filePath = resolve(communityDir, file)
               // skip if already added (user ejected with same name)
@@ -718,11 +741,27 @@ export default defineNuxtModule<ModuleOptions>({
                 kebabName: name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
                 path: filePath,
                 category: 'community',
+                renderer,
               })
+              ogImageComponentCtx.detectedRenderers.add(renderer)
             })
         }
       }
-      // TODO add hook and types
+
+      // Validate: warn in dev, error in prod for missing suffix
+      if (invalidComponents.length > 0) {
+        const message = `OG Image components missing renderer suffix (.satori.vue, .chromium.vue, .takumi.vue):\n${
+          invalidComponents.map(c => `  ${c}`).join('\n')
+        }\n\nRun: npx nuxt-og-image migrate v6`
+
+        if (nuxt.options.dev) {
+          logger.warn(message)
+        }
+        else {
+          throw new Error(message)
+        }
+      }
+
       // @ts-expect-error untyped
       nuxt.hooks.hook('nuxt-og-image:components', ogImageComponentCtx)
     })
@@ -843,20 +882,21 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     // Setup playground. Only available in development
+    const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolver)
+      setupDevHandler(config, resolver, getDetectedRenderers)
       setupDevToolsUI(config, resolve)
     }
     else if (isNuxtGenerate()) {
-      setupGenerateHandler(config, resolver)
+      setupGenerateHandler(config, resolver, getDetectedRenderers)
     }
     else if (nuxt.options.build) {
-      await setupBuildHandler(config, resolver)
+      await setupBuildHandler(config, resolver, getDetectedRenderers)
     }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
-    setupPrerenderHandler(config, resolver)
+    setupPrerenderHandler(config, resolver, getDetectedRenderers)
   },
 })

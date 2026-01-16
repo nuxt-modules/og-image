@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('Nuxt', {
+defineOgImage('Nuxt', {
   title: 'The Intuitive Vue Framework',
   description: 'Build your next Vue.js application with confidence',
   headline: 'NUXT',

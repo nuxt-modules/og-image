@@ -535,10 +535,10 @@ const allImageKeys = computed(() => {
               <div class="">
                 <h2 class="text-2xl font-semibold mb-3">
                   <NIcon icon="carbon:information" class="text-blue-500" />
-                  Oops! Did you forget <code>defineOgImageComponent()</code>?
+                  Oops! Did you forget <code>defineOgImage()</code>?
                 </h2>
                 <p class="text-lg opacity-80 my-3">
-                  Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImageComponent()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
+                  Getting started with Nuxt OG Image is easy, simply add the <code>defineOgImage()</code> within setup script setup of your <code class="underline cursor-pointer" @click="openCurrentPageFile">{{ currentPageFile }}</code> file.
                 </p>
                 <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-lg">
                   Using Nuxt Content? Follow the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="underline">Nuxt Content guide</a>.

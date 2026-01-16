@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('Brutalist', {
+defineOgImage('Brutalist', {
   title: 'Break The Rules',
   subtitle: 'Design Manifesto',
   accent: '#facc15',

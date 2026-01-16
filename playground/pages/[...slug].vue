@@ -1,7 +1,5 @@
 <script lang="ts" setup>
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('NuxtSeo', {
+defineOgImage('NuxtSeo', {
   title: 'Welcome to the Nuxt.js Playground',
   description: 'A place to play with Nuxt.js and its ecosystem',
   image: 'https://play.nuxtjs.org/og-image.png',

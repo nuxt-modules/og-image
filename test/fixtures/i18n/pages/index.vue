@@ -17,7 +17,7 @@ const availableLocales = computed(() => {
 })
 
 // Pass already-translated strings as props
-defineOgImageComponent('NuxtSeo', {
+defineOgImage('NuxtSeo', {
   title: t('welcome'),
   description: t('description'),
   colorMode: 'dark',

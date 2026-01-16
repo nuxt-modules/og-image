@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('WithEmoji', {
+defineOgImage('WithEmoji', {
   title: 'Ship features faster with confidence',
   emoji: '🚀',
 })
