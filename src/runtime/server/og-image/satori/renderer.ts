@@ -2,7 +2,7 @@ import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
 import type { OgImageRenderEventContext, Renderer, ResolvedFontConfig } from '../../../types'
 import { fontCache } from '#og-image-cache'
-import { theme } from '#og-image-virtual/unocss-config.mjs'
+import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { sendError } from 'h3'
@@ -55,9 +55,17 @@ export async function createSvg(event: OgImageRenderEventContext) {
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
+  // Build tailwind theme from TW4 font vars
+  const fontFamily: Record<string, string> = {}
+  if (tw4FontVars['font-sans'])
+    fontFamily.sans = tw4FontVars['font-sans']
+  if (tw4FontVars['font-serif'])
+    fontFamily.serif = tw4FontVars['font-serif']
+  if (tw4FontVars['font-mono'])
+    fontFamily.mono = tw4FontVars['font-mono']
   const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions> {
     fonts,
-    tailwindConfig: { theme },
+    tailwindConfig: Object.keys(fontFamily).length ? { theme: { fontFamily } } : undefined,
     embedFont: true,
     width: options.width!,
     height: options.height!,

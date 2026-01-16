@@ -26,5 +26,12 @@ export default defineBuildConfig({
     'unstorage/drivers/fs',
     'consola/utils',
     '#nitro-internal-virtual/storage',
+    'tailwindcss',
+    // postcss packages (transitive deps of tailwindcss peer dep)
+    'postcss-calc',
+    'postcss-selector-parser',
+    'postcss-value-parser',
+    'cssesc',
+    'util-deprecate',
   ],
 })

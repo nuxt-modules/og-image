@@ -59,7 +59,7 @@ function buildIconSvg(iconData: { body: string, width?: number, height?: number 
   }
   const attrsStr = filteredAttrs.length > 0 ? ` ${filteredAttrs.join(' ')}` : ''
 
-  let svg = `<span${attrsStr} style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="1em" height="1em" fill="currentColor">${body}</svg></span>`
+  let svg = `<span${attrsStr} style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
   svg = makeIdsUnique(svg)
   return svg
 }
@@ -110,12 +110,56 @@ function getMimeType(ext: string): string {
   return mimeTypes[ext] || 'application/octet-stream'
 }
 
+// Satori unsupported utility patterns - filtered at build time
+// Reference: https://github.com/vercel/satori#css
+const SATORI_UNSUPPORTED_PATTERNS = [
+  /^ring(-|$)/, // Ring utilities - not supported
+  /^divide(-|$)/, // Divide utilities - not supported
+  /^space-(x|y)(-|$)/, // Space utilities - use gap instead
+  /^backdrop-/, // Backdrop utilities - not supported
+  // Note: filter utilities (blur, brightness, etc.) ARE supported by Satori
+  // Note: skew transforms ARE supported by Satori
+  /^transition(-|$)/, // Animation (static image)
+  /^animate(-|$)/,
+  /^duration(-|$)/,
+  /^ease(-|$)/,
+  /^delay(-|$)/,
+  /^scroll(-|$)/, // Scroll utilities
+  /^snap(-|$)/,
+  /^touch(-|$)/, // Touch/pointer
+  /^pointer-events(-|$)/,
+  /^cursor(-|$)/,
+  /^select(-|$)/, // User select
+  /^will-change(-|$)/,
+  /^placeholder(-|$)/,
+  /^caret(-|$)/,
+  /^accent(-|$)/,
+  /^columns(-|$)/,
+  /^break-(before|after|inside)(-|$)/,
+  /^hyphens(-|$)/,
+  /^content-(?!center|start|end|between|around|evenly|stretch)/, // content-* except flex alignment
+]
+
+function isSatoriUnsupported(cls: string): boolean {
+  return SATORI_UNSUPPORTED_PATTERNS.some(p => p.test(cls))
+}
+
 export interface AssetTransformOptions {
   componentDirs: string[]
   rootDir: string
   srcDir: string
   publicDir: string
   emojiSet?: string
+  /**
+   * Prebuilt TW4 style map: className -> { prop: value }
+   * Generated at build time from scanning all OG components
+   */
+  tw4StyleMap?: Record<string, Record<string, string>>
+  /**
+   * Promise that resolves when tw4StyleMap is ready.
+   * Ensures transforms don't race with style map population.
+   */
+  tw4StyleMapReady?: Promise<void>
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -222,6 +266,61 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             hasChanges = true
             return buildIconSvg(iconData, icons.width || 24, icons.height || 24, attrs)
           })
+        }
+      }
+
+      // Transform Tailwind classes to inline styles using prebuilt style map
+      // Wait for style map to be ready (prevents race with app:templates hook)
+      if (options.tw4StyleMapReady)
+        await options.tw4StyleMapReady
+      if (options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0) {
+        try {
+          const { transformVueTemplate } = await import('./vue-template-transform')
+          const styleMap = options.tw4StyleMap
+
+          // Wrap current template back into full SFC for AST parsing
+          const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
+
+          const result = await transformVueTemplate(fullCode, {
+            resolveStyles: async (classes) => {
+              // Filter unsupported classes first
+              const supported = classes.filter(cls => !isSatoriUnsupported(cls))
+              const unsupported = classes.filter(cls => isSatoriUnsupported(cls))
+
+              if (unsupported.length > 0) {
+                const componentName = id.split('/').pop()
+                console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
+              }
+
+              // Simple map lookup - no async TW4 compilation needed
+              const resolved: Record<string, Record<string, string>> = {}
+              for (const cls of supported) {
+                // Handle responsive prefixes: extract base class
+                const baseClass = cls.replace(/^(sm|md|lg|xl|2xl):/, '')
+                if (styleMap[baseClass]) {
+                  resolved[cls] = styleMap[baseClass]
+                }
+                else if (styleMap[cls]) {
+                  resolved[cls] = styleMap[cls]
+                }
+                // Classes not in map will be kept in class attr for Satori's tw prop
+              }
+              return resolved
+            },
+          })
+
+          if (result) {
+            // Extract the transformed template
+            const newTemplateStart = result.code.indexOf('<template>') + '<template>'.length
+            const newTemplateEnd = result.code.indexOf('</template>')
+            template = result.code.slice(newTemplateStart, newTemplateEnd)
+            hasChanges = true
+          }
+        }
+        catch (err) {
+          const componentName = id.split('/').pop()
+          console.warn(`[nuxt-og-image] ${componentName}: TW4 template transform failed, using original template`, (err as Error).message)
+          // Continue without TW4 transforms - Satori will try to handle classes via tw prop
         }
       }
 

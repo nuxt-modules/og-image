@@ -8,7 +8,7 @@ import encoding from './plugins/encoding'
 import flex from './plugins/flex'
 import imageSrc from './plugins/imageSrc'
 import nuxtIcon from './plugins/nuxt-icon'
-import unocss from './plugins/unocss'
+import twClasses from './plugins/twClasses'
 import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
 import { walkSatoriTree } from './utils'
@@ -39,11 +39,11 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     flex,
     encoding,
     nuxtIcon,
+    twClasses, // Convert class -> tw and handle breakpoints
   ])
   // do async transforms
   await Promise.all(walkSatoriTree(ctx, satoriTree, [
     emojis,
-    unocss,
     imageSrc,
   ]))
   return satoriTree

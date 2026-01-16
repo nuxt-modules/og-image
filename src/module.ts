@@ -19,7 +19,8 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
-import { defu } from 'defu'
+import { defu, defuFn } from 'defu'
+import { createJiti } from 'jiti'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { basename, isAbsolute, relative } from 'pathe'
@@ -34,6 +35,7 @@ import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
+import { extractTw4Metadata } from './build/tw4-transform'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import {
   ensureDependencies,
@@ -183,6 +185,15 @@ export interface ModuleOptions {
    * @default false
    */
   cacheQueryParams?: boolean
+  /**
+   * Path to your Tailwind CSS 4 entry file for OG image styling.
+   *
+   * Use this when using Tailwind 4 with the Vite plugin instead of @nuxtjs/tailwindcss.
+   * The CSS file should include `@import "tailwindcss"` and any `@theme` customizations.
+   *
+   * @example '~/assets/css/main.css'
+   */
+  tailwindCss?: string
 }
 
 export interface ModuleHooks {
@@ -332,14 +343,130 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Add build-time asset transform plugin for OgImage components
-    // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI
-    addVitePlugin(AssetTransformPlugin.vite({
-      emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
-      componentDirs: config.componentDirs,
-      rootDir: nuxt.options.rootDir,
-      srcDir: nuxt.options.srcDir,
-      publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
-    }))
+    // TW4 support: scan classes → compile with TW4 → resolve vars with postcss → style map
+    let tw4FontVars: Record<string, string> = {}
+    let tw4Breakpoints: Record<string, number> = {}
+    let tw4Colors: Record<string, string | Record<string, string>> = {}
+    // Prebuilt style map: className → { prop: value }
+    // Populated after scanning all OG components in app:templates hook
+    let tw4StyleMap: Record<string, Record<string, string>> = {}
+    // Promise for synchronizing style map population with Vite transforms
+    let resolveTw4StyleMapReady: () => void
+    const tw4StyleMapReady = new Promise<void>((resolve) => {
+      resolveTw4StyleMapReady = resolve
+    })
+
+    // Use app:templates hook to access resolved app.configs paths
+    nuxt.hook('app:templates', async (app) => {
+      const resolvedCssPath = config.tailwindCss
+        ? await resolver.resolvePath(config.tailwindCss)
+        : nuxt.options.alias['#tailwindcss'] as string | undefined
+
+      if (resolvedCssPath && existsSync(resolvedCssPath)) {
+        const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
+        if (tw4CssContent.includes('@theme') || tw4CssContent.includes('@import "tailwindcss"')) {
+          // Get Nuxt UI colors from app.config files if @nuxt/ui is installed
+          const nuxtUiDefaults = {
+            primary: 'green',
+            secondary: 'blue',
+            success: 'green',
+            info: 'blue',
+            warning: 'yellow',
+            error: 'red',
+            neutral: 'slate',
+          }
+
+          let nuxtUiColors: Record<string, string> | undefined
+          if (hasNuxtModule('@nuxt/ui')) {
+            // Load user's app.config files to get color overrides
+            const jiti = createJiti(nuxt.options.rootDir, {
+              interopDefault: true,
+              moduleCache: false,
+              alias: { '#app/config': 'nuxt/app' },
+            })
+            ;(globalThis as Record<string, unknown>).defineAppConfig = (c: unknown) => c
+
+            const userConfigs = await Promise.all(
+              app.configs.map(configPath =>
+                jiti.import(configPath)
+                  .then((m: unknown) => (m && typeof m === 'object' && 'default' in m ? (m as { default: unknown }).default : m))
+                  .catch(() => ({})),
+              ),
+            )
+
+            delete (globalThis as Record<string, unknown>).defineAppConfig
+
+            const mergedUserConfig = defuFn(...userConfigs as [object, ...object[]]) as { ui?: { colors?: Record<string, string> } }
+            nuxtUiColors = { ...nuxtUiDefaults, ...mergedUserConfig.ui?.colors }
+            logger.info(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
+          }
+
+          // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
+          const metadata = await extractTw4Metadata({
+            cssPath: resolvedCssPath,
+            nuxtUiColors,
+          }).catch((e) => {
+            logger.warn(`TW4 metadata extraction failed: ${e.message}`)
+            return { fontVars: {}, breakpoints: {}, colors: {} }
+          })
+
+          tw4FontVars = metadata.fontVars
+          tw4Breakpoints = metadata.breakpoints
+          tw4Colors = metadata.colors
+
+          // Scan all OG components for classes and generate style map
+          try {
+            const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
+            const { generateStyleMap } = await import('./build/tw4-generator')
+
+            // Scan for classes
+            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir)
+            const processableClasses = filterProcessableClasses(allClasses)
+
+            if (processableClasses.length > 0) {
+              logger.info(`TW4: Found ${processableClasses.length} unique classes in OG components`)
+
+              // Generate style map with postcss var resolution
+              const styleMap = await generateStyleMap({
+                cssPath: resolvedCssPath,
+                classes: processableClasses,
+                nuxtUiColors,
+              })
+
+              // Convert Map to plain object for plugin
+              tw4StyleMap = {}
+              for (const [cls, styles] of styleMap.classes) {
+                tw4StyleMap[cls] = styles
+              }
+
+              logger.info(`TW4: Generated style map with ${Object.keys(tw4StyleMap).length} resolved classes`)
+            }
+          }
+          catch (e) {
+            logger.warn(`TW4 style map generation failed: ${(e as Error).message}`)
+          }
+
+          logger.info(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
+        }
+      }
+      // Signal that style map is ready (even if empty or TW4 not enabled)
+      resolveTw4StyleMapReady()
+    })
+
+    // Add Vite plugin in modules:done (after all aliases registered)
+    // Note: tw4StyleMap is populated by app:templates hook; plugin awaits tw4StyleMapReady
+    nuxt.hook('modules:done', () => {
+      // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
+      addVitePlugin(AssetTransformPlugin.vite({
+        emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
+        componentDirs: config.componentDirs,
+        rootDir: nuxt.options.rootDir,
+        srcDir: nuxt.options.srcDir,
+        publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        get tw4StyleMap() { return tw4StyleMap }, // Getter to access populated map
+        tw4StyleMapReady, // Promise to wait for style map population
+      }))
+    })
 
     if (config.zeroRuntime) {
       config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
@@ -778,17 +905,12 @@ export default defineNuxtModule<ModuleOptions>({
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
 
-    // support simple theme extends
-    let unoCssConfig: any = {}
-    // @ts-expect-error module optional
-    nuxt.hook('tailwindcss:config', (tailwindConfig) => {
-      unoCssConfig = defu(tailwindConfig.theme?.extend, { ...tailwindConfig.theme, extend: undefined })
-    })
-    nuxt.hook('unocss:config', (_unoCssConfig) => {
-      unoCssConfig = { ..._unoCssConfig.theme }
-    })
-    nuxt.options.nitro.virtual['#og-image-virtual/unocss-config.mjs'] = () => {
-      return `export const theme = ${JSON.stringify(unoCssConfig)}`
+    // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
+    // Note: classMap is NOT included here as it's too heavy - transforms happen at build time via AssetTransformPlugin
+    nuxt.options.nitro.virtual['#og-image-virtual/tw4-theme.mjs'] = () => {
+      return `export const tw4FontVars = ${JSON.stringify(tw4FontVars)}
+export const tw4Breakpoints = ${JSON.stringify(tw4Breakpoints)}
+export const tw4Colors = ${JSON.stringify(tw4Colors)}`
     }
 
     registerTypeTemplates({
