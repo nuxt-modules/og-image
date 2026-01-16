@@ -2,7 +2,18 @@
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
+import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
+
+async function confirm(message: string): Promise<boolean> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  return new Promise((resolve) => {
+    rl.question(`${message} (y/N) `, (answer) => {
+      rl.close()
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes')
+    })
+  })
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -22,7 +33,7 @@ function getBaseName(filename: string): string {
 }
 
 function hasRendererSuffix(filename: string): boolean {
-  return /\.(satori|chromium|takumi)\.vue$/.test(filename)
+  return /\.(?:satori|chromium|takumi)\.vue$/.test(filename)
 }
 
 function listTemplates() {
@@ -80,6 +91,151 @@ function findOgImageComponents(dir: string): string[] {
   }
 
   return components
+}
+
+// Glob helper to find files recursively
+function globFiles(dir: string, pattern: RegExp, exclude: RegExp[] = []): string[] {
+  const results: string[] = []
+
+  function walk(currentDir: string) {
+    if (!existsSync(currentDir))
+      return
+    const entries = readdirSync(currentDir, { withFileTypes: true })
+    for (const entry of entries) {
+      const fullPath = join(currentDir, entry.name)
+      // Check exclusions
+      if (exclude.some(re => re.test(fullPath)))
+        continue
+      if (entry.isDirectory()) {
+        walk(fullPath)
+      }
+      else if (entry.isFile() && pattern.test(entry.name)) {
+        results.push(fullPath)
+      }
+    }
+  }
+
+  walk(dir)
+  return results
+}
+
+// Migrate defineOgImage API from old object-based to new component-first
+function migrateDefineOgImageApi(dryRun: boolean) {
+  const cwd = process.cwd()
+  const excludePatterns = [
+    /node_modules/,
+    /\.nuxt/,
+    /\.output/,
+    /dist/,
+  ]
+
+  // Find all Vue and TS files
+  const files = globFiles(cwd, /\.(?:vue|ts|tsx|js|jsx)$/, excludePatterns)
+  const changes: Array<{ file: string, count: number }> = []
+
+  for (const file of files) {
+    let content = readFileSync(file, 'utf-8')
+    let modified = false
+    let changeCount = 0
+
+    // Pattern 1: defineOgImageComponent → defineOgImage
+    if (/defineOgImageComponent\s*\(/.test(content)) {
+      content = content.replace(/defineOgImageComponent\s*\(/g, 'defineOgImage(')
+      modified = true
+      changeCount++
+    }
+
+    // Pattern 2: defineOgImage({ ... }) object syntax
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
+    const defineOgImageRegex = /defineOgImage\s*\(\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}\s*\)/g
+
+    content = content.replace(defineOgImageRegex, (match, inner) => {
+      // Try to parse the object literal
+      // Look for component, props, renderer patterns
+
+      // Extract component name
+      const componentMatch = inner.match(/component\s*:\s*['"]([^'"]+)['"]/)
+      const rendererMatch = inner.match(/renderer\s*:\s*['"]([^'"]+)['"]/)
+      const propsMatch = inner.match(/props\s*:\s*(\{[^}]*\})/)
+
+      // If no component and renderer is chromium, convert to screenshot
+      if (!componentMatch && rendererMatch && rendererMatch[1] === 'chromium') {
+        // Extract remaining options
+        const remaining = inner
+          .replace(/renderer\s*:\s*['"][^'"]+['"]\s*,?\s*/g, '')
+          .replace(/,\s*$/, '')
+          .trim()
+        modified = true
+        changeCount++
+        if (remaining) {
+          return `defineOgImageScreenshot({ ${remaining} })`
+        }
+        return `defineOgImageScreenshot()`
+      }
+
+      // If has component (or can derive from context)
+      if (componentMatch || rendererMatch) {
+        const componentName = componentMatch ? componentMatch[1] : 'NuxtSeo'
+        const props = propsMatch ? propsMatch[1] : '{}'
+
+        // Extract other options (not component, props, renderer)
+        const otherOptions: string[] = []
+        const lines = inner.split(/,(?![^{]*\})/).map((s: string) => s.trim())
+        for (const line of lines) {
+          if (!line)
+            continue
+          // Skip component, props, renderer
+          if (/^component\s*:/.test(line))
+            continue
+          if (/^props\s*:/.test(line))
+            continue
+          if (/^renderer\s*:/.test(line))
+            continue
+          otherOptions.push(line)
+        }
+
+        modified = true
+        changeCount++
+
+        if (otherOptions.length > 0) {
+          return `defineOgImage('${componentName}', ${props}, { ${otherOptions.join(', ')} })`
+        }
+        return `defineOgImage('${componentName}', ${props})`
+      }
+
+      // No match - return original
+      return match
+    })
+
+    // Pattern 3: Handle array syntax defineOgImage([...])
+    // This is more complex - skip for now, handle manually
+
+    if (modified) {
+      changes.push({ file, count: changeCount })
+      if (!dryRun) {
+        writeFileSync(file, content, 'utf-8')
+      }
+    }
+  }
+
+  if (changes.length === 0) {
+    console.log('✓ No defineOgImage calls need migration.')
+    return
+  }
+
+  console.log(`\nFound ${changes.length} file(s) with changes:\n`)
+  for (const { file, count } of changes) {
+    const relPath = file.replace(`${cwd}/`, '')
+    console.log(`  ${relPath} (${count} change${count > 1 ? 's' : ''})`)
+  }
+
+  if (dryRun) {
+    console.log('\n[Dry run - no changes made]')
+    console.log(`\nRun without --dry-run to apply changes.`)
+  }
+  else {
+    console.log(`\n✓ Migration complete. ${changes.length} file(s) updated.`)
+  }
 }
 
 // Migrate v6: rename components to include renderer suffix
@@ -190,13 +346,46 @@ else if (command === 'migrate') {
     process.exit(1)
   }
   const dryRun = args.includes('--dry-run') || args.includes('-d')
+  const skipConfirm = args.includes('--yes') || args.includes('-y')
   const rendererIdx = args.indexOf('--renderer')
-  const renderer = rendererIdx !== -1 ? args[rendererIdx + 1] : 'satori'
+  const renderer = rendererIdx !== -1 ? (args[rendererIdx + 1] || 'satori') : 'satori'
   if (!['satori', 'chromium', 'takumi'].includes(renderer)) {
     console.error(`Invalid renderer: ${renderer}. Must be satori, chromium, or takumi.`)
     process.exit(1)
   }
-  migrateV6(dryRun, renderer)
+
+  console.log('nuxt-og-image v6 Migration\n')
+  console.log('This will:')
+  console.log('  1. Rename OgImage components to include renderer suffix (.satori.vue, etc.)')
+  console.log('  2. Update defineOgImage() calls to new component-first API')
+  console.log('')
+  console.log('\x1B[33m⚠ WARNING: This modifies files directly and could break your code.\x1B[0m')
+  console.log('\x1B[33m  Make sure you have committed or backed up your changes first.\x1B[0m')
+  console.log('')
+
+  if (dryRun) {
+    console.log('[Dry run mode - no files will be modified]\n')
+    migrateV6(true, renderer)
+    console.log('')
+    migrateDefineOgImageApi(true)
+  }
+  else if (skipConfirm) {
+    migrateV6(false, renderer)
+    console.log('')
+    migrateDefineOgImageApi(false)
+  }
+  else {
+    confirm('Continue with migration?').then((confirmed) => {
+      if (!confirmed) {
+        console.log('Migration cancelled.')
+        process.exit(0)
+      }
+      console.log('')
+      migrateV6(false, renderer)
+      console.log('')
+      migrateDefineOgImageApi(false)
+    })
+  }
 }
 else if (command === 'enable') {
   const renderer = args[1]
@@ -212,7 +401,7 @@ else {
   console.log('Commands:')
   console.log('  list              List available community templates')
   console.log('  eject <name>      Eject a community template to your project')
-  console.log('  migrate v6        Rename components to include renderer suffix')
+  console.log('  migrate v6        Migrate to v6 (component suffixes + new API)')
   console.log('                    Options: --dry-run, --renderer <satori|chromium|takumi>')
   console.log('  enable <renderer> Install dependencies for a renderer (satori, chromium, takumi)')
 }

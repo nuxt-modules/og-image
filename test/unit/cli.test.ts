@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -75,7 +75,7 @@ describe('cli', () => {
       writeFileSync(join(ogDir, 'Default.vue'), '<template>test</template>')
       writeFileSync(join(ogDir, 'Blog.vue'), '<template>blog</template>')
 
-      const output = runCli('migrate v6')
+      const output = runCli('migrate v6 --yes')
       expect(output).toContain('Migration complete')
       expect(existsSync(join(ogDir, 'Default.satori.vue'))).toBe(true)
       expect(existsSync(join(ogDir, 'Blog.satori.vue'))).toBe(true)
@@ -87,7 +87,7 @@ describe('cli', () => {
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Screenshot.vue'), '<template>test</template>')
 
-      runCli('migrate v6 --renderer chromium')
+      runCli('migrate v6 --renderer chromium --yes')
       expect(existsSync(join(ogDir, 'Screenshot.chromium.vue'))).toBe(true)
     })
 
@@ -108,7 +108,7 @@ describe('cli', () => {
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Default.satori.vue'), '<template>test</template>')
 
-      const output = runCli('migrate v6')
+      const output = runCli('migrate v6 --yes')
       expect(output).toContain('already have renderer suffixes')
     })
 
@@ -117,7 +117,7 @@ describe('cli', () => {
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Default.vue'), '<template>test</template>')
 
-      runCli('migrate v6')
+      runCli('migrate v6 --yes')
       expect(existsSync(join(ogDir, 'Default.satori.vue'))).toBe(true)
     })
   })

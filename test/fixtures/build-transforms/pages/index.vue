@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineOgImage({ component: 'IconTest' })
+defineOgImage('IconTest', {})
 </script>
 
 <template>

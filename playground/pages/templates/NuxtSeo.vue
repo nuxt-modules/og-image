@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('NuxtSeo', {
+defineOgImage('NuxtSeo', {
   title: 'Build Better SEO with Nuxt',
   description: 'The complete SEO solution for Nuxt applications',
   theme: '#00dc82',

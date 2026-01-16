@@ -1,8 +1,5 @@
 <script setup lang="ts">
-defineOgImage({
-  component: 'SatoriTemplate',
-  props: { title: 'Home Page' },
-})
+defineOgImage('SatoriTemplate', { title: 'Home Page' })
 </script>
 
 <template>

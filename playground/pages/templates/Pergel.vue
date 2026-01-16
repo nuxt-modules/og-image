@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('Pergel', {
+defineOgImage('Pergel', {
   title: 'Next-Gen Development Tools',
   description: 'Supercharge your workflow with modern tooling',
   headline: 'PERGEL',

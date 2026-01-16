@@ -1,9 +1,6 @@
 <script lang="ts" setup>
-defineOgImage({
-  component: 'Default',
-  props: {
-    title: 'Cloudflare Takumi Test',
-  },
+defineOgImage('Default', {
+  title: 'Cloudflare Takumi Test',
 })
 </script>
 

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { defineOgImageComponent } from '#imports'
-
-defineOgImageComponent('Retro', {
+defineOgImage('Retro', {
   title: 'Welcome to the Grid',
   tagline: 'Synthwave Dreams',
 })

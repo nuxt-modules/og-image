@@ -19,7 +19,7 @@ const availableLocales = computed(() => {
 })
 
 // Pass locale as prop - component will load messages for this locale
-defineOgImageComponent('I18nDirect', {
+defineOgImage('I18nDirect', {
   locale: locale.value,
 })
 </script>

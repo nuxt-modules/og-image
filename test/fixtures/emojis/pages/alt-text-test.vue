@@ -1,7 +1,5 @@
 <script setup>
-defineOgImage({
-  component: 'EmojiAltTest',
-})
+defineOgImage('EmojiAltTest', {})
 </script>
 
 <template>

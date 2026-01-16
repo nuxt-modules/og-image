@@ -19,7 +19,7 @@ export interface TakumiNode {
 export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<TakumiNode> {
   let html = ctx.options.html
   if (!html) {
-    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
+    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
     island.html = htmlDecodeQuotes(island.html)
     await applyInlineCss(ctx, island)
     await applyEmojis(ctx, island)

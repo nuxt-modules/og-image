@@ -101,7 +101,7 @@ export interface OgImagePrebuilt extends OgImageOptions {
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 
-export interface OgImageOptions<T extends keyof OgImageComponents = 'NuxtSeo'> {
+export interface OgImageOptions<T extends keyof OgImageComponents = keyof OgImageComponents> {
   /**
    * The width of the screenshot.
    *

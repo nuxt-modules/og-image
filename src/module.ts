@@ -46,10 +46,6 @@ import { normaliseFontInput } from './pure'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, downloadFont, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, stripRendererSuffix } from './util'
-import {
-  getMissingDependencies,
-  getProviderDependencies,
-} from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -615,18 +611,11 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
-    ;[
-      // new
-      'OgImage',
-      'OgImageScreenshot',
-    ]
-      .forEach((name) => {
-        addComponent({
-          name,
-          filePath: resolve(`./runtime/app/components/OgImage/${name}`),
-          ...config.componentOptions,
-        })
-      })
+    addComponent({
+      name: 'OgImageScreenshot',
+      filePath: resolve(`./runtime/app/components/OgImage/OgImageScreenshot`),
+      ...config.componentOptions,
+    })
 
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage

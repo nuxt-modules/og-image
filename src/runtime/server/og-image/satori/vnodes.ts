@@ -16,7 +16,7 @@ import { walkSatoriTree } from './utils'
 export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNode> {
   let html = ctx.options.html
   if (!html) {
-    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props : ctx.options)
+    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
     // this fixes any inline style props that need to be wrapped in single quotes, such as:
     // background image, fonts, etc
     island.html = htmlDecodeQuotes(island.html)
