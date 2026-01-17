@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises'
-import { dirname, join } from 'pathe'
+import { dirname } from 'pathe'
 import postcss from 'postcss'
-import { buildNuxtUiVars, COLOR_PROPERTIES, convertColorToHex } from './tw4-utils'
+import { compile } from 'tailwindcss'
+import { buildNuxtUiVars, COLOR_PROPERTIES, convertColorToHex, createStylesheetLoader, decodeCssClassName } from './tw4-utils'
 
 export type Tw4FontVars = Record<string, string>
 export type Tw4Breakpoints = Record<string, number>
@@ -30,46 +31,18 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
   if (cachedCompiler && cachedCssPath === cssPath)
     return { compiler: cachedCompiler, vars: cachedVars! }
 
-  const { compile } = await import('tailwindcss')
   const userCss = await readFile(cssPath, 'utf-8')
   const baseDir = dirname(cssPath)
 
   const compiler = await compile(userCss, {
-    loadStylesheet: async (id: string, base: string) => {
-      if (id === 'tailwindcss') {
-        const { resolveModulePath } = await import('exsolve')
-        const twPath = resolveModulePath('tailwindcss/index.css', { from: baseDir })
-        if (twPath) {
-          const content = await readFile(twPath, 'utf-8').catch(() => '')
-          if (content)
-            return { path: twPath, base: dirname(twPath), content }
-        }
-        return {
-          path: 'virtual:tailwindcss',
-          base,
-          content: '@layer theme, base, components, utilities;\n@layer utilities { @tailwind utilities; }',
-        }
-      }
-      if (id.startsWith('./') || id.startsWith('../')) {
-        const resolved = join(base || baseDir, id)
-        const content = await readFile(resolved, 'utf-8').catch(() => '')
-        return { path: resolved, base: dirname(resolved), content }
-      }
-      const { resolveModulePath } = await import('exsolve')
-      const resolved = resolveModulePath(id, { from: base || baseDir, conditions: ['style'] })
-      if (resolved) {
-        const content = await readFile(resolved, 'utf-8').catch(() => '')
-        return { path: resolved, base: dirname(resolved), content }
-      }
-      return { path: id, base, content: '' }
-    },
+    loadStylesheet: createStylesheetLoader(baseDir),
   })
 
   const vars = new Map<string, string>()
 
   // Add Nuxt UI color fallbacks
   if (nuxtUiColors)
-    await buildNuxtUiVars(vars, nuxtUiColors)
+    buildNuxtUiVars(vars, nuxtUiColors)
 
   cachedCompiler = compiler
   cachedCssPath = cssPath
@@ -105,14 +78,7 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
     if (!sel.startsWith('.') || sel.includes(':') || sel.includes(' ') || sel.includes('>'))
       return
 
-    // Handle escaped characters in class names
-    // - .\32xl -> 2xl (hex escapes)
-    // - .m-0\.5 -> m-0.5 (escaped special chars)
-    let className = sel.slice(1)
-    // First handle hex escapes like \32 -> '2'
-    className = className.replace(/\\([0-9a-f]+)\s?/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
-    // Then handle escaped special chars like \. -> .
-    className = className.replace(/\\(.)/g, '$1')
+    const className = decodeCssClassName(sel)
 
     const styles: Record<string, string> = {}
     rule.walkDecls((decl) => {

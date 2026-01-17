@@ -1,8 +1,10 @@
 import { readFile } from 'node:fs/promises'
-import { dirname, join } from 'pathe'
+import { dirname } from 'pathe'
 import postcss from 'postcss'
+import postcssCalc from 'postcss-calc'
 import postcssCustomProperties from 'postcss-custom-properties'
-import { buildNuxtUiVars, convertOklchToHex } from './tw4-utils'
+import { compile } from 'tailwindcss'
+import { buildNuxtUiVars, convertOklchToHex, createStylesheetLoader, decodeCssClassName } from './tw4-utils'
 
 export interface StyleMap {
   classes: Map<string, Record<string, string>>
@@ -18,10 +20,10 @@ export interface GeneratorOptions {
 /**
  * Build CSS variable declarations from various sources.
  */
-async function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): Promise<string> {
+function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): string {
   // Expand Nuxt UI colors into vars map
   if (nuxtUiColors)
-    await buildNuxtUiVars(vars, nuxtUiColors)
+    buildNuxtUiVars(vars, nuxtUiColors)
 
   const lines: string[] = [':root {']
   for (const [name, value] of vars) {
@@ -55,19 +57,11 @@ function parseClassStyles(css: string): Map<string, Record<string, string>> {
   const root = postcss.parse(css)
 
   root.walkRules((rule) => {
-    // Only process simple class selectors
     const selector = rule.selector
     if (!selector.startsWith('.'))
       return
 
-    // Handle escaped characters in class names (e.g., .\32xl → 2xl)
-    let className = selector.slice(1) // Remove leading .
-
-    // Decode hex escapes: \32 → 2, \3a → :
-    className = className.replace(/\\([0-9a-f]+)\s?/gi, (_, hex) =>
-      String.fromCodePoint(Number.parseInt(hex, 16)))
-    // Decode simple escapes: \: → :, \/ → /
-    className = className.replace(/\\(.)/g, '$1')
+    const className = decodeCssClassName(selector)
 
     // Skip pseudo-classes and complex selectors
     if (className.includes(':') && !className.match(/^[\w-]+$/))
@@ -115,42 +109,12 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
   }
 
   // 1. Compile with TW4
-  const { compile } = await import('tailwindcss')
-  const { resolveModulePath } = await import('exsolve')
   const cssContent = await readFile(cssPath, 'utf-8')
   const baseDir = dirname(cssPath)
 
   const compiler = await compile(cssContent, {
     base: baseDir,
-    loadStylesheet: async (id: string, base: string) => {
-      // Handle tailwindcss import
-      if (id === 'tailwindcss') {
-        const twPath = resolveModulePath('tailwindcss/index.css', { from: baseDir })
-        if (twPath) {
-          const content = await readFile(twPath, 'utf-8').catch(() => '')
-          if (content)
-            return { path: twPath, base: dirname(twPath), content }
-        }
-        return {
-          path: 'virtual:tailwindcss',
-          base,
-          content: '@layer theme, base, components, utilities;\n@layer utilities { @tailwind utilities; }',
-        }
-      }
-      // Handle relative imports
-      if (id.startsWith('./') || id.startsWith('../')) {
-        const resolved = join(base || baseDir, id)
-        const content = await readFile(resolved, 'utf-8').catch(() => '')
-        return { path: resolved, base: dirname(resolved), content }
-      }
-      // Handle node_modules imports (e.g., @nuxt/ui)
-      const resolved = resolveModulePath(id, { from: base || baseDir, conditions: ['style'] })
-      if (resolved) {
-        const content = await readFile(resolved, 'utf-8').catch(() => '')
-        return { path: resolved, base: dirname(resolved), content }
-      }
-      return { path: id, base, content: '' }
-    },
+    loadStylesheet: createStylesheetLoader(baseDir),
   })
 
   const rawCSS = compiler.build(classes)
@@ -159,13 +123,12 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
   const vars = extractVars(rawCSS)
 
   // 3. Build :root CSS with all vars (includes expanded Nuxt UI colors)
-  const varsCSS = await buildVarsCSS(vars, nuxtUiColors)
+  const varsCSS = buildVarsCSS(vars, nuxtUiColors)
 
   // 4. Combine: vars first, then class rules
   const fullCSS = `${varsCSS}\n${rawCSS}`
 
   // 5. Run postcss plugins to resolve vars and calc expressions
-  const postcssCalc = (await import('postcss-calc')).default
   const result = await postcss([
     postcssCustomProperties({
       preserve: false, // Remove var() after resolving
