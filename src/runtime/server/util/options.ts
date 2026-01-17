@@ -54,13 +54,14 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
     })
   }
 
-  // check if using a community template - must be ejected for production
+  // check if using a community template - auto-ejected in dev, error in prod
   if (resolved.category === 'community') {
-    const msg = `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image eject ${resolved.pascalName}`
-    if (import.meta.dev)
-      console.warn(`[nuxt-og-image] ${msg}`)
-    else
-      throw createError({ statusCode: 500, message: msg })
+    if (!import.meta.dev) {
+      throw createError({
+        statusCode: 500,
+        message: `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image eject ${resolved.pascalName}`,
+      })
+    }
   }
 
   // Use explicit renderer override if provided (internal use), otherwise from component

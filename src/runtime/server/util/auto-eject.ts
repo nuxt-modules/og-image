@@ -1,0 +1,52 @@
+import type { OgImageComponent, OgImageRuntimeConfig } from '../../types'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const ejectedTemplates = new Set<string>()
+
+export function autoEjectCommunityTemplate(
+  component: OgImageComponent,
+  runtimeConfig: OgImageRuntimeConfig,
+): void {
+  if (!import.meta.dev)
+    return
+
+  const { srcDir, communityTemplatesDir } = runtimeConfig
+  if (!srcDir || !communityTemplatesDir)
+    return
+
+  // already processed this session
+  if (ejectedTemplates.has(component.pascalName))
+    return
+
+  ejectedTemplates.add(component.pascalName)
+
+  // determine filename from pascalName (e.g., OgImageNuxtSeoSatori -> NuxtSeo.satori.vue)
+  const baseName = component.pascalName
+    .replace(/^OgImage/, '')
+    .replace(/(Satori|Chromium|Takumi)$/, '')
+  const filename = `${baseName}.${component.renderer}.vue`
+
+  const outputDir = join(srcDir, 'components', 'OgImage')
+  const outputPath = join(outputDir, filename)
+
+  // already exists in user's project
+  if (existsSync(outputPath))
+    return
+
+  const templatePath = join(communityTemplatesDir, filename)
+  if (!existsSync(templatePath)) {
+    console.warn(`[nuxt-og-image] Community template not found: ${templatePath}`)
+    return
+  }
+
+  // create output directory if needed
+  if (!existsSync(outputDir))
+    mkdirSync(outputDir, { recursive: true })
+
+  // copy template
+  const content = readFileSync(templatePath, 'utf-8')
+  writeFileSync(outputPath, content, 'utf-8')
+
+  console.log(`[nuxt-og-image] Auto-ejected community template "${baseName}" to ${outputPath}`)
+}

@@ -17,6 +17,7 @@ import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
 import { decodeOgImageParams, separateProps } from '../../shared'
+import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { useOgImageRuntimeConfig } from '../utils'
@@ -144,6 +145,11 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
 
   // Normalise options and get renderer from component metadata
   const normalised = normaliseOptions(options)
+
+  // Auto-eject community templates in dev mode
+  if (normalised.component?.category === 'community')
+    autoEjectCommunityTemplate(normalised.component, runtimeConfig)
+
   const rendererType = normalised.renderer
   const key = normalised.options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)
 

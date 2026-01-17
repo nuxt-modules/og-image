@@ -53,6 +53,10 @@ export interface OgImageRuntimeConfig {
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
   buildCacheDir?: string
+  /** Source directory for auto-eject (dev only) */
+  srcDir?: string
+  /** Path to community templates (dev only) */
+  communityTemplatesDir?: string
 
   app: {
     baseURL: string
