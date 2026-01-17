@@ -1,6 +1,7 @@
-import type { ElementNode, TemplateChildNode } from '@vue/compiler-core'
+import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
+import { walkTemplateAst } from './tw4-utils'
 
 export interface ClassToStyleOptions {
   /** Resolve classes to inline CSS styles */
@@ -39,7 +40,7 @@ export async function transformVueTemplate(
   const collectors: StyleCollector[] = []
 
   // Walk AST and collect class/style info
-  walkAst(descriptor.template.ast.children, (node) => {
+  walkTemplateAst(descriptor.template.ast.children, (node) => {
     if (node.type !== ELEMENT_NODE)
       return
 
@@ -154,17 +155,5 @@ export async function transformVueTemplate(
   return {
     code: s.toString(),
     map: s.generateMap({ hires: true }),
-  }
-}
-
-function walkAst(
-  nodes: TemplateChildNode[],
-  visitor: (node: TemplateChildNode) => void,
-) {
-  for (const node of nodes) {
-    visitor(node)
-    if ('children' in node && Array.isArray(node.children)) {
-      walkAst(node.children as TemplateChildNode[], visitor)
-    }
   }
 }

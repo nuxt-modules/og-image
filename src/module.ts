@@ -15,7 +15,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule, updateTemplates } from '@nuxt/kit'
 import { defu, defuFn } from 'defu'
 import { createJiti } from 'jiti'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -29,7 +29,7 @@ import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
-import { extractTw4Metadata } from './build/tw4-transform'
+import { clearTw4Cache, extractTw4Metadata } from './build/tw4-transform'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import {
   ensureDependencies,
@@ -331,6 +331,8 @@ export default defineNuxtModule<ModuleOptions>({
     // Prebuilt style map: className → { prop: value }
     // Populated after scanning all OG components in app:templates hook
     let tw4StyleMap: Record<string, Record<string, string>> = {}
+    // Resolved TW4 CSS path (stored for HMR watch)
+    let tw4CssPath: string | undefined
     // Promise for synchronizing style map population with Vite transforms
     let resolveTw4StyleMapReady: () => void
     const tw4StyleMapReady = new Promise<void>((resolve) => {
@@ -342,6 +344,9 @@ export default defineNuxtModule<ModuleOptions>({
       const resolvedCssPath = config.tailwindCss
         ? await resolver.resolvePath(config.tailwindCss)
         : nuxt.options.alias['#tailwindcss'] as string | undefined
+
+      // Store for HMR watch handler
+      tw4CssPath = resolvedCssPath
 
       if (resolvedCssPath && existsSync(resolvedCssPath)) {
         const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
@@ -963,6 +968,56 @@ export const tw4Colors = ${JSON.stringify(tw4Colors)}`
     if (nuxt.options.dev) {
       setupDevHandler(config, resolver, getDetectedRenderers)
       setupDevToolsUI(config, resolve)
+
+      // Capture Nitro for HMR reload
+      const useNitro = new Promise<import('nitropack/types').Nitro>((resolveNitro) => {
+        nuxt.hooks.hook('nitro:init', resolveNitro)
+      })
+
+      // HMR: watch for TW4 CSS and OgImage component changes
+      nuxt.hook('builder:watch', async (_event, relativePath) => {
+        const absolutePath = join(nuxt.options.rootDir, relativePath)
+
+        // Check if TW4 CSS file changed
+        const isTw4CssChange = tw4CssPath && absolutePath === tw4CssPath
+
+        // Check if OgImage component changed
+        const isOgImageComponent = config.componentDirs.some((dir) => {
+          const componentDir = join(nuxt.options.srcDir, 'components', dir)
+          return absolutePath.startsWith(componentDir) && absolutePath.endsWith('.vue')
+        })
+
+        if (isTw4CssChange || isOgImageComponent) {
+          // Clear TW4 caches
+          clearTw4Cache()
+
+          // Regenerate style map if TW4 is enabled
+          if (tw4CssPath && existsSync(tw4CssPath)) {
+            const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
+            const { generateStyleMap } = await import('./build/tw4-generator')
+
+            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir)
+            const processableClasses = filterProcessableClasses(allClasses)
+
+            if (processableClasses.length > 0) {
+              const styleMap = await generateStyleMap({
+                cssPath: tw4CssPath,
+                classes: processableClasses,
+              })
+              tw4StyleMap = {}
+              for (const [cls, styles] of styleMap.classes) {
+                tw4StyleMap[cls] = styles
+              }
+              logger.info(`HMR: Regenerated TW4 style map (${Object.keys(tw4StyleMap).length} classes)`)
+            }
+          }
+
+          // Update templates to refresh virtual modules and trigger Nitro reload
+          await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
+          const nitro = await useNitro
+          await nitro.hooks.callHook('rollup:reload')
+        }
+      })
     }
     else if (isNuxtGenerate()) {
       setupGenerateHandler(config, resolver, getDetectedRenderers)

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { dirname } from 'pathe'
 import postcss from 'postcss'
+import postcssCalc from 'postcss-calc'
 import { compile } from 'tailwindcss'
 import { buildNuxtUiVars, COLOR_PROPERTIES, convertColorToHex, createStylesheetLoader, decodeCssClassName } from './tw4-utils'
 
@@ -96,83 +97,17 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
 }
 
 /**
- * Safely evaluate simple arithmetic expressions without using eval/Function.
- * Supports: +, -, *, / with proper operator precedence.
- */
-function safeEvaluateArithmetic(expr: string): number | null {
-  // Tokenize: numbers and operators only
-  const tokens = expr.match(/[\d.]+|[+\-*/]/g)
-  if (!tokens)
-    return null
-
-  const numbers: number[] = []
-  const operators: string[] = []
-
-  const applyOperator = () => {
-    const op = operators.pop()
-    const b = numbers.pop()
-    const a = numbers.pop()
-    if (a === undefined || b === undefined || !op)
-      return false
-    switch (op) {
-      case '+':
-        numbers.push(a + b)
-        break
-      case '-':
-        numbers.push(a - b)
-        break
-      case '*':
-        numbers.push(a * b)
-        break
-      case '/':
-        numbers.push(b !== 0 ? a / b : 0)
-        break
-      default:
-        return false
-    }
-    return true
-  }
-
-  const precedence = (op: string) => (op === '+' || op === '-') ? 1 : 2
-
-  for (const token of tokens) {
-    if (/^[\d.]+$/.test(token)) {
-      const num = Number.parseFloat(token)
-      if (Number.isNaN(num))
-        return null
-      numbers.push(num)
-    }
-    else {
-      while (operators.length && precedence(operators[operators.length - 1]!) >= precedence(token)) {
-        if (!applyOperator())
-          return null
-      }
-      operators.push(token)
-    }
-  }
-
-  while (operators.length) {
-    if (!applyOperator())
-      return null
-  }
-
-  return numbers.length === 1 ? numbers[0]! : null
-}
-
-/**
- * Evaluate simple calc() expressions that Satori can't handle.
- * e.g., calc(1 / 0.75) -> 1.333...
+ * Evaluate calc() expressions using postcss-calc.
+ * Wraps value in a fake CSS rule, processes it, and extracts the result.
  */
 function evaluateCalc(value: string): string {
-  return value.replace(/calc\(([^)]+)\)/g, (match, expr) => {
-    // Only evaluate simple arithmetic (no units in the expression itself)
-    if (/^[\d.+\-*/\s]+$/.test(expr)) {
-      const result = safeEvaluateArithmetic(expr)
-      if (result !== null && Number.isFinite(result))
-        return String(result)
-    }
-    return match
-  })
+  if (!value.includes('calc('))
+    return value
+
+  const fakeCss = `.x{v:${value}}`
+  const result = postcss([postcssCalc({})]).process(fakeCss, { from: undefined })
+  const match = result.css.match(/\.x\{v:(.+)\}/)
+  return match?.[1] ?? value
 }
 
 /**

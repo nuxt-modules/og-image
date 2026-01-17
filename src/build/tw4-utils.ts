@@ -1,3 +1,4 @@
+import type { TemplateChildNode } from '@vue/compiler-core'
 import { readFile } from 'node:fs/promises'
 import { formatHex, parse, toGamut } from 'culori'
 import { resolveModulePath } from 'exsolve'
@@ -144,5 +145,19 @@ export function buildNuxtUiVars(
   for (const [name, value] of Object.entries(semanticVars)) {
     if (value && !vars.has(name))
       vars.set(name, value)
+  }
+}
+
+/**
+ * Walk Vue template AST nodes recursively.
+ */
+export function walkTemplateAst(
+  nodes: TemplateChildNode[],
+  visitor: (node: TemplateChildNode) => void,
+): void {
+  for (const node of nodes) {
+    visitor(node)
+    if ('children' in node && Array.isArray(node.children))
+      walkTemplateAst(node.children as TemplateChildNode[], visitor)
   }
 }

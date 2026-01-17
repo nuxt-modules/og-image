@@ -1,14 +1,73 @@
+import type { ElementNode } from '@vue/compiler-core'
 import { readFile } from 'node:fs/promises'
+import { parse as parseSfc } from '@vue/compiler-sfc'
 import { glob } from 'tinyglobby'
+import { walkTemplateAst } from './tw4-utils'
+
+const ELEMENT_NODE = 1
+const ATTRIBUTE_NODE = 6
+const DIRECTIVE_NODE = 7
+
+/**
+ * Extract classes from a single Vue component using AST parsing.
+ */
+function extractClassesFromVue(code: string): string[] {
+  const { descriptor } = parseSfc(code)
+  if (!descriptor.template?.ast)
+    return []
+
+  const classes: string[] = []
+
+  walkTemplateAst(descriptor.template.ast.children, (node) => {
+    if (node.type !== ELEMENT_NODE)
+      return
+
+    const el = node as ElementNode
+
+    for (const prop of el.props) {
+      // Static class="..."
+      if (prop.type === ATTRIBUTE_NODE && prop.name === 'class' && prop.value) {
+        for (const cls of prop.value.content.split(/\s+/)) {
+          if (cls && !cls.includes('{') && !cls.includes('$'))
+            classes.push(cls)
+        }
+      }
+
+      // Dynamic :class bindings
+      if (prop.type === DIRECTIVE_NODE && prop.name === 'bind' && prop.arg?.type === 4 && (prop.arg as any).content === 'class') {
+        const expr = prop.exp
+        if (expr?.type === 4) {
+          // Simple expression - extract string literals
+          const content = (expr as any).content as string
+          extractClassesFromExpression(content, classes)
+        }
+      }
+    }
+  })
+
+  return classes
+}
+
+/**
+ * Extract class names from a Vue expression string.
+ * Handles: 'class', `class`, { 'class': cond }, [cond ? 'a' : 'b'], arrays, objects
+ */
+function extractClassesFromExpression(expr: string, classes: string[]): void {
+  // Match all quoted strings (single, double, backtick)
+  for (const match of expr.matchAll(/['"`]([\w:.\-/]+)['"`]/g)) {
+    const cls = match[1]
+    if (cls && !cls.includes('{') && !cls.includes('$') && !cls.includes('/'))
+      classes.push(cls)
+  }
+}
 
 /**
  * Extract all static class names from OG image component files.
- * Handles: class="...", :class="'...'" (static strings in dynamic)
+ * Uses AST parsing for reliable extraction.
  */
 export async function scanComponentClasses(componentDirs: string[], srcDir: string): Promise<Set<string>> {
   const classes = new Set<string>()
 
-  // Build glob patterns for all component directories
   const patterns = componentDirs.map(dir => `**/${dir}/**/*.vue`)
 
   const files = await glob(patterns, {
@@ -17,7 +76,6 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     ignore: ['**/node_modules/**'],
   })
 
-  // Read all files in parallel
   const contents = await Promise.all(
     files.map(file => readFile(file, 'utf-8').catch(() => null)),
   )
@@ -26,55 +84,8 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     if (!content)
       continue
 
-    // Extract template section
-    const templateMatch = content.match(/<template[^>]*>([\s\S]*)<\/template>/)
-    if (!templateMatch?.[1])
-      continue
-
-    const template = templateMatch[1]
-
-    // Extract static class="..." attributes
-    for (const match of template.matchAll(/\bclass="([^"]+)"/g)) {
-      const classStr = match[1]
-      if (!classStr)
-        continue
-      for (const cls of classStr.split(/\s+/)) {
-        if (cls && !cls.includes('{') && !cls.includes('$'))
-          classes.add(cls)
-      }
-    }
-
-    // Extract static classes from :class="'...'" or :class="`...`"
-    for (const match of template.matchAll(/:class="['`]([^'`]+)['`]"/g)) {
-      const classStr = match[1]
-      if (!classStr)
-        continue
-      for (const cls of classStr.split(/\s+/)) {
-        if (cls && !cls.includes('{') && !cls.includes('$'))
-          classes.add(cls)
-      }
-    }
-
-    // Extract from :class="{ 'class-name': condition }" - get the class names
-    for (const match of template.matchAll(/:class="\{([^}]+)\}"/g)) {
-      const objContent = match[1]
-      if (!objContent)
-        continue
-      for (const keyMatch of objContent.matchAll(/['"]([^'"]+)['"]\s*:/g)) {
-        const cls = keyMatch[1]
-        if (cls && !cls.includes('{') && !cls.includes('$'))
-          classes.add(cls)
-      }
-    }
-
-    // Extract from :class="[condition ? 'class1' : 'class2']" - get both classes
-    for (const arrayExpr of template.matchAll(/:class="\[[^\]]+\]"/g)) {
-      for (const match of arrayExpr[0].matchAll(/['"]([\w:-]+)['"]/g)) {
-        const cls = match[1]
-        if (cls && !cls.includes('{') && !cls.includes('$'))
-          classes.add(cls)
-      }
-    }
+    for (const cls of extractClassesFromVue(content))
+      classes.add(cls)
   }
 
   return classes
@@ -91,7 +102,6 @@ export function filterProcessableClasses(classes: Set<string>): string[] {
   for (const cls of classes) {
     // Skip responsive variants - handled at runtime
     if (responsivePrefixes.some(p => cls.startsWith(p))) {
-      // Add the base class without prefix
       const baseClass = cls.replace(/^(sm|md|lg|xl|2xl):/, '')
       if (baseClass)
         processable.push(baseClass)
@@ -109,6 +119,5 @@ export function filterProcessableClasses(classes: Set<string>): string[] {
     processable.push(cls)
   }
 
-  // Dedupe
   return [...new Set(processable)]
 }
