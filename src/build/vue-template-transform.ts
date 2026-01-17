@@ -116,40 +116,34 @@ export async function transformVueTemplate(
       .map(([prop, value]) => `${prop}: ${escapeAttrValue(value)}`)
       .join('; ')
 
-    if (Object.keys(styleProps).length > 0 || unresolvedClasses.length !== collector.classes.length) {
-      hasChanges = true
+    const hasResolvedStyles = Object.keys(styleProps).length > 0
+    const hasUnresolved = unresolvedClasses.length > 0
+    const resolvedSome = unresolvedClasses.length < collector.classes.length
 
-      // Remove existing class attribute if we resolved everything
-      if (unresolvedClasses.length === 0 && collector.classLoc) {
-        // Remove class attr, add/update style
-        s.remove(collector.classLoc.start, collector.classLoc.end)
+    if (!resolvedSome)
+      continue
 
-        if (collector.styleLoc) {
-          // Update existing style
-          s.overwrite(collector.styleLoc.start, collector.styleLoc.end, `style="${styleStr}"`)
-        }
-        else {
-          // Insert style after the removed class location
-          // We need to find where to insert - after tag name
-          s.appendLeft(collector.classLoc.start, `style="${styleStr}" `)
-        }
+    hasChanges = true
+
+    if (!collector.classLoc)
+      continue
+
+    if (hasUnresolved) {
+      // Keep unresolved classes
+      s.overwrite(collector.classLoc.start, collector.classLoc.end, `class="${unresolvedClasses.join(' ')}"`)
+    }
+    else {
+      // Remove class attr entirely
+      s.remove(collector.classLoc.start, collector.classLoc.end)
+    }
+
+    // Add/update style attribute
+    if (hasResolvedStyles) {
+      if (collector.styleLoc) {
+        s.overwrite(collector.styleLoc.start, collector.styleLoc.end, `style="${styleStr}"`)
       }
-      else if (unresolvedClasses.length > 0 && collector.classLoc) {
-        // Keep unresolved classes, add resolved as style
-        s.overwrite(
-          collector.classLoc.start,
-          collector.classLoc.end,
-          `class="${unresolvedClasses.join(' ')}"`,
-        )
-
-        if (styleStr) {
-          if (collector.styleLoc) {
-            s.overwrite(collector.styleLoc.start, collector.styleLoc.end, `style="${styleStr}"`)
-          }
-          else {
-            s.appendLeft(collector.classLoc.start, `style="${styleStr}" `)
-          }
-        }
+      else {
+        s.appendLeft(collector.classLoc.start, `style="${styleStr}" `)
       }
     }
   }

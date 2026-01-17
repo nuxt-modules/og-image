@@ -17,13 +17,17 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     ignore: ['**/node_modules/**'],
   })
 
-  for (const file of files) {
-    const content = await readFile(file, 'utf-8').catch(() => null)
+  // Read all files in parallel
+  const contents = await Promise.all(
+    files.map(file => readFile(file, 'utf-8').catch(() => null)),
+  )
+
+  for (const content of contents) {
     if (!content)
       continue
 
     // Extract template section
-    const templateMatch = content.match(/<template[^>]*>([\s\S]*?)<\/template>/)
+    const templateMatch = content.match(/<template[^>]*>([\s\S]*)<\/template>/)
     if (!templateMatch?.[1])
       continue
 
@@ -34,7 +38,6 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
       const classStr = match[1]
       if (!classStr)
         continue
-      // Split by whitespace and add each class
       for (const cls of classStr.split(/\s+/)) {
         if (cls && !cls.includes('{') && !cls.includes('$'))
           classes.add(cls)
@@ -42,7 +45,6 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     }
 
     // Extract static classes from :class="'...'" or :class="`...`"
-    // This catches simple static strings in dynamic bindings
     for (const match of template.matchAll(/:class="['`]([^'`]+)['`]"/g)) {
       const classStr = match[1]
       if (!classStr)
@@ -58,7 +60,6 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
       const objContent = match[1]
       if (!objContent)
         continue
-      // Match 'class-name' or "class-name" keys
       for (const keyMatch of objContent.matchAll(/['"]([^'"]+)['"]\s*:/g)) {
         const cls = keyMatch[1]
         if (cls && !cls.includes('{') && !cls.includes('$'))
@@ -67,14 +68,11 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     }
 
     // Extract from :class="[condition ? 'class1' : 'class2']" - get both classes
-    const arrayClassMatch = template.match(/:class="\[[^\]]+\]"/g)
-    if (arrayClassMatch) {
-      for (const arrayExpr of arrayClassMatch) {
-        for (const match of arrayExpr.matchAll(/['"]([\w:-]+)['"]/g)) {
-          const cls = match[1]
-          if (cls && !cls.includes('{') && !cls.includes('$'))
-            classes.add(cls)
-        }
+    for (const arrayExpr of template.matchAll(/:class="\[[^\]]+\]"/g)) {
+      for (const match of arrayExpr[0].matchAll(/['"]([\w:-]+)['"]/g)) {
+        const cls = match[1]
+        if (cls && !cls.includes('{') && !cls.includes('$'))
+          classes.add(cls)
       }
     }
   }

@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises'
-// @ts-expect-error no types
-import { formatHex, parse, toGamut } from 'culori'
 import { dirname, join } from 'pathe'
 import postcss from 'postcss'
+import { buildNuxtUiVars, COLOR_PROPERTIES, convertColorToHex } from './tw4-utils'
 
 export type Tw4FontVars = Record<string, string>
 export type Tw4Breakpoints = Record<string, number>
@@ -12,27 +11,6 @@ export interface Tw4Metadata {
   fontVars: Tw4FontVars
   breakpoints: Tw4Breakpoints
   colors: Tw4Colors
-}
-
-// Gamut map oklch to sRGB using culori's toGamut (reduces chroma to fit gamut)
-const toSrgbGamut = toGamut('rgb', 'oklch')
-
-// Convert any CSS color to hex with proper gamut mapping for oklch
-function convertColorToHex(value: string): string {
-  if (!value || value.includes('var('))
-    return value
-  try {
-    const color = parse(value)
-    if (!color)
-      return value
-    const mapped = toSrgbGamut(color)
-    const hex = formatHex(mapped)
-    return hex || value
-  }
-  catch {
-    // If color parsing fails, return original value
-    return value
-  }
 }
 
 // Compiler instance cache
@@ -53,8 +31,6 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
     return { compiler: cachedCompiler, vars: cachedVars! }
 
   const { compile } = await import('tailwindcss')
-  const twColors = await import('tailwindcss/colors').then(m => m.default) as Record<string, Record<number, string>>
-
   const userCss = await readFile(cssPath, 'utf-8')
   const baseDir = dirname(cssPath)
 
@@ -91,44 +67,9 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
   const vars = new Map<string, string>()
 
-  // Add Nuxt UI color fallbacks (generated at runtime, not in static CSS)
-  if (nuxtUiColors) {
-    const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
-    for (const [semantic, twColor] of Object.entries(nuxtUiColors)) {
-      for (const shade of shades) {
-        const varName = `--ui-color-${semantic}-${shade}`
-        const value = twColors[twColor]?.[shade]
-        if (value && !vars.has(varName))
-          vars.set(varName, value)
-      }
-      if (!vars.has(`--ui-${semantic}`))
-        vars.set(`--ui-${semantic}`, twColors[twColor]?.[500] || '')
-    }
-
-    // Add Nuxt UI semantic text/bg/border variables (light mode defaults)
-    const neutral = nuxtUiColors.neutral || 'slate'
-    const semanticVars: Record<string, string> = {
-      '--ui-text-dimmed': twColors[neutral]?.[400] || '',
-      '--ui-text-muted': twColors[neutral]?.[500] || '',
-      '--ui-text-toned': twColors[neutral]?.[600] || '',
-      '--ui-text': twColors[neutral]?.[700] || '',
-      '--ui-text-highlighted': twColors[neutral]?.[900] || '',
-      '--ui-text-inverted': '#ffffff',
-      '--ui-bg': '#ffffff',
-      '--ui-bg-muted': twColors[neutral]?.[50] || '',
-      '--ui-bg-elevated': twColors[neutral]?.[100] || '',
-      '--ui-bg-accented': twColors[neutral]?.[200] || '',
-      '--ui-bg-inverted': twColors[neutral]?.[900] || '',
-      '--ui-border': twColors[neutral]?.[200] || '',
-      '--ui-border-muted': twColors[neutral]?.[200] || '',
-      '--ui-border-accented': twColors[neutral]?.[300] || '',
-      '--ui-border-inverted': twColors[neutral]?.[900] || '',
-    }
-    for (const [name, value] of Object.entries(semanticVars)) {
-      if (value && !vars.has(name))
-        vars.set(name, value)
-    }
-  }
+  // Add Nuxt UI color fallbacks
+  if (nuxtUiColors)
+    await buildNuxtUiVars(vars, nuxtUiColors)
 
   cachedCompiler = compiler
   cachedCssPath = cssPath
@@ -137,24 +78,6 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
   return { compiler, vars }
 }
-
-// CSS properties that contain colors (need oklch→hex conversion)
-const COLOR_PROPERTIES = new Set([
-  'color',
-  'background-color',
-  'background-image',
-  'border-color',
-  'border-top-color',
-  'border-right-color',
-  'border-bottom-color',
-  'border-left-color',
-  'outline-color',
-  'fill',
-  'stroke',
-  'text-decoration-color',
-  'caret-color',
-  'accent-color',
-])
 
 /**
  * Parse TW4 compiler output using postcss.

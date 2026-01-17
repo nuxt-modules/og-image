@@ -1,9 +1,8 @@
 import { readFile } from 'node:fs/promises'
-// @ts-expect-error no types
-import { formatHex, parse, toGamut } from 'culori'
-import { dirname } from 'pathe'
+import { dirname, join } from 'pathe'
 import postcss from 'postcss'
 import postcssCustomProperties from 'postcss-custom-properties'
+import { buildNuxtUiVars, convertOklchToHex } from './tw4-utils'
 
 export interface StyleMap {
   classes: Map<string, Record<string, string>>
@@ -16,86 +15,18 @@ export interface GeneratorOptions {
   nuxtUiColors?: Record<string, string>
 }
 
-// Gamut map oklch to sRGB
-const toSrgbGamut = toGamut('rgb', 'oklch')
-
-function convertColorToHex(value: string): string {
-  if (!value || value.includes('var('))
-    return value
-  try {
-    const color = parse(value)
-    if (!color)
-      return value
-    const mapped = toSrgbGamut(color)
-    return formatHex(mapped) || value
-  }
-  catch {
-    return value
-  }
-}
-
-/**
- * Convert oklch colors in a CSS string to hex.
- */
-function convertOklchToHex(css: string): string {
-  return css.replace(/oklch\([^)]+\)/g, match => convertColorToHex(match))
-}
-
 /**
  * Build CSS variable declarations from various sources.
- * Expands Nuxt UI color names (e.g., { primary: 'indigo' }) to full CSS variable sets.
  */
 async function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): Promise<string> {
-  const lines: string[] = [':root {']
+  // Expand Nuxt UI colors into vars map
+  if (nuxtUiColors)
+    await buildNuxtUiVars(vars, nuxtUiColors)
 
-  // Add all collected vars
+  const lines: string[] = [':root {']
   for (const [name, value] of vars) {
     lines.push(`  ${name}: ${value};`)
   }
-
-  // Expand Nuxt UI semantic colors to full variable sets
-  if (nuxtUiColors) {
-    const twColors = await import('tailwindcss/colors').then(m => m.default) as Record<string, Record<number, string>>
-    const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
-
-    for (const [semantic, twColor] of Object.entries(nuxtUiColors)) {
-      // Add color shades (e.g., --ui-color-primary-500)
-      for (const shade of shades) {
-        const varName = `--ui-color-${semantic}-${shade}`
-        const value = twColors[twColor]?.[shade]
-        if (value && !vars.has(varName))
-          lines.push(`  ${varName}: ${value};`)
-      }
-      // Add semantic variable (e.g., --ui-primary)
-      if (!vars.has(`--ui-${semantic}`))
-        lines.push(`  --ui-${semantic}: ${twColors[twColor]?.[500] || ''};`)
-    }
-
-    // Add Nuxt UI semantic text/bg/border variables (light mode defaults)
-    const neutral = nuxtUiColors.neutral || 'slate'
-    const semanticVars: Record<string, string> = {
-      '--ui-text-dimmed': twColors[neutral]?.[400] || '',
-      '--ui-text-muted': twColors[neutral]?.[500] || '',
-      '--ui-text-toned': twColors[neutral]?.[600] || '',
-      '--ui-text': twColors[neutral]?.[700] || '',
-      '--ui-text-highlighted': twColors[neutral]?.[900] || '',
-      '--ui-text-inverted': '#ffffff',
-      '--ui-bg': '#ffffff',
-      '--ui-bg-muted': twColors[neutral]?.[50] || '',
-      '--ui-bg-elevated': twColors[neutral]?.[100] || '',
-      '--ui-bg-accented': twColors[neutral]?.[200] || '',
-      '--ui-bg-inverted': twColors[neutral]?.[900] || '',
-      '--ui-border': twColors[neutral]?.[200] || '',
-      '--ui-border-muted': twColors[neutral]?.[200] || '',
-      '--ui-border-accented': twColors[neutral]?.[300] || '',
-      '--ui-border-inverted': twColors[neutral]?.[900] || '',
-    }
-    for (const [name, value] of Object.entries(semanticVars)) {
-      if (value && !vars.has(name))
-        lines.push(`  ${name}: ${value};`)
-    }
-  }
-
   lines.push('}')
   return lines.join('\n')
 }
@@ -208,7 +139,6 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
       }
       // Handle relative imports
       if (id.startsWith('./') || id.startsWith('../')) {
-        const { join } = await import('pathe')
         const resolved = join(base || baseDir, id)
         const content = await readFile(resolved, 'utf-8').catch(() => '')
         return { path: resolved, base: dirname(resolved), content }
@@ -223,9 +153,7 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
     },
   })
 
-  // Build candidates string (space-separated classes)
-  const candidates = classes.join(' ')
-  const rawCSS = compiler.build(candidates.split(' '))
+  const rawCSS = compiler.build(classes)
 
   // 2. Extract vars from TW4 output
   const vars = extractVars(rawCSS)
