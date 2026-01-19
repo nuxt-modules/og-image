@@ -28,7 +28,7 @@ async function tryFallbackConnection() {
   const res = await fetch(`${fallbackUrl}/_og/debug.json`).catch(() => null)
   if (res?.ok) {
     // Set up fallback fetch
-    appFetch.value = (url: string, opts?: any) => fetch(`${fallbackUrl}${url}`, opts).then(r => r.json())
+    appFetch.value = ((url: string, opts?: any) => fetch(`${fallbackUrl}${url}`, opts).then(r => r.json())) as $Fetch
     base.value = '/'
     path.value = '/'
     connectionState.value = 'fallback'
