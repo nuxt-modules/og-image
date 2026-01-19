@@ -1,27 +1,3 @@
-declare module '#og-image/types' {
-  import type * as Types from '../src/runtime/types'
-
-  export = Types
-}
-
-declare module '#og-image/pure' {
-  import type * as Pure from '../src/runtime/pure'
-
-  export = Pure
-}
-
-declare module '#og-image/server/util/logger' {
-  import type * as Logger from '../src/runtime/server/util/logger'
-
-  export = Logger
-}
-
-declare module '#og-image/server/og-image/devtools' {
-  import type * as Devtools from '../src/runtime/server/og-image/devtools'
-
-  export = Devtools
-}
-
 declare module '#og-image/components' {
   import type { Component } from 'vue'
 

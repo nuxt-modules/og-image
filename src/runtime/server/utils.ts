@@ -1,5 +1,5 @@
-import type { OgImageOptions, OgImageRuntimeConfig } from '#og-image/types'
 import type { H3Event } from 'h3'
+import type { OgImageOptions, OgImageRuntimeConfig } from '../types'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { joinURL } from 'ufo'
 import { buildOgImageUrl } from '../shared'

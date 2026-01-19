@@ -1,10 +1,10 @@
-import type { DevToolsMetaDataExtraction, OgImageOptions } from '#og-image/types'
 import type { H3Error, H3Event } from 'h3'
+import type { DevToolsMetaDataExtraction, OgImageOptions } from '../../types'
 import { htmlPayloadCache } from '#og-image-cache'
-import { extractSocialPreviewTags } from '#og-image/pure'
-import { logger } from '#og-image/server/util/logger'
 import { parse } from 'devalue'
 import { createError } from 'h3'
+import { extractSocialPreviewTags } from '../../pure'
+import { logger } from '../util/logger'
 
 export interface DevToolsExtractPayload {
   options: OgImageOptions[]
