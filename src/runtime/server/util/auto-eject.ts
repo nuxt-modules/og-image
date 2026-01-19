@@ -1,6 +1,7 @@
 import type { OgImageComponent, OgImageRuntimeConfig } from '../../types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { logger } from './logger'
 
 const ejectedTemplates = new Set<string>()
 
@@ -36,7 +37,7 @@ export function autoEjectCommunityTemplate(
 
   const templatePath = join(communityTemplatesDir, filename)
   if (!existsSync(templatePath)) {
-    console.warn(`[nuxt-og-image] Community template not found: ${templatePath}`)
+    logger.warn(`[nuxt-og-image] Community template not found: ${templatePath}`)
     return
   }
 
@@ -48,5 +49,5 @@ export function autoEjectCommunityTemplate(
   const content = readFileSync(templatePath, 'utf-8')
   writeFileSync(outputPath, content, 'utf-8')
 
-  console.log(`[nuxt-og-image] Auto-ejected community template "${baseName}" to ${outputPath}`)
+  logger.info(`Auto-ejected community template "${baseName}" to ${outputPath}`)
 }
