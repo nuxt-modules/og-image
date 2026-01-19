@@ -6,7 +6,16 @@ export default defineNuxtConfig({
 
   modules: [
     DevtoolsUIKit,
+    '@nuxt/fonts',
   ],
+
+  css: ['~/assets/css/global.css'],
+
+  fonts: {
+    families: [
+      { name: 'Hubot Sans', provider: 'local', weight: [200, 900], stretch: '75% 125%' },
+    ],
+  },
 
   devtools: {
     enabled: false,
@@ -16,6 +25,9 @@ export default defineNuxtConfig({
     prerender: {
       routes: [
         '/',
+        '/templates',
+        '/debug',
+        '/docs',
       ],
     },
     output: {

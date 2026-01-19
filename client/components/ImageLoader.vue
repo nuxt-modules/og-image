@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from '#imports'
+import { ref, watch } from '#imports'
 
 const props = defineProps<{
   src: string
@@ -8,105 +8,138 @@ const props = defineProps<{
   maxWidth?: number
   minHeight?: number
 }>()
-// emits a load event
+
 const emit = defineEmits(['load'])
 
-const image = ref()
 const error = ref<string[] | false>(false)
 const loading = ref(true)
-const lastSrc = ref()
+const loadStart = ref(0)
 
-function setSource(src: string) {
-  const img = image.value as HTMLImageElement
-  if (src !== lastSrc.value) {
-    lastSrc.value = src
-    loading.value = true
-    img.style.backgroundImage = ''
-    img.style.backgroundRepeat = 'no-repeat'
-    img.style.backgroundSize = 'contain'
-    img.style.backgroundPosition = 'center'
-    img.style.maxWidth = '1200px'
-    const now = Date.now()
-    // we want to do a fetch of the image so we can get the size of it in kb
-    $fetch.raw(src, {
-      responseType: 'blob',
-    }).then((res: any) => {
-      const size = res.headers.get('content-length')
-      const kb = Math.round(Number(size) / 1024)
-      // set the image source using base 64 of the response
-      const reader = new FileReader()
-      reader.readAsDataURL(res._data!)
-      reader.onloadend = () => {
-        const base64data = reader.result
-        if (base64data) {
-          img.style.backgroundImage = `url(${base64data})`
-          loading.value = false
-          emit('load', { timeTaken: Date.now() - now, sizeKb: kb })
-        }
-      }
-    }).catch((err: { response?: { _data?: Blob } }) => {
-      const res = err.response
-      // res is a data blob we need to convert to json
-      if (res && res._data) {
-        const reader = new FileReader()
-        reader.readAsText(res._data)
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string')
-            error.value = JSON.parse(reader.result)?.stack as string[]
-        }
-      }
-    }).finally(() => {
-      loading.value = false
-    })
-  }
+watch(() => props.src, () => {
+  loading.value = true
+  error.value = false
+  loadStart.value = Date.now()
+}, { immediate: true })
+
+function onLoad() {
+  loading.value = false
+  emit('load', { timeTaken: Date.now() - loadStart.value, sizeKb: '' })
 }
 
-onMounted(() => {
-  watch(() => props.src, (src) => {
-    setSource(src!)
-  }, {
-    immediate: true,
+function onError() {
+  loading.value = false
+  $fetch(props.src).catch((err: { data?: { stack?: string[] } }) => {
+    error.value = err.data?.stack || ['Failed to load image']
   })
-})
+}
 </script>
 
 <template>
   <div
-    ref="image" :style="{ aspectRatio, minHeight }" :class="{
-      ['data-valid']: !error && !loading,
-      ['data-error']: error,
+    class="image-loader"
+    :style="{ aspectRatio, minHeight }"
+    :class="{
+      'is-valid': !error && !loading,
+      'is-error': error,
     }"
   >
+    <img
+      v-show="!loading && !error"
+      :src="src"
+      :style="{ aspectRatio }"
+      @load="onLoad"
+      @error="onError"
+    >
     <NLoading v-if="loading" />
-    <div v-if="error" class="p-3">
-      <p class="text-red-500 font-bold tracking-tight text-sm mb-1">
+    <div v-if="error" class="error-container">
+      <div class="error-badge">
+        <NIcon icon="carbon:warning" class="text-sm" />
         {{ error.join('\n').includes('satori') ? 'SatoriError' : 'ImageError' }}
-      </p>
-      <p class="text-black dark:text-white text-md font-bold mb-5">
+      </div>
+      <p class="error-message">
         {{ error[0]?.replace('Error:', '') }}
       </p>
-      <pre>{{ error.slice(1).join('\n') }}</pre>
+      <pre class="error-stack">{{ error.slice(1).join('\n') }}</pre>
     </div>
   </div>
 </template>
 
-<style scoped>
-div {
+<style>
+.image-loader {
   height: 100%;
   margin: 0 auto;
   width: 100%;
-  transition: 0.4s ease-in-out;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
 }
-div[class~="data-valid"] {
+
+.image-loader img {
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  object-fit: contain;
+  background: oklch(96% 0.01 285);
+  border-radius: 8px;
+}
+
+.dark .image-loader img {
+  background: oklch(22% 0.04 285);
+}
+
+.image-loader.is-valid {
   cursor: pointer;
-  background-color: transparent;
-  background-color: white;
-  background-size: contain;
 }
-div[class~="data-error"] {
+
+.image-loader.is-error {
   overflow-x: auto;
+  background: oklch(97% 0.015 25);
+  border: 1px solid oklch(90% 0.05 25);
 }
-div[class~="data-error"] :deep(.shiki) {
+
+.dark .image-loader.is-error {
+  background: oklch(20% 0.03 25);
+  border-color: oklch(30% 0.05 25);
+}
+
+.image-loader.is-error .shiki {
   white-space: normal;
+}
+
+.error-container {
+  padding: 16px;
+}
+
+.error-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: oklch(45% 0.15 25);
+  background: oklch(90% 0.08 25);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.dark .image-loader .error-badge {
+  color: oklch(85% 0.12 25);
+  background: oklch(30% 0.08 25);
+}
+
+.error-message {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.error-stack {
+  font-size: 12px;
+  font-family: 'Fira Code', ui-monospace, monospace;
+  opacity: 0.7;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>

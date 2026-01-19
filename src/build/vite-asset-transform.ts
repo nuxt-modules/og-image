@@ -160,6 +160,15 @@ export interface AssetTransformOptions {
    * Ensures transforms don't race with style map population.
    */
   tw4StyleMapReady?: Promise<void>
+  /**
+   * Path to Tailwind CSS file for gradient resolution.
+   * Required for proper gradient class combination.
+   */
+  tw4CssPath?: string
+  /**
+   * Nuxt UI color mappings for semantic color resolution.
+   */
+  nuxtUiColors?: Record<string, string>
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -276,10 +285,17 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       if (options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0) {
         try {
           const { transformVueTemplate } = await import('./vue-template-transform')
+          const { resolveClassesToStyles } = await import('./tw4-transform')
           const styleMap = options.tw4StyleMap
 
           // Wrap current template back into full SFC for AST parsing
           const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
+
+          // Check if we have gradient classes that need combination logic
+          const hasGradientClasses = options.tw4CssPath && (
+            template.includes('bg-gradient') || template.includes('bg-radial')
+            || template.includes('from-') || template.includes('to-') || template.includes('via-')
+          )
 
           const result = await transformVueTemplate(fullCode, {
             resolveStyles: async (classes) => {
@@ -292,7 +308,23 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
               }
 
-              // Simple map lookup - no async TW4 compilation needed
+              // Use full resolution with gradient combination logic when gradient classes present
+              if (hasGradientClasses && options.tw4CssPath) {
+                const hasElementGradient = supported.some(c =>
+                  c.startsWith('bg-gradient') || c.startsWith('bg-radial')
+                  || c.startsWith('from-') || c.startsWith('to-') || c.startsWith('via-'),
+                )
+
+                if (hasElementGradient) {
+                  // Use resolveClassesToStyles which handles gradient combination
+                  return resolveClassesToStyles(supported, {
+                    cssPath: options.tw4CssPath,
+                    nuxtUiColors: options.nuxtUiColors,
+                  })
+                }
+              }
+
+              // Simple map lookup for non-gradient classes
               const resolved: Record<string, Record<string, string>> = {}
               for (const cls of supported) {
                 // Handle responsive prefixes: extract base class

@@ -146,6 +146,13 @@ export interface ModuleOptions {
    */
   buildCache?: boolean | { base?: string }
   /**
+   * Warn about OG Image components missing renderer suffix in dev mode.
+   * Set to false to suppress warnings for legacy/test components.
+   *
+   * @default true
+   */
+  warnMissingSuffix?: boolean
+  /**
    * Strategy for resolving emoji icons.
    *
    * - 'auto': Automatically choose based on available dependencies (default)
@@ -305,7 +312,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Set emoji implementation based on runtime strategy
     if (runtimeEmojiStrategy === 'local') {
-      logger.info(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+      if (nuxt.options.build) {
+        logger.info(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+      }
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
       // add nitro virtual import for the iconify import
       nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
@@ -331,8 +340,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Prebuilt style map: className → { prop: value }
     // Populated after scanning all OG components in app:templates hook
     let tw4StyleMap: Record<string, Record<string, string>> = {}
-    // Resolved TW4 CSS path (stored for HMR watch)
+    // Resolved TW4 CSS path (stored for HMR watch and gradient resolution)
     let tw4CssPath: string | undefined
+    // Nuxt UI colors (stored for gradient resolution)
+    let tw4NuxtUiColors: Record<string, string> | undefined
     // Promise for synchronizing style map population with Vite transforms
     let resolveTw4StyleMapReady: () => void
     const tw4StyleMapReady = new Promise<void>((resolve) => {
@@ -384,6 +395,7 @@ export default defineNuxtModule<ModuleOptions>({
 
             const mergedUserConfig = defuFn(...userConfigs as [object, ...object[]]) as { ui?: { colors?: Record<string, string> } }
             nuxtUiColors = { ...nuxtUiDefaults, ...mergedUserConfig.ui?.colors }
+            tw4NuxtUiColors = nuxtUiColors // Store at module level for vite plugin
             logger.info(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
           }
 
@@ -451,6 +463,8 @@ export default defineNuxtModule<ModuleOptions>({
         publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         get tw4StyleMap() { return tw4StyleMap }, // Getter to access populated map
         tw4StyleMapReady, // Promise to wait for style map population
+        get tw4CssPath() { return tw4CssPath }, // Getter for gradient resolution
+        get nuxtUiColors() { return tw4NuxtUiColors }, // Getter for semantic color resolution
       }))
     })
 
@@ -769,7 +783,8 @@ export default defineNuxtModule<ModuleOptions>({
         }\n\nRun: npx nuxt-og-image migrate v6`
 
         if (nuxt.options.dev) {
-          logger.warn(message)
+          if (config.warnMissingSuffix !== false)
+            logger.warn(message)
         }
         else {
           throw new Error(message)

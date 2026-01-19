@@ -5,6 +5,7 @@ import { defineNuxtConfig } from 'nuxt/config'
 import NuxtOgImage from '../src/module'
 
 export default defineNuxtConfig({
+  css: ['~/assets/css/main.css'],
   modules: [
     '@vueuse/nuxt',
     '@nuxt/ui',

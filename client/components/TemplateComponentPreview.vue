@@ -33,22 +33,21 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 </script>
 
 <template>
-  <div class="group">
-    <div class="opacity-70 flex px-3 justify-between text-sm transition group-hover:opacity-100">
-      <NLink :href="creditSite" external class="underline">
+  <div class="template-card group">
+    <div class="template-header">
+      <NLink :href="creditSite" external class="template-name">
         {{ component.pascalName }}
       </NLink>
     </div>
-    <div class="border-2 group-hover:shadow-sm rounded-[0.35rem] border-transparent hover:border-yellow-500 transition-all">
+    <div class="template-preview" :class="active ? 'is-active' : ''">
       <VTooltip>
-        <div class="h-[150px] relative" :style="{ aspectRatio }">
-          <NIcon v-if="active" icon="carbon:checkmark-filled" class="absolute top-2 right-2 text-green-500" />
+        <div class="template-image" :style="{ aspectRatio }">
+          <NIcon v-if="active" icon="carbon:checkmark-filled" class="active-badge" />
           <ImageLoader
             v-if="!isHtml"
             :src="withQuery(src, { component: component.pascalName })"
             :aspect-ratio="aspectRatio"
-            class="rounded overflow-hidden"
-            :class="active ? ['ring-2 ring-green-500'] : []"
+            class="w-full h-full"
             @load="(e: { timeTaken: string, sizeKb: string }) => loadStats = e"
           />
           <IFrameLoader
@@ -65,23 +64,128 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
         </template>
       </VTooltip>
     </div>
-    <div class="flex justify-between items-center text-xs px-2">
+    <div class="template-footer">
       <VTooltip>
-        <div class="">
-          <NLink external class="opacity-70 items-start space-x-1 flex" @click.stop="openComponent">
-            <span class="underline">View source</span>
-          </NLink>
-        </div>
+        <NLink external class="template-action" @click.stop="openComponent">
+          <NIcon icon="carbon:code" class="w-3 h-3" />
+          View source
+        </NLink>
         <template #popper>
           Open the source code of {{ component.pascalName }}.vue in your IDE
         </template>
       </VTooltip>
-      <div v-if="component.credits" class="opacity-70 transition group-hover:opacity-100">
-        Credits:
-        <NLink v-if="creditSite" :href="creditSite" external class="underline">
+      <div v-if="component.credits" class="template-credit">
+        <NLink v-if="creditSite" :href="creditSite" external>
           {{ creditName }}
         </NLink>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.template-header {
+  padding: 0 8px;
+}
+
+.template-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(55% 0.04 285);
+  transition: color 0.15s ease;
+  text-decoration: none;
+}
+
+.group:hover .template-name {
+  color: oklch(35% 0.04 285);
+}
+
+.dark .template-name {
+  color: oklch(70% 0.03 285);
+}
+
+.dark .group:hover .template-name {
+  color: oklch(90% 0.02 285);
+}
+
+.template-preview {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  background: oklch(98% 0.005 285);
+}
+
+.dark .template-preview {
+  background: oklch(18% 0.04 285);
+}
+
+.template-preview:hover {
+  border-color: #22c55e;
+  box-shadow: 0 4px 16px oklch(0% 0 0 / 0.08);
+}
+
+.template-preview.is-active {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px oklch(75% 0.15 145 / 0.2);
+}
+
+.template-image {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+}
+
+.active-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #22c55e;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px oklch(0% 0 0 / 0.2));
+}
+
+.template-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.template-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: oklch(55% 0.04 285);
+  transition: color 0.15s ease;
+  cursor: pointer;
+}
+
+.template-action:hover {
+  color: #22c55e;
+}
+
+.dark .template-action {
+  color: oklch(60% 0.03 285);
+}
+
+.template-credit {
+  color: oklch(60% 0.04 285);
+}
+
+.template-credit a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.template-credit a:hover {
+  text-decoration: underline;
+}
+</style>

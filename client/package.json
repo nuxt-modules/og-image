@@ -6,6 +6,7 @@
     "@iconify-json/simple-icons": "catalog:",
     "@nuxt/devtools-kit": "catalog:",
     "@nuxt/devtools-ui-kit": "catalog:",
+    "@nuxt/fonts": "catalog:",
     "@nuxt/kit": "catalog:",
     "@vueuse/core": "catalog:",
     "floating-vue": "catalog:",

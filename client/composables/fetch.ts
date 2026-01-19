@@ -37,7 +37,7 @@ export interface GlobalDebugResponse {
 }
 
 export function fetchPathDebug() {
-  return useAsyncData<PathDebugResponse>(async () => {
+  return useAsyncData<PathDebugResponse>('path-debug', async () => {
     if (!appFetch.value)
       return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
     // Build encoded URL with options for debug JSON

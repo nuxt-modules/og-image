@@ -26,13 +26,18 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
       key: 'nuxt-og-image:overrides-and-canonical-urls',
       hooks: {
         'tags:afterResolve': async (ctx) => {
-          // find the description as a first pass
+          // find title and description as a first pass
+          let title = ''
           let description = ''
           for (const tag of ctx.tags) {
-            if (tag.tag === 'meta' && tag.props.name === 'description') {
-              description = tag.props.content || ''
-              break
+            if (tag.tag === 'title' && tag.textContent) {
+              title = tag.textContent
             }
+            else if (tag.tag === 'meta' && tag.props.name === 'description') {
+              description = tag.props.content || ''
+            }
+            if (title && description)
+              break
           }
 
           for (const tag of ctx.tags) {
@@ -44,6 +49,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
               // looking for:
               // make sure the query is sanitized
               tag.props.content = tag.props.content
+                .replaceAll('%title', title)
                 .replaceAll('%description', description)
                 .replaceAll(' ', '+')
               // property og:image
