@@ -234,8 +234,18 @@ export default defineNuxtModule<ModuleOptions>({
     await onUpgrade(nuxt, options, previousVersion)
   },
   async setup(config, nuxt) {
-    const resolver = createResolver(import.meta.url)
-    const { resolve } = resolver
+    const _resolver = createResolver(import.meta.url)
+    // Fix paths for @nuxt/module-builder bundling into shared/ subdirectory
+    // When bundled, import.meta.url points to dist/shared/*.mjs, causing paths like './runtime/...'
+    // to incorrectly resolve to dist/shared/runtime/... instead of dist/runtime/...
+    // TODO find upstream fix or broken code in module
+    const fixSharedPath = (p: string) => p.includes('/shared/runtime/') ? p.replace('/shared/runtime/', '/runtime/') : p
+    const resolve: typeof _resolver.resolve = path => fixSharedPath(_resolver.resolve(path))
+    const resolver: typeof _resolver = {
+      ..._resolver,
+      resolve,
+      resolvePath: async (path, opts) => fixSharedPath(await _resolver.resolvePath(path, opts)),
+    }
     const { version } = await readPackageJSON(resolve('../package.json'))
     const userAppPkgJson = await readPackageJSON(nuxt.options.rootDir)
       .catch(() => ({ dependencies: {}, devDependencies: {} }))
