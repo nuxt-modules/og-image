@@ -360,11 +360,26 @@ export default defineNuxtModule<ModuleOptions>({
       resolveTw4StyleMapReady = resolve
     })
 
+    // Auto-detect Tailwind v4 CSS from nuxt.options.css
+    async function detectTailwindCssPath(): Promise<string | undefined> {
+      for (const cssEntry of nuxt.options.css) {
+        const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
+        if (!cssPath || !cssPath.endsWith('.css'))
+          continue
+        const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+        if (!resolved || !existsSync(resolved))
+          continue
+        const content = await readFile(resolved, 'utf-8')
+        if (content.includes('@import "tailwindcss"') || content.includes('@import \'tailwindcss\''))
+          return resolved
+      }
+    }
+
     // Use app:templates hook to access resolved app.configs paths
     nuxt.hook('app:templates', async (app) => {
       const resolvedCssPath = config.tailwindCss
         ? await resolver.resolvePath(config.tailwindCss)
-        : nuxt.options.alias['#tailwindcss'] as string | undefined
+        : nuxt.options.alias['#tailwindcss'] as string | undefined ?? await detectTailwindCssPath()
 
       // Store for HMR watch handler
       tw4CssPath = resolvedCssPath
