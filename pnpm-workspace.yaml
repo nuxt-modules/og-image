@@ -23,7 +23,7 @@ patchedDependencies:
   '@nuxt/fonts@0.12.1': patches/@nuxt__fonts@0.12.1.patch
 
 catalog:
-  '@antfu/eslint-config': ^7.0.1
+  '@antfu/eslint-config': ^7.2.0
   '@css-inline/css-inline': ^0.19.1
   '@css-inline/css-inline-wasm': ^0.19.1
   '@headlessui/vue': ^1.7.23
@@ -39,12 +39,12 @@ catalog:
   '@nuxt/devtools-kit': ^3.1.1
   '@nuxt/devtools-ui-kit': ^3.1.1
   '@nuxt/fonts': 0.12.1
-  '@nuxt/icon': ^2.2.0
+  '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
   '@nuxt/kit': ^4.2.2
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^3.23.0
-  '@nuxt/ui': ^4.3.0
+  '@nuxt/ui': ^4.4.0
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.2.1
@@ -52,8 +52,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.64.0
-  '@takumi-rs/wasm': ^0.64.0
+  '@takumi-rs/core': ^0.65.0
+  '@takumi-rs/wasm': ^0.65.0
   '@vitejs/plugin-vue': ^6.0.3
   '@vue/compiler-sfc': ^3.5.27
   '@vueuse/core': ^14.1.0
@@ -72,7 +72,7 @@ catalog:
   floating-vue: ^5.2.2
   get-image-colors: ^4.0.1
   globby: ^16.1.0
-  happy-dom: ^20.3.3
+  happy-dom: ^20.3.4
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
   jiti: ^2.6.1
@@ -82,8 +82,8 @@ catalog:
   magicast: ^0.5.1
   mocked-exports: ^0.1.1
   nuxt: ^4.2.2
-  nuxt-site-config: ^3.2.17
-  nypm: ^0.6.2
+  nuxt-site-config: ^3.2.18
+  nypm: ^0.6.4
   ofetch: ^1.5.1
   ohash: ^2.0.11
   pathe: ^2.0.3
@@ -94,7 +94,7 @@ catalog:
   postcss-calc: ^10.1.1
   postcss-custom-properties: ^15.0.0
   radix3: ^1.1.2
-  sass: ^1.97.2
+  sass: ^1.97.3
   satori: ^0.19.1
   satori-html: ^0.3.2
   sharp: ^0.34.5
@@ -107,9 +107,9 @@ catalog:
   tinyglobby: ^0.2.15
   typescript: ^5.9.3
   ufo: ^1.6.3
-  unplugin: ^2.3.11
+  unplugin: ^3.0.0
   unwasm: ^0.5.3
-  vitest: ^4.0.17
+  vitest: ^4.0.18
   vue: ^3.5.27
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2
