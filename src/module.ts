@@ -207,7 +207,7 @@ export default defineNuxtModule<ModuleOptions>({
       optional: true,
     },
     '@nuxt/fonts': {
-      version: '>=0.12.0',
+      version: '>=0.13.0',
     },
   },
   defaults() {
