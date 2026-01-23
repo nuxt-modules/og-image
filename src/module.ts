@@ -488,7 +488,7 @@ export default defineNuxtModule<ModuleOptions>({
         get ogComponentPaths() { return resolvedOgComponentPaths }, // Resolved OG component directory paths
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
-        publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        publicDir: join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         get tw4StyleMap() { return tw4State.styleMap }, // Getter to access populated map
         initTw4, // Lazy initializer - called on first transform
         get tw4CssPath() { return tw4State.cssPath }, // Getter for gradient resolution
@@ -512,7 +512,7 @@ export default defineNuxtModule<ModuleOptions>({
     const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
     let publicDirAbs = nuxt.options.dir.public
     if (!isAbsolute(publicDirAbs)) {
-      publicDirAbs = (publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : resolve(nuxt.options.rootDir, publicDirAbs)) || ''
+      publicDirAbs = (publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : join(nuxt.options.rootDir, publicDirAbs)) || ''
     }
     if (isProviderEnabledForEnv('satori', nuxt, config)) {
       let attemptSharpUsage = false
@@ -975,7 +975,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       ? config.buildCache.base
       : 'node_modules/.cache/nuxt-seo/og-image'
     const buildCacheDir = config.buildCache
-      ? resolve(nuxt.options.rootDir, buildCachePath)
+      ? join(nuxt.options.rootDir, buildCachePath)
       : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
