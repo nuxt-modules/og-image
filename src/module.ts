@@ -344,21 +344,49 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Add build-time asset transform plugin for OgImage components
     // TW4 support: scan classes → compile with TW4 → resolve vars with postcss → style map
-    let tw4FontVars: Record<string, string> = {}
-    let tw4Breakpoints: Record<string, number> = {}
-    let tw4Colors: Record<string, string | Record<string, string>> = {}
-    // Prebuilt style map: className → { prop: value }
-    // Populated after scanning all OG components in app:templates hook
-    let tw4StyleMap: Record<string, Record<string, string>> = {}
-    // Resolved TW4 CSS path (stored for HMR watch and gradient resolution)
-    let tw4CssPath: string | undefined
-    // Nuxt UI colors (stored for gradient resolution)
-    let tw4NuxtUiColors: Record<string, string> | undefined
-    // Promise for synchronizing style map population with Vite transforms
-    let resolveTw4StyleMapReady: () => void
-    const tw4StyleMapReady = new Promise<void>((resolve) => {
-      resolveTw4StyleMapReady = resolve
-    })
+    // Lazy TW4 initialization - all setup deferred until first access
+    const tw4State = {
+      styleMap: {} as Record<string, Record<string, string>>,
+      cssPath: undefined as string | undefined,
+      fontVars: {} as Record<string, string>,
+      breakpoints: {} as Record<string, number>,
+      colors: {} as Record<string, string | Record<string, string>>,
+      nuxtUiColors: undefined as Record<string, string> | undefined,
+      initialized: false,
+    }
+    let tw4InitPromise: Promise<void> | undefined
+
+    const nuxtUiDefaults: Record<string, string> = {
+      primary: 'green',
+      secondary: 'blue',
+      success: 'green',
+      info: 'blue',
+      warning: 'yellow',
+      error: 'red',
+      neutral: 'slate',
+    }
+
+    // Load Nuxt UI colors from .nuxt/app.config.mjs
+    async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
+      if (tw4State.nuxtUiColors)
+        return tw4State.nuxtUiColors
+      if (!hasNuxtModule('@nuxt/ui'))
+        return undefined
+      const appConfigPath = join(nuxt.options.buildDir, 'app.config.mjs')
+      if (!existsSync(appConfigPath))
+        return { ...nuxtUiDefaults }
+      const rawContent = await readFile(appConfigPath, 'utf-8')
+      // Strip client-side HMR code that can't run in Node
+      const strippedContent = rawContent.replace(/\/\*\* client \*\*\/[\s\S]*?\/\*\* client-end \*\*\//g, '')
+      const jiti = createJiti(nuxt.options.buildDir, {
+        interopDefault: true,
+        moduleCache: false,
+      })
+      const mergedAppConfig = await jiti.evalModule(strippedContent, { filename: appConfigPath }) as { ui?: { colors?: Record<string, string> } }
+      tw4State.nuxtUiColors = { ...nuxtUiDefaults, ...mergedAppConfig?.ui?.colors }
+      logger.debug(`Nuxt UI colors: ${JSON.stringify(tw4State.nuxtUiColors)}`)
+      return tw4State.nuxtUiColors
+    }
 
     // Auto-detect Tailwind v4 CSS from nuxt.options.css
     async function detectTailwindCssPath(): Promise<string | undefined> {
@@ -376,112 +404,83 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    // Use app:templates hook to access resolved app.configs paths
-    nuxt.hook('app:templates', async (app) => {
-      const resolvedCssPath = config.tailwindCss
-        ? await resolver.resolvePath(config.tailwindCss)
-        : nuxt.options.alias['#tailwindcss'] as string | undefined ?? await detectTailwindCssPath()
+    // Lazy initializer - called on first access by vite plugin or virtual module
+    async function initTw4(): Promise<void> {
+      if (tw4State.initialized)
+        return
+      if (tw4InitPromise)
+        return tw4InitPromise
+      tw4InitPromise = (async () => {
+        const resolvedCssPath = config.tailwindCss
+          ? await resolver.resolvePath(config.tailwindCss)
+          : nuxt.options.alias['#tailwindcss'] as string | undefined ?? await detectTailwindCssPath()
 
-      // Store for HMR watch handler
-      tw4CssPath = resolvedCssPath
-
-      if (resolvedCssPath && existsSync(resolvedCssPath)) {
-        const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
-        if (tw4CssContent.includes('@theme') || tw4CssContent.includes('@import "tailwindcss"')) {
-          // Get Nuxt UI colors from app.config files if @nuxt/ui is installed
-          const nuxtUiDefaults = {
-            primary: 'green',
-            secondary: 'blue',
-            success: 'green',
-            info: 'blue',
-            warning: 'yellow',
-            error: 'red',
-            neutral: 'slate',
-          }
-
-          let nuxtUiColors: Record<string, string> | undefined
-          if (hasNuxtModule('@nuxt/ui')) {
-            // Load user's app.config files to get color overrides
-            const jiti = createJiti(nuxt.options.rootDir, {
-              interopDefault: true,
-              moduleCache: false,
-              alias: { '#app/config': 'nuxt/app' },
-            })
-            ;(globalThis as Record<string, unknown>).defineAppConfig = (c: unknown) => c
-
-            const userConfigs = await Promise.all(
-              app.configs.map(configPath =>
-                jiti.import(configPath)
-                  .then((m: unknown) => (m && typeof m === 'object' && 'default' in m ? (m as { default: unknown }).default : m))
-                  .catch(() => ({})),
-              ),
-            )
-
-            delete (globalThis as Record<string, unknown>).defineAppConfig
-
-            const mergedUserConfig = defuFn(...userConfigs as [object, ...object[]]) as { ui?: { colors?: Record<string, string> } }
-            nuxtUiColors = { ...nuxtUiDefaults, ...mergedUserConfig.ui?.colors }
-            tw4NuxtUiColors = nuxtUiColors // Store at module level for vite plugin
-            logger.debug(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
-          }
-
-          // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
-          const metadata = await extractTw4Metadata({
-            cssPath: resolvedCssPath,
-            nuxtUiColors,
-          }).catch((e) => {
-            logger.warn(`TW4 metadata extraction failed: ${e.message}`)
-            return { fontVars: {}, breakpoints: {}, colors: {} }
-          })
-
-          tw4FontVars = metadata.fontVars
-          tw4Breakpoints = metadata.breakpoints
-          tw4Colors = metadata.colors
-
-          // Scan all OG components for classes and generate style map
-          try {
-            const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
-            const { generateStyleMap } = await import('./build/tw4-generator')
-
-            // Scan for classes
-            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir, logger)
-            const processableClasses = filterProcessableClasses(allClasses)
-
-            if (processableClasses.length > 0) {
-              logger.debug(`TW4: Found ${processableClasses.length} unique classes in OG components`)
-
-              // Generate style map with postcss var resolution
-              const styleMap = await generateStyleMap({
-                cssPath: resolvedCssPath,
-                classes: processableClasses,
-                nuxtUiColors,
-              })
-
-              // Convert Map to plain object for plugin
-              tw4StyleMap = {}
-              for (const [cls, styles] of styleMap.classes) {
-                tw4StyleMap[cls] = styles
-              }
-
-              logger.debug(`TW4: Generated style map with ${Object.keys(tw4StyleMap).length} resolved classes`)
-            }
-          }
-          catch (e) {
-            logger.warn(`TW4 style map generation failed: ${(e as Error).message}`)
-          }
-
-          logger.debug(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
+        tw4State.cssPath = resolvedCssPath
+        if (!resolvedCssPath || !existsSync(resolvedCssPath)) {
+          tw4State.initialized = true
+          return
         }
-      }
-      // Signal that style map is ready (even if empty or TW4 not enabled)
-      resolveTw4StyleMapReady()
-    })
+
+        const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
+        if (!tw4CssContent.includes('@theme') && !tw4CssContent.includes('@import "tailwindcss"')) {
+          tw4State.initialized = true
+          return
+        }
+
+        // Load Nuxt UI colors from .nuxt/app.config.mjs
+        const nuxtUiColors = await loadNuxtUiColors()
+
+        // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
+        const metadata = await extractTw4Metadata({
+          cssPath: resolvedCssPath,
+          nuxtUiColors,
+        }).catch((e) => {
+          logger.warn(`TW4 metadata extraction failed: ${e.message}`)
+          return { fontVars: {}, breakpoints: {}, colors: {} }
+        })
+
+        tw4State.fontVars = metadata.fontVars
+        tw4State.breakpoints = metadata.breakpoints
+        tw4State.colors = metadata.colors
+
+        // Scan all OG components for classes and generate style map
+        try {
+          const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
+          const { generateStyleMap } = await import('./build/tw4-generator')
+
+          const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir, logger)
+          const processableClasses = filterProcessableClasses(allClasses)
+
+          if (processableClasses.length > 0) {
+            logger.debug(`TW4: Found ${processableClasses.length} unique classes in OG components`)
+
+            const styleMap = await generateStyleMap({
+              cssPath: resolvedCssPath,
+              classes: processableClasses,
+              nuxtUiColors,
+            })
+
+            for (const [cls, styles] of styleMap.classes) {
+              tw4State.styleMap[cls] = styles
+            }
+
+            logger.debug(`TW4: Generated style map with ${Object.keys(tw4State.styleMap).length} resolved classes`)
+          }
+        }
+        catch (e) {
+          logger.warn(`TW4 style map generation failed: ${(e as Error).message}`)
+        }
+
+        logger.debug(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
+        tw4State.initialized = true
+      })()
+      return tw4InitPromise
+    }
 
     // Collect resolved OG component directory paths for the asset transform plugin (populated later, accessed via getter)
     const resolvedOgComponentPaths: string[] = []
 
     // Add Vite plugin in modules:done (after all aliases registered)
-    // Note: tw4StyleMap is populated by app:templates hook; plugin awaits tw4StyleMapReady
     nuxt.hook('modules:done', () => {
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
       addVitePlugin(AssetTransformPlugin.vite({
@@ -490,10 +489,10 @@ export default defineNuxtModule<ModuleOptions>({
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
         publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
-        get tw4StyleMap() { return tw4StyleMap }, // Getter to access populated map
-        tw4StyleMapReady, // Promise to wait for style map population
-        get tw4CssPath() { return tw4CssPath }, // Getter for gradient resolution
-        get nuxtUiColors() { return tw4NuxtUiColors }, // Getter for semantic color resolution
+        get tw4StyleMap() { return tw4State.styleMap }, // Getter to access populated map
+        initTw4, // Lazy initializer - called on first transform
+        get tw4CssPath() { return tw4State.cssPath }, // Getter for gradient resolution
+        loadNuxtUiColors, // Lazy loader for Nuxt UI colors from .nuxt/app.config.mjs
       }))
     })
 
@@ -914,9 +913,9 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
     // Note: classMap is NOT included here as it's too heavy - transforms happen at build time via AssetTransformPlugin
     nuxt.options.nitro.virtual['#og-image-virtual/tw4-theme.mjs'] = () => {
-      return `export const tw4FontVars = ${JSON.stringify(tw4FontVars)}
-export const tw4Breakpoints = ${JSON.stringify(tw4Breakpoints)}
-export const tw4Colors = ${JSON.stringify(tw4Colors)}`
+      return `export const tw4FontVars = ${JSON.stringify(tw4State.fontVars)}
+export const tw4Breakpoints = ${JSON.stringify(tw4State.breakpoints)}
+export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}`
@@ -1044,7 +1043,7 @@ export const tw4Colors = ${JSON.stringify(tw4Colors)}`
         const absolutePath = join(nuxt.options.rootDir, relativePath)
 
         // Check if TW4 CSS file changed
-        const isTw4CssChange = tw4CssPath && absolutePath === tw4CssPath
+        const isTw4CssChange = tw4State.cssPath && absolutePath === tw4State.cssPath
 
         // Check if OgImage component changed
         const isOgImageComponent = config.componentDirs.some((dir) => {
@@ -1057,7 +1056,7 @@ export const tw4Colors = ${JSON.stringify(tw4Colors)}`
           clearTw4Cache()
 
           // Regenerate style map if TW4 is enabled
-          if (tw4CssPath && existsSync(tw4CssPath)) {
+          if (tw4State.cssPath && existsSync(tw4State.cssPath)) {
             const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
             const { generateStyleMap } = await import('./build/tw4-generator')
 
@@ -1065,15 +1064,17 @@ export const tw4Colors = ${JSON.stringify(tw4Colors)}`
             const processableClasses = filterProcessableClasses(allClasses)
 
             if (processableClasses.length > 0) {
+              const nuxtUiColors = await loadNuxtUiColors()
               const styleMap = await generateStyleMap({
-                cssPath: tw4CssPath,
+                cssPath: tw4State.cssPath,
                 classes: processableClasses,
+                nuxtUiColors,
               })
-              tw4StyleMap = {}
+              tw4State.styleMap = {}
               for (const [cls, styles] of styleMap.classes) {
-                tw4StyleMap[cls] = styles
+                tw4State.styleMap[cls] = styles
               }
-              logger.info(`HMR: Regenerated TW4 style map (${Object.keys(tw4StyleMap).length} classes)`)
+              logger.info(`HMR: Regenerated TW4 style map (${Object.keys(tw4State.styleMap).length} classes)`)
             }
           }
 

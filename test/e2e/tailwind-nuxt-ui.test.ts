@@ -10,9 +10,6 @@ await setup({
   rootDir: resolve('../fixtures/tailwind-nuxt-ui'),
   server: true,
   build: true,
-  nuxtConfig: {
-    sourcemap: false,
-  },
 })
 
 expect.extend({ toMatchImageSnapshot })

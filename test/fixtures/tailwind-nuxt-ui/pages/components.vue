@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { defineOgImage } from '#imports'
+
 defineOgImage('NuxtUiComponents', { title: 'UI Components Test' })
 </script>
 

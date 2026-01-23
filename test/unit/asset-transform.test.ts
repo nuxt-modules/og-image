@@ -9,9 +9,13 @@ const srcDir = join(testDir, 'src')
 const componentDir = join(srcDir, 'components', 'OgImage')
 
 describe('asset-transform plugin', () => {
-  const componentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
+  const ogComponentPaths = [
+    join(srcDir, 'components', 'OgImage'),
+    join(srcDir, 'components', 'og-image'),
+    join(srcDir, 'components', 'OgImageTemplate'),
+  ]
   const plugin = AssetTransformPlugin.raw({
-    componentDirs,
+    ogComponentPaths,
     rootDir: testDir,
     srcDir,
     publicDir,
@@ -34,14 +38,14 @@ describe('asset-transform plugin', () => {
 
   // Transform include tests
   it('should include OgImage components', () => {
-    expect(plugin.transformInclude?.('components/OgImage/Test.vue')).toBe(true)
-    expect(plugin.transformInclude?.('components/og-image/Test.vue')).toBe(true)
-    expect(plugin.transformInclude?.('components/OgImageTemplate/Test.vue')).toBe(true)
+    expect(plugin.transformInclude?.(join(srcDir, 'components', 'OgImage', 'Test.vue'))).toBe(true)
+    expect(plugin.transformInclude?.(join(srcDir, 'components', 'og-image', 'Test.vue'))).toBe(true)
+    expect(plugin.transformInclude?.(join(srcDir, 'components', 'OgImageTemplate', 'Test.vue'))).toBe(true)
   })
 
   it('should exclude non-OgImage components', () => {
-    expect(plugin.transformInclude?.('components/Header.vue')).toBe(false)
-    expect(plugin.transformInclude?.('pages/index.vue')).toBe(false)
+    expect(plugin.transformInclude?.(join(srcDir, 'components', 'Header.vue'))).toBe(false)
+    expect(plugin.transformInclude?.(join(srcDir, 'pages', 'index.vue'))).toBe(false)
   })
 
   it('should exclude node_modules', () => {

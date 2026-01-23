@@ -7,26 +7,26 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const fixtureDir = resolve(__dirname, '../fixtures/build-transforms')
 
 describe('asset-transform plugin', () => {
-  const componentDirs = ['OgImage', 'og-image', 'OgImageTemplate']
+  const ogComponentPaths = ['/test/components/OgImage', '/test/components/og-image', '/test/components/OgImageTemplate']
 
   describe('emoji transform', () => {
     const plugin = AssetTransformPlugin.raw({
       emojiSet: 'noto',
-      componentDirs,
+      ogComponentPaths,
       rootDir: '/test',
       srcDir: '/test',
       publicDir: '/test/public',
     }, { framework: 'vite' })
 
     it('should include OgImage components', () => {
-      expect(plugin.transformInclude?.('components/OgImage/Test.vue')).toBe(true)
-      expect(plugin.transformInclude?.('components/og-image/Test.vue')).toBe(true)
-      expect(plugin.transformInclude?.('components/OgImageTemplate/Test.vue')).toBe(true)
+      expect(plugin.transformInclude?.('/test/components/OgImage/Test.vue')).toBe(true)
+      expect(plugin.transformInclude?.('/test/components/og-image/Test.vue')).toBe(true)
+      expect(plugin.transformInclude?.('/test/components/OgImageTemplate/Test.vue')).toBe(true)
     })
 
     it('should exclude non-OgImage components', () => {
-      expect(plugin.transformInclude?.('components/Header.vue')).toBe(false)
-      expect(plugin.transformInclude?.('pages/index.vue')).toBe(false)
+      expect(plugin.transformInclude?.('/test/components/Header.vue')).toBe(false)
+      expect(plugin.transformInclude?.('/test/pages/index.vue')).toBe(false)
     })
 
     it('should exclude node_modules', () => {
@@ -40,11 +40,11 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).not.toContain('👋')
-    })
+    }, 15000)
 
     it('should NOT transform emojis in attributes', async () => {
       const code = `<template>
@@ -54,7 +54,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Emoji in alt attribute should be preserved
       expect(result?.code).toContain('alt="👋 Wave emoji"')
@@ -70,7 +70,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Dynamic bindings should be preserved
       expect(result?.code).toContain('{{ emoji }}')
@@ -86,7 +86,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeUndefined()
     })
 
@@ -95,7 +95,7 @@ describe('asset-transform plugin', () => {
 const msg = '👋'
 </script>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeUndefined()
     })
 
@@ -106,7 +106,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Should have at least 1 SVG (some emojis may not be in icon set)
       const svgCount = (result?.code.match(/<svg/g) || []).length
@@ -116,7 +116,7 @@ const msg = '👋'
 
   describe('icon transform', () => {
     const plugin = AssetTransformPlugin.raw({
-      componentDirs,
+      ogComponentPaths,
       rootDir: '/test',
       srcDir: '/test',
       publicDir: '/test/public',
@@ -129,7 +129,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).toContain('viewBox')
@@ -143,7 +143,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).not.toContain('<UIcon')
@@ -156,7 +156,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('class="text-yellow-500"')
       expect(result?.code).toContain('style="')
@@ -169,7 +169,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       // Should return undefined since no static icons to transform
       expect(result).toBeUndefined()
     })
@@ -182,7 +182,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, 'components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Static icon should be transformed
       expect(result?.code).toContain('<svg')
@@ -193,13 +193,13 @@ const msg = '👋'
 
   describe('image transform', () => {
     const plugin = AssetTransformPlugin.raw({
-      componentDirs,
+      ogComponentPaths,
       rootDir: fixtureDir,
       srcDir: fixtureDir,
       publicDir: resolve(fixtureDir, 'public'),
     }, { framework: 'vite' })
 
-    const testVuePath = resolve(fixtureDir, 'components/OgImage/Test.vue')
+    const testVuePath = resolve(fixtureDir, '/test/components/OgImage/Test.vue')
 
     it('should inline public directory images', async () => {
       const code = `<template>

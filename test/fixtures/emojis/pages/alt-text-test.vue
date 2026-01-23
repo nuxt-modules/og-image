@@ -1,4 +1,5 @@
 <script setup>
+import { defineOgImage } from '#imports'
 defineOgImage('EmojiAltTest', {})
 </script>
 

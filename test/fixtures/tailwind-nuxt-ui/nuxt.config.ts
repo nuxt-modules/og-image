@@ -1,7 +1,11 @@
+import { defineNuxtConfig } from 'nuxt/config'
+import NuxtOgImage from '../../../src/module'
+
 export default defineNuxtConfig({
+  extends: ['../.base'],
   modules: [
     '@nuxt/ui',
-    'nuxt-og-image',
+    NuxtOgImage,
   ],
 
   css: ['~/assets/css/main.css'],

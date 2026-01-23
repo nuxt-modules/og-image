@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { defineOgImage } from '#imports'
 defineOgImage('CombinedTest', {})
 </script>
 

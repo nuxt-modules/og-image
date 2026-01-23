@@ -4,6 +4,8 @@ import MagicString from 'magic-string'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
 import { createUnplugin } from 'unplugin'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
+import { resolveClassesToStyles } from './tw4-transform'
+import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
 
@@ -157,19 +159,17 @@ export interface AssetTransformOptions {
    */
   tw4StyleMap?: Record<string, Record<string, string>>
   /**
-   * Promise that resolves when tw4StyleMap is ready.
-   * Ensures transforms don't race with style map population.
+   * Lazy TW4 initializer - called on first transform to populate style map.
    */
-  tw4StyleMapReady?: Promise<void>
+  initTw4?: () => Promise<void>
   /**
    * Path to Tailwind CSS file for gradient resolution.
-   * Required for proper gradient class combination.
    */
   tw4CssPath?: string
   /**
-   * Nuxt UI color mappings for semantic color resolution.
+   * Lazy loader for Nuxt UI colors from .nuxt/app.config.mjs.
    */
-  nuxtUiColors?: Record<string, string>
+  loadNuxtUiColors?: () => Promise<Record<string, string> | undefined>
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -281,13 +281,11 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Transform Tailwind classes to inline styles using prebuilt style map
-      // Wait for style map to be ready (prevents race with app:templates hook)
-      if (options.tw4StyleMapReady)
-        await options.tw4StyleMapReady
+      // Lazy init TW4 on first transform - populates style map, extracts metadata
+      if (options.initTw4)
+        await options.initTw4()
       if (options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0) {
         try {
-          const { transformVueTemplate } = await import('./vue-template-transform')
-          const { resolveClassesToStyles } = await import('./tw4-transform')
           const styleMap = options.tw4StyleMap
 
           // Wrap current template back into full SFC for AST parsing
@@ -319,9 +317,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
                 if (hasElementGradient) {
                   // Use resolveClassesToStyles which handles gradient combination
+                  const nuxtUiColors = await options.loadNuxtUiColors?.()
                   return resolveClassesToStyles(supported, {
                     cssPath: options.tw4CssPath,
-                    nuxtUiColors: options.nuxtUiColors,
+                    nuxtUiColors,
                   })
                 }
               }

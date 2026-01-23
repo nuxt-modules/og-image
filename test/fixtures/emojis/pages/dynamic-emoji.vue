@@ -1,4 +1,5 @@
 <script setup>
+import { defineOgImage } from '#imports'
 defineOgImage('DynamicEmoji', {}, { emoji: '👋', title: 'Dynamic Emoji Test' })
 </script>
 
