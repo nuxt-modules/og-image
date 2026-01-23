@@ -1,5 +1,6 @@
 <script setup>
 import { defineOgImage } from '#imports'
+
 defineOgImage('EmojiTest', {})
 </script>
 
