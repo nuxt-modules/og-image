@@ -4,9 +4,7 @@ import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
 import { useOgImage } from './composables/og-image'
 import { colorMode } from './composables/rpc'
 import { loadShiki } from './composables/shiki'
-import 'floating-vue/dist/style.css'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
-import 'splitpanes/dist/splitpanes.css'
 
 useHead({
   title: 'Nuxt OG Image',
@@ -42,243 +40,306 @@ const currentTab = computed(() => {
     return 'docs'
   return 'design'
 })
+
+const navItems = [
+  { value: 'design', to: '/', icon: 'carbon:brush-freehand', label: 'Design' },
+  { value: 'templates', to: '/templates', icon: 'carbon:image', label: 'Templates' },
+  { value: 'debug', to: '/debug', icon: 'carbon:debug', label: 'Debug' },
+  { value: 'docs', to: '/docs', icon: 'carbon:book', label: 'Docs' },
+]
 </script>
 
 <template>
-  <div class="relative n-bg-base flex flex-col min-h-screen">
-    <div class="gradient-bg" />
-    <CreateOgImageDialog />
-    <header class="header sticky top-0 z-10 px-5 py-3">
-      <div class="flex justify-between items-center">
-        <div class="flex items-center gap-4">
-          <a href="https://nuxtseo.com" target="_blank" class="flex items-center">
-            <NuxtSeoLogo />
-          </a>
-          <div class="h-5 w-px bg-neutral-300 dark:bg-neutral-700" />
-          <div class="flex items-center gap-2">
-            <h1 class="text-base font-semibold tracking-tight flex items-center gap-2">
-              <NIcon icon="carbon:image-search" class="text-green-500" />
-              OG Image
-            </h1>
-            <NBadge class="text-xs font-medium">
-              {{ globalDebug?.runtimeConfig?.version }}
-            </NBadge>
-          </div>
-        </div>
-        <nav class="flex items-center gap-2">
-          <fieldset class="nav-tabs flex items-center rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-800">
-            <NuxtLink
-              v-for="(item, idx) of [
-                { value: 'design', to: '/', icon: 'carbon:brush-freehand', label: 'Design' },
-                { value: 'templates', to: '/templates', icon: 'carbon:image', label: 'Templates' },
-                { value: 'debug', to: '/debug', icon: 'carbon:debug', label: 'Debug' },
-                { value: 'docs', to: '/docs', icon: 'carbon:book', label: 'Docs' },
-              ]"
-              :key="item.value"
-              :to="item.to"
-              class="nav-tab relative cursor-pointer block"
-              :class="[
-                idx ? 'border-l border-neutral-200 dark:border-neutral-800' : '',
-                currentTab === item.value ? 'active' : '',
-                isPageScreenshot && item.value === 'templates' ? 'hidden' : '',
-                (pending || error ? 'opacity-50 pointer-events-none' : ''),
-              ]"
+  <UApp>
+    <div class="relative bg-base flex flex-col min-h-screen">
+      <div class="gradient-bg" />
+      <CreateOgImageDialog />
+
+      <!-- Header -->
+      <header class="header glass sticky top-0 z-50">
+        <div class="header-content">
+          <!-- Logo & Brand -->
+          <div class="flex items-center gap-3 sm:gap-4">
+            <a
+              href="https://nuxtseo.com"
+              target="_blank"
+              class="flex items-center opacity-90 hover:opacity-100 transition-opacity"
             >
-              <VTooltip>
-                <div class="px-4 py-2 flex items-center gap-1.5 text-sm">
-                  <NIcon :icon="item.icon" :class="currentTab === item.value ? 'text-green-500' : 'opacity-50'" />
-                  <span class="hidden sm:inline" :class="currentTab === item.value ? '' : 'opacity-60'">{{ item.label }}</span>
-                </div>
-                <template #popper>
-                  {{ item.label }}
-                </template>
-              </VTooltip>
-            </NuxtLink>
-          </fieldset>
-          <VTooltip>
-            <button type="button" class="nav-btn p-2 rounded-lg transition-colors" @click="refreshSources">
-              <NIcon icon="carbon:reset" class="text-lg" />
-            </button>
-            <template #popper>
-              Refresh
-            </template>
-          </VTooltip>
-          <div class="hidden lg:flex items-center gap-3 ml-2">
-            <NLink href="https://github.com/nuxt-modules/og-image" target="_blank" class="nav-btn p-2 rounded-lg">
-              <NIcon icon="simple-icons:github" class="text-lg" />
-            </NLink>
+              <NuxtSeoLogo class="h-6 sm:h-7" />
+            </a>
+
+            <div class="divider" />
+
+            <div class="flex items-center gap-2">
+              <div class="brand-icon">
+                <UIcon name="carbon:image-search" class="text-base sm:text-lg" />
+              </div>
+              <h1 class="text-sm sm:text-base font-semibold tracking-tight text-[var(--color-text)]">
+                OG Image
+              </h1>
+              <UBadge
+                color="neutral"
+                variant="subtle"
+                size="xs"
+                class="font-mono text-[10px] sm:text-xs hidden sm:inline-flex"
+              >
+                {{ globalDebug?.runtimeConfig?.version }}
+              </UBadge>
+            </div>
           </div>
-        </nav>
+
+          <!-- Navigation -->
+          <nav class="flex items-center gap-1 sm:gap-2">
+            <!-- Nav Tabs -->
+            <div class="nav-tabs">
+              <NuxtLink
+                v-for="item of navItems"
+                :key="item.value"
+                :to="item.to"
+                class="nav-tab"
+                :class="[
+                  currentTab === item.value ? 'active' : '',
+                  isPageScreenshot && item.value === 'templates' ? 'hidden' : '',
+                  (pending || error ? 'opacity-50 pointer-events-none' : ''),
+                ]"
+              >
+                <UTooltip :text="item.label" :delay-duration="300">
+                  <div class="nav-tab-inner">
+                    <UIcon
+                      :name="item.icon"
+                      class="text-base sm:text-lg"
+                      :class="currentTab === item.value ? 'text-[var(--seo-green)]' : ''"
+                    />
+                    <span class="nav-label">{{ item.label }}</span>
+                  </div>
+                </UTooltip>
+              </NuxtLink>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-1">
+              <UTooltip text="Refresh" :delay-duration="300">
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  icon="carbon:reset"
+                  class="nav-action"
+                  @click="refreshSources"
+                />
+              </UTooltip>
+
+              <UTooltip text="GitHub" :delay-duration="300">
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  icon="simple-icons:github"
+                  to="https://github.com/nuxt-modules/og-image"
+                  target="_blank"
+                  class="nav-action hidden sm:flex"
+                />
+              </UTooltip>
+            </div>
+          </nav>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col p-3 sm:p-4" style="min-height: calc(100vh - 60px);">
+        <main class="mx-auto flex flex-col w-full max-w-7xl">
+          <NuxtPage />
+        </main>
       </div>
-    </header>
-    <div class="flex-row flex p4 h-full" style="min-height: calc(100vh - 64px);">
-      <main class="mx-auto flex flex-col w-full">
-        <NuxtPage />
-      </main>
     </div>
-  </div>
+  </UApp>
 </template>
 
 <style>
-/* Layout */
+/* Header */
+.header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem 1rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .header-content {
+    padding: 0.75rem 1.25rem;
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--color-border);
+}
+
+.brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  background: oklch(65% 0.2 145 / 0.12);
+  color: var(--seo-green);
+}
+
+/* Navigation tabs */
+.nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.nav-tab {
+  position: relative;
+  border-radius: var(--radius-sm);
+  transition: all 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-tab-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .nav-tab-inner {
+    padding: 0.375rem 0.75rem;
+  }
+}
+
+.nav-tab:hover .nav-tab-inner {
+  color: var(--color-text);
+}
+
+.nav-tab.active {
+  background: var(--color-surface-elevated);
+  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08);
+}
+
+.dark .nav-tab.active {
+  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.3);
+}
+
+.nav-tab.active .nav-tab-inner {
+  color: var(--color-text);
+}
+
+.nav-label {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .nav-label {
+    display: inline;
+  }
+}
+
+.nav-action {
+  color: var(--color-text-muted) !important;
+}
+
+.nav-action:hover {
+  color: var(--color-text) !important;
+  background: var(--color-surface-sunken) !important;
+}
+
+/* Base HTML */
+html {
+  font-family: var(--font-sans);
+  overflow-y: scroll;
+  overscroll-behavior: none;
+}
+
+body {
+  min-height: 100vh;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Textarea */
+textarea {
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+textarea:focus {
+  border-color: var(--seo-green);
+  outline: none;
+}
+
+/* JSON Editor theme */
+:root {
+  --jse-theme-color: var(--color-surface-elevated) !important;
+  --jse-text-color-inverse: var(--color-text-muted) !important;
+  --jse-theme-color-highlight: var(--color-surface-sunken) !important;
+  --jse-panel-background: var(--color-surface-elevated) !important;
+  --jse-background-color: var(--jse-panel-background) !important;
+  --jse-error-color: oklch(65% 0.2 25 / 0.3) !important;
+  --jse-main-border: none !important;
+}
+
+.dark,
+.jse-theme-dark {
+  --jse-panel-background: var(--color-neutral-900) !important;
+  --jse-theme-color: var(--color-neutral-900) !important;
+  --jse-text-color-inverse: var(--color-neutral-300) !important;
+  --jse-main-border: none !important;
+}
+
+.no-main-menu {
+  border: none !important;
+}
+
+.jse-main {
+  min-height: 1em !important;
+}
+
+.jse-contents {
+  border-width: 0 !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* Tab panels */
 .tab-panels {
   width: 100%;
 }
+
 div[role="tabpanel"] {
   width: 100%;
   display: flex;
 }
 
-/* Splitpanes */
-.splitpanes.default-theme .splitpanes__pane {
-  background-color: transparent !important;
-}
-.dark .splitpanes.default-theme .splitpanes__splitter {
-  background-color: transparent !important;
-  border-left: 1px solid oklch(27.9% 0.041 285 / 0.3);
-}
-.dark .splitpanes.default-theme .splitpanes__splitter:before,
-.splitpanes.default-theme .splitpanes__splitter:after {
-  background-color: oklch(55.4% 0.046 285 / 0.3) !important;
-}
-
-/* Header */
-.header {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: oklch(100% 0 0 / 0.85);
-  border-bottom: 1px solid oklch(92.9% 0.013 285);
-}
-.dark .header {
-  background: oklch(12.9% 0.042 285 / 0.85);
-  border-bottom-color: oklch(20.8% 0.042 285);
-}
-
-/* Navigation tabs */
-.nav-tabs {
-  background: oklch(98.4% 0.003 285);
-}
-.dark .nav-tabs {
-  background: oklch(20.8% 0.042 285);
-}
-.nav-tab {
-  transition: all 0.15s ease;
-}
-.nav-tab:hover {
-  background: oklch(96.8% 0.007 285);
-}
-.dark .nav-tab:hover {
-  background: oklch(27.9% 0.041 285);
-}
-.nav-tab.active {
-  background: oklch(94% 0.04 145 / 0.15);
-}
-.dark .nav-tab.active {
-  background: oklch(30% 0.06 145 / 0.2);
-}
-
-/* Navigation button */
-.nav-btn {
-  color: oklch(55.4% 0.046 285);
-  transition: all 0.15s ease;
-}
-.nav-btn:hover {
-  background: oklch(96.8% 0.007 285);
-  color: oklch(37.2% 0.044 285);
-}
-.dark .nav-btn:hover {
-  background: oklch(27.9% 0.041 285);
-  color: oklch(86.9% 0.022 285);
-}
-
-/* Base HTML */
-html {
-  --at-apply: font-sans;
-  overflow-y: scroll;
-  overscroll-behavior: none;
-}
-body {
-  min-height: 100vh;
-}
-html.dark {
-  background: oklch(12.9% 0.042 285);
-  color-scheme: dark;
-}
-
-/* Typography */
-.n-markdown a {
-  --at-apply: text-primary hover:underline;
-}
-.prose a {
-  --uno: hover:text-primary;
-}
-.prose code::before,
-.prose code::after {
-  content: "";
-}
-.prose hr {
-  --uno: border-solid border-1 border-b border-base h-1px w-full block my-2 op50;
-}
-
-textarea {
-  background: oklch(96.8% 0.007 285);
-}
-.dark textarea {
-  background: oklch(20.8% 0.042 285);
-}
-
-/* JSON Editor theme */
-:root {
-  --jse-theme-color: oklch(100% 0 0) !important;
-  --jse-text-color-inverse: oklch(55.4% 0.046 285) !important;
-  --jse-theme-color-highlight: oklch(96.8% 0.007 285) !important;
-  --jse-panel-background: oklch(100% 0 0) !important;
-  --jse-background-color: var(--jse-panel-background) !important;
-  --jse-error-color: oklch(65% 0.25 25 / 0.3) !important;
-  --jse-main-border: none !important;
-}
-.dark,
-.jse-theme-dark {
-  --jse-panel-background: oklch(15% 0.042 285) !important;
-  --jse-theme-color: oklch(15% 0.042 285) !important;
-  --jse-text-color-inverse: oklch(86.9% 0.022 285) !important;
-  --jse-main-border: none !important;
-}
-.no-main-menu {
-  border: none !important;
-}
-.jse-main {
-  min-height: 1em !important;
-}
-.jse-contents {
-  border-width: 0 !important;
-  border-radius: 8px !important;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar:horizontal {
-  height: 6px;
-}
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: oklch(70.4% 0.04 285 / 0.3);
-  border-radius: 3px;
-  transition: background 0.2s ease;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: oklch(55.4% 0.046 285 / 0.5);
-}
+/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
   width: 0 !important;
   height: 0 !important;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
 }
 </style>

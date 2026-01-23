@@ -41,42 +41,42 @@ const {
 } = useOgImage()
 
 const socialTabs = [
-  { id: '', label: 'Raw', icon: 'carbon:image' },
-  { id: 'twitter', label: 'X', icon: 'simple-icons:x' },
-  { id: 'facebook', label: 'Facebook', icon: 'simple-icons:facebook' },
-  { id: 'linkedin', label: 'LinkedIn', icon: 'simple-icons:linkedin' },
-  { id: 'discord', label: 'Discord', icon: 'simple-icons:discord' },
-  { id: 'slack', label: 'Slack', icon: 'simple-icons:slack' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: 'simple-icons:whatsapp' },
+  { value: '', label: 'Raw', icon: 'carbon:image' },
+  { value: 'twitter', label: 'X', icon: 'simple-icons:x' },
+  { value: 'facebook', label: 'Facebook', icon: 'simple-icons:facebook' },
+  { value: 'linkedin', label: 'LinkedIn', icon: 'simple-icons:linkedin' },
+  { value: 'discord', label: 'Discord', icon: 'simple-icons:discord' },
+  { value: 'slack', label: 'Slack', icon: 'simple-icons:slack' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: 'simple-icons:whatsapp' },
 ]
 </script>
 
 <template>
-  <div class="h-full relative max-h-full bg-zinc-950">
+  <div class="preview-container card animate-fade-up">
     <!-- Demo mode when devtools connection fails -->
     <div v-if="isConnectionFailed" class="h-full flex flex-col">
-      <div class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center gap-2 text-amber-400 text-sm">
-        <NIcon icon="carbon:warning" />
+      <div class="alert-banner warning">
+        <UIcon name="carbon:warning" class="shrink-0" />
         <span>Could not connect to devtools. Showing demo preview.</span>
       </div>
-      <div class="flex-1 flex items-center justify-center p-8">
+      <div class="flex-1 flex items-center justify-center p-6 sm:p-8">
         <div class="w-full max-w-2xl">
           <TwitterCardRenderer title="My Page Title" :aspect-ratio="1200 / 630">
             <template #domain>
               <span>From example.com</span>
             </template>
-            <div class="w-full h-full bg-linear-to-br from-emerald-500 to-sky-500 flex items-center justify-center">
-              <div class="text-white text-center">
-                <div class="text-4xl font-bold mb-2">
+            <div class="w-full h-full bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center">
+              <div class="text-white text-center p-6">
+                <div class="text-2xl sm:text-4xl font-bold mb-2">
                   OG Image Preview
                 </div>
-                <div class="text-lg opacity-80">
+                <div class="text-sm sm:text-lg opacity-80">
                   Connect devtools to see your actual image
                 </div>
               </div>
             </div>
           </TwitterCardRenderer>
-          <p class="text-center text-sm opacity-50 mt-4">
+          <p class="text-center text-sm text-[var(--color-text-muted)] mt-4">
             Open this page in Nuxt DevTools to preview your OG images.
           </p>
         </div>
@@ -85,10 +85,11 @@ const socialTabs = [
 
     <!-- Custom OG Image (prebuilt URL) -->
     <div v-else-if="isCustomOgImage" class="h-full flex flex-col">
-      <div class="px-4 py-2 border-b border-zinc-800 text-xs text-zinc-500">
-        Prebuilt: {{ options?.url }}
+      <div class="toolbar-minimal">
+        <span class="text-[var(--color-text-subtle)]">Prebuilt:</span>
+        <code class="text-[var(--color-text-muted)]">{{ options?.url }}</code>
       </div>
-      <div class="flex-1 flex items-center justify-center p-8">
+      <div class="flex-1 flex items-center justify-center p-6 sm:p-8">
         <ImageLoader
           :src="src"
           :aspect-ratio="aspectRatio"
@@ -99,25 +100,26 @@ const socialTabs = [
     </div>
 
     <!-- Missing defineOgImage error -->
-    <div v-else-if="isValidDebugError" class="h-full flex items-center justify-center p-8">
-      <div class="max-w-lg text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/10 mb-6">
-          <NIcon icon="carbon:image-search" class="w-8 h-8 text-blue-400" />
+    <div v-else-if="isValidDebugError" class="h-full flex items-center justify-center p-6 sm:p-8">
+      <div class="max-w-lg text-center animate-scale-in">
+        <div class="empty-state-icon">
+          <UIcon name="carbon:image-search" class="w-8 h-8" />
         </div>
-        <h2 class="text-xl font-semibold text-zinc-200 mb-3">
+        <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
           No OG Image Defined
         </h2>
-        <p class="text-zinc-400 mb-4">
-          Add <code class="px-1.5 py-0.5 rounded bg-zinc-800 text-emerald-400 text-sm">defineOgImage()</code> to your
-          <button class="text-blue-400 hover:underline" @click="openCurrentPageFile">
+        <p class="text-[var(--color-text-muted)] mb-4 text-sm sm:text-base">
+          Add <code class="inline-code">defineOgImage()</code> to your
+          <button class="text-[var(--seo-green)] hover:underline font-medium" @click="openCurrentPageFile">
             {{ currentPageFile }}
           </button>
         </p>
-        <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-sm text-zinc-500">
-          Using Nuxt Content? See the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="text-blue-400 hover:underline">integration guide</a>
+        <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-sm text-[var(--color-text-subtle)]">
+          Using Nuxt Content? See the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="text-[var(--seo-green)] hover:underline">integration guide</a>
         </div>
-        <a v-else href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="text-sm text-blue-400 hover:underline">
-          Learn more →
+        <a v-else href="https://nuxtseo.com/og-image/getting-started/getting-familar-with-nuxt-og-image" target="_blank" class="text-sm text-[var(--seo-green)] hover:underline inline-flex items-center gap-1">
+          Learn more
+          <UIcon name="carbon:arrow-right" class="w-3 h-3" />
         </a>
       </div>
     </div>
@@ -125,53 +127,50 @@ const socialTabs = [
     <!-- Main preview UI -->
     <div v-else class="h-full flex flex-col">
       <!-- Fallback mode banner -->
-      <div v-if="isFallbackMode" class="bg-sky-500/10 border-b border-sky-500/20 px-4 py-1.5 flex items-center gap-2 text-sky-400 text-xs shrink-0">
-        <NIcon icon="carbon:information" />
+      <div v-if="isFallbackMode" class="alert-banner info">
+        <UIcon name="carbon:information" class="shrink-0" />
         <span>Fallback mode: Connected to localhost:3000</span>
       </div>
 
       <!-- Top toolbar -->
-      <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800/80 bg-zinc-900/50 shrink-0">
+      <div class="toolbar">
         <!-- Left: Renderer + Format controls -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
           <!-- Renderer badge -->
-          <div
-            class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
-            :class="renderer === 'chromium' ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'"
-          >
-            <NIcon :icon="renderer === 'chromium' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
-            {{ renderer === 'chromium' ? 'Chromium' : 'Satori' }}
+          <div class="renderer-badge" :class="renderer === 'chromium' ? 'chromium' : 'satori'">
+            <UIcon :name="renderer === 'chromium' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{{ renderer === 'chromium' ? 'Chromium' : 'Satori' }}</span>
           </div>
 
           <!-- Format buttons -->
-          <div class="flex items-center gap-0.5 p-0.5 rounded-md bg-zinc-800/50">
+          <div class="format-buttons">
             <button
               v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium' || options?.extension === 'jpeg'"
-              class="px-2 py-1 rounded text-xs font-medium transition"
-              :class="imageFormat === 'jpeg' || imageFormat === 'jpg' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'"
+              class="format-btn"
+              :class="{ active: imageFormat === 'jpeg' || imageFormat === 'jpg' }"
               @click="patchOptions({ extension: 'jpg' })"
             >
               JPG
             </button>
             <button
-              class="px-2 py-1 rounded text-xs font-medium transition"
-              :class="imageFormat === 'png' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'"
+              class="format-btn"
+              :class="{ active: imageFormat === 'png' }"
               @click="patchOptions({ extension: 'png' })"
             >
               PNG
             </button>
             <button
               v-if="renderer !== 'chromium'"
-              class="px-2 py-1 rounded text-xs font-medium transition"
-              :class="imageFormat === 'svg' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'"
+              class="format-btn"
+              :class="{ active: imageFormat === 'svg' }"
               @click="patchOptions({ extension: 'svg' })"
             >
               SVG
             </button>
             <button
               v-if="!isPageScreenshot"
-              class="px-2 py-1 rounded text-xs font-medium transition"
-              :class="imageFormat === 'html' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'"
+              class="format-btn"
+              :class="{ active: imageFormat === 'html' }"
               @click="patchOptions({ extension: 'html' })"
             >
               HTML
@@ -180,56 +179,55 @@ const socialTabs = [
         </div>
 
         <!-- Center: Component info -->
-        <div v-if="!isPageScreenshot" class="flex items-center gap-2 text-xs text-zinc-400">
-          <span class="text-zinc-300">{{ activeComponentName }}</span>
+        <div v-if="!isPageScreenshot" class="component-info hidden md:flex">
+          <span class="font-medium text-[var(--color-text)]">{{ activeComponentName }}</span>
           <button
             v-if="isOgImageTemplate"
-            class="text-zinc-500 hover:text-zinc-300 transition"
+            class="component-action"
             @click="ejectComponent(activeComponentName)"
           >
             Eject
           </button>
           <button
             v-else
-            class="text-zinc-500 hover:text-zinc-300 transition"
+            class="component-action"
             @click="openCurrentComponent"
           >
             View Source
           </button>
         </div>
-        <div v-else class="text-xs text-zinc-500">
-          Page Screenshot
+        <div v-else class="component-info hidden md:flex">
+          <span class="text-[var(--color-text-subtle)]">Page Screenshot</span>
         </div>
 
         <!-- Right: Props toggle -->
-        <button
+        <UButton
           v-if="!isPageScreenshot"
-          class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition"
-          :class="sidePanelOpen ? 'bg-zinc-700 text-zinc-200' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'"
+          :variant="sidePanelOpen ? 'soft' : 'ghost'"
+          :color="sidePanelOpen ? 'primary' : 'neutral'"
+          size="xs"
+          icon="carbon:settings-adjust"
+          class="props-toggle"
           @click="sidePanelOpen = !sidePanelOpen"
         >
-          <NIcon icon="carbon:settings-adjust" class="w-3.5 h-3.5" />
-          Props
-        </button>
+          <span class="hidden sm:inline">Props</span>
+        </UButton>
       </div>
 
       <!-- Social preview tabs -->
-      <div class="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-800/50 bg-zinc-900/30 shrink-0">
-        <button
-          v-for="tab in socialTabs"
-          :key="tab.id"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition"
-          :class="socialPreview === tab.id ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'"
-          @click="toggleSocialPreview(tab.id)"
-        >
-          <NIcon :icon="tab.icon" class="w-3.5 h-3.5" />
-          {{ tab.label }}
-        </button>
+      <div class="social-tabs-container">
+        <UTabs
+          v-model="socialPreview"
+          :items="socialTabs"
+          variant="link"
+          size="sm"
+          class="social-tabs"
+        />
       </div>
 
       <!-- Preview area -->
-      <div class="flex-1 flex items-center justify-center p-6 overflow-auto n-panel-grids-center">
-        <div class="w-full max-w-2xl">
+      <div class="preview-area panel-grids">
+        <div class="preview-content">
           <!-- Twitter/X preview -->
           <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle" :aspect-ratio="aspectRatio">
             <template #domain>
@@ -348,7 +346,7 @@ const socialTabs = [
             <ImageLoader
               v-if="imageFormat !== 'html'"
               :src="src"
-              class="h-[300px]!"
+              class="!h-[300px]"
               :aspect-ratio="aspectRatio"
               @load="generateLoadTime"
               @refresh="refreshSources"
@@ -385,7 +383,7 @@ const socialTabs = [
           </WhatsAppRenderer>
 
           <!-- Raw preview -->
-          <div v-else>
+          <div v-else class="raw-preview">
             <ImageLoader
               v-if="imageFormat !== 'html'"
               :src="src"
@@ -403,17 +401,17 @@ const socialTabs = [
           </div>
 
           <!-- Status line -->
-          <div v-if="description" class="mt-4 text-center text-xs text-zinc-500">
+          <div v-if="description" class="status-line">
             {{ description }}
           </div>
 
           <!-- Multi-image key selector -->
-          <div v-if="allImageKeys.length > 1" class="flex items-center justify-center gap-1 mt-3">
+          <div v-if="allImageKeys.length > 1" class="image-key-selector">
             <button
               v-for="key in allImageKeys"
               :key="key"
-              class="px-2 py-1 rounded text-xs font-medium transition"
-              :class="(ogImageKey === key || (!ogImageKey && key === 'og')) ? 'bg-zinc-700 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'"
+              class="key-btn"
+              :class="{ active: ogImageKey === key || (!ogImageKey && key === 'og') }"
               @click="ogImageKey = key"
             >
               {{ key }}
@@ -431,32 +429,34 @@ const socialTabs = [
         leave-from-class="opacity-100 translate-x-0"
         leave-to-class="opacity-0 translate-x-4"
       >
-        <div
-          v-if="sidePanelOpen && !isPageScreenshot"
-          class="absolute right-3 top-24 bottom-3 w-72 flex flex-col rounded-lg border border-zinc-800 bg-zinc-900/98 backdrop-blur-md shadow-2xl shadow-black/60 overflow-hidden"
-        >
-          <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-800/30">
+        <div v-if="sidePanelOpen && !isPageScreenshot" class="props-panel">
+          <div class="props-header">
             <div class="flex items-center gap-2">
-              <span class="text-xs font-medium text-zinc-300">Props</span>
-              <span v-if="hasMadeChanges" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400">modified</span>
+              <span class="text-sm font-medium text-[var(--color-text)]">Props</span>
+              <UBadge v-if="hasMadeChanges" color="warning" variant="subtle" size="xs">
+                modified
+              </UBadge>
             </div>
             <div class="flex items-center gap-1">
-              <button
+              <UButton
                 v-if="hasMadeChanges"
-                class="text-[11px] text-zinc-500 hover:text-zinc-300 transition px-1.5 py-0.5 rounded hover:bg-zinc-700/50"
+                variant="ghost"
+                color="neutral"
+                size="xs"
                 @click="resetProps(true)"
               >
                 Reset
-              </button>
-              <button
-                class="text-zinc-500 hover:text-zinc-300 transition p-1 rounded hover:bg-zinc-700/50"
+              </UButton>
+              <UButton
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                icon="carbon:close"
                 @click="sidePanelOpen = false"
-              >
-                <NIcon icon="carbon:close" class="w-3.5 h-3.5" />
-              </button>
+              />
             </div>
           </div>
-          <div class="flex-1 overflow-auto">
+          <div class="props-content">
             <JsonEditorVue
               :model-value="propEditor"
               class="jse-theme-dark"
@@ -470,3 +470,325 @@ const socialTabs = [
     </div>
   </div>
 </template>
+
+<style scoped>
+.preview-container {
+  height: calc(100vh - 100px);
+  min-height: 500px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Alert banners */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.alert-banner.warning {
+  background: oklch(85% 0.12 85 / 0.1);
+  color: oklch(55% 0.15 85);
+  border-bottom-color: oklch(75% 0.12 85 / 0.2);
+}
+
+.dark .alert-banner.warning {
+  background: oklch(45% 0.12 85 / 0.15);
+  color: oklch(80% 0.12 85);
+}
+
+.alert-banner.info {
+  background: oklch(85% 0.1 230 / 0.1);
+  color: oklch(55% 0.12 230);
+  border-bottom-color: oklch(75% 0.1 230 / 0.2);
+}
+
+.dark .alert-banner.info {
+  background: oklch(45% 0.1 230 / 0.15);
+  color: oklch(80% 0.1 230);
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+@media (min-width: 640px) {
+  .toolbar {
+    padding: 0.75rem 1rem;
+  }
+}
+
+.toolbar-minimal {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+}
+
+/* Renderer badge */
+.renderer-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.renderer-badge.chromium {
+  background: oklch(85% 0.1 230 / 0.15);
+  color: oklch(55% 0.12 230);
+}
+
+.dark .renderer-badge.chromium {
+  background: oklch(45% 0.1 230 / 0.2);
+  color: oklch(75% 0.1 230);
+}
+
+.renderer-badge.satori {
+  background: oklch(85% 0.12 145 / 0.15);
+  color: oklch(55% 0.15 145);
+}
+
+.dark .renderer-badge.satori {
+  background: oklch(40% 0.12 145 / 0.2);
+  color: oklch(75% 0.15 145);
+}
+
+/* Format buttons */
+.format-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.format-btn {
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: all 150ms ease;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+@media (min-width: 640px) {
+  .format-btn {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+  }
+}
+
+.format-btn:hover {
+  color: var(--color-text);
+}
+
+.format-btn.active {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.06);
+}
+
+.dark .format-btn.active {
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
+}
+
+/* Component info */
+.component-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.component-action {
+  color: var(--color-text-subtle);
+  font-size: 0.75rem;
+  transition: color 150ms ease;
+}
+
+.component-action:hover {
+  color: var(--seo-green);
+}
+
+/* Social tabs */
+.social-tabs-container {
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+  overflow-x: auto;
+}
+
+@media (min-width: 640px) {
+  .social-tabs-container {
+    padding: 0.5rem 1rem;
+  }
+}
+
+.social-tabs {
+  min-width: max-content;
+}
+
+/* Preview area */
+.preview-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow: auto;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .preview-area {
+    padding: 1.5rem;
+  }
+}
+
+.preview-content {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.raw-preview {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 24px oklch(0% 0 0 / 0.08);
+}
+
+.dark .raw-preview {
+  box-shadow: 0 4px 24px oklch(0% 0 0 / 0.3);
+}
+
+/* Status line */
+.status-line {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+/* Image key selector */
+.image-key-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+.key-btn {
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: all 150ms ease;
+}
+
+.key-btn:hover {
+  color: var(--color-text);
+}
+
+.key-btn.active {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08);
+}
+
+.dark .key-btn.active {
+  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.25);
+}
+
+/* Props panel */
+.props-panel {
+  position: absolute;
+  right: 0.75rem;
+  top: 7rem;
+  bottom: 0.75rem;
+  width: 18rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  box-shadow: 0 8px 32px oklch(0% 0 0 / 0.12);
+  overflow: hidden;
+}
+
+.dark .props-panel {
+  box-shadow: 0 8px 32px oklch(0% 0 0 / 0.4);
+}
+
+@media (min-width: 640px) {
+  .props-panel {
+    right: 1rem;
+    top: 8rem;
+    bottom: 1rem;
+  }
+}
+
+.props-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+}
+
+.props-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Empty state */
+.empty-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--radius-lg);
+  background: oklch(85% 0.1 230 / 0.15);
+  color: oklch(55% 0.12 230);
+  margin-bottom: 1.5rem;
+}
+
+.dark .empty-state-icon {
+  background: oklch(45% 0.1 230 / 0.2);
+  color: oklch(75% 0.1 230);
+}
+
+/* Inline code */
+.inline-code {
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--seo-green);
+}
+</style>

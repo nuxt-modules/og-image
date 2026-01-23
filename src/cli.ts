@@ -19,6 +19,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const communityDir = resolve(__dirname, 'runtime/app/components/Templates/Community')
 
+// Default component directories (must match module.ts)
+const defaultComponentDirs = ['OgImage', 'OgImageCommunity', 'og-image', 'OgImageTemplate']
+
 // Renderer dependencies
 const RENDERER_DEPS: Record<string, string[]> = {
   satori: ['satori', '@resvg/resvg-js'],
@@ -77,16 +80,18 @@ function ejectTemplate(name: string, targetDir: string) {
   console.log(`✓ Ejected "${name}" to ${outputPath}`)
 }
 
-// Find OgImage components in a directory
+// Find OgImage components in a directory (checks all default component dirs)
 function findOgImageComponents(dir: string): string[] {
   const components: string[] = []
-  const ogImageDir = join(dir, 'components', 'OgImage')
 
-  if (existsSync(ogImageDir)) {
-    const files = readdirSync(ogImageDir, { withFileTypes: true })
-    for (const file of files) {
-      if (file.isFile() && file.name.endsWith('.vue'))
-        components.push(join(ogImageDir, file.name))
+  for (const componentDir of defaultComponentDirs) {
+    const ogImageDir = join(dir, 'components', componentDir)
+    if (existsSync(ogImageDir)) {
+      const files = readdirSync(ogImageDir, { withFileTypes: true })
+      for (const file of files) {
+        if (file.isFile() && file.name.endsWith('.vue'))
+          components.push(join(ogImageDir, file.name))
+      }
     }
   }
 
@@ -246,6 +251,15 @@ function migrateV6(dryRun: boolean, defaultRenderer = 'satori') {
   // Check for app/ directory (Nuxt v4 structure)
   if (existsSync(join(cwd, 'app')))
     dirs.push(join(cwd, 'app'))
+
+  // Check for layers/ directory (common layer pattern)
+  const layersDir = join(cwd, 'layers')
+  if (existsSync(layersDir)) {
+    const layerDirs = readdirSync(layersDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => join(layersDir, d.name))
+    dirs.push(...layerDirs)
+  }
 
   const toRename: Array<{ from: string, to: string }> = []
 

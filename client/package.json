@@ -8,12 +8,11 @@
     "@nuxt/devtools-ui-kit": "catalog:",
     "@nuxt/fonts": "catalog:",
     "@nuxt/kit": "catalog:",
+    "@nuxtjs/tailwindcss": "catalog:",
     "@vueuse/core": "catalog:",
-    "floating-vue": "catalog:",
     "json-editor-vue": "catalog:",
     "nuxt": "catalog:",
     "shiki": "catalog:",
-    "splitpanes": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   }

@@ -51,7 +51,6 @@ export function useOgImage() {
       return
     options.value = separateProps(toValue(currentOptions.value) || {}, ['socialPreview', 'options'])
     emojis.value = options.value.emojis
-    // @ts-expect-error untyped
     propEditor.value = options.value.props
   }, {
     immediate: true,

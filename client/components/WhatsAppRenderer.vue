@@ -24,7 +24,7 @@ defineProps<{
             <slot name="description" />
           </div>
           <div class="whatsapp-url-inline">
-            <NIcon icon="carbon:link" class="w-2.5 h-2.5" />
+            <UIcon name="carbon:link" class="w-2.5 h-2.5" />
             <slot name="siteName" />
           </div>
         </div>
@@ -49,7 +49,7 @@ defineProps<{
             <slot name="description" />
           </div>
           <div class="whatsapp-url">
-            <NIcon icon="carbon:link" class="w-3 h-3" />
+            <UIcon name="carbon:link" class="w-3 h-3" />
             <slot name="url" />
           </div>
         </div>

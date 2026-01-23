@@ -1,2 +1,3 @@
 site.url=https://nuxtseo.com
 modules[]=nuxt-og-image
+imports.autoImport=false

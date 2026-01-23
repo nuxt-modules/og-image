@@ -42,7 +42,7 @@ defineProps<{
 }
 
 .facebook-image {
-  aspect-ratio: 1.91 / 1;
+  aspect-ratio: 2 / 1;
   width: 100%;
   position: relative;
   overflow: hidden;

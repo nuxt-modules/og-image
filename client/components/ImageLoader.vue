@@ -50,28 +50,37 @@ function onError() {
       @load="onLoad"
       @error="onError"
     >
-    <NLoading v-if="loading" />
-    <div v-if="error" class="error-container">
-      <div class="error-badge">
-        <NIcon icon="carbon:warning" class="text-sm" />
-        {{ error.join('\n').includes('satori') ? 'SatoriError' : 'ImageError' }}
+
+    <!-- Loading state -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner" />
+    </div>
+
+    <!-- Error state -->
+    <div v-if="error" class="error-state">
+      <div class="error-header">
+        <UIcon name="carbon:warning" class="error-icon" />
+        <span class="error-type">
+          {{ error.join('\n').includes('satori') ? 'SatoriError' : 'ImageError' }}
+        </span>
       </div>
       <p class="error-message">
         {{ error[0]?.replace('Error:', '') }}
       </p>
-      <pre class="error-stack">{{ error.slice(1).join('\n') }}</pre>
+      <pre v-if="error.length > 1" class="error-stack">{{ error.slice(1).join('\n') }}</pre>
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 .image-loader {
   height: 100%;
   margin: 0 auto;
   width: 100%;
-  transition: all 0.3s ease;
-  border-radius: 8px;
+  transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: var(--radius-md);
   overflow: hidden;
+  background: var(--color-surface-sunken);
 }
 
 .image-loader img {
@@ -79,18 +88,47 @@ function onError() {
   height: 100%;
   max-width: 1200px;
   object-fit: contain;
-  background: oklch(96% 0.01 285);
-  border-radius: 8px;
-}
-
-.dark .image-loader img {
-  background: oklch(22% 0.04 285);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-md);
 }
 
 .image-loader.is-valid {
   cursor: pointer;
 }
 
+.image-loader.is-valid:hover {
+  box-shadow: 0 4px 20px oklch(0% 0 0 / 0.1);
+}
+
+.dark .image-loader.is-valid:hover {
+  box-shadow: 0 4px 20px oklch(0% 0 0 / 0.3);
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--seo-green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
 .image-loader.is-error {
   overflow-x: auto;
   background: oklch(97% 0.015 25);
@@ -98,48 +136,50 @@ function onError() {
 }
 
 .dark .image-loader.is-error {
-  background: oklch(20% 0.03 25);
-  border-color: oklch(30% 0.05 25);
+  background: oklch(18% 0.02 25);
+  border-color: oklch(28% 0.04 25);
 }
 
-.image-loader.is-error .shiki {
-  white-space: normal;
+.error-state {
+  padding: 1.25rem;
 }
 
-.error-container {
-  padding: 16px;
-}
-
-.error-badge {
+.error-header {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: oklch(45% 0.15 25);
-  background: oklch(90% 0.08 25);
-  border-radius: 6px;
-  margin-bottom: 12px;
+  color: oklch(50% 0.15 25);
+  background: oklch(92% 0.06 25);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
 }
 
-.dark .image-loader .error-badge {
-  color: oklch(85% 0.12 25);
-  background: oklch(30% 0.08 25);
+.dark .error-header {
+  color: oklch(80% 0.1 25);
+  background: oklch(28% 0.06 25);
+}
+
+.error-icon {
+  font-size: 0.875rem;
 }
 
 .error-message {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
-  margin-bottom: 16px;
-  line-height: 1.4;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
 }
 
 .error-stack {
-  font-size: 12px;
-  font-family: 'Fira Code', ui-monospace, monospace;
-  opacity: 0.7;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
   white-space: pre-wrap;
   word-break: break-all;
+  line-height: 1.6;
 }
 </style>

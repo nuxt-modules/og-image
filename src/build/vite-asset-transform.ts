@@ -145,7 +145,8 @@ function isSatoriUnsupported(cls: string): boolean {
 }
 
 export interface AssetTransformOptions {
-  componentDirs: string[]
+  /** Resolved absolute paths to OG component directories */
+  ogComponentPaths: string[]
   rootDir: string
   srcDir: string
   publicDir: string
@@ -179,9 +180,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
     enforce: 'pre',
 
     transformInclude(id) {
-      return options.componentDirs.some(dir => id.includes(dir))
-        && id.endsWith('.vue')
-        && !id.includes('node_modules')
+      if (!id.endsWith('.vue') || id.includes('node_modules'))
+        return false
+      // Check if file is inside any of the resolved OG component directories
+      return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
     },
 
     async transform(code, id) {

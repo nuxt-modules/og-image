@@ -20,18 +20,29 @@ function selectTemplate(componentName: string) {
 </script>
 
 <template>
-  <div class="h-full max-h-full overflow-hidden space-y-5">
-    <NLoading v-if="isLoading" />
-    <div v-else class="space-y-5">
-      <OSectionBlock v-if="appComponents.length">
-        <template #text>
-          <h3 class="opacity-80 text-base mb-1">
-            <NIcon name="carbon:app" class="mr-1" />
-            Your Templates
-          </h3>
+  <div class="templates-page animate-fade-up">
+    <!-- Loading state -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner" />
+      <p class="loading-text">
+        Loading templates...
+      </p>
+    </div>
+
+    <!-- Content -->
+    <div v-else class="templates-content stagger-children">
+      <!-- Your Templates -->
+      <OSectionBlock v-if="appComponents.length" icon="carbon:app" text="Your Templates">
+        <template #description>
+          Custom OG Image components in your project
         </template>
-        <div class="flex flex-wrap items-center justify-center gap-3" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
-          <button v-for="name in appComponents" :key="name.pascalName" class="!p-0" @click="selectTemplate(name.pascalName)">
+        <div class="template-grid">
+          <button
+            v-for="name in appComponents"
+            :key="name.pascalName"
+            class="template-item"
+            @click="selectTemplate(name.pascalName)"
+          >
             <TemplateComponentPreview
               :component="name"
               :src="withQuery(src, { component: name.pascalName })"
@@ -41,15 +52,19 @@ function selectTemplate(componentName: string) {
           </button>
         </div>
       </OSectionBlock>
-      <OSectionBlock>
-        <template #text>
-          <h3 class="opacity-80 text-base mb-1">
-            <NIcon name="carbon:airline-passenger-care" class="mr-1" />
-            Community Templates
-          </h3>
+
+      <!-- Community Templates -->
+      <OSectionBlock icon="carbon:user-multiple" text="Community Templates">
+        <template #description>
+          Pre-built templates you can use or eject
         </template>
-        <div class="flex flex-wrap items-center justify-center gap-3" style="-webkit-overflow-scrolling: touch; -ms-overflow-style: -ms-autohiding-scrollbar;">
-          <button v-for="name in communityComponents" :key="name.pascalName" class="!p-0" @click="selectTemplate(name.pascalName)">
+        <div class="template-grid">
+          <button
+            v-for="name in communityComponents"
+            :key="name.pascalName"
+            class="template-item"
+            @click="selectTemplate(name.pascalName)"
+          >
             <TemplateComponentPreview
               :component="name"
               :src="withQuery(src, { component: name.pascalName })"
@@ -62,3 +77,74 @@ function selectTemplate(componentName: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.templates-page {
+  padding-bottom: 2rem;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--seo-green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.templates-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .template-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+.template-item {
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.template-item:hover {
+  transform: translateY(-2px);
+}
+
+.template-item:active {
+  transform: translateY(0);
+}
+</style>

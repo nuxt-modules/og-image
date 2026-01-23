@@ -12,7 +12,7 @@ const {
     <OSectionBlock>
       <template #text>
         <h3 class="opacity-80 text-base mb-1">
-          <NIcon icon="carbon:settings" class="mr-1" />
+          <UIcon name="carbon:settings" class="mr-1" />
           Compatibility
         </h3>
       </template>
@@ -21,7 +21,7 @@ const {
     <OSectionBlock>
       <template #text>
         <h3 class="opacity-80 text-base mb-1">
-          <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
+          <UIcon name="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
           vNodes
         </h3>
       </template>
@@ -30,7 +30,7 @@ const {
     <OSectionBlock>
       <template #text>
         <h3 class="opacity-80 text-base mb-1">
-          <NIcon icon="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
+          <UIcon name="carbon:ibm-cloud-pak-manta-automated-data-lineage" class="mr-1" />
           SVG
         </h3>
       </template>
@@ -39,7 +39,7 @@ const {
     <OSectionBlock>
       <template #text>
         <h3 class="opacity-80 text-base mb-1">
-          <NIcon icon="carbon:settings" class="mr-1" />
+          <UIcon name="carbon:settings" class="mr-1" />
           Runtime Config
         </h3>
       </template>

@@ -1,4 +1,5 @@
 import type { ElementNode } from '@vue/compiler-core'
+import type { ConsolaInstance } from 'consola'
 import { readFile } from 'node:fs/promises'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import { glob } from 'tinyglobby'
@@ -65,7 +66,7 @@ function extractClassesFromExpression(expr: string, classes: string[]): void {
  * Extract all static class names from OG image component files.
  * Uses AST parsing for reliable extraction.
  */
-export async function scanComponentClasses(componentDirs: string[], srcDir: string): Promise<Set<string>> {
+export async function scanComponentClasses(componentDirs: string[], srcDir: string, logger?: ConsolaInstance): Promise<Set<string>> {
   const classes = new Set<string>()
 
   const patterns = componentDirs.map(dir => `**/${dir}/**/*.vue`)
@@ -75,6 +76,10 @@ export async function scanComponentClasses(componentDirs: string[], srcDir: stri
     absolute: true,
     ignore: ['**/node_modules/**'],
   })
+
+  for (const file of files) {
+    logger?.debug(`TW4: Scanning component ${file}`)
+  }
 
   const contents = await Promise.all(
     files.map(file => readFile(file, 'utf-8').catch(() => null)),

@@ -21,14 +21,8 @@ const rendered = computed(() => {
 
 <template>
   <pre
-    class="n-code-block p-5"
-    :class="lines ? 'n-code-block-lines' : ''"
+    class="code-block p-5"
+    :class="lines ? 'code-block-lines' : ''"
     v-html="rendered"
   />
 </template>
-
-<style>
-.n-code-block-lines .shiki code .line::before {
-  display: none;
-}
-</style>

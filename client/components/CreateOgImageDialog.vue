@@ -22,7 +22,7 @@ const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
 <template>
   <CreateOgImageDialogPromise v-slot="{ resolve, args }">
     <div my-10>
-      <NDialog :model-value="true" style="max-height: 80vh;" @update:model-value="handleClose('a', resolve)" @close="handleClose('b', resolve)">
+      <UModal :open="true" style="max-height: 80vh;" @update:open="handleClose('a', resolve)" @close="handleClose('b', resolve)">
         <div flex="~ col gap-2" w-200 p4 border="t base">
           <h2 text-xl class="text-primary">
             Eject Component
@@ -88,15 +88,15 @@ const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
           </RadioGroup>
 
           <div flex="~ gap-3" mt2 justify-end>
-            <NButton @click="resolve(false)">
+            <UButton variant="ghost" @click="resolve(false)">
               Cancel
-            </NButton>
-            <NButton n="solid" capitalize class="n-blue px-3 py-1.5 rounded" @click="resolve(component || false)">
+            </UButton>
+            <UButton color="primary" class="px-3 py-1.5 rounded" @click="resolve(component || false)">
               Create Component
-            </NButton>
+            </UButton>
           </div>
         </div>
-      </NDialog>
+      </UModal>
     </div>
   </CreateOgImageDialogPromise>
 </template>

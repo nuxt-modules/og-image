@@ -1,23 +1,6 @@
-catalogMode: prefer
-
-cleanupUnusedCatalogs: true
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
-  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
 packages:
   - playground
   - client
-overrides:
-  vite: 'npm:vite@8.0.0-beta.2'
 
 catalog:
   '@antfu/eslint-config': ^7.2.0
@@ -35,10 +18,10 @@ catalog:
   '@nuxt/devtools': ^3.1.1
   '@nuxt/devtools-kit': ^3.1.1
   '@nuxt/devtools-ui-kit': ^3.1.1
-  '@nuxt/fonts': 0.13.0
+  '@nuxt/fonts': ^0.13.0
   '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
-  '@nuxt/kit': ^4.2.2
+  '@nuxt/kit': ^4.3.0
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^3.23.0
   '@nuxt/ui': ^4.4.0
@@ -66,10 +49,9 @@ catalog:
   eslint: ^9.39.2
   execa: ^9.6.1
   exsolve: ^1.0.8
-  floating-vue: ^5.2.2
   get-image-colors: ^4.0.1
   globby: ^16.1.0
-  happy-dom: ^20.3.4
+  happy-dom: ^20.3.7
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
   jiti: ^2.6.1
@@ -78,7 +60,7 @@ catalog:
   magic-string: ^0.30.21
   magicast: ^0.5.1
   mocked-exports: ^0.1.1
-  nuxt: ^4.2.2
+  nuxt: ^4.3.0
   nuxt-site-config: ^3.2.18
   nypm: ^0.6.4
   ofetch: ^1.5.1
@@ -97,7 +79,6 @@ catalog:
   sharp: ^0.34.5
   shiki: ^3.21.0
   sirv: ^3.0.2
-  splitpanes: ^4.0.4
   std-env: ^3.10.0
   strip-literal: ^3.1.0
   tailwindcss: ^4.1.18
@@ -111,6 +92,11 @@ catalog:
   vue-router: ^4.6.4
   vue-tsc: ^3.2.2
   yoga-wasm-web: ^0.3.3
+
+catalogMode: prefer
+
+cleanupUnusedCatalogs: true
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -120,3 +106,19 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
+
+overrides:
+  vite: npm:vite@8.0.0-beta.2
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - semver@5.7.2
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'

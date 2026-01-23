@@ -35,14 +35,14 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 <template>
   <div class="template-card group">
     <div class="template-header">
-      <NLink :href="creditSite" external class="template-name">
+      <ULink :to="creditSite" target="_blank" class="template-name">
         {{ component.pascalName }}
-      </NLink>
+      </ULink>
     </div>
     <div class="template-preview" :class="active ? 'is-active' : ''">
-      <VTooltip>
+      <UTooltip :text="`Preview ${component.pascalName} for the current page.`">
         <div class="template-image" :style="{ aspectRatio }">
-          <NIcon v-if="active" icon="carbon:checkmark-filled" class="active-badge" />
+          <UIcon v-if="active" name="carbon:checkmark-filled" class="active-badge" />
           <ImageLoader
             v-if="!isHtml"
             :src="withQuery(src, { component: component.pascalName })"
@@ -59,25 +59,19 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
             @load="(e: { timeTaken: string, sizeKb: string }) => loadStats = e"
           />
         </div>
-        <template #popper>
-          Preview {{ component.pascalName }} for the current page.
-        </template>
-      </VTooltip>
+      </UTooltip>
     </div>
     <div class="template-footer">
-      <VTooltip>
-        <NLink external class="template-action" @click.stop="openComponent">
-          <NIcon icon="carbon:code" class="w-3 h-3" />
+      <UTooltip :text="`Open the source code of ${component.pascalName}.vue in your IDE`">
+        <ULink class="template-action" @click.stop="openComponent">
+          <UIcon name="carbon:code" class="w-3 h-3" />
           View source
-        </NLink>
-        <template #popper>
-          Open the source code of {{ component.pascalName }}.vue in your IDE
-        </template>
-      </VTooltip>
+        </ULink>
+      </UTooltip>
       <div v-if="component.credits" class="template-credit">
-        <NLink v-if="creditSite" :href="creditSite" external>
+        <ULink v-if="creditSite" :to="creditSite" target="_blank">
           {{ creditName }}
-        </NLink>
+        </ULink>
       </div>
     </div>
   </div>

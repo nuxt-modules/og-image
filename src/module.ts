@@ -275,7 +275,6 @@ export default defineNuxtModule<ModuleOptions>({
         break
       }
     }
-
     nuxt.options.alias['#og-image'] = resolve('./runtime')
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
@@ -322,9 +321,10 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Set emoji implementation based on runtime strategy
     if (runtimeEmojiStrategy === 'local') {
-      if (nuxt.options.build) {
+      if (nuxt.options.dev)
+        logger.debug(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
+      else if (nuxt.options.build && !nuxt.options._prepare)
         logger.info(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
-      }
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
       // add nitro virtual import for the iconify import
       nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
@@ -363,6 +363,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Auto-detect Tailwind v4 CSS from nuxt.options.css
     async function detectTailwindCssPath(): Promise<string | undefined> {
       for (const cssEntry of nuxt.options.css) {
+        // @ts-expect-error untyped
         const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
         if (!cssPath || !cssPath.endsWith('.css'))
           continue
@@ -421,7 +422,7 @@ export default defineNuxtModule<ModuleOptions>({
             const mergedUserConfig = defuFn(...userConfigs as [object, ...object[]]) as { ui?: { colors?: Record<string, string> } }
             nuxtUiColors = { ...nuxtUiDefaults, ...mergedUserConfig.ui?.colors }
             tw4NuxtUiColors = nuxtUiColors // Store at module level for vite plugin
-            logger.info(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
+            logger.debug(`Nuxt UI colors: ${JSON.stringify(nuxtUiColors)}`)
           }
 
           // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
@@ -443,11 +444,11 @@ export default defineNuxtModule<ModuleOptions>({
             const { generateStyleMap } = await import('./build/tw4-generator')
 
             // Scan for classes
-            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir)
+            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir, logger)
             const processableClasses = filterProcessableClasses(allClasses)
 
             if (processableClasses.length > 0) {
-              logger.info(`TW4: Found ${processableClasses.length} unique classes in OG components`)
+              logger.debug(`TW4: Found ${processableClasses.length} unique classes in OG components`)
 
               // Generate style map with postcss var resolution
               const styleMap = await generateStyleMap({
@@ -462,14 +463,14 @@ export default defineNuxtModule<ModuleOptions>({
                 tw4StyleMap[cls] = styles
               }
 
-              logger.info(`TW4: Generated style map with ${Object.keys(tw4StyleMap).length} resolved classes`)
+              logger.debug(`TW4: Generated style map with ${Object.keys(tw4StyleMap).length} resolved classes`)
             }
           }
           catch (e) {
             logger.warn(`TW4 style map generation failed: ${(e as Error).message}`)
           }
 
-          logger.info(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
+          logger.debug(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
         }
       }
       // Signal that style map is ready (even if empty or TW4 not enabled)
@@ -482,7 +483,7 @@ export default defineNuxtModule<ModuleOptions>({
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
       addVitePlugin(AssetTransformPlugin.vite({
         emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
-        componentDirs: config.componentDirs,
+        get ogComponentPaths() { return resolvedOgComponentPaths }, // Resolved OG component directory paths
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
         publicDir: resolve(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
@@ -631,6 +632,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (!nuxt.options.dev) {
       nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     }
+
     ;[
       'defineOgImage',
       'defineOgImageComponent',
@@ -675,20 +677,39 @@ export default defineNuxtModule<ModuleOptions>({
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
 
+    // Register OgImage component directories from all configured component roots (supports layers)
+    const componentRoots = await Promise.all(
+      (nuxt.options.components as { dirs?: (string | { path: string })[] })?.dirs?.map(async (dir) => {
+        const dirPath = typeof dir === 'string' ? dir : dir.path
+        return resolver.resolvePath(dirPath).catch(() => null)
+      }) || [],
+    ).then(paths => paths.filter(Boolean) as string[])
+
+    // Collect resolved OG component directory paths for the asset transform plugin
+    const resolvedOgComponentPaths: string[] = []
     for (const componentDir of config.componentDirs) {
-      const path = resolve(nuxt.options.srcDir, 'components', componentDir)
-      if (existsSync(path)) {
-        addComponentsDir({
-          path,
-          island: true,
-          watch: IS_MODULE_DEVELOPMENT,
-          // OgImageCommunity components should be named OgImage* not OgImageCommunity*
-          prefix: componentDir === 'OgImageCommunity' ? 'OgImage' : undefined,
-        })
+      let found = false
+      for (const root of componentRoots) {
+        const path = join(root, componentDir)
+        if (existsSync(path)) {
+          found = true
+          resolvedOgComponentPaths.push(path)
+          addComponentsDir({
+            path,
+            island: true,
+            watch: IS_MODULE_DEVELOPMENT,
+            prefix: componentDir === 'OgImageCommunity' ? 'OgImage' : undefined,
+          })
+        }
       }
-      else if (!defaultComponentDirs.includes(componentDir)) {
-        logger.warn(`The configured component directory \`./${relative(nuxt.options.rootDir, path)}\` does not exist. Skipping.`)
+      if (!found && !defaultComponentDirs.includes(componentDir)) {
+        logger.warn(`The configured component directory \`${componentDir}\` does not exist in any component root. Skipping.`)
       }
+    }
+    // Also include the module's built-in templates directory
+    const builtinTemplatesDir = resolve('./runtime/app/components/Templates')
+    if (fs.existsSync(builtinTemplatesDir)) {
+      resolvedOgComponentPaths.push(builtinTemplatesDir)
     }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
@@ -697,13 +718,15 @@ export default defineNuxtModule<ModuleOptions>({
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
     for (const componentDir of config.componentDirs) {
-      const path = resolve(nuxt.options.srcDir, 'components', componentDir)
-      if (fs.existsSync(path)) {
-        const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
-        for (const file of files) {
-          const renderer = getRendererFromFilename(file)
-          if (renderer)
-            ogImageComponentCtx.detectedRenderers.add(renderer)
+      for (const root of componentRoots) {
+        const path = join(root, componentDir)
+        if (fs.existsSync(path)) {
+          const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
+          for (const file of files) {
+            const renderer = getRendererFromFilename(file)
+            if (renderer)
+              ogImageComponentCtx.detectedRenderers.add(renderer)
+          }
         }
       }
     }
@@ -740,7 +763,7 @@ export default defineNuxtModule<ModuleOptions>({
           const renderer = getRendererFromFilename(component.filePath)
 
           if (!renderer) {
-            invalidComponents.push(component.shortPath)
+            invalidComponents.push(component.filePath)
             return
           }
 
@@ -1036,7 +1059,7 @@ export const tw4Colors = ${JSON.stringify(tw4Colors)}`
             const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
             const { generateStyleMap } = await import('./build/tw4-generator')
 
-            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir)
+            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir, logger)
             const processableClasses = filterProcessableClasses(allClasses)
 
             if (processableClasses.length > 0) {

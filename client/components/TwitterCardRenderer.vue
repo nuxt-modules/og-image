@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = defineProps<{
   aspectRatio: number
   title?: string
@@ -44,7 +46,7 @@ const isSmallCard = computed(() => {
       >
         <div
           class="card-image"
-          :class="isSmallCard ? 'w-32 h-32 shrink-0' : 'aspect-[1.91/1] w-full'"
+          :class="isSmallCard ? 'w-32 h-32 shrink-0' : 'aspect-[2/1] w-full'"
           :style="isSmallCard ? {} : { aspectRatio }"
         >
           <slot />

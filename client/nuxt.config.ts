@@ -1,12 +1,11 @@
-import DevtoolsUIKit from '@nuxt/devtools-ui-kit'
 import { resolve } from 'pathe'
 
 export default defineNuxtConfig({
   ssr: false,
 
   modules: [
-    DevtoolsUIKit,
     '@nuxt/fonts',
+    '@nuxt/ui',
   ],
 
   css: ['~/assets/css/global.css'],
