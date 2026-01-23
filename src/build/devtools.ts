@@ -6,7 +6,7 @@ import type { ClientFunctions, ServerFunctions } from '../rpc-types'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { relative } from 'node:path'
-import { extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
+import { addCustomTab, extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
@@ -90,19 +90,13 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     // since it might have multiple clients connected, we use `broadcast` to call all of them
   })
 
-  nuxt.hook('devtools:customTabs', (tabs) => {
-    tabs.push({
-      // unique identifier
-      name: 'nuxt-og-image',
-      // title to display in the tab
-      title: 'OG Image',
-      // any icon from Iconify, or a URL to an image
-      icon: 'carbon:image-search',
-      // iframe view
-      view: {
-        type: 'iframe',
-        src: DEVTOOLS_UI_ROUTE,
-      },
-    })
+  addCustomTab({
+    name: 'nuxt-og-image',
+    title: 'OG Image',
+    icon: 'carbon:image-search',
+    view: {
+      type: 'iframe',
+      src: DEVTOOLS_UI_ROUTE,
+    },
   })
 }
