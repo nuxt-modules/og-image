@@ -477,6 +477,9 @@ export default defineNuxtModule<ModuleOptions>({
       resolveTw4StyleMapReady()
     })
 
+    // Collect resolved OG component directory paths for the asset transform plugin (populated later, accessed via getter)
+    const resolvedOgComponentPaths: string[] = []
+
     // Add Vite plugin in modules:done (after all aliases registered)
     // Note: tw4StyleMap is populated by app:templates hook; plugin awaits tw4StyleMapReady
     nuxt.hook('modules:done', () => {
@@ -685,8 +688,7 @@ export default defineNuxtModule<ModuleOptions>({
       }) || [],
     ).then(paths => paths.filter(Boolean) as string[])
 
-    // Collect resolved OG component directory paths for the asset transform plugin
-    const resolvedOgComponentPaths: string[] = []
+    // Populate resolved OG component directory paths
     for (const componentDir of config.componentDirs) {
       let found = false
       for (const root of componentRoots) {

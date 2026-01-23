@@ -28,7 +28,7 @@ const {
   options,
   propEditor,
   ogImageKey,
-  toggleSocialPreview,
+  toggleSocialPreview: _toggleSocialPreview,
   generateLoadTime,
   openImage,
   openCurrentPageFile,
