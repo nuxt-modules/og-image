@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
-import { dirname } from 'pathe'
+import { dirname, join } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 
 // we need all of the runtime dependencies when using build
@@ -57,16 +57,16 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       if (compatibility.wasm?.esmImport !== true)
         return
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
-      const serverEntry = resolve.resolve(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
+      const serverEntry = join(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
         ? configuredEntry
         : 'index.mjs')
       const wasmEntries = [serverEntry]
       if (isCloudflarePagesOrModule) {
         // this is especially hacky, basically need to add all paths the wasm import can exist on
         // TODO maybe implement https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128
-        wasmEntries.push(resolve.resolve(dirname(serverEntry), './chunks/wasm.mjs'))
-        wasmEntries.push(resolve.resolve(dirname(serverEntry), './chunks/_/wasm.mjs'))
-        wasmEntries.push(resolve.resolve(dirname(serverEntry), './chunks/index_bg.mjs'))
+        wasmEntries.push(join(dirname(serverEntry), 'chunks/wasm.mjs'))
+        wasmEntries.push(join(dirname(serverEntry), 'chunks/_/wasm.mjs'))
+        wasmEntries.push(join(dirname(serverEntry), 'chunks/index_bg.mjs'))
       }
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
       const yogaHash = await resolveFilePathSha1('yoga-wasm-web/dist/yoga.wasm')
@@ -74,13 +74,13 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
           continue
-        const contents = (await readFile(serverEntry, 'utf-8'))
+        const contents = (await readFile(entry, 'utf-8'))
         const postfix = target === 'vercel-edge' ? '?module' : ''
-        const path = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
-        await writeFile(serverEntry, contents
-          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${path}index_bg-${resvgHash}.wasm${postfix}"`)
-          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${path}index_bg-${cssInlineHash}.wasm${postfix}"`)
-          .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${path}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+        const wasmPath = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
+        await writeFile(entry, contents
+          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
+          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${cssInlineHash}.wasm${postfix}"`)
+          .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
       }
     })
   })

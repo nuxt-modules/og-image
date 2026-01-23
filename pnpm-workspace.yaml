@@ -108,7 +108,7 @@ catalog:
   vitest: ^4.0.18
   vue: ^3.5.27
   vue-router: ^4.6.4
-  vue-tsc: ^3.2.2
+  vue-tsc: ^3.2.3
   yoga-wasm-web: ^0.3.3
 onlyBuiltDependencies:
   - '@parcel/watcher'
