@@ -1,3 +1,4 @@
 site.url=https://nuxtseo.com
 modules[]=nuxt-og-image
+modules[]=@nuxt/devtools
 imports.autoImport=false
