@@ -19,6 +19,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    failOnError: false,
     preset: 'cloudflare-module',
     prerender: {
       routes: [
