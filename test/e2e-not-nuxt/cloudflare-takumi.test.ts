@@ -41,6 +41,7 @@ catch {
 }
 
 const canRunTests = hasTakumiWasm && hasWrangler
+const isCI = !!process.env.CI
 
 let wranglerProcess: ChildProcess | null = null
 let serverUrl = ''
@@ -114,7 +115,8 @@ describe('cloudflare-takumi', () => {
     })
   })
 
-  describe.runIf(canRunTests)('wrangler runtime', () => {
+  // Skip wrangler runtime in CI - inspector port 9229 conflicts with other processes
+  describe.runIf(canRunTests && !isCI)('wrangler runtime', () => {
     beforeAll(async () => {
       serverUrl = await startWrangler()
     }, 60000)
@@ -142,6 +144,10 @@ describe('cloudflare-takumi', () => {
   })
 
   it.runIf(!canRunTests)('skips tests (missing @takumi-rs/wasm or wrangler)', () => {
+    expect(true).toBe(true)
+  })
+
+  it.runIf(canRunTests && isCI)('skips wrangler runtime in CI (inspector port conflicts)', () => {
     expect(true).toBe(true)
   })
 })
