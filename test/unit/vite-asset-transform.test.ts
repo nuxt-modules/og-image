@@ -1,7 +1,23 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'pathe'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
+
+// Mock @iconify-json/noto with minimal wave emoji (25MB file causes timeouts)
+vi.mock('@iconify-json/noto/icons.json', () => ({
+  default: {
+    prefix: 'noto',
+    width: 128,
+    height: 128,
+    icons: {
+      'waving-hand': {
+        body: '<path d="M10 10" fill="currentColor"/>',
+        width: 128,
+        height: 128,
+      },
+    },
+  },
+}))
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const fixtureDir = resolve(__dirname, '../fixtures/build-transforms')
@@ -44,7 +60,7 @@ describe('asset-transform plugin', () => {
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).not.toContain('👋')
-    }, 15000)
+    })
 
     it('should NOT transform emojis in attributes', async () => {
       const code = `<template>
