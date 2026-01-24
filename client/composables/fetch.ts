@@ -51,6 +51,7 @@ export function fetchPathDebug() {
     return appFetch.value(url)
   }, {
     watch: [appFetch, path, refreshTime, ogImageKey],
+    default: () => ({ extract: { options: [], socialPreview: { root: {}, images: [] } } }),
   })
 }
 
@@ -61,5 +62,6 @@ export function fetchGlobalDebug() {
     return appFetch.value('/_og/debug.json')
   }, {
     watch: [appFetch, globalRefreshTime],
+    default: () => ({ runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }),
   })
 }
