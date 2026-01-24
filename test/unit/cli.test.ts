@@ -96,20 +96,25 @@ describe('cli', () => {
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Default.vue'), '<template>test</template>')
 
-      const output = runCli('migrate v6 --dry-run')
-      expect(output).toContain('Default.vue → Default.satori.vue')
+      const output = runCli('migrate v6 --dry-run --yes')
+      expect(output).toContain('Default.vue')
+      expect(output).toContain('Default.satori.vue')
       expect(output).toContain('Dry run')
       expect(existsSync(join(ogDir, 'Default.vue'))).toBe(true)
       expect(existsSync(join(ogDir, 'Default.satori.vue'))).toBe(false)
     })
 
-    it('skips components that already have suffix', () => {
+    it('skips component rename when already have suffix', () => {
       const ogDir = join(tmpDir, 'components/OgImage')
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Default.satori.vue'), '<template>test</template>')
 
       const output = runCli('migrate v6 --yes')
-      expect(output).toContain('already have renderer suffixes')
+      // Should not mention renaming since all components already have suffix
+      expect(output).not.toContain('Rename')
+      expect(output).not.toContain('Renamed')
+      // Should still complete migration
+      expect(output).toContain('Migration complete')
     })
 
     it('handles app/ directory for Nuxt v4', () => {

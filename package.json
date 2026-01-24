@@ -114,6 +114,7 @@
     }
   },
   "dependencies": {
+    "@clack/prompts": "catalog:",
     "@nuxt/devtools-kit": "catalog:",
     "@nuxt/kit": "catalog:",
     "@vue/compiler-sfc": "catalog:",

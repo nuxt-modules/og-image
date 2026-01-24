@@ -22,6 +22,7 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': ^7.2.0
+  '@clack/prompts': ^0.11.0
   '@css-inline/css-inline': ^0.19.1
   '@css-inline/css-inline-wasm': ^0.19.1
   '@headlessui/vue': ^1.7.23

@@ -239,7 +239,13 @@ export default defineNuxtModule<ModuleOptions>({
     // When bundled, import.meta.url points to dist/shared/*.mjs, causing paths like './runtime/...'
     // to incorrectly resolve to dist/shared/runtime/... instead of dist/runtime/...
     // TODO find upstream fix or broken code in module
-    const fixSharedPath = (p: string) => p.includes('/shared/runtime/') ? p.replace('/shared/runtime/', '/runtime/') : p
+    const fixSharedPath = (p: string) => {
+      if (p.includes('/shared/runtime/'))
+        return p.replace('/shared/runtime/', '/runtime/')
+      if (p.includes('/shared/client'))
+        return p.replace('/shared/client', '/client')
+      return p
+    }
     const resolve: typeof _resolver.resolve = path => fixSharedPath(_resolver.resolve(path))
     const resolver: typeof _resolver = {
       ..._resolver,
