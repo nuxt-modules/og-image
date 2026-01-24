@@ -767,6 +767,10 @@ export default defineNuxtModule<ModuleOptions>({
           valid = true
 
         if (valid && fs.existsSync(component.filePath)) {
+          // Only validate .vue files - non-vue files (like OgImageScreenshot.ts) are runtime components, not templates
+          if (!component.filePath.endsWith('.vue'))
+            return
+
           const renderer = getRendererFromFilename(component.filePath)
 
           if (!renderer) {
