@@ -199,6 +199,7 @@
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "vue-tsc": "catalog:"
+    "vue-tsc": "catalog:",
+    "wrangler": "catalog:"
   }
 }

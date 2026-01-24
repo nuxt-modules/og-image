@@ -33,7 +33,7 @@ catch {
 // Check if wrangler is available
 let hasWrangler = false
 try {
-  await execa('npx', ['wrangler', '--version'])
+  await execa('wrangler', ['--version'])
   hasWrangler = true
 }
 catch {
@@ -55,7 +55,7 @@ async function buildFixture() {
 
 async function startWrangler(): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npx', ['wrangler', 'dev', '--port', '8788'], {
+    const proc = spawn('wrangler', ['dev', '--port', '8788'], {
       cwd: fixtureDir,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
