@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-defineOgImage({
+defineOgImage('NuxtSeo', {
   title: 'Cloudflare Satori Test',
 })
 </script>
