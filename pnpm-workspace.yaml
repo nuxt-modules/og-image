@@ -1,12 +1,30 @@
+catalogMode: prefer
+
+cleanupUnusedCatalogs: true
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - semver@5.7.2
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
 packages:
   - playground
   - client
+overrides:
+  vite: npm:vite@8.0.0-beta.2
 
 catalog:
   '@antfu/eslint-config': ^7.2.0
   '@clack/prompts': ^0.11.0
-  '@css-inline/css-inline': ^0.19.1
-  '@css-inline/css-inline-wasm': ^0.19.1
+  '@css-inline/css-inline': ^0.19.2
+  '@css-inline/css-inline-wasm': ^0.19.2
   '@headlessui/vue': ^1.7.23
   '@iconify-json/carbon': ^1.2.18
   '@iconify-json/logos': ^1.2.10
@@ -68,8 +86,8 @@ catalog:
   ohash: ^2.0.11
   pathe: ^2.0.3
   pkg-types: ^2.3.0
-  playwright: ^1.57.0
-  playwright-core: ^1.57.0
+  playwright: ^1.58.0
+  playwright-core: ^1.58.0
   postcss: ^8.5.6
   postcss-calc: ^10.1.1
   postcss-custom-properties: ^15.0.0
@@ -94,11 +112,6 @@ catalog:
   vue-tsc: ^3.2.3
   wrangler: ^4.60.0
   yoga-wasm-web: ^0.3.3
-
-catalogMode: prefer
-
-cleanupUnusedCatalogs: true
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -108,19 +121,3 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
-
-overrides:
-  vite: npm:vite@8.0.0-beta.2
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
-  - semver@5.7.2
-  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
