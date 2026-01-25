@@ -76,6 +76,23 @@ function processOgImageOptions(
   // TypeScript now knows options is not false
   const validOptions = options as OgImageOptions | OgImagePrebuilt
 
+  // resolve reactive options
+  if (validOptions.width)
+    validOptions.width = toValue(validOptions.width)
+  if (validOptions.height)
+    validOptions.height = toValue(validOptions.height)
+  if (validOptions.alt)
+    validOptions.alt = toValue(validOptions.alt)
+  if (validOptions.url)
+    validOptions.url = toValue(validOptions.url)
+  // resolve reactive props
+  if (validOptions.props) {
+    validOptions.props = { ...validOptions.props }
+    for (const key in validOptions.props) {
+      validOptions.props[key] = toValue(validOptions.props[key])
+    }
+  }
+
   for (const key in defaults) {
     // @ts-expect-error untyped
     if (validOptions[key] === undefined)
