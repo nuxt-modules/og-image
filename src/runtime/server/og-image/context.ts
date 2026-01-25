@@ -50,16 +50,16 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const path = resolvePathWithBase(parseURL(e.path).pathname)
 
   const extension = path.split('.').pop() as OgImageRenderEventContext['extension']
-  if (!extension) {
+  if (!extension || !path.includes('.') || extension.includes('/')) {
     return createError({
       statusCode: 400,
-      statusMessage: `[Nuxt OG Image] Missing OG Image type.`,
+      statusMessage: `[Nuxt OG Image] Missing OG Image type. Ensure the URL ends with a valid extension (e.g. .png, .jpg). Path: ${path}`,
     })
   }
   if (!['png', 'jpeg', 'jpg', 'svg', 'html', 'json'].includes(extension)) {
     return createError({
       statusCode: 400,
-      statusMessage: `[Nuxt OG Image] Unknown OG Image type ${extension}.`,
+      statusMessage: `[Nuxt OG Image] Unknown OG Image type "${extension}". Supported types are: png, jpeg, jpg, svg, html, json. Path: ${path}`,
     })
   }
 
