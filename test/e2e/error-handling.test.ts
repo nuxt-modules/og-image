@@ -32,14 +32,19 @@ describe('error handling', () => {
     expect(res.type).toBe('image/png')
   })
 
-  it('returns explicit error for invalid extension', async () => {
-    try {
-      await $fetch('/prefix/_og/d/title_hello.xyz')
-    }
-    catch (e: any) {
-      expect(e.response.status).toBe(400)
+  it('handles dots in params without extension', async () => {
+    const res = await $fetch('/prefix/_og/d/title_hello.world,theme_dark', {
+      responseType: 'blob',
+    })
+    expect(res).toBeTruthy()
+    expect(res.type).toBe('image/png')
+  })
 
-      expect(e.response.statusText).toContain('Unknown OG Image type "xyz"')
-    }
+  it('defaults to png for invalid extension', async () => {
+    const res = await $fetch('/prefix/_og/d/title_hello.xyz', {
+      responseType: 'blob',
+    })
+    expect(res).toBeTruthy()
+    expect(res.type).toBe('image/png')
   })
 })
