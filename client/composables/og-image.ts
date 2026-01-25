@@ -1,24 +1,25 @@
-import type { Ref } from 'vue'
 import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions } from '../../src/runtime/types'
-import type { GlobalDebugResponse, PathDebugResponse } from './fetch'
-import { computed, toValue, watch } from '#imports'
+import { computed, inject, toValue, watch } from '#imports'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
 import { description, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
-import { fetchGlobalDebug, fetchPathDebug } from './fetch'
+import { GlobalDebugKey, PathDebugKey, RefetchPathDebugKey } from './keys'
 import { devtoolsClient, ogImageRpc } from './rpc'
 import { CreateOgImageDialogPromise } from './templates'
 
 export function useOgImage() {
-  const { data: globalDebug } = fetchGlobalDebug() as { data: Ref<GlobalDebugResponse | null> }
+  const globalDebug = inject(GlobalDebugKey)!
 
   const emojis = ref<OgImageOptions['emojis']>('noto')
 
-  const debugAsyncData = fetchPathDebug()
-  const { data: debug, pending, error } = debugAsyncData as { data: Ref<PathDebugResponse | null>, pending: Ref<boolean>, error: Ref<Error | null> }
+  const debug = inject(PathDebugKey)!
+  const refreshPathDebug = inject(RefetchPathDebugKey)!
+  // TODO: handle pending / error
+  const pending = ref(false)
+  const error = ref(null)
 
   // Multi-image support
   const selectedOgImage = computed(() => {
@@ -278,7 +279,7 @@ export function useOgImage() {
 
   async function resetProps(fetch = true) {
     if (fetch)
-      await fetchPathDebug()
+      await refreshPathDebug()
     optionsOverrides.value = {}
     hasMadeChanges.value = false
     if (fetch)

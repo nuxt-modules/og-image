@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import type { GlobalDebugResponse } from '../composables/fetch'
+import { inject } from '#imports'
 import {
   RadioGroup,
   RadioGroupLabel,
   RadioGroupOption,
 } from '@headlessui/vue'
 import { ref } from 'vue'
-import { fetchGlobalDebug } from '../composables/fetch'
+import { GlobalDebugKey } from '../composables/keys'
 import { CreateOgImageDialogPromise } from '../composables/templates'
 
 function handleClose(_a: unknown, resolve: (value: string | false) => void) {
   resolve(false)
 }
 
-const { data: globalDebug } = await fetchGlobalDebug() as { data: Ref<GlobalDebugResponse | null> }
+const globalDebug = inject(GlobalDebugKey) as Ref<GlobalDebugResponse | null>
 
 const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
 </script>

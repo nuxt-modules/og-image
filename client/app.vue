@@ -1,9 +1,14 @@
 <script lang="ts" setup>
-import { computed, useHead, useRoute } from '#imports'
+import type { OgImageRuntimeConfig } from '../src/runtime/types'
+import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch'
+import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute } from '#imports'
+import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
+import { GlobalDebugKey, PathDebugKey, RefetchPathDebugKey } from './composables/keys'
 import { useOgImage } from './composables/og-image'
-import { colorMode } from './composables/rpc'
+import { appFetch, colorMode } from './composables/rpc'
 import { loadShiki } from './composables/shiki'
+import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from './util/logic'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 
 useHead({
@@ -11,8 +16,41 @@ useHead({
 })
 await loadShiki()
 
+const nuxtApp = useNuxtApp()
+// @ts-expect-error untyped
+nuxtApp.payload.data = nuxtApp.payload.data || {}
+
+const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', () => {
+  if (!appFetch.value)
+    return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
+  return appFetch.value('/_og/debug.json')
+}, {
+  watch: [appFetch, globalRefreshTime],
+  default: () => ({ runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }),
+})
+
+const { data: pathDebug, refresh: refreshPathDebug } = useAsyncData<PathDebugResponse>('path-debug', async () => {
+  if (!appFetch.value)
+    return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
+  // Build encoded URL with options for debug JSON
+  const params = {
+    ...optionsOverrides.value,
+    key: ogImageKey.value || 'og',
+    _path: path.value, // Include path for context
+  }
+  const encoded = encodeOgImageParams(params)
+  const url = `/_og/d/${encoded || 'default'}.json`
+  return appFetch.value(url)
+}, {
+  watch: [appFetch, path, refreshTime, ogImageKey],
+  default: () => ({ extract: { options: [], socialPreview: { root: {}, images: [] } } }),
+})
+
+provide(GlobalDebugKey, globalDebug)
+provide(PathDebugKey, pathDebug)
+provide(RefetchPathDebugKey, refreshPathDebug)
+
 const {
-  globalDebug,
   pending,
   error,
   isPageScreenshot,

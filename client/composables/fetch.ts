@@ -7,10 +7,6 @@ import type {
   OgImageRuntimeConfig,
   RuntimeCompatibilitySchema,
 } from '../../src/runtime/types'
-import { useAsyncData } from '#imports'
-import { encodeOgImageParams } from '../../src/runtime/shared/urlEncoding'
-import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from '../util/logic'
-import { appFetch } from './rpc'
 
 export interface DevToolsPayload {
   options: OgImageOptions[]
@@ -34,34 +30,4 @@ export interface GlobalDebugResponse {
   componentNames: OgImageComponent[]
   siteConfigUrl?: string
   compatibility?: RuntimeCompatibilitySchema
-}
-
-export function fetchPathDebug() {
-  return useAsyncData<PathDebugResponse>('path-debug', async () => {
-    if (!appFetch.value)
-      return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
-    // Build encoded URL with options for debug JSON
-    const params = {
-      ...optionsOverrides.value,
-      key: ogImageKey.value || 'og',
-      _path: path.value, // Include path for context
-    }
-    const encoded = encodeOgImageParams(params)
-    const url = `/_og/d/${encoded || 'default'}.json`
-    return appFetch.value(url)
-  }, {
-    watch: [appFetch, path, refreshTime, ogImageKey],
-    default: () => ({ extract: { options: [], socialPreview: { root: {}, images: [] } } }),
-  })
-}
-
-export function fetchGlobalDebug() {
-  return useAsyncData<GlobalDebugResponse>('global-debug', () => {
-    if (!appFetch.value)
-      return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
-    return appFetch.value('/_og/debug.json')
-  }, {
-    watch: [appFetch, globalRefreshTime],
-    default: () => ({ runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }),
-  })
 }
