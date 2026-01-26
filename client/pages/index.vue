@@ -215,15 +215,16 @@ const socialTabs = [
       </div>
 
       <!-- Social preview tabs -->
-      <div class="social-tabs-container">
-        <UTabs
-          v-model="socialPreview"
-          :items="socialTabs"
-          variant="link"
-          size="sm"
-          class="social-tabs"
-        />
-      </div>
+      <UTabs
+        v-model="socialPreview"
+        :items="socialTabs"
+        variant="link"
+        size="sm"
+        :ui="{
+          root: 'px-3 sm:px-4 py-1.5 sm:py-2 border-b border-(--ui-border) bg-(--ui-bg-muted) overflow-x-auto',
+          list: 'min-w-max',
+        }"
+      />
 
       <!-- Preview area -->
       <div class="preview-area panel-grids">
@@ -629,24 +630,6 @@ const socialTabs = [
 
 .component-action:hover {
   color: var(--seo-green);
-}
-
-/* Social tabs */
-.social-tabs-container {
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-sunken);
-  overflow-x: auto;
-}
-
-@media (min-width: 640px) {
-  .social-tabs-container {
-    padding: 0.5rem 1rem;
-  }
-}
-
-.social-tabs {
-  min-width: max-content;
 }
 
 /* Preview area */
