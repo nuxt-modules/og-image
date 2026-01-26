@@ -90,11 +90,8 @@ export default defineNuxtConfig({
   },
 
   fonts: {
-    providers: {
-      google: false,
-    },
     families: [
-      { global: true, name: 'HubotSans', provider: 'local', weight: [200, 900], stretch: '75% 125%' },
+      { global: true, name: 'Hubot Sans', stretch: '75% 125%' },
     ],
   },
 

@@ -21,19 +21,24 @@ const themeColor = computed(() => props.isPro ? '124, 58, 237' : '34, 197, 94')
 <template>
   <div
     class="w-full h-full flex flex-col justify-center items-center relative p-[60px]"
-    :class="[
-      colorMode === 'light' ? ['bg-white', 'text-neutral-900'] : ['bg-neutral-900', 'text-neutral-50'],
-    ]"
+    :style="{
+      backgroundColor: colorMode === 'dark' ? '#171717' : '#ffffff',
+      color: colorMode === 'dark' ? '#fafafa' : '#171717',
+    }"
   >
     <!-- Gradient background -->
     <div
-      class="absolute inset-0" :style="{
-        backgroundImage: `radial-gradient(ellipse at bottom right, rgba(${themeColor}, 0.15) 0%, transparent 60%)`,
+      class="absolute top-0 left-0" :style="{
+        width: '100%',
+        height: '100%',
+        backgroundImage: `radial-gradient(ellipse 100% 100% at 100% 100%, rgba(${themeColor}, 0.15) 0%, transparent 60%)`,
       }"
     />
     <div
-      class="absolute inset-0" :style="{
-        backgroundImage: `radial-gradient(ellipse at top left, rgba(${themeColor}, 0.1) 0%, transparent 50%)`,
+      class="absolute top-0 left-0" :style="{
+        width: '100%',
+        height: '100%',
+        backgroundImage: `radial-gradient(ellipse 100% 100% at 0% 0%, rgba(${themeColor}, 0.1) 0%, transparent 50%)`,
       }"
     />
 
@@ -72,9 +77,3 @@ const themeColor = computed(() => props.isPro ? '124, 58, 237' : '34, 197, 94')
     </div>
   </div>
 </template>
-
-<style>
-:root {
-  font-family: 'Hubot Sans';
-}
-</style>

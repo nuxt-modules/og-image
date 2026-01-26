@@ -1,4 +1,5 @@
-import type { OgImageRenderEventContext, VNode } from '../../../types'
+import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../types'
+import resolvedFonts from '#og-image/fonts'
 import { html as convertHtmlToSatori } from 'satori-html'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
@@ -12,6 +13,15 @@ import twClasses from './plugins/twClasses'
 import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
 import { walkSatoriTree } from './utils'
+
+// Get default font family from resolved fonts
+function getDefaultFontFamily(): string {
+  const fonts = resolvedFonts as FontConfig[]
+  const firstFont = fonts[0]
+  if (firstFont)
+    return `'${firstFont.family}', sans-serif`
+  return 'sans-serif'
+}
 
 export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNode> {
   let html = ctx.options.html
@@ -30,7 +40,8 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     }
   }
   // get the body content of the html
-  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
+  const defaultFont = getDefaultFontFamily()
+  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden; font-family: ${defaultFont};">${html}</div>`
   // scan html for all css links and load them
   const satoriTree = convertHtmlToSatori(template)
   // do sync transforms
