@@ -39,16 +39,6 @@ const {
   updateProps,
   refreshSources,
 } = useOgImage()
-
-const socialTabs = [
-  { value: '', label: 'Raw', icon: 'carbon:image' },
-  { value: 'twitter', label: 'X', icon: 'simple-icons:x' },
-  { value: 'facebook', label: 'Facebook', icon: 'simple-icons:facebook' },
-  { value: 'linkedin', label: 'LinkedIn', icon: 'simple-icons:linkedin' },
-  { value: 'discord', label: 'Discord', icon: 'simple-icons:discord' },
-  { value: 'slack', label: 'Slack', icon: 'simple-icons:slack' },
-  { value: 'whatsapp', label: 'WhatsApp', icon: 'simple-icons:whatsapp' },
-]
 </script>
 
 <template>
