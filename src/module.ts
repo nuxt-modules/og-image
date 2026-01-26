@@ -37,6 +37,7 @@ import {
   resolveNitroPreset,
 } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
+import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
@@ -268,6 +269,20 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
+    }
+
+    // Check for removed/deprecated config options
+    const ogImageConfig = config as unknown as Record<string, unknown>
+    for (const key of Object.keys(REMOVED_CONFIG)) {
+      if (key !== 'chromium-node' && key in ogImageConfig && ogImageConfig[key] !== undefined) {
+        addConfigWarning(key)
+      }
+    }
+
+    // Check for deprecated chromium: 'node' binding
+    const chromiumRuntime = config.compatibility?.runtime?.chromium as string | undefined
+    if (chromiumRuntime === 'node') {
+      addConfigWarning('chromium-node')
     }
 
     // Warn about wildcard route rules that may break og-image routes
@@ -835,17 +850,19 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
 
-      // Validate: warn in dev, error in prod for missing suffix
+      // Validate: collect warnings in dev, error in prod for missing suffix
       if (invalidComponents.length > 0) {
-        const message = `OG Image components missing renderer suffix (.satori.vue, .chromium.vue, .takumi.vue):\n${
-          invalidComponents.map(c => `  ${c}`).join('\n')
-        }\n\nRun: npx nuxt-og-image migrate v6`
-
         if (nuxt.options.dev) {
-          if (config.warnMissingSuffix !== false)
-            logger.warn(message)
+          if (config.warnMissingSuffix !== false) {
+            for (const componentPath of invalidComponents) {
+              addComponentWarning(componentPath)
+            }
+          }
         }
         else {
+          const message = `OG Image components missing renderer suffix (.satori.vue, .chromium.vue, .takumi.vue):\n${
+            invalidComponents.map(c => `  ${c}`).join('\n')
+          }\n\nRun: npx nuxt-og-image migrate v6`
           throw new Error(message)
         }
       }
@@ -1106,5 +1123,13 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolver, getDetectedRenderers)
+
+    // Emit migration warnings at end of setup (dev only)
+    if (nuxt.options.dev && hasWarnings()) {
+      // Delay to ensure all warnings are collected
+      nuxt.hook('ready', () => {
+        emitWarnings()
+      })
+    }
   },
 })
