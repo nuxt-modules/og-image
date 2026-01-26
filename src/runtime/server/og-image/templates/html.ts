@@ -58,6 +58,10 @@ export async function html(ctx: OgImageRenderEventContext) {
   await applyEmojis(ctx, island)
   let html = island.html
 
+  const scale = (options.props as Record<string, any>)?.scale || 1
+  const scaledWidth = Math.round(options.width! * scale)
+  const scaledHeight = Math.round(options.height! * scale)
+
   head.push({
     style: [
       {
@@ -65,15 +69,19 @@ export async function html(ctx: OgImageRenderEventContext) {
         innerHTML: `body { font-family: \'${defaultFontFamily}\', sans-serif;  }`,
       },
       {
-        innerHTML: `body {
-    transform: scale(${(options.props as Record<string, any>)?.scale || 1});
-    transform-origin: top left;
-    max-height: 100vh;
-    position: relative;
-    width: ${options.width}px;
-    height: ${options.height}px;
+        innerHTML: `html, body {
+    margin: 0;
+    padding: 0;
+    width: ${scaledWidth}px;
+    height: ${scaledHeight}px;
     overflow: hidden;
     background-color: ${(options.props as Record<string, any>)?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
+}
+.og-scale-wrapper {
+    transform: scale(${scale});
+    transform-origin: top left;
+    width: ${options.width}px;
+    height: ${options.height}px;
 }
 div {
   display: flex;
@@ -134,6 +142,6 @@ svg[data-emoji] {
   return `<!DOCTYPE html>
 <html ${headChunk.htmlAttrs}>
 <head>${headChunk.headTags}</head>
-<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div data-v-inspector-ignore="true" style="position: relative; display: flex; margin: 0 auto; width: ${options.width}px; height: ${options.height}px; overflow: hidden;">${html}</div>${headChunk.bodyTags}</body>
+<body ${headChunk.bodyAttrs}>${headChunk.bodyTagsOpen}<div class="og-scale-wrapper" data-v-inspector-ignore="true">${html}</div>${headChunk.bodyTags}</body>
 </html>`
 }

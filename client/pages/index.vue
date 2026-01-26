@@ -285,7 +285,6 @@ const {
             <IFrameLoader
               v-else
               :src="src"
-              :max-height="300"
               :aspect-ratio="aspectRatio"
               @load="generateLoadTime"
               @refresh="refreshSources"
@@ -745,11 +744,13 @@ const {
 }
 
 .preview-content {
+  width: 100%;
   max-width: 42rem;
   margin: 0 auto;
 }
 
 .raw-preview {
+  width: 100%;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 4px 24px oklch(0% 0 0 / 0.08);

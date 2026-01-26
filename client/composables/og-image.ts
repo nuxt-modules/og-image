@@ -7,7 +7,7 @@ import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
 import { description, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
 import { GlobalDebugKey, PathDebugKey, RefetchPathDebugKey } from './keys'
-import { devtoolsClient, ogImageRpc } from './rpc'
+import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
 import { CreateOgImageDialogPromise } from './templates'
 
 export function useOgImage() {
@@ -113,6 +113,7 @@ export function useOgImage() {
     const encoded = encodeOgImageParams(params)
     return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
       timestamp: refreshTime.value, // Cache bust for devtools
+      colorMode: colorMode.value, // Pass color mode to renderer
     })
   })
 

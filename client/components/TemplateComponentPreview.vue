@@ -54,7 +54,6 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
             v-else
             :src="src"
             class="pointer-events-none"
-            :max-height="120"
             :aspect-ratio="aspectRatio"
             @load="(e: { timeTaken: string, sizeKb: string }) => loadStats = e"
           />

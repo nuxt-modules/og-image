@@ -1,45 +1,38 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, toValue, useHead, watch } from '#imports'
-import { useDebounceFn } from '@vueuse/core'
-import { colorMode } from '../composables/rpc'
+import { onMounted, ref, toValue, watch } from '#imports'
+import { useDebounceFn, useResizeObserver } from '@vueuse/core'
+import { withQuery } from 'ufo'
 import { options } from '../util/logic'
 
 const props = defineProps<{
   src: string
   aspectRatio: number
-  maxHeight?: number
-  maxWidth?: number
 }>()
 const emit = defineEmits(['load'])
 
 const src = ref()
-
-const iframe = ref()
-
-const maxWidth = computed(() => {
-  return props.maxWidth || toValue(options.value.width) || 1200
-})
-const maxHeight = computed(() => {
-  return props.maxHeight || toValue(options.value.height) || 600
-})
+const iframe = ref<HTMLIFrameElement>()
+const container = ref<HTMLElement>()
 
 const setSource = useDebounceFn(() => {
-  const frame = iframe.value as HTMLImageElement
+  const frame = iframe.value
+  if (!frame || !src.value)
+    return
   const now = Date.now()
   frame.src = ''
-  const width = toValue(options.value.width) || 1200
-  const height = toValue(options.value.height) || 600
-  const parentHeight = maxHeight.value
-  const parentWidth = maxWidth.value
-  const parentHeightScale = parentHeight > height ? 1 : parentHeight / height
-  const parentWidthScale = parentWidth > width ? 1 : parentWidth / width
-  const scale = parentWidthScale > parentHeightScale ? parentHeightScale : parentWidthScale
+
+  // Calculate scale based on container width vs content width
+  const contentWidth = toValue(options.value.width) || 1200
+  const containerWidth = container.value?.offsetWidth
+  // Use scale 1 if container hasn't rendered yet (offsetWidth is 0)
+  const scale = containerWidth ? Math.min(1, containerWidth / contentWidth) : 1
+
   frame.style.opacity = '0'
   frame.onload = () => {
     frame.style.opacity = '1'
     emit('load', { timeTaken: Date.now() - now })
   }
-  frame.src = `${src.value}&scale=${scale}&colorMode=${colorMode.value}`
+  frame.src = withQuery(src.value, { scale })
 }, 200)
 
 onMounted(() => {
@@ -54,35 +47,42 @@ onMounted(() => {
     immediate: true,
   })
 
-  watch([() => colorMode, iframe], () => {
+  watch(iframe, () => {
     setSource()
   })
 })
 
-// unconstained, we need to resize
-if (!props.maxHeight && !props.maxWidth) {
-  useHead({
-    bodyAttrs: {
-      onresize: () => {
-        setSource()
-      },
-    },
-  })
-}
+// Recalculate scale when container resizes
+useResizeObserver(container, () => {
+  if (src.value)
+    setSource()
+})
 </script>
 
 <template>
-  <div class="w-full mx-auto h-full justify-center flex" :style="{ maxHeight: `${maxHeight}px`, maxWidth: `${maxWidth}px` }">
-    <iframe ref="iframe" class="max-h-full" :style="{ aspectRatio }" :width="maxWidth" :height="maxHeight" />
+  <div ref="container" class="iframe-loader" :style="{ aspectRatio }">
+    <iframe ref="iframe" />
   </div>
 </template>
 
 <style scoped>
-iframe {
-  height: auto;
-  width: auto;
+.iframe-loader {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  transition: 0.4s ease-in-out;
-  max-width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-sunken);
+}
+
+.iframe-loader iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  transition: opacity 0.3s ease;
 }
 </style>
