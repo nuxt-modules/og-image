@@ -8,11 +8,13 @@ export default defineNuxtConfig({
     '@nuxt/ui',
   ],
 
+  ogImage: false,
+
   css: ['~/assets/css/global.css'],
 
   fonts: {
     families: [
-      { name: 'Hubot Sans', provider: 'local', weight: [200, 900], stretch: '75% 125%' },
+      { name: 'Hubot Sans' },
     ],
   },
 

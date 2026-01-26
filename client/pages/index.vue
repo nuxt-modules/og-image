@@ -215,16 +215,66 @@ const socialTabs = [
       </div>
 
       <!-- Social preview tabs -->
-      <UTabs
-        v-model="socialPreview"
-        :items="socialTabs"
-        variant="link"
-        size="sm"
-        :ui="{
-          root: 'px-3 sm:px-4 py-1.5 sm:py-2 border-b border-(--ui-border) bg-(--ui-bg-muted) overflow-x-auto',
-          list: 'min-w-max',
-        }"
-      />
+      <div class="social-tabs">
+        <div class="social-buttons">
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === '' }"
+            @click="socialPreview = ''"
+          >
+            <UIcon name="carbon:image" class="w-3.5 h-3.5" />
+            Raw
+          </button>
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === 'twitter' }"
+            @click="socialPreview = 'twitter'"
+          >
+            <UIcon name="simple-icons:x" class="w-3.5 h-3.5" />
+            X
+          </button>
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === 'facebook' }"
+            @click="socialPreview = 'facebook'"
+          >
+            <UIcon name="simple-icons:facebook" class="w-3.5 h-3.5" />
+            Facebook
+          </button>
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === 'linkedin' }"
+            @click="socialPreview = 'linkedin'"
+          >
+            <UIcon name="simple-icons:linkedin" class="w-3.5 h-3.5" />
+            LinkedIn
+          </button>
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === 'discord' }"
+            @click="socialPreview = 'discord'"
+          >
+            <UIcon name="simple-icons:discord" class="w-3.5 h-3.5" />
+            Discord
+          </button>
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === 'slack' }"
+            @click="socialPreview = 'slack'"
+          >
+            <UIcon name="simple-icons:slack" class="w-3.5 h-3.5" />
+            Slack
+          </button>
+          <button
+            class="social-btn"
+            :class="{ active: socialPreview === 'whatsapp' }"
+            @click="socialPreview = 'whatsapp'"
+          >
+            <UIcon name="simple-icons:whatsapp" class="w-3.5 h-3.5" />
+            WhatsApp
+          </button>
+        </div>
+      </div>
 
       <!-- Preview area -->
       <div class="preview-area panel-grids">
@@ -630,6 +680,61 @@ const socialTabs = [
 
 .component-action:hover {
   color: var(--seo-green);
+}
+
+/* Social tabs */
+.social-tabs {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+@media (min-width: 640px) {
+  .social-tabs {
+    padding: 0.5rem 1rem;
+  }
+}
+
+.social-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: all 150ms ease;
+}
+
+@media (min-width: 640px) {
+  .social-btn {
+    padding: 0.25rem 0.625rem;
+  }
+}
+
+.social-btn:hover {
+  color: var(--color-text);
+}
+
+.social-btn.active {
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.06);
+}
+
+.dark .social-btn.active {
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
 }
 
 /* Preview area */
