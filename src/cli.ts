@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFile
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
-import { loadFile } from 'magicast'
+import { loadNuxtConfig } from '@nuxt/kit'
 import { addDependency, detectPackageManager } from 'nypm'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -19,23 +19,41 @@ const RENDERERS = [
     name: 'satori',
     label: 'Satori',
     description: 'SVG-based renderer - fast, works everywhere (recommended)',
-    deps: ['satori', '@resvg/resvg-js'],
   },
   {
     name: 'takumi',
     label: 'Takumi',
     description: 'Rust-based high-performance renderer',
-    deps: ['@takumi-rs/core'],
   },
   {
     name: 'chromium',
     label: 'Chromium',
     description: 'Browser screenshot renderer - pixel-perfect but slower',
-    deps: ['playwright-core'],
   },
 ] as const
 
 type RendererName = typeof RENDERERS[number]['name']
+
+// Deployment targets that need wasm bindings
+const EDGE_PRESETS = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge']
+
+// Get dependencies based on renderer and deployment target
+// Edge targets need both node (for local dev) and wasm (for production) versions
+function getRendererDeps(renderer: RendererName, isEdge: boolean): string[] {
+  switch (renderer) {
+    case 'satori':
+      return isEdge
+        ? ['satori', '@resvg/resvg-js', '@resvg/resvg-wasm']
+        : ['satori', '@resvg/resvg-js']
+    case 'takumi':
+      return isEdge
+        ? ['@takumi-rs/core', '@takumi-rs/wasm']
+        : ['@takumi-rs/core']
+    case 'chromium':
+      // chromium not supported on edge
+      return isEdge ? [] : ['playwright-core']
+  }
+}
 
 // Template files are named like "NuxtSeo.satori.vue"
 function getBaseName(filename: string): string {
@@ -132,35 +150,33 @@ function globFiles(dir: string, pattern: RegExp, exclude: RegExp[] = []): string
 async function checkNuxtConfig(rootDir: string): Promise<{
   hasDeprecatedFonts: boolean
   hasNuxtFonts: boolean
-  configPath: string | null
+  nitroPreset: string | null
 }> {
-  const configPaths = ['nuxt.config.ts', 'nuxt.config.js', 'nuxt.config.mjs']
-
-  let configPath: string | null = null
-  for (const _p of configPaths) {
-    const fullPath = join(rootDir, _p)
-    if (existsSync(fullPath)) {
-      configPath = fullPath
-      break
-    }
+  // Check package.json for @nuxt/fonts
+  let hasNuxtFontsInPkg = false
+  const pkgPath = join(rootDir, 'package.json')
+  if (existsSync(pkgPath)) {
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+    hasNuxtFontsInPkg = !!(pkg.dependencies?.['@nuxt/fonts'] || pkg.devDependencies?.['@nuxt/fonts'])
   }
 
-  if (!configPath)
-    return { hasDeprecatedFonts: false, hasNuxtFonts: false, configPath: null }
+  const config = await loadNuxtConfig({ cwd: rootDir }).catch(() => null)
+  if (!config)
+    return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, nitroPreset: null }
 
-  const mod = await loadFile(configPath).catch(() => null)
-  if (!mod)
-    return { hasDeprecatedFonts: false, hasNuxtFonts: false, configPath }
-
-  const config = mod.exports.default
-  const hasDeprecatedFonts = !!(config?.ogImage?.fonts)
-  const modules = config?.modules || []
-  const hasNuxtFonts = modules.some((m: string | string[]) =>
+  const hasDeprecatedFonts = !!(config.ogImage as any)?.fonts
+  const modules = config.modules || []
+  const hasNuxtFontsInConfig = modules.some((m: string | string[]) =>
     (typeof m === 'string' && m === '@nuxt/fonts')
     || (Array.isArray(m) && m[0] === '@nuxt/fonts'),
   )
+  const nitroPreset = config.nitro?.preset || null
 
-  return { hasDeprecatedFonts, hasNuxtFonts, configPath }
+  return {
+    hasDeprecatedFonts,
+    hasNuxtFonts: hasNuxtFontsInPkg || hasNuxtFontsInConfig,
+    nitroPreset,
+  }
 }
 
 // Check what migration is needed
@@ -214,7 +230,7 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
 // Migrate defineOgImage API
 function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: string, count: number }> } {
   const cwd = process.cwd()
-  const excludePatterns = [/node_modules/, /\.nuxt/, /\.output/, /dist/]
+  const excludePatterns = [/node_modules/, /\.nuxt/, /\.output/, /\.data/, /dist/]
 
   const files = globFiles(cwd, /\.(?:vue|ts|tsx|js|jsx)$/, excludePatterns)
   const changes: Array<{ file: string, count: number }> = []
@@ -316,27 +332,33 @@ function migrateV6Components(
   }
 }
 
+// Detect deployment target from nuxt.config
+async function detectDeploymentTarget(rootDir: string): Promise<string | null> {
+  const config = await loadNuxtConfig({ cwd: rootDir }).catch(() => null)
+  return config?.nitro?.preset || null
+}
+
 // Install dependencies for renderers
-async function installRendererDeps(renderers: RendererName[]): Promise<void> {
+async function installRendererDeps(renderers: RendererName[], isEdge: boolean): Promise<void> {
   const cwd = process.cwd()
   const pm = await detectPackageManager(cwd)
   const pmName = pm?.name || 'npm'
 
   const allDeps: string[] = []
   for (const renderer of renderers) {
-    const def = RENDERERS.find(r => r.name === renderer)
-    if (def) {
-      allDeps.push(...def.deps)
-    }
+    allDeps.push(...getRendererDeps(renderer, isEdge))
   }
 
-  if (allDeps.length === 0)
+  // Dedupe
+  const uniqueDeps = [...new Set(allDeps)]
+
+  if (uniqueDeps.length === 0)
     return
 
   const spinner = p.spinner()
   spinner.start(`Installing dependencies with ${pmName}...`)
 
-  for (const dep of allDeps) {
+  for (const dep of uniqueDeps) {
     await addDependency(dep, { cwd, dev: false })
       .catch(() => {
         spinner.stop(`Failed to install ${dep}`)
@@ -461,7 +483,33 @@ async function runMigrate(args: string[]): Promise<void> {
       })
 
       if (!p.isCancel(installDeps) && installDeps) {
-        await installRendererDeps(selectedRenderers)
+        // Detect or ask about deployment target
+        const detectedPreset = await detectDeploymentTarget(cwd)
+        let isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
+
+        if (detectedPreset) {
+          p.log.info(`Detected deployment target: ${detectedPreset}`)
+        }
+        else {
+          const targetSelection = await p.select({
+            message: 'What is your deployment target?',
+            options: [
+              { value: 'node', label: 'Node.js', hint: 'node-server, vercel, netlify, aws-lambda, etc.' },
+              { value: 'edge', label: 'Edge/Workers', hint: 'cloudflare, vercel-edge, netlify-edge' },
+            ],
+            initialValue: 'node',
+          })
+          if (!p.isCancel(targetSelection)) {
+            isEdge = targetSelection === 'edge'
+          }
+        }
+
+        // Warn if chromium selected with edge
+        if (isEdge && selectedRenderers.includes('chromium')) {
+          p.log.warn('Chromium renderer is not supported on edge runtimes - skipping its dependencies')
+        }
+
+        await installRendererDeps(selectedRenderers, isEdge)
       }
     }
   }
@@ -506,7 +554,7 @@ async function runMigrate(args: string[]): Promise<void> {
 }
 
 // Enable command
-async function runEnable(renderer: string): Promise<void> {
+async function runEnable(renderer: string, args: string[]): Promise<void> {
   const def = RENDERERS.find(r => r.name === renderer)
   if (!def) {
     p.log.error(`Unknown renderer: ${renderer}`)
@@ -515,7 +563,26 @@ async function runEnable(renderer: string): Promise<void> {
   }
 
   p.intro(`Enable ${def.label} renderer`)
-  await installRendererDeps([renderer as RendererName])
+
+  const cwd = process.cwd()
+
+  // Check for --edge flag or detect from config
+  let isEdge = args.includes('--edge')
+  if (!isEdge) {
+    const detectedPreset = await detectDeploymentTarget(cwd)
+    if (detectedPreset) {
+      isEdge = EDGE_PRESETS.includes(detectedPreset)
+      if (isEdge)
+        p.log.info(`Detected edge deployment target: ${detectedPreset}`)
+    }
+  }
+
+  if (isEdge && renderer === 'chromium') {
+    p.log.error('Chromium renderer is not supported on edge runtimes')
+    process.exit(1)
+  }
+
+  await installRendererDeps([renderer as RendererName], isEdge)
   p.outro('Done')
 }
 
@@ -548,11 +615,11 @@ else if (command === 'migrate') {
 else if (command === 'enable') {
   const renderer = args[1]
   if (!renderer) {
-    p.log.error('Usage: npx nuxt-og-image enable <renderer>')
+    p.log.error('Usage: npx nuxt-og-image enable <renderer> [--edge]')
     p.log.info(`Available: ${RENDERERS.map(r => r.name).join(', ')}`)
     process.exit(1)
   }
-  runEnable(renderer)
+  runEnable(renderer, args)
 }
 else {
   console.log('nuxt-og-image CLI\n')
@@ -562,4 +629,5 @@ else {
   console.log('  migrate v6        Migrate to v6 (component suffixes + new API)')
   console.log('                    Options: --dry-run, --yes, --renderer <satori|chromium|takumi>')
   console.log('  enable <renderer> Install dependencies for a renderer (satori, chromium, takumi)')
+  console.log('                    Options: --edge (install wasm versions for edge runtimes)')
 }
