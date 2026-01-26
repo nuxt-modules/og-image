@@ -768,13 +768,13 @@ export default defineNuxtModule<ModuleOptions>({
       const invalidComponents: string[] = []
       const baseNameToRenderer = new Map<string, { renderer: RendererType, path: string }>()
 
-      // check if the component folder starts with OgImage or OgImageTemplate and set to an island component
+      // check if the component is in an OgImage component directory
+      // Only use directory-based detection (matching CLI migration logic) to avoid false positives
+      // e.g. components/content/OgImageExample.vue should NOT be treated as an OG Image template
       components.forEach((component) => {
         let valid = false
         config.componentDirs.forEach((dir) => {
-          if (component.pascalName.startsWith(dir) || component.kebabName.startsWith(dir)
-            // support non-prefixed components - check for components/<dir>/ pattern
-            || component.shortPath.includes(`components/${dir}/`)) {
+          if (component.shortPath.includes(`components/${dir}/`)) {
             valid = true
           }
         })
