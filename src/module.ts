@@ -917,7 +917,15 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
           continue
         const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
         const src = block.match(/url\(["']?([^)"']+)["']?\)/)?.[1]
-        const weight = Number.parseInt(block.match(/font-weight:\s*(\d+)/)?.[1] || '400')
+        // Handle both single weights (400) and ranges (200 900) for variable fonts
+        const weightMatch = block.match(/font-weight:\s*(\d+)(?:\s+(\d+))?/)
+        let weight = 400
+        if (weightMatch) {
+          const minWeight = Number.parseInt(weightMatch[1]!, 10)
+          const maxWeight = weightMatch[2] ? Number.parseInt(weightMatch[2], 10) : minWeight
+          // For variable fonts with ranges, use 400 if in range, otherwise use min
+          weight = (minWeight <= 400 && maxWeight >= 400) ? 400 : minWeight
+        }
         const style = block.match(/font-style:\s*(\w+)/)?.[1] || 'normal'
 
         if (family && src) {
