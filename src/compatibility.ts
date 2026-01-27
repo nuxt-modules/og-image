@@ -104,7 +104,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'chromium': false,
     'css-inline': false, // size constraint (2mb is max)
     'resvg': 'wasm',
-    'satori': 'node',
+    'satori': 'wasm',
     'takumi': 'wasm',
     'sharp': false,
     'emoji': 'fetch', // edge size limits - bundling 24MB icons not viable
