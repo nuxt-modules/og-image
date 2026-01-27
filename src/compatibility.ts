@@ -46,7 +46,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
   'chromium': false,
   'css-inline': false,
   'resvg': 'wasm',
-  'satori': 'wasm',
+  'satori': '0-15-wasm',
   'takumi': 'wasm',
   'sharp': false,
   'emoji': 'fetch', // edge size limits - use API instead of bundling 24MB icons

@@ -200,7 +200,7 @@ export interface RuntimeCompatibilitySchema {
   chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | false
-  satori: 'node' | 'wasm' | 'wasm-fs' | false
+  satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | false
   takumi: 'node' | 'wasm' | false
   sharp: 'node' | false
   // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime

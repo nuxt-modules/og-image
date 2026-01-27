@@ -67,6 +67,8 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         // TODO maybe implement https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128
         wasmEntries.push(join(dirname(serverEntry), 'chunks/wasm.mjs'))
         wasmEntries.push(join(dirname(serverEntry), 'chunks/_/wasm.mjs'))
+        wasmEntries.push(join(dirname(serverEntry), 'chunks/0-15-wasm.mjs'))
+        wasmEntries.push(join(dirname(serverEntry), 'chunks/_/0-15-wasm.mjs'))
         wasmEntries.push(join(dirname(serverEntry), 'chunks/index_bg.mjs'))
       }
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
