@@ -28,17 +28,13 @@ const themeColor = computed(() => props.isPro ? '124, 58, 237' : '34, 197, 94')
   >
     <!-- Gradient background -->
     <div
-      class="absolute top-0 left-0" :style="{
-        width: '100%',
-        height: '100%',
+      class="absolute top-0 left-0 right-0 bottom-0" :style="{
         backgroundImage: `radial-gradient(ellipse 100% 100% at 100% 100%, rgba(${themeColor}, 0.15) 0%, transparent 60%)`,
       }"
     />
     <div
-      class="absolute top-0 left-0" :style="{
-        width: '100%',
-        height: '100%',
-        backgroundImage: `radial-gradient(ellipse 100% 100% at 0% 0%, rgba(${themeColor}, 0.1) 0%, transparent 50%)`,
+      class="absolute top-0 left-0 right-0 bottom-0" :style="{
+        backgroundImage: `radial-gradient(ellipse 100% 100% at 0.1% 0.1%, rgba(${themeColor}, 0.1) 0%, transparent 50%)`,
       }"
     />
 
