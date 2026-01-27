@@ -39,6 +39,7 @@ export function useOgImage() {
 
   const isValidDebugError = computed(() => {
     if (error.value) {
+      // @ts-expect-error untyped
       const message = error.value.message
       if (message) {
         return message.includes('missing the #nuxt-og-') || message.includes('missing the Nuxt OG Image payload') || message.includes('Got invalid response')

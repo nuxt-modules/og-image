@@ -166,6 +166,7 @@ async function checkNuxtConfig(rootDir: string): Promise<{
 
   const hasDeprecatedFonts = !!(config.ogImage as any)?.fonts
   const modules = config.modules || []
+  // @ts-expect-error untyped
   const hasNuxtFontsInConfig = modules.some((m: string | string[]) =>
     (typeof m === 'string' && m === '@nuxt/fonts')
     || (Array.isArray(m) && m[0] === '@nuxt/fonts'),

@@ -17,9 +17,9 @@ useHead({
 await loadShiki()
 
 const nuxtApp = useNuxtApp()
-// @ts-expect-error untyped
 nuxtApp.payload.data = nuxtApp.payload.data || {}
 
+// @ts-expect-error untyped
 const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', () => {
   if (!appFetch.value)
     return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
@@ -46,6 +46,7 @@ const { data: pathDebug, refresh: refreshPathDebug } = useAsyncData<PathDebugRes
   default: () => ({ extract: { options: [], socialPreview: { root: {}, images: [] } } }),
 })
 
+// @ts-expect-error untyped
 provide(GlobalDebugKey, globalDebug)
 provide(PathDebugKey, pathDebug)
 provide(RefetchPathDebugKey, refreshPathDebug)
@@ -85,6 +86,11 @@ const navItems = [
   { value: 'debug', to: '/debug', icon: 'carbon:debug', label: 'Debug' },
   { value: 'docs', to: '/docs', icon: 'carbon:book', label: 'Docs' },
 ]
+
+const runtimeVersion = computed(() => {
+  // @ts-expect-error untyped
+  return globalDebug.value?.runtimeConfig?.version || 'unknown'
+})
 </script>
 
 <template>
@@ -121,7 +127,7 @@ const navItems = [
                 size="xs"
                 class="font-mono text-[10px] sm:text-xs hidden sm:inline-flex"
               >
-                {{ globalDebug?.runtimeConfig?.version }}
+                {{ runtimeVersion }}
               </UBadge>
             </div>
           </div>

@@ -59,8 +59,8 @@ export async function html(ctx: OgImageRenderEventContext) {
   let html = island.html
 
   const scale = (options.props as Record<string, any>)?.scale || 1
-  const scaledWidth = Math.round(options.width! * scale)
-  const scaledHeight = Math.round(options.height! * scale)
+  const scaledWidth = Math.round(Number(options.width) * scale)
+  const scaledHeight = Math.round(Number(options.height) * scale)
 
   head.push({
     style: [
