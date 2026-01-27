@@ -44,6 +44,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     // TODO replace this once upstream is fixed
     const target = resolveNitroPreset(nitro.options)
     const normalizedTarget = target.replace(/-legacy$/, '')
+    const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 'vercel-edge', 'netlify-edge'].includes(normalizedTarget)
     const isCloudflarePagesOrModule = normalizedTarget === 'cloudflare-pages' || normalizedTarget === 'cloudflare-module'
     if (isCloudflarePagesOrModule) {
       nitro.options.cloudflare = nitro.options.cloudflare || {}
@@ -54,7 +55,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     }
     nitro.hooks.hook('compiled', async (_nitro) => {
       const compatibility = getPresetNitroPresetCompatibility(target)
-      if (compatibility.wasm?.esmImport !== true)
+      if (!isEdgePreset)
         return
       const configuredEntry = nitro.options.rollupConfig?.output.entryFileNames
       const serverEntry = join(_nitro.options.output.serverDir, typeof configuredEntry === 'string'
@@ -74,13 +75,41 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
           continue
-        const contents = (await readFile(entry, 'utf-8'))
-        const postfix = target === 'vercel-edge' ? '?module' : ''
-        const wasmPath = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
-        await writeFile(entry, contents
-          .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
-          .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${cssInlineHash}.wasm${postfix}"`)
-          .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`), { encoding: 'utf-8' })
+        let contents = (await readFile(entry, 'utf-8'))
+        // Fix unenv process polyfill on Vercel Edge: Proxy + private class fields are incompatible.
+        // unenv's Process class uses private fields (#stdin, #stdout, #stderr, #cwd) but the
+        // process polyfill wraps it in a Proxy. Vercel Edge's minimal process object causes
+        // property lookups to fall through to processModule, where `this` is the Proxy (not the
+        // Process instance), causing "Cannot read private member" errors.
+        // Cloudflare/Netlify Edge provide fuller process shims so the fallback path isn't hit.
+        // TODO: remove once https://github.com/unjs/unenv/issues/XXX is fixed
+        if (normalizedTarget === 'vercel-edge') {
+          contents = contents
+            .replaceAll(
+              'return Reflect.get(target, prop, receiver);\n\t}\n\treturn Reflect.get(processModule, prop, receiver)',
+              'return Reflect.get(target, prop, receiver);\n\t}\n\treturn Reflect.get(processModule, prop, processModule)',
+            )
+            // Also handle minified output (ternary: Reflect.has(E,$)?Reflect.get(E,$,ne):Reflect.get(be,$,ne))
+            .replace(
+              /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g,
+              'Reflect.has($1,$2)?Reflect.get($1,$2,$3):Reflect.get($4,$2,$4)',
+            )
+        }
+        if (compatibility.wasm?.esmImport) {
+          const postfix = normalizedTarget === 'vercel-edge' ? '?module' : ''
+          const wasmPath = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
+          // Try the original source import paths first (before nitro's WASM plugin resolves them)
+          contents = contents
+            .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
+            .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${cssInlineHash}.wasm${postfix}"`)
+            .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
+          // Nitro's WASM plugin may have already resolved the paths (hashed filenames, moved to wasm/).
+          // For vercel-edge, append ?module to any .wasm imports that nitro already resolved.
+          if (postfix) {
+            contents = contents.replaceAll(/import\("(\.\/wasm\/[^"]+\.wasm)"\)/g, `import("$1${postfix}")`)
+          }
+        }
+        await writeFile(entry, contents, { encoding: 'utf-8' })
       }
     })
   })
