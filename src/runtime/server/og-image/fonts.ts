@@ -9,7 +9,8 @@ export interface LoadFontsOptions {
 }
 
 async function loadFont(event: H3Event, font: FontConfig): Promise<BufferSource | null> {
-  const cacheKey = `${font.family}-${font.weight}-${font.style}`
+  // Include src in cache key to differentiate font subsets (e.g. latin vs cyrillic)
+  const cacheKey = `${font.family}-${font.weight}-${font.style}-${font.src}`
   const cached = await fontCache.getItem(cacheKey)
   if (cached) {
     // Decode base64 back to Buffer
@@ -43,7 +44,7 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
       return {
         ...f,
         name: f.family,
-        cacheKey: `${f.family}-${f.weight}-${f.style}`,
+        cacheKey: `${f.family}-${f.weight}-${f.style}-${f.src}`,
         data,
       } satisfies SatoriFontConfig
     }),
