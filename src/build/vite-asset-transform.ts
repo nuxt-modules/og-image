@@ -153,6 +153,8 @@ export interface AssetTransformOptions {
   srcDir: string
   publicDir: string
   emojiSet?: string
+  /** Pre-loaded emoji icon set (skips dynamic import) */
+  emojiIcons?: IconifyJSON | null
   /**
    * Prebuilt TW4 style map: className -> { prop: value }
    * Generated at build time from scanning all OG components
@@ -200,7 +202,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       // Transform emojis in text content
       if (options.emojiSet && RE_MATCH_EMOJIS.test(template)) {
         if (!emojiIcons) {
-          emojiIcons = await import(`@iconify-json/${options.emojiSet}/icons.json`, {
+          emojiIcons = options.emojiIcons ?? await import(`@iconify-json/${options.emojiSet}/icons.json`, {
             with: { type: 'json' },
           }).then(m => m.default).catch(() => null)
         }
