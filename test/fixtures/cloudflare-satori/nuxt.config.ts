@@ -28,6 +28,9 @@ export default defineNuxtConfig({
     },
   },
 
+  // Use satori-legacy (0.15.x) for cloudflare tests - 0.16+ blocked by Workers
+  alias: { satori: 'satori-legacy' },
+
   devtools: { enabled: false },
   compatibilityDate: '2024-09-19',
 })

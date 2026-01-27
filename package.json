@@ -76,7 +76,7 @@
     "@takumi-rs/wasm": "^0.62.0",
     "@unhead/vue": "^2.0.5",
     "playwright-core": "^1.50.0",
-    "satori": "^0.18.0",
+    "satori": ">=0.15.0",
     "sharp": "^0.34.0",
     "tailwindcss": "^4.0.0",
     "unstorage": "^1.15.0"
@@ -195,6 +195,7 @@
     "sass": "catalog:",
     "satori": "catalog:",
     "satori-html": "catalog:",
+    "satori-legacy": "catalog:",
     "sharp": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",

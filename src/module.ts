@@ -306,23 +306,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Cloudflare Workers compatibility checks
     const normalizedPreset = preset.replace(/-legacy$/, '')
     const isCloudflareWorkers = ['cloudflare', 'cloudflare-module'].includes(normalizedPreset)
-    if (isCloudflareWorkers && targetCompatibility.satori === 'wasm') {
-      // Check satori version - 0.16+ bundles yoga internally with WebAssembly.instantiate()
-      // which is blocked by Cloudflare Workers. Must use 0.15.x with external yoga-wasm-web.
-      // See: https://github.com/vercel/satori/issues/693
-      const satoriPkg = await readPackageJSON('satori').catch(() => null)
-      if (satoriPkg?.version) {
-        const [major = 0, minor = 0] = satoriPkg.version.split('.').map(Number)
-        if (major > 0 || (major === 0 && minor >= 16)) {
-          throw new Error(
-            `[nuxt-og-image] Satori ${satoriPkg.version} is incompatible with Cloudflare Workers. `
-            + `Satori 0.16+ uses WebAssembly.instantiate() which is blocked by Cloudflare. `
-            + `Pin satori to 0.15.x in your package.json: "satori": "0.15.2". `
-            + `See: https://github.com/vercel/satori/issues/693`,
-          )
-        }
-      }
-
+    if (isCloudflareWorkers) {
       // Check for legacy Workers Sites at nitro init (when the actual preset is determined)
       nuxt.hooks.hook('nitro:init', (nitro) => {
         const finalPreset = nitro.options.preset
@@ -569,7 +553,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (!isAbsolute(publicDirAbs)) {
       publicDirAbs = (publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : join(nuxt.options.rootDir, publicDirAbs)) || ''
     }
-    if (isProviderEnabledForEnv('satori', nuxt, config)) {
+    if (!config.zeroRuntime && isProviderEnabledForEnv('satori', nuxt, config)) {
       let attemptSharpUsage = false
       if (isProviderEnabledForEnv('sharp', nuxt, config)) {
         // avoid any sharp logic if user explicitly opts-out
