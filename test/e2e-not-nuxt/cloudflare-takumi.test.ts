@@ -48,11 +48,20 @@ const isCI = !!process.env.CI
 let wranglerProcess: ChildProcess | null = null
 let serverUrl = ''
 
-async function buildFixture() {
-  await execa('nuxt', ['build'], {
-    cwd: fixtureDir,
-    env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
-  })
+async function buildFixture(retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const result = await execa('nuxt', ['build'], {
+      cwd: fixtureDir,
+      env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
+      reject: false,
+    })
+    if (result.exitCode === 0)
+      return
+    // Retry on native crashes (SIGABRT from glibc heap corruption)
+    if (attempt < retries && result.signal === 'SIGABRT')
+      continue
+    throw result
+  }
 }
 
 async function startWrangler(): Promise<string> {
