@@ -303,6 +303,40 @@ export default defineNuxtModule<ModuleOptions>({
     const preset = resolveNitroPreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
+    // Cloudflare Workers compatibility checks
+    const normalizedPreset = preset.replace(/-legacy$/, '')
+    const isCloudflareWorkers = ['cloudflare', 'cloudflare-module'].includes(normalizedPreset)
+    if (isCloudflareWorkers && targetCompatibility.satori === 'wasm') {
+      // Check satori version - 0.16+ bundles yoga internally with WebAssembly.instantiate()
+      // which is blocked by Cloudflare Workers. Must use 0.15.x with external yoga-wasm-web.
+      // See: https://github.com/vercel/satori/issues/693
+      const satoriPkg = await readPackageJSON('satori').catch(() => null)
+      if (satoriPkg?.version) {
+        const [major = 0, minor = 0] = satoriPkg.version.split('.').map(Number)
+        if (major > 0 || (major === 0 && minor >= 16)) {
+          throw new Error(
+            `[nuxt-og-image] Satori ${satoriPkg.version} is incompatible with Cloudflare Workers. `
+            + `Satori 0.16+ uses WebAssembly.instantiate() which is blocked by Cloudflare. `
+            + `Pin satori to 0.15.x in your package.json: "satori": "0.15.2". `
+            + `See: https://github.com/vercel/satori/issues/693`,
+          )
+        }
+      }
+
+      // Check for legacy Workers Sites at nitro init (when the actual preset is determined)
+      nuxt.hooks.hook('nitro:init', (nitro) => {
+        const finalPreset = nitro.options.preset
+        const isLegacyPreset = finalPreset.endsWith('-legacy')
+        const compatDate = nuxt.options.compatibilityDate
+        if (isLegacyPreset || (compatDate && compatDate < '2024-09-19')) {
+          logger.warn(
+            `Cloudflare Workers with compatibilityDate < 2024-09-19 uses legacy Workers Sites which may have issues loading fonts. `
+            + `Update to compatibilityDate: '2024-09-19' or later for Workers Static Assets support.`,
+          )
+        }
+      })
+    }
+
     // Determine emoji strategy based on configuration and dependencies
     const emojiPkg = `@iconify-json/${config.defaults.emojis}`
     let hasLocalIconify = await hasResolvableDependency(emojiPkg)
@@ -885,7 +919,8 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
       // Use dev-prerender binding which handles dev/prerender/runtime for node
       // Use cloudflare binding for cloudflare presets at runtime
-      const isCloudflare = ['cloudflare', 'cloudflare-pages', 'cloudflare-module'].includes(preset)
+      const normalizedPreset = preset.replace(/-legacy$/, '')
+      const isCloudflare = ['cloudflare', 'cloudflare-pages', 'cloudflare-module'].includes(normalizedPreset)
       if (isCloudflare) {
         const devBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')
         const cfBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/cloudflare')

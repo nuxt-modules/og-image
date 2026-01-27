@@ -1,11 +1,13 @@
 import _satori, { init } from 'satori'
+import initYoga from 'yoga-wasm-web'
 
-const wasmBinary = import('yoga-wasm-web/dist/yoga.wasm?module' as string)
-  .then(yoga => yoga.default || yoga)
+const yogaWasm = import('yoga-wasm-web/dist/yoga.wasm?module' as string)
+  .then(m => m.default || m)
 
 export default {
-  initWasmPromise: wasmBinary.then(async (wasm) => {
-    await init(wasm)
+  initWasmPromise: yogaWasm.then(async (wasm) => {
+    const yoga = await initYoga(wasm)
+    await init(yoga)
   }),
   satori: _satori,
 }

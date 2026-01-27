@@ -30,7 +30,7 @@ catalog:
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.7
-  '@iconify-json/simple-icons': ^1.2.67
+  '@iconify-json/simple-icons': ^1.2.68
   '@iconify-json/tabler': ^1.2.26
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.11.0
@@ -51,8 +51,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.65.0
-  '@takumi-rs/wasm': ^0.65.0
+  '@takumi-rs/core': ^0.66.2
+  '@takumi-rs/wasm': ^0.66.2
   '@vitejs/plugin-vue': ^6.0.3
   '@vue/compiler-sfc': ^3.5.27
   '@vueuse/core': ^14.1.0
@@ -70,7 +70,7 @@ catalog:
   exsolve: ^1.0.8
   get-image-colors: ^4.0.1
   globby: ^16.1.0
-  happy-dom: ^20.3.7
+  happy-dom: ^20.3.9
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
   jiti: ^2.6.1
@@ -93,7 +93,7 @@ catalog:
   postcss-custom-properties: ^15.0.0
   radix3: ^1.1.2
   sass: ^1.97.3
-  satori: ^0.19.1
+  satori: 0.15.2
   satori-html: ^0.3.2
   sharp: ^0.34.5
   shiki: ^3.21.0
@@ -109,7 +109,7 @@ catalog:
   vitest: ^4.0.18
   vue: ^3.5.27
   vue-router: ^4.6.4
-  vue-tsc: ^3.2.3
+  vue-tsc: ^3.2.4
   wrangler: ^4.60.0
   yoga-wasm-web: ^0.3.3
 onlyBuiltDependencies:
