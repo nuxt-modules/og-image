@@ -195,7 +195,9 @@ describe('cloudflare-takumi', () => {
 
       const renderer = new Renderer()
       for (const data of fontSubsets) {
-        try { renderer.loadFont({ name: 'Inter', data, weight: 400, style: 'normal' }) }
+        try {
+          renderer.loadFont({ name: 'Inter', data, weight: 400, style: 'normal' })
+        }
         catch {}
       }
 
