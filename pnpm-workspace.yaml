@@ -51,8 +51,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.66.5
-  '@takumi-rs/wasm': ^0.66.5
+  '@takumi-rs/core': ^0.66.6
+  '@takumi-rs/wasm': ^0.66.6
   '@vitejs/plugin-vue': ^6.0.3
   '@vue/compiler-sfc': ^3.5.27
   '@vueuse/core': ^14.1.0
@@ -80,7 +80,7 @@ catalog:
   magicast: ^0.5.1
   mocked-exports: ^0.1.1
   nuxt: ^4.3.0
-  nuxt-site-config: ^3.2.18
+  nuxt-site-config: ^3.2.19
   nypm: ^0.6.4
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -95,7 +95,7 @@ catalog:
   sass: ^1.97.3
   satori: 0.19.1
   satori-html: ^0.3.2
-  satori-legacy: npm:satori@0.15.2
+  satori-legacy: npm:satori@0.19.1
   sharp: ^0.34.5
   shiki: ^3.21.0
   sirv: ^3.0.2
