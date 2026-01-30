@@ -919,7 +919,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
     }
     // Parse fonts from @nuxt/fonts CSS template
-    async function parseFontsFromTemplate(): Promise<Array<{ family: string, src: string, weight: number, style: string, satoriSrc: string }>> {
+    async function parseFontsFromTemplate(): Promise<Array<{ family: string, src: string, weight: number, style: string, satoriSrc: string, unicodeRange?: string }>> {
       const templates = nuxt.options.build.templates
       const nuxtFontsTemplate = templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
       if (!nuxtFontsTemplate?.getContents) {
@@ -931,18 +931,16 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g
       // Collect all fonts first, then dedupe preferring WOFF over WOFF2
       // WOFF is static (works directly with Satori), WOFF2 is often variable (needs conversion + fonttools)
-      const allFonts: Array<{ family: string, src: string, weight: number, style: string, isWoff2: boolean }> = []
+      const allFonts: Array<{ family: string, src: string, weight: number, style: string, isWoff2: boolean, unicodeRange?: string }> = []
 
       for (const match of contents.matchAll(fontFaceRegex)) {
         const block = match[1]
         if (!block)
           continue
 
-        // Only use Latin subset fonts (U+0000-00FF covers Basic Latin + Latin-1 Supplement)
-        // Skip non-Latin subsets like cyrillic, greek, vietnamese to avoid tofu
-        const unicodeRange = block.match(/unicode-range:\s*([^;]+)/)?.[1]
-        if (unicodeRange && !unicodeRange.includes('U+0000-00FF'))
-          continue
+        // Extract unicode-range for Satori (helps with proper glyph selection)
+        // Fallback to Latin range if not specified
+        const unicodeRange = block.match(/unicode-range:\s*([^;]+)/)?.[1]?.trim()
 
         const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
         const src = block.match(/url\(["']?([^)"']+)["']?\)/)?.[1]
@@ -959,15 +957,16 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         const isWoff2 = src?.endsWith('.woff2') ?? false
 
         if (family && src) {
-          allFonts.push({ family, src, weight, style, isWoff2 })
+          allFonts.push({ family, src, weight, style, isWoff2, unicodeRange })
         }
       }
 
-      // Dedupe: for each (family, weight, style), prefer WOFF over WOFF2
+      // Dedupe: for each (family, weight, style, unicodeRange), prefer WOFF over WOFF2
       // This avoids needing fonttools for variable font instancing when static WOFF is available
       const fontMap = new Map<string, typeof allFonts[0]>()
       for (const font of allFonts) {
-        const key = `${font.family}-${font.weight}-${font.style}`
+        // Include unicodeRange in key to keep different subsets separate
+        const key = `${font.family}-${font.weight}-${font.style}-${font.unicodeRange || 'default'}`
         const existing = fontMap.get(key)
         if (!existing || (existing.isWoff2 && !font.isWoff2)) {
           // No existing font, or existing is WOFF2 and this is WOFF (prefer WOFF)
@@ -983,7 +982,15 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         const satoriSrc = font.isWoff2
           ? `/_fonts/${font.src.split('/').pop()!.replace('.woff2', '.ttf')}`
           : font.src
-        return { family: font.family, src: font.src, weight: font.weight, style: font.style, satoriSrc }
+        return {
+          family: font.family,
+          src: font.src,
+          weight: font.weight,
+          style: font.style,
+          satoriSrc,
+          // Pass through unicode-range, fallback to Latin if missing
+          unicodeRange: font.unicodeRange || 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+        }
       })
     }
 

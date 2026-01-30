@@ -189,6 +189,8 @@ export interface FontConfig {
   /** TTF path for Satori (converted from WOFF2 if needed). Falls back to src if not set. */
   satoriSrc?: string
   localPath: string
+  /** Unicode range for font subsetting (e.g., "U+0000-00FF"). Passed to Satori for proper glyph selection. */
+  unicodeRange?: string
 }
 
 export interface SatoriFontConfig extends FontConfig {
