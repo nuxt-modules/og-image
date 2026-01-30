@@ -20,9 +20,9 @@ export function walkSatoriTree(e: OgImageRenderEventContext, node: VNode, plugin
     return promises
   }
 
-  // walk tree of child nodes
+  // walk tree of child nodes (only recurse into VNodes, not strings)
   for (const child of node.props.children || []) {
-    if (child) {
+    if (child && typeof child === 'object') {
       promises.push(
         ...walkSatoriTree(e, child, plugins),
       )

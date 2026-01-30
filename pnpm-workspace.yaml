@@ -22,14 +22,14 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': ^7.2.0
-  '@clack/prompts': ^0.11.0
+  '@clack/prompts': ^1.0.0
   '@css-inline/css-inline': ^0.19.2
   '@css-inline/css-inline-wasm': ^0.19.2
   '@headlessui/vue': ^1.7.23
   '@iconify-json/carbon': ^1.2.18
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
-  '@iconify-json/ri': ^1.2.7
+  '@iconify-json/ri': ^1.2.8
   '@iconify-json/simple-icons': ^1.2.68
   '@iconify-json/tabler': ^1.2.26
   '@img/sharp-linux-x64': ^0.34.5
@@ -51,8 +51,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.66.5
-  '@takumi-rs/wasm': ^0.66.5
+  '@takumi-rs/core': ^0.66.7
+  '@takumi-rs/wasm': ^0.66.7
   '@vitejs/plugin-vue': ^6.0.3
   '@vue/compiler-sfc': ^3.5.27
   '@vueuse/core': ^14.1.0
@@ -80,7 +80,7 @@ catalog:
   magicast: ^0.5.1
   mocked-exports: ^0.1.1
   nuxt: ^4.3.0
-  nuxt-site-config: ^3.2.18
+  nuxt-site-config: ^3.2.19
   nypm: ^0.6.4
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -94,7 +94,6 @@ catalog:
   radix3: ^1.1.2
   sass: ^1.97.3
   satori: 0.19.1
-  satori-html: ^0.3.2
   satori-legacy: npm:satori@0.15.2
   sharp: ^0.34.5
   shiki: ^3.21.0
@@ -109,9 +108,9 @@ catalog:
   unwasm: ^0.5.3
   vitest: ^4.0.18
   vue: ^3.5.27
-  vue-router: ^4.6.4
+  vue-router: ^5.0.0
   vue-tsc: ^3.2.4
-  wrangler: ^4.61.0
+  wrangler: ^4.61.1
   yoga-wasm-web: ^0.3.3
 onlyBuiltDependencies:
   - '@parcel/watcher'

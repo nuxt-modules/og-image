@@ -52,7 +52,7 @@ export default defineSatoriTransformer({
     if (node.type === 'div') {
       node.props.style.display = 'flex'
       // if any of the children are divs we swap it to old behavior
-      if (!node.props?.class?.includes('flex-') && Array.isArray(node.props.children) && node.props.children.some((child: VNode) => BLOCK_ELEMENTS.includes(child.type))) {
+      if (!node.props?.class?.includes('flex-') && Array.isArray(node.props.children) && node.props.children.some(child => typeof child === 'object' && child && BLOCK_ELEMENTS.includes(child.type))) {
         node.props.style.flexDirection = 'column'
         return
       }

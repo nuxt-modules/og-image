@@ -5,7 +5,6 @@ import type { H3Error, H3Event } from 'h3'
 import type { Hookable } from 'hookable'
 import type { NitroRuntimeHooks } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
-import type { html } from 'satori-html'
 import type { JpegOptions, SharpOptions } from 'sharp'
 import type { Ref } from 'vue'
 
@@ -231,7 +230,13 @@ export type ExtractComponentProps<T extends Component> = T extends new (...args:
 
 export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'resvg' | 'sharp'>
 
-export type VNode = ReturnType<typeof html> & {
+export interface VNode {
+  type: string
+  props: {
+    style?: Record<string, any>
+    children?: string | (VNode | string | null)[]
+    [key: string]: any
+  }
   _emojiMatches?: RegExpMatchArray | null
 }
 

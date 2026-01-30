@@ -21,8 +21,7 @@ export default defineSatoriTransformer([
   {
     filter: (node: VNode) => Array.isArray(node.props?.children),
     transform: (node: VNode) => {
-      // @ts-expect-error untyped
-      node.props.children = (node.props.children as (string | VNode)[]).map(
+      node.props.children = (node.props.children as (string | VNode | null)[]).map(
         child => typeof child === 'string' ? decodeHtml(child) : child,
       )
     },

@@ -10,8 +10,8 @@ catalogs:
       specifier: ^7.2.0
       version: 7.2.0
     '@clack/prompts':
-      specifier: ^0.11.0
-      version: 0.11.0
+      specifier: ^1.0.0
+      version: 1.0.0
     '@css-inline/css-inline':
       specifier: ^0.19.2
       version: 0.19.2
@@ -31,8 +31,8 @@ catalogs:
       specifier: ^1.2.7
       version: 1.2.7
     '@iconify-json/ri':
-      specifier: ^1.2.7
-      version: 1.2.7
+      specifier: ^1.2.8
+      version: 1.2.8
     '@iconify-json/simple-icons':
       specifier: ^1.2.68
       version: 1.2.68
@@ -97,11 +97,11 @@ catalogs:
       specifier: ^4.1.18
       version: 4.1.18
     '@takumi-rs/core':
-      specifier: ^0.66.5
-      version: 0.66.5
+      specifier: ^0.66.7
+      version: 0.66.7
     '@takumi-rs/wasm':
-      specifier: ^0.66.5
-      version: 0.66.5
+      specifier: ^0.66.7
+      version: 0.66.7
     '@vitejs/plugin-vue':
       specifier: ^6.0.3
       version: 6.0.3
@@ -184,8 +184,8 @@ catalogs:
       specifier: ^4.3.0
       version: 4.3.0
     nuxt-site-config:
-      specifier: ^3.2.18
-      version: 3.2.18
+      specifier: ^3.2.19
+      version: 3.2.19
     nypm:
       specifier: ^0.6.4
       version: 0.6.4
@@ -225,9 +225,6 @@ catalogs:
     satori:
       specifier: 0.19.1
       version: 0.19.1
-    satori-html:
-      specifier: ^0.3.2
-      version: 0.3.2
     satori-legacy:
       specifier: npm:satori@0.15.2
       version: 0.15.2
@@ -271,14 +268,14 @@ catalogs:
       specifier: ^3.5.27
       version: 3.5.27
     vue-router:
-      specifier: ^4.6.4
-      version: 4.6.4
+      specifier: ^5.0.0
+      version: 5.0.0
     vue-tsc:
       specifier: ^3.2.4
       version: 3.2.4
     wrangler:
-      specifier: ^4.61.0
-      version: 4.61.0
+      specifier: ^4.61.1
+      version: 4.61.1
     yoga-wasm-web:
       specifier: ^0.3.3
       version: 0.3.3
@@ -292,7 +289,7 @@ importers:
     dependencies:
       '@clack/prompts':
         specifier: 'catalog:'
-        version: 0.11.0
+        version: 1.0.0
       '@nuxt/devtools-kit':
         specifier: 'catalog:'
         version: 3.1.1(magicast@0.5.1)(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
@@ -349,7 +346,7 @@ importers:
         version: 0.1.1
       nuxt-site-config:
         specifier: 'catalog:'
-        version: 3.2.18(magicast@0.5.1)(vue@3.5.27(typescript@5.9.3))
+        version: 3.2.19(magicast@0.5.1)(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
       nypm:
         specifier: 'catalog:'
         version: 0.6.4
@@ -428,7 +425,7 @@ importers:
         version: 1.2.7
       '@iconify-json/ri':
         specifier: 'catalog:'
-        version: 1.2.7
+        version: 1.2.8
       '@iconify-json/tabler':
         specifier: 'catalog:'
         version: 1.2.26
@@ -482,10 +479,10 @@ importers:
         version: 4.1.18(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
       '@takumi-rs/core':
         specifier: 'catalog:'
-        version: 0.66.5
+        version: 0.66.7
       '@takumi-rs/wasm':
         specifier: 'catalog:'
-        version: 0.66.5
+        version: 0.66.7
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
         version: 6.0.3(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
@@ -525,9 +522,6 @@ importers:
       satori:
         specifier: 'catalog:'
         version: 0.19.1
-      satori-html:
-        specifier: 'catalog:'
-        version: 0.3.2
       satori-legacy:
         specifier: 'catalog:'
         version: satori@0.15.2
@@ -548,7 +542,7 @@ importers:
         version: 3.2.4(typescript@5.9.3)
       wrangler:
         specifier: 'catalog:'
-        version: 4.61.0
+        version: 4.61.1
 
   client:
     devDependencies:
@@ -590,7 +584,7 @@ importers:
         version: 3.5.27(typescript@5.9.3)
       vue-router:
         specifier: 'catalog:'
-        version: 4.6.4(vue@3.5.27(typescript@5.9.3))
+        version: 5.0.0(@vue/compiler-sfc@3.5.27)(vue@3.5.27(typescript@5.9.3))
 
   playground:
     dependencies:
@@ -830,11 +824,17 @@ packages:
   '@clack/core@0.5.0':
     resolution: {integrity: sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow==}
 
+  '@clack/core@1.0.0':
+    resolution: {integrity: sha512-Orf9Ltr5NeiEuVJS8Rk2XTw3IxNC2Bic3ash7GgYeA8LJ/zmSNpSQ/m5UAhe03lA6KFgklzZ5KTHs4OAMA/SAQ==}
+
   '@clack/core@1.0.0-alpha.7':
     resolution: {integrity: sha512-3vdh6Ar09D14rVxJZIm3VQJkU+ZOKKT5I5cC0cOVazy70CNyYYjiwRj9unwalhESndgxx6bGc/m6Hhs4EKF5XQ==}
 
   '@clack/prompts@0.11.0':
     resolution: {integrity: sha512-pMN5FcrEw9hUkZA4f+zLlzivQSeQf5dRGJjSUbvVYDLvpKCdQx5OaknvKzgbtXOizhP+SJJJjqEbOe55uKKfAw==}
+
+  '@clack/prompts@1.0.0':
+    resolution: {integrity: sha512-rWPXg9UaCFqErJVQ+MecOaWsozjaxol4yjnmYcGNipAWzdaWa2x+VJmKfGq7L0APwBohQOYdHC+9RO4qRXej+A==}
 
   '@clack/prompts@1.0.0-alpha.9':
     resolution: {integrity: sha512-sKs0UjiHFWvry4SiRfBi5Qnj0C/6AYx8aKkFPZQSuUZXgAram25ZDmhQmP7vj1aFyLpfHWtLQjWvOvcat0TOLg==}
@@ -843,8 +843,8 @@ packages:
     resolution: {integrity: sha512-SIOD2DxrRRwQ+jgzlXCqoEFiKOFqaPjhnNTGKXSRLvp1HiOvapLaFG2kEr9dYQTYe8rKrd9uvDUzmAITeNyaHQ==}
     engines: {node: '>=18.0.0'}
 
-  '@cloudflare/unenv-preset@2.11.0':
-    resolution: {integrity: sha512-z3hxFajL765VniNPGV0JRStZolNz63gU3B3AktwoGdDlnQvz5nP+Ah4RL04PONlZQjwmDdGHowEStJ94+RsaJg==}
+  '@cloudflare/unenv-preset@2.12.0':
+    resolution: {integrity: sha512-NK4vN+2Z/GbfGS4BamtbbVk1rcu5RmqaYGiyHJQrA09AoxdZPHDF3W/EhgI0YSK8p3vRo/VNCtbSJFPON7FWMQ==}
     peerDependencies:
       unenv: 2.0.0-rc.24
       workerd: ^1.20260115.0
@@ -852,32 +852,32 @@ packages:
       workerd:
         optional: true
 
-  '@cloudflare/workerd-darwin-64@1.20260124.0':
-    resolution: {integrity: sha512-VuqscLhiiVIf7t/dcfkjtT0LKJH+a06KUFwFTHgdTcqyLbFZ44u1SLpOONu5fyva4A9MdaKh9a+Z/tBC1d76nw==}
+  '@cloudflare/workerd-darwin-64@1.20260128.0':
+    resolution: {integrity: sha512-XJN8zWWNG3JwAUqqwMLNKJ9fZfdlQkx/zTTHW/BB8wHat9LjKD6AzxqCu432YmfjR+NxEKCzUOxMu1YOxlVxmg==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [darwin]
 
-  '@cloudflare/workerd-darwin-arm64@1.20260124.0':
-    resolution: {integrity: sha512-PfnjoFooPgRKFUIZcEP9irnn5Y7OgXinjM+IMlKTdEyLWjMblLsbsqAgydf75+ii0715xAeUlWQjZrWdyOZjMw==}
+  '@cloudflare/workerd-darwin-arm64@1.20260128.0':
+    resolution: {integrity: sha512-vKnRcmnm402GQ5DOdfT5H34qeR2m07nhnTtky8mTkNWP+7xmkz32AMdclwMmfO/iX9ncyKwSqmml2wPG32eq/w==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [darwin]
 
-  '@cloudflare/workerd-linux-64@1.20260124.0':
-    resolution: {integrity: sha512-KSkZl4kwcWeFXI7qsaLlMnKwjgdZwI0OEARjyZpiHCxJCqAqla9XxQKNDscL2Z3qUflIo30i+uteGbFrhzuVGQ==}
+  '@cloudflare/workerd-linux-64@1.20260128.0':
+    resolution: {integrity: sha512-RiaR+Qugof/c6oI5SagD2J5wJmIfI8wQWaV2Y9905Raj6sAYOFaEKfzkKnoLLLNYb4NlXicBrffJi1j7R/ypUA==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [linux]
 
-  '@cloudflare/workerd-linux-arm64@1.20260124.0':
-    resolution: {integrity: sha512-61xjSUNk745EVV4vXZP0KGyLCatcmamfBB+dcdQ8kDr6PrNU4IJ1kuQFSJdjybyDhJRm4TpGVywq+9hREuF7xA==}
+  '@cloudflare/workerd-linux-arm64@1.20260128.0':
+    resolution: {integrity: sha512-U39U9vcXLXYDbrJ112Q7D0LDUUnM54oXfAxPgrL2goBwio7Z6RnsM25TRvm+Q06F4+FeDOC4D51JXlFHb9t1OA==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [linux]
 
-  '@cloudflare/workerd-windows-64@1.20260124.0':
-    resolution: {integrity: sha512-j9O11pwQQV6Vi3peNrJoyIas3SrZHlPj0Ah+z1hDW9o1v35euVBQJw/PuzjPOXxTFUlGQoMJdfzPsO9xP86g7A==}
+  '@cloudflare/workerd-windows-64@1.20260128.0':
+    resolution: {integrity: sha512-fdJwSqRkJsAJFJ7+jy0th2uMO6fwaDA8Ny6+iFCssfzlNkc4dP/twXo+3F66FMLMe/6NIqjzVts0cpiv7ERYbQ==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
@@ -1635,6 +1635,9 @@ packages:
 
   '@iconify-json/ri@1.2.7':
     resolution: {integrity: sha512-j/Fkb8GlWY5y/zLj1BGxWRtDzuJFrI7562zLw+iQVEykieBgew43+r8qAvtSajvb75MfUIHjsNOYQPRD8FfLfw==}
+
+  '@iconify-json/ri@1.2.8':
+    resolution: {integrity: sha512-8JOwvEQOfQpVrOLaXQZBhLNAsH8wxlk3ic4oITjRpWhKinjEwBeN+CtGMgLOUbDf9WyR+BxvoCFzehA3x7HRbA==}
 
   '@iconify-json/simple-icons@1.2.68':
     resolution: {integrity: sha512-bQPl1zuZlX6AnofreA1v7J+hoPncrFMppqGboe/SH54jZO37meiBUGBqNOxEpc0HKfZGxJaVVJwZd4gdMYu3hw==}
@@ -3500,64 +3503,64 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@takumi-rs/core-darwin-arm64@0.66.5':
-    resolution: {integrity: sha512-aMDPZ+tgOARFRaITXj0ouZCTJQkJePccYW3YA0J6k921hwFbL3iFlhbXGElfAEgYYdwli6l0b6vqlAhrO0nCpA==}
+  '@takumi-rs/core-darwin-arm64@0.66.7':
+    resolution: {integrity: sha512-Yf8in7MFPhMWlpQdBwIpujE4E5AIZSJ/rb61Jy6yGBXssQMMJidfrVv/gJP6Osf1vgw1g4TtSdvs+78uaAIktQ==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [darwin]
 
-  '@takumi-rs/core-darwin-x64@0.66.5':
-    resolution: {integrity: sha512-GKlp1PV4r99mh+4RNRRwkUyr0EYkSmulEf3pyNQS47zz+BLH046o92np6pNbgQf1hVWvkAD6nL2Am8UtTn/twA==}
+  '@takumi-rs/core-darwin-x64@0.66.7':
+    resolution: {integrity: sha512-FcCS9gVbHI7Og87oBhP5KyqhUjxIiLgYPI+pSB6f814RT30y3+I38QgqSNxc/sxqQJW1dAzLeSlToc87dyA45Q==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [darwin]
 
-  '@takumi-rs/core-linux-arm64-gnu@0.66.5':
-    resolution: {integrity: sha512-1sRhSR9vBtZVk7ybRjp39UjFxpkItXuqRl0Dtc2rQOYWrC3zzV9a2SrBYpSDGCjF7/FpHJPykVuK1tgpd31Shg==}
+  '@takumi-rs/core-linux-arm64-gnu@0.66.7':
+    resolution: {integrity: sha512-dhyZc40XV52e55Hoe28SmA9tcm/jjDj5bFMwNrZxcSW3t0Wt7p3FTHLJIvwfbsq7ucfvrWx44NixKttp4n1UNg==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@takumi-rs/core-linux-arm64-musl@0.66.5':
-    resolution: {integrity: sha512-muPbCfG33evz37UNRDHDEqR9qHWKBhyTJcTD1KG4RDGqjfrX/KoECIf5fb1NJCAsvKVeW/Nd/Ce3iQhPNfAgJA==}
+  '@takumi-rs/core-linux-arm64-musl@0.66.7':
+    resolution: {integrity: sha512-0Uvh1LVT3v2SM87mQVmn+ZNFMT0B/yaLGpjCbHW/f1r2iJGgdXM0j1R1uuME6/ynMpOkT/XNgZXb5Q8zgAQkqw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@takumi-rs/core-linux-x64-gnu@0.66.5':
-    resolution: {integrity: sha512-3iA1aI33B8uYkCQGlA2SwV4oA/nWVuWxYHyKKu3tpvYB500Do2sQxMyRH+6iIV/REDEYCUUW3rw53SaFUuTNKA==}
+  '@takumi-rs/core-linux-x64-gnu@0.66.7':
+    resolution: {integrity: sha512-M0bjBQDx1PVq3whp/Zg6GYSCXlAKzSuWfsM4WYAzlZl93Dx7H6O2PorsfvuRtv8SPBekT5AIAcRSmebwYt1W0w==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@takumi-rs/core-linux-x64-musl@0.66.5':
-    resolution: {integrity: sha512-cPr/JCTy2SIewXWUVOUjp8/FoBEQo+QO3GYGkeiEnqVKAN1IL+ZADjrFW1c7W/rQ+OZePzo7TkTUJ1g5Wwa8kA==}
+  '@takumi-rs/core-linux-x64-musl@0.66.7':
+    resolution: {integrity: sha512-tr7pD/ps2BUUBk13SyW08Aca4MNfx6Ym18ndAudPWUhKmqaaagRrgrqEo8Fa32+5lnC1c9KlA8j+LIFjTix/JQ==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@takumi-rs/core-win32-arm64-msvc@0.66.5':
-    resolution: {integrity: sha512-Gmk3o7LDp9jUTd+HKGFlI4mEhTxVbhhnvN1IF/q/Qurz2FhwJjMT3DJMNDm82hEIkBnZ20iekY0QkUqJIcht/Q==}
+  '@takumi-rs/core-win32-arm64-msvc@0.66.7':
+    resolution: {integrity: sha512-dHrp0RApK7Sb3qE08VVhiE0t+pE1XoSgyBXwDP2w8qIM6ERjJhJI+h9c3LE+prSvsiI99zzfH7hWgDN+UTg2jg==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [win32]
 
-  '@takumi-rs/core-win32-x64-msvc@0.66.5':
-    resolution: {integrity: sha512-zvP9Fj6LFMJf6+MNBDsH2m5f7aIWLLi5jASrxlqoGJX3V5zHC6md13vaWMbQCzjUKfvY5DwFxH66QFNfAIfuKg==}
+  '@takumi-rs/core-win32-x64-msvc@0.66.7':
+    resolution: {integrity: sha512-9R2VQISxyIPwklDrkopvPiC73JhjZpYF/+bTjwAkEPxO242MreLrnlNjiRAs8AH3sjV3S3ctHVr+VmpIjaFIgw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [win32]
 
-  '@takumi-rs/core@0.66.5':
-    resolution: {integrity: sha512-8crpoiKsBzesbtJLj+25XyMHKQ0B2Dhv0iP05CaUCUk3xlVweP2bLbzyOZYIRG+i+Qk8GYQzmyoA3ejhyW85VQ==}
+  '@takumi-rs/core@0.66.7':
+    resolution: {integrity: sha512-ZASdSljSe+PI5MzSKPjhW2x/ccA8DsJVe3SW7cYKG8ZxwPNFl7W6ILIWgPNgtMjSQfJjevKzW+WGU5u65EJWaQ==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
 
-  '@takumi-rs/wasm@0.66.5':
-    resolution: {integrity: sha512-8GUeAPpCFOq3bdRTAptvlY14xqUnKw+yVZazKd/JcGq33/L0DOtYcSb4dvCNsygw0ZEpjqzJPFr/caB7aVUUlQ==}
+  '@takumi-rs/wasm@0.66.7':
+    resolution: {integrity: sha512-DD4yQnhHoIdMilPcJsS1jhd3zC+KlYzZyB+cdLGUAjOfiJ55b2+3vNmhgaFrwajKiX017GOc9v97NYCUGBLVsg==}
 
   '@tanstack/table-core@8.21.3':
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
@@ -4307,6 +4310,9 @@ packages:
 
   '@vue/devtools-api@6.6.4':
     resolution: {integrity: sha512-sGhTPMuXqZ1rVOk32RylztWkfXTRhuS7vgAKv0zjqk8gbsHkJ7xfFf+jbySxt7tWObEJwyKaHMikV/WGDiQm8g==}
+
+  '@vue/devtools-api@8.0.5':
+    resolution: {integrity: sha512-DgVcW8H/Nral7LgZEecYFFYXnAvGuN9C3L3DtWekAncFBedBczpNW8iHKExfaM559Zm8wQWrwtYZ9lXthEHtDw==}
 
   '@vue/devtools-core@8.0.5':
     resolution: {integrity: sha512-dpCw8nl0GDBuiL9SaY0mtDxoGIEmU38w+TQiYEPOLhW03VDC0lfNMYXS/qhl4I0YlysGp04NLY4UNn6xgD0VIQ==}
@@ -7338,8 +7344,8 @@ packages:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
 
-  miniflare@4.20260124.0:
-    resolution: {integrity: sha512-Co8onUh+POwOuLty4myQg+Nzg9/xZ5eAJc1oqYBzRovHd/XIpb5WAnRVaubcfAQJ85awWtF3yXUHCDx6cIaN3w==}
+  miniflare@4.20260128.0:
+    resolution: {integrity: sha512-AVCn3vDRY+YXu1sP4mRn81ssno6VUqxo29uY2QVfgxXU2TMLvhRIoGwm7RglJ3Gzfuidit5R86CMQ6AvdFTGAw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -7555,11 +7561,11 @@ packages:
   nuxt-define@1.0.0:
     resolution: {integrity: sha512-CYZ2WjU+KCyCDVzjYUM4eEpMF0rkPmkpiFrybTqqQCRpUbPt2h3snswWIpFPXTi+osRCY6Og0W/XLAQgDL4FfQ==}
 
-  nuxt-site-config-kit@3.2.18:
-    resolution: {integrity: sha512-Emk/0LKIrojvdidrZep8bS4BGvP4iTxtlUaoEEtEMJbBsNV0nDHrNRpEEeJoAywfMgnKpUorNBT6MkDM7Yt0KA==}
+  nuxt-site-config-kit@3.2.19:
+    resolution: {integrity: sha512-5L9Dgw+QGnTLhVO7Km2oZU+wWllvNXLAFXUiZMX1dt37FKXX6v95ZKCVlFfnkSHQ+I2lmuUhFUpuORkOoVnU+g==}
 
-  nuxt-site-config@3.2.18:
-    resolution: {integrity: sha512-pvFM9wNjmb/CTiea36lqVT7WO0zGDHq4MNoFaO4cdOYrym9JeMg5VJIOYnAcAsa6VK1FlH+Cw7Af9UjcqwRg/w==}
+  nuxt-site-config@3.2.19:
+    resolution: {integrity: sha512-OUGfo8aJWbymheyb9S2u78ADX73C9qBf8u6BwEJiM82JBhvJTEduJBMlK8MWeh3x9NF+/YX4AYsY5hjfQE5jGA==}
 
   nuxt@4.3.0:
     resolution: {integrity: sha512-99Iw3E3L5/2QtJyV4errZ0axkX/S9IAFK0AHm0pmRHkCu37OFn8mz2P4/CYTt6B/TG3mcKbXAVaeuF2FsAc1cA==}
@@ -8446,9 +8452,6 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
 
-  satori-html@0.3.2:
-    resolution: {integrity: sha512-wjTh14iqADFKDK80e51/98MplTGfxz2RmIzh0GqShlf4a67+BooLywF17TvJPD6phO0Hxm7Mf1N5LtRYvdkYRA==}
-
   satori@0.15.2:
     resolution: {integrity: sha512-vu/49vdc8MzV5jUchs3TIRDCOkOvMc1iJ11MrZvhg9tE4ziKIEIBjBZvies6a9sfM2vQ2gc3dXeu6rCK7AztHA==}
     engines: {node: '>=16'}
@@ -8581,8 +8584,8 @@ packages:
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
-  site-config-stack@3.2.18:
-    resolution: {integrity: sha512-vzLsgSfr4zlJPpB+YKERaFFneC/NcDTHqjNrOtPsdThOMeBowzQwBx/305B58gdPxXX38HQ/NXm1tG/+ox3nYA==}
+  site-config-stack@3.2.19:
+    resolution: {integrity: sha512-DJLEbH3WePmwdSDUCKCZTCc6xvY/Uuy3Qk5YG+5z5W7yMQbfRHRlEYhJbh4E431/V4aMROXH8lw5x8ETB71Nig==}
     peerDependencies:
       vue: ^3
 
@@ -9531,6 +9534,21 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
+  vue-router@5.0.0:
+    resolution: {integrity: sha512-xWHlps4o1ScODWqvyapl0v1uGy0g7ozmsTSO/dguyGb/9RL6oSU2HfN/8oMXnoFOH1BuTaAkbiOz4OWdkfjcZg==}
+    peerDependencies:
+      '@pinia/colada': ^0.18.1
+      '@vue/compiler-sfc': ^3.5.17
+      pinia: ^3.0.4
+      vue: ^3.5.0
+    peerDependenciesMeta:
+      '@pinia/colada':
+        optional: true
+      '@vue/compiler-sfc':
+        optional: true
+      pinia:
+        optional: true
+
   vue-sfc-transformer@0.1.17:
     resolution: {integrity: sha512-0mpkDTWm1ybtp/Mp3vhrXP4r8yxcGF+quxGyJfrHDl2tl5naQjK3xkIGaVR5BtR5KG1LWJbdCrqn7I6f460j9A==}
     engines: {node: '>=18.0.0'}
@@ -9629,17 +9647,17 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
-  workerd@1.20260124.0:
-    resolution: {integrity: sha512-JN6voV/fUQK342a39Rl+20YVmtIXZVbpxc7V/m809lUnlTGPy4aa5MI7PMoc+9qExgAEOw9cojvN5zOfqmMWLg==}
+  workerd@1.20260128.0:
+    resolution: {integrity: sha512-EhLJGptSGFi8AEErLiamO3PoGpbRqL+v4Ve36H2B38VxmDgFOSmDhfepBnA14sCQzGf1AEaoZX2DCwZsmO74yQ==}
     engines: {node: '>=16'}
     hasBin: true
 
-  wrangler@4.61.0:
-    resolution: {integrity: sha512-Kb8NMe1B/HM7/ds3hU+fcV1U7T996vRKJ0UU/qqgNUMwdemTRA+sSaH3mQvQslIBbprHHU81s0huA6fDIcwiaQ==}
+  wrangler@4.61.1:
+    resolution: {integrity: sha512-hfYQ16VLPkNi8xE1/V3052S2stM5e+vq3Idpt83sXoDC3R7R1CLgMkK6M6+Qp3G+9GVDNyHCkvohMPdfFTaD4Q==}
     engines: {node: '>=20.0.0'}
     hasBin: true
     peerDependencies:
-      '@cloudflare/workers-types': ^4.20260124.0
+      '@cloudflare/workers-types': ^4.20260128.0
     peerDependenciesMeta:
       '@cloudflare/workers-types':
         optional: true
@@ -10053,6 +10071,11 @@ snapshots:
       picocolors: 1.1.1
       sisteransi: 1.0.5
 
+  '@clack/core@1.0.0':
+    dependencies:
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
+
   '@clack/core@1.0.0-alpha.7':
     dependencies:
       picocolors: 1.1.1
@@ -10064,6 +10087,12 @@ snapshots:
       picocolors: 1.1.1
       sisteransi: 1.0.5
 
+  '@clack/prompts@1.0.0':
+    dependencies:
+      '@clack/core': 1.0.0
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
+
   '@clack/prompts@1.0.0-alpha.9':
     dependencies:
       '@clack/core': 1.0.0-alpha.7
@@ -10072,25 +10101,25 @@ snapshots:
 
   '@cloudflare/kv-asset-handler@0.4.2': {}
 
-  '@cloudflare/unenv-preset@2.11.0(unenv@2.0.0-rc.24)(workerd@1.20260124.0)':
+  '@cloudflare/unenv-preset@2.12.0(unenv@2.0.0-rc.24)(workerd@1.20260128.0)':
     dependencies:
       unenv: 2.0.0-rc.24
     optionalDependencies:
-      workerd: 1.20260124.0
+      workerd: 1.20260128.0
 
-  '@cloudflare/workerd-darwin-64@1.20260124.0':
+  '@cloudflare/workerd-darwin-64@1.20260128.0':
     optional: true
 
-  '@cloudflare/workerd-darwin-arm64@1.20260124.0':
+  '@cloudflare/workerd-darwin-arm64@1.20260128.0':
     optional: true
 
-  '@cloudflare/workerd-linux-64@1.20260124.0':
+  '@cloudflare/workerd-linux-64@1.20260128.0':
     optional: true
 
-  '@cloudflare/workerd-linux-arm64@1.20260124.0':
+  '@cloudflare/workerd-linux-arm64@1.20260128.0':
     optional: true
 
-  '@cloudflare/workerd-windows-64@1.20260124.0':
+  '@cloudflare/workerd-windows-64@1.20260128.0':
     optional: true
 
   '@codemirror/autocomplete@6.20.0':
@@ -10639,6 +10668,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/ri@1.2.7':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/ri@1.2.8':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -12732,42 +12765,42 @@ snapshots:
       tailwindcss: 4.1.18
       vite: 8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2)
 
-  '@takumi-rs/core-darwin-arm64@0.66.5':
+  '@takumi-rs/core-darwin-arm64@0.66.7':
     optional: true
 
-  '@takumi-rs/core-darwin-x64@0.66.5':
+  '@takumi-rs/core-darwin-x64@0.66.7':
     optional: true
 
-  '@takumi-rs/core-linux-arm64-gnu@0.66.5':
+  '@takumi-rs/core-linux-arm64-gnu@0.66.7':
     optional: true
 
-  '@takumi-rs/core-linux-arm64-musl@0.66.5':
+  '@takumi-rs/core-linux-arm64-musl@0.66.7':
     optional: true
 
-  '@takumi-rs/core-linux-x64-gnu@0.66.5':
+  '@takumi-rs/core-linux-x64-gnu@0.66.7':
     optional: true
 
-  '@takumi-rs/core-linux-x64-musl@0.66.5':
+  '@takumi-rs/core-linux-x64-musl@0.66.7':
     optional: true
 
-  '@takumi-rs/core-win32-arm64-msvc@0.66.5':
+  '@takumi-rs/core-win32-arm64-msvc@0.66.7':
     optional: true
 
-  '@takumi-rs/core-win32-x64-msvc@0.66.5':
+  '@takumi-rs/core-win32-x64-msvc@0.66.7':
     optional: true
 
-  '@takumi-rs/core@0.66.5':
+  '@takumi-rs/core@0.66.7':
     optionalDependencies:
-      '@takumi-rs/core-darwin-arm64': 0.66.5
-      '@takumi-rs/core-darwin-x64': 0.66.5
-      '@takumi-rs/core-linux-arm64-gnu': 0.66.5
-      '@takumi-rs/core-linux-arm64-musl': 0.66.5
-      '@takumi-rs/core-linux-x64-gnu': 0.66.5
-      '@takumi-rs/core-linux-x64-musl': 0.66.5
-      '@takumi-rs/core-win32-arm64-msvc': 0.66.5
-      '@takumi-rs/core-win32-x64-msvc': 0.66.5
+      '@takumi-rs/core-darwin-arm64': 0.66.7
+      '@takumi-rs/core-darwin-x64': 0.66.7
+      '@takumi-rs/core-linux-arm64-gnu': 0.66.7
+      '@takumi-rs/core-linux-arm64-musl': 0.66.7
+      '@takumi-rs/core-linux-x64-gnu': 0.66.7
+      '@takumi-rs/core-linux-x64-musl': 0.66.7
+      '@takumi-rs/core-win32-arm64-msvc': 0.66.7
+      '@takumi-rs/core-win32-x64-msvc': 0.66.7
 
-  '@takumi-rs/wasm@0.66.5': {}
+  '@takumi-rs/wasm@0.66.7': {}
 
   '@tanstack/table-core@8.21.3': {}
 
@@ -13693,6 +13726,10 @@ snapshots:
       '@vue/shared': 3.5.27
 
   '@vue/devtools-api@6.6.4': {}
+
+  '@vue/devtools-api@8.0.5':
+    dependencies:
+      '@vue/devtools-kit': 8.0.5
 
   '@vue/devtools-core@8.0.5(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
@@ -17304,12 +17341,12 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  miniflare@4.20260124.0:
+  miniflare@4.20260128.0:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.34.5
       undici: 7.18.2
-      workerd: 1.20260124.0
+      workerd: 1.20260128.0
       ws: 8.18.0
       youch: 4.1.0-beta.10
     transitivePeerDependencies:
@@ -17609,29 +17646,31 @@ snapshots:
 
   nuxt-define@1.0.0: {}
 
-  nuxt-site-config-kit@3.2.18(magicast@0.5.1)(vue@3.5.27(typescript@5.9.3)):
+  nuxt-site-config-kit@3.2.19(magicast@0.5.1)(vue@3.5.27(typescript@5.9.3)):
     dependencies:
       '@nuxt/kit': 4.3.0(magicast@0.5.1)
       pkg-types: 2.3.0
-      site-config-stack: 3.2.18(vue@3.5.27(typescript@5.9.3))
+      site-config-stack: 3.2.19(vue@3.5.27(typescript@5.9.3))
       std-env: 3.10.0
       ufo: 1.6.3
     transitivePeerDependencies:
       - magicast
       - vue
 
-  nuxt-site-config@3.2.18(magicast@0.5.1)(vue@3.5.27(typescript@5.9.3)):
+  nuxt-site-config@3.2.19(magicast@0.5.1)(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3)):
     dependencies:
+      '@nuxt/devtools-kit': 3.1.1(magicast@0.5.1)(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
       '@nuxt/kit': 4.3.0(magicast@0.5.1)
       h3: 1.15.5
-      nuxt-site-config-kit: 3.2.18(magicast@0.5.1)(vue@3.5.27(typescript@5.9.3))
+      nuxt-site-config-kit: 3.2.19(magicast@0.5.1)(vue@3.5.27(typescript@5.9.3))
       pathe: 2.0.3
       pkg-types: 2.3.0
       sirv: 3.0.2
-      site-config-stack: 3.2.18(vue@3.5.27(typescript@5.9.3))
+      site-config-stack: 3.2.19(vue@3.5.27(typescript@5.9.3))
       ufo: 1.6.3
     transitivePeerDependencies:
       - magicast
+      - vite
       - vue
 
   nuxt@4.3.0(@parcel/watcher@2.5.4)(@types/node@25.0.10)(@vue/compiler-sfc@3.5.27)(better-sqlite3@12.6.2)(cac@6.7.14)(db0@0.3.4(better-sqlite3@12.6.2))(eslint@9.39.2(jiti@2.6.1))(ioredis@5.9.2)(magicast@0.5.1)(optionator@0.9.4)(rolldown@1.0.0-beta.54)(rollup@4.56.0)(sass@1.97.3)(terser@5.46.0)(typescript@5.9.3)(vite@8.0.0-beta.2(@types/node@25.0.10)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue-tsc@3.2.4(typescript@5.9.3))(yaml@2.8.2):
@@ -18904,10 +18943,6 @@ snapshots:
     optionalDependencies:
       '@parcel/watcher': 2.5.4
 
-  satori-html@0.3.2:
-    dependencies:
-      ultrahtml: 1.6.0
-
   satori@0.15.2:
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
@@ -19130,7 +19165,7 @@ snapshots:
 
   sisteransi@1.0.5: {}
 
-  site-config-stack@3.2.18(vue@3.5.27(typescript@5.9.3)):
+  site-config-stack@3.2.19(vue@3.5.27(typescript@5.9.3)):
     dependencies:
       ufo: 1.6.3
       vue: 3.5.27(typescript@5.9.3)
@@ -20262,6 +20297,29 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.27(typescript@5.9.3)
 
+  vue-router@5.0.0(@vue/compiler-sfc@3.5.27)(vue@3.5.27(typescript@5.9.3)):
+    dependencies:
+      '@babel/generator': 7.28.6
+      '@vue-macros/common': 3.1.2(vue@3.5.27(typescript@5.9.3))
+      '@vue/devtools-api': 8.0.5
+      ast-walker-scope: 0.8.3
+      chokidar: 5.0.0
+      json5: 2.2.3
+      local-pkg: 1.1.2
+      magic-string: 0.30.21
+      mlly: 1.8.0
+      muggle-string: 0.4.1
+      pathe: 2.0.3
+      picomatch: 4.0.3
+      scule: 1.3.0
+      tinyglobby: 0.2.15
+      unplugin: 2.3.11
+      unplugin-utils: 0.3.1
+      vue: 3.5.27(typescript@5.9.3)
+      yaml: 2.8.2
+    optionalDependencies:
+      '@vue/compiler-sfc': 3.5.27
+
   vue-sfc-transformer@0.1.17(@vue/compiler-core@3.5.27)(esbuild@0.27.2)(vue@3.5.27(typescript@5.9.3)):
     dependencies:
       '@babel/parser': 7.28.6
@@ -20397,24 +20455,24 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  workerd@1.20260124.0:
+  workerd@1.20260128.0:
     optionalDependencies:
-      '@cloudflare/workerd-darwin-64': 1.20260124.0
-      '@cloudflare/workerd-darwin-arm64': 1.20260124.0
-      '@cloudflare/workerd-linux-64': 1.20260124.0
-      '@cloudflare/workerd-linux-arm64': 1.20260124.0
-      '@cloudflare/workerd-windows-64': 1.20260124.0
+      '@cloudflare/workerd-darwin-64': 1.20260128.0
+      '@cloudflare/workerd-darwin-arm64': 1.20260128.0
+      '@cloudflare/workerd-linux-64': 1.20260128.0
+      '@cloudflare/workerd-linux-arm64': 1.20260128.0
+      '@cloudflare/workerd-windows-64': 1.20260128.0
 
-  wrangler@4.61.0:
+  wrangler@4.61.1:
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
-      '@cloudflare/unenv-preset': 2.11.0(unenv@2.0.0-rc.24)(workerd@1.20260124.0)
+      '@cloudflare/unenv-preset': 2.12.0(unenv@2.0.0-rc.24)(workerd@1.20260128.0)
       blake3-wasm: 2.1.5
       esbuild: 0.27.0
-      miniflare: 4.20260124.0
+      miniflare: 4.20260128.0
       path-to-regexp: 6.3.0
       unenv: 2.0.0-rc.24
-      workerd: 1.20260124.0
+      workerd: 1.20260128.0
     optionalDependencies:
       fsevents: 2.3.3
     transitivePeerDependencies:
