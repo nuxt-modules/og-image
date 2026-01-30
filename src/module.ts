@@ -1055,6 +1055,13 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         const ttfPath = join(ttfDir, ttfFilename)
 
         if (existsSync(ttfPath)) {
+          // Check if previously converted font is a variable font (needs deletion)
+          if (await isVariableFont(ttfPath)) {
+            hasVariableFonts = true
+            fs.unlinkSync(ttfPath)
+            logger.debug(`Deleted cached variable font TTF (would crash satori): ${ttfFilename}`)
+            continue
+          }
           logger.debug(`Already converted: ${ttfFilename}`)
           convertedFiles.add(filename)
           continue
@@ -1116,9 +1123,14 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
             continue
           }
 
-          // Check if it's a variable font
+          // Check if it's a variable font - if so, delete the converted TTF
+          // because opentype.js crashes when parsing variable font fvar tables
+          // Satori will fall back to WOFF or other available formats
           if (await isVariableFont(ttfPath)) {
             hasVariableFonts = true
+            fs.unlinkSync(ttfPath)
+            logger.debug(`Deleted variable font TTF (would crash satori): ${ttfFilename}`)
+            continue
           }
 
           logger.info(`Converted ${filename} → ${ttfFilename} for Satori`)
