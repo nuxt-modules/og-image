@@ -1038,8 +1038,8 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       }
 
       logger.debug(`Found ${woff2Fonts.length} WOFF2 fonts to convert`)
-      // Write directly to @nuxt/fonts cache directory
-      const ttfDir = join(nuxt.options.buildDir, 'cache', 'fonts')
+      // Write to og-image's own cache directory (not @nuxt/fonts cache which gets cleared by Nitro)
+      const ttfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
       fs.mkdirSync(ttfDir, { recursive: true })
 
       // Track which files we've already converted
@@ -1132,6 +1132,30 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       if (hasVariableFonts) {
         logger.warn(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
       }
+    })
+
+    // Copy converted TTFs to output after Nitro copies publicAssets
+    // We need to do this because vite:compiled runs after nitro:init (when @nuxt/fonts scans),
+    // and Nitro clears the cache directory between nitro:build:before and nitro:build:public-assets
+    nuxt.hook('nitro:build:public-assets' as any, (nitro: any) => {
+      const ttfSourceDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+      if (!existsSync(ttfSourceDir))
+        return
+
+      const ttfFiles = fs.readdirSync(ttfSourceDir).filter(f => f.endsWith('.ttf'))
+      if (ttfFiles.length === 0)
+        return
+
+      // Find output directory from nitro config
+      const outputDir = join(nitro.options.output.publicDir, '_fonts')
+      fs.mkdirSync(outputDir, { recursive: true })
+
+      for (const file of ttfFiles) {
+        const src = join(ttfSourceDir, file)
+        const dest = join(outputDir, file)
+        fs.copyFileSync(src, dest)
+      }
+      logger.debug(`Copied ${ttfFiles.length} converted TTF fonts to output`)
     })
 
     registerTypeTemplates({
