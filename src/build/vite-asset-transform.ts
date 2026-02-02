@@ -5,7 +5,7 @@ import { ofetch } from 'ofetch'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
 import { createUnplugin } from 'unplugin'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
-import { resolveClassesToStyles } from './tw4-transform'
+import { resolveClassesToStyles } from './css/providers/tw4'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0

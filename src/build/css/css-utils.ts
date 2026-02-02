@@ -4,6 +4,25 @@ import { formatHex, parse, toGamut } from 'culori'
 // Gamut map oklch to sRGB using culori's toGamut
 const toSrgbGamut = toGamut('rgb', 'oklch')
 
+// ============================================================================
+// Postcss lazy loading (shared between providers)
+// ============================================================================
+
+let postcss: typeof import('postcss').default
+let postcssCalc: (opts?: object) => import('postcss').Plugin
+
+export async function loadPostcss() {
+  if (!postcss) {
+    const [postcssModule, postcssCalcModule] = await Promise.all([
+      import('postcss'),
+      import('postcss-calc'),
+    ])
+    postcss = postcssModule.default
+    postcssCalc = postcssCalcModule.default as unknown as typeof postcssCalc
+  }
+  return { postcss, postcssCalc }
+}
+
 /**
  * Decode CSS selector escape sequences to get the actual class name.
  * Handles: .\32xl -> 2xl (hex escapes), .m-0\.5 -> m-0.5 (escaped chars)

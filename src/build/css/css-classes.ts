@@ -1,6 +1,6 @@
 import type { ElementNode } from '@vue/compiler-core'
 import type { ConsolaInstance } from 'consola'
-import type { OgImageComponent } from '../runtime/types'
+import type { OgImageComponent } from '../../runtime/types'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
@@ -15,7 +15,7 @@ async function loadParser() {
   return parseSfc
 }
 
-interface Tw4ClassCache {
+interface CssClassCache {
   // keyed by component hash (already computed from path+mtime)
   files: Record<string, string[]>
 }
@@ -90,11 +90,11 @@ export async function scanComponentClasses(
   const classes = new Set<string>()
 
   // Load cache if available (keyed by component hash)
-  const cacheFile = cacheDir ? join(cacheDir, 'cache', 'og-image', 'tw4-classes.json') : null
-  let cache: Tw4ClassCache = { files: {} }
+  const cacheFile = cacheDir ? join(cacheDir, 'cache', 'og-image', 'css-classes.json') : null
+  let cache: CssClassCache = { files: {} }
   if (cacheFile && existsSync(cacheFile)) {
     cache = await readFile(cacheFile, 'utf-8')
-      .then(c => JSON.parse(c) as Tw4ClassCache)
+      .then(c => JSON.parse(c) as CssClassCache)
       .catch(() => ({ files: {} }))
   }
 
@@ -120,7 +120,7 @@ export async function scanComponentClasses(
 
     // Cache miss - read and parse file
     cacheMisses++
-    logger?.debug(`TW4: Scanning component ${component.path}`)
+    logger?.debug(`CSS: Scanning component ${component.path}`)
     const content = await readFile(component.path, 'utf-8').catch(() => null)
     if (!content)
       continue
@@ -146,13 +146,13 @@ export async function scanComponentClasses(
   }
 
   if (cacheHits > 0 || cacheMisses > 0)
-    logger?.debug(`TW4: Class cache - ${cacheHits} hits, ${cacheMisses} misses`)
+    logger?.debug(`CSS: Class cache - ${cacheHits} hits, ${cacheMisses} misses`)
 
   return classes
 }
 
 /**
- * Filter classes to only those that need TW4 processing.
+ * Filter classes to only those that need CSS processing.
  * Excludes responsive prefixes (handled at runtime) and unsupported classes.
  */
 export function filterProcessableClasses(classes: Set<string>): string[] {

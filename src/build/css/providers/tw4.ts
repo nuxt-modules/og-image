@@ -1,24 +1,138 @@
 import { readFile } from 'node:fs/promises'
-import { dirname } from 'pathe'
-import { buildNuxtUiVars, COLOR_PROPERTIES, convertColorToHex, createStylesheetLoader, decodeCssClassName } from './tw4-utils'
+import { resolveModulePath } from 'exsolve'
+import { dirname, join } from 'pathe'
+import twColors from 'tailwindcss/colors'
+import { COLOR_PROPERTIES, convertColorToHex, convertOklchToHex, decodeCssClassName, loadPostcss } from '../css-utils'
 
 // Lazy-loaded heavy dependencies to reduce startup memory
 let postcss: typeof import('postcss').default
 let postcssCalc: (opts?: object) => import('postcss').Plugin
+let postcssCustomProperties: (opts?: object) => import('postcss').Plugin
 let compile: typeof import('tailwindcss').compile
 
-async function loadDeps() {
-  if (!postcss) {
-    const [postcssModule, postcssCalcModule, tailwindModule] = await Promise.all([
-      import('postcss'),
-      import('postcss-calc'),
+async function loadTw4Deps() {
+  if (!compile) {
+    const [{ postcss: pc, postcssCalc: pcCalc }, postcssCustomPropsModule, tailwindModule] = await Promise.all([
+      loadPostcss(),
+      import('postcss-custom-properties'),
       import('tailwindcss'),
     ])
-    postcss = postcssModule.default
-    postcssCalc = postcssCalcModule.default as unknown as typeof postcssCalc
+    postcss = pc
+    postcssCalc = pcCalc
+    postcssCustomProperties = postcssCustomPropsModule.default as unknown as typeof postcssCustomProperties
     compile = tailwindModule.compile
   }
 }
+
+// ============================================================================
+// TW4-specific utilities
+// ============================================================================
+
+/**
+ * Create a stylesheet loader for the TW4 compiler.
+ */
+export function createStylesheetLoader(baseDir: string) {
+  return async (id: string, base: string) => {
+    // Handle tailwindcss import
+    if (id === 'tailwindcss') {
+      const twPath = resolveModulePath('tailwindcss/index.css', { from: baseDir })
+      if (twPath) {
+        const content = await readFile(twPath, 'utf-8').catch(() => '')
+        if (content)
+          return { path: twPath, base: dirname(twPath), content }
+      }
+      return {
+        path: 'virtual:tailwindcss',
+        base,
+        content: '@layer theme, base, components, utilities;\n@layer utilities { @tailwind utilities; }',
+      }
+    }
+    // Handle relative imports
+    if (id.startsWith('./') || id.startsWith('../')) {
+      const resolved = join(base || baseDir, id)
+      const content = await readFile(resolved, 'utf-8').catch(() => '')
+      return { path: resolved, base: dirname(resolved), content }
+    }
+    // Handle node_modules imports (e.g., @nuxt/ui)
+    const resolved = resolveModulePath(id, { from: base || baseDir, conditions: ['style'] })
+    if (resolved) {
+      const content = await readFile(resolved, 'utf-8').catch(() => '')
+      return { path: resolved, base: dirname(resolved), content }
+    }
+    return { path: id, base, content: '' }
+  }
+}
+
+/**
+ * Build Nuxt UI CSS variable declarations.
+ * Expands semantic color names (e.g., { primary: 'indigo' }) to full CSS variable sets.
+ */
+export function buildNuxtUiVars(
+  vars: Map<string, string>,
+  nuxtUiColors: Record<string, string>,
+): void {
+  const colors = twColors as unknown as Record<string, Record<number, string>>
+  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+
+  for (const [semantic, colorName] of Object.entries(nuxtUiColors)) {
+    // Add color shades (e.g., --ui-color-primary-500)
+    for (const shade of shades) {
+      const varName = `--ui-color-${semantic}-${shade}`
+      const value = colors[colorName]?.[shade]
+      if (value && !vars.has(varName))
+        vars.set(varName, value)
+    }
+    // Add semantic variable (e.g., --ui-primary)
+    if (!vars.has(`--ui-${semantic}`))
+      vars.set(`--ui-${semantic}`, colors[colorName]?.[500] || '')
+  }
+
+  // Add Nuxt UI semantic text/bg/border variables (light mode defaults)
+  const neutral = nuxtUiColors.neutral || 'slate'
+  const neutralColors = colors[neutral]
+  const semanticVars: Record<string, string> = {
+    '--ui-text-dimmed': neutralColors?.[400] || '',
+    '--ui-text-muted': neutralColors?.[500] || '',
+    '--ui-text-toned': neutralColors?.[600] || '',
+    '--ui-text': neutralColors?.[700] || '',
+    '--ui-text-highlighted': neutralColors?.[900] || '',
+    '--ui-text-inverted': '#ffffff',
+    '--ui-bg': '#ffffff',
+    '--ui-bg-muted': neutralColors?.[50] || '',
+    '--ui-bg-elevated': neutralColors?.[100] || '',
+    '--ui-bg-accented': neutralColors?.[200] || '',
+    '--ui-bg-inverted': neutralColors?.[900] || '',
+    '--ui-border': neutralColors?.[200] || '',
+    '--ui-border-muted': neutralColors?.[200] || '',
+    '--ui-border-accented': neutralColors?.[300] || '',
+    '--ui-border-inverted': neutralColors?.[900] || '',
+  }
+  for (const [name, value] of Object.entries(semanticVars)) {
+    if (value && !vars.has(name))
+      vars.set(name, value)
+  }
+}
+
+// ============================================================================
+// Compiler cache and state
+// ============================================================================
+
+let cachedCompiler: Awaited<ReturnType<typeof import('tailwindcss').compile>> | null = null
+let cachedCssPath: string | null = null
+let cachedVars: Map<string, string> | null = null
+const resolvedStyleCache = new Map<string, Record<string, string> | null>()
+
+/** Clear the compiler cache (useful for HMR) */
+export function clearTw4Cache() {
+  cachedCompiler = null
+  cachedCssPath = null
+  cachedVars = null
+  resolvedStyleCache.clear()
+}
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export type Tw4FontVars = Record<string, string>
 export type Tw4Breakpoints = Record<string, number>
@@ -30,24 +144,31 @@ export interface Tw4Metadata {
   colors: Tw4Colors
 }
 
-// Compiler instance cache
-let cachedCompiler: Awaited<ReturnType<typeof import('tailwindcss').compile>> | null = null
-let cachedCssPath: string | null = null
-let cachedVars: Map<string, string> | null = null
-
-// Cache for style resolution (class -> style object)
-const resolvedStyleCache = new Map<string, Record<string, string> | null>()
-
 export interface Tw4ResolverOptions {
   cssPath: string
   nuxtUiColors?: Record<string, string>
 }
 
+export interface StyleMap {
+  classes: Map<string, Record<string, string>>
+  vars: Map<string, string>
+}
+
+export interface GeneratorOptions {
+  cssPath: string
+  classes: string[]
+  nuxtUiColors?: Record<string, string>
+}
+
+// ============================================================================
+// Core compiler
+// ============================================================================
+
 async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string>) {
   if (cachedCompiler && cachedCssPath === cssPath)
     return { compiler: cachedCompiler, vars: cachedVars! }
 
-  await loadDeps()
+  await loadTw4Deps()
 
   const userCss = await readFile(cssPath, 'utf-8')
   const baseDir = dirname(cssPath)
@@ -60,7 +181,7 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
   // Add Nuxt UI color fallbacks
   if (nuxtUiColors)
-    await buildNuxtUiVars(vars, nuxtUiColors)
+    buildNuxtUiVars(vars, nuxtUiColors)
 
   cachedCompiler = compiler
   cachedCssPath = cssPath
@@ -69,6 +190,10 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
   return { compiler, vars }
 }
+
+// ============================================================================
+// CSS parsing utilities
+// ============================================================================
 
 /**
  * Parse TW4 compiler output using postcss.
@@ -115,7 +240,6 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
 
 /**
  * Evaluate calc() expressions using postcss-calc.
- * Wraps value in a fake CSS rule, processes it, and extracts the result.
  */
 function evaluateCalc(value: string): string {
   if (!value.includes('calc('))
@@ -129,7 +253,6 @@ function evaluateCalc(value: string): string {
 
 /**
  * Parse a var() expression handling nested parentheses in fallbacks.
- * Returns { varName, fallback, endIndex } or null if not a valid var().
  */
 function parseVarExpression(value: string, startIndex: number): { varName: string, fallback: string | null, endIndex: number } | null {
   if (!value.startsWith('var(', startIndex))
@@ -141,7 +264,6 @@ function parseVarExpression(value: string, startIndex: number): { varName: strin
   let fallback: string | null = null
   let inFallback = false
 
-  // Extract variable name (until comma or closing paren)
   while (i < value.length && depth > 0) {
     const char = value[i]
     if (char === '(') {
@@ -158,7 +280,6 @@ function parseVarExpression(value: string, startIndex: number): { varName: strin
       inFallback = true
       fallback = ''
       i++
-      // Skip whitespace after comma
       while (i < value.length && value[i] === ' ')
         i++
       continue
@@ -184,7 +305,6 @@ function parseVarExpression(value: string, startIndex: number): { varName: strin
 
 /**
  * Resolve var() references in a value string.
- * Handles nested vars, fallbacks with parentheses, and calc() expressions.
  */
 function resolveVars(value: string, vars: Map<string, string>, depth = 0): string {
   if (depth > 10 || !value.includes('var('))
@@ -203,7 +323,6 @@ function resolveVars(value: string, vars: Map<string, string>, depth = 0): strin
     }
   }
 
-  // Find and replace var() references one at a time
   let result = value
   let iterations = 0
   const maxIterations = 50
@@ -215,7 +334,6 @@ function resolveVars(value: string, vars: Map<string, string>, depth = 0): strin
 
     const parsed = parseVarExpression(result, varIndex)
     if (!parsed) {
-      // Invalid var(), skip past it to avoid infinite loop
       result = result.slice(0, varIndex) + result.slice(varIndex + 4)
       iterations++
       continue
@@ -226,13 +344,11 @@ function resolveVars(value: string, vars: Map<string, string>, depth = 0): strin
       result = result.slice(0, varIndex) + resolved + result.slice(parsed.endIndex)
     }
     else {
-      // Can't resolve, remove the var() to avoid infinite loop
       result = result.slice(0, varIndex) + result.slice(parsed.endIndex)
     }
     iterations++
   }
 
-  // Recursively resolve any newly introduced var() references
   if (result.includes('var(') && depth < 10)
     return resolveVars(result, vars, depth + 1)
 
@@ -249,7 +365,10 @@ function convertGradientColors(value: string): string {
   })
 }
 
-// Linear gradient direction mapping
+// ============================================================================
+// Gradient handling
+// ============================================================================
+
 const LINEAR_GRADIENT_DIRECTIONS: Record<string, string> = {
   'bg-gradient-to-t': 'to top',
   'bg-gradient-to-tr': 'to top right',
@@ -261,7 +380,6 @@ const LINEAR_GRADIENT_DIRECTIONS: Record<string, string> = {
   'bg-gradient-to-tl': 'to top left',
 }
 
-// Radial gradient shape/position mapping
 const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
   'bg-radial': 'circle at center',
   'bg-radial-at-t': 'circle at top',
@@ -275,13 +393,9 @@ const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
   'bg-radial-at-c': 'circle at center',
 }
 
-/**
- * Resolve gradient color from class name using theme vars.
- */
 function resolveGradientColor(cls: string, vars: Map<string, string>): string | null {
   const colorName = cls.replace(/^(from|via|to)-/, '')
 
-  // Check for color with shade (e.g., from-red-500)
   const shadeMatch = colorName.match(/^(.+)-(\d+)$/)
   if (shadeMatch?.[1] && shadeMatch?.[2]) {
     const varName = `--color-${shadeMatch[1]}-${shadeMatch[2]}`
@@ -293,7 +407,6 @@ function resolveGradientColor(cls: string, vars: Map<string, string>): string | 
     }
   }
 
-  // Check for single color (e.g., from-brand)
   const varName = `--color-${colorName}`
   const value = vars.get(varName)
   if (value) {
@@ -305,11 +418,6 @@ function resolveGradientColor(cls: string, vars: Map<string, string>): string | 
   return null
 }
 
-/**
- * Build gradient CSS from combination of classes.
- * TW4 gradients use cascading --tw-* vars that are hard to resolve statically,
- * so we manually construct the gradient from the component classes.
- */
 function buildGradient(
   classes: string[],
   vars: Map<string, string>,
@@ -318,7 +426,6 @@ function buildGradient(
   const radialShape = classes.find(c => RADIAL_GRADIENT_SHAPES[c])
   const fromClass = classes.find(c => c.startsWith('from-'))
   const viaClass = classes.find(c => c.startsWith('via-'))
-  // to-* for colors, but NOT to-t/b/l/r/tl/tr/bl/br (inset positions)
   const toClass = classes.find(c => c.startsWith('to-') && !/^to-(?:[tblr]|tl|tr|bl|br)$/.test(c))
 
   if (!linearDir && !radialShape)
@@ -357,6 +464,10 @@ function buildGradient(
   return null
 }
 
+// ============================================================================
+// Public API - Class resolution
+// ============================================================================
+
 /**
  * Resolve an array of Tailwind classes to their full CSS style declarations.
  * Returns a map of class -> { property: value } for all resolvable classes.
@@ -367,28 +478,21 @@ export async function resolveClassesToStyles(
 ): Promise<Record<string, Record<string, string>>> {
   const { compiler, vars } = await getCompiler(options.cssPath, options.nuxtUiColors)
 
-  // Filter to uncached classes
   const uncached = classes.filter(c => !resolvedStyleCache.has(c))
 
   if (uncached.length > 0) {
     const outputCss = compiler.build(uncached)
-
-    // Parse with postcss
     const parsedClasses = parseCssOutput(outputCss, vars)
 
-    // Process each parsed class
     for (const [className, rawStyles] of parsedClasses) {
       const styles: Record<string, string> = {}
 
       for (const [prop, rawValue] of Object.entries(rawStyles)) {
-        // Resolve var() references
         let value = resolveVars(rawValue, vars)
 
-        // Skip if still has unresolved vars
         if (value.includes('var('))
           continue
 
-        // Convert colors to hex
         if (COLOR_PROPERTIES.has(prop)) {
           if (prop === 'background-image' && value.includes('gradient')) {
             value = convertGradientColors(value)
@@ -404,14 +508,12 @@ export async function resolveClassesToStyles(
       resolvedStyleCache.set(className, Object.keys(styles).length ? styles : null)
     }
 
-    // Mark unprocessed classes as unresolvable
     for (const c of uncached) {
       if (!resolvedStyleCache.has(c))
         resolvedStyleCache.set(c, null)
     }
   }
 
-  // Build result map
   const result: Record<string, Record<string, string>> = {}
   for (const cls of classes) {
     const resolved = resolvedStyleCache.get(cls)
@@ -419,11 +521,9 @@ export async function resolveClassesToStyles(
       result[cls] = resolved
   }
 
-  // Handle gradient class combinations (TW4 uses cascading --tw-* vars that are hard to resolve)
   const gradient = buildGradient(classes, vars)
   if (gradient) {
     result[gradient.gradientClass] = { 'background-image': gradient.value }
-    // Mark color classes as resolved (they contribute to the gradient)
     for (const colorClass of gradient.colorClasses) {
       result[colorClass] = {}
     }
@@ -439,7 +539,6 @@ export async function resolveClassesToStyles(
 export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<Tw4Metadata> {
   const { compiler, vars } = await getCompiler(options.cssPath, options.nuxtUiColors)
 
-  // Build empty to get theme vars
   const themeCss = compiler.build([])
   parseCssOutput(themeCss, vars)
 
@@ -481,10 +580,124 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
   return { fontVars, breakpoints, colors }
 }
 
-/** Clear the compiler cache (useful for HMR) */
-export function clearTw4Cache() {
-  cachedCompiler = null
-  cachedCssPath = null
-  cachedVars = null
-  resolvedStyleCache.clear()
+// ============================================================================
+// Public API - Style map generation
+// ============================================================================
+
+/**
+ * Extract CSS variables from TW4 compiled output.
+ */
+function extractVars(css: string): Map<string, string> {
+  const vars = new Map<string, string>()
+  const root = postcss.parse(css)
+
+  root.walkDecls((decl) => {
+    if (decl.prop.startsWith('--')) {
+      vars.set(decl.prop, decl.value)
+    }
+  })
+
+  return vars
+}
+
+/**
+ * Build CSS variable declarations from various sources.
+ */
+async function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): Promise<string> {
+  if (nuxtUiColors)
+    buildNuxtUiVars(vars, nuxtUiColors)
+
+  const lines: string[] = [':root {']
+  for (const [name, value] of vars) {
+    lines.push(`  ${name}: ${value};`)
+  }
+  lines.push('}')
+  return lines.join('\n')
+}
+
+/**
+ * Parse CSS rules into a class → styles map.
+ */
+function parseClassStyles(css: string): Map<string, Record<string, string>> {
+  const classMap = new Map<string, Record<string, string>>()
+  const root = postcss.parse(css)
+
+  root.walkRules((rule) => {
+    const selector = rule.selector
+    if (!selector.startsWith('.'))
+      return
+
+    const className = decodeCssClassName(selector)
+
+    if (className.includes(':') && !className.match(/^[\w-]+$/))
+      return
+    if (className.includes(' ') || className.includes('>') || className.includes('+'))
+      return
+
+    const styles: Record<string, string> = classMap.get(className) || {}
+
+    rule.walkDecls((decl) => {
+      if (decl.prop.startsWith('--'))
+        return
+
+      const camelProp = decl.prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase())
+      styles[camelProp] = decl.value
+    })
+
+    if (Object.keys(styles).length > 0) {
+      classMap.set(className, styles)
+    }
+  })
+
+  return classMap
+}
+
+/**
+ * Generate a complete style map from TW4 classes.
+ */
+export async function generateStyleMap(options: GeneratorOptions): Promise<StyleMap> {
+  const { cssPath, classes, nuxtUiColors } = options
+
+  if (classes.length === 0) {
+    return { classes: new Map(), vars: new Map() }
+  }
+
+  await loadTw4Deps()
+
+  const cssContent = await readFile(cssPath, 'utf-8')
+  const baseDir = dirname(cssPath)
+
+  const compiler = await compile(cssContent, {
+    base: baseDir,
+    loadStylesheet: createStylesheetLoader(baseDir),
+  })
+
+  const rawCSS = compiler.build(classes)
+  const vars = extractVars(rawCSS)
+  const varsCSS = await buildVarsCSS(vars, nuxtUiColors)
+  const fullCSS = `${varsCSS}\n${rawCSS}`
+
+  const result = await postcss([
+    postcssCustomProperties({
+      preserve: false,
+    }),
+    postcssCalc({}),
+  ]).process(fullCSS, { from: undefined })
+
+  const resolvedCSS = result.css
+  const hexCSS = convertOklchToHex(resolvedCSS)
+  const classMap = parseClassStyles(hexCSS)
+
+  return { classes: classMap, vars }
+}
+
+/**
+ * Serialize style map for embedding in build output.
+ */
+export function serializeStyleMap(styleMap: StyleMap): string {
+  const obj: Record<string, Record<string, string>> = {}
+  for (const [cls, styles] of styleMap.classes) {
+    obj[cls] = styles
+  }
+  return JSON.stringify(obj)
 }

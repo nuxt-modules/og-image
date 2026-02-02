@@ -1,21 +1,6 @@
 import type { UserConfig } from '@unocss/core'
-import type { CssProvider } from './css-provider'
-import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName } from './css-utils'
-
-// Lazy-loaded dependencies
-let postcss: typeof import('postcss').default
-let postcssCalc: (opts?: object) => import('postcss').Plugin
-
-async function loadDeps() {
-  if (!postcss) {
-    const [postcssModule, postcssCalcModule] = await Promise.all([
-      import('postcss'),
-      import('postcss-calc'),
-    ])
-    postcss = postcssModule.default
-    postcssCalc = postcssCalcModule.default as unknown as typeof postcssCalc
-  }
-}
+import type { CssProvider } from '../css-provider'
+import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName, loadPostcss } from '../css-utils'
 
 // State
 let unoConfig: UserConfig | null = null
@@ -52,7 +37,7 @@ async function getGenerator() {
  * Parse generated CSS into class → styles map.
  */
 async function parseGeneratedCss(css: string): Promise<Record<string, Record<string, string>>> {
-  await loadDeps()
+  const { postcss, postcssCalc } = await loadPostcss()
 
   // Evaluate calc() expressions
   const processed = await postcss([postcssCalc({})]).process(css, { from: undefined })

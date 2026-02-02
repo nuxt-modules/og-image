@@ -1,5 +1,5 @@
 import type { Nuxt } from '@nuxt/schema'
-import type { OgImageComponent } from '../runtime/types'
+import type { OgImageComponent } from '../../runtime/types'
 import type { CssProvider } from './css-provider'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -139,7 +139,7 @@ export async function setupCssFramework(options: CssSetupOptions): Promise<CssSe
       const nuxtUiColors = await loadNuxtUiColors()
 
       // Extract TW4 metadata
-      const { extractTw4Metadata } = await import('./tw4-transform')
+      const { extractTw4Metadata } = await import('./providers/tw4')
       const metadata = await extractTw4Metadata({
         cssPath: resolvedCssPath,
         nuxtUiColors,
@@ -155,7 +155,7 @@ export async function setupCssFramework(options: CssSetupOptions): Promise<CssSe
       // Scan all OG components for classes and generate style map
       try {
         const { scanComponentClasses, filterProcessableClasses } = await import('./css-classes')
-        const { generateStyleMap } = await import('./tw4-generator')
+        const { generateStyleMap } = await import('./providers/tw4')
 
         const components = getComponents()
         const allClasses = await scanComponentClasses(components, logger, nuxt.options.buildDir)
@@ -190,7 +190,7 @@ export async function setupCssFramework(options: CssSetupOptions): Promise<CssSe
   // Setup UnoCSS provider
   if (cssFramework === 'unocss') {
     logger.info('UnoCSS detected, using UnoCSS provider for OG image styling')
-    const { setUnoConfig, createUnoProvider, clearUnoCache } = await import('./uno-transform')
+    const { setUnoConfig, createUnoProvider, clearUnoCache } = await import('./providers/uno')
 
     // Capture UnoCSS config from module hook
     nuxt.hook('unocss:config' as any, (config: any) => {
