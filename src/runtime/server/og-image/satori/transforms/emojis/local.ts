@@ -56,7 +56,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
 
   const { icons, width: pkgWidth, height: pkgHeight } = nitroApp._ogImageIconsData
   const codePoint = getEmojiCodePoint(emojiChar)
-  const possibleNames = getEmojiIconNames(codePoint, ctx.options.emojis!)
+  const possibleNames = getEmojiIconNames(codePoint, ctx.options.emojis as string)
 
   // Try each possible name until we find a match
   for (const iconName of possibleNames) {

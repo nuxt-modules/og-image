@@ -8,14 +8,15 @@ import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
  * This does not perform HTML replacement - that's handled by the AST plugin
  */
 export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: string): Promise<string | null> {
+  const emojiSet = ctx.options.emojis as string
   const codePoint = getEmojiCodePoint(emojiChar)
-  const possibleNames = getEmojiIconNames(codePoint, ctx.options.emojis!)
+  const possibleNames = getEmojiIconNames(codePoint, emojiSet)
 
   // Try cache first with any of the possible names
   // Using '|' delimiter to avoid collisions (colons appear in emoji set names)
   let svg = null
   for (const iconName of possibleNames) {
-    const key = ['1', ctx.options.emojis, iconName].join('|')
+    const key = ['1', emojiSet, iconName].join('|')
     if (await emojiCache.hasItem(key)) {
       svg = await emojiCache.getItem(key)
       if (svg)
@@ -28,7 +29,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
     // Try each possible name with the API
     for (const iconName of possibleNames) {
       try {
-        svg = await $fetch(`https://api.iconify.design/${ctx.options.emojis}/${iconName}.svg`, {
+        svg = await $fetch(`https://api.iconify.design/${emojiSet}/${iconName}.svg`, {
           responseType: 'text',
           retry: 2,
           retryDelay: 500,
@@ -37,7 +38,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
         // Iconify API returns literal '404' text (not HTTP 404) for missing icons
         if (svg && svg !== '404') {
           // Cache this successful match
-          const key = ['1', ctx.options.emojis, iconName].join('|')
+          const key = ['1', emojiSet, iconName].join('|')
           await emojiCache.setItem(key, svg as string)
           break
         }
