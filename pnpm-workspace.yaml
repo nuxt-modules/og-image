@@ -29,8 +29,8 @@ catalog:
   '@iconify-json/carbon': ^1.2.18
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
-  '@iconify-json/ri': ^1.2.8
-  '@iconify-json/simple-icons': ^1.2.68
+  '@iconify-json/ri': ^1.2.9
+  '@iconify-json/simple-icons': ^1.2.69
   '@iconify-json/tabler': ^1.2.26
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.11.0
@@ -51,12 +51,12 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.66.7
-  '@takumi-rs/wasm': ^0.66.7
+  '@takumi-rs/core': ^0.66.13
+  '@takumi-rs/wasm': ^0.66.13
   '@vitejs/plugin-vue': ^6.0.3
   '@vue/compiler-sfc': ^3.5.27
-  '@vueuse/core': ^14.1.0
-  '@vueuse/nuxt': ^14.1.0
+  '@vueuse/core': ^14.2.0
+  '@vueuse/nuxt': ^14.2.0
   better-sqlite3: ^12.6.2
   birpc: ^4.0.0
   bumpp: ^10.4.0
@@ -86,8 +86,8 @@ catalog:
   ohash: ^2.0.11
   pathe: ^2.0.3
   pkg-types: ^2.3.0
-  playwright: ^1.58.0
-  playwright-core: ^1.58.0
+  playwright: ^1.58.1
+  playwright-core: ^1.58.1
   postcss: ^8.5.6
   postcss-calc: ^10.1.1
   postcss-custom-properties: ^15.0.0
@@ -96,7 +96,7 @@ catalog:
   satori: 0.19.1
   satori-legacy: npm:satori@0.15.2
   sharp: ^0.34.5
-  shiki: ^3.21.0
+  shiki: ^3.22.0
   sirv: ^3.0.2
   std-env: ^3.10.0
   strip-literal: ^3.1.0
@@ -108,7 +108,7 @@ catalog:
   unwasm: ^0.5.3
   vitest: ^4.0.18
   vue: ^3.5.27
-  vue-router: ^5.0.0
+  vue-router: ^5.0.1
   vue-tsc: ^3.2.4
   wrangler: ^4.61.1
   yoga-wasm-web: ^0.3.3
