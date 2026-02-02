@@ -121,18 +121,6 @@ function elementToVNode(el: Element): SatoriVNode {
   return { type: tagName, props }
 }
 
-/**
- * Convert HTML string to Satori VNode using linkedom
- */
-function htmlToSatoriVNode(html: string): SatoriVNode {
-  const { document } = parseHTML(html)
-  // linkedom places content at documentElement for fragments
-  const root = document.documentElement || document.body?.firstElementChild
-  if (!root)
-    throw new Error('Failed to parse HTML')
-  return elementToVNode(root)
-}
-
 describe('linkedom to satori vnode', () => {
   describe('camelCase', () => {
     it('converts kebab-case to camelCase', () => {
