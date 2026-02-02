@@ -1,6 +1,7 @@
 import type { IconifyJSON } from '@iconify/types'
 import { readFile } from 'node:fs/promises'
 import MagicString from 'magic-string'
+import { ofetch } from 'ofetch'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
 import { createUnplugin } from 'unplugin'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
@@ -96,6 +97,39 @@ function buildEmojiSvg(emoji: string, icons: IconifyJSON, emojiSet: string): str
       return svg
     }
   }
+  return null
+}
+
+// Fetch emoji from Iconify API (build-time fallback when local icons not installed)
+const emojiFetchCache = new Map<string, string | null>()
+async function fetchEmojiSvg(emoji: string, emojiSet: string): Promise<string | null> {
+  const cacheKey = `${emojiSet}:${emoji}`
+  if (emojiFetchCache.has(cacheKey))
+    return emojiFetchCache.get(cacheKey)!
+
+  const codePoint = getEmojiCodePoint(emoji)
+  const possibleNames = getEmojiIconNames(codePoint, emojiSet)
+
+  for (const iconName of possibleNames) {
+    try {
+      const svg = await ofetch(`https://api.iconify.design/${emojiSet}/${iconName}.svg`, {
+        responseType: 'text',
+        retry: 1,
+      })
+      // Iconify API returns '404' text for missing icons
+      if (svg && svg !== '404') {
+        let result = `<span style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"${svg.slice(4)}</span>`
+        result = makeIdsUnique(result)
+        emojiFetchCache.set(cacheKey, result)
+        return result
+      }
+    }
+    catch {
+      // Continue to next name
+    }
+  }
+
+  emojiFetchCache.set(cacheKey, null)
   return null
 }
 
@@ -201,14 +235,37 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
       // Transform emojis in text content
       if (options.emojiSet && RE_MATCH_EMOJIS.test(template)) {
+        // Try local icons first, fallback to fetch
         if (!emojiIcons) {
           emojiIcons = options.emojiIcons ?? await import(`@iconify-json/${options.emojiSet}/icons.json`, {
             with: { type: 'json' },
           }).then(m => m.default).catch(() => null)
         }
 
-        if (emojiIcons) {
-          RE_MATCH_EMOJIS.lastIndex = 0
+        // Collect all unique emojis in template
+        RE_MATCH_EMOJIS.lastIndex = 0
+        const allEmojis = new Set<string>()
+        for (const match of template.matchAll(RE_MATCH_EMOJIS)) {
+          allEmojis.add(match[0])
+        }
+
+        // Resolve emoji SVGs in parallel (local first, fetch fallback)
+        const emojiSvgMap = new Map<string, string>()
+        await Promise.all([...allEmojis].map(async (emoji) => {
+          let svg: string | null = null
+          if (emojiIcons) {
+            svg = buildEmojiSvg(emoji, emojiIcons, options.emojiSet!)
+          }
+          if (!svg) {
+            svg = await fetchEmojiSvg(emoji, options.emojiSet!)
+          }
+          if (svg) {
+            emojiSvgMap.set(emoji, svg)
+          }
+        }))
+
+        // Replace emojis with resolved SVGs
+        if (emojiSvgMap.size > 0) {
           template = template.replace(/>([^<]*)</g, (fullMatch, textContent) => {
             if (!textContent)
               return fullMatch
@@ -221,7 +278,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             let newTextContent = textContent
             for (const match of emojiMatches) {
               const emoji = match[0]
-              const svg = buildEmojiSvg(emoji, emojiIcons!, options.emojiSet!)
+              const svg = emojiSvgMap.get(emoji)
               if (svg) {
                 hasChanges = true
                 const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

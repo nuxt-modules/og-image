@@ -154,13 +154,8 @@ export interface ModuleOptions {
    */
   warnMissingSuffix?: boolean
   /**
-   * Strategy for resolving emoji icons.
-   *
-   * - 'auto': Automatically choose based on available dependencies (default)
-   * - 'local': Use local @iconify-json dependencies only
-   * - 'fetch': Use Iconify API to fetch emojis
-   *
-   * @default 'auto'
+   * @deprecated Runtime always uses Iconify API now. Build-time uses local icons if available.
+   * Use `defaults.emojis: false` to disable emoji support entirely.
    */
   emojiStrategy?: 'auto' | 'local' | 'fetch'
   /**
@@ -321,64 +316,22 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
-    // Determine emoji strategy based on configuration and dependencies
-    const emojiPkg = `@iconify-json/${config.defaults.emojis}`
-    let hasLocalIconify = await hasResolvableDependency(emojiPkg)
-    let finalEmojiStrategy = config.emojiStrategy || 'auto'
+    // Determine emoji strategy for build-time and runtime
+    // Build-time: Vite plugin uses local @iconify-json for static emojis in templates
+    // Runtime: Always use fetch (Iconify API) to avoid bundling 24MB of icons
+    let buildEmojiSet: string | undefined
 
-    // Prompt to install emoji package in dev mode (non-CI, non-prepare)
-    if (!hasLocalIconify && !nuxt.options._prepare && nuxt.options.dev) {
-      const shouldInstall = await logger.prompt(`Install ${emojiPkg} for local emoji support?`, {
-        type: 'confirm',
-        initial: true,
-      })
-      if (shouldInstall) {
-        await ensureDependencies([emojiPkg], nuxt)
-          .then(() => {
-            hasLocalIconify = true
-            logger.success(`Installed ${emojiPkg}`)
-          })
-          .catch(() => logger.warn(`Failed to install ${emojiPkg}, using API fallback`))
-      }
-    }
-
-    // Handle 'auto' strategy
-    if (finalEmojiStrategy === 'auto') {
-      finalEmojiStrategy = hasLocalIconify ? 'local' : 'fetch'
-    }
-
-    // Validate strategy against available dependencies
-    if (finalEmojiStrategy === 'local' && !hasLocalIconify) {
-      logger.warn(`emojiStrategy is set to 'local' but ${emojiPkg} is not installed. Falling back to 'fetch'.`)
-      finalEmojiStrategy = 'fetch'
-    }
-
-    // Use preset compatibility to determine runtime emoji strategy
-    // Edge presets use 'fetch' to avoid bundling 24MB of emoji icons
-    // Build-time transforms (vite plugin) still use local icons for prerendering
-    const runtimeEmojiStrategy = targetCompatibility.emoji === 'fetch' ? 'fetch' : finalEmojiStrategy
-
-    // Set emoji implementation based on runtime strategy
-    if (runtimeEmojiStrategy === 'local') {
-      if (nuxt.options.dev)
-        logger.debug(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
-      else if (nuxt.options.build && !nuxt.options._prepare)
-        logger.info(`Using local dependency \`${emojiPkg}\` for emoji rendering.`)
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/local')
-      // add nitro virtual import for the iconify import
-      nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
-      nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
-        return `import { icons, width, height } from '${emojiPkg}/icons.json'
-export function loadIcons() { return { icons, width, height } }`
-      }
+    // Check if emojis are disabled
+    if (config.defaults.emojis === false) {
+      logger.debug('Emoji support disabled.')
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/noop')
+      buildEmojiSet = undefined
     }
     else {
-      if (targetCompatibility.emoji === 'fetch' && finalEmojiStrategy === 'local') {
-        logger.info(`Using iconify API for runtime emojis on ${preset} (local icons used at build time).`)
-      }
-      else {
-        logger.info(`Using iconify API for emojis${hasLocalIconify ? ' (emojiStrategy: fetch)' : `, install ${emojiPkg} for local support`}.`)
-      }
+      // Build-time: local icons preferred, fetch fallback (inlines static emojis in templates)
+      buildEmojiSet = config.defaults.emojis || 'noto'
+
+      // Runtime: always use fetch to avoid 24MB bundle (only needed for dynamic emojis)
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
 
@@ -524,7 +477,7 @@ export function loadIcons() { return { icons, width, height } }`
     nuxt.hook('modules:done', () => {
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, TW4 custom classes
       addVitePlugin(AssetTransformPlugin.vite({
-        emojiSet: finalEmojiStrategy === 'local' ? (config.defaults.emojis || 'noto') : undefined,
+        emojiSet: buildEmojiSet,
         get ogComponentPaths() { return resolvedOgComponentPaths }, // Resolved OG component directory paths
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
