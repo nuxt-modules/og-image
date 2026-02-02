@@ -9,7 +9,7 @@ describe('tw4-transform', () => {
     // by testing calc() expressions in CSS values
 
     it('should handle basic addition', async () => {
-      const { resolveClassesToStyles } = await import('../../src/build/tw4-transform')
+      const { resolveClassesToStyles } = await import('../../src/build/css/providers/tw4')
       // This will be tested indirectly through the full flow
       expect(resolveClassesToStyles).toBeDefined()
     })
@@ -20,14 +20,14 @@ describe('tw4-transform', () => {
 
     it('should handle nested parentheses in fallbacks', async () => {
       // This tests that var(--color, rgb(0, 0, 0)) doesn't break
-      const { resolveClassesToStyles } = await import('../../src/build/tw4-transform')
+      const { resolveClassesToStyles } = await import('../../src/build/css/providers/tw4')
       expect(resolveClassesToStyles).toBeDefined()
     })
   })
 
   describe('convertColorToHex', () => {
     it('should handle invalid color gracefully', async () => {
-      const { resolveClassesToStyles } = await import('../../src/build/tw4-transform')
+      const { resolveClassesToStyles } = await import('../../src/build/css/providers/tw4')
       // Invalid colors should not throw
       expect(resolveClassesToStyles).toBeDefined()
     })
@@ -35,7 +35,7 @@ describe('tw4-transform', () => {
 
   describe('error boundaries', () => {
     it('should not throw on malformed input', async () => {
-      const { resolveClassesToStyles } = await import('../../src/build/tw4-transform')
+      const { resolveClassesToStyles } = await import('../../src/build/css/providers/tw4')
       // Even with bad input, should not throw
       expect(async () => {
         await resolveClassesToStyles([], { cssPath: '/nonexistent/path.css' }).catch(() => {})
