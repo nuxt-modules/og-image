@@ -1,9 +1,24 @@
 import { readFile } from 'node:fs/promises'
 import { dirname } from 'pathe'
-import postcss from 'postcss'
-import postcssCalc from 'postcss-calc'
-import { compile } from 'tailwindcss'
 import { buildNuxtUiVars, COLOR_PROPERTIES, convertColorToHex, createStylesheetLoader, decodeCssClassName } from './tw4-utils'
+
+// Lazy-loaded heavy dependencies to reduce startup memory
+let postcss: typeof import('postcss').default
+let postcssCalc: (opts?: object) => import('postcss').Plugin
+let compile: typeof import('tailwindcss').compile
+
+async function loadDeps() {
+  if (!postcss) {
+    const [postcssModule, postcssCalcModule, tailwindModule] = await Promise.all([
+      import('postcss'),
+      import('postcss-calc'),
+      import('tailwindcss'),
+    ])
+    postcss = postcssModule.default
+    postcssCalc = postcssCalcModule.default as unknown as typeof postcssCalc
+    compile = tailwindModule.compile
+  }
+}
 
 export type Tw4FontVars = Record<string, string>
 export type Tw4Breakpoints = Record<string, number>
@@ -32,6 +47,8 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
   if (cachedCompiler && cachedCssPath === cssPath)
     return { compiler: cachedCompiler, vars: cachedVars! }
 
+  await loadDeps()
+
   const userCss = await readFile(cssPath, 'utf-8')
   const baseDir = dirname(cssPath)
 
@@ -43,7 +60,7 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
   // Add Nuxt UI color fallbacks
   if (nuxtUiColors)
-    buildNuxtUiVars(vars, nuxtUiColors)
+    await buildNuxtUiVars(vars, nuxtUiColors)
 
   cachedCompiler = compiler
   cachedCssPath = cssPath

@@ -4,9 +4,6 @@ import type { NitroConfig } from 'nitropack/config'
 import type { CompatibilityFlags, RendererType, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
-import {
-  ensureDependencyInstalled,
-} from 'nypm'
 import { env, provider } from 'std-env'
 import { logger } from './runtime/logger'
 import { hasResolvableDependency } from './util'
@@ -230,7 +227,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   return resolvedCompatibility
 }
 
-export function ensureDependencies(dep: string[], nuxt: Nuxt = useNuxt()) {
+export async function ensureDependencies(dep: string[], nuxt: Nuxt = useNuxt()) {
+  const { ensureDependencyInstalled } = await import('nypm')
   return Promise.all(dep.map((d) => {
     return ensureDependencyInstalled(d, {
       cwd: nuxt.options.rootDir,

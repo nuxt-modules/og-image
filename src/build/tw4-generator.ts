@@ -1,10 +1,27 @@
 import { readFile } from 'node:fs/promises'
 import { dirname } from 'pathe'
-import postcss from 'postcss'
-import postcssCalc from 'postcss-calc'
-import postcssCustomProperties from 'postcss-custom-properties'
-import { compile } from 'tailwindcss'
 import { buildNuxtUiVars, convertOklchToHex, createStylesheetLoader, decodeCssClassName } from './tw4-utils'
+
+// Lazy-loaded heavy dependencies to reduce startup memory
+let postcss: typeof import('postcss').default
+let postcssCalc: (opts?: object) => import('postcss').Plugin
+let postcssCustomProperties: (opts?: object) => import('postcss').Plugin
+let compile: typeof import('tailwindcss').compile
+
+async function loadDeps() {
+  if (!postcss) {
+    const [postcssModule, postcssCalcModule, postcssCustomPropsModule, tailwindModule] = await Promise.all([
+      import('postcss'),
+      import('postcss-calc'),
+      import('postcss-custom-properties'),
+      import('tailwindcss'),
+    ])
+    postcss = postcssModule.default
+    postcssCalc = postcssCalcModule.default as unknown as typeof postcssCalc
+    postcssCustomProperties = postcssCustomPropsModule.default as unknown as typeof postcssCustomProperties
+    compile = tailwindModule.compile
+  }
+}
 
 export interface StyleMap {
   classes: Map<string, Record<string, string>>
@@ -20,10 +37,10 @@ export interface GeneratorOptions {
 /**
  * Build CSS variable declarations from various sources.
  */
-function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): string {
+async function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): Promise<string> {
   // Expand Nuxt UI colors into vars map
   if (nuxtUiColors)
-    buildNuxtUiVars(vars, nuxtUiColors)
+    await buildNuxtUiVars(vars, nuxtUiColors)
 
   const lines: string[] = [':root {']
   for (const [name, value] of vars) {
@@ -108,6 +125,8 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
     return { classes: new Map(), vars: new Map() }
   }
 
+  await loadDeps()
+
   // 1. Compile with TW4
   const cssContent = await readFile(cssPath, 'utf-8')
   const baseDir = dirname(cssPath)
@@ -123,7 +142,7 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
   const vars = extractVars(rawCSS)
 
   // 3. Build :root CSS with all vars (includes expanded Nuxt UI colors)
-  const varsCSS = buildVarsCSS(vars, nuxtUiColors)
+  const varsCSS = await buildVarsCSS(vars, nuxtUiColors)
 
   // 4. Combine: vars first, then class rules
   const fullCSS = `${varsCSS}\n${rawCSS}`

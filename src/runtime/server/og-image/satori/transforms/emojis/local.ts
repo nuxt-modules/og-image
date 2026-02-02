@@ -1,6 +1,18 @@
 import type { OgImageRenderEventContext } from '../../../../../types'
-import { icons, height as pkgHeight, width as pkgWidth } from '#og-image-virtual/iconify-json-icons.mjs'
+import { useNitroApp } from 'nitropack/runtime'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
+
+interface IconsData { icons: Record<string, { body: string, width?: number, height?: number }>, width: number, height: number }
+
+declare module '#og-image-virtual/iconify-json-icons.mjs' {
+  export function loadIcons(): Promise<IconsData>
+}
+
+declare module 'nitropack/types' {
+  interface NitroApp {
+    _ogImageIconsData?: IconsData
+  }
+}
 
 /**
  * Wrap gradient and filter definitions in <defs> element for better SVG renderer compatibility.
@@ -32,8 +44,17 @@ function wrapDefsElements(body: string): string {
  * Service function to get emoji SVGs from local iconify JSON files
  * This does not perform HTML replacement - that's handled by the AST plugin
  * This implementation prioritizes local deps over API calls (addresses issue #354)
+ * Icons are loaded lazily on first use to avoid 24MB+ memory at startup
  */
 export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: string): Promise<string | null> {
+  // Lazy load icons on first use - cached on nitro app instance
+  const nitroApp = useNitroApp()
+  if (!nitroApp._ogImageIconsData) {
+    const { loadIcons } = await import('#og-image-virtual/iconify-json-icons.mjs')
+    nitroApp._ogImageIconsData = await loadIcons()
+  }
+
+  const { icons, width: pkgWidth, height: pkgHeight } = nitroApp._ogImageIconsData
   const codePoint = getEmojiCodePoint(emojiChar)
   const possibleNames = getEmojiIconNames(codePoint, ctx.options.emojis!)
 
