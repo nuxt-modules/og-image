@@ -368,7 +368,8 @@ export default defineNuxtModule<ModuleOptions>({
       // add nitro virtual import for the iconify import
       nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
       nuxt.options.nitro.virtual['#og-image-virtual/iconify-json-icons.mjs'] = () => {
-        return `export { icons, width, height } from '${emojiPkg}/icons.json'`
+        return `import { icons, width, height } from '${emojiPkg}/icons.json'
+export function loadIcons() { return { icons, width, height } }`
       }
     }
     else {

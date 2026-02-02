@@ -58,9 +58,8 @@ declare module '#og-image-virtual/unocss-config.mjs' {
 }
 
 declare module '#og-image-virtual/iconify-json-icons.mjs' {
-  export const icons: Record<string, { body: string, width?: number, height?: number }>
-  export const width: number
-  export const height: number
+  interface IconsData { icons: Record<string, { body: string, width?: number, height?: number }>, width: number, height: number }
+  export function loadIcons(): IconsData
 }
 
 declare module '#og-image-virtual/component-names.mjs' {
