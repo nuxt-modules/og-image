@@ -181,6 +181,17 @@ export interface ModuleOptions {
    * @example '~/assets/css/main.css'
    */
   tailwindCss?: string
+  /**
+   * Font subsets to include for OG image rendering.
+   *
+   * Google Fonts serves variable fonts as multiple WOFF2 files, one per unicode-range subset.
+   * By default, only latin is loaded to reduce memory usage.
+   * Add more subsets if your OG images use non-latin characters.
+   *
+   * @default ['latin']
+   * @example ['latin', 'latin-ext', 'cyrillic']
+   */
+  fontSubsets?: string[]
 }
 
 export interface ModuleHooks {
@@ -226,6 +237,7 @@ export default defineNuxtModule<ModuleOptions>({
       componentDirs: defaultComponentDirs,
       runtimeCacheStorage: true,
       debug: isDevelopment,
+      fontSubsets: ['latin'],
     }
   },
   async onInstall(nuxt: Nuxt) {
@@ -927,14 +939,23 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       }
       const contents = await nuxtFontsTemplate.getContents({} as any)
 
-      // parse @font-face blocks
-      const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g
+      // parse @font-face blocks with optional subset comment (e.g. /* latin */)
+      // Google Fonts CSS includes subset comments before each @font-face block
+      const fontFaceRegex = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?@font-face\s*\{([^}]+)\}/g
       const fonts: Array<{ family: string, src: string, weight: number, style: string }> = []
+      const configuredSubsets = config.fontSubsets || ['latin']
 
       for (const match of contents.matchAll(fontFaceRegex)) {
-        const block = match[1]
+        const subsetComment = match[1] // e.g. 'latin', 'cyrillic-ext'
+        const block = match[2]
         if (!block)
           continue
+
+        // Filter by configured font subsets (if subset comment present)
+        // Non-Google fonts without subset comments are always included
+        if (subsetComment && !configuredSubsets.includes(subsetComment))
+          continue
+
         const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
         const src = block.match(/url\(["']?([^)"']+)["']?\)/)?.[1]
         // Handle both single weights (400) and ranges (200 900) for variable fonts
@@ -961,7 +982,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
           logger.warn(`WOFF2-only font detected (${f.family}). Satori renderer does not support WOFF2 - use Takumi renderer or provide WOFF/TTF alternatives.`)
         }
       }
-      logger.debug(`Extracted fonts from @nuxt/fonts: ${JSON.stringify(fonts)}`)
+      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts (subsets: ${configuredSubsets.join(', ')})`)
       return `export default ${JSON.stringify(fonts)}`
     }
 
