@@ -33,6 +33,7 @@ function parseInputName(name: string): { baseName: string, renderer: RendererTyp
 function getComponentBaseName(component: OgImageComponent): string {
   return component.pascalName
     .replace(/^OgImage/, '')
+    .replace(/\.?(satori|chromium|takumi)$/i, '')
     .replace(/(Satori|Chromium|Takumi)$/, '')
 }
 
@@ -67,14 +68,8 @@ function resolveComponent(name: string): { component: OgImageComponent, renderer
     })
   }
 
-  if (filtered.length > 1 && !renderer) {
-    const variants = filtered.map((c: OgImageComponent) => `'${getComponentBaseName(c)}.${c.renderer}'`).join(', ')
-    throw createError({
-      statusCode: 500,
-      message: `[Nuxt OG Image] Ambiguous component "${name}" — multiple renderers found. Specify the renderer: ${variants}`,
-    })
-  }
-
+  // When multiple renderers match and no renderer specified, pick the first one
+  // (e.g., 'NuxtSeo' matches both NuxtSeoSatori and NuxtSeoTakumi — use first)
   const resolved = filtered[0]
   return { component: resolved, renderer: resolved.renderer }
 }

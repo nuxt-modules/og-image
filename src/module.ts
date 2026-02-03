@@ -884,15 +884,17 @@ export default defineNuxtModule<ModuleOptions>({
               const renderer = getRendererFromFilename(file)
               if (!renderer)
                 return
-              const name = file.replace('.vue', '')
+              // Convert dot-notation filename to PascalCase to match Nuxt's component naming
+              // e.g., NuxtSeo.satori.vue → NuxtSeoSatori (matching what addComponentsDir produces in dev)
+              const pascalName = file.replace('.vue', '').split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
               const filePath = resolve(communityDir, file)
               // skip if already added (user ejected with same name)
-              if (ogImageComponentCtx.components.some(c => c.pascalName === name))
+              if (ogImageComponentCtx.components.some(c => c.pascalName === pascalName))
                 return
               ogImageComponentCtx.components.push({
                 hash: '',
-                pascalName: name,
-                kebabName: name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+                pascalName,
+                kebabName: pascalName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
                 path: filePath,
                 category: 'community',
                 renderer,
