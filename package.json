@@ -128,7 +128,6 @@
     "exsolve": "catalog:",
     "image-size": "catalog:",
     "jiti": "catalog:",
-    "linkedom": "catalog:",
     "magic-string": "catalog:",
     "magicast": "catalog:",
     "mocked-exports": "catalog:",
@@ -147,6 +146,7 @@
     "strip-literal": "catalog:",
     "tinyglobby": "catalog:",
     "ufo": "catalog:",
+    "ultrahtml": "catalog:",
     "unplugin": "catalog:",
     "unwasm": "catalog:",
     "yoga-wasm-web": "catalog:"

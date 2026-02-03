@@ -1,8 +1,10 @@
+import type { ElementNode, TextNode } from 'ultrahtml'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseHTML } from 'linkedom'
 import satori from 'satori'
+import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
+import { querySelector } from 'ultrahtml/selector'
 import { describe, expect, it } from 'vitest'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -48,21 +50,14 @@ interface SatoriVNode {
   }
 }
 
-/**
- * Convert kebab-case to camelCase for CSS properties
- */
 function camelCase(str: string): string {
   return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
 }
 
-/**
- * Parse inline style attribute into object with camelCased keys
- */
-function parseStyleAttr(style: string | null): Record<string, any> | undefined {
+function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
   if (!style)
     return undefined
   const result: Record<string, any> = {}
-  // Handle url() values that contain colons
   for (const decl of style.split(';')) {
     const colonIdx = decl.indexOf(':')
     if (colonIdx === -1)
@@ -75,41 +70,27 @@ function parseStyleAttr(style: string | null): Record<string, any> | undefined {
   return Object.keys(result).length ? result : undefined
 }
 
-/**
- * Convert a linkedom Element to Satori VNode format
- */
-function elementToVNode(el: Element): SatoriVNode {
-  const tagName = el.tagName.toLowerCase()
-
+function elementToVNode(el: ElementNode): SatoriVNode {
   const props: SatoriVNode['props'] = {}
 
-  // Parse style attribute
-  const style = parseStyleAttr(el.getAttribute('style'))
-  if (style)
-    props.style = style
+  const { style, class: cls, ...attrs } = el.attributes
+  const parsedStyle = parseStyleAttr(style)
+  if (parsedStyle)
+    props.style = parsedStyle
 
-  // Handle class -> tw conversion
-  const className = el.getAttribute('class')
-  if (className)
-    props.tw = className
+  if (cls)
+    props.tw = cls
 
-  // Copy other relevant attributes
-  for (const attr of el.attributes) {
-    if (attr.name === 'style' || attr.name === 'class')
-      continue
-    props[attr.name] = attr.value
-  }
+  for (const [name, value] of Object.entries(attrs))
+    props[name] = value
 
-  // Process children
   const children: (SatoriVNode | string)[] = []
-  for (const child of el.childNodes) {
-    if (child.nodeType === 1) {
-      // Element node
-      children.push(elementToVNode(child as Element))
+  for (const child of el.children) {
+    if (child.type === ELEMENT_NODE) {
+      children.push(elementToVNode(child as ElementNode))
     }
-    else if (child.nodeType === 3) {
-      // Text node - only add if non-empty
-      const text = child.textContent || ''
+    else if (child.type === TEXT_NODE) {
+      const text = (child as TextNode).value
       if (text.trim())
         children.push(text)
     }
@@ -118,10 +99,10 @@ function elementToVNode(el: Element): SatoriVNode {
   if (children.length)
     props.children = children
 
-  return { type: tagName, props }
+  return { type: el.name, props }
 }
 
-describe('linkedom to satori vnode', () => {
+describe('html to satori vnode', () => {
   describe('camelCase', () => {
     it('converts kebab-case to camelCase', () => {
       expect(camelCase('font-size')).toBe('fontSize')
@@ -175,8 +156,8 @@ describe('linkedom to satori vnode', () => {
 
   describe('elementToVNode', () => {
     it('converts basic element', () => {
-      const { document } = parseHTML('<div></div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div></div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.type).toBe('div')
@@ -184,8 +165,8 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('converts element with style', () => {
-      const { document } = parseHTML('<div style="color: red; font-size: 16px"></div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div style="color: red; font-size: 16px"></div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.type).toBe('div')
@@ -196,16 +177,16 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('converts class to tw', () => {
-      const { document } = parseHTML('<div class="flex items-center"></div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div class="flex items-center"></div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.props.tw).toBe('flex items-center')
     })
 
     it('preserves other attributes', () => {
-      const { document } = parseHTML('<img src="test.png" alt="Test" />')
-      const img = document.querySelector('img')!
+      const doc = parse('<img src="test.png" alt="Test" />')
+      const img = querySelector(doc, 'img') as ElementNode
       const vnode = elementToVNode(img)
 
       expect(vnode.type).toBe('img')
@@ -214,8 +195,8 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('handles text content', () => {
-      const { document } = parseHTML('<span>Hello World</span>')
-      const span = document.querySelector('span')!
+      const doc = parse('<span>Hello World</span>')
+      const span = querySelector(doc, 'span') as ElementNode
       const vnode = elementToVNode(span)
 
       expect(vnode.type).toBe('span')
@@ -223,8 +204,8 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('handles nested elements', () => {
-      const { document } = parseHTML('<div><span>Text</span></div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div><span>Text</span></div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.type).toBe('div')
@@ -234,8 +215,8 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('handles mixed content (text + elements)', () => {
-      const { document } = parseHTML('<div>Before <span>inner</span> After</div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div>Before <span>inner</span> After</div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.props.children).toHaveLength(3)
@@ -247,8 +228,8 @@ describe('linkedom to satori vnode', () => {
 
   describe('htmlToSatoriVNode', () => {
     it('parses simple HTML', () => {
-      const { document } = parseHTML('<div style="display: flex;">Hello</div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div style="display: flex;">Hello</div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.type).toBe('div')
@@ -263,8 +244,8 @@ describe('linkedom to satori vnode', () => {
           <p style="color: gray;">Description</p>
         </div>
       `
-      const { document } = parseHTML(html)
-      const div = document.querySelector('div')!
+      const doc = parse(html)
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.type).toBe('div')
@@ -285,8 +266,8 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('preserves whitespace in text nodes where meaningful', () => {
-      const { document } = parseHTML('<span>  spaced  </span>')
-      const span = document.querySelector('span')!
+      const doc = parse('<span>  spaced  </span>')
+      const span = querySelector(doc, 'span') as ElementNode
       const vnode = elementToVNode(span)
 
       // Text content should preserve the whitespace
@@ -296,7 +277,7 @@ describe('linkedom to satori vnode', () => {
 
   describe('satori compatibility', () => {
     it('produces structure compatible with satori', () => {
-      const { document } = parseHTML(`
+      const doc = parse(`
         <div style="display: flex; width: 100%; height: 100%;">
           <img src="avatar.png" style="width: 64px; height: 64px;" />
           <div style="display: flex; flex-direction: column; margin-left: 16px;">
@@ -305,7 +286,7 @@ describe('linkedom to satori vnode', () => {
           </div>
         </div>
       `)
-      const div = document.querySelector('div')!
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       // Verify structure matches what satori expects
@@ -332,12 +313,12 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('handles SVG elements', () => {
-      const { document } = parseHTML(`
+      const doc = parse(`
         <svg width="24" height="24" viewBox="0 0 24 24">
           <path d="M12 2L2 22h20L12 2z" fill="currentColor"/>
         </svg>
       `)
-      const svg = document.querySelector('svg')!
+      const svg = querySelector(doc, 'svg') as ElementNode
       const vnode = elementToVNode(svg)
 
       expect(vnode.type).toBe('svg')
@@ -352,8 +333,8 @@ describe('linkedom to satori vnode', () => {
     })
 
     it('handles empty elements correctly', () => {
-      const { document } = parseHTML('<div><br/><hr/></div>')
-      const div = document.querySelector('div')!
+      const doc = parse('<div><br/><hr/></div>')
+      const div = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(div)
 
       expect(vnode.props.children).toHaveLength(2)
@@ -363,15 +344,15 @@ describe('linkedom to satori vnode', () => {
   })
 
   describe('satori integration', () => {
-    it.skipIf(!hasFonts)('renders linkedom-parsed HTML with satori', async () => {
+    it.skipIf(!hasFonts)('renders ultrahtml-parsed HTML with satori', async () => {
       const html = `
         <div style="display: flex; flex-direction: column; width: 100%; height: 100%; background-color: white; padding: 40px;">
           <div style="display: flex; font-size: 48px; font-weight: bold; color: black;">Hello OG Image</div>
-          <div style="display: flex; font-size: 24px; color: gray; margin-top: 16px;">Generated with linkedom + satori</div>
+          <div style="display: flex; font-size: 24px; color: gray; margin-top: 16px;">Generated with ultrahtml + satori</div>
         </div>
       `
-      const { document } = parseHTML(html)
-      const root = document.querySelector('div')!
+      const doc = parse(html)
+      const root = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(root)
 
       const svg = await satori(vnode as any, {
@@ -396,8 +377,8 @@ describe('linkedom to satori vnode', () => {
           </div>
         </div>
       `
-      const { document } = parseHTML(html)
-      const root = document.querySelector('div')!
+      const doc = parse(html)
+      const root = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(root)
 
       const svg = await satori(vnode as any, {
@@ -417,8 +398,8 @@ describe('linkedom to satori vnode', () => {
           <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" style="width: 100px; height: 100px; border-radius: 50px;" />
         </div>
       `
-      const { document } = parseHTML(html)
-      const root = document.querySelector('div')!
+      const doc = parse(html)
+      const root = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(root)
 
       const svg = await satori(vnode as any, {
@@ -437,8 +418,8 @@ describe('linkedom to satori vnode', () => {
           <div style="display: flex;" class="text-white text-4xl font-bold">Tailwind Test</div>
         </div>
       `
-      const { document } = parseHTML(html)
-      const root = document.querySelector('div')!
+      const doc = parse(html)
+      const root = querySelector(doc, 'div') as ElementNode
       const vnode = elementToVNode(root)
 
       // Verify tw prop is set
