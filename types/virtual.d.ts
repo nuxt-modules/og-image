@@ -57,6 +57,14 @@ declare module '#og-image-virtual/unocss-config.mjs' {
   export const theme: Record<string, any>
 }
 
+declare module '#og-image/font-requirements' {
+  export const fontRequirements: {
+    weights: number[]
+    styles: Array<'normal' | 'italic'>
+    isComplete: boolean
+  }
+}
+
 declare module '#og-image-cache' {
   import type { OgImageOptions } from '#og-image/types'
   import type { Storage } from 'unstorage'

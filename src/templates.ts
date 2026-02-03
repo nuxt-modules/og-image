@@ -53,6 +53,14 @@ declare module '#og-image/fonts' {
   export default fonts
 }
 
+declare module '#og-image/font-requirements' {
+  export const fontRequirements: {
+    weights: number[]
+    styles: Array<'normal' | 'italic'>
+    isComplete: boolean
+  }
+}
+
 declare module '#og-image-virtual/unocss-config.mjs' {
   export const theme: Record<string, any>
 }
