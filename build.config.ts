@@ -30,6 +30,14 @@ export default defineBuildConfig({
     'fontless',
     'unifont',
     'tailwindcss',
+    // unocss (optional - only used when @unocss/nuxt is present)
+    '@unocss/core',
+    '@unocss/config',
+    'unconfig',
+    'unconfig-core',
+    '@quansync/fs',
+    'quansync',
+    'quansync/macro',
     // postcss packages (transitive deps of tailwindcss peer dep)
     'postcss-calc',
     'postcss-selector-parser',

@@ -1,7 +1,7 @@
 import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
-import { walkTemplateAst } from './tw4-utils'
+import { walkTemplateAst } from './css/css-utils'
 
 export interface ClassToStyleOptions {
   /** Resolve classes to inline CSS styles */

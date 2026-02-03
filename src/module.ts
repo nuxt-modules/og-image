@@ -24,12 +24,12 @@ import { isAbsolute, join, relative } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isDevelopment } from 'std-env'
 import { setupBuildHandler } from './build/build'
+import { clearTw4Cache, extractTw4Metadata } from './build/css/providers/tw4'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
-import { clearTw4Cache, extractTw4Metadata } from './build/tw4-transform'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import {
   ensureDependencies,
@@ -347,9 +347,43 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
     }
 
+    // CSS framework detection - supports UnoCSS and Tailwind
+    const { detectCssProvider } = await import('./build/css/css-provider')
+    const cssFramework = detectCssProvider(nuxt)
+
+    // CSS provider for class resolution (UnoCSS or future providers)
+    let cssProvider: import('./build/css/css-provider').CssProvider | undefined
+
+    // UnoCSS provider setup
+    if (cssFramework === 'unocss') {
+      logger.info('UnoCSS detected, using UnoCSS provider for OG image styling')
+      const { setUnoConfig, setUnoRootDir, createUnoProvider, clearUnoCache } = await import('./build/css/providers/uno')
+
+      // Set root directory for loading uno.config.ts
+      setUnoRootDir(nuxt.options.rootDir)
+
+      // Capture UnoCSS config from module hook (may have Nuxt-specific settings)
+      nuxt.hook('unocss:config' as any, (config: any) => {
+        setUnoConfig(config)
+      })
+
+      // Create the provider instance
+      cssProvider = createUnoProvider()
+
+      // HMR: watch for uno.config changes
+      if (nuxt.options.dev) {
+        nuxt.hook('builder:watch', async (_event, relativePath) => {
+          if (relativePath.includes('uno.config')) {
+            clearUnoCache()
+            logger.info('HMR: UnoCSS config changed, cleared cache')
+          }
+        })
+      }
+    }
+
     // Add build-time asset transform plugin for OgImage components
     // TW4 support: scan classes → compile with TW4 → resolve vars with postcss → style map
-    // Lazy TW4 initialization - all setup deferred until first access
+    // Lazy TW4 initialization - all setup deferred until first access (only when not using UnoCSS)
     const tw4State = {
       styleMap: {} as Record<string, Record<string, string>>,
       cssPath: undefined as string | undefined,
@@ -360,6 +394,8 @@ export default defineNuxtModule<ModuleOptions>({
       initialized: false,
     }
     let tw4InitPromise: Promise<void> | undefined
+    // Lazy reference to OG image components (populated in components:extend hook)
+    let getOgComponents: () => OgImageComponent[] = () => []
 
     const nuxtUiDefaults: Record<string, string> = {
       primary: 'green',
@@ -416,6 +452,12 @@ export default defineNuxtModule<ModuleOptions>({
       if (tw4InitPromise)
         return tw4InitPromise
       tw4InitPromise = (async () => {
+        // Skip TW4 initialization when using UnoCSS
+        if (cssFramework === 'unocss') {
+          tw4State.initialized = true
+          return
+        }
+
         const resolvedCssPath = config.tailwindCss
           ? await resolver.resolvePath(config.tailwindCss)
           : nuxt.options.alias['#tailwindcss'] as string | undefined ?? await detectTailwindCssPath()
@@ -450,10 +492,10 @@ export default defineNuxtModule<ModuleOptions>({
 
         // Scan all OG components for classes and generate style map
         try {
-          const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
-          const { generateStyleMap } = await import('./build/tw4-generator')
+          const { scanComponentClasses, filterProcessableClasses } = await import('./build/css/css-classes')
+          const { generateStyleMap } = await import('./build/css/providers/tw4')
 
-          const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir, logger)
+          const allClasses = await scanComponentClasses(getOgComponents(), logger, nuxt.options.buildDir)
           const processableClasses = filterProcessableClasses(allClasses)
 
           if (processableClasses.length > 0) {
@@ -494,6 +536,7 @@ export default defineNuxtModule<ModuleOptions>({
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
         publicDir: join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        cssProvider, // UnoCSS or other CSS provider (takes precedence over TW4)
         get tw4StyleMap() { return tw4State.styleMap }, // Getter to access populated map
         initTw4, // Lazy initializer - called on first transform
         get tw4CssPath() { return tw4State.cssPath }, // Getter for gradient resolution
@@ -720,6 +763,8 @@ export default defineNuxtModule<ModuleOptions>({
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
+    // Set lazy reference for TW4 class scanning
+    getOgComponents = () => ogImageComponentCtx.components
 
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
@@ -1044,6 +1089,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cacheQueryParams: config.cacheQueryParams ?? false,
+        cssFramework: cssFramework || 'none',
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
@@ -1086,10 +1132,10 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
 
           // Regenerate style map if TW4 is enabled
           if (tw4State.cssPath && existsSync(tw4State.cssPath)) {
-            const { scanComponentClasses, filterProcessableClasses } = await import('./build/tw4-classes')
-            const { generateStyleMap } = await import('./build/tw4-generator')
+            const { scanComponentClasses, filterProcessableClasses } = await import('./build/css/css-classes')
+            const { generateStyleMap } = await import('./build/css/providers/tw4')
 
-            const allClasses = await scanComponentClasses(config.componentDirs, nuxt.options.srcDir, logger)
+            const allClasses = await scanComponentClasses(getOgComponents(), logger, nuxt.options.buildDir)
             const processableClasses = filterProcessableClasses(allClasses)
 
             if (processableClasses.length > 0) {
