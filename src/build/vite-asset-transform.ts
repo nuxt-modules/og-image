@@ -1,4 +1,5 @@
 import type { IconifyJSON } from '@iconify/types'
+import type { CssProvider } from './css/css-provider'
 import { readFile } from 'node:fs/promises'
 import MagicString from 'magic-string'
 import { ofetch } from 'ofetch'
@@ -190,6 +191,11 @@ export interface AssetTransformOptions {
   /** Pre-loaded emoji icon set (skips dynamic import) */
   emojiIcons?: IconifyJSON | null
   /**
+   * CSS provider for resolving utility classes (UnoCSS, etc.)
+   * When set, used instead of TW4-specific style map.
+   */
+  cssProvider?: CssProvider
+  /**
    * Prebuilt TW4 style map: className -> { prop: value }
    * Generated at build time from scanning all OG components
    */
@@ -339,19 +345,24 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
       }
 
-      // Transform Tailwind classes to inline styles using prebuilt style map
-      // Lazy init TW4 on first transform - populates style map, extracts metadata
-      if (options.initTw4)
+      // Transform CSS utility classes to inline styles
+      // Use cssProvider (UnoCSS) if available, otherwise fall back to TW4 style map
+      const hasCssProvider = options.cssProvider
+      const hasTw4StyleMap = options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0
+
+      // Lazy init TW4 on first transform (only when no cssProvider)
+      if (!hasCssProvider && options.initTw4)
         await options.initTw4()
-      if (options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0) {
+
+      if (hasCssProvider || hasTw4StyleMap) {
         try {
-          const styleMap = options.tw4StyleMap
+          const styleMap = options.tw4StyleMap || {}
 
           // Wrap current template back into full SFC for AST parsing
           const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
 
-          // Check if we have gradient classes that need combination logic
-          const hasGradientClasses = options.tw4CssPath && (
+          // Check if we have gradient classes that need combination logic (TW4 only)
+          const hasGradientClasses = !hasCssProvider && options.tw4CssPath && (
             template.includes('bg-gradient') || template.includes('bg-radial')
             || template.includes('from-') || template.includes('to-') || template.includes('via-')
           )
@@ -365,6 +376,11 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               if (unsupported.length > 0) {
                 const componentName = id.split('/').pop()
                 console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
+              }
+
+              // Use CSS provider (UnoCSS) when available
+              if (options.cssProvider) {
+                return options.cssProvider.resolveClassesToStyles(supported)
               }
 
               // Use full resolution with gradient combination logic when gradient classes present

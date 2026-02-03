@@ -351,15 +351,21 @@ export default defineNuxtModule<ModuleOptions>({
     const { detectCssProvider } = await import('./build/css/css-provider')
     const cssFramework = detectCssProvider(nuxt)
 
+    // CSS provider for class resolution (UnoCSS or future providers)
+    let cssProvider: import('./build/css/css-provider').CssProvider | undefined
+
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
       logger.info('UnoCSS detected, using UnoCSS provider for OG image styling')
-      const { setUnoConfig, clearUnoCache } = await import('./build/css/providers/uno')
+      const { setUnoConfig, createUnoProvider, clearUnoCache } = await import('./build/css/providers/uno')
 
       // Capture UnoCSS config from module hook
       nuxt.hook('unocss:config' as any, (config: any) => {
         setUnoConfig(config)
       })
+
+      // Create the provider instance
+      cssProvider = createUnoProvider()
 
       // HMR: watch for uno.config changes
       if (nuxt.options.dev) {
@@ -527,6 +533,7 @@ export default defineNuxtModule<ModuleOptions>({
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
         publicDir: join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        cssProvider, // UnoCSS or other CSS provider (takes precedence over TW4)
         get tw4StyleMap() { return tw4State.styleMap }, // Getter to access populated map
         initTw4, // Lazy initializer - called on first transform
         get tw4CssPath() { return tw4State.cssPath }, // Getter for gradient resolution

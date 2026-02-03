@@ -34,6 +34,16 @@ async function getGenerator() {
 }
 
 /**
+ * Resolve UnoCSS var() references in a value.
+ * Handles patterns like: rgb(34 197 94 / var(--un-bg-opacity))
+ */
+function resolveUnoVars(value: string, vars: Map<string, string>): string {
+  return value.replace(/var\((--un-[\w-]+)\)/g, (_, varName) => {
+    return vars.get(varName) || '1' // Default opacity to 1
+  })
+}
+
+/**
  * Parse generated CSS into class → styles map.
  */
 async function parseGeneratedCss(css: string): Promise<Record<string, Record<string, string>>> {
@@ -57,12 +67,24 @@ async function parseGeneratedCss(css: string): Promise<Record<string, Record<str
     const className = decodeCssClassName(selector)
     const styles: Record<string, string> = {}
 
+    // First pass: collect CSS variables from this rule
+    const vars = new Map<string, string>()
+    rule.walkDecls((decl) => {
+      if (decl.prop.startsWith('--un-'))
+        vars.set(decl.prop, decl.value)
+    })
+
+    // Second pass: process non-variable declarations
     rule.walkDecls((decl) => {
       // Skip CSS variables
       if (decl.prop.startsWith('--'))
         return
 
       let value = decl.value
+
+      // Resolve UnoCSS var() references
+      if (value.includes('var(--un-'))
+        value = resolveUnoVars(value, vars)
 
       // Convert colors to hex for Satori
       if (COLOR_PROPERTIES.has(decl.prop)) {
