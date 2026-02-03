@@ -26,7 +26,7 @@ async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<
   const data = await resolve(event, { ...font, src }).catch((err) => {
     // Suppress 404 warnings for converted TTF fonts - these are intentionally deleted
     // for variable fonts (which would crash Satori's opentype.js parser)
-    const is404OnTtf = src.endsWith('.ttf') && err.message?.includes('404')
+    const is404OnTtf = src.endsWith('.ttf') && (err.message?.includes('404') || err.message?.includes('not found'))
     if (!is404OnTtf) {
       console.warn(`[nuxt-og-image] Failed to load font ${font.family}: ${err.message}`)
     }

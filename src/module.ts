@@ -1066,6 +1066,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
     nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
       fontContext = ctx
     })
+    let woff2ConversionDone = false
     nuxt.hook('vite:compiled', async () => {
       const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
       fs.mkdirSync(cacheDir, { recursive: true })
@@ -1076,17 +1077,28 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         logger.debug(`Persisted ${fontContext.renderedFontURLs.size} font URLs for prerender`)
       }
 
-      // Convert WOFF2 fonts to TTF for Satori compatibility
+      if (woff2ConversionDone)
+        return
+
+      // Filter fonts by requirements before conversion
       const parsedFonts = await parseFontsFromTemplate()
-      const woff2Fonts = parsedFonts.filter(f => f.src.endsWith('.woff2'))
+      await scanFontRequirementsLazy()
+      const woff2Fonts = parsedFonts.filter(f =>
+        f.src.endsWith('.woff2')
+        && fontRequirementsState.weights.includes(f.weight)
+        && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
+      )
       if (woff2Fonts.length === 0) {
         logger.debug('No WOFF2 fonts to convert')
+        woff2ConversionDone = true
         return
       }
 
-      logger.debug(`Found ${woff2Fonts.length} WOFF2 fonts to convert`)
+      logger.debug(`Found ${woff2Fonts.length} WOFF2 fonts to convert (filtered from ${parsedFonts.filter(f => f.src.endsWith('.woff2')).length} total)`)
       const ttfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
       fs.mkdirSync(ttfDir, { recursive: true })
+
+      const { decompress } = await import('wawoff2')
 
       const convertedFiles = new Set<string>()
       let hasVariableFonts = false
@@ -1148,16 +1160,18 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
           continue
         }
 
-        // Convert WOFF2 to TTF
-        const { dlx } = await import('nypm')
-        await dlx('woff2_decompress.js', {
-          args: [woff2Path, ttfPath],
-          cwd: nuxt.options.rootDir,
-          silent: true,
-          packages: ['wawoff2'],
-        }).catch((e) => {
+        // Convert WOFF2 to TTF using programmatic wawoff2 API
+        const woff2Data = await readFile(woff2Path)
+        const ttfData = await decompress(woff2Data).catch((e: Error) => {
           logger.warn(`Failed to convert ${filename} to TTF: ${e}`)
+          return null
         })
+
+        if (!ttfData) {
+          continue
+        }
+
+        await writeFile(ttfPath, Buffer.from(ttfData))
 
         if (!existsSync(ttfPath) || fs.statSync(ttfPath).size === 0) {
           logger.warn(`Conversion produced empty or no file: ${filename}`)
@@ -1177,8 +1191,10 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       }
 
       if (hasVariableFonts) {
-        logger.warn(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
+        logger.info(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
       }
+
+      woff2ConversionDone = true
     })
 
     // Copy converted TTFs to output after Nitro copies publicAssets

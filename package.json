@@ -149,6 +149,7 @@
     "ufo": "catalog:",
     "unplugin": "catalog:",
     "unwasm": "catalog:",
+    "wawoff2": "catalog:",
     "yoga-wasm-web": "catalog:"
   },
   "devDependencies": {
