@@ -404,6 +404,9 @@ export default defineNuxtModule<ModuleOptions>({
     }
     let fontScanPromise: Promise<void> | undefined
 
+    // Lazy reference to OG image components (populated in components:extend hook)
+    let getOgComponents: () => OgImageComponent[] = () => []
+
     // Lazy font requirements scanner - scans components for font weight/style usage
     async function scanFontRequirementsLazy(): Promise<void> {
       if (fontRequirementsState.scanned)
@@ -421,9 +424,6 @@ export default defineNuxtModule<ModuleOptions>({
       })()
       return fontScanPromise
     }
-
-    // Lazy reference to OG image components (populated in components:extend hook)
-    let getOgComponents: () => OgImageComponent[] = () => []
 
     const nuxtUiDefaults: Record<string, string> = {
       primary: 'green',

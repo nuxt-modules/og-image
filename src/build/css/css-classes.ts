@@ -247,7 +247,7 @@ async function extractFontRequirementsFromVue(code: string): Promise<{ weights: 
         if (argContent === 'class' && expr?.type === 4) {
           const content = (expr as any).content as string
           // Check for dynamic patterns we can't analyze
-          if (content.includes('props.') || content.includes('$props') || /\bfont(Weight|-weight)\b/i.test(content)) {
+          if (content.includes('props.') || content.includes('$props') || /\bfont(?:Weight|-weight)\b/i.test(content)) {
             isComplete = false
           }
           // Extract static class strings from expression
