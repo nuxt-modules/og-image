@@ -273,6 +273,9 @@ catalogs:
     vue-tsc:
       specifier: ^3.2.4
       version: 3.2.4
+    wawoff2:
+      specifier: ^2.0.1
+      version: 2.0.1
     wrangler:
       specifier: ^4.61.1
       version: 4.61.1
@@ -398,6 +401,9 @@ importers:
       unwasm:
         specifier: 'catalog:'
         version: 0.5.3
+      wawoff2:
+        specifier: 'catalog:'
+        version: 2.0.1
       yoga-wasm-web:
         specifier: 'catalog:'
         version: 0.3.3
@@ -9627,6 +9633,10 @@ packages:
   watchpack@2.5.1:
     resolution: {integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==}
     engines: {node: '>=10.13.0'}
+
+  wawoff2@2.0.1:
+    resolution: {integrity: sha512-r0CEmvpH63r4T15ebFqeOjGqU4+EgTx4I510NtK35EMciSdcTxCw3Byy3JnBonz7iyIFZ0AbVo0bbFpEVuhCYA==}
+    hasBin: true
 
   web-namespaces@2.0.1:
     resolution: {integrity: sha512-bKr1DkiNa2krS7qxNtdrtHAmzuYGFQLiQ13TsorsdT6ULTkPLKuu5+GsFpDlg6JFjUTwX2DyhMPG2be8uPrqsQ==}
@@ -20473,6 +20483,10 @@ snapshots:
     dependencies:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
+
+  wawoff2@2.0.1:
+    dependencies:
+      argparse: 2.0.1
 
   web-namespaces@2.0.1: {}
 

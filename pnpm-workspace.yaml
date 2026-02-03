@@ -1,24 +1,6 @@
-catalogMode: prefer
-
-cleanupUnusedCatalogs: true
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
-  - semver@5.7.2
-  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
 packages:
   - playground
   - client
-overrides:
-  vite: npm:vite@8.0.0-beta.2
 
 catalog:
   '@antfu/eslint-config': ^7.2.0
@@ -110,8 +92,14 @@ catalog:
   vue: ^3.5.27
   vue-router: ^5.0.2
   vue-tsc: ^3.2.4
+  wawoff2: ^2.0.1
   wrangler: ^4.61.1
   yoga-wasm-web: ^0.3.3
+
+catalogMode: prefer
+
+cleanupUnusedCatalogs: true
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -121,3 +109,19 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
+
+overrides:
+  vite: npm:vite@8.0.0-beta.2
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - semver@5.7.2
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
