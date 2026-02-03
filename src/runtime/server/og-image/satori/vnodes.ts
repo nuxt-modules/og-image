@@ -1,4 +1,4 @@
-import type { ElementNode, Node, TextNode } from 'ultrahtml'
+import type { ElementNode, TextNode } from 'ultrahtml'
 import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../types'
 import resolvedFonts from '#og-image/fonts'
 import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
