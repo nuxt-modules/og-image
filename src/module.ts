@@ -394,6 +394,34 @@ export default defineNuxtModule<ModuleOptions>({
       initialized: false,
     }
     let tw4InitPromise: Promise<void> | undefined
+
+    // Font requirements state - detected from component analysis
+    const fontRequirementsState = {
+      weights: [400] as number[], // default to 400
+      styles: ['normal'] as Array<'normal' | 'italic'>,
+      isComplete: true,
+      scanned: false,
+    }
+    let fontScanPromise: Promise<void> | undefined
+
+    // Lazy font requirements scanner - scans components for font weight/style usage
+    async function scanFontRequirementsLazy(): Promise<void> {
+      if (fontRequirementsState.scanned)
+        return
+      if (fontScanPromise)
+        return fontScanPromise
+
+      fontScanPromise = (async () => {
+        const { scanFontRequirements } = await import('./build/css/css-classes')
+        const requirements = await scanFontRequirements(getOgComponents(), logger, nuxt.options.buildDir)
+        fontRequirementsState.weights = requirements.weights
+        fontRequirementsState.styles = requirements.styles
+        fontRequirementsState.isComplete = requirements.isComplete
+        fontRequirementsState.scanned = true
+      })()
+      return fontScanPromise
+    }
+
     // Lazy reference to OG image components (populated in components:extend hook)
     let getOgComponents: () => OgImageComponent[] = () => []
 
@@ -982,6 +1010,16 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       }
       logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts (subsets: ${configuredSubsets.join(', ')})`)
       return `export default ${JSON.stringify(fonts)}`
+    }
+
+    // Font requirements virtual module - provides detected font weights/styles from component analysis
+    nuxt.options.nitro.virtual['#og-image/font-requirements'] = async () => {
+      await scanFontRequirementsLazy()
+      return `export const fontRequirements = ${JSON.stringify({
+        weights: fontRequirementsState.weights,
+        styles: fontRequirementsState.styles,
+        isComplete: fontRequirementsState.isComplete,
+      })}`
     }
 
     // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
