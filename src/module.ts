@@ -1089,7 +1089,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       const woff2Fonts = parsedFonts.filter(f =>
         f.src.endsWith('.woff2')
         && fontRequirementsState.weights.includes(f.weight)
-        && fontRequirementsState.styles.includes(f.style),
+        && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
       )
       if (woff2Fonts.length === 0) {
         logger.debug('No WOFF2 fonts to convert')
