@@ -46,7 +46,7 @@ function getTextContent(node: Node): string {
 }
 
 function elementToNode(el: ElementNode, ctx: OgImageRenderEventContext): TakumiNode {
-  const { style, class: cls, src, width, height, ...rest } = el.attributes
+  const { style, class: cls, src, width, height } = el.attributes
 
   if (el.name === 'img') {
     return {
