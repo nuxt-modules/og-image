@@ -357,9 +357,12 @@ export default defineNuxtModule<ModuleOptions>({
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
       logger.info('UnoCSS detected, using UnoCSS provider for OG image styling')
-      const { setUnoConfig, createUnoProvider, clearUnoCache } = await import('./build/css/providers/uno')
+      const { setUnoConfig, setUnoRootDir, createUnoProvider, clearUnoCache } = await import('./build/css/providers/uno')
 
-      // Capture UnoCSS config from module hook
+      // Set root directory for loading uno.config.ts
+      setUnoRootDir(nuxt.options.rootDir)
+
+      // Capture UnoCSS config from module hook (may have Nuxt-specific settings)
       nuxt.hook('unocss:config' as any, (config: any) => {
         setUnoConfig(config)
       })

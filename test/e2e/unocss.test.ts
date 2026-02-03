@@ -41,9 +41,13 @@ describe('unocss', () => {
 
     const htmlPath = ogUrl.pathname.replace(/\.png$/, '.html')
     const htmlPreview = await $fetch(htmlPath) as string
-    expect(htmlPreview).toContain('Hello World')
+    expect(htmlPreview).toContain('UnoCSS')
     // Verify unocss classes are resolved to inline styles
     expect(htmlPreview).toMatch(/style="[^"]*background-color:\s*#/)
+    // Verify custom theme colors are resolved
+    expect(htmlPreview).toContain('primary')
+    expect(htmlPreview).toContain('brand')
+    expect(htmlPreview).toContain('accent')
   })
 
   it('extracts expected colors from og image', async () => {
@@ -58,15 +62,15 @@ describe('unocss', () => {
     const hexColors = colors.map(c => c.hex())
 
     // Verify image has multiple distinct colors (not blank/broken)
-    expect(hexColors.length).toBeGreaterThanOrEqual(2)
+    expect(hexColors.length).toBeGreaterThanOrEqual(3)
 
-    // Verify green is present (bg-primary-500 = green-500)
-    const hasGreen = hexColors.some((hex) => {
+    // Verify colors aren't all grayscale (custom colors resolved)
+    const hasChroma = hexColors.some((hex) => {
       const r = Number.parseInt(hex.slice(1, 3), 16)
       const g = Number.parseInt(hex.slice(3, 5), 16)
       const b = Number.parseInt(hex.slice(5, 7), 16)
-      return g > r + 30 && g > b + 30
+      return Math.abs(r - g) > 30 || Math.abs(g - b) > 30 || Math.abs(r - b) > 30
     })
-    expect(hasGreen).toBe(true)
+    expect(hasChroma).toBe(true)
   })
 }, 60000)

@@ -4,10 +4,19 @@ import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName, loadPostcss } 
 
 // State
 let unoConfig: UserConfig | null = null
+let rootDir: string | null = null
 let generator: Awaited<ReturnType<typeof import('@unocss/core').createGenerator>> | null = null
 
 /**
+ * Set root directory for loading uno.config.ts
+ */
+export function setUnoRootDir(dir: string): void {
+  rootDir = dir
+}
+
+/**
  * Set UnoCSS config (called from module.ts via unocss:config hook).
+ * Note: This config may be partial - user's uno.config.ts is loaded separately.
  */
 export function setUnoConfig(config: UserConfig): void {
   unoConfig = config
@@ -25,11 +34,28 @@ async function getGenerator() {
   if (generator)
     return generator
 
-  if (!unoConfig)
-    throw new Error('UnoCSS config not set. Ensure @unocss/nuxt is loaded before og-image.')
+  // Always load user's uno.config.ts to get theme customizations
+  let loadedConfig: UserConfig | undefined
+  try {
+    const { loadConfig } = await import('@unocss/config')
+    const result = await loadConfig(rootDir || process.cwd())
+    loadedConfig = result.config
+  }
+  catch (e) {
+    console.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
+  }
+
+  // Merge loaded config with any hook config (hook config may have Nuxt-specific settings)
+  const finalConfig = loadedConfig
+    ? { ...loadedConfig, ...unoConfig, theme: { ...loadedConfig.theme, ...unoConfig?.theme } }
+    : unoConfig
+
+  if (!finalConfig) {
+    throw new Error('UnoCSS config not found. Ensure uno.config.ts exists or @unocss/nuxt is loaded.')
+  }
 
   const { createGenerator } = await import('@unocss/core')
-  generator = await createGenerator(unoConfig)
+  generator = await createGenerator(finalConfig)
   return generator
 }
 
