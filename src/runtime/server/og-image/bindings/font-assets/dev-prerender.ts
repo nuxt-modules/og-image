@@ -27,13 +27,19 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   const rootDir = getRootDir()
 
   if (import.meta.prerender) {
-    // @nuxt/fonts managed fonts - fetch from source using URL mapping
+    // @nuxt/fonts managed fonts (includes converted TTFs from WOFF2)
     if (path.startsWith('/_fonts/')) {
       const filename = path.slice('/_fonts/'.length)
 
       // Try filesystem locations first (faster, no network)
-      const cached = await readFile(join(buildDir, 'cache', 'fonts', filename)).catch(() => null)
-        || await readFile(join(rootDir, '.output', 'public', '_fonts', filename)).catch(() => null)
+      // For converted TTF files, check og-image's cache first
+      if (filename.endsWith('.ttf')) {
+        const ttfCached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
+        if (ttfCached?.length)
+          return ttfCached
+      }
+      // Try .output/public/_fonts (includes WOFF files and copied TTFs)
+      const cached = await readFile(join(rootDir, '.output', 'public', '_fonts', filename)).catch(() => null)
       if (cached?.length)
         return cached
 
@@ -57,6 +63,15 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   }
 
   // Runtime: HTTP fetch - need to include app baseURL for font paths
+  // For converted TTF fonts, try og-image's TTF cache first
+  if (path.startsWith('/_fonts/') && path.endsWith('.ttf')) {
+    const filename = path.slice('/_fonts/'.length)
+    // Try og-image's own cache directory (survives Nitro's cache clearing)
+    const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
+    if (cached?.length)
+      return cached
+  }
+
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
   const arrayBuffer = await $fetch(fullPath, {
