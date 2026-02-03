@@ -348,11 +348,13 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       // Transform CSS utility classes to inline styles
       // Use cssProvider (UnoCSS) if available, otherwise fall back to TW4 style map
       const hasCssProvider = options.cssProvider
-      const hasTw4StyleMap = options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0
 
       // Lazy init TW4 on first transform (only when no cssProvider)
       if (!hasCssProvider && options.initTw4)
         await options.initTw4()
+
+      // Check style map AFTER initTw4 completes (it populates the map)
+      const hasTw4StyleMap = options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0
 
       if (hasCssProvider || hasTw4StyleMap) {
         try {
