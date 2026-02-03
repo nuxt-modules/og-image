@@ -53,14 +53,21 @@ declare module '#og-image/fonts' {
   export default fonts
 }
 
+declare module '#og-image/font-requirements' {
+  export const fontRequirements: {
+    weights: number[]
+    styles: Array<'normal' | 'italic'>
+    isComplete: boolean
+  }
+}
+
 declare module '#og-image-virtual/unocss-config.mjs' {
   export const theme: Record<string, any>
 }
 
 declare module '#og-image-virtual/iconify-json-icons.mjs' {
-  export const icons: Record<string, { body: string, width?: number, height?: number }>
-  export const width: number
-  export const height: number
+  interface IconsData { icons: Record<string, { body: string, width?: number, height?: number }>, width: number, height: number }
+  export function loadIcons(): IconsData
 }
 
 declare module '#og-image-virtual/component-names.mjs' {

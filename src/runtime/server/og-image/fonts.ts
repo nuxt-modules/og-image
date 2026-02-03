@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { FontConfig, SatoriFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
+import { fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import { fontCache } from './cache/lru'
 
@@ -39,8 +40,27 @@ async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<
   return data
 }
 
+/**
+ * Check if a font matches the detected requirements.
+ * For variable fonts (weight ranges), checks if any required weight is in range.
+ */
+function fontMatchesRequirements(font: FontConfig, requirements: typeof fontRequirements): boolean {
+  // If analysis was incomplete, load all fonts as fallback
+  if (!requirements.isComplete)
+    return true
+
+  // Check style match
+  if (!requirements.styles.includes(font.style as 'normal' | 'italic'))
+    return false
+
+  // Check weight match
+  // Note: font.weight is already normalized to a single value in module.ts
+  // For variable fonts, the weight is set to 400 if in range, otherwise min
+  return requirements.weights.includes(font.weight)
+}
+
 export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<SatoriFontConfig[]> {
-  const fonts = resolvedFonts as FontConfig[]
+  const fonts = (resolvedFonts as FontConfig[]).filter(f => fontMatchesRequirements(f, fontRequirements))
 
   const results = await Promise.all(
     fonts.map(async (f) => {

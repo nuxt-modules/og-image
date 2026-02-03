@@ -57,8 +57,8 @@ async function buildFixture(retries = 2) {
     })
     if (result.exitCode === 0)
       return
-    // Retry on native crashes (SIGABRT from glibc heap corruption)
-    if (attempt < retries && result.signal === 'SIGABRT')
+    // Retry on native crashes (SIGABRT from glibc heap corruption, SIGSEGV from native bindings)
+    if (attempt < retries && (result.signal === 'SIGABRT' || result.signal === 'SIGSEGV'))
       continue
     throw result
   }

@@ -155,13 +155,8 @@ export interface ModuleOptions {
    */
   warnMissingSuffix?: boolean
   /**
-   * Strategy for resolving emoji icons.
-   *
-   * - 'auto': Automatically choose based on available dependencies (default)
-   * - 'local': Use local @iconify-json dependencies only
-   * - 'fetch': Use Iconify API to fetch emojis
-   *
-   * @default 'auto'
+   * @deprecated Runtime always uses Iconify API now. Build-time uses local icons if available.
+   * Use `defaults.emojis: false` to disable emoji support entirely.
    */
   emojiStrategy?: 'auto' | 'local' | 'fetch'
   /**
@@ -395,6 +390,36 @@ export default defineNuxtModule<ModuleOptions>({
       initialized: false,
     }
     let tw4InitPromise: Promise<void> | undefined
+
+    // Font requirements state - detected from component analysis
+    const fontRequirementsState = {
+      weights: [400] as number[], // default to 400
+      styles: ['normal'] as Array<'normal' | 'italic'>,
+      isComplete: true,
+      scanned: false,
+    }
+    let fontScanPromise: Promise<void> | undefined
+
+    // Lazy reference to OG image components (populated in components:extend hook)
+    let getOgComponents: () => OgImageComponent[] = () => []
+
+    // Lazy font requirements scanner - scans components for font weight/style usage
+    async function scanFontRequirementsLazy(): Promise<void> {
+      if (fontRequirementsState.scanned)
+        return
+      if (fontScanPromise)
+        return fontScanPromise
+
+      fontScanPromise = (async () => {
+        const { scanFontRequirements } = await import('./build/tw4-classes')
+        const requirements = await scanFontRequirements(getOgComponents(), logger, nuxt.options.buildDir)
+        fontRequirementsState.weights = requirements.weights
+        fontRequirementsState.styles = requirements.styles
+        fontRequirementsState.isComplete = requirements.isComplete
+        fontRequirementsState.scanned = true
+      })()
+      return fontScanPromise
+    }
 
     const nuxtUiDefaults: Record<string, string> = {
       primary: 'green',
@@ -755,6 +780,8 @@ export default defineNuxtModule<ModuleOptions>({
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
+    // Set lazy reference for TW4 class scanning
+    getOgComponents = () => ogImageComponentCtx.components
 
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
@@ -939,7 +966,6 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
           continue
 
         // Extract unicode-range for Satori (helps with proper glyph selection)
-        // Fallback to Latin range if not specified
         const unicodeRange = block.match(/unicode-range:\s*([^;]+)/)?.[1]?.trim()
 
         const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
@@ -996,8 +1022,18 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
       const fonts = await parseFontsFromTemplate()
-      logger.debug(`Extracted fonts from @nuxt/fonts: ${JSON.stringify(fonts)}`)
+      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts`)
       return `export default ${JSON.stringify(fonts)}`
+    }
+
+    // Font requirements virtual module - provides detected font weights/styles from component analysis
+    nuxt.options.nitro.virtual['#og-image/font-requirements'] = async () => {
+      await scanFontRequirementsLazy()
+      return `export const fontRequirements = ${JSON.stringify({
+        weights: fontRequirementsState.weights,
+        styles: fontRequirementsState.styles,
+        isComplete: fontRequirementsState.isComplete,
+      })}`
     }
 
     // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme

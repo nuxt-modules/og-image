@@ -139,7 +139,7 @@ export interface OgImageOptions<T extends keyof OgImageComponents = keyof OgImag
    */
   renderer?: RendererType
   extension?: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html'
-  emojis?: IconifyEmojiIconSets
+  emojis?: IconifyEmojiIconSets | false
   /**
    * Provide a static HTML template to render the OG Image instead of a component.
    */
@@ -202,8 +202,8 @@ export interface SatoriFontConfig extends FontConfig {
 export interface RuntimeCompatibilitySchema {
   chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
-  resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | false
-  satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | false
+  resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
+  satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | 'wasm-edge' | false
   takumi: 'node' | 'wasm' | false
   sharp: 'node' | false
   // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime
