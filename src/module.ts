@@ -14,7 +14,7 @@ import type {
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { createJiti } from 'jiti'
@@ -36,6 +36,7 @@ import {
   getPresetNitroPresetCompatibility,
   resolveNitroPreset,
 } from './compatibility'
+import { isVariableFont } from './fonts'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
@@ -179,9 +180,8 @@ export interface ModuleOptions {
   /**
    * Font subsets to include for OG image rendering.
    *
-   * Google Fonts serves variable fonts as multiple WOFF2 files, one per unicode-range subset.
-   * By default, only latin is loaded to reduce memory usage.
-   * Add more subsets if your OG images use non-latin characters.
+   * By default, unicode-range from @font-face declarations is used automatically.
+   * Set this to override subset filtering if fonts aren't loading correctly.
    *
    * @default ['latin']
    * @example ['latin', 'latin-ext', 'cyrillic']
@@ -953,19 +953,20 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       // For non-cloudflare (node), use dev-prerender for everything
       return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
     }
-    nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
-      // find nuxt-fonts-global.css template
+    // Parse fonts from @nuxt/fonts CSS template
+    async function parseFontsFromTemplate(): Promise<Array<{ family: string, src: string, weight: number, style: string, satoriSrc: string, unicodeRange?: string }>> {
       const templates = nuxt.options.build.templates
       const nuxtFontsTemplate = templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
       if (!nuxtFontsTemplate?.getContents) {
-        return `export default []`
+        return []
       }
       const contents = await nuxtFontsTemplate.getContents({} as any)
 
       // parse @font-face blocks with optional subset comment (e.g. /* latin */)
-      // Google Fonts CSS includes subset comments before each @font-face block
       const fontFaceRegex = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?@font-face\s*\{([^}]+)\}/g
-      const fonts: Array<{ family: string, src: string, weight: number, style: string }> = []
+      // Collect all fonts first, then dedupe preferring WOFF over WOFF2
+      // WOFF is static (works directly with Satori), WOFF2 is often variable (needs conversion + fonttools)
+      const allFonts: Array<{ family: string, src: string, weight: number, style: string, isWoff2: boolean, unicodeRange?: string }> = []
       const configuredSubsets = config.fontSubsets || ['latin']
 
       for (const match of contents.matchAll(fontFaceRegex)) {
@@ -974,10 +975,13 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         if (!block)
           continue
 
-        // Filter by configured font subsets (if subset comment present)
+        // Filter by configured font subsets when subset comment is present
         // Non-Google fonts without subset comments are always included
         if (subsetComment && !configuredSubsets.includes(subsetComment))
           continue
+
+        // Extract unicode-range for Satori (helps with proper glyph selection)
+        const unicodeRange = block.match(/unicode-range:\s*([^;]+)/)?.[1]?.trim()
 
         const family = block.match(/font-family:\s*['"]?([^'";]+)['"]?/)?.[1]?.trim()
         const src = block.match(/url\(["']?([^)"']+)["']?\)/)?.[1]
@@ -991,21 +995,46 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
           weight = (minWeight <= 400 && maxWeight >= 400) ? 400 : minWeight
         }
         const style = block.match(/font-style:\s*(\w+)/)?.[1] || 'normal'
+        const isWoff2 = src?.endsWith('.woff2') ?? false
 
         if (family && src) {
-          fonts.push({ family, src, weight, style })
+          allFonts.push({ family, src, weight, style, isWoff2, unicodeRange })
         }
       }
-      // warn at build time if satori will have issues (no non-woff2 fonts)
-      const familiesWithNonWoff2 = new Set(fonts.filter(f => !f.src.endsWith('.woff2')).map(f => f.family))
-      const warnedFamilies = new Set<string>()
-      for (const f of fonts) {
-        if (f.src.endsWith('.woff2') && !familiesWithNonWoff2.has(f.family) && !warnedFamilies.has(f.family)) {
-          warnedFamilies.add(f.family)
-          logger.warn(`WOFF2-only font detected (${f.family}). Satori renderer does not support WOFF2 - use Takumi renderer or provide WOFF/TTF alternatives.`)
+
+      // Dedupe: for each (family, weight, style, unicodeRange), prefer WOFF over WOFF2
+      // This avoids needing fonttools for variable font instancing when static WOFF is available
+      const fontMap = new Map<string, typeof allFonts[0]>()
+      for (const font of allFonts) {
+        // Include unicodeRange in key to keep different subsets separate
+        const key = `${font.family}-${font.weight}-${font.style}-${font.unicodeRange || 'default'}`
+        const existing = fontMap.get(key)
+        if (!existing || (existing.isWoff2 && !font.isWoff2)) {
+          fontMap.set(key, font)
         }
       }
-      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts (subsets: ${configuredSubsets.join(', ')})`)
+
+      // Convert to final format with satoriSrc
+      return Array.from(fontMap.values()).map((font) => {
+        // For WOFF2 fonts, satoriSrc points to converted TTF in /_fonts/
+        // For other formats (WOFF, TTF), satoriSrc is same as src
+        const satoriSrc = font.isWoff2
+          ? `/_fonts/${font.src.split('/').pop()!.replace('.woff2', '.ttf')}`
+          : font.src
+        return {
+          family: font.family,
+          src: font.src,
+          weight: font.weight,
+          style: font.style,
+          satoriSrc,
+          unicodeRange: font.unicodeRange || 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+        }
+      })
+    }
+
+    nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
+      const fonts = await parseFontsFromTemplate()
+      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts`)
       return `export default ${JSON.stringify(fonts)}`
     }
 
@@ -1037,14 +1066,140 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
     nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
       fontContext = ctx
     })
-    nuxt.hook('vite:compiled', () => {
+    nuxt.hook('vite:compiled', async () => {
+      const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
+      fs.mkdirSync(cacheDir, { recursive: true })
+
       if (fontContext?.renderedFontURLs.size) {
-        const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
-        fs.mkdirSync(cacheDir, { recursive: true })
         const mapping = Object.fromEntries(fontContext.renderedFontURLs)
         fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(mapping))
         logger.debug(`Persisted ${fontContext.renderedFontURLs.size} font URLs for prerender`)
       }
+
+      // Convert WOFF2 fonts to TTF for Satori compatibility
+      const parsedFonts = await parseFontsFromTemplate()
+      const woff2Fonts = parsedFonts.filter(f => f.src.endsWith('.woff2'))
+      if (woff2Fonts.length === 0) {
+        logger.debug('No WOFF2 fonts to convert')
+        return
+      }
+
+      logger.debug(`Found ${woff2Fonts.length} WOFF2 fonts to convert`)
+      const ttfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+      fs.mkdirSync(ttfDir, { recursive: true })
+
+      const convertedFiles = new Set<string>()
+      let hasVariableFonts = false
+
+      for (const font of woff2Fonts) {
+        const filename = font.src.split('/').pop()!
+        if (convertedFiles.has(filename))
+          continue
+
+        const ttfFilename = filename.replace('.woff2', '.ttf')
+        const ttfPath = join(ttfDir, ttfFilename)
+
+        if (existsSync(ttfPath)) {
+          if (await isVariableFont(ttfPath)) {
+            hasVariableFonts = true
+            fs.unlinkSync(ttfPath)
+            logger.debug(`Deleted cached variable font TTF (would crash satori): ${ttfFilename}`)
+            continue
+          }
+          logger.debug(`Already converted: ${ttfFilename}`)
+          convertedFiles.add(filename)
+          continue
+        }
+
+        // Find the WOFF2 source file
+        let woff2Path: string | null = null
+        if (font.src.startsWith('/_fonts/')) {
+          const fontFile = font.src.slice('/_fonts/'.length)
+          const candidates = [
+            join(nuxt.options.buildDir, 'output', 'public', '_fonts', fontFile),
+            join(nuxt.options.rootDir, 'node_modules', '.cache', 'nuxt', 'fonts', 'meta', 'data', 'fonts', fontFile),
+            join(nuxt.options.buildDir, 'cache', 'fonts', fontFile),
+            join(nuxt.options.rootDir, '.output', 'public', '_fonts', fontFile),
+          ]
+          woff2Path = candidates.find((p) => {
+            if (!existsSync(p))
+              return false
+            const stat = fs.statSync(p)
+            return stat.size > 0
+          }) || null
+
+          if (!woff2Path && fontContext?.renderedFontURLs.has(fontFile)) {
+            const url = fontContext.renderedFontURLs.get(fontFile)!
+            logger.debug(`Fetching WOFF2 from URL: ${url}`)
+            const res = await fetch(url).catch(() => null)
+            if (res?.ok) {
+              const tempPath = join(ttfDir, fontFile)
+              await writeFile(tempPath, Buffer.from(await res.arrayBuffer()))
+              woff2Path = tempPath
+            }
+          }
+        }
+        else {
+          woff2Path = join(nuxt.options.rootDir, 'public', font.src.slice(1))
+        }
+
+        if (!woff2Path) {
+          logger.debug(`WOFF2 font not found locally (or empty), skipping: ${font.src}`)
+          continue
+        }
+
+        // Convert WOFF2 to TTF
+        const { dlx } = await import('nypm')
+        await dlx('woff2_decompress.js', {
+          args: [woff2Path, ttfPath],
+          cwd: nuxt.options.rootDir,
+          silent: true,
+          packages: ['wawoff2'],
+        }).catch((e) => {
+          logger.warn(`Failed to convert ${filename} to TTF: ${e}`)
+        })
+
+        if (!existsSync(ttfPath) || fs.statSync(ttfPath).size === 0) {
+          logger.warn(`Conversion produced empty or no file: ${filename}`)
+          continue
+        }
+
+        // Check if it's a variable font - delete to avoid opentype.js crashes
+        if (await isVariableFont(ttfPath)) {
+          hasVariableFonts = true
+          fs.unlinkSync(ttfPath)
+          logger.debug(`Deleted variable font TTF (would crash satori): ${ttfFilename}`)
+          continue
+        }
+
+        logger.info(`Converted ${filename} → ${ttfFilename} for Satori`)
+        convertedFiles.add(filename)
+      }
+
+      if (hasVariableFonts) {
+        logger.warn(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
+      }
+    })
+
+    // Copy converted TTFs to output after Nitro copies publicAssets
+    nuxt.hook('nitro:build:public-assets' as any, (nitro: any) => {
+      const ttfSourceDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+      if (!existsSync(ttfSourceDir))
+        return
+
+      const ttfFiles = fs.readdirSync(ttfSourceDir).filter(f => f.endsWith('.ttf'))
+      if (ttfFiles.length === 0)
+        return
+
+      const outputDir = join(nitro.options.output.publicDir, '_fonts')
+      fs.mkdirSync(outputDir, { recursive: true })
+
+      for (const file of ttfFiles) {
+        const src = join(ttfSourceDir, file)
+        const dest = join(outputDir, file)
+        fs.copyFileSync(src, dest)
+      }
+      logger.debug(`Copied ${ttfFiles.length} converted TTF fonts to output`)
     })
 
     registerTypeTemplates({

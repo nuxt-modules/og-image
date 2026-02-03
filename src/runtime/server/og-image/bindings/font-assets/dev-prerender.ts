@@ -27,11 +27,19 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   if (import.meta.prerender) {
     const rootDir = getRootDir()
 
+    // @nuxt/fonts managed fonts (includes converted TTFs from WOFF2)
     if (path.startsWith('/_fonts/')) {
       const filename = path.slice('/_fonts/'.length)
 
-      const cached = await readFile(join(buildDir, 'cache', 'fonts', filename)).catch(() => null)
-        || await readFile(join(rootDir, '.output', 'public', '_fonts', filename)).catch(() => null)
+      // Try filesystem locations first (faster, no network)
+      // For converted TTF files, check og-image's cache first
+      if (filename.endsWith('.ttf')) {
+        const ttfCached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
+        if (ttfCached?.length)
+          return ttfCached
+      }
+      // Try .output/public/_fonts (includes WOFF files and copied TTFs)
+      const cached = await readFile(join(rootDir, '.output', 'public', '_fonts', filename)).catch(() => null)
       if (cached?.length)
         return cached
 
@@ -53,6 +61,14 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   }
 
   // Dev: use event.$fetch for internal routing (handles @nuxt/fonts on-demand serving)
+  // For converted TTF fonts, try og-image's TTF cache first
+  if (path.startsWith('/_fonts/') && path.endsWith('.ttf')) {
+    const filename = path.slice('/_fonts/'.length)
+    const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
+    if (cached?.length)
+      return cached
+  }
+
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
   const arrayBuffer = await event.$fetch(fullPath, {
