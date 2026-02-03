@@ -1,13 +1,14 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from './module'
 import type { BindingVariant, ProviderName } from './utils/dependencies'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { isCI } from 'std-env'
 import { getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
 import { promptFontsMigration } from './migrations/fonts'
 import { logger } from './runtime/logger'
+import { getRendererFromFilename } from './util'
 import {
   ensureProviderDependencies,
   getInstalledProviders,
@@ -279,16 +280,29 @@ export async function onUpgrade(
     logger.info(`  - ${composable}`)
   }
 
-  // validate current provider setup using preset compatibility
-  const renderer = (ogImageConfig?.defaults as { renderer?: ProviderName })?.renderer || 'satori'
+  // validate provider setup for detected renderers
+  const detectedRenderers = new Set<ProviderName>()
+  const ogComponentDir = join(nuxt.options.srcDir, 'components', 'OgImage')
+  if (existsSync(ogComponentDir)) {
+    for (const file of readdirSync(ogComponentDir).filter(f => f.endsWith('.vue'))) {
+      const renderer = getRendererFromFilename(file) as ProviderName | null
+      if (renderer)
+        detectedRenderers.add(renderer)
+    }
+  }
+  // default to satori if no components found
+  if (detectedRenderers.size === 0)
+    detectedRenderers.add('satori')
+
   const preset = resolveNitroPreset()
   const compatibility = getPresetNitroPresetCompatibility(preset)
-  const validation = await validateProviderSetup(renderer, compatibility)
-
-  if (!validation.valid) {
-    logger.warn('Provider setup issues:')
-    for (const issue of validation.issues) {
-      logger.warn(`  - ${issue}`)
+  for (const renderer of detectedRenderers) {
+    const validation = await validateProviderSetup(renderer, compatibility)
+    if (!validation.valid) {
+      logger.warn(`Provider setup issues for ${renderer}:`)
+      for (const issue of validation.issues) {
+        logger.warn(`  - ${issue}`)
+      }
     }
   }
 

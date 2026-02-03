@@ -8,9 +8,79 @@ export interface NormalisedOptions {
   component?: OgImageComponent
 }
 
+const RENDERER_SUFFIXES = ['satori', 'chromium', 'takumi'] as const
+
+/**
+ * Parse a user-provided component name into base name + renderer.
+ * Supports: 'Banner.satori', 'BannerSatori', 'Banner'
+ */
+function parseInputName(name: string): { baseName: string, renderer: RendererType | null } {
+  for (const suffix of RENDERER_SUFFIXES) {
+    if (name.endsWith(`.${suffix}`))
+      return { baseName: name.slice(0, -(suffix.length + 1)), renderer: suffix }
+  }
+  for (const suffix of RENDERER_SUFFIXES) {
+    const pascal = suffix.charAt(0).toUpperCase() + suffix.slice(1)
+    if (name.endsWith(pascal))
+      return { baseName: name.slice(0, -pascal.length), renderer: suffix }
+  }
+  return { baseName: name, renderer: null }
+}
+
+/**
+ * Get the base name of a registered component (strip OgImage prefix + renderer suffix).
+ */
+function getComponentBaseName(component: OgImageComponent): string {
+  return component.pascalName
+    .replace(/^OgImage/, '')
+    .replace(/(Satori|Chromium|Takumi)$/, '')
+}
+
+/**
+ * Find components matching a user-provided name.
+ */
+function resolveComponent(name: string): { component: OgImageComponent, renderer: RendererType } {
+  const { baseName, renderer } = parseInputName(name)
+
+  // find all components whose base name matches (supports shorthand like 'Banner' matching 'OgImageBannerSatori')
+  const matches = componentNames.filter((c: OgImageComponent) => {
+    const cBase = getComponentBaseName(c)
+    return cBase === baseName || cBase.endsWith(baseName)
+  })
+
+  // filter by renderer if specified
+  const filtered = renderer
+    ? matches.filter((c: OgImageComponent) => c.renderer === renderer)
+    : matches
+
+  if (filtered.length === 0) {
+    if (renderer && matches.length > 0) {
+      const available = matches.map((c: OgImageComponent) => `${getComponentBaseName(c)}.${c.renderer}`).join(', ')
+      throw createError({
+        statusCode: 500,
+        message: `[Nuxt OG Image] Component "${name}" not found. Available variants: ${available}`,
+      })
+    }
+    throw createError({
+      statusCode: 500,
+      message: `[Nuxt OG Image] Component "${name}" not found. Create a component in components/OgImage/ with a renderer suffix (e.g., ${baseName}.satori.vue)`,
+    })
+  }
+
+  if (filtered.length > 1 && !renderer) {
+    const variants = filtered.map((c: OgImageComponent) => `'${getComponentBaseName(c)}.${c.renderer}'`).join(', ')
+    throw createError({
+      statusCode: 500,
+      message: `[Nuxt OG Image] Ambiguous component "${name}" — multiple renderers found. Specify the renderer: ${variants}`,
+    })
+  }
+
+  const resolved = filtered[0]
+  return { component: resolved, renderer: resolved.renderer }
+}
+
 export function normaliseOptions(_options: DefineOgImageInput): NormalisedOptions {
   const options = { ..._options } as OgImageOptions
-  let resolved: OgImageComponent | undefined
 
   // Special case: PageScreenshot is a virtual component for page screenshots
   // It always uses chromium renderer and doesn't need a real component
@@ -22,37 +92,29 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
     }
   }
 
-  // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
-  if (options.component && componentNames) {
-    const originalName = options.component
-    for (const component of componentNames) {
-      // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
-      const basePascalName = component.pascalName.replace(/(Satori|Chromium|Takumi)$/, '')
-      const baseKebabName = component.kebabName.replace(/-(satori|chromium|takumi)$/, '')
-      if (basePascalName.endsWith(originalName) || baseKebabName.endsWith(originalName)) {
-        options.component = component.pascalName
-        resolved = component
-        break
-      }
-    }
-  }
-
-  if (!resolved && options.component) {
-    resolved = componentNames.find((c: OgImageComponent) => c.pascalName === options.component)
-  }
-
-  if (!resolved) {
-    // pick first component
-    resolved = componentNames[0]
-    options.component = resolved?.pascalName
-  }
-
-  if (!resolved) {
+  if (!componentNames?.length) {
     throw createError({
       statusCode: 500,
       message: `[Nuxt OG Image] No OG Image components found. Create a component in components/OgImage/ with a renderer suffix (e.g., Default.satori.vue)`,
     })
   }
+
+  // resolve component
+  let resolved: OgImageComponent
+  let renderer: RendererType
+
+  if (options.component) {
+    const result = resolveComponent(options.component)
+    resolved = result.component
+    renderer = result.renderer
+  }
+  else {
+    // no component specified — use first registered
+    resolved = componentNames[0]
+    renderer = resolved.renderer
+  }
+
+  options.component = resolved.pascalName
 
   // check if using a community template - auto-ejected in dev, error in prod
   if (resolved.category === 'community') {
@@ -63,9 +125,6 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
       })
     }
   }
-
-  // Use explicit renderer override if provided (internal use), otherwise from component
-  const renderer = options.renderer || resolved.renderer
 
   return {
     options,
