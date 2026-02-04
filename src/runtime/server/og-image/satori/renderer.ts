@@ -16,7 +16,7 @@ export async function createSvg(event: OgImageRenderEventContext) {
   const [satori, vnodes, fonts] = await Promise.all([
     useSatori(),
     createVNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: false }),
+    loadAllFonts(event.e, { supportsWoff2: false, component: options.component }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)

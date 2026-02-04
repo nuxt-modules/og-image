@@ -36,7 +36,7 @@ import {
   getPresetNitroPresetCompatibility,
   resolveNitroPreset,
 } from './compatibility'
-import { isVariableFont } from './fonts'
+import { isVariableFont, isVariableFontData, isVariableFontWoff2 } from './fonts'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
@@ -400,6 +400,7 @@ export default defineNuxtModule<ModuleOptions>({
       weights: [400] as number[], // default to 400
       styles: ['normal'] as Array<'normal' | 'italic'>,
       isComplete: true,
+      componentMap: {} as Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, isComplete: boolean }>,
       scanned: false,
     }
     let fontScanPromise: Promise<void> | undefined
@@ -416,10 +417,11 @@ export default defineNuxtModule<ModuleOptions>({
 
       fontScanPromise = (async () => {
         const { scanFontRequirements } = await import('./build/css/css-classes')
-        const requirements = await scanFontRequirements(getOgComponents(), logger, nuxt.options.buildDir)
-        fontRequirementsState.weights = requirements.weights
-        fontRequirementsState.styles = requirements.styles
-        fontRequirementsState.isComplete = requirements.isComplete
+        const result = await scanFontRequirements(getOgComponents(), logger, nuxt.options.buildDir)
+        fontRequirementsState.weights = result.global.weights
+        fontRequirementsState.styles = result.global.styles
+        fontRequirementsState.isComplete = result.global.isComplete
+        fontRequirementsState.componentMap = result.components
         fontRequirementsState.scanned = true
       })()
       return fontScanPromise
@@ -791,13 +793,17 @@ export default defineNuxtModule<ModuleOptions>({
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
-    // Set lazy reference for TW4 class scanning
-    getOgComponents = () => ogImageComponentCtx.components
+    // Lazy reference for CSS/font scanning - exclude community templates in production (bundled with known styling)
+    getOgComponents = () => nuxt.options.dev
+      ? ogImageComponentCtx.components
+      : ogImageComponentCtx.components.filter(c => c.category !== 'community')
 
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
     let hasUserComponents = false
     for (const componentDir of config.componentDirs) {
+      // OgImageCommunity is module-managed (community templates), not user-provided
+      const isUserDir = componentDir !== 'OgImageCommunity'
       for (const root of componentRoots) {
         const path = join(root, componentDir)
         if (fs.existsSync(path)) {
@@ -805,23 +811,19 @@ export default defineNuxtModule<ModuleOptions>({
           for (const file of files) {
             const renderer = getRendererFromFilename(file)
             if (renderer) {
-              ogImageComponentCtx.detectedRenderers.add(renderer)
-              hasUserComponents = true
+              if (isUserDir) {
+                ogImageComponentCtx.detectedRenderers.add(renderer)
+                hasUserComponents = true
+              }
             }
           }
         }
       }
     }
     // Only include community template renderers if user has no components of their own
-    // This prevents bundling unused renderer bindings (e.g., resvg-wasm for satori when only takumi is used)
-    const communityDir = resolve('./runtime/app/components/Templates/Community')
-    if (!hasUserComponents && fs.existsSync(communityDir)) {
-      const files = fs.readdirSync(communityDir).filter(f => f.endsWith('.vue'))
-      for (const file of files) {
-        const renderer = getRendererFromFilename(file)
-        if (renderer)
-          ogImageComponentCtx.detectedRenderers.add(renderer)
-      }
+    // Use only the configured default renderer to avoid bundling unused WASM binaries
+    if (!hasUserComponents) {
+      ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
     }
     nuxt.hook('components:extend', (components) => {
       ogImageComponentCtx.components = []
@@ -853,13 +855,14 @@ export default defineNuxtModule<ModuleOptions>({
             return
           }
 
-          ogImageComponentCtx.detectedRenderers.add(renderer)
-
           component.island = true
           component.mode = 'server'
           let category: OgImageComponent['category'] = 'app'
           if (component.filePath.includes(resolve('./runtime/app/components/Templates/Community')))
             category = 'community'
+          // Only add user component renderers to detectedRenderers (community templates use the default)
+          if (category !== 'community')
+            ogImageComponentCtx.detectedRenderers.add(renderer)
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
           ogImageComponentCtx.components.push({
@@ -899,7 +902,6 @@ export default defineNuxtModule<ModuleOptions>({
                 category: 'community',
                 renderer,
               })
-              ogImageComponentCtx.detectedRenderers.add(renderer)
             })
         }
       }
@@ -1033,8 +1035,16 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     }
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
-      const fonts = await parseFontsFromTemplate()
-      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts`)
+      const allFonts = await parseFontsFromTemplate()
+      await scanFontRequirementsLazy()
+      // If analysis was incomplete (dynamic bindings), include all fonts as safety net
+      const fonts = fontRequirementsState.isComplete
+        ? allFonts.filter(f =>
+            fontRequirementsState.weights.includes(f.weight)
+            && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
+          )
+        : allFonts
+      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts (filtered from ${allFonts.length})`)
       return `export default ${JSON.stringify(fonts)}`
     }
 
@@ -1045,7 +1055,8 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         weights: fontRequirementsState.weights,
         styles: fontRequirementsState.styles,
         isComplete: fontRequirementsState.isComplete,
-      })}`
+      })}
+export const componentFontMap = ${JSON.stringify(fontRequirementsState.componentMap)}`
     }
 
     // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
@@ -1066,8 +1077,11 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
     nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
       fontContext = ctx
     })
-    let woff2ConversionDone = false
+    let fontProcessingDone = false
     nuxt.hook('vite:compiled', async () => {
+      if (fontProcessingDone)
+        return
+
       const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
       fs.mkdirSync(cacheDir, { recursive: true })
 
@@ -1077,20 +1091,25 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         logger.debug(`Persisted ${fontContext.renderedFontURLs.size} font URLs for prerender`)
       }
 
-      if (woff2ConversionDone)
-        return
-
       // Filter fonts by requirements before conversion
+      // Only convert WOFF2 fonts that have no WOFF fallback (dedup already prefers WOFF)
       const parsedFonts = await parseFontsFromTemplate()
       await scanFontRequirementsLazy()
+      // Build set of fonts that have a non-WOFF2 source (WOFF/TTF) — no conversion needed
+      const hasNonWoff2 = new Set(
+        parsedFonts
+          .filter(f => !f.src.endsWith('.woff2'))
+          .map(f => `${f.family}-${f.weight}-${f.style}`),
+      )
       const woff2Fonts = parsedFonts.filter(f =>
         f.src.endsWith('.woff2')
+        && !hasNonWoff2.has(`${f.family}-${f.weight}-${f.style}`)
         && fontRequirementsState.weights.includes(f.weight)
         && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
       )
       if (woff2Fonts.length === 0) {
         logger.debug('No WOFF2 fonts to convert')
-        woff2ConversionDone = true
+        fontProcessingDone = true
         return
       }
 
@@ -1098,7 +1117,15 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       const ttfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
       fs.mkdirSync(ttfDir, { recursive: true })
 
-      const { decompress } = await import('wawoff2')
+      let decompress: (buf: Buffer) => Promise<Buffer>
+      try {
+        ({ decompress } = await import('wawoff2'))
+      }
+      catch {
+        logger.warn('wawoff2 not installed, skipping WOFF2 to TTF conversion. Install it with: `npx nypm i wawoff2`')
+        fontProcessingDone = true
+        return
+      }
 
       const convertedFiles = new Set<string>()
       let hasVariableFonts = false
@@ -1111,11 +1138,12 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         const ttfFilename = filename.replace('.woff2', '.ttf')
         const ttfPath = join(ttfDir, ttfFilename)
 
+        // Check cached TTF
         if (existsSync(ttfPath)) {
           if (await isVariableFont(ttfPath)) {
             hasVariableFonts = true
             fs.unlinkSync(ttfPath)
-            logger.debug(`Deleted cached variable font TTF (would crash satori): ${ttfFilename}`)
+            logger.debug(`Deleted cached variable font TTF: ${ttfFilename}`)
             continue
           }
           logger.debug(`Already converted: ${ttfFilename}`)
@@ -1160,14 +1188,28 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
           continue
         }
 
-        // Convert WOFF2 to TTF using programmatic wawoff2 API
         const woff2Data = await readFile(woff2Path)
+
+        // Check WOFF2 table directory for fvar before decompressing
+        if (isVariableFontWoff2(woff2Data)) {
+          hasVariableFonts = true
+          logger.debug(`Skipping variable font (fvar in WOFF2): ${filename}`)
+          continue
+        }
+
+        // Decompress WOFF2 to TTF
         const ttfData = await decompress(woff2Data).catch((e: Error) => {
           logger.warn(`Failed to convert ${filename} to TTF: ${e}`)
           return null
         })
 
-        if (!ttfData) {
+        if (!ttfData)
+          continue
+
+        // Safety check: verify decompressed data isn't variable
+        if (isVariableFontData(Buffer.from(ttfData))) {
+          hasVariableFonts = true
+          logger.debug(`Skipping variable font (fvar in TTF): ${filename}`)
           continue
         }
 
@@ -1175,14 +1217,6 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
 
         if (!existsSync(ttfPath) || fs.statSync(ttfPath).size === 0) {
           logger.warn(`Conversion produced empty or no file: ${filename}`)
-          continue
-        }
-
-        // Check if it's a variable font - delete to avoid opentype.js crashes
-        if (await isVariableFont(ttfPath)) {
-          hasVariableFonts = true
-          fs.unlinkSync(ttfPath)
-          logger.debug(`Deleted variable font TTF (would crash satori): ${ttfFilename}`)
           continue
         }
 
@@ -1194,7 +1228,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         logger.info(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
       }
 
-      woff2ConversionDone = true
+      fontProcessingDone = true
     })
 
     // Copy converted TTFs to output after Nitro copies publicAssets

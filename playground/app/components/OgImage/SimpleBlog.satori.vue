@@ -38,7 +38,7 @@ const website = computed(() => {
       </h1>
       <div class="flex items-center gap-3">
         <div class="w-3 h-3 rounded-full bg-blue-500" />
-        <p class="text-[26px] font-semibold text-slate-500" style="display: block; line-clamp: 1; text-overflow: ellipsis;">
+        <p class="text-[26px] font-bold text-slate-500" style="display: block; line-clamp: 1; text-overflow: ellipsis;">
           {{ website }}
         </p>
       </div>

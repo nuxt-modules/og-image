@@ -41,9 +41,10 @@ describe('font-requirements', () => {
 
       const result = await scanFontRequirements([])
 
-      expect(result.weights).toContain(400) // Always includes 400 as fallback
-      expect(result.styles).toContain('normal') // Always includes normal
-      expect(result.isComplete).toBe(true)
+      expect(result.global.weights).toContain(400) // Always includes 400 as fallback
+      expect(result.global.styles).toContain('normal') // Always includes normal
+      expect(result.global.isComplete).toBe(true)
+      expect(result.components).toEqual({})
     })
 
     it('should extract weights from vue component with font classes', async () => {
@@ -67,10 +68,13 @@ describe('font-requirements', () => {
         { path: componentPath, hash: 'test-hash', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
       ])
 
-      expect(result.weights).toContain(700) // font-bold
-      expect(result.weights).toContain(300) // font-light
-      expect(result.weights).toContain(400) // default fallback
-      expect(result.isComplete).toBe(true)
+      expect(result.global.weights).toContain(700) // font-bold
+      expect(result.global.weights).toContain(300) // font-light
+      expect(result.global.weights).toContain(400) // default fallback
+      expect(result.global.isComplete).toBe(true)
+      expect(result.components.Test).toBeDefined()
+      expect(result.components.Test.weights).toContain(700)
+      expect(result.components.Test.weights).toContain(300)
 
       // Cleanup
       await fs.rm(tempDir, { recursive: true })
@@ -95,8 +99,8 @@ describe('font-requirements', () => {
         { path: componentPath, hash: 'test-hash-2', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
       ])
 
-      expect(result.weights).toContain(600)
-      expect(result.isComplete).toBe(true)
+      expect(result.global.weights).toContain(600)
+      expect(result.global.isComplete).toBe(true)
 
       await fs.rm(tempDir, { recursive: true })
     })
@@ -120,8 +124,8 @@ describe('font-requirements', () => {
         { path: componentPath, hash: 'test-hash-3', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
       ])
 
-      expect(result.weights).toContain(700) // md:font-bold → 700
-      expect(result.weights).toContain(900) // lg:font-black → 900
+      expect(result.global.weights).toContain(700) // md:font-bold → 700
+      expect(result.global.weights).toContain(900) // lg:font-black → 900
 
       await fs.rm(tempDir, { recursive: true })
     })
@@ -145,8 +149,8 @@ describe('font-requirements', () => {
         { path: componentPath, hash: 'test-hash-4', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
       ])
 
-      expect(result.styles).toContain('italic')
-      expect(result.styles).toContain('normal')
+      expect(result.global.styles).toContain('italic')
+      expect(result.global.styles).toContain('normal')
 
       await fs.rm(tempDir, { recursive: true })
     })
@@ -171,7 +175,7 @@ describe('font-requirements', () => {
       ])
 
       // Should still extract the static class from the expression
-      expect(result.weights).toContain(700)
+      expect(result.global.weights).toContain(700)
 
       await fs.rm(tempDir, { recursive: true })
     })
@@ -183,12 +187,15 @@ describe('font-requirements', () => {
 
       const result = await scanFontRequirements([])
 
-      expect(result).toHaveProperty('weights')
-      expect(result).toHaveProperty('styles')
-      expect(result).toHaveProperty('isComplete')
-      expect(Array.isArray(result.weights)).toBe(true)
-      expect(Array.isArray(result.styles)).toBe(true)
-      expect(typeof result.isComplete).toBe('boolean')
+      expect(result).toHaveProperty('global')
+      expect(result).toHaveProperty('components')
+      expect(result.global).toHaveProperty('weights')
+      expect(result.global).toHaveProperty('styles')
+      expect(result.global).toHaveProperty('isComplete')
+      expect(Array.isArray(result.global.weights)).toBe(true)
+      expect(Array.isArray(result.global.styles)).toBe(true)
+      expect(typeof result.global.isComplete).toBe('boolean')
+      expect(typeof result.components).toBe('object')
     })
   })
 })

@@ -54,7 +54,9 @@ function resolveComponent(name: string): { component: OgImageComponent, renderer
   // find all components whose base name matches (supports shorthand like 'Banner' matching 'OgImageBannerSatori')
   const matches = componentNames.filter((c: OgImageComponent) => {
     const cBase = getComponentBaseName(c)
-    return cBase === baseName || cBase === strippedBaseName || cBase.endsWith(baseName) || cBase.endsWith(strippedBaseName)
+    return cBase === baseName || cBase === strippedBaseName
+      || cBase.endsWith(baseName) || cBase.endsWith(strippedBaseName)
+      || baseName.endsWith(cBase) || strippedBaseName.endsWith(cBase)
   })
 
   // filter by renderer if specified

@@ -34,7 +34,7 @@ const title = computed(() => props.title.slice(0, 60))
     </svg>
 
     <div class="max-w-full lg:max-w-[60%] pl-8 lg:pl-16 pr-8 relative z-10">
-      <p v-if="headline" class="uppercase text-[22px] text-amber-400 mb-3 font-semibold tracking-wider">
+      <p v-if="headline" class="uppercase text-[22px] text-amber-400 mb-3 font-bold tracking-wider">
         {{ headline }}
       </p>
       <h1 class="m-0 text-[68px] font-bold mb-5 text-white leading-[1.1] tracking-tight" style="display: block; line-clamp: 2; text-overflow: ellipsis; text-shadow: 0 4px 30px rgba(0,0,0,0.3);">

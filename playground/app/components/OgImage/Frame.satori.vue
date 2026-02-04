@@ -23,8 +23,8 @@ withDefaults(defineProps<{
     :style="{ backgroundImage: bg }"
   >
     <!-- Inner frame with refined border -->
-    <div class="absolute inset-4 border border-white/20 rounded-sm" />
-    <div class="absolute inset-5 border border-white/10 rounded-sm" />
+    <div class="absolute inset-4 border border-neutral-700 rounded-sm" />
+    <div class="absolute inset-5 border border-neutral-800 rounded-sm" />
 
     <!-- Background image with better treatment -->
     <div
@@ -34,10 +34,10 @@ withDefaults(defineProps<{
     />
 
     <!-- Subtle corner accents -->
-    <div class="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-white/30" />
-    <div class="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-white/30" />
-    <div class="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/30" />
-    <div class="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/30" />
+    <div class="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-neutral-600" />
+    <div class="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-neutral-600" />
+    <div class="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-neutral-600" />
+    <div class="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-neutral-600" />
 
     <div class="flex flex-col items-center text-center px-8 lg:px-20 relative z-10">
       <h1 class="flex items-center gap-5 text-[72px] font-bold leading-tight tracking-tight" style="display: block; line-clamp: 2; text-overflow: ellipsis; text-shadow: 0 4px 30px rgba(0,0,0,0.5);">
@@ -48,7 +48,7 @@ withDefaults(defineProps<{
         />
         {{ title }}
       </h1>
-      <p v-if="description" class="text-[28px] max-w-[800px] text-white/70 mt-4 leading-relaxed" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
+      <p v-if="description" class="text-[28px] max-w-[800px] text-neutral-300 mt-4 leading-relaxed" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
         {{ description }}
       </p>
     </div>
@@ -56,13 +56,13 @@ withDefaults(defineProps<{
     <img
       v-if="logo"
       :src="logo"
-      class="absolute bottom-6 left-6"
-      style="height: 100px; width: auto; opacity: 0.9; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));"
+      class="absolute bottom-6 left-6 h-[100px] w-auto opacity-90"
+      style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));"
     >
     <div class="absolute bottom-6 right-6 flex items-center gap-4">
       <div
         v-if="username"
-        class="text-white/60 font-medium text-lg mr-2"
+        class="text-neutral-400 font-normal text-lg mr-2"
       >
         {{ username }}
       </div>
@@ -70,7 +70,7 @@ withDefaults(defineProps<{
         v-for="social of socials"
         :key="social.name"
         :name="social.icon!"
-        class="w-6 h-6 text-white/50"
+        class="w-6 h-6 text-neutral-500"
       />
     </div>
   </div>

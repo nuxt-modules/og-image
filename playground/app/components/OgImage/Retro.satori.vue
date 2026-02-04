@@ -44,10 +44,10 @@ withDefaults(defineProps<{
     </svg>
 
     <!-- Scanlines overlay -->
-    <div class="absolute inset-0 pointer-events-none opacity-[0.03]" style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);" />
+    <div class="absolute inset-0 opacity-[0.03]" style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);" />
 
     <!-- Content -->
-    <div class="relative z-10 px-16 pb-20" style="margin-top: auto;">
+    <div class="relative z-10 px-16 pb-20 mt-auto">
       <p
         v-if="tagline"
         class="text-xl font-mono uppercase tracking-[0.4em] mb-4"
@@ -56,7 +56,7 @@ withDefaults(defineProps<{
         {{ tagline }}
       </p>
       <h1
-        class="text-[80px] font-black uppercase leading-[0.9] tracking-tight"
+        class="text-[80px] font-bold uppercase leading-[0.9] tracking-tight"
         style="color: #fff; text-shadow: 0 0 20px #ff2a6d, 0 0 40px #ff2a6d, 0 0 60px #ff2a6d, 2px 2px 0 #05d9e8; display: block; line-clamp: 2; text-overflow: ellipsis;"
       >
         {{ title }}
@@ -64,7 +64,7 @@ withDefaults(defineProps<{
     </div>
 
     <!-- Corner chrome accents -->
-    <div class="absolute top-6 left-6 w-16 h-16 border-l-2 border-t-2" style="border-color: #05d9e8; opacity: 0.6;" />
-    <div class="absolute top-6 right-6 w-16 h-16 border-r-2 border-t-2" style="border-color: #ff2a6d; opacity: 0.6;" />
+    <div class="absolute top-6 left-6 w-16 h-16 border-l-2 border-t-2 opacity-60" style="border-color: #05d9e8;" />
+    <div class="absolute top-6 right-6 w-16 h-16 border-r-2 border-t-2 opacity-60" style="border-color: #ff2a6d;" />
   </div>
 </template>

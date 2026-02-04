@@ -28,8 +28,8 @@ const siteName = props.siteName || siteConfig.name || 'Acme'
       <div class="flex flex-col justify-between h-full w-full lg:w-[50%]">
         <!-- Title -->
         <h1
-          class="font-black leading-[1.08] tracking-tight text-white text-[56px] line-clamp-3"
-          style="display: block; font-style: italic; text-shadow: 0 2px 10px rgba(0,0,0,0.2);"
+          class="font-bold leading-[1.08] tracking-tight text-white text-[56px] line-clamp-3 italic"
+          style="display: block; text-shadow: 0 2px 10px rgba(0,0,0,0.2);"
         >
           {{ title }}
         </h1>
@@ -39,7 +39,7 @@ const siteName = props.siteName || siteConfig.name || 'Acme'
           <div v-if="icon" class="flex items-center justify-center rounded-full bg-white/20 w-14 h-14">
             <span class="text-3xl text-white">{{ icon }}</span>
           </div>
-          <span class="font-black text-white text-[56px]">{{ siteName }}</span>
+          <span class="font-bold text-white text-[56px]">{{ siteName }}</span>
         </div>
       </div>
 
