@@ -109,7 +109,7 @@
     "sharp": {
       "optional": true
     },
-    "tailwind": {
+    "tailwindcss": {
       "optional": true
     }
   },
