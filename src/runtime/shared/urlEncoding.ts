@@ -290,8 +290,9 @@ export function buildOgImageUrl(
   const encoded = encodeOgImageParams(options, defaults)
   const prefix = isStatic ? '/_og/s' : '/_og/d'
 
-  // Check if encoded path is too long for filesystem
-  if (encoded.length > MAX_PATH_LENGTH) {
+  // Check if encoded path is too long for filesystem (only applies to static/prerendered)
+  // Hash mode requires prerender options cache, so it can't work at runtime
+  if (isStatic && encoded.length > MAX_PATH_LENGTH) {
     // Use hash mode - short deterministic path
     const hash = hashOgImageOptions(options)
     return {

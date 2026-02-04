@@ -2,15 +2,26 @@ import { describe, expect, it } from 'vitest'
 import { buildOgImageUrl } from '../../src/runtime/shared/urlEncoding'
 
 describe('url length', () => {
-  it('switches to hash mode when encoded length exceeds limit', () => {
+  it('switches to hash mode when encoded length exceeds limit (static)', () => {
     // Create options that will encode to > 200 chars
     const longString = 'a'.repeat(201)
     const options = { props: { title: longString } }
 
-    const result = buildOgImageUrl(options, 'png')
+    const result = buildOgImageUrl(options, 'png', true)
 
     expect(result.url).toContain('/o_')
     expect(result.hash).toBeDefined()
+  })
+
+  it('does not switch to hash mode for dynamic URLs even when long', () => {
+    const longString = 'a'.repeat(201)
+    const options = { props: { title: longString } }
+
+    const result = buildOgImageUrl(options, 'png', false)
+
+    expect(result.url).not.toContain('/o_')
+    expect(result.hash).toBeUndefined()
+    expect(result.url).toContain('title_')
   })
 
   it('stays in encoded mode when encoded length is just under limit', () => {

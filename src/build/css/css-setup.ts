@@ -84,7 +84,20 @@ export async function setupCssFramework(options: CssSetupOptions): Promise<CssSe
         moduleCache: false,
       })
     }
-    const mergedAppConfig = await jitiInstance.evalModule(strippedContent, { filename: appConfigPath }) as { ui?: { colors?: Record<string, string> } }
+    // Shim defineAppConfig (Nuxt auto-import) so jiti can evaluate user's app.config.ts
+    const hadShim = 'defineAppConfig' in globalThis
+    const prev = (globalThis as any).defineAppConfig
+    ;(globalThis as any).defineAppConfig = (c: any) => c
+    let mergedAppConfig: { ui?: { colors?: Record<string, string> } }
+    try {
+      mergedAppConfig = await jitiInstance.evalModule(strippedContent, { filename: appConfigPath }) as typeof mergedAppConfig
+    }
+    finally {
+      if (hadShim)
+        (globalThis as any).defineAppConfig = prev
+      else
+        delete (globalThis as any).defineAppConfig
+    }
     tw4State.nuxtUiColors = { ...nuxtUiDefaults, ...mergedAppConfig?.ui?.colors }
     logger.debug(`Nuxt UI colors: ${JSON.stringify(tw4State.nuxtUiColors)}`)
     return tw4State.nuxtUiColors
