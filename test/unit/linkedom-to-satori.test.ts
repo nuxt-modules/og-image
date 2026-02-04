@@ -1,7 +1,7 @@
 import type { ElementNode, TextNode } from 'ultrahtml'
 import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'pathe'
 import satori from 'satori'
 import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
 import { querySelector } from 'ultrahtml/selector'

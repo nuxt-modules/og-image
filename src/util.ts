@@ -1,5 +1,6 @@
 import { resolvePath } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
+import { basename } from 'pathe'
 import { isCI } from 'std-env'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
@@ -26,7 +27,7 @@ export async function hasResolvableDependency(dep: string) {
 const VALID_RENDERER_SUFFIXES = ['satori', 'chromium', 'takumi'] as const
 
 export function getRendererFromFilename(filepath: string): 'satori' | 'chromium' | 'takumi' | null {
-  const filename = filepath.split('/').pop()?.replace('.vue', '') || ''
+  const filename = basename(filepath).replace('.vue', '')
   for (const suffix of VALID_RENDERER_SUFFIXES) {
     if (filename.endsWith(`.${suffix}`))
       return suffix

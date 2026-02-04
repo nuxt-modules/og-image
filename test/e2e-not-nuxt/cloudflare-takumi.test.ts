@@ -1,11 +1,11 @@
 import type { ChildProcess } from 'node:child_process'
 import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
-import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
+import { join } from 'pathe'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 

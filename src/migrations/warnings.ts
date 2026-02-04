@@ -1,3 +1,4 @@
+import { basename } from 'pathe'
 import { logger } from '../runtime/logger'
 
 export interface MigrationWarning {
@@ -175,7 +176,7 @@ function formatWarnings(): string {
     const shown = warnings.filter(w => w.type === 'component').slice(0, 3)
     for (const w of shown) {
       if (w.file)
-        lines.push(`  • ${w.file.split('/').pop()}`)
+        lines.push(`  • ${basename(w.file)}`)
     }
     if (componentCount > 3) {
       lines.push(`  • ... and ${componentCount - 3} more`)

@@ -1,6 +1,6 @@
 import type { OgImageComponent, OgImageRuntimeConfig } from '../../types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { logger } from './logger'
 
 const ejectedTemplates = new Set<string>()

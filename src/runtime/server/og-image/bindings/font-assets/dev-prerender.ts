@@ -1,14 +1,15 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { buildDir } from '#og-image-virtual/build-dir.mjs'
 import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
+import { join } from 'pathe'
 import { withBase } from 'ufo'
 
 function getRootDir(): string {
-  const idx = buildDir.indexOf('/.nuxt')
+  const normalizedBuildDir = buildDir.replace(/\\/g, '/')
+  const idx = normalizedBuildDir.indexOf('/.nuxt')
   return idx !== -1 ? buildDir.slice(0, idx) : process.cwd()
 }
 

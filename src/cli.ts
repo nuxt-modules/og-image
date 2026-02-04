@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import { loadNuxtConfig } from '@nuxt/kit'
 import { addDependency, detectPackageManager } from 'nypm'
+import { basename, dirname, join, relative, resolve } from 'pathe'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -212,7 +212,7 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   for (const dir of dirs) {
     const components = findOgImageComponents(dir)
     for (const filepath of components) {
-      const filename = filepath.split('/').pop()!
+      const filename = basename(filepath)
       if (!hasRendererSuffix(filename)) {
         result.componentsToRename.push({ from: filepath, to: '' })
       }
@@ -314,22 +314,22 @@ function migrateV6Components(
   dryRun: boolean,
 ): void {
   for (const item of componentsToRename) {
-    const filename = item.from.split('/').pop()!
+    const filename = basename(item.from)
     const newName = filename.replace('.vue', `.${defaultRenderer}.vue`)
-    item.to = item.from.replace(filename, newName)
+    item.to = join(dirname(item.from), newName)
   }
 
   if (dryRun) {
     console.log('\nWould rename:')
     for (const { from, to } of componentsToRename) {
-      console.log(`  ${from.split('/').pop()} → ${to.split('/').pop()}`)
+      console.log(`  ${basename(from)} → ${basename(to)}`)
     }
     return
   }
 
   for (const { from, to } of componentsToRename) {
     renameSync(from, to)
-    console.log(`✓ Renamed ${from.split('/').pop()}`)
+    console.log(`✓ Renamed ${basename(from)}`)
   }
 }
 
@@ -526,7 +526,7 @@ async function runMigrate(args: string[]): Promise<void> {
   const apiChanges = migrateDefineOgImageApi(dryRun)
   if (apiChanges.changes.length > 0) {
     for (const { file, count } of apiChanges.changes) {
-      const relPath = file.replace(`${cwd}/`, '')
+      const relPath = relative(cwd, file)
       console.log(`  ${relPath} (${count} change${count > 1 ? 's' : ''})`)
     }
   }

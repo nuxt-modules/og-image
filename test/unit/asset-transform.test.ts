@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
 

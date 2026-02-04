@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 const cliPath = join(__dirname, '../../dist/cli.mjs')

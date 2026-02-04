@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)

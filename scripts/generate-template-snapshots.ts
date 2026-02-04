@@ -10,8 +10,8 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'pathe'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

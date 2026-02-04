@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
+import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)

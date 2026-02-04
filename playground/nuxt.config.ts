@@ -1,7 +1,7 @@
-import { resolve } from 'node:path'
 import { startSubprocess } from '@nuxt/devtools-kit'
 import { defineNuxtModule } from '@nuxt/kit'
 import { defineNuxtConfig } from 'nuxt/config'
+import { resolve } from 'pathe'
 import NuxtOgImage from '../src/module'
 
 export default defineNuxtConfig({
