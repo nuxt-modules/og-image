@@ -24,6 +24,13 @@ async function loadFontUrlMapping(): Promise<Record<string, string>> {
 export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer> {
   const path = font.src || font.localPath
 
+  // Static bundled fonts — read directly from absolute path
+  if (font.absolutePath) {
+    const data = await readFile(font.absolutePath).catch(() => null)
+    if (data?.length)
+      return data
+  }
+
   if (import.meta.prerender) {
     const rootDir = getRootDir()
 
