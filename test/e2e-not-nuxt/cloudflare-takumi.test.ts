@@ -186,20 +186,7 @@ describe('cloudflare-takumi', () => {
       }
     }
 
-    function findWorkingSubset(): Uint8Array | undefined {
-      for (const data of fontSubsets) {
-        try {
-          const r = new Renderer()
-          r.loadFont({ name: 'Probe', data, weight: 400, style: 'normal' })
-          const res = r.render(makeNodes('Probe'), { width: 400, height: 80, format: 'png' })
-          if (res.length < 2800)
-            return data
-        }
-        catch {}
-      }
-    }
-
-    it('shows NO GLYPH when all subsets share the same name', async () => {
+    it('renders text when all subsets share the same name', async () => {
       expect(fontSubsets.length).toBeGreaterThan(0)
 
       const renderer = new Renderer()
@@ -210,17 +197,9 @@ describe('cloudflare-takumi', () => {
         catch {}
       }
 
-      const bad = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
-
-      const workingSubset = findWorkingSubset()
-      expect(workingSubset).toBeTruthy()
-
-      const solo = new Renderer()
-      solo.loadFont({ name: 'Inter', data: workingSubset!, weight: 400, style: 'normal' })
-      const good = solo.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
-
-      // The all-same-name render should differ from the working render (it has NO GLYPH)
-      expect(Buffer.from(bad).equals(Buffer.from(good))).toBe(false)
+      const result = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
+      // Should render actual text (small PNG), not NO GLYPH boxes (larger PNG)
+      expect(result.length).toBeLessThan(2800)
     })
 
     it('renders text when each subset has a unique name with comma-separated fontFamily', async () => {
