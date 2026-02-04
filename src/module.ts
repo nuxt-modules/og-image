@@ -216,6 +216,7 @@ export default defineNuxtModule<ModuleOptions>({
     },
     '@nuxt/fonts': {
       version: '>=0.13.0',
+      optional: true,
     },
   },
   defaults() {
@@ -292,6 +293,8 @@ export default defineNuxtModule<ModuleOptions>({
     if (chromiumRuntime === 'node') {
       addConfigWarning('chromium-node')
     }
+
+    const hasNuxtFonts = hasNuxtModule('@nuxt/fonts')
 
     // Warn about wildcard route rules that may break og-image routes
     const routeRules = nuxt.options.routeRules || {}
@@ -986,6 +989,16 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
+    // When @nuxt/fonts is not installed, serve static Inter TTFs as public assets
+    if (!hasNuxtFonts) {
+      nuxt.options.nitro.publicAssets ||= []
+      nuxt.options.nitro.publicAssets.push({
+        dir: resolve('./runtime/public/_og-fonts'),
+        baseURL: '/_og-fonts',
+        maxAge: 60 * 60 * 24 * 365,
+      })
+    }
+
     nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
       // Use dev-prerender binding which handles dev/prerender/runtime for node
       // Use cloudflare binding for cloudflare presets at runtime
@@ -1083,17 +1096,42 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     }
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
-      const allFonts = await parseFontsFromTemplate()
-      await scanFontRequirementsLazy()
-      // If analysis was incomplete (dynamic bindings), include all fonts as safety net
-      const fonts = fontRequirementsState.isComplete
-        ? allFonts.filter(f =>
-            fontRequirementsState.weights.includes(f.weight)
-            && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
-          )
-        : allFonts
-      logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts (filtered from ${allFonts.length})`)
-      return `export default ${JSON.stringify(fonts)}`
+      if (hasNuxtFonts) {
+        const allFonts = await parseFontsFromTemplate()
+        await scanFontRequirementsLazy()
+        const fonts = fontRequirementsState.isComplete
+          ? allFonts.filter(f =>
+              fontRequirementsState.weights.includes(f.weight)
+              && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
+            )
+          : allFonts
+        logger.debug(`Extracted ${fonts.length} fonts from @nuxt/fonts (filtered from ${allFonts.length})`)
+        return `export default ${JSON.stringify(fonts)}`
+      }
+      // Static Inter fallback — no @nuxt/fonts needed
+      const staticFontsDir = resolve('./runtime/public/_og-fonts')
+      const staticFonts = [
+        {
+          family: 'Inter',
+          src: '/_og-fonts/inter-400-latin.ttf',
+          weight: 400,
+          style: 'normal',
+          satoriSrc: '/_og-fonts/inter-400-latin.ttf',
+          localPath: '/_og-fonts/inter-400-latin.ttf',
+          absolutePath: join(staticFontsDir, 'inter-400-latin.ttf'),
+        },
+        {
+          family: 'Inter',
+          src: '/_og-fonts/inter-700-latin.ttf',
+          weight: 700,
+          style: 'normal',
+          satoriSrc: '/_og-fonts/inter-700-latin.ttf',
+          localPath: '/_og-fonts/inter-700-latin.ttf',
+          absolutePath: join(staticFontsDir, 'inter-700-latin.ttf'),
+        },
+      ]
+      logger.debug('Using static Inter fonts (no @nuxt/fonts)')
+      return `export default ${JSON.stringify(staticFonts)}`
     }
 
     // Font requirements virtual module - provides detected font weights/styles from component analysis
@@ -1118,187 +1156,190 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}`
     }
 
+    // @nuxt/fonts font processing pipeline — only when @nuxt/fonts is installed
+    if (hasNuxtFonts) {
     // Hook into @nuxt/fonts to persist font URL mapping for prerender
     // fonts:public-asset-context fires at modules:done, giving us a reference to the context
     // We then read from renderedFontURLs in vite:compiled when it's populated
-    let fontContext: { renderedFontURLs: Map<string, string> } | null = null
-    nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
-      fontContext = ctx
-    })
-    let fontProcessingDone = false
-    nuxt.hook('vite:compiled', async () => {
-      if (fontProcessingDone)
-        return
+      let fontContext: { renderedFontURLs: Map<string, string> } | null = null
+      nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
+        fontContext = ctx
+      })
+      let fontProcessingDone = false
+      nuxt.hook('vite:compiled', async () => {
+        if (fontProcessingDone)
+          return
 
-      const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
-      fs.mkdirSync(cacheDir, { recursive: true })
+        const cacheDir = join(nuxt.options.buildDir, 'cache', 'og-image')
+        fs.mkdirSync(cacheDir, { recursive: true })
 
-      if (fontContext?.renderedFontURLs.size) {
-        const mapping = Object.fromEntries(fontContext.renderedFontURLs)
-        fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(mapping))
-        logger.debug(`Persisted ${fontContext.renderedFontURLs.size} font URLs for prerender`)
-      }
+        if (fontContext?.renderedFontURLs.size) {
+          const mapping = Object.fromEntries(fontContext.renderedFontURLs)
+          fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(mapping))
+          logger.debug(`Persisted ${fontContext.renderedFontURLs.size} font URLs for prerender`)
+        }
 
-      // Filter fonts by requirements before conversion
-      // Only convert WOFF2 fonts that have no WOFF fallback (dedup already prefers WOFF)
-      const parsedFonts = await parseFontsFromTemplate()
-      await scanFontRequirementsLazy()
-      // Build set of fonts that have a non-WOFF2 source (WOFF/TTF) — no conversion needed
-      const hasNonWoff2 = new Set(
-        parsedFonts
-          .filter(f => !f.src.endsWith('.woff2'))
-          .map(f => `${f.family}-${f.weight}-${f.style}`),
-      )
-      const woff2Fonts = parsedFonts.filter(f =>
-        f.src.endsWith('.woff2')
-        && !hasNonWoff2.has(`${f.family}-${f.weight}-${f.style}`)
-        && fontRequirementsState.weights.includes(f.weight)
-        && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
-      )
-      if (woff2Fonts.length === 0) {
-        logger.debug('No WOFF2 fonts to convert')
-        fontProcessingDone = true
-        return
-      }
+        // Filter fonts by requirements before conversion
+        // Only convert WOFF2 fonts that have no WOFF fallback (dedup already prefers WOFF)
+        const parsedFonts = await parseFontsFromTemplate()
+        await scanFontRequirementsLazy()
+        // Build set of fonts that have a non-WOFF2 source (WOFF/TTF) — no conversion needed
+        const hasNonWoff2 = new Set(
+          parsedFonts
+            .filter(f => !f.src.endsWith('.woff2'))
+            .map(f => `${f.family}-${f.weight}-${f.style}`),
+        )
+        const woff2Fonts = parsedFonts.filter(f =>
+          f.src.endsWith('.woff2')
+          && !hasNonWoff2.has(`${f.family}-${f.weight}-${f.style}`)
+          && fontRequirementsState.weights.includes(f.weight)
+          && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
+        )
+        if (woff2Fonts.length === 0) {
+          logger.debug('No WOFF2 fonts to convert')
+          fontProcessingDone = true
+          return
+        }
 
-      logger.debug(`Found ${woff2Fonts.length} WOFF2 fonts to convert (filtered from ${parsedFonts.filter(f => f.src.endsWith('.woff2')).length} total)`)
-      const ttfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
-      fs.mkdirSync(ttfDir, { recursive: true })
+        logger.debug(`Found ${woff2Fonts.length} WOFF2 fonts to convert (filtered from ${parsedFonts.filter(f => f.src.endsWith('.woff2')).length} total)`)
+        const ttfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+        fs.mkdirSync(ttfDir, { recursive: true })
 
-      let decompress: (buf: Buffer) => Promise<Buffer>
-      try {
-        ({ decompress } = await import('wawoff2'))
-      }
-      catch {
-        logger.warn('wawoff2 not installed, skipping WOFF2 to TTF conversion. Install it with: `npx nypm i wawoff2`')
-        fontProcessingDone = true
-        return
-      }
+        let decompress: (buf: Buffer) => Promise<Buffer>
+        try {
+          ({ decompress } = await import('wawoff2'))
+        }
+        catch {
+          logger.warn('wawoff2 not installed, skipping WOFF2 to TTF conversion. Install it with: `npx nypm i wawoff2`')
+          fontProcessingDone = true
+          return
+        }
 
-      const convertedFiles = new Set<string>()
-      let hasVariableFonts = false
+        const convertedFiles = new Set<string>()
+        let hasVariableFonts = false
 
-      for (const font of woff2Fonts) {
-        const filename = font.src.split('/').pop()!
-        if (convertedFiles.has(filename))
-          continue
+        for (const font of woff2Fonts) {
+          const filename = font.src.split('/').pop()!
+          if (convertedFiles.has(filename))
+            continue
 
-        const ttfFilename = filename.replace('.woff2', '.ttf')
-        const ttfPath = join(ttfDir, ttfFilename)
+          const ttfFilename = filename.replace('.woff2', '.ttf')
+          const ttfPath = join(ttfDir, ttfFilename)
 
-        // Check cached TTF
-        if (existsSync(ttfPath)) {
-          if (await isVariableFont(ttfPath)) {
-            hasVariableFonts = true
-            fs.unlinkSync(ttfPath)
-            logger.debug(`Deleted cached variable font TTF: ${ttfFilename}`)
+          // Check cached TTF
+          if (existsSync(ttfPath)) {
+            if (await isVariableFont(ttfPath)) {
+              hasVariableFonts = true
+              fs.unlinkSync(ttfPath)
+              logger.debug(`Deleted cached variable font TTF: ${ttfFilename}`)
+              continue
+            }
+            logger.debug(`Already converted: ${ttfFilename}`)
+            convertedFiles.add(filename)
             continue
           }
-          logger.debug(`Already converted: ${ttfFilename}`)
-          convertedFiles.add(filename)
-          continue
-        }
 
-        // Find the WOFF2 source file
-        let woff2Path: string | null = null
-        if (font.src.startsWith('/_fonts/')) {
-          const fontFile = font.src.slice('/_fonts/'.length)
-          const candidates = [
-            join(nuxt.options.buildDir, 'output', 'public', '_fonts', fontFile),
-            join(nuxt.options.rootDir, 'node_modules', '.cache', 'nuxt', 'fonts', 'meta', 'data', 'fonts', fontFile),
-            join(nuxt.options.buildDir, 'cache', 'fonts', fontFile),
-            join(nuxt.options.rootDir, '.output', 'public', '_fonts', fontFile),
-          ]
-          woff2Path = candidates.find((p) => {
-            if (!existsSync(p))
-              return false
-            const stat = fs.statSync(p)
-            return stat.size > 0
-          }) || null
+          // Find the WOFF2 source file
+          let woff2Path: string | null = null
+          if (font.src.startsWith('/_fonts/')) {
+            const fontFile = font.src.slice('/_fonts/'.length)
+            const candidates = [
+              join(nuxt.options.buildDir, 'output', 'public', '_fonts', fontFile),
+              join(nuxt.options.rootDir, 'node_modules', '.cache', 'nuxt', 'fonts', 'meta', 'data', 'fonts', fontFile),
+              join(nuxt.options.buildDir, 'cache', 'fonts', fontFile),
+              join(nuxt.options.rootDir, '.output', 'public', '_fonts', fontFile),
+            ]
+            woff2Path = candidates.find((p) => {
+              if (!existsSync(p))
+                return false
+              const stat = fs.statSync(p)
+              return stat.size > 0
+            }) || null
 
-          if (!woff2Path && fontContext?.renderedFontURLs.has(fontFile)) {
-            const url = fontContext.renderedFontURLs.get(fontFile)!
-            logger.debug(`Fetching WOFF2 from URL: ${url}`)
-            const res = await fetch(url).catch(() => null)
-            if (res?.ok) {
-              const tempPath = join(ttfDir, fontFile)
-              await writeFile(tempPath, Buffer.from(await res.arrayBuffer()))
-              woff2Path = tempPath
+            if (!woff2Path && fontContext?.renderedFontURLs.has(fontFile)) {
+              const url = fontContext.renderedFontURLs.get(fontFile)!
+              logger.debug(`Fetching WOFF2 from URL: ${url}`)
+              const res = await fetch(url).catch(() => null)
+              if (res?.ok) {
+                const tempPath = join(ttfDir, fontFile)
+                await writeFile(tempPath, Buffer.from(await res.arrayBuffer()))
+                woff2Path = tempPath
+              }
             }
           }
+          else {
+            woff2Path = join(nuxt.options.rootDir, 'public', font.src.slice(1))
+          }
+
+          if (!woff2Path) {
+            logger.debug(`WOFF2 font not found locally (or empty), skipping: ${font.src}`)
+            continue
+          }
+
+          const woff2Data = await readFile(woff2Path)
+
+          // Check WOFF2 table directory for fvar before decompressing
+          if (isVariableFontWoff2(woff2Data)) {
+            hasVariableFonts = true
+            logger.debug(`Skipping variable font (fvar in WOFF2): ${filename}`)
+            continue
+          }
+
+          // Decompress WOFF2 to TTF
+          const ttfData = await decompress(woff2Data).catch((e: Error) => {
+            logger.warn(`Failed to convert ${filename} to TTF: ${e}`)
+            return null
+          })
+
+          if (!ttfData)
+            continue
+
+          // Safety check: verify decompressed data isn't variable
+          if (isVariableFontData(Buffer.from(ttfData))) {
+            hasVariableFonts = true
+            logger.debug(`Skipping variable font (fvar in TTF): ${filename}`)
+            continue
+          }
+
+          await writeFile(ttfPath, Buffer.from(ttfData))
+
+          if (!existsSync(ttfPath) || fs.statSync(ttfPath).size === 0) {
+            logger.warn(`Conversion produced empty or no file: ${filename}`)
+            continue
+          }
+
+          logger.info(`Converted ${filename} → ${ttfFilename} for Satori`)
+          convertedFiles.add(filename)
         }
-        else {
-          woff2Path = join(nuxt.options.rootDir, 'public', font.src.slice(1))
+
+        if (hasVariableFonts) {
+          logger.info(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
         }
 
-        if (!woff2Path) {
-          logger.debug(`WOFF2 font not found locally (or empty), skipping: ${font.src}`)
-          continue
+        fontProcessingDone = true
+      })
+
+      // Copy converted TTFs to output after Nitro copies publicAssets
+      nuxt.hook('nitro:build:public-assets' as any, (nitro: any) => {
+        const ttfSourceDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+        if (!existsSync(ttfSourceDir))
+          return
+
+        const ttfFiles = fs.readdirSync(ttfSourceDir).filter(f => f.endsWith('.ttf'))
+        if (ttfFiles.length === 0)
+          return
+
+        const outputDir = join(nitro.options.output.publicDir, '_fonts')
+        fs.mkdirSync(outputDir, { recursive: true })
+
+        for (const file of ttfFiles) {
+          const src = join(ttfSourceDir, file)
+          const dest = join(outputDir, file)
+          fs.copyFileSync(src, dest)
         }
-
-        const woff2Data = await readFile(woff2Path)
-
-        // Check WOFF2 table directory for fvar before decompressing
-        if (isVariableFontWoff2(woff2Data)) {
-          hasVariableFonts = true
-          logger.debug(`Skipping variable font (fvar in WOFF2): ${filename}`)
-          continue
-        }
-
-        // Decompress WOFF2 to TTF
-        const ttfData = await decompress(woff2Data).catch((e: Error) => {
-          logger.warn(`Failed to convert ${filename} to TTF: ${e}`)
-          return null
-        })
-
-        if (!ttfData)
-          continue
-
-        // Safety check: verify decompressed data isn't variable
-        if (isVariableFontData(Buffer.from(ttfData))) {
-          hasVariableFonts = true
-          logger.debug(`Skipping variable font (fvar in TTF): ${filename}`)
-          continue
-        }
-
-        await writeFile(ttfPath, Buffer.from(ttfData))
-
-        if (!existsSync(ttfPath) || fs.statSync(ttfPath).size === 0) {
-          logger.warn(`Conversion produced empty or no file: ${filename}`)
-          continue
-        }
-
-        logger.info(`Converted ${filename} → ${ttfFilename} for Satori`)
-        convertedFiles.add(filename)
-      }
-
-      if (hasVariableFonts) {
-        logger.info(`Variable fonts detected. Satori does not support variable font weights - text will render at default weight. Use specific weights (e.g., weights: [400, 700]) instead of ranges for proper weight support.`)
-      }
-
-      fontProcessingDone = true
-    })
-
-    // Copy converted TTFs to output after Nitro copies publicAssets
-    nuxt.hook('nitro:build:public-assets' as any, (nitro: any) => {
-      const ttfSourceDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
-      if (!existsSync(ttfSourceDir))
-        return
-
-      const ttfFiles = fs.readdirSync(ttfSourceDir).filter(f => f.endsWith('.ttf'))
-      if (ttfFiles.length === 0)
-        return
-
-      const outputDir = join(nitro.options.output.publicDir, '_fonts')
-      fs.mkdirSync(outputDir, { recursive: true })
-
-      for (const file of ttfFiles) {
-        const src = join(ttfSourceDir, file)
-        const dest = join(outputDir, file)
-        fs.copyFileSync(src, dest)
-      }
-      logger.debug(`Copied ${ttfFiles.length} converted TTF fonts to output`)
-    })
+        logger.debug(`Copied ${ttfFiles.length} converted TTF fonts to output`)
+      })
+    } // end if (hasNuxtFonts)
 
     registerTypeTemplates({
       nuxt,

@@ -4,6 +4,7 @@ import NuxtOgImage from '../../../src/module'
 export default defineNuxtConfig({
   extends: ['../.base'],
   modules: [
+    '@nuxt/fonts',
     NuxtOgImage,
   ],
 

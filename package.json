@@ -166,6 +166,7 @@
     "@nuxt/content": "catalog:",
     "@nuxt/devtools": "catalog:",
     "@nuxt/devtools-ui-kit": "catalog:",
+    "@nuxt/fonts": "catalog:",
     "@nuxt/icon": "catalog:",
     "@nuxt/image": "catalog:",
     "@nuxt/module-builder": "catalog:",
