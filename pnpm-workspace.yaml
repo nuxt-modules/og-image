@@ -75,7 +75,6 @@ catalog:
   jest-image-snapshot: ^6.5.1
   jiti: ^2.6.1
   json-editor-vue: ^0.18.1
-  linkedom: ^0.18.12
   magic-string: ^0.30.21
   magicast: ^0.5.1
   mocked-exports: ^0.1.1
@@ -104,6 +103,7 @@ catalog:
   tinyglobby: ^0.2.15
   typescript: ^5.9.3
   ufo: ^1.6.3
+  ultrahtml: ^1.6.0
   unplugin: ^3.0.0
   unwasm: ^0.5.3
   vitest: ^4.0.18

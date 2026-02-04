@@ -1,5 +1,7 @@
+import type { ElementNode, Node, TextNode } from 'ultrahtml'
 import type { OgImageRenderEventContext } from '../../../types'
-import { parseHTML } from 'linkedom'
+import { ELEMENT_NODE, parse, renderSync, TEXT_NODE } from 'ultrahtml'
+import { querySelector } from 'ultrahtml/selector'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../satori/transforms/emojis'
@@ -29,77 +31,78 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
   }
 
   const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
-  const { document } = parseHTML(template)
-  // linkedom puts the content at document.documentElement when parsing fragments
-  const root = document.documentElement as Element
-
+  const doc = parse(template)
+  const root = querySelector(doc, 'div') as ElementNode
   return elementToNode(root, ctx)
 }
 
-function elementToNode(el: Element, ctx: OgImageRenderEventContext): TakumiNode {
-  const tagName = el.tagName.toLowerCase()
+function getTextContent(node: Node): string {
+  if (node.type === TEXT_NODE)
+    return (node as TextNode).value
+  if (node.type === ELEMENT_NODE) {
+    return (node as ElementNode).children.map(child => getTextContent(child)).join('')
+  }
+  return ''
+}
 
-  // Handle images
-  if (tagName === 'img') {
+function elementToNode(el: ElementNode, ctx: OgImageRenderEventContext): TakumiNode {
+  const { style, class: cls, src, width, height } = el.attributes
+
+  if (el.name === 'img') {
     return {
       type: 'image',
-      src: resolveImageSrc(el.getAttribute('src') || '', ctx),
-      width: Number(el.getAttribute('width')) || undefined,
-      height: Number(el.getAttribute('height')) || undefined,
-      tw: el.getAttribute('class') || undefined,
-      style: parseStyleAttr(el.getAttribute('style')),
+      src: resolveImageSrc(src || '', ctx),
+      width: Number(width) || undefined,
+      height: Number(height) || undefined,
+      tw: cls || undefined,
+      style: parseStyleAttr(style),
     }
   }
 
-  // Handle SVG - convert to data URI
-  if (tagName === 'svg') {
-    const svgString = el.outerHTML
+  if (el.name === 'svg') {
+    const svgString = renderSync(el)
     const dataUri = `data:image/svg+xml;base64,${Buffer.from(svgString).toString('base64')}`
     return {
       type: 'image',
       src: dataUri,
-      width: Number(el.getAttribute('width')) || undefined,
-      height: Number(el.getAttribute('height')) || undefined,
+      width: Number(width) || undefined,
+      height: Number(height) || undefined,
     }
   }
 
-  // Handle text-only elements
-  const firstChild = el.childNodes[0]
-  if (el.childNodes.length === 1 && firstChild?.nodeType === 3) {
+  const firstChild = el.children[0]
+  if (el.children.length === 1 && firstChild?.type === TEXT_NODE) {
     return {
       type: 'text',
-      text: el.textContent || '',
-      tw: el.getAttribute('class') || undefined,
-      style: parseStyleAttr(el.getAttribute('style')),
+      text: getTextContent(el),
+      tw: cls || undefined,
+      style: parseStyleAttr(style),
     }
   }
 
-  // Handle containers
   const children: TakumiNode[] = []
-  for (const child of el.childNodes) {
-    if (child.nodeType === 1)
-      children.push(elementToNode(child as Element, ctx))
-    else if (child.nodeType === 3 && child.textContent?.trim())
-      children.push({ type: 'text', text: child.textContent.trim() })
+  for (const child of el.children) {
+    if (child.type === ELEMENT_NODE)
+      children.push(elementToNode(child as ElementNode, ctx))
+    else if (child.type === TEXT_NODE && (child as TextNode).value.trim())
+      children.push({ type: 'text', text: (child as TextNode).value.trim() })
   }
 
   return {
     type: 'container',
     children: children.length ? children : undefined,
-    tw: el.getAttribute('class') || undefined,
-    style: parseStyleAttr(el.getAttribute('style')),
+    tw: cls || undefined,
+    style: parseStyleAttr(style),
   }
 }
 
 function resolveImageSrc(src: string, _ctx: OgImageRenderEventContext): string {
-  // Already a data URI or absolute URL
   if (src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://'))
     return src
-  // Relative path - return as-is and let Takumi handle it
   return src
 }
 
-function parseStyleAttr(style: string | null): Record<string, any> | undefined {
+function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
   if (!style)
     return undefined
   const result: Record<string, any> = {}

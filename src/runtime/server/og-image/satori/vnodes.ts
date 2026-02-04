@@ -1,6 +1,8 @@
+import type { ElementNode, TextNode } from 'ultrahtml'
 import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../types'
 import resolvedFonts from '#og-image/fonts'
-import { parseHTML } from 'linkedom'
+import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
+import { querySelector } from 'ultrahtml/selector'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
 import classes from './plugins/classes'
@@ -14,17 +16,11 @@ import { applyEmojis } from './transforms/emojis'
 import { applyInlineCss } from './transforms/inlineCss'
 import { walkSatoriTree } from './utils'
 
-/**
- * Convert kebab-case to camelCase for CSS properties
- */
 function camelCase(str: string): string {
   return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
 }
 
-/**
- * Parse inline style attribute into object with camelCased keys
- */
-function parseStyleAttr(style: string | null): Record<string, any> | undefined {
+function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
   if (!style)
     return undefined
   const result: Record<string, any> = {}
@@ -40,35 +36,24 @@ function parseStyleAttr(style: string | null): Record<string, any> | undefined {
   return Object.keys(result).length ? result : undefined
 }
 
-/**
- * Convert a linkedom Element to Satori VNode format
- */
-function elementToVNode(el: Element): VNode {
-  const tagName = el.tagName.toLowerCase()
+function elementToVNode(el: ElementNode): VNode {
   const props: VNode['props'] = {}
 
-  // Parse style attribute
-  const style = parseStyleAttr(el.getAttribute('style'))
-  if (style)
-    props.style = style
+  const { style, ...attrs } = el.attributes
+  const parsedStyle = parseStyleAttr(style)
+  if (parsedStyle)
+    props.style = parsedStyle
 
-  // Copy other relevant attributes (class will be handled by twClasses plugin)
-  for (const attr of el.attributes) {
-    if (attr.name === 'style')
-      continue
-    props[attr.name] = attr.value
-  }
+  for (const [name, value] of Object.entries(attrs))
+    props[name] = value
 
-  // Process children
   const children: (VNode | string)[] = []
-  for (const child of el.childNodes) {
-    if (child.nodeType === 1) {
-      // Element node
-      children.push(elementToVNode(child as Element))
+  for (const child of el.children) {
+    if (child.type === ELEMENT_NODE) {
+      children.push(elementToVNode(child as ElementNode))
     }
-    else if (child.nodeType === 3) {
-      // Text node - only add if non-empty
-      const text = child.textContent || ''
+    else if (child.type === TEXT_NODE) {
+      const text = (child as TextNode).value
       if (text.trim())
         children.push(text)
     }
@@ -77,15 +62,12 @@ function elementToVNode(el: Element): VNode {
   if (children.length)
     props.children = children
 
-  return { type: tagName, props } as VNode
+  return { type: el.name, props } as VNode
 }
 
-/**
- * Convert HTML string to Satori VNode using linkedom
- */
 function htmlToVNode(html: string): VNode {
-  const { document } = parseHTML(html)
-  const root = document.querySelector('div')
+  const doc = parse(html)
+  const root = querySelector(doc, 'div') as ElementNode | null
   if (!root)
     throw new Error('Failed to parse HTML - no root div found')
   return elementToVNode(root)

@@ -1,20 +1,16 @@
+import type { ElementNode, TextNode } from 'ultrahtml'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { getEmojiSvg } from '#og-image/emoji-transform'
-import { parseHTML } from 'linkedom'
+import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
+import { querySelector } from 'ultrahtml/selector'
 import { RE_MATCH_EMOJIS } from '../transforms/emojis/emoji-utils'
 import { defineSatoriTransformer } from '../utils'
 
-/**
- * Convert kebab-case to camelCase for CSS properties
- */
 function camelCase(str: string): string {
   return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
 }
 
-/**
- * Parse inline style attribute into object with camelCased keys
- */
-function parseStyleAttr(style: string | null): Record<string, any> | undefined {
+function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
   if (!style)
     return undefined
   const result: Record<string, any> = {}
@@ -30,30 +26,24 @@ function parseStyleAttr(style: string | null): Record<string, any> | undefined {
   return Object.keys(result).length ? result : undefined
 }
 
-/**
- * Convert a linkedom Element to Satori VNode format
- */
-function elementToVNode(el: Element): VNode {
-  const tagName = el.tagName.toLowerCase()
+function elementToVNode(el: ElementNode): VNode {
   const props: VNode['props'] = {}
 
-  const style = parseStyleAttr(el.getAttribute('style'))
-  if (style)
-    props.style = style
+  const { style, ...attrs } = el.attributes
+  const parsedStyle = parseStyleAttr(style)
+  if (parsedStyle)
+    props.style = parsedStyle
 
-  for (const attr of el.attributes) {
-    if (attr.name === 'style')
-      continue
-    props[attr.name] = attr.value
-  }
+  for (const [name, value] of Object.entries(attrs))
+    props[name] = value
 
   const children: (VNode | string)[] = []
-  for (const child of el.childNodes) {
-    if (child.nodeType === 1) {
-      children.push(elementToVNode(child as Element))
+  for (const child of el.children) {
+    if (child.type === ELEMENT_NODE) {
+      children.push(elementToVNode(child as ElementNode))
     }
-    else if (child.nodeType === 3) {
-      const text = child.textContent || ''
+    else if (child.type === TEXT_NODE) {
+      const text = (child as TextNode).value
       if (text.trim())
         children.push(text)
     }
@@ -62,15 +52,12 @@ function elementToVNode(el: Element): VNode {
   if (children.length)
     props.children = children
 
-  return { type: tagName, props } as VNode
+  return { type: el.name, props } as VNode
 }
 
-/**
- * Parse SVG string to VNode
- */
 function svgToVNode(svg: string): VNode | null {
-  const { document } = parseHTML(svg)
-  const svgEl = document.querySelector('svg')
+  const doc = parse(svg)
+  const svgEl = querySelector(doc, 'svg') as ElementNode | null
   if (!svgEl)
     return null
   return elementToVNode(svgEl)
