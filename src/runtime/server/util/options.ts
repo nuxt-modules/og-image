@@ -41,12 +41,20 @@ function getComponentBaseName(component: OgImageComponent): string {
  * Find components matching a user-provided name.
  */
 function resolveComponent(name: string): { component: OgImageComponent, renderer: RendererType } {
+  // First check for exact match against registered component pascalNames
+  const exactMatch = componentNames.find((c: OgImageComponent) => c.pascalName === name)
+  if (exactMatch)
+    return { component: exactMatch, renderer: exactMatch.renderer }
+
   const { baseName, renderer } = parseInputName(name)
+
+  // Also strip OgImage prefix from baseName for matching (handles OgImageCustomFonts → CustomFonts)
+  const strippedBaseName = baseName.replace(/^OgImage/, '')
 
   // find all components whose base name matches (supports shorthand like 'Banner' matching 'OgImageBannerSatori')
   const matches = componentNames.filter((c: OgImageComponent) => {
     const cBase = getComponentBaseName(c)
-    return cBase === baseName || cBase.endsWith(baseName)
+    return cBase === baseName || cBase === strippedBaseName || cBase.endsWith(baseName) || cBase.endsWith(strippedBaseName)
   })
 
   // filter by renderer if specified
