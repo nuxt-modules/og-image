@@ -111,7 +111,7 @@ catalog:
   vue-router: ^5.0.2
   vue-tsc: ^3.2.4
   wawoff2: ^2.0.1
-  wrangler: ^4.61.1
+  wrangler: ^4.62.0
   yoga-wasm-web: ^0.3.3
 onlyBuiltDependencies:
   - '@parcel/watcher'
