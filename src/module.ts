@@ -43,6 +43,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+import { ensureProviderDependencies, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -592,10 +593,10 @@ export default defineNuxtModule<ModuleOptions>({
     if (!isAbsolute(publicDirAbs)) {
       publicDirAbs = (publicDirAbs in nuxt.options.alias ? nuxt.options.alias[publicDirAbs] : join(nuxt.options.rootDir, publicDirAbs)) || ''
     }
-    if (!config.zeroRuntime && isProviderEnabledForEnv('satori', nuxt, config)) {
+    // Sharp (JPEG output) — independent of renderer choice
+    if (!config.zeroRuntime) {
       let attemptSharpUsage = false
       if (isProviderEnabledForEnv('sharp', nuxt, config)) {
-        // avoid any sharp logic if user explicitly opts-out
         const userConfiguredExtension = config.defaults.extension
         const hasConfiguredJpegs = userConfiguredExtension && ['jpeg', 'jpg'].includes(userConfiguredExtension)
         const allDeps = {
@@ -611,7 +612,6 @@ export default defineNuxtModule<ModuleOptions>({
             })
           }
           else {
-            // if we can import it then we'll use it
             await import('sharp')
               .catch(() => {})
               .then(() => {
@@ -620,7 +620,6 @@ export default defineNuxtModule<ModuleOptions>({
           }
         }
         else if (hasConfiguredJpegs) {
-          // sharp is supported but not installed, and JPEGs need sharp for satori/takumi
           logger.warn('You have enabled `JPEG` images. These require the `sharp` dependency which is missing, installing it for you.')
           await ensureDependencies(['sharp'])
           logger.warn('Support for `sharp` is limited so check the compatibility guide.')
@@ -628,29 +627,11 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
       if (!attemptSharpUsage) {
-        // disable sharp
         config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
           runtime: { sharp: false },
           dev: { sharp: false },
           prerender: { sharp: false },
         })
-      }
-      if (isProviderEnabledForEnv('resvg', nuxt, config)) {
-        // let's check we can access resvg
-        await import('@resvg/resvg-js')
-          .catch(() => {
-            logger.warn('ReSVG is missing dependencies for environment. Falling back to WASM version, this may slow down PNG rendering.')
-            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-              dev: { resvg: 'wasm-fs' },
-              prerender: { resvg: 'wasm-fs' },
-            })
-            // swap out runtime node for wasm if we have a broken dependency
-            if (targetCompatibility.resvg === 'node') {
-              config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-                runtime: { resvg: 'wasm' },
-              })
-            }
-          })
       }
     }
 
@@ -737,15 +718,6 @@ export default defineNuxtModule<ModuleOptions>({
         }
       })
 
-    // community templates only in dev - must be ejected for production
-    if (nuxt.options.dev) {
-      addComponentsDir({
-        path: resolve('./runtime/app/components/Templates/Community'),
-        island: true,
-        watch: IS_MODULE_DEVELOPMENT,
-      })
-    }
-
     addComponent({
       name: 'OgImageScreenshot',
       filePath: resolve(`./runtime/app/components/OgImage/OgImageScreenshot`),
@@ -820,11 +792,74 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
     }
-    // Only include community template renderers if user has no components of their own
-    // Use only the configured default renderer to avoid bundling unused WASM binaries
+    // No user components — ask which renderer to use (dev) or default (prod)
     if (!hasUserComponents) {
-      ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
+      if (nuxt.options.dev && !nuxt.options._prepare) {
+        const renderer = await promptForRendererSelection()
+        ogImageComponentCtx.detectedRenderers.add(renderer)
+      }
+      else {
+        ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
+      }
     }
+
+    // Ensure renderer dependencies are installed for each detected renderer
+    const availableRenderers = new Set<RendererType>()
+    if (!config.zeroRuntime) {
+      for (const renderer of ogImageComponentCtx.detectedRenderers) {
+        const binding = getRecommendedBinding(renderer, targetCompatibility)
+        const missing = await getMissingDependencies(renderer, binding)
+        if (missing.length === 0) {
+          availableRenderers.add(renderer)
+        }
+        else if (nuxt.options.dev && !nuxt.options._prepare) {
+          logger.warn(`${renderer} renderer requires: ${missing.join(', ')}`)
+          const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
+          if (success) {
+            availableRenderers.add(renderer)
+          }
+          else {
+            logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
+          }
+        }
+        else {
+          logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+        }
+        // Set resvg WASM fallback compatibility when satori resolved to wasm binding
+        if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
+          logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
+          config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+            dev: { resvg: 'wasm-fs' },
+            prerender: { resvg: 'wasm-fs' },
+          })
+          if (targetCompatibility.resvg === 'node') {
+            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+              runtime: { resvg: 'wasm' },
+            })
+          }
+        }
+      }
+    }
+    else {
+      // zeroRuntime — all detected renderers considered available
+      for (const renderer of ogImageComponentCtx.detectedRenderers)
+        availableRenderers.add(renderer)
+    }
+
+    // Register community templates filtered by available renderers (dev only)
+    if (nuxt.options.dev) {
+      const rendererPatterns = [...availableRenderers]
+        .map(r => `**/*.${r}.vue`)
+      if (rendererPatterns.length > 0) {
+        addComponentsDir({
+          path: resolve('./runtime/app/components/Templates/Community'),
+          pattern: rendererPatterns,
+          island: true,
+          watch: IS_MODULE_DEVELOPMENT,
+        })
+      }
+    }
+
     nuxt.hook('components:extend', (components) => {
       ogImageComponentCtx.components = []
       // Don't clear detectedRenderers - pre-scan already populated it and nitro:init may have already fired
@@ -903,6 +938,19 @@ export default defineNuxtModule<ModuleOptions>({
                 renderer,
               })
             })
+        }
+      }
+
+      // Warn about new renderers with missing dependencies (HMR case)
+      if (nuxt.options.dev) {
+        for (const renderer of ogImageComponentCtx.detectedRenderers) {
+          if (!availableRenderers.has(renderer)) {
+            const binding = getRecommendedBinding(renderer, targetCompatibility)
+            getMissingDependencies(renderer, binding).then((missing) => {
+              if (missing.length > 0)
+                logger.warn(`New ${renderer} component detected but dependencies missing: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+            })
+          }
         }
       }
 
