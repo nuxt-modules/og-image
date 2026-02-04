@@ -1,9 +1,9 @@
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
-import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
+import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -32,7 +32,7 @@ catch {
 // Check if vercel CLI is available and authenticated
 let hasVercel = false
 try {
-  await execa('vercel', ['whoami'])
+  await exec('vercel', ['whoami'])
   hasVercel = true
 }
 catch {
@@ -47,15 +47,19 @@ const vercelScope = process.env.VERCEL_SCOPE || 'my-team-47a10b37'
 let deploymentUrl = ''
 
 async function buildFixture() {
-  await execa('nuxt', ['build'], {
-    cwd: fixtureDir,
-    env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
+  await exec('nuxt', ['build'], {
+    nodeOptions: {
+      cwd: fixtureDir,
+      env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
+    },
   })
 }
 
 async function deployToVercel(): Promise<string> {
-  const { stdout } = await execa('vercel', ['deploy', '--prebuilt', '--yes', '--scope', vercelScope], {
-    cwd: fixtureDir,
+  const { stdout } = await exec('vercel', ['deploy', '--prebuilt', '--yes', '--scope', vercelScope], {
+    nodeOptions: {
+      cwd: fixtureDir,
+    },
   })
   // vercel deploy returns the deployment URL as the last line
   const url = stdout.trim().split('\n').pop()!
@@ -63,7 +67,9 @@ async function deployToVercel(): Promise<string> {
 }
 
 async function deleteDeployment(url: string) {
-  await execa('vercel', ['rm', url, '--yes', '--scope', vercelScope]).catch(() => {})
+  await exec('vercel', ['rm', url, '--yes', '--scope', vercelScope], {
+    throwOnError: false,
+  })
 }
 
 describe('vercel-edge-satori', () => {

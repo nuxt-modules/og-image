@@ -2,10 +2,10 @@ import type { ChildProcess } from 'node:child_process'
 import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
-import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
+import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -34,7 +34,7 @@ catch {
 // Check if wrangler is available
 let hasWrangler = false
 try {
-  await execa('wrangler', ['--version'])
+  await exec('wrangler', ['--version'])
   hasWrangler = true
 }
 catch {
@@ -48,9 +48,11 @@ let wranglerProcess: ChildProcess | null = null
 let serverUrl = ''
 
 async function buildFixture() {
-  await execa('nuxt', ['build'], {
-    cwd: fixtureDir,
-    env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
+  await exec('nuxt', ['build'], {
+    nodeOptions: {
+      cwd: fixtureDir,
+      env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
+    },
   })
 }
 

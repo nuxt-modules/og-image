@@ -1,8 +1,8 @@
 import fs, { readFile, writeFile } from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
-import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
+import { exec } from 'tinyexec'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -31,12 +31,12 @@ describe('zeroRuntime', () => {
   })
 
   it('basic', async () => {
-    // use execa to run `nuxi generate` in the rootDir
-    await execa('nuxt', ['build'], { cwd: resolve('../fixtures/zero-runtime') })
+    // use tinyexec to run `nuxi generate` in the rootDir
+    await exec('nuxt', ['build'], { nodeOptions: { cwd: resolve('../fixtures/zero-runtime') } })
     // use globby and fs tools to read the images
     const serverOutputPath = resolve('../fixtures/zero-runtime/.output/server')
     // do a du -sh */
-    const { stdout } = await execa('du', ['-sh', serverOutputPath])
+    const { stdout } = await exec('du', ['-sh', serverOutputPath])
     // eslint-disable-next-line no-console,style/no-tabs
     console.log(`Size: ${stdout.split('	')[0]}`)
     const imagePath = resolve('../fixtures/zero-runtime/.output/public/_og')
@@ -83,8 +83,8 @@ describe('zeroRuntime', () => {
     await writeFile(nuxtConfigPath, modifiedConfig)
 
     // clean and build
-    await execa('nuxt', ['cleanup'], { cwd: fixtureDir })
-    await execa('nuxt', ['build'], { cwd: fixtureDir })
+    await exec('nuxt', ['cleanup'], { nodeOptions: { cwd: fixtureDir } })
+    await exec('nuxt', ['build'], { nodeOptions: { cwd: fixtureDir } })
 
     // verify images were generated (build would fail if fonts couldn't be resolved)
     const imagePath = resolve(fixtureDir, '.output/public/_og')

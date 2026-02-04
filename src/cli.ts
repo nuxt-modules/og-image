@@ -378,15 +378,15 @@ async function installNuxtFonts(): Promise<void> {
   spinner.start('Adding @nuxt/fonts module...')
 
   // Use nuxi module add
-  const { execa } = await import('execa')
-  await execa('npx', ['nuxi', 'module', 'add', '@nuxt/fonts'], { cwd })
-    .then(() => {
-      spinner.stop('@nuxt/fonts module added')
-    })
-    .catch(() => {
-      spinner.stop('Failed to add @nuxt/fonts')
-      p.log.warn('Run manually: npx nuxi module add @nuxt/fonts')
-    })
+  const { exec } = await import('tinyexec')
+  try {
+    await exec('npx', ['nuxi', 'module', 'add', '@nuxt/fonts'], { nodeOptions: { cwd } })
+    spinner.stop('@nuxt/fonts module added')
+  }
+  catch {
+    spinner.stop('Failed to add @nuxt/fonts')
+    p.log.warn('Run manually: npx nuxi module add @nuxt/fonts')
+  }
 }
 
 // Main migrate command
