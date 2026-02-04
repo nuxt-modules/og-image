@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import type { FontConfig, SatoriFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
-import { fontRequirements } from '#og-image/font-requirements'
+import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import { fontCache } from './cache/lru'
 
@@ -12,6 +12,8 @@ export interface LoadFontsOptions {
    * otherwise they will be skipped.
    */
   supportsWoff2: boolean
+  /** Component pascalName — filters fonts to only what this component needs */
+  component?: string
 }
 
 async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<BufferSource | null> {
@@ -60,7 +62,9 @@ function fontMatchesRequirements(font: FontConfig, requirements: typeof fontRequ
 }
 
 export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<SatoriFontConfig[]> {
-  const fonts = (resolvedFonts as FontConfig[]).filter(f => fontMatchesRequirements(f, fontRequirements))
+  const componentReqs = options.component ? (componentFontMap as Record<string, typeof fontRequirements>)[options.component] : null
+  const reqs = (componentReqs && componentReqs.isComplete) ? componentReqs : fontRequirements
+  const fonts = (resolvedFonts as FontConfig[]).filter(f => fontMatchesRequirements(f, reqs))
 
   const results = await Promise.all(
     fonts.map(async (f) => {

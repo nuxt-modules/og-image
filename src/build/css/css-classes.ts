@@ -38,6 +38,19 @@ export interface FontRequirements {
   isComplete: boolean
 }
 
+export interface ComponentFontRequirements {
+  weights: number[]
+  styles: Array<'normal' | 'italic'>
+  isComplete: boolean
+}
+
+export interface FontRequirementsResult {
+  /** Global union (for build-time font bundling + WOFF2 filtering) */
+  global: FontRequirements
+  /** Per-component map keyed by pascalName */
+  components: Record<string, ComponentFontRequirements>
+}
+
 interface CssClassCache {
   // keyed by component hash (already computed from path+mtime)
   files: Record<string, string[]>
@@ -121,7 +134,8 @@ export async function scanComponentClasses(
       .catch(() => ({ files: {} }))
   }
 
-  const seenHashes = new Set<string>()
+  const seenKeys = new Set<string>()
+  const seenPaths = new Set<string>()
   let cacheHits = 0
   let cacheMisses = 0
 
@@ -130,10 +144,17 @@ export async function scanComponentClasses(
     if (!component.path)
       continue
 
-    seenHashes.add(component.hash)
+    // Dedup by path - same file only scanned once
+    if (seenPaths.has(component.path))
+      continue
+    seenPaths.add(component.path)
 
-    // Use cached classes if hash matches
-    const cached = cache.files[component.hash]
+    // Use hash as cache key, fall back to path when hash is empty
+    const cacheKey = component.hash || component.path
+    seenKeys.add(cacheKey)
+
+    // Use cached classes if available
+    const cached = cache.files[cacheKey]
     if (cached) {
       cacheHits++
       for (const cls of cached)
@@ -145,20 +166,23 @@ export async function scanComponentClasses(
     cacheMisses++
     logger?.debug(`CSS: Scanning component ${component.path}`)
     const content = await readFile(component.path, 'utf-8').catch(() => null)
-    if (!content)
+    if (!content) {
+      // Cache empty result to avoid re-scanning on next invocation
+      cache.files[cacheKey] = []
       continue
+    }
 
     const fileClasses = await extractClassesFromVue(content)
-    cache.files[component.hash] = fileClasses
+    cache.files[cacheKey] = fileClasses
 
     for (const cls of fileClasses)
       classes.add(cls)
   }
 
   // Cleanup stale cache entries (components no longer present)
-  for (const hash of Object.keys(cache.files)) {
-    if (!seenHashes.has(hash))
-      delete cache.files[hash]
+  for (const key of Object.keys(cache.files)) {
+    if (!seenKeys.has(key))
+      delete cache.files[key]
   }
 
   // Write cache
@@ -321,10 +345,11 @@ export async function scanFontRequirements(
   components: OgImageComponent[],
   logger?: ConsolaInstance,
   cacheDir?: string,
-): Promise<FontRequirements> {
+): Promise<FontRequirementsResult> {
   const allWeights = new Set<number>()
   const allStyles = new Set<'normal' | 'italic'>(['normal'])
   let isComplete = true
+  const componentMap: Record<string, ComponentFontRequirements> = {}
 
   // Load cache
   const cacheFile = cacheDir ? join(cacheDir, 'cache', 'og-image', 'font-requirements.json') : null
@@ -335,31 +360,50 @@ export async function scanFontRequirements(
       .catch(() => ({ files: {} }))
   }
 
-  const seenHashes = new Set<string>()
+  const seenKeys = new Set<string>()
+  const seenPaths = new Set<string>()
 
   for (const component of components) {
     if (!component.path)
       continue
 
-    seenHashes.add(component.hash)
+    // Dedup by path
+    if (seenPaths.has(component.path))
+      continue
+    seenPaths.add(component.path)
+
+    const cacheKey = component.hash || component.path
+    seenKeys.add(cacheKey)
 
     // Use cache if available
-    const cached = cache.files[component.hash]
+    const cached = cache.files[cacheKey]
     if (cached) {
       for (const w of cached.weights) allWeights.add(w)
       for (const s of cached.styles) allStyles.add(s)
       if (!cached.isComplete)
         isComplete = false
+      // Store per-component (always include 400 as default)
+      const compWeights = cached.weights.length ? [...cached.weights] : [400]
+      if (!compWeights.includes(400))
+        compWeights.push(400)
+      componentMap[component.pascalName] = {
+        weights: compWeights.sort((a, b) => a - b),
+        styles: [...cached.styles] as Array<'normal' | 'italic'>,
+        isComplete: cached.isComplete,
+      }
       continue
     }
 
     // Parse component
     const content = await readFile(component.path, 'utf-8').catch(() => null)
-    if (!content)
+    if (!content) {
+      cache.files[cacheKey] = { weights: [], styles: ['normal'], isComplete: true }
+      componentMap[component.pascalName] = { weights: [400], styles: ['normal'], isComplete: true }
       continue
+    }
 
     const result = await extractFontRequirementsFromVue(content)
-    cache.files[component.hash] = {
+    cache.files[cacheKey] = {
       weights: [...result.weights],
       styles: [...result.styles] as Array<'normal' | 'italic'>,
       isComplete: result.isComplete,
@@ -369,12 +413,22 @@ export async function scanFontRequirements(
     for (const s of result.styles) allStyles.add(s)
     if (!result.isComplete)
       isComplete = false
+
+    // Store per-component (always include 400 as default)
+    const compWeights = [...result.weights]
+    if (!compWeights.includes(400))
+      compWeights.push(400)
+    componentMap[component.pascalName] = {
+      weights: compWeights.sort((a, b) => a - b),
+      styles: [...result.styles] as Array<'normal' | 'italic'>,
+      isComplete: result.isComplete,
+    }
   }
 
   // Cleanup stale entries
-  for (const hash of Object.keys(cache.files)) {
-    if (!seenHashes.has(hash))
-      delete cache.files[hash]
+  for (const key of Object.keys(cache.files)) {
+    if (!seenKeys.has(key))
+      delete cache.files[key]
   }
 
   // Write cache
@@ -392,5 +446,8 @@ export async function scanFontRequirements(
 
   logger?.debug(`Fonts: Detected weights [${weights.join(', ')}], styles [${styles.join(', ')}]${isComplete ? '' : ' (incomplete analysis)'}`)
 
-  return { weights, styles, isComplete }
+  return {
+    global: { weights, styles, isComplete },
+    components: componentMap,
+  }
 }

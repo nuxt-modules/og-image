@@ -154,6 +154,8 @@ export interface OgImageOptions<T extends keyof OgImageComponents = keyof OgImag
     format?: 'png' | 'jpeg' | 'webp'
     persistentImages?: Array<{ src: string, data: ArrayBuffer }>
   }
+  /** @deprecated Legacy font override — no longer used at runtime */
+  fonts?: any
   // cache
   cacheMaxAgeSeconds?: number
   /**

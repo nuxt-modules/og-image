@@ -75,7 +75,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const [nodes, fonts] = await Promise.all([
     createTakumiNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: true }),
+    loadAllFonts(event.e, { supportsWoff2: true, component: options.component }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
