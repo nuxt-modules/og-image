@@ -3,6 +3,7 @@ import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildDir } from '#og-image-virtual/build-dir.mjs'
+import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { withBase } from 'ufo'
 
@@ -78,6 +79,13 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
 
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
+  if (import.meta.dev) {
+    const arrayBuffer = await $fetch(fullPath, {
+      responseType: 'arrayBuffer',
+      baseURL: getNitroOrigin(event),
+    }) as ArrayBuffer
+    return Buffer.from(arrayBuffer)
+  }
   const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
   }) as ArrayBuffer

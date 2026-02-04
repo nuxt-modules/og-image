@@ -1016,8 +1016,12 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       // For non-cloudflare (node), use dev-prerender for everything
       return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
     }
+    // Track which WOFF2 files were successfully converted to TTF
+    // Populated by vite:compiled hook, read by virtual module resolution (which runs after)
+    const convertedWoff2Files = new Set<string>()
+
     // Parse fonts from @nuxt/fonts CSS template
-    async function parseFontsFromTemplate(): Promise<Array<{ family: string, src: string, weight: number, style: string, satoriSrc: string, unicodeRange?: string }>> {
+    async function parseFontsFromTemplate(): Promise<Array<{ family: string, src: string, weight: number, style: string, satoriSrc?: string, unicodeRange?: string }>> {
       const templates = nuxt.options.build.templates
       const nuxtFontsTemplate = templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
       if (!nuxtFontsTemplate?.getContents) {
@@ -1079,10 +1083,12 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
 
       // Convert to final format with satoriSrc
       return Array.from(fontMap.values()).map((font) => {
-        // For WOFF2 fonts, satoriSrc points to converted TTF in /_fonts/
-        // For other formats (WOFF, TTF), satoriSrc is same as src
+        // For WOFF2 fonts, only set satoriSrc if the file was actually converted to TTF
+        // Variable fonts and failed conversions won't have a TTF — skip them for satori
+        // For other formats (WOFF, TTF), satoriSrc is same as src (satori supports these)
+        const woff2Filename = font.src.split('/').pop()!
         const satoriSrc = font.isWoff2
-          ? `/_fonts/${font.src.split('/').pop()!.replace('.woff2', '.ttf')}`
+          ? (convertedWoff2Files.has(woff2Filename) ? `/_fonts/${woff2Filename.replace('.woff2', '.ttf')}` : undefined)
           : font.src
         return {
           family: font.family,
@@ -1184,14 +1190,15 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         const parsedFonts = await parseFontsFromTemplate()
         await scanFontRequirementsLazy()
         // Build set of fonts that have a non-WOFF2 source (WOFF/TTF) — no conversion needed
+        // Must include unicodeRange to match dedup granularity (different subsets may only have WOFF2)
         const hasNonWoff2 = new Set(
           parsedFonts
             .filter(f => !f.src.endsWith('.woff2'))
-            .map(f => `${f.family}-${f.weight}-${f.style}`),
+            .map(f => `${f.family}-${f.weight}-${f.style}-${f.unicodeRange || 'default'}`),
         )
         const woff2Fonts = parsedFonts.filter(f =>
           f.src.endsWith('.woff2')
-          && !hasNonWoff2.has(`${f.family}-${f.weight}-${f.style}`)
+          && !hasNonWoff2.has(`${f.family}-${f.weight}-${f.style}-${f.unicodeRange || 'default'}`)
           && fontRequirementsState.weights.includes(f.weight)
           && fontRequirementsState.styles.includes(f.style as 'normal' | 'italic'),
         )
@@ -1215,12 +1222,11 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
           return
         }
 
-        const convertedFiles = new Set<string>()
         let hasVariableFonts = false
 
         for (const font of woff2Fonts) {
           const filename = font.src.split('/').pop()!
-          if (convertedFiles.has(filename))
+          if (convertedWoff2Files.has(filename))
             continue
 
           const ttfFilename = filename.replace('.woff2', '.ttf')
@@ -1235,7 +1241,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
               continue
             }
             logger.debug(`Already converted: ${ttfFilename}`)
-            convertedFiles.add(filename)
+            convertedWoff2Files.add(filename)
             continue
           }
 
@@ -1309,7 +1315,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
           }
 
           logger.info(`Converted ${filename} → ${ttfFilename} for Satori`)
-          convertedFiles.add(filename)
+          convertedWoff2Files.add(filename)
         }
 
         if (hasVariableFonts) {
