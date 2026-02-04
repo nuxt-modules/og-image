@@ -137,9 +137,9 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Normalise options and get renderer from component metadata
   const normalised = normaliseOptions(options)
 
-  // Auto-eject community templates in dev mode
+  // Auto-eject community templates in dev mode (skip devtools requests)
   if (normalised.component?.category === 'community')
-    autoEjectCommunityTemplate(normalised.component, runtimeConfig)
+    autoEjectCommunityTemplate(normalised.component, runtimeConfig, { requestPath: e.path })
 
   const rendererType = normalised.renderer
   const key = normalised.options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)

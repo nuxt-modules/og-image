@@ -9,7 +9,10 @@ import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
 
 export async function imageEventHandler(e: H3Event) {
-  const ctx = await resolveContext(e)
+  const ctx = await resolveContext(e).catch((err: any) => {
+    console.error(`[OG Image] resolveContext error for ${e.path}:`, err?.message || err)
+    throw err
+  })
   if (ctx instanceof H3Error)
     return ctx
 
@@ -81,7 +84,10 @@ export async function imageEventHandler(e: H3Event) {
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
-    image = await renderer.createImage(ctx)
+    image = await renderer.createImage(ctx).catch((err: any) => {
+      console.error(`[OG Image] renderer.createImage error for ${e.path}:`, err?.message || err)
+      throw err
+    })
     if (image instanceof H3Error)
       return image
     if (!image) {

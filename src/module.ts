@@ -42,7 +42,7 @@ import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOV
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, stripRendererSuffix } from './util'
+import { checkLocalChrome, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy } from './util'
 
 export type {
   OgImageComponent,
@@ -796,6 +796,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
+    let hasUserComponents = false
     for (const componentDir of config.componentDirs) {
       for (const root of componentRoots) {
         const path = join(root, componentDir)
@@ -803,15 +804,18 @@ export default defineNuxtModule<ModuleOptions>({
           const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
           for (const file of files) {
             const renderer = getRendererFromFilename(file)
-            if (renderer)
+            if (renderer) {
               ogImageComponentCtx.detectedRenderers.add(renderer)
+              hasUserComponents = true
+            }
           }
         }
       }
     }
-    // Also scan community templates in the module itself
+    // Only include community template renderers if user has no components of their own
+    // This prevents bundling unused renderer bindings (e.g., resvg-wasm for satori when only takumi is used)
     const communityDir = resolve('./runtime/app/components/Templates/Community')
-    if (fs.existsSync(communityDir)) {
+    if (!hasUserComponents && fs.existsSync(communityDir)) {
       const files = fs.readdirSync(communityDir).filter(f => f.endsWith('.vue'))
       for (const file of files) {
         const renderer = getRendererFromFilename(file)
@@ -823,7 +827,6 @@ export default defineNuxtModule<ModuleOptions>({
       ogImageComponentCtx.components = []
       // Don't clear detectedRenderers - pre-scan already populated it and nitro:init may have already fired
       const invalidComponents: string[] = []
-      const baseNameToRenderer = new Map<string, { renderer: RendererType, path: string }>()
 
       // check if the component is in an OgImage component directory
       // Only use directory-based detection (matching CLI migration logic) to avoid false positives
@@ -849,14 +852,6 @@ export default defineNuxtModule<ModuleOptions>({
             invalidComponents.push(component.filePath)
             return
           }
-
-          // Check for duplicate base names with different renderers
-          const baseName = stripRendererSuffix(component.pascalName)
-          const existing = baseNameToRenderer.get(baseName)
-          if (existing && existing.renderer !== renderer) {
-            logger.warn(`Duplicate OG Image component "${baseName}" with different renderers:\n  ${existing.path} (${existing.renderer})\n  ${component.filePath} (${renderer})`)
-          }
-          baseNameToRenderer.set(baseName, { renderer, path: component.filePath })
 
           ogImageComponentCtx.detectedRenderers.add(renderer)
 
@@ -889,15 +884,17 @@ export default defineNuxtModule<ModuleOptions>({
               const renderer = getRendererFromFilename(file)
               if (!renderer)
                 return
-              const name = file.replace('.vue', '')
+              // Convert dot-notation filename to PascalCase to match Nuxt's component naming
+              // e.g., NuxtSeo.satori.vue → NuxtSeoSatori (matching what addComponentsDir produces in dev)
+              const pascalName = file.replace('.vue', '').split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
               const filePath = resolve(communityDir, file)
               // skip if already added (user ejected with same name)
-              if (ogImageComponentCtx.components.some(c => c.pascalName === name))
+              if (ogImageComponentCtx.components.some(c => c.pascalName === pascalName))
                 return
               ogImageComponentCtx.components.push({
                 hash: '',
-                pascalName: name,
-                kebabName: name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+                pascalName,
+                kebabName: pascalName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
                 path: filePath,
                 category: 'community',
                 renderer,

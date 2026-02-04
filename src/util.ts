@@ -41,3 +41,32 @@ export function stripRendererSuffix(name: string): string {
   }
   return name
 }
+
+export type RendererSuffix = typeof VALID_RENDERER_SUFFIXES[number]
+
+export interface ParsedComponentName {
+  baseName: string
+  renderer: RendererSuffix | null
+}
+
+/**
+ * Parse a component name into base name + renderer.
+ * Supports: 'Banner.satori', 'BannerSatori', 'Banner'
+ */
+export function parseComponentName(name: string): ParsedComponentName {
+  // dot notation: 'Banner.satori'
+  for (const suffix of VALID_RENDERER_SUFFIXES) {
+    if (name.endsWith(`.${suffix}`)) {
+      return { baseName: name.slice(0, -(suffix.length + 1)), renderer: suffix }
+    }
+  }
+  // PascalCase suffix: 'BannerSatori'
+  for (const suffix of VALID_RENDERER_SUFFIXES) {
+    const pascalSuffix = suffix.charAt(0).toUpperCase() + suffix.slice(1)
+    if (name.endsWith(pascalSuffix)) {
+      return { baseName: name.slice(0, -pascalSuffix.length), renderer: suffix }
+    }
+  }
+  // bare name: 'Banner'
+  return { baseName: name, renderer: null }
+}

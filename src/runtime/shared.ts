@@ -87,6 +87,7 @@ function filterIsOgImageOption(key: string) {
     'emojis',
     '_query',
     '_hash',
+    'fonts',
     'satori',
     'resvg',
     'sharp',

@@ -3,9 +3,13 @@ import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { buildDir } from '#og-image-virtual/build-dir.mjs'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { withBase } from 'ufo'
+
+function getRootDir(): string {
+  const idx = buildDir.indexOf('/.nuxt')
+  return idx !== -1 ? buildDir.slice(0, idx) : process.cwd()
+}
 
 let fontUrlMapping: Record<string, string> | undefined
 
@@ -17,16 +21,12 @@ async function loadFontUrlMapping(): Promise<Record<string, string>> {
   return fontUrlMapping!
 }
 
-function getRootDir(): string {
-  const idx = buildDir.indexOf('/.nuxt')
-  return idx !== -1 ? buildDir.slice(0, idx) : process.cwd()
-}
-
 export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer> {
   const path = font.src || font.localPath
-  const rootDir = getRootDir()
 
   if (import.meta.prerender) {
+    const rootDir = getRootDir()
+
     // @nuxt/fonts managed fonts (includes converted TTFs from WOFF2)
     if (path.startsWith('/_fonts/')) {
       const filename = path.slice('/_fonts/'.length)
@@ -43,7 +43,6 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       if (cached?.length)
         return cached
 
-      // Try external URL from mapping
       const mapping = await loadFontUrlMapping()
       if (mapping[filename]) {
         const res = await fetch(mapping[filename]).catch(() => null)
@@ -53,7 +52,6 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       throw new Error(`Font ${filename} not found in mapping or cache`)
     }
 
-    // Public directory fonts
     const filename = path.slice(1)
     const data = await readFile(join(rootDir, 'public', filename)).catch(() => null)
       || await readFile(join(rootDir, '.output', 'public', filename)).catch(() => null)
@@ -62,11 +60,10 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     throw new Error(`Font ${filename} not found in public directory`)
   }
 
-  // Runtime: HTTP fetch - need to include app baseURL for font paths
+  // Dev: use event.$fetch for internal routing (handles @nuxt/fonts on-demand serving)
   // For converted TTF fonts, try og-image's TTF cache first
   if (path.startsWith('/_fonts/') && path.endsWith('.ttf')) {
     const filename = path.slice('/_fonts/'.length)
-    // Try og-image's own cache directory (survives Nitro's cache clearing)
     const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
     if (cached?.length)
       return cached
@@ -74,9 +71,8 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
 
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
-  const arrayBuffer = await $fetch(fullPath, {
+  const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
-    baseURL: getNitroOrigin(event),
   }) as ArrayBuffer
   return Buffer.from(arrayBuffer)
 }
