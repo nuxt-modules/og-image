@@ -18,10 +18,10 @@ export async function createBrowser(): Promise<Browser | void> {
       const output = await result
 
       if (output.stderr) {
-        result.process?.stderr.pipe(process.stderr)
+        result.process?.stderr?.pipe(process.stderr)
       }
       if (output.stdout) {
-        result.process?.stdout.pipe(process.stdout)
+        result.process?.stdout?.pipe(process.stdout)
       }
       if (output.exitCode !== 0) {
         logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
