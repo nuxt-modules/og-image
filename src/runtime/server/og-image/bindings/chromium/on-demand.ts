@@ -18,19 +18,14 @@ export async function createBrowser(): Promise<Browser | void> {
       const output = await result
 
       if (output.stderr) {
-        result.process.stderr.pipe(process.stderr)
+        result.process?.stderr.pipe(process.stderr)
       }
       if (output.stdout) {
-        result.process.stdout.pipe(process.stdout)
+        result.process?.stdout.pipe(process.stdout)
       }
-
-      await new Promise<void>((resolve) => {
-        result.process.on('exit', (e) => {
-          if (e !== 0)
-            logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
-          resolve()
-        })
-      })
+      if (output.exitCode !== 0) {
+        logger.error('Failed to install Playwright dependency for og:image generation. Trying anyway...')
+      }
 
       result.kill()
       logger.info('Installed Chromium install for og:image generation.')
