@@ -212,6 +212,15 @@ export async function ensureProviderDependencies(
   return { success: true, installed }
 }
 
+export async function promptForRendererSelection(): Promise<ProviderName> {
+  const renderer = await logger.prompt('Which OG image renderer would you like to use?', {
+    type: 'select',
+    options: PROVIDER_DEPENDENCIES.map(p => p.name),
+    initial: 'satori',
+  })
+  return (renderer as ProviderName) || 'satori'
+}
+
 export async function promptForDependencyInstall(
   pkg: string,
   nuxt: Nuxt,
