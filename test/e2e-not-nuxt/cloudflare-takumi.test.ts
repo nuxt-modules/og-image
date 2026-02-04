@@ -3,10 +3,10 @@ import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
-import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
+import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -35,7 +35,7 @@ catch {
 // Check if wrangler is available
 let hasWrangler = false
 try {
-  await execa('wrangler', ['--version'])
+  await exec('wrangler', ['--version'])
   hasWrangler = true
 }
 catch {
@@ -50,17 +50,20 @@ let serverUrl = ''
 
 async function buildFixture(retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const result = await execa('nuxt', ['build'], {
-      cwd: fixtureDir,
-      env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
-      reject: false,
+    const result = exec('nuxt', ['build'], {
+      nodeOptions: {
+        cwd: fixtureDir,
+        env: { ...process.env, NUXT_OG_IMAGE_SKIP_ONBOARDING: '1' },
+      },
+      throwOnError: false,
     })
-    if (result.exitCode === 0)
+    const output = await result
+    if (output.exitCode === 0)
       return
-    // Retry on native crashes (SIGABRT from glibc heap corruption, SIGSEGV from native bindings)
-    if (attempt < retries && (result.signal === 'SIGABRT' || result.signal === 'SIGSEGV'))
+    // Retry on native crashes
+    if (attempt < retries && (result.aborted || result.killed))
       continue
-    throw result
+    throw output.stdout
   }
 }
 

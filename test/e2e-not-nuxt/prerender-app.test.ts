@@ -1,8 +1,8 @@
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
-import { execa } from 'execa'
 import { globby } from 'globby'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
+import { exec } from 'tinyexec'
 import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -18,8 +18,8 @@ expect.extend({ toMatchImageSnapshot })
 
 describe('prerender', () => {
   it('basic', async () => {
-    // use execa to run `nuxi generate` in the rootDir
-    await execa('nuxt', ['generate'], { cwd: resolve('../fixtures/app-dir') })
+    // use tinyexec to run `nuxi generate` in the rootDir
+    await exec('nuxt', ['generate'], { nodeOptions: { cwd: resolve('../fixtures/app-dir') } })
     // use globby and fs tools to read the images
     const imagePath = resolve('../fixtures/app-dir/.output/public/_og')
     // globby in image path
