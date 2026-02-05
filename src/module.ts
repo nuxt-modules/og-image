@@ -15,7 +15,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, hasNuxtModule, updateTemplates } from '@nuxt/kit'
+import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { createJiti } from 'jiti'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -214,7 +214,6 @@ export default defineNuxtModule<ModuleOptions>({
       optional: true,
     },
     '@nuxt/fonts': {
-      version: '>=0.13.0',
       optional: true,
     },
   },
@@ -293,7 +292,21 @@ export default defineNuxtModule<ModuleOptions>({
       addConfigWarning('chromium-node')
     }
 
-    const hasNuxtFonts = hasNuxtModule('@nuxt/fonts')
+    let hasNuxtFonts = hasNuxtModule('@nuxt/fonts')
+
+    // Check @nuxt/fonts version - require 0.13.0+ for proper font extraction
+    if (hasNuxtFonts && !await hasNuxtModuleCompatibility('@nuxt/fonts', '>=0.13.0')) {
+      const version = await getNuxtModuleVersion('@nuxt/fonts')
+      logger.error(
+        `@nuxt/fonts ${version} is not supported. Version 0.13.0+ is required for OG image font extraction.\n`
+        + `Falling back to bundled Inter font.\n\n`
+        + `To fix, update @nuxt/fonts:\n`
+        + `  pnpm add @nuxt/fonts@latest\n\n`
+        + `Or pin to a specific version in package.json:\n`
+        + `  "@nuxt/fonts": "^0.13.0"`,
+      )
+      hasNuxtFonts = false
+    }
 
     // Warn about wildcard route rules that may break og-image routes
     const routeRules = nuxt.options.routeRules || {}
