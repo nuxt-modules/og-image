@@ -16,6 +16,26 @@ const BREAKPOINTS = { ...DEFAULT_BREAKPOINTS, ...tw4Breakpoints }
 
 const RESPONSIVE_PREFIX_RE = /^(sm|md|lg|xl|2xl):(.+)$/
 const DARK_MODE_PREFIX_RE = /^dark:(.+)$/
+const GAP_CLASS_RE = /^gap(?:-(x|y))?-(\d+(?:\.\d+)?)$/
+
+// Resolve gap class to inline style (Satori wants literal numbers)
+function resolveGapToStyle(cls: string, style: Record<string, any>): boolean {
+  const match = cls.match(GAP_CLASS_RE)
+  if (!match)
+    return false
+
+  const axis = match[1]
+  const value = Number(match[2])
+
+  if (axis === 'x')
+    style.columnGap = value
+  else if (axis === 'y')
+    style.rowGap = value
+  else
+    style.gap = value
+
+  return true
+}
 
 // Convert class prop to tw prop for Satori, handling responsive breakpoints and dark mode
 // Note: TW4 class transformations and unsupported class filtering happen at build time via AssetTransformPlugin
@@ -27,6 +47,7 @@ export default defineSatoriTransformer({
     const isDarkMode = (ctx.options.props as Record<string, any>)?.colorMode === 'dark'
 
     const processedClasses: string[] = []
+    const gapStyles: Record<string, any> = {}
 
     for (const token of classes.split(' ').filter(c => c.trim())) {
       // Check for dark mode prefix first
@@ -43,11 +64,15 @@ export default defineSatoriTransformer({
             const finalClass = respMatch[2]!
             const breakpointWidth = BREAKPOINTS[bp]
             if (breakpointWidth && renderWidth >= breakpointWidth) {
-              processedClasses.push(finalClass)
+              // Handle gap classes
+              if (!resolveGapToStyle(finalClass, gapStyles))
+                processedClasses.push(finalClass)
             }
           }
           else {
-            processedClasses.push(baseClass)
+            // Handle gap classes
+            if (!resolveGapToStyle(baseClass, gapStyles))
+              processedClasses.push(baseClass)
           }
         }
         // else: not dark mode, skip dark: classes
@@ -63,15 +88,22 @@ export default defineSatoriTransformer({
         const breakpointWidth = BREAKPOINTS[bp]
 
         if (breakpointWidth && renderWidth >= breakpointWidth) {
-          // Breakpoint applies - use the base class (strip prefix)
-          processedClasses.push(baseClass)
+          // Handle gap classes
+          if (!resolveGapToStyle(baseClass, gapStyles))
+            processedClasses.push(baseClass)
         }
         // else: breakpoint doesn't apply, skip this class
       }
       else {
-        // Non-responsive class - keep as-is (already transformed at build time)
-        processedClasses.push(token)
+        // Handle gap classes, otherwise keep as-is
+        if (!resolveGapToStyle(token, gapStyles))
+          processedClasses.push(token)
       }
+    }
+
+    // Merge gap styles into node's inline style
+    if (Object.keys(gapStyles).length > 0) {
+      node.props.style = { ...node.props.style, ...gapStyles }
     }
 
     const twClasses = processedClasses.join(' ')
