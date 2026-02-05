@@ -1,10 +1,11 @@
 import type { OgImageComponents } from '#og-image/components'
 import type { ExtractComponentProps, OgImageOptions, OgImagePageScreenshotOptions } from '../../types'
 import { useRuntimeConfig } from 'nuxt/app'
+import { logger } from '../../logger'
 
 export function defineOgImage<T extends keyof OgImageComponents>(_component: T, _props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {}, _options: OgImageOptions = {}) {
   if (import.meta.dev) {
-    console.warn('`defineOgImage()` is skipped as the OG Image module is not enabled.')
+    logger.warn('`defineOgImage()` is skipped as the OG Image module is not enabled.')
   }
 }
 
@@ -13,7 +14,7 @@ export function defineOgImage<T extends keyof OgImageComponents>(_component: T, 
  */
 export function defineOgImageComponent<T extends keyof OgImageComponents>(_component: T, _props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {}, _options: OgImageOptions = {}) {
   if (import.meta.dev) {
-    console.warn('[nuxt-og-image] `defineOgImageComponent()` is deprecated. Use `defineOgImage()` instead. Run `npx nuxt-og-image migrate v6` to auto-migrate.')
+    logger.warn('`defineOgImageComponent()` is deprecated. Use `defineOgImage()` instead. Run `npx nuxt-og-image migrate v6` to auto-migrate.')
   }
 }
 

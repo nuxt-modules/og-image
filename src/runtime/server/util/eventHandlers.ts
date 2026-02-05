@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
 import { createError, H3Error, setHeader } from 'h3'
+import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
 import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
@@ -85,7 +86,7 @@ export async function imageEventHandler(e: H3Event) {
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
     image = await renderer.createImage(ctx).catch((err: any) => {
-      console.error(`[OG Image] renderer.createImage error for ${e.path}:`, err?.message || err)
+      logger.error(`renderer.createImage error for ${e.path}:`, err?.message || err)
       throw err
     })
     if (image instanceof H3Error)
