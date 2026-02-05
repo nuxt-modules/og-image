@@ -43,6 +43,7 @@ function extractVars(css: string): Map<string, string> {
   const rootRe = /:(?:root|host)\s*\{([^}]+)\}/g
   for (const match of css.matchAll(rootRe)) {
     const body = match[1]!
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     const declRe = /(--[\w-]+)\s*:\s*([^;]+);/g
     for (const m of body.matchAll(declRe)) {
       if (m[1] && m[2])
@@ -56,6 +57,7 @@ function resolveAllVars(css: string, vars: Map<string, string>): string {
   let result = css
   let iterations = 0
   while (result.includes('var(') && iterations < 20) {
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     result = result.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (_, name, fallback) => {
       return vars.get(name) ?? fallback ?? ''
     })
@@ -94,6 +96,7 @@ function extractClasses(css: string): Map<string, Record<string, string>> {
 
   // Match .selector { body }
   // Selector can contain escapes like \32 (with trailing space)
+  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
   const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gim
 
   for (const match of css.matchAll(ruleRe)) {
@@ -106,6 +109,7 @@ function extractClasses(css: string): Map<string, Record<string, string>> {
     const className = decodeCssSelector(rawSelector)
 
     const styles: Record<string, string> = {}
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     const declRe = /([\w-]+)\s*:\s*([^;]+);/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!

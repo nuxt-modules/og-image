@@ -5,10 +5,8 @@ import twColors from 'tailwindcss/colors'
 import {
   COLOR_PROPERTIES,
   convertColorToHex,
-  convertOklchToHex,
-  decodeCssClassName,
+  extractClassStyles,
   extractCssVars,
-  isSimpleClassSelector,
   loadLightningCss,
   resolveCssVars,
   simplifyCss,
@@ -204,7 +202,7 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
 /**
  * Parse TW4 compiler output.
- * Extracts CSS variables and class styles.
+ * Extracts CSS variables into vars Map and returns class styles.
  */
 function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Record<string, string>> {
   // Extract :root/:host variables
@@ -214,40 +212,8 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
       vars.set(name, value)
   }
 
-  // Extract class styles (no ^ anchor - rules may be inside @layer blocks)
-  const classes = new Map<string, Record<string, string>>()
-  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
-  const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
-
-  for (const match of css.matchAll(ruleRe)) {
-    const rawSelector = match[1]!
-    const body = match[2]!
-
-    if (!isSimpleClassSelector(rawSelector))
-      continue
-
-    const className = decodeCssClassName(rawSelector)
-    const styles: Record<string, string> = {}
-
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    const declRe = /([\w-]+)\s*:\s*([^;]+);/g
-    for (const declMatch of body.matchAll(declRe)) {
-      const prop = declMatch[1]!
-      const value = declMatch[2]!.trim()
-      // Skip internal TW CSS variables
-      if (prop.startsWith('--tw-'))
-        continue
-      // Skip all CSS variables for now
-      if (prop.startsWith('--'))
-        continue
-      styles[prop] = value
-    }
-
-    if (Object.keys(styles).length)
-      classes.set(className, styles)
-  }
-
-  return classes
+  // Extract class styles (skip --tw-* and all CSS vars)
+  return extractClassStyles(css, { skipPrefixes: ['--'] })
 }
 
 /**
@@ -524,72 +490,6 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
 // ============================================================================
 
 /**
- * Build CSS variable declarations from various sources.
- */
-function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): string {
-  if (nuxtUiColors)
-    buildNuxtUiVars(vars, nuxtUiColors)
-
-  const lines: string[] = [':root {']
-  for (const [name, value] of vars) {
-    lines.push(`  ${name}: ${value};`)
-  }
-  lines.push('}')
-  return lines.join('\n')
-}
-
-/**
- * Parse CSS rules into a class → styles map with camelCase properties.
- * Handles TW4-specific values that need normalization for renderers.
- */
-function parseClassStylesCamelCase(css: string): Map<string, Record<string, string>> {
-  const classMap = new Map<string, Record<string, string>>()
-  // Note: No ^ anchor - rules may be inside @layer blocks and indented
-  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
-  const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
-
-  for (const match of css.matchAll(ruleRe)) {
-    const rawSelector = match[1]!
-    const body = match[2]!
-
-    if (!isSimpleClassSelector(rawSelector))
-      continue
-
-    const className = decodeCssClassName(rawSelector)
-    const styles: Record<string, string> = classMap.get(className) || {}
-
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    const declRe = /([\w-]+)\s*:\s*([^;]+);/g
-    for (const declMatch of body.matchAll(declRe)) {
-      const prop = declMatch[1]!
-      let value = declMatch[2]!.trim()
-
-      if (prop.startsWith('--'))
-        continue
-
-      // Convert to camelCase for style objects
-      const camelProp = prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase())
-
-      // Normalize TW4-specific values:
-      // TW4 uses calc(infinity*1px) for rounded-full - convert to standard large value
-      if (value.includes('calc(infinity'))
-        value = '9999px'
-
-      // Normalize opacity percentage to decimal (CSS standard is unitless 0-1)
-      if (prop === 'opacity' && value.endsWith('%'))
-        value = String(Number.parseFloat(value) / 100)
-
-      styles[camelProp] = value
-    }
-
-    if (Object.keys(styles).length > 0)
-      classMap.set(className, styles)
-  }
-
-  return classMap
-}
-
-/**
  * Generate a complete style map from TW4 classes.
  */
 export async function generateStyleMap(options: GeneratorOptions): Promise<StyleMap> {
@@ -611,31 +511,24 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
 
   const rawCSS = compiler.build(classes)
   const vars = extractCssVars(rawCSS)
-  const varsCSS = buildVarsCSS(vars, nuxtUiColors)
+
+  // Build CSS variable declarations
+  if (nuxtUiColors)
+    buildNuxtUiVars(vars, nuxtUiColors)
+  const varsCSS = `:root {\n${[...vars].map(([n, v]) => `  ${n}: ${v};`).join('\n')}\n}`
   const fullCSS = `${varsCSS}\n${rawCSS}`
 
-  // Step 1: Resolve CSS variables
+  // Resolve CSS variables
   const resolvedCSS = resolveCssVars(fullCSS, vars)
 
-  // Step 2: Simplify calc() with Lightning CSS
+  // Simplify calc() with Lightning CSS
   const simplifiedCSS = await simplifyCss(resolvedCSS)
 
-  // Step 3: Convert oklch to hex
-  const hexCSS = convertOklchToHex(simplifiedCSS)
+  // Convert oklch to hex
+  const hexCSS = simplifiedCSS.replace(/oklch\([^)]+\)/g, m => convertColorToHex(m))
 
-  // Step 4: Parse into class map
-  const classMap = parseClassStylesCamelCase(hexCSS)
+  // Parse into class map (camelCase for style objects, normalize TW4 values)
+  const classMap = extractClassStyles(hexCSS, { camelCase: true, normalize: true, merge: true })
 
   return { classes: classMap, vars }
-}
-
-/**
- * Serialize style map for embedding in build output.
- */
-export function serializeStyleMap(styleMap: StyleMap): string {
-  const obj: Record<string, Record<string, string>> = {}
-  for (const [cls, styles] of styleMap.classes) {
-    obj[cls] = styles
-  }
-  return JSON.stringify(obj)
 }

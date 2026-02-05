@@ -41,6 +41,7 @@ export function extractCssVars(css: string): Map<string, string> {
   const rootRe = /:(?:root|host)\s*\{([^}]+)\}/g
   for (const match of css.matchAll(rootRe)) {
     const body = match[1]!
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     const declRe = /(--[\w-]+)\s*:\s*([^;]+);/g
     for (const m of body.matchAll(declRe)) {
       if (m[1] && m[2])
@@ -57,6 +58,7 @@ export function resolveCssVars(css: string, vars: Map<string, string>): string {
   let result = css
   let iterations = 0
   while (result.includes('var(') && iterations < 20) {
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     result = result.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (_, name, fallback) => {
       return vars.get(name) ?? fallback ?? ''
     })
@@ -98,16 +100,31 @@ export function isSimpleClassSelector(selector: string): boolean {
   return true
 }
 
+export interface ExtractClassStylesOptions {
+  /** Convert property names to camelCase (default: false) */
+  camelCase?: boolean
+  /** Normalize TW4 values: infinity calc → 9999px, opacity % → decimal (default: false) */
+  normalize?: boolean
+  /** Skip properties starting with these prefixes (default: ['--']) */
+  skipPrefixes?: string[]
+  /** Merge styles for duplicate class selectors (default: false, overwrites) */
+  merge?: boolean
+}
+
 /**
  * Extract class rules from CSS into a map of className -> styles.
  * Only extracts simple class selectors (no pseudo-classes, combinators).
  */
-export function extractClassStyles(css: string): Map<string, Record<string, string>> {
+export function extractClassStyles(
+  css: string,
+  options: ExtractClassStylesOptions = {},
+): Map<string, Record<string, string>> {
+  const { camelCase = false, normalize = false, skipPrefixes = ['--'], merge = false } = options
   const classes = new Map<string, Record<string, string>>()
 
-  // Match .selector { body }
-  // Selector can contain escapes like \32 (with trailing space)
-  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gim
+  // Match .selector { body } - no ^ anchor as rules may be inside @layer blocks
+  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
+  const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
 
   for (const match of css.matchAll(ruleRe)) {
     const rawSelector = match[1]!
@@ -117,16 +134,28 @@ export function extractClassStyles(css: string): Map<string, Record<string, stri
       continue
 
     const className = decodeCssClassName(rawSelector)
+    const styles: Record<string, string> = merge ? (classes.get(className) || {}) : {}
 
-    const styles: Record<string, string> = {}
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     const declRe = /([\w-]+)\s*:\s*([^;]+);/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!
-      const value = declMatch[2]!.trim()
-      // Skip CSS variables
-      if (prop.startsWith('--'))
+      let value = declMatch[2]!.trim()
+
+      // Skip properties with specified prefixes
+      if (skipPrefixes.some(p => prop.startsWith(p)))
         continue
-      styles[prop] = value
+
+      // Normalize TW4-specific values
+      if (normalize) {
+        if (value.includes('calc(infinity'))
+          value = '9999px'
+        if (prop === 'opacity' && value.endsWith('%'))
+          value = String(Number.parseFloat(value) / 100)
+      }
+
+      const finalProp = camelCase ? prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase()) : prop
+      styles[finalProp] = value
     }
 
     if (Object.keys(styles).length)
@@ -134,40 +163,6 @@ export function extractClassStyles(css: string): Map<string, Record<string, stri
   }
 
   return classes
-}
-
-/**
- * Full CSS processing pipeline:
- * 1. Extract vars from :root/:host
- * 2. Resolve var() references
- * 3. Simplify calc() with Lightning CSS
- * 4. Extract class styles
- */
-export async function processCss(css: string, additionalVars?: Map<string, string>): Promise<{
-  vars: Map<string, string>
-  classes: Map<string, Record<string, string>>
-}> {
-  // Step 1: Extract variables
-  const vars = extractCssVars(css)
-
-  // Merge additional vars (e.g., from Nuxt UI)
-  if (additionalVars) {
-    for (const [name, value] of additionalVars) {
-      if (!vars.has(name))
-        vars.set(name, value)
-    }
-  }
-
-  // Step 2: Resolve var() references
-  const resolvedCss = resolveCssVars(css, vars)
-
-  // Step 3: Simplify with Lightning CSS
-  const simplifiedCss = await simplifyCss(resolvedCss)
-
-  // Step 4: Extract class styles
-  const classes = extractClassStyles(simplifiedCss)
-
-  return { vars, classes }
 }
 
 // ============================================================================
@@ -186,13 +181,6 @@ export function convertColorToHex(value: string): string {
     return value
   const mapped = toSrgbGamut(color)
   return formatHex(mapped) || value
-}
-
-/**
- * Convert oklch colors in a CSS string to hex.
- */
-export function convertOklchToHex(css: string): string {
-  return css.replace(/oklch\([^)]+\)/g, match => convertColorToHex(match))
 }
 
 /**
@@ -230,27 +218,5 @@ export function walkTemplateAst(
     visitor(node)
     if ('children' in node && Array.isArray(node.children))
       walkTemplateAst(node.children as TemplateChildNode[], visitor)
-  }
-}
-
-// ============================================================================
-// Legacy exports (for gradual migration)
-// ============================================================================
-
-/**
- * @deprecated Use loadLightningCss instead
- */
-export async function loadPostcss() {
-  // Return shim that provides similar interface for gradual migration
-  const { transform } = await loadLightningCss()
-  return {
-    postcss: {
-      parse: (css: string) => {
-        throw new Error('postcss.parse() is deprecated. Use extractClassStyles() or processCss() instead.')
-      },
-    },
-    postcssCalc: () => {
-      throw new Error('postcssCalc is deprecated. Use simplifyCss() instead.')
-    },
   }
 }
