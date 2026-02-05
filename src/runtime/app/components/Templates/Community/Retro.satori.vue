@@ -47,7 +47,7 @@ withDefaults(defineProps<{
     <div class="absolute inset-0 opacity-[0.03]" style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);" />
 
     <!-- Content -->
-    <div class="relative z-10 px-16 pb-20 mt-auto">
+    <div class="relative px-16 pb-20 mt-auto">
       <p
         v-if="tagline"
         class="text-xl font-mono uppercase tracking-[0.4em] mb-4"

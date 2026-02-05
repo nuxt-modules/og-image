@@ -39,7 +39,7 @@ const description = computed(() => (props.description || '').slice(0, 200))
     <!-- Subtle pattern -->
     <div class="absolute inset-0 opacity-[0.02]" style="background-image: radial-gradient(#9ca3af 1px, transparent 1px); background-size: 32px 32px;" />
 
-    <div class="py-14 px-16 h-full flex flex-col justify-between relative z-10">
+    <div class="py-14 px-16 h-full flex flex-col justify-between relative">
       <div class="flex flex-row justify-between items-start">
         <div class="max-w-[680px]">
           <h1 class="mb-6 text-[56px] text-gray-900 font-normal flex flex-row items-baseline tracking-tight">

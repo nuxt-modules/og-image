@@ -20,7 +20,7 @@ withDefaults(defineProps<{
     <!-- Soft glow behind emoji -->
     <div class="absolute w-[400px] h-[400px] rounded-full opacity-20" style="background: radial-gradient(circle, #38bdf8 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -65%);" />
 
-    <div class="flex flex-col justify-center items-center w-full text-center relative z-10 px-16">
+    <div class="flex flex-col justify-center items-center w-full text-center relative px-16">
       <div class="mb-6" style="filter: drop-shadow(0 8px 24px rgba(0,0,0,0.08));">
         <p class="text-[140px] leading-none">
           {{ emoji }}

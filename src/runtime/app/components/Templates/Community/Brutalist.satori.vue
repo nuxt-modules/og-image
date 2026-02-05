@@ -35,7 +35,7 @@ withDefaults(defineProps<{
       <div class="absolute top-3 left-3 w-4 h-4 border-l-4 border-t-4 border-black" />
       <div class="absolute bottom-3 left-3 w-4 h-4 border-l-4 border-b-4 border-black" />
 
-      <div class="relative z-10 max-w-[85%]">
+      <div class="relative max-w-[85%]">
         <p v-if="subtitle" class="text-lg font-mono uppercase tracking-[0.3em] text-neutral-500 mb-4">
           {{ subtitle }}
         </p>
@@ -48,7 +48,7 @@ withDefaults(defineProps<{
       </div>
 
       <!-- Bottom marker -->
-      <div class="flex items-center gap-4 relative z-10">
+      <div class="flex items-center gap-4 relative">
         <div class="w-12 h-1 bg-black" />
         <div class="w-3 h-3 bg-black rotate-45" />
       </div>
