@@ -37,6 +37,7 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
 const NodeDevRuntime: RuntimeCompatibilitySchema = {
   ...NodeRuntime,
   resvg: 'node-dev', // use worker to prevent crashes from killing process
+  takumi: 'node-dev', // use worker to prevent crashes from killing process
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {

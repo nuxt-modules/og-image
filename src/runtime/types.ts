@@ -223,7 +223,7 @@ export interface RuntimeCompatibilitySchema {
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | 'wasm-edge' | false
-  takumi: 'node' | 'wasm' | false
+  takumi: 'node' | 'node-dev' | 'wasm' | false
   sharp: 'node' | false
   // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime
   emoji?: 'local' | 'fetch'

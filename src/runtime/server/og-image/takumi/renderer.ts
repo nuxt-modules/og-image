@@ -43,7 +43,7 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ name: st
 
     const subsetName = `${font.name}__${state.subsetCounter++}`
     try {
-      state.renderer.loadFont({
+      await state.renderer.loadFont({
         name: subsetName,
         data: fontData,
         weight: font.weight,
