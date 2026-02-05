@@ -59,7 +59,7 @@ catalog:
   '@vueuse/nuxt': ^14.2.0
   better-sqlite3: ^12.6.2
   birpc: ^4.0.0
-  bumpp: ^10.4.0
+  bumpp: ^10.4.1
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   culori: ^4.0.2
@@ -75,7 +75,7 @@ catalog:
   jiti: ^2.6.1
   json-editor-vue: ^0.18.1
   magic-string: ^0.30.21
-  magicast: ^0.5.1
+  magicast: ^0.5.2
   mocked-exports: ^0.1.1
   nuxt: ^4.3.0
   nuxt-site-config: ^3.2.19
