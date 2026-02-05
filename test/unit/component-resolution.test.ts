@@ -6,13 +6,13 @@ describe('component resolution', () => {
     it('parses dot notation', () => {
       expect(parseComponentName('Banner.satori')).toEqual({ baseName: 'Banner', renderer: 'satori' })
       expect(parseComponentName('NuxtSeo.takumi')).toEqual({ baseName: 'NuxtSeo', renderer: 'takumi' })
-      expect(parseComponentName('MyComponent.chromium')).toEqual({ baseName: 'MyComponent', renderer: 'chromium' })
+      expect(parseComponentName('MyComponent.browser')).toEqual({ baseName: 'MyComponent', renderer: 'browser' })
     })
 
     it('parses PascalCase suffix', () => {
       expect(parseComponentName('BannerSatori')).toEqual({ baseName: 'Banner', renderer: 'satori' })
       expect(parseComponentName('NuxtSeoTakumi')).toEqual({ baseName: 'NuxtSeo', renderer: 'takumi' })
-      expect(parseComponentName('MyComponentChromium')).toEqual({ baseName: 'MyComponent', renderer: 'chromium' })
+      expect(parseComponentName('MyComponentBrowser')).toEqual({ baseName: 'MyComponent', renderer: 'browser' })
     })
 
     it('parses bare name (no renderer)', () => {
@@ -21,8 +21,8 @@ describe('component resolution', () => {
     })
 
     it('does not false-match partial suffix', () => {
-      // 'Chromium' at end but 'MyChromium' is a name not a suffix
-      expect(parseComponentName('MyChromium')).toEqual({ baseName: 'My', renderer: 'chromium' })
+      // 'Browser' at end but 'MyBrowser' is a name not a suffix
+      expect(parseComponentName('MyBrowser')).toEqual({ baseName: 'My', renderer: 'browser' })
     })
 
     it('handles empty-ish names', () => {
@@ -38,7 +38,7 @@ describe('component resolution', () => {
 
     it('strips PascalCase suffix', () => {
       expect(stripRendererSuffix('BannerSatori')).toBe('Banner')
-      expect(stripRendererSuffix('NuxtSeoChromium')).toBe('NuxtSeo')
+      expect(stripRendererSuffix('NuxtSeoBrowser')).toBe('NuxtSeo')
     })
 
     it('returns name unchanged when no suffix', () => {
@@ -56,8 +56,8 @@ describe('component resolution', () => {
       expect(getRendererFromFilename('components/OgImage/NuxtSeo.takumi.vue')).toBe('takumi')
     })
 
-    it('extracts renderer from .chromium.vue', () => {
-      expect(getRendererFromFilename('MyComponent.chromium.vue')).toBe('chromium')
+    it('extracts renderer from .browser.vue', () => {
+      expect(getRendererFromFilename('MyComponent.browser.vue')).toBe('browser')
     })
 
     it('returns null for no suffix', () => {

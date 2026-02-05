@@ -4,6 +4,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type {
+  BrowserConfig,
   CompatibilityFlagEnvOverrides,
   CompatibilityFlags,
   OgImageComponent,
@@ -187,6 +188,15 @@ export interface ModuleOptions {
    * @example ['latin', 'latin-ext', 'cyrillic']
    */
   fontSubsets?: string[]
+  /**
+   * Browser renderer configuration.
+   *
+   * When using browser-based rendering (screenshots), configure the browser provider.
+   * For Cloudflare deployments, specify the browser binding name.
+   *
+   * @example { provider: 'cloudflare', binding: 'BROWSER' }
+   */
+  browser?: BrowserConfig
 }
 
 export interface ModuleHooks {
@@ -281,15 +291,15 @@ export default defineNuxtModule<ModuleOptions>({
     // Check for removed/deprecated config options
     const ogImageConfig = config as unknown as Record<string, unknown>
     for (const key of Object.keys(REMOVED_CONFIG)) {
-      if (key !== 'chromium-node' && key in ogImageConfig && ogImageConfig[key] !== undefined) {
+      if (key !== 'chromium-node' && key !== 'browser-node' && key in ogImageConfig && ogImageConfig[key] !== undefined) {
         addConfigWarning(key)
       }
     }
 
-    // Check for deprecated chromium: 'node' binding
-    const chromiumRuntime = config.compatibility?.runtime?.chromium as string | undefined
-    if (chromiumRuntime === 'node') {
-      addConfigWarning('chromium-node')
+    // Check for deprecated browser: 'node' binding (legacy chromium config)
+    const browserRuntime = config.compatibility?.runtime?.browser as string | undefined
+    if (browserRuntime === 'node') {
+      addConfigWarning('browser-node')
     }
 
     let hasNuxtFonts = hasNuxtModule('@nuxt/fonts')
@@ -625,7 +635,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.zeroRuntime) {
       config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
         runtime: {
-          chromium: false, // should already be false
+          browser: false, // should already be false
           satori: false,
         },
       })
@@ -682,35 +692,59 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    if (isProviderEnabledForEnv('chromium', nuxt, config)) {
+    if (isProviderEnabledForEnv('browser', nuxt, config)) {
       // in dev and prerender we rely on local chrome or playwright dependency
-      // for runtime we need playwright dependency
+      // for runtime we need playwright dependency (or cloudflare binding)
       const hasChromeLocally = checkLocalChrome()
       const hasPlaywrightDependency = await hasResolvableDependency('playwright')
-      const chromeCompatibilityFlags = {
-        prerender: config.compatibility?.prerender?.chromium,
-        dev: config.compatibility?.dev?.chromium,
-        runtime: config.compatibility?.runtime?.chromium,
+      const browserCompatibilityFlags = {
+        prerender: config.compatibility?.prerender?.browser,
+        dev: config.compatibility?.dev?.browser,
+        runtime: config.compatibility?.runtime?.browser,
       }
-      const chromiumBinding: Record<string, RuntimeCompatibilitySchema['chromium'] | null> = {
+      const browserBinding: Record<string, RuntimeCompatibilitySchema['browser'] | null> = {
         dev: null,
         prerender: null,
         runtime: null,
       }
-      if (nuxt.options.dev) {
-        if (isUndefinedOrTruthy(chromeCompatibilityFlags.dev))
-          chromiumBinding.dev = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
+
+      // Handle new browser: { provider, binding } config shape
+      const browserConfig = config.browser
+      const isCloudflareProvider = typeof browserConfig === 'object' && browserConfig?.provider === 'cloudflare'
+
+      if (isCloudflareProvider) {
+        // Cloudflare provider: validate binding, use local providers for dev/prerender
+        if (!browserConfig.binding) {
+          throw new Error('[nuxt-og-image] `ogImage.browser.binding` is required when provider is cloudflare')
+        }
+        const hasCloudfarePuppeteer = await hasResolvableDependency('@cloudflare/puppeteer')
+        if (!hasCloudfarePuppeteer) {
+          throw new Error(
+            '[nuxt-og-image] Missing @cloudflare/puppeteer dependency. '
+            + 'Install it with: pnpm add @cloudflare/puppeteer',
+          )
+        }
+        // Dev: use chrome-launcher (zero config)
+        browserBinding.dev = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
+        // Prerender: use playwright
+        browserBinding.prerender = hasPlaywrightDependency ? 'playwright' : hasChromeLocally ? 'chrome-launcher' : 'on-demand'
+        // Runtime: use cloudflare
+        browserBinding.runtime = 'cloudflare'
+      }
+      else if (nuxt.options.dev) {
+        if (isUndefinedOrTruthy(browserCompatibilityFlags.dev))
+          browserBinding.dev = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
       }
       else {
-        if (isUndefinedOrTruthy(chromeCompatibilityFlags.prerender))
-          chromiumBinding.prerender = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
-        if (isUndefinedOrTruthy(chromeCompatibilityFlags.runtime))
-          chromiumBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
+        if (isUndefinedOrTruthy(browserCompatibilityFlags.prerender))
+          browserBinding.prerender = hasChromeLocally ? 'chrome-launcher' : hasPlaywrightDependency ? 'playwright' : 'on-demand'
+        if (isUndefinedOrTruthy(browserCompatibilityFlags.runtime))
+          browserBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
       }
       config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-        runtime: { chromium: chromiumBinding.runtime },
-        dev: { chromium: chromiumBinding.dev },
-        prerender: { chromium: chromiumBinding.prerender },
+        runtime: { browser: browserBinding.runtime },
+        dev: { browser: browserBinding.dev },
+        prerender: { browser: browserBinding.prerender },
       })
     }
 
@@ -744,7 +778,7 @@ export default defineNuxtModule<ModuleOptions>({
     ;[
       'defineOgImage',
       'defineOgImageComponent',
-      { name: 'defineOgImageScreenshot', enabled: isProviderEnabledForEnv('chromium', nuxt, config) },
+      { name: 'defineOgImageScreenshot', enabled: isProviderEnabledForEnv('browser', nuxt, config) },
     ]
       .forEach((name) => {
         if (typeof name === 'object') {
@@ -1011,7 +1045,7 @@ export default defineNuxtModule<ModuleOptions>({
           }
         }
         else {
-          const message = `OG Image components missing renderer suffix (.satori.vue, .chromium.vue, .takumi.vue):\n${
+          const message = `OG Image components missing renderer suffix (.satori.vue, .browser.vue, .takumi.vue):\n${
             invalidComponents.map(c => `  ${c}`).join('\n')
           }\n\nRun: npx nuxt-og-image migrate v6`
           throw new Error(message)
@@ -1469,6 +1503,13 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cacheQueryParams: config.cacheQueryParams ?? false,
         cssFramework: cssFramework || 'none',
+        // Browser renderer config for cloudflare binding access
+        browser: typeof config.browser === 'object'
+          ? {
+              provider: config.browser.provider,
+              binding: config.browser.binding,
+            }
+          : undefined,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

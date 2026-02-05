@@ -1,3 +1,4 @@
+import type { H3Event } from 'h3'
 import type { Browser } from 'playwright-core'
 import { createConsola } from 'consola'
 import playwrightCore from 'playwright-core'
@@ -6,7 +7,7 @@ import { exec } from 'tinyexec'
 let installedChromium = false
 let installChromiumPromise: Promise<void>
 
-export async function createBrowser(): Promise<Browser | void> {
+export async function createBrowser(_event?: H3Event): Promise<Browser | void> {
   if (installChromiumPromise)
     await installChromiumPromise
   if (!installedChromium) {

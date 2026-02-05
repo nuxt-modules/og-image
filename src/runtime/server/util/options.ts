@@ -8,7 +8,7 @@ export interface NormalisedOptions {
   component?: OgImageComponent
 }
 
-const RENDERER_SUFFIXES = ['satori', 'chromium', 'takumi'] as const
+const RENDERER_SUFFIXES = ['satori', 'browser', 'takumi'] as const
 
 /**
  * Parse a user-provided component name into base name + renderer.
@@ -33,8 +33,8 @@ function parseInputName(name: string): { baseName: string, renderer: RendererTyp
 function getComponentBaseName(component: OgImageComponent): string {
   return component.pascalName
     .replace(/^OgImage/, '')
-    .replace(/\.?(satori|chromium|takumi)$/i, '')
-    .replace(/(Satori|Chromium|Takumi)$/, '')
+    .replace(/\.?(satori|browser|takumi)$/i, '')
+    .replace(/(Satori|Browser|Takumi)$/, '')
 }
 
 /**
@@ -88,11 +88,11 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
   const options = { ..._options } as OgImageOptions
 
   // Special case: PageScreenshot is a virtual component for page screenshots
-  // It always uses chromium renderer and doesn't need a real component
+  // It always uses browser renderer and doesn't need a real component
   if (options.component === 'PageScreenshot') {
     return {
       options,
-      renderer: options.renderer || 'chromium',
+      renderer: options.renderer || 'browser',
       component: undefined,
     }
   }

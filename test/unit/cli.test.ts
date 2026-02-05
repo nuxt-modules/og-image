@@ -87,8 +87,8 @@ describe('cli', () => {
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Screenshot.vue'), '<template>test</template>')
 
-      runCli('migrate v6 --renderer chromium --yes')
-      expect(existsSync(join(ogDir, 'Screenshot.chromium.vue'))).toBe(true)
+      runCli('migrate v6 --renderer browser --yes')
+      expect(existsSync(join(ogDir, 'Screenshot.browser.vue'))).toBe(true)
     })
 
     it('--dry-run does not rename files', () => {

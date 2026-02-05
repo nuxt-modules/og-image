@@ -39,15 +39,15 @@ function extractOgImageUrl(html: string): string | null {
 }
 
 describe('build', () => {
-  it.runIf(process.env.HAS_CHROME)('chromium tests', async () => {
-    const html = await $fetch('/prefix/chromium') as string
+  it.runIf(process.env.HAS_CHROME)('browser tests', async () => {
+    const html = await $fetch('/prefix/browser') as string
     const ogImageUrl = extractOgImageUrl(html)
     expect(ogImageUrl).toBeTruthy()
 
-    const chromium: ArrayBuffer = await $fetch(ogImageUrl!, {
+    const browser: ArrayBuffer = await $fetch(ogImageUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(chromium)).toMatchImageSnapshot()
+    expect(Buffer.from(browser)).toMatchImageSnapshot()
   })
 
   it('static images', async () => {

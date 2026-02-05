@@ -1,17 +1,17 @@
 import type { Browser } from 'playwright-core'
 import type { Renderer } from '../../../types'
-import { createBrowser } from '#og-image/bindings/chromium'
+import { createBrowser } from '#og-image/bindings/browser'
 import { createError } from 'h3'
 import { createScreenshot } from './screenshot'
 
-const ChromiumRenderer: Renderer = {
-  name: 'chromium',
+const BrowserRenderer: Renderer = {
+  name: 'browser',
   supportedFormats: ['png', 'jpeg', 'jpg'],
   async debug() {
     return {} // TODO
   },
   async createImage(ctx) {
-    const browser: Browser = await createBrowser()
+    const browser: Browser = await createBrowser(ctx.e)
     const screenshot = await createScreenshot(ctx, browser!)
       .catch(e => e)
     await browser.close()
@@ -26,4 +26,4 @@ const ChromiumRenderer: Renderer = {
   },
 }
 
-export default ChromiumRenderer
+export default BrowserRenderer

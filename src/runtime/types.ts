@@ -58,12 +58,26 @@ export interface OgImageRuntimeConfig {
   /** Path to community templates (dev only) */
   communityTemplatesDir?: string
 
+  /** Browser renderer config for cloudflare binding access */
+  browser?: {
+    provider?: BrowserProvider
+    binding?: string
+  }
+
   app: {
     baseURL: string
   }
 }
 
-export type RendererType = 'satori' | 'chromium' | 'takumi'
+export type RendererType = 'satori' | 'browser' | 'takumi'
+
+export type BrowserProvider = 'playwright' | 'chrome-launcher' | 'on-demand' | 'cloudflare'
+
+export type BrowserConfig = false | {
+  provider: BrowserProvider
+  /** Required when provider is 'cloudflare' - the wrangler binding name */
+  binding?: string
+}
 
 export interface OgImageComponent {
   path?: string
@@ -205,7 +219,7 @@ export interface SatoriFontConfig extends FontConfig {
 }
 
 export interface RuntimeCompatibilitySchema {
-  chromium: 'chrome-launcher' | 'on-demand' | 'playwright' | false
+  browser: 'chrome-launcher' | 'on-demand' | 'playwright' | 'cloudflare' | false
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | 'wasm-edge' | false
@@ -227,7 +241,7 @@ export interface CompatibilityFlagEnvOverrides {
 export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: Omit<OgImageOptions['extension'], 'html'> }
 
 export interface Renderer {
-  name: 'chromium' | 'satori' | 'takumi'
+  name: 'browser' | 'satori' | 'takumi'
   supportedFormats: Partial<RendererOptions['extension']>[]
   createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | Buffer | Uint8Array | void | undefined>
   debug: (e: OgImageRenderEventContext) => Promise<Record<string, any>>

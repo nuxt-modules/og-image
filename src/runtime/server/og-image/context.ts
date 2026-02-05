@@ -4,7 +4,7 @@ import type {
   OgImageRenderEventContext,
   RouteRulesOgImage,
 } from '../../types'
-import type ChromiumRenderer from './chromium/renderer'
+import type BrowserRenderer from './browser/renderer'
 import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { prerenderOptionsCache } from '#og-image-cache'
@@ -21,7 +21,7 @@ import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { useOgImageRuntimeConfig } from '../utils'
-import { useChromiumRenderer, useSatoriRenderer, useTakumiRenderer } from './instances'
+import { useBrowserRenderer, useSatoriRenderer, useTakumiRenderer } from './instances'
 
 export function resolvePathCacheKey(e: H3Event, path: string, includeQuery = false) {
   const siteConfig = getSiteConfig(e, {
@@ -144,13 +144,13 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const rendererType = normalised.renderer
   const key = normalised.options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)
 
-  let renderer: ((typeof SatoriRenderer | typeof ChromiumRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
+  let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (rendererType) {
     case 'satori':
       renderer = await useSatoriRenderer()
       break
-    case 'chromium':
-      renderer = await useChromiumRenderer()
+    case 'browser':
+      renderer = await useBrowserRenderer()
       break
     case 'takumi':
       renderer = await useTakumiRenderer()

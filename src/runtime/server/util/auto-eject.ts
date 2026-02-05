@@ -31,7 +31,7 @@ export function autoEjectCommunityTemplate(
   // determine filename from pascalName (e.g., OgImageNuxtSeoSatori -> NuxtSeo.satori.vue)
   const baseName = component.pascalName
     .replace(/^OgImage/, '')
-    .replace(/(Satori|Chromium|Takumi)$/, '')
+    .replace(/(Satori|Browser|Takumi)$/, '')
   const filename = `${baseName}.${component.renderer}.vue`
 
   const outputDir = join(srcDir, 'components', 'OgImage')

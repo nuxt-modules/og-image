@@ -24,7 +24,7 @@ const DEPRECATED_CONFIG: Record<string, string> = {
   playground: 'Removed - use Nuxt DevTools',
   host: 'Use site.url or NUXT_SITE_URL',
   siteUrl: 'Use site.url or NUXT_SITE_URL',
-  runtimeBrowser: 'Use compatibility.runtime.chromium',
+  runtimeBrowser: 'Use compatibility.runtime.browser',
   runtimeSatori: 'Use compatibility.runtime.satori',
   cacheTtl: 'Use cacheMaxAgeSeconds',
   cache: 'Use cacheMaxAgeSeconds',
@@ -69,7 +69,7 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
         '[nuxt-og-image] No OG image provider dependencies found. '
         + 'Install a provider before running in CI:\n'
         + '  npm add @resvg/resvg-js satori yoga-wasm-web  # for satori\n'
-        + '  npm add @playwright/core                      # for chromium\n'
+        + '  npm add @playwright/core                      # for browser\n'
         + 'See: https://nuxtseo.com/og-image/getting-started',
       )
     }
