@@ -89,7 +89,8 @@ describe('asset-transform plugin', () => {
     const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('class="text-xl text-blue-500"')
-    expect(result?.code).toContain('style="color: red"')
+    // Style is merged with display:flex for Satori compatibility
+    expect(result?.code).toMatch(/style="[^"]*color: red[^"]*"/)
   })
 
   it('should skip dynamic icon names', async () => {

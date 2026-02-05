@@ -1,5 +1,6 @@
 import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
+import { logger } from '../../../runtime/logger'
 import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName, loadPostcss } from '../css-utils'
 
 // State
@@ -42,7 +43,7 @@ async function getGenerator() {
     loadedConfig = result.config
   }
   catch (e) {
-    console.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
+    logger.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
   }
 
   // Merge loaded config with any hook config (hook config may have Nuxt-specific settings)
@@ -116,6 +117,10 @@ async function parseGeneratedCss(css: string): Promise<Record<string, Record<str
       if (COLOR_PROPERTIES.has(decl.prop)) {
         value = convertColorToHex(value)
       }
+
+      // Satori expects opacity as unitless decimal (0.6), not percentage (60%)
+      if (decl.prop === 'opacity' && value.endsWith('%'))
+        value = String(Number.parseFloat(value) / 100)
 
       styles[decl.prop] = value
     })

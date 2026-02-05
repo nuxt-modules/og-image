@@ -171,11 +171,12 @@ export async function setupCssFramework(options: CssSetupOptions): Promise<CssSe
         const { generateStyleMap } = await import('./providers/tw4')
 
         const components = getComponents()
+        logger.debug(`[TW4] Scanning ${components.length} components: ${components.map(c => `${c.pascalName}(${c.category})`).join(', ') || '(none)'}`)
         const allClasses = await scanComponentClasses(components, logger, nuxt.options.buildDir)
         const processableClasses = filterProcessableClasses(allClasses)
 
         if (processableClasses.length > 0) {
-          logger.debug(`TW4: Found ${processableClasses.length} unique classes in OG components`)
+          logger.debug(`[TW4] Found ${processableClasses.length} unique classes, including: ${processableClasses.slice(0, 20).join(', ')}${processableClasses.length > 20 ? '...' : ''}`)
 
           const styleMap = await generateStyleMap({
             cssPath: resolvedCssPath,
@@ -187,7 +188,7 @@ export async function setupCssFramework(options: CssSetupOptions): Promise<CssSe
             tw4State.styleMap[cls] = styles
           }
 
-          logger.debug(`TW4: Generated style map with ${Object.keys(tw4State.styleMap).length} resolved classes`)
+          logger.debug(`[TW4] Generated style map with ${Object.keys(tw4State.styleMap).length} resolved classes`)
         }
       }
       catch (e) {
