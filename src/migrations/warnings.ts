@@ -30,13 +30,13 @@ export const REMOVED_CONFIG: Record<string, string> = {
   'playground': 'Removed (use Nuxt DevTools)',
   'host': 'site.url or NUXT_SITE_URL',
   'siteUrl': 'site.url or NUXT_SITE_URL',
-  'runtimeBrowser': 'compatibility.runtime.chromium',
+  'runtimeBrowser': 'compatibility.runtime.browser',
   'runtimeSatori': 'compatibility.runtime.satori',
   'cacheTtl': 'cacheMaxAgeSeconds',
   'cache': 'cacheMaxAgeSeconds',
   'cacheKey': 'Removed',
   'static': 'zeroRuntime',
-  'chromium-node': 'compatibility.runtime.chromium: \'playwright\'',
+  'chromium-node': 'compatibility.runtime.browser: \'playwright\'',
 }
 
 // Deprecated composables
@@ -48,8 +48,8 @@ export const DEPRECATED_COMPOSABLES: Record<string, string> = {
   defineOgImageWithoutCache: 'defineOgImage()',
 }
 
-// chromium: 'node' is deprecated
-export const DEPRECATED_CHROMIUM_NODE = 'chromium: \'node\' binding removed, use \'playwright\''
+// browser: 'node' is deprecated
+export const DEPRECATED_BROWSER_NODE = 'browser: \'node\' binding removed, use \'playwright\''
 
 export function addWarning(warning: MigrationWarning): void {
   const countMap = counts[warning.type]
@@ -92,7 +92,7 @@ export function addComponentWarning(componentPath: string): void {
     type: 'component',
     code: 'missing-suffix',
     message: `Component missing renderer suffix`,
-    replacement: 'Rename to include .satori.vue, .takumi.vue, or .chromium.vue',
+    replacement: 'Rename to include .satori.vue, .takumi.vue, or .browser.vue',
     file: componentPath,
   })
 }
@@ -181,7 +181,7 @@ function formatWarnings(): string {
     if (componentCount > 3) {
       lines.push(`  • ... and ${componentCount - 3} more`)
     }
-    lines.push('  → Rename to: *.satori.vue, *.takumi.vue, or *.chromium.vue')
+    lines.push('  → Rename to: *.satori.vue, *.takumi.vue, or *.browser.vue')
   }
 
   return lines.join('\n')

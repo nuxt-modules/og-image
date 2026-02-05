@@ -26,8 +26,8 @@ const RENDERERS = [
     description: 'Rust-based high-performance renderer',
   },
   {
-    name: 'chromium',
-    label: 'Chromium',
+    name: 'browser',
+    label: 'Browser',
     description: 'Browser screenshot renderer - pixel-perfect but slower',
   },
 ] as const
@@ -49,19 +49,19 @@ function getRendererDeps(renderer: RendererName, isEdge: boolean): string[] {
       return isEdge
         ? ['@takumi-rs/core', '@takumi-rs/wasm']
         : ['@takumi-rs/core']
-    case 'chromium':
-      // chromium not supported on edge
+    case 'browser':
+      // browser not supported on edge
       return isEdge ? [] : ['playwright-core']
   }
 }
 
 // Template files are named like "NuxtSeo.satori.vue"
 function getBaseName(filename: string): string {
-  return filename.replace(/\.(satori|chromium|takumi)\.vue$/, '')
+  return filename.replace(/\.(satori|browser|takumi)\.vue$/, '')
 }
 
 function hasRendererSuffix(filename: string): boolean {
-  return /\.(?:satori|chromium|takumi)\.vue$/.test(filename)
+  return /\.(?:satori|browser|takumi)\.vue$/.test(filename)
 }
 
 function listTemplates() {
@@ -397,8 +397,8 @@ async function runMigrate(args: string[]): Promise<void> {
   // Parse --renderer flag for backwards compatibility
   const rendererIdx = args.indexOf('--renderer')
   const cliRenderer = rendererIdx !== -1 ? args[rendererIdx + 1] : null
-  if (cliRenderer && !['satori', 'chromium', 'takumi'].includes(cliRenderer)) {
-    console.error(`Invalid renderer: ${cliRenderer}. Must be satori, chromium, or takumi.`)
+  if (cliRenderer && !['satori', 'browser', 'takumi'].includes(cliRenderer)) {
+    console.error(`Invalid renderer: ${cliRenderer}. Must be satori, browser, or takumi.`)
     process.exit(1)
   }
 
@@ -505,9 +505,9 @@ async function runMigrate(args: string[]): Promise<void> {
           }
         }
 
-        // Warn if chromium selected with edge
-        if (isEdge && selectedRenderers.includes('chromium')) {
-          p.log.warn('Chromium renderer is not supported on edge runtimes - skipping its dependencies')
+        // Warn if browser selected with edge
+        if (isEdge && selectedRenderers.includes('browser')) {
+          p.log.warn('Browser renderer is not supported on edge runtimes - skipping its dependencies')
         }
 
         await installRendererDeps(selectedRenderers, isEdge)
@@ -578,8 +578,8 @@ async function runEnable(renderer: string, args: string[]): Promise<void> {
     }
   }
 
-  if (isEdge && renderer === 'chromium') {
-    p.log.error('Chromium renderer is not supported on edge runtimes')
+  if (isEdge && renderer === 'browser') {
+    p.log.error('Browser renderer is not supported on edge runtimes')
     process.exit(1)
   }
 
@@ -608,7 +608,7 @@ else if (command === 'list') {
 else if (command === 'migrate') {
   const version = args[1]
   if (version !== 'v6') {
-    p.log.error('Usage: npx nuxt-og-image migrate v6 [--dry-run] [--yes] [--renderer <satori|chromium|takumi>]')
+    p.log.error('Usage: npx nuxt-og-image migrate v6 [--dry-run] [--yes] [--renderer <satori|browser|takumi>]')
     process.exit(1)
   }
   runMigrate(args)
@@ -628,7 +628,7 @@ else {
   console.log('  list              List available community templates')
   console.log('  eject <name>      Eject a community template to your project')
   console.log('  migrate v6        Migrate to v6 (component suffixes + new API)')
-  console.log('                    Options: --dry-run, --yes, --renderer <satori|chromium|takumi>')
+  console.log('                    Options: --dry-run, --yes, --renderer <satori|browser|takumi>')
   console.log('  enable <renderer> Install dependencies for a renderer (satori, chromium, takumi)')
   console.log('                    Options: --edge (install wasm versions for edge runtimes)')
 }
