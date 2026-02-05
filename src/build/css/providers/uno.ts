@@ -91,8 +91,8 @@ async function parseGeneratedCss(css: string): Promise<Record<string, Record<str
     const classRe = new RegExp(`\\.${escapeRegex(className)}\\s*\\{([^}]+)\\}`)
     const classMatch = simplifiedCss.match(classRe)
     if (classMatch?.[1]) {
-      // eslint-disable-next-line regexp/no-super-linear-backtracking
-      const varRe = /(--un-[\w-]+)\s*:\s*([^;]+);/g
+      // Safe: value starts with [^\s;] to prevent overlap with \s*
+      const varRe = /(--un-[\w-]+)\s*:\s*([^\s;][^;]*);/g
       for (const m of classMatch[1].matchAll(varRe)) {
         if (m[1] && m[2])
           vars.set(m[1], m[2].trim())

@@ -225,8 +225,8 @@ async function evaluateCalc(value: string): Promise<string> {
 
   const fakeCss = `.x{v:${value}}`
   const result = await simplifyCss(fakeCss)
-  // eslint-disable-next-line regexp/no-super-linear-backtracking
-  const match = result.match(/\.x\s*\{\s*v:\s*([^;]+);?\s*\}/)
+  // Safe: value ends with [^\s;] to prevent overlap with trailing \s*
+  const match = result.match(/\.x\s*\{\s*v:\s*([^\s;](?:[^;]*[^\s;])?);?\s*\}/)
   return match?.[1]?.trim() ?? value
 }
 

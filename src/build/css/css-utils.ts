@@ -35,14 +35,17 @@ export async function simplifyCss(css: string): Promise<string> {
 
 /**
  * Extract CSS variables from :root/:host blocks.
+ * Uses safe regex patterns that avoid exponential backtracking.
  */
 export function extractCssVars(css: string): Map<string, string> {
   const vars = new Map<string, string>()
+  // Safe: [^}]+ cannot backtrack dangerously
   const rootRe = /:(?:root|host)\s*\{([^}]+)\}/g
   for (const match of css.matchAll(rootRe)) {
     const body = match[1]!
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    const declRe = /(--[\w-]+)\s*:\s*([^;]+);/g
+    // Safe: value starts with non-whitespace [^\s;] then any [^;]*
+    // This prevents \s* from exchanging characters with value
+    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*);/g
     for (const m of body.matchAll(declRe)) {
       if (m[1] && m[2])
         vars.set(m[1], m[2].trim())
@@ -53,13 +56,15 @@ export function extractCssVars(css: string): Map<string, string> {
 
 /**
  * Resolve all var() references in a CSS string.
+ * Uses safe regex without nested quantifiers.
  */
 export function resolveCssVars(css: string, vars: Map<string, string>): string {
   let result = css
   let iterations = 0
   while (result.includes('var(') && iterations < 20) {
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    result = result.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (_, name, fallback) => {
+    // Safe: var name is [\w-]+ (no nesting)
+    // Fallback starts with non-whitespace [^\s)] to prevent overlap with \s*
+    result = result.replace(/var\((--[\w-]+)(?:,\s*([^\s)][^)]*))?\)/g, (_, name, fallback) => {
       return vars.get(name) ?? fallback ?? ''
     })
     iterations++
@@ -73,8 +78,9 @@ export function resolveCssVars(css: string, vars: Map<string, string>): string {
  */
 export function decodeCssClassName(selector: string): string {
   let className = selector.startsWith('.') ? selector.slice(1) : selector
-  // Hex escapes: \32 -> '2' (with optional trailing space)
-  className = className.replace(/\\([0-9a-f]+)\s?/gi, (_, hex) =>
+  // Hex escapes: \32 -> '2' (CSS allows 1-6 hex digits + optional space)
+  // Safe: {1,6} limits repetition, no nested quantifiers
+  className = className.replace(/\\([0-9a-f]{1,6})\s?/gi, (_, hex) =>
     String.fromCodePoint(Number.parseInt(hex, 16)))
   // Escaped special chars: \. -> .
   className = className.replace(/\\(.)/g, '$1')
@@ -87,7 +93,8 @@ export function decodeCssClassName(selector: string): string {
  */
 export function isSimpleClassSelector(selector: string): boolean {
   // Remove escape sequences to check for real spaces/combinators
-  const withoutEscapes = selector.replace(/\\[0-9a-f]+\s?/gi, '_').replace(/\\./g, '_')
+  // Safe: {1,6} limits hex digit repetition
+  const withoutEscapes = selector.replace(/\\[0-9a-f]{1,6}\s?/gi, '_').replace(/\\./g, '_')
 
   // Check for combinators (real spaces, >, +, ~)
   if (/[\s>+~]/.test(withoutEscapes))
@@ -114,6 +121,7 @@ export interface ExtractClassStylesOptions {
 /**
  * Extract class rules from CSS into a map of className -> styles.
  * Only extracts simple class selectors (no pseudo-classes, combinators).
+ * Uses safe regex patterns to avoid exponential backtracking.
  */
 export function extractClassStyles(
   css: string,
@@ -122,9 +130,11 @@ export function extractClassStyles(
   const { camelCase = false, normalize = false, skipPrefixes = ['--'], merge = false } = options
   const classes = new Map<string, Record<string, string>>()
 
-  // Match .selector { body } - no ^ anchor as rules may be inside @layer blocks
-  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
-  const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
+  // Match .selector { body }
+  // Safe regex: hex escapes limited to 1-6 digits (CSS spec)
+  // [^\\\s{] excludes backslash to prevent overlap with escape sequences
+  // \\[^0-9a-f] handles non-hex escapes without overlapping hex escapes
+  const ruleRe = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
 
   for (const match of css.matchAll(ruleRe)) {
     const rawSelector = match[1]!
@@ -136,8 +146,8 @@ export function extractClassStyles(
     const className = decodeCssClassName(rawSelector)
     const styles: Record<string, string> = merge ? (classes.get(className) || {}) : {}
 
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    const declRe = /([\w-]+)\s*:\s*([^;]+);/g
+    // Safe: value starts with non-whitespace [^\s;] to prevent overlap with \s*
+    const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*);/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!
       let value = declMatch[2]!.trim()

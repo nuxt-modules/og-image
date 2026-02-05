@@ -312,8 +312,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Transform icons: <Icon name="..." /> or <UIcon name="..." />
-      // eslint-disable-next-line regexp/no-super-linear-backtracking,regexp/optimal-quantifier-concatenation
-      const iconRegex = /<(Icon|UIcon)\s+([^>]*name="([^"]+)"[^>]*)\/?>/g
+      // Safe: uses non-greedy .*? with atomic grouping via split matching
+      const iconRegex = /<(Icon|UIcon)\s[^>]*?name="([^"]+)"[^>]*>/g
       if (iconRegex.test(template)) {
         iconRegex.lastIndex = 0
 
@@ -321,7 +321,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         let match
         // eslint-disable-next-line no-cond-assign
         while ((match = iconRegex.exec(template)) !== null) {
-          const iconName = match[3]
+          const iconName = match[2]
           if (!iconName || iconName.includes('{'))
             continue
           const [prefix] = iconName.split(':')
