@@ -168,7 +168,27 @@ export function useOgImage() {
     const name = activeComponentName.value
     // Normalize dot-notation to PascalCase (NuxtSeo.takumi → NuxtSeoTakumi)
     const normalizedName = name.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
-    const matching = components.filter((c: OgImageComponent) => c.pascalName === normalizedName || c.pascalName === name)
+
+    // First try exact match
+    let matching = components.filter((c: OgImageComponent) => c.pascalName === normalizedName || c.pascalName === name)
+
+    // If no exact match, try matching by base name (without renderer suffix)
+    // This handles cases like component: 'BlogPost' matching 'BlogPostSatori'
+    if (matching.length === 0) {
+      const rendererSuffixes = ['Satori', 'Browser', 'Takumi']
+      matching = components.filter((c: OgImageComponent) => {
+        for (const suffix of rendererSuffixes) {
+          if (c.pascalName.endsWith(suffix)) {
+            const baseName = c.pascalName.slice(0, -suffix.length)
+            if (baseName === normalizedName || baseName === name) {
+              return true
+            }
+          }
+        }
+        return false
+      })
+    }
+
     // Prefer app components over community/pro templates
     return matching.find((c: OgImageComponent) => c.category === 'app') || matching[0]
   })
