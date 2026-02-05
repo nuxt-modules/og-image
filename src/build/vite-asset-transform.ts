@@ -62,7 +62,7 @@ function buildIconSvg(iconData: { body: string, width?: number, height?: number 
   for (const [, key, value] of attrPairs) {
     if (key === 'name')
       continue
-    if (key === 'style') {
+    if (key === 'style' && value) {
       existingStyle = value
       continue
     }

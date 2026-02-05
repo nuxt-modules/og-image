@@ -69,10 +69,10 @@ const rendererDropdownItems = computed(() => [[
     onSelect: () => switchRenderer('satori'),
   },
   {
-    label: 'Chromium',
+    label: 'Browser',
     icon: 'logos:chrome',
-    disabled: !availableRenderers.value.has('chromium'),
-    onSelect: () => switchRenderer('chromium'),
+    disabled: !availableRenderers.value.has('browser'),
+    onSelect: () => switchRenderer('browser'),
   },
   {
     label: 'Takumi',
@@ -194,7 +194,7 @@ const rendererDropdownItems = computed(() => [[
             <UButton color="neutral" variant="outline" size="xs">
               <img v-if="renderer === 'takumi'" src="https://takumi.kane.tw/logo.svg" class="w-3.5 h-3.5" alt="">
               <UIcon v-else :name="renderer === 'browser' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
-              <span class="hidden sm:inline">{{ renderer === 'chromium' ? 'Chromium' : renderer === 'takumi' ? 'Takumi' : 'Satori' }}</span>
+              <span class="hidden sm:inline">{{ renderer === 'browser' ? 'Browser' : renderer === 'takumi' ? 'Takumi' : 'Satori' }}</span>
               <UIcon name="carbon:chevron-down" class="w-3 h-3 opacity-60" />
             </UButton>
           </UDropdownMenu>

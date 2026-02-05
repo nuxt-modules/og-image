@@ -14,7 +14,7 @@ export function setupDevHandler(options: ModuleOptions, resolve: Resolver, getDe
     // This allows community templates to work for any renderer the user has deps for
     const detectedRenderers = new Set(getDetectedRenderers())
     const targetCompatibility = getPresetNitroPresetCompatibility(resolveNitroPreset(nitro.options))
-    for (const renderer of (['satori', 'takumi', 'chromium'] as const)) {
+    for (const renderer of (['satori', 'takumi', 'browser'] as const)) {
       if (!detectedRenderers.has(renderer)) {
         const binding = getRecommendedBinding(renderer, targetCompatibility)
         const missing = await getMissingDependencies(renderer, binding)

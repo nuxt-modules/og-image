@@ -931,7 +931,7 @@ export default defineNuxtModule<ModuleOptions>({
     // This allows users to use community templates for any renderer, not just ones they've created components for
     if (nuxt.options.dev) {
       const communityRenderers = new Set<RendererType>()
-      for (const renderer of (['satori', 'takumi', 'chromium'] as const)) {
+      for (const renderer of (['satori', 'takumi', 'browser'] as const)) {
         const binding = getRecommendedBinding(renderer, targetCompatibility)
         const missing = await getMissingDependencies(renderer, binding)
         if (missing.length === 0)

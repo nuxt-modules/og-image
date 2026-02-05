@@ -38,7 +38,7 @@ export async function imageEventHandler(e: H3Event) {
       // if the user is loading the iframe we need to render a nicer template
       // also used for chromium screenshots
       return html(ctx)
-    case 'svg':
+    case 'svg': {
       if (!debug && !import.meta.dev) {
         return createError({
           statusCode: 404,
@@ -54,6 +54,7 @@ export async function imageEventHandler(e: H3Event) {
       setHeader(e, 'Content-Type', `image/svg+xml`)
       const debugResult = await ctx.renderer.debug(ctx)
       return debugResult.svg
+    }
     case 'png':
     case 'jpeg':
     case 'jpg':
