@@ -43,7 +43,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy } from './util'
-import { ensureProviderDependencies, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
+import { ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -871,11 +871,18 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
     }
-    // No user components — ask which renderer to use (dev) or default (prod)
+    // No user components — auto-detect from installed deps, prompt only if none installed
     if (!hasUserComponents) {
-      if (nuxt.options.dev && !nuxt.options._prepare) {
+      const installedProviders = await getInstalledProviders()
+      const preferred = installedProviders.find(p => p.provider === 'satori') || installedProviders[0]
+      if (preferred) {
+        ogImageComponentCtx.detectedRenderers.add(preferred.provider)
+        logger.success(`Using ${preferred.provider} renderer`)
+      }
+      else if (nuxt.options.dev && !nuxt.options._prepare) {
         const renderer = await promptForRendererSelection()
         ogImageComponentCtx.detectedRenderers.add(renderer)
+        logger.success(`Using ${renderer} renderer`)
       }
       else {
         ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')

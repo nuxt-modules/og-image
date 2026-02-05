@@ -213,7 +213,8 @@ export async function ensureProviderDependencies(
 }
 
 export async function promptForRendererSelection(): Promise<ProviderName> {
-  const renderer = await logger.prompt('Which OG image renderer would you like to use?', {
+  logger.info('Welcome to Nuxt OG Image! No renderer dependencies detected.')
+  const renderer = await logger.prompt('Which renderer would you like to use?', {
     type: 'select',
     options: PROVIDER_DEPENDENCIES.map(p => p.name),
     initial: 'satori',
