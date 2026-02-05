@@ -7,8 +7,8 @@ import {
   convertColorToHex,
   convertOklchToHex,
   decodeCssClassName,
-  extractCssVars,
   extractClassStyles,
+  extractCssVars,
   isSimpleClassSelector,
   loadLightningCss,
   resolveCssVars,
@@ -91,28 +91,32 @@ export function buildNuxtUiVars(
       vars.set(`--ui-${semantic}`, colors[colorName]?.[500] || '')
   }
 
-  // Add Nuxt UI semantic text/bg/border variables (light mode defaults)
+  // Add Nuxt UI semantic text/bg/border variables (dark mode for OG images)
   const neutral = nuxtUiColors.neutral || 'slate'
   const neutralColors = colors[neutral]
   const semanticVars: Record<string, string> = {
-    '--ui-text-dimmed': neutralColors?.[400] || '',
-    '--ui-text-muted': neutralColors?.[500] || '',
-    '--ui-text-toned': neutralColors?.[600] || '',
-    '--ui-text': neutralColors?.[700] || '',
-    '--ui-text-highlighted': neutralColors?.[900] || '',
-    '--ui-text-inverted': '#ffffff',
-    '--ui-bg': '#ffffff',
-    '--ui-bg-muted': neutralColors?.[50] || '',
-    '--ui-bg-elevated': neutralColors?.[100] || '',
-    '--ui-bg-accented': neutralColors?.[200] || '',
-    '--ui-bg-inverted': neutralColors?.[900] || '',
-    '--ui-border': neutralColors?.[200] || '',
-    '--ui-border-muted': neutralColors?.[200] || '',
-    '--ui-border-accented': neutralColors?.[300] || '',
-    '--ui-border-inverted': neutralColors?.[900] || '',
+    // Dark mode text colors (inverted from light mode)
+    '--ui-text-dimmed': neutralColors?.[500] || '',
+    '--ui-text-muted': neutralColors?.[400] || '',
+    '--ui-text-toned': neutralColors?.[300] || '',
+    '--ui-text': neutralColors?.[200] || '',
+    '--ui-text-highlighted': '#ffffff',
+    '--ui-text-inverted': neutralColors?.[900] || '',
+    // Dark mode backgrounds
+    '--ui-bg': neutralColors?.[900] || '',
+    '--ui-bg-muted': neutralColors?.[800] || '',
+    '--ui-bg-elevated': neutralColors?.[800] || '',
+    '--ui-bg-accented': neutralColors?.[700] || '',
+    '--ui-bg-inverted': '#ffffff',
+    // Dark mode borders
+    '--ui-border': neutralColors?.[800] || '',
+    '--ui-border-muted': neutralColors?.[700] || '',
+    '--ui-border-accented': neutralColors?.[700] || '',
+    '--ui-border-inverted': '#ffffff',
   }
+  // Force-set semantic vars to ensure dark mode (override any light mode vars from CSS)
   for (const [name, value] of Object.entries(semanticVars)) {
-    if (value && !vars.has(name))
+    if (value)
       vars.set(name, value)
   }
 }
@@ -211,9 +215,9 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
       vars.set(name, value)
   }
 
-  // Extract class styles
+  // Extract class styles (no ^ anchor - rules may be inside @layer blocks)
   const classes = new Map<string, Record<string, string>>()
-  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gmi
+  const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
 
   for (const match of css.matchAll(ruleRe)) {
     const rawSelector = match[1]!
@@ -538,7 +542,8 @@ function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, s
  */
 function parseClassStylesCamelCase(css: string): Map<string, Record<string, string>> {
   const classMap = new Map<string, Record<string, string>>()
-  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gmi
+  // Note: No ^ anchor - rules may be inside @layer blocks and indented
+  const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
 
   for (const match of css.matchAll(ruleRe)) {
     const rawSelector = match[1]!
