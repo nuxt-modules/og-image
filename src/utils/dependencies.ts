@@ -4,7 +4,7 @@ import { addDependency, detectPackageManager } from 'nypm'
 import { getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import { logger } from '../runtime/logger'
 
-export type ProviderName = 'satori' | 'takumi' | 'chromium'
+export type ProviderName = 'satori' | 'takumi' | 'browser'
 export type BindingVariant = 'node' | 'wasm' | 'wasm-fs'
 
 export interface ProviderDependency {
@@ -58,7 +58,7 @@ export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
     },
   },
   {
-    name: 'chromium',
+    name: 'browser',
     description: 'Browser-based screenshot renderer',
     bindings: {
       node: [
@@ -167,8 +167,8 @@ export function getRecommendedBinding(provider: ProviderName, compatibility: Run
     return 'node'
   }
 
-  if (provider === 'chromium') {
-    // chromium only has node binding
+  if (provider === 'browser') {
+    // browser only has node binding
     return 'node'
   }
 
@@ -268,10 +268,10 @@ export async function validateProviderSetup(
     }
   }
 
-  if (renderer === 'chromium') {
+  if (renderer === 'browser') {
     const hasPlaywright = await isPackageInstalled('playwright-core')
     if (!hasPlaywright && binding === 'node') {
-      issues.push('Chromium renderer requires playwright-core')
+      issues.push('Browser renderer requires playwright-core')
     }
   }
 

@@ -123,8 +123,9 @@ declare module '#og-image-virtual/tw4-theme.mjs' {
     filename: 'types/og-image-bindings.d.ts',
     getContents: (data) => {
       const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'types'), resolve('runtime/types'))
-      return `declare module '#og-image/bindings/chromium' {
-  export function createBrowser(): Promise<any>
+      return `declare module '#og-image/bindings/browser' {
+  import type { H3Event } from 'h3'
+  export function createBrowser(event?: H3Event): Promise<any>
 }
 
 declare module '#og-image/bindings/satori' {
@@ -162,7 +163,7 @@ declare module '#og-image/renderers/satori' {
   export default _default
 }
 
-declare module '#og-image/renderers/chromium' {
+declare module '#og-image/renderers/browser' {
   import type { Renderer } from '${typesPath}'
   const _default: Renderer
   export default _default

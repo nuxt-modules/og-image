@@ -127,15 +127,15 @@ const {
         <!-- Left: Renderer + Format controls -->
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
           <!-- Renderer badge -->
-          <div class="renderer-badge" :class="renderer === 'chromium' ? 'chromium' : 'satori'">
-            <UIcon :name="renderer === 'chromium' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">{{ renderer === 'chromium' ? 'Chromium' : 'Satori' }}</span>
+          <div class="renderer-badge" :class="renderer === 'browser' ? 'browser' : 'satori'">
+            <UIcon :name="renderer === 'browser' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{{ renderer === 'browser' ? 'Browser' : 'Satori' }}</span>
           </div>
 
           <!-- Format buttons -->
           <div class="format-buttons">
             <button
-              v-if="!!globalDebug?.compatibility?.sharp || renderer === 'chromium' || options?.extension === 'jpeg'"
+              v-if="!!globalDebug?.compatibility?.sharp || renderer === 'browser' || options?.extension === 'jpeg'"
               class="format-btn"
               :class="{ active: imageFormat === 'jpeg' || imageFormat === 'jpg' }"
               @click="patchOptions({ extension: 'jpg' })"
@@ -150,7 +150,7 @@ const {
               PNG
             </button>
             <button
-              v-if="renderer !== 'chromium'"
+              v-if="renderer !== 'browser'"
               class="format-btn"
               :class="{ active: imageFormat === 'svg' }"
               @click="patchOptions({ extension: 'svg' })"
@@ -590,12 +590,12 @@ const {
   font-weight: 500;
 }
 
-.renderer-badge.chromium {
+.renderer-badge.browser {
   background: oklch(85% 0.1 230 / 0.15);
   color: oklch(55% 0.12 230);
 }
 
-.dark .renderer-badge.chromium {
+.dark .renderer-badge.browser {
   background: oklch(45% 0.1 230 / 0.2);
   color: oklch(75% 0.1 230);
 }

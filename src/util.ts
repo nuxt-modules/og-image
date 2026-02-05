@@ -24,9 +24,9 @@ export async function hasResolvableDependency(dep: string) {
     .then(r => r && r !== dep)
 }
 
-const VALID_RENDERER_SUFFIXES = ['satori', 'chromium', 'takumi'] as const
+const VALID_RENDERER_SUFFIXES = ['satori', 'browser', 'takumi'] as const
 
-export function getRendererFromFilename(filepath: string): 'satori' | 'chromium' | 'takumi' | null {
+export function getRendererFromFilename(filepath: string): 'satori' | 'browser' | 'takumi' | null {
   const filename = basename(filepath).replace('.vue', '')
   for (const suffix of VALID_RENDERER_SUFFIXES) {
     if (filename.endsWith(`.${suffix}`))

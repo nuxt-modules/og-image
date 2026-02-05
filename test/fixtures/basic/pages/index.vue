@@ -6,10 +6,10 @@
   <div>
     <ul>
       <li>
-        <a target="_blank" href="/_og/d/chromium/og.jpeg">Chromium default</a>
+        <a target="_blank" href="/_og/d/browser/og.jpeg">Browser default</a>
       </li>
       <li>
-        <a target="_blank" href="/_og/d/chromium/og.png">Chromium png</a>
+        <a target="_blank" href="/_og/d/browser/og.png">Browser png</a>
       </li>
     </ul>
     <ul>

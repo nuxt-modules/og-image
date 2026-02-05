@@ -25,7 +25,7 @@ const autodetectableStaticProviders = {
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
-  'chromium': 'on-demand', // this gets changed build start
+  'browser': 'on-demand', // this gets changed build start
   'css-inline': 'node',
   'resvg': 'node',
   'satori': 'node',
@@ -40,7 +40,7 @@ const NodeDevRuntime: RuntimeCompatibilitySchema = {
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {
-  'chromium': false,
+  'browser': 'cloudflare',
   'css-inline': false,
   'resvg': 'wasm',
   'satori': '0-15-wasm',
@@ -53,7 +53,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
   },
 }
 const awsLambda: RuntimeCompatibilitySchema = {
-  'chromium': false,
+  'browser': false,
   'css-inline': 'wasm',
   'resvg': 'node',
   'satori': 'node',
@@ -63,7 +63,7 @@ const awsLambda: RuntimeCompatibilitySchema = {
 }
 
 export const WebContainer: RuntimeCompatibilitySchema = {
-  'chromium': false,
+  'browser': false,
   'css-inline': 'wasm-fs',
   'resvg': 'wasm-fs',
   'satori': 'wasm-fs',
@@ -81,7 +81,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'aws-lambda': awsLambda,
   'netlify': awsLambda,
   'netlify-edge': {
-    'chromium': false,
+    'browser': false,
     'css-inline': 'wasm',
     'resvg': 'wasm',
     'satori': 'node',
@@ -98,7 +98,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'firebase': awsLambda,
   'vercel': awsLambda,
   'vercel-edge': {
-    'chromium': false,
+    'browser': false,
     'css-inline': false, // size constraint (2mb is max)
     'resvg': 'wasm',
     'satori': '0-15-wasm', // 0.16+ uses WebAssembly.instantiate() blocked by edge
@@ -158,7 +158,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
 
   // Enable renderers based on detected component suffixes
   const satoriEnabled = detectedRenderers.has('satori')
-  const chromiumEnabled = detectedRenderers.has('chromium')
+  const browserEnabled = detectedRenderers.has('browser')
   const takumiEnabled = detectedRenderers.has('takumi')
 
   // Warn if detected renderer not supported on this preset
@@ -171,7 +171,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   // renderers
   const emptyMock = await resolve.resolvePath('./runtime/mock/empty')
   nitroConfig.alias!['#og-image/renderers/satori'] = satoriEnabled ? await resolve.resolvePath('./runtime/server/og-image/satori/renderer') : emptyMock
-  nitroConfig.alias!['#og-image/renderers/chromium'] = chromiumEnabled ? await resolve.resolvePath('./runtime/server/og-image/chromium/renderer') : emptyMock
+  nitroConfig.alias!['#og-image/renderers/browser'] = browserEnabled ? await resolve.resolvePath('./runtime/server/og-image/browser/renderer') : emptyMock
   nitroConfig.alias!['#og-image/renderers/takumi'] = takumiEnabled ? await resolve.resolvePath('./runtime/server/og-image/takumi/renderer') : emptyMock
 
   const resolvedCompatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> = {}
@@ -191,7 +191,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     }
   }
   nitroConfig.alias = defu(
-    await applyBinding('chromium'),
+    await applyBinding('browser'),
     await applyBinding('satori'),
     await applyBinding('takumi'),
     await applyBinding('resvg'),
