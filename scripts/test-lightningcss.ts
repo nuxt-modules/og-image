@@ -66,7 +66,7 @@ function resolveAllVars(css: string, vars: Map<string, string>): string {
 
 function decodeCssSelector(selector: string): string {
   return selector
-    .replace(/\\([0-9a-f]+)\s?/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/\\([0-9a-f]+)\s?/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
     .replace(/\\(.)/g, '$1')
 }
 
@@ -94,7 +94,7 @@ function extractClasses(css: string): Map<string, Record<string, string>> {
 
   // Match .selector { body }
   // Selector can contain escapes like \32 (with trailing space)
-  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gmi
+  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gim
 
   for (const match of css.matchAll(ruleRe)) {
     const rawSelector = match[1]!

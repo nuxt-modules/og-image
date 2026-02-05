@@ -7,7 +7,6 @@ import {
   convertColorToHex,
   convertOklchToHex,
   decodeCssClassName,
-  extractClassStyles,
   extractCssVars,
   isSimpleClassSelector,
   loadLightningCss,
@@ -217,6 +216,7 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
 
   // Extract class styles (no ^ anchor - rules may be inside @layer blocks)
   const classes = new Map<string, Record<string, string>>()
+  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
   const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
 
   for (const match of css.matchAll(ruleRe)) {
@@ -229,6 +229,7 @@ function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Rec
     const className = decodeCssClassName(rawSelector)
     const styles: Record<string, string> = {}
 
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     const declRe = /([\w-]+)\s*:\s*([^;]+);/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!
@@ -258,6 +259,7 @@ async function evaluateCalc(value: string): Promise<string> {
 
   const fakeCss = `.x{v:${value}}`
   const result = await simplifyCss(fakeCss)
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
   const match = result.match(/\.x\s*\{\s*v:\s*([^;]+);?\s*\}/)
   return match?.[1]?.trim() ?? value
 }
@@ -283,7 +285,7 @@ async function resolveVars(value: string, vars: Map<string, string>, depth = 0):
   }
 
   // Resolve var() references
-  let result = resolveCssVars(value, vars)
+  const result = resolveCssVars(value, vars)
 
   // If still has var(), recurse
   if (result.includes('var(') && depth < 10)
@@ -543,6 +545,7 @@ function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, s
 function parseClassStylesCamelCase(css: string): Map<string, Record<string, string>> {
   const classMap = new Map<string, Record<string, string>>()
   // Note: No ^ anchor - rules may be inside @layer blocks and indented
+  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-dupe-disjunctions
   const ruleRe = /\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gi
 
   for (const match of css.matchAll(ruleRe)) {
@@ -555,6 +558,7 @@ function parseClassStylesCamelCase(css: string): Map<string, Record<string, stri
     const className = decodeCssClassName(rawSelector)
     const styles: Record<string, string> = classMap.get(className) || {}
 
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     const declRe = /([\w-]+)\s*:\s*([^;]+);/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!

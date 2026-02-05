@@ -1,7 +1,7 @@
 import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
 import { logger } from '../../../runtime/logger'
-import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName, extractClassStyles, simplifyCss } from '../css-utils'
+import { COLOR_PROPERTIES, convertColorToHex, extractClassStyles, simplifyCss } from '../css-utils'
 
 // State
 let unoConfig: UserConfig | null = null

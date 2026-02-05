@@ -1,4 +1,4 @@
-import { extractCssVars, resolveCssVars, simplifyCss, extractClassStyles, processCss } from '../src/build/css/css-utils'
+import { extractClassStyles, extractCssVars, processCss, resolveCssVars, simplifyCss } from '../src/build/css/css-utils'
 
 const testCss = `
 :root {
