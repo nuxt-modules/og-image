@@ -1,7 +1,7 @@
 import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
 import { logger } from '../../../runtime/logger'
-import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName, loadPostcss } from '../css-utils'
+import { COLOR_PROPERTIES, convertColorToHex, decodeCssClassName, extractClassStyles, simplifyCss } from '../css-utils'
 
 // State
 let unoConfig: UserConfig | null = null
@@ -71,66 +71,62 @@ function resolveUnoVars(value: string, vars: Map<string, string>): string {
 }
 
 /**
- * Parse generated CSS into class → styles map.
+ * Parse generated CSS into class → styles map using Lightning CSS.
  */
 async function parseGeneratedCss(css: string): Promise<Record<string, Record<string, string>>> {
-  const { postcss, postcssCalc } = await loadPostcss()
+  // Simplify calc() expressions with Lightning CSS
+  const simplifiedCss = await simplifyCss(css)
 
-  // Evaluate calc() expressions
-  const processed = await postcss([postcssCalc({})]).process(css, { from: undefined })
-  const root = postcss.parse(processed.css)
+  // Extract class styles using regex-based parser
+  const classMap = extractClassStyles(simplifiedCss)
 
   const result: Record<string, Record<string, string>> = {}
 
-  root.walkRules((rule) => {
-    const selector = rule.selector
-    if (!selector.startsWith('.'))
-      return
+  for (const [className, rawStyles] of classMap) {
+    // First pass: collect CSS variables from this class
+    // (UnoCSS puts --un-* vars in the same rule)
+    const vars = new Map<string, string>()
 
-    // Skip pseudo-classes, combinators
-    if (selector.includes(':') || selector.includes(' ') || selector.includes('>'))
-      return
+    // Re-extract with vars from the original CSS for this class
+    const classRe = new RegExp(`\\.${escapeRegex(className)}\\s*\\{([^}]+)\\}`)
+    const classMatch = simplifiedCss.match(classRe)
+    if (classMatch?.[1]) {
+      const varRe = /(--un-[\w-]+)\s*:\s*([^;]+);/g
+      for (const m of classMatch[1].matchAll(varRe)) {
+        if (m[1] && m[2])
+          vars.set(m[1], m[2].trim())
+      }
+    }
 
-    const className = decodeCssClassName(selector)
     const styles: Record<string, string> = {}
 
-    // First pass: collect CSS variables from this rule
-    const vars = new Map<string, string>()
-    rule.walkDecls((decl) => {
-      if (decl.prop.startsWith('--un-'))
-        vars.set(decl.prop, decl.value)
-    })
-
-    // Second pass: process non-variable declarations
-    rule.walkDecls((decl) => {
-      // Skip CSS variables
-      if (decl.prop.startsWith('--'))
-        return
-
-      let value = decl.value
+    for (const [prop, rawValue] of Object.entries(rawStyles)) {
+      let value = rawValue
 
       // Resolve UnoCSS var() references
       if (value.includes('var(--un-'))
         value = resolveUnoVars(value, vars)
 
-      // Convert colors to hex for Satori
-      if (COLOR_PROPERTIES.has(decl.prop)) {
+      // Convert colors to hex for rendering
+      if (COLOR_PROPERTIES.has(prop))
         value = convertColorToHex(value)
-      }
 
-      // Satori expects opacity as unitless decimal (0.6), not percentage (60%)
-      if (decl.prop === 'opacity' && value.endsWith('%'))
+      // Normalize opacity percentage to decimal (CSS standard is unitless 0-1)
+      if (prop === 'opacity' && value.endsWith('%'))
         value = String(Number.parseFloat(value) / 100)
 
-      styles[decl.prop] = value
-    })
-
-    if (Object.keys(styles).length > 0) {
-      result[className] = styles
+      styles[prop] = value
     }
-  })
+
+    if (Object.keys(styles).length > 0)
+      result[className] = styles
+  }
 
   return result
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /**

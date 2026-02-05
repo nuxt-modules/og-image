@@ -2,24 +2,28 @@ import { readFile } from 'node:fs/promises'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
 import twColors from 'tailwindcss/colors'
-import { COLOR_PROPERTIES, convertColorToHex, convertOklchToHex, decodeCssClassName, loadPostcss } from '../css-utils'
+import {
+  COLOR_PROPERTIES,
+  convertColorToHex,
+  convertOklchToHex,
+  decodeCssClassName,
+  extractCssVars,
+  extractClassStyles,
+  isSimpleClassSelector,
+  loadLightningCss,
+  resolveCssVars,
+  simplifyCss,
+} from '../css-utils'
 
-// Lazy-loaded heavy dependencies to reduce startup memory
-let postcss: typeof import('postcss').default
-let postcssCalc: (opts?: object) => import('postcss').Plugin
-let postcssCustomProperties: (opts?: object) => import('postcss').Plugin
+// Lazy-loaded heavy dependencies
 let compile: typeof import('tailwindcss').compile
 
 async function loadTw4Deps() {
   if (!compile) {
-    const [{ postcss: pc, postcssCalc: pcCalc }, postcssCustomPropsModule, tailwindModule] = await Promise.all([
-      loadPostcss(),
-      import('postcss-custom-properties'),
+    const [, tailwindModule] = await Promise.all([
+      loadLightningCss(),
       import('tailwindcss'),
     ])
-    postcss = pc
-    postcssCalc = pcCalc
-    postcssCustomProperties = postcssCustomPropsModule.default as unknown as typeof postcssCustomProperties
     compile = tailwindModule.compile
   }
 }
@@ -196,117 +200,68 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 // ============================================================================
 
 /**
- * Parse TW4 compiler output using postcss.
- * Extracts CSS variables and class styles reliably.
+ * Parse TW4 compiler output.
+ * Extracts CSS variables and class styles.
  */
 function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Record<string, string>> {
-  const classes = new Map<string, Record<string, string>>()
-
-  const root = postcss.parse(css)
-
   // Extract :root/:host variables
-  root.walkRules((rule) => {
-    if (rule.selector.includes(':root') || rule.selector.includes(':host')) {
-      rule.walkDecls((decl) => {
-        if (decl.prop.startsWith('--') && !vars.has(decl.prop))
-          vars.set(decl.prop, decl.value)
-      })
-    }
-  })
+  const cssVars = extractCssVars(css)
+  for (const [name, value] of cssVars) {
+    if (!vars.has(name))
+      vars.set(name, value)
+  }
 
   // Extract class styles
-  root.walkRules((rule) => {
-    const sel = rule.selector
-    // Only process simple class selectors (not pseudo-classes, combinators, etc.)
-    if (!sel.startsWith('.') || sel.includes(':') || sel.includes(' ') || sel.includes('>'))
-      return
+  const classes = new Map<string, Record<string, string>>()
+  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gmi
 
-    const className = decodeCssClassName(sel)
+  for (const match of css.matchAll(ruleRe)) {
+    const rawSelector = match[1]!
+    const body = match[2]!
 
+    if (!isSimpleClassSelector(rawSelector))
+      continue
+
+    const className = decodeCssClassName(rawSelector)
     const styles: Record<string, string> = {}
-    rule.walkDecls((decl) => {
+
+    const declRe = /([\w-]+)\s*:\s*([^;]+);/g
+    for (const declMatch of body.matchAll(declRe)) {
+      const prop = declMatch[1]!
+      const value = declMatch[2]!.trim()
       // Skip internal TW CSS variables
-      if (decl.prop.startsWith('--tw-'))
-        return
-      styles[decl.prop] = decl.value
-    })
+      if (prop.startsWith('--tw-'))
+        continue
+      // Skip all CSS variables for now
+      if (prop.startsWith('--'))
+        continue
+      styles[prop] = value
+    }
 
     if (Object.keys(styles).length)
       classes.set(className, styles)
-  })
+  }
 
   return classes
 }
 
 /**
- * Evaluate calc() expressions using postcss-calc.
+ * Evaluate calc() expressions using Lightning CSS.
  */
-function evaluateCalc(value: string): string {
+async function evaluateCalc(value: string): Promise<string> {
   if (!value.includes('calc('))
     return value
 
   const fakeCss = `.x{v:${value}}`
-  const result = postcss([postcssCalc({})]).process(fakeCss, { from: undefined })
-  const match = result.css.match(/\.x\{v:(.+)\}/)
-  return match?.[1] ?? value
-}
-
-/**
- * Parse a var() expression handling nested parentheses in fallbacks.
- */
-function parseVarExpression(value: string, startIndex: number): { varName: string, fallback: string | null, endIndex: number } | null {
-  if (!value.startsWith('var(', startIndex))
-    return null
-
-  let depth = 1
-  let i = startIndex + 4 // Skip 'var('
-  let varName = ''
-  let fallback: string | null = null
-  let inFallback = false
-
-  while (i < value.length && depth > 0) {
-    const char = value[i]
-    if (char === '(') {
-      depth++
-      if (inFallback)
-        fallback += char
-    }
-    else if (char === ')') {
-      depth--
-      if (depth > 0 && inFallback)
-        fallback += char
-    }
-    else if (char === ',' && depth === 1 && !inFallback) {
-      inFallback = true
-      fallback = ''
-      i++
-      while (i < value.length && value[i] === ' ')
-        i++
-      continue
-    }
-    else if (inFallback && char) {
-      fallback += char
-    }
-    else {
-      varName += char
-    }
-    i++
-  }
-
-  if (depth !== 0 || !varName.startsWith('--'))
-    return null
-
-  return {
-    varName: varName.trim(),
-    fallback: fallback?.trim() || null,
-    endIndex: i,
-  }
+  const result = await simplifyCss(fakeCss)
+  const match = result.match(/\.x\s*\{\s*v:\s*([^;]+);?\s*\}/)
+  return match?.[1]?.trim() ?? value
 }
 
 /**
  * Resolve var() references in a value string.
  */
-function resolveVars(value: string, vars: Map<string, string>, depth = 0): string {
+async function resolveVars(value: string, vars: Map<string, string>, depth = 0): Promise<string> {
   if (depth > 10 || !value.includes('var('))
     return evaluateCalc(value)
 
@@ -323,32 +278,10 @@ function resolveVars(value: string, vars: Map<string, string>, depth = 0): strin
     }
   }
 
-  let result = value
-  let iterations = 0
-  const maxIterations = 50
+  // Resolve var() references
+  let result = resolveCssVars(value, vars)
 
-  while (result.includes('var(') && iterations < maxIterations) {
-    const varIndex = result.indexOf('var(')
-    if (varIndex === -1)
-      break
-
-    const parsed = parseVarExpression(result, varIndex)
-    if (!parsed) {
-      result = result.slice(0, varIndex) + result.slice(varIndex + 4)
-      iterations++
-      continue
-    }
-
-    const resolved = vars.get(parsed.varName) ?? parsed.fallback
-    if (resolved) {
-      result = result.slice(0, varIndex) + resolved + result.slice(parsed.endIndex)
-    }
-    else {
-      result = result.slice(0, varIndex) + result.slice(parsed.endIndex)
-    }
-    iterations++
-  }
-
+  // If still has var(), recurse
   if (result.includes('var(') && depth < 10)
     return resolveVars(result, vars, depth + 1)
 
@@ -393,7 +326,7 @@ const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
   'bg-radial-at-c': 'circle at center',
 }
 
-function resolveGradientColor(cls: string, vars: Map<string, string>): string | null {
+async function resolveGradientColor(cls: string, vars: Map<string, string>): Promise<string | null> {
   const colorName = cls.replace(/^(from|via|to)-/, '')
 
   const shadeMatch = colorName.match(/^(.+)-(\d+)$/)
@@ -401,7 +334,7 @@ function resolveGradientColor(cls: string, vars: Map<string, string>): string | 
     const varName = `--color-${shadeMatch[1]}-${shadeMatch[2]}`
     const value = vars.get(varName)
     if (value) {
-      const resolved = resolveVars(value, vars)
+      const resolved = await resolveVars(value, vars)
       if (!resolved.includes('var('))
         return convertColorToHex(resolved)
     }
@@ -410,7 +343,7 @@ function resolveGradientColor(cls: string, vars: Map<string, string>): string | 
   const varName = `--color-${colorName}`
   const value = vars.get(varName)
   if (value) {
-    const resolved = resolveVars(value, vars)
+    const resolved = await resolveVars(value, vars)
     if (!resolved.includes('var('))
       return convertColorToHex(resolved)
   }
@@ -418,10 +351,10 @@ function resolveGradientColor(cls: string, vars: Map<string, string>): string | 
   return null
 }
 
-function buildGradient(
+async function buildGradient(
   classes: string[],
   vars: Map<string, string>,
-): { gradientClass: string, value: string, colorClasses: string[] } | null {
+): Promise<{ gradientClass: string, value: string, colorClasses: string[] } | null> {
   const linearDir = classes.find(c => LINEAR_GRADIENT_DIRECTIONS[c])
   const radialShape = classes.find(c => RADIAL_GRADIENT_SHAPES[c])
   const fromClass = classes.find(c => c.startsWith('from-'))
@@ -433,9 +366,9 @@ function buildGradient(
   if (!fromClass && !toClass)
     return null
 
-  const fromColor = fromClass ? resolveGradientColor(fromClass, vars) : null
-  const viaColor = viaClass ? resolveGradientColor(viaClass, vars) : null
-  const toColor = toClass ? resolveGradientColor(toClass, vars) : null
+  const fromColor = fromClass ? await resolveGradientColor(fromClass, vars) : null
+  const viaColor = viaClass ? await resolveGradientColor(viaClass, vars) : null
+  const toColor = toClass ? await resolveGradientColor(toClass, vars) : null
 
   if (!fromColor && !toColor)
     return null
@@ -488,7 +421,7 @@ export async function resolveClassesToStyles(
       const styles: Record<string, string> = {}
 
       for (const [prop, rawValue] of Object.entries(rawStyles)) {
-        let value = resolveVars(rawValue, vars)
+        let value = await resolveVars(rawValue, vars)
 
         if (value.includes('var('))
           continue
@@ -521,7 +454,7 @@ export async function resolveClassesToStyles(
       result[cls] = resolved
   }
 
-  const gradient = buildGradient(classes, vars)
+  const gradient = await buildGradient(classes, vars)
   if (gradient) {
     result[gradient.gradientClass] = { 'background-image': gradient.value }
     for (const colorClass of gradient.colorClasses) {
@@ -547,7 +480,7 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
   const colors: Tw4Colors = {}
 
   for (const [name, value] of vars) {
-    const resolvedValue = resolveVars(value, vars)
+    const resolvedValue = await resolveVars(value, vars)
 
     if (name.startsWith('--font-')) {
       fontVars[name.slice(2)] = resolvedValue
@@ -585,25 +518,9 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
 // ============================================================================
 
 /**
- * Extract CSS variables from TW4 compiled output.
- */
-function extractVars(css: string): Map<string, string> {
-  const vars = new Map<string, string>()
-  const root = postcss.parse(css)
-
-  root.walkDecls((decl) => {
-    if (decl.prop.startsWith('--')) {
-      vars.set(decl.prop, decl.value)
-    }
-  })
-
-  return vars
-}
-
-/**
  * Build CSS variable declarations from various sources.
  */
-async function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): Promise<string> {
+function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<string, string>): string {
   if (nuxtUiColors)
     buildNuxtUiVars(vars, nuxtUiColors)
 
@@ -616,46 +533,49 @@ async function buildVarsCSS(vars: Map<string, string>, nuxtUiColors?: Record<str
 }
 
 /**
- * Parse CSS rules into a class → styles map.
+ * Parse CSS rules into a class → styles map with camelCase properties.
+ * Handles TW4-specific values that need normalization for renderers.
  */
-function parseClassStyles(css: string): Map<string, Record<string, string>> {
+function parseClassStylesCamelCase(css: string): Map<string, Record<string, string>> {
   const classMap = new Map<string, Record<string, string>>()
-  const root = postcss.parse(css)
+  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gmi
 
-  root.walkRules((rule) => {
-    const selector = rule.selector
-    if (!selector.startsWith('.'))
-      return
+  for (const match of css.matchAll(ruleRe)) {
+    const rawSelector = match[1]!
+    const body = match[2]!
 
-    const className = decodeCssClassName(selector)
+    if (!isSimpleClassSelector(rawSelector))
+      continue
 
-    if (className.includes(':') && !className.match(/^[\w-]+$/))
-      return
-    if (className.includes(' ') || className.includes('>') || className.includes('+'))
-      return
-
+    const className = decodeCssClassName(rawSelector)
     const styles: Record<string, string> = classMap.get(className) || {}
 
-    rule.walkDecls((decl) => {
-      if (decl.prop.startsWith('--'))
-        return
+    const declRe = /([\w-]+)\s*:\s*([^;]+);/g
+    for (const declMatch of body.matchAll(declRe)) {
+      const prop = declMatch[1]!
+      let value = declMatch[2]!.trim()
 
-      const camelProp = decl.prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase())
-      // Sanitize Satori-incompatible values
-      let value = decl.value
-      // TW4 uses calc(infinity*1px) for rounded-full, Satori doesn't support this
+      if (prop.startsWith('--'))
+        continue
+
+      // Convert to camelCase for style objects
+      const camelProp = prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase())
+
+      // Normalize TW4-specific values:
+      // TW4 uses calc(infinity*1px) for rounded-full - convert to standard large value
       if (value.includes('calc(infinity'))
         value = '9999px'
-      // Satori expects opacity as unitless decimal (0.6), not percentage (60%)
-      if (decl.prop === 'opacity' && value.endsWith('%'))
-        value = String(Number.parseFloat(value) / 100)
-      styles[camelProp] = value
-    })
 
-    if (Object.keys(styles).length > 0) {
-      classMap.set(className, styles)
+      // Normalize opacity percentage to decimal (CSS standard is unitless 0-1)
+      if (prop === 'opacity' && value.endsWith('%'))
+        value = String(Number.parseFloat(value) / 100)
+
+      styles[camelProp] = value
     }
-  })
+
+    if (Object.keys(styles).length > 0)
+      classMap.set(className, styles)
+  }
 
   return classMap
 }
@@ -681,20 +601,21 @@ export async function generateStyleMap(options: GeneratorOptions): Promise<Style
   })
 
   const rawCSS = compiler.build(classes)
-  const vars = extractVars(rawCSS)
-  const varsCSS = await buildVarsCSS(vars, nuxtUiColors)
+  const vars = extractCssVars(rawCSS)
+  const varsCSS = buildVarsCSS(vars, nuxtUiColors)
   const fullCSS = `${varsCSS}\n${rawCSS}`
 
-  const result = await postcss([
-    postcssCustomProperties({
-      preserve: false,
-    }),
-    postcssCalc({}),
-  ]).process(fullCSS, { from: undefined })
+  // Step 1: Resolve CSS variables
+  const resolvedCSS = resolveCssVars(fullCSS, vars)
 
-  const resolvedCSS = result.css
-  const hexCSS = convertOklchToHex(resolvedCSS)
-  const classMap = parseClassStyles(hexCSS)
+  // Step 2: Simplify calc() with Lightning CSS
+  const simplifiedCSS = await simplifyCss(resolvedCSS)
+
+  // Step 3: Convert oklch to hex
+  const hexCSS = convertOklchToHex(simplifiedCSS)
+
+  // Step 4: Parse into class map
+  const classMap = parseClassStylesCamelCase(hexCSS)
 
   return { classes: classMap, vars }
 }
