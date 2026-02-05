@@ -927,9 +927,17 @@ export default defineNuxtModule<ModuleOptions>({
         availableRenderers.add(renderer)
     }
 
-    // Register community templates filtered by available renderers (dev only)
+    // Register community templates for all renderers with available dependencies (dev only)
+    // This allows users to use community templates for any renderer, not just ones they've created components for
     if (nuxt.options.dev) {
-      const rendererPatterns = [...availableRenderers]
+      const communityRenderers = new Set<RendererType>()
+      for (const renderer of (['satori', 'takumi', 'chromium'] as const)) {
+        const binding = getRecommendedBinding(renderer, targetCompatibility)
+        const missing = await getMissingDependencies(renderer, binding)
+        if (missing.length === 0)
+          communityRenderers.add(renderer)
+      }
+      const rendererPatterns = [...communityRenderers]
         .map(r => `**/*.${r}.vue`)
       if (rendererPatterns.length > 0) {
         addComponentsDir({

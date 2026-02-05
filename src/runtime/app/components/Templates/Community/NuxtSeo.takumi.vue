@@ -15,8 +15,7 @@ const props = withDefaults(defineProps<{
   title: 'title',
 })
 
-const themeColor = computed(() => props.isPro ? '#7c3aed' : '#22c55e')
-const themeColorLight = computed(() => props.isPro ? '#c4b5fd' : '#86efac')
+const themeColor = computed(() => props.isPro ? '124, 58, 237' : '34, 197, 94')
 </script>
 
 <template>
@@ -27,20 +26,15 @@ const themeColorLight = computed(() => props.isPro ? '#c4b5fd' : '#86efac')
       color: colorMode === 'dark' ? '#fafafa' : '#171717',
     }"
   >
-    <!-- Accent border -->
+    <!-- Gradient background -->
     <div
-      class="absolute bottom-0 left-0 right-0"
-      :style="{
-        height: '6px',
-        backgroundColor: themeColor,
+      class="absolute top-0 left-0 right-0 bottom-0" :style="{
+        backgroundImage: `radial-gradient(at 100% 100%, rgba(${themeColor}, 0.15), transparent)`,
       }"
     />
-    <!-- Side accent -->
     <div
-      class="absolute top-0 right-0 bottom-0"
-      :style="{
-        width: '6px',
-        backgroundColor: themeColorLight,
+      class="absolute top-0 left-0 right-0 bottom-0" :style="{
+        backgroundImage: `radial-gradient(at 0% 0%, rgba(${themeColor}, 0.1), transparent)`,
       }"
     />
 
