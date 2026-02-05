@@ -335,12 +335,12 @@ export default defineNuxtModule<ModuleOptions>({
       if (satoriPkg?.version) {
         const [major = 0, minor = 0] = satoriPkg.version.split('.').map(Number)
         if (major > 0 || (major === 0 && minor >= 16)) {
-          throw new Error(
+          logger.error(new Error(
             `[nuxt-og-image] Satori ${satoriPkg.version} is incompatible with edge runtimes (${preset}). `
             + `Satori 0.16+ uses WebAssembly.instantiate() which is blocked by edge platforms. `
             + `Pin satori to 0.15.x in your package.json: "satori": "0.15.2". `
             + `See: https://github.com/vercel/satori/issues/693`,
-          )
+          )) // cant throw for now
         }
       }
     }
