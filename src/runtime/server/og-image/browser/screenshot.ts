@@ -89,7 +89,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     // Puppeteer: browser.newPage() takes no args, need to set options after
     page = await browser.newPage()
     // Set color scheme via emulation for Puppeteer
-    if (colorPreference && colorPreference !== 'no-preference') {
+    if (colorPreference) {
       await (page as any).emulateMediaFeatures?.([
         { name: 'prefers-color-scheme', value: colorPreference },
       ])

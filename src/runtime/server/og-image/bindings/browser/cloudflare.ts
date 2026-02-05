@@ -1,7 +1,29 @@
-import type { Browser } from 'puppeteer-core'
 import type { H3Event } from 'h3'
-import puppeteer from '@cloudflare/puppeteer'
-import { useRuntimeConfig } from '#imports'
+import { useOgImageRuntimeConfig } from '../../../utils'
+
+// Type definitions for Cloudflare puppeteer (user must install @cloudflare/puppeteer)
+interface Browser {
+  connected: boolean
+  newPage: () => Promise<any>
+  close: () => Promise<void>
+  on: (event: string, handler: () => void) => void
+}
+
+interface CloudflarePuppeteer {
+  sessions: (binding: any) => Promise<Array<{ id: string, connected: boolean }>>
+  connect: (binding: any, sessionId: string) => Promise<Browser>
+  launch: (binding: any) => Promise<Browser>
+}
+
+let puppeteer: CloudflarePuppeteer
+
+async function getPuppeteer(): Promise<CloudflarePuppeteer> {
+  if (!puppeteer) {
+    // @ts-expect-error - optional dependency installed by user
+    puppeteer = (await import('@cloudflare/puppeteer')).default
+  }
+  return puppeteer
+}
 
 let browser: Browser | null = null
 let browserPromise: Promise<Browser> | null = null
@@ -13,7 +35,7 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
   if (browserPromise)
     return browserPromise
 
-  const bindingName = useRuntimeConfig().ogImage.browser?.binding
+  const bindingName = useOgImageRuntimeConfig().browser?.binding
   if (!bindingName) {
     throw new Error(
       '[Nuxt OG Image] Browser binding name not configured. '
@@ -30,15 +52,16 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
   }
 
   browserPromise = (async () => {
+    const pptr = await getPuppeteer()
     // Reuse existing sessions when possible (Cloudflare best practice)
-    const sessions = await puppeteer.sessions(binding)
+    const sessions = await pptr.sessions(binding)
     const existingSession = sessions.find((s: { connected: boolean }) => !s.connected)
 
     if (existingSession) {
-      browser = await puppeteer.connect(binding, existingSession.id)
+      browser = await pptr.connect(binding, existingSession.id)
     }
     else {
-      browser = await puppeteer.launch(binding)
+      browser = await pptr.launch(binding)
     }
 
     // Reset on disconnect (handles 60s idle timeout)

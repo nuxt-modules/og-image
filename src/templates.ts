@@ -124,7 +124,8 @@ declare module '#og-image-virtual/tw4-theme.mjs' {
     getContents: (data) => {
       const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'types'), resolve('runtime/types'))
       return `declare module '#og-image/bindings/browser' {
-  export function createBrowser(): Promise<any>
+  import type { H3Event } from 'h3'
+  export function createBrowser(event?: H3Event): Promise<any>
 }
 
 declare module '#og-image/bindings/satori' {

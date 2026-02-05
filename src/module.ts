@@ -4,6 +4,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type {
+  BrowserConfig,
   CompatibilityFlagEnvOverrides,
   CompatibilityFlags,
   OgImageComponent,
@@ -187,6 +188,15 @@ export interface ModuleOptions {
    * @example ['latin', 'latin-ext', 'cyrillic']
    */
   fontSubsets?: string[]
+  /**
+   * Browser renderer configuration.
+   *
+   * When using browser-based rendering (screenshots), configure the browser provider.
+   * For Cloudflare deployments, specify the browser binding name.
+   *
+   * @example { provider: 'cloudflare', binding: 'BROWSER' }
+   */
+  browser?: BrowserConfig
 }
 
 export interface ModuleHooks {
@@ -1494,10 +1504,12 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         cacheQueryParams: config.cacheQueryParams ?? false,
         cssFramework: cssFramework || 'none',
         // Browser renderer config for cloudflare binding access
-        browser: typeof config.browser === 'object' ? {
-          provider: config.browser.provider,
-          binding: config.browser.binding,
-        } : undefined,
+        browser: typeof config.browser === 'object'
+          ? {
+              provider: config.browser.provider,
+              binding: config.browser.binding,
+            }
+          : undefined,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

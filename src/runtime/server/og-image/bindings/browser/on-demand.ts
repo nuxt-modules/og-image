@@ -1,5 +1,5 @@
-import type { Browser } from 'playwright-core'
 import type { H3Event } from 'h3'
+import type { Browser } from 'playwright-core'
 import { createConsola } from 'consola'
 import playwrightCore from 'playwright-core'
 import { exec } from 'tinyexec'
