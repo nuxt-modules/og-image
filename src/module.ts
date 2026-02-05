@@ -810,13 +810,11 @@ export default defineNuxtModule<ModuleOptions>({
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
 
-    // Register OgImage component directories from all configured component roots (supports layers)
-    const componentRoots = await Promise.all(
-      (nuxt.options.components as { dirs?: (string | { path: string })[] })?.dirs?.map(async (dir) => {
-        const dirPath = typeof dir === 'string' ? dir : dir.path
-        return resolver.resolvePath(dirPath).catch(() => null)
-      }) || [],
-    ).then(paths => paths.filter(Boolean) as string[])
+    // Register OgImage component directories from all layer roots (supports extends)
+    // Use _layers directly as nuxt.options.components.dirs doesn't include layer paths at module setup time
+    const componentRoots = (nuxt.options._layers || [])
+      .map(layer => join(layer.cwd, 'components'))
+      .filter(dir => existsSync(dir))
 
     // Populate resolved OG component directory paths
     for (const componentDir of config.componentDirs) {
