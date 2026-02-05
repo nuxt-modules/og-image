@@ -1,9 +1,11 @@
 import type { IconifyJSON } from '@iconify/types'
+import type { ElementNode, Node } from 'ultrahtml'
 import type { CssProvider } from './css/css-provider'
 import { readFile } from 'node:fs/promises'
 import MagicString from 'magic-string'
 import { ofetch } from 'ofetch'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
+import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtml'
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
@@ -51,15 +53,15 @@ function wrapDefsElements(body: string): string {
 }
 
 // Icon utilities
-function buildIconSvg(iconData: { body: string, width?: number, height?: number }, defaultWidth: number, defaultHeight: number, attrs: string): string {
+function buildIconSvg(iconData: { body: string, width?: number, height?: number }, defaultWidth: number, defaultHeight: number, attrs: Record<string, string>): string {
   const body = wrapDefsElements(iconData.body || '')
   const width = iconData.width || defaultWidth
   const height = iconData.height || defaultHeight
 
-  const attrPairs = attrs.matchAll(/(\w+(?:-\w+)*)="([^"]*)"/g)
+  // Filter attrs and extract style
   const filteredAttrs: string[] = []
   let existingStyle = ''
-  for (const [, key, value] of attrPairs) {
+  for (const [key, value] of Object.entries(attrs)) {
     if (key === 'name')
       continue
     if (key === 'style' && value) {
@@ -312,23 +314,32 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Transform icons: <Icon name="..." /> or <UIcon name="..." />
-      // eslint-disable-next-line regexp/no-super-linear-backtracking,regexp/optimal-quantifier-concatenation
-      const iconRegex = /<(Icon|UIcon)\s+([^>]*name="([^"]+)"[^>]*)\/?>/g
-      if (iconRegex.test(template)) {
-        iconRegex.lastIndex = 0
-
+      // Use ultrahtml to parse and transform - avoids complex regex patterns
+      if (template.includes('<Icon') || template.includes('<UIcon')) {
+        // First pass: collect icon prefixes from AST
         const prefixes = new Set<string>()
-        let match
-        // eslint-disable-next-line no-cond-assign
-        while ((match = iconRegex.exec(template)) !== null) {
-          const iconName = match[3]
-          if (!iconName || iconName.includes('{'))
-            continue
-          const [prefix] = iconName.split(':')
-          if (prefix)
-            prefixes.add(prefix)
-        }
+        const iconElements: Array<{ node: ElementNode, parent: Node, index: number }> = []
 
+        // Wrap in div for parsing (ultrahtml needs a root)
+        const wrappedTemplate = `<div>${template}</div>`
+        const doc = parseHtml(wrappedTemplate)
+
+        walkSync(doc, (node, parent, index) => {
+          if (node.type === ELEMENT_NODE) {
+            const el = node as ElementNode
+            if (el.name === 'Icon' || el.name === 'UIcon') {
+              const iconName = el.attributes.name
+              if (iconName && !iconName.includes('{')) {
+                const [prefix] = iconName.split(':')
+                if (prefix)
+                  prefixes.add(prefix)
+                iconElements.push({ node: el, parent: parent!, index: index! })
+              }
+            }
+          }
+        })
+
+        // Load icon sets
         const iconSets = new Map<string, IconifyJSON>()
         for (const prefix of prefixes) {
           const icons = await loadIconSet(prefix)
@@ -336,27 +347,39 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             iconSets.set(prefix, icons)
         }
 
-        if (iconSets.size > 0) {
-          iconRegex.lastIndex = 0
-          template = template.replace(iconRegex, (fullMatch, _tag, attrs, iconName) => {
-            if (!iconName || iconName.includes('{'))
-              return fullMatch
+        // Second pass: replace icon elements with SVG
+        if (iconSets.size > 0 && iconElements.length > 0) {
+          for (const { node: el, parent, index } of iconElements) {
+            const iconName = el.attributes.name
+            if (!iconName)
+              continue
 
             const [prefix, name] = iconName.split(':')
             if (!prefix || !name)
-              return fullMatch
+              continue
 
             const icons = iconSets.get(prefix)
             if (!icons)
-              return fullMatch
+              continue
 
             const iconData = icons.icons?.[name]
             if (!iconData)
-              return fullMatch
+              continue
 
             hasChanges = true
-            return buildIconSvg(iconData, icons.width || 24, icons.height || 24, attrs)
-          })
+            // Build SVG and parse it back to AST node
+            const svgHtml = buildIconSvg(iconData, icons.width || 24, icons.height || 24, el.attributes)
+            const svgDoc = parseHtml(svgHtml)
+            // Replace the icon element with the SVG span
+            if ('children' in parent && Array.isArray(parent.children)) {
+              parent.children[index] = svgDoc.children[0]
+            }
+          }
+
+          // Render back to HTML, removing the wrapper div
+          const rendered = renderSync(doc)
+          // Remove wrapper div
+          template = rendered.replace(/^<div>/, '').replace(/<\/div>$/, '')
         }
       }
 
