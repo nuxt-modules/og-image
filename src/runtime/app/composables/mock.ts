@@ -21,7 +21,7 @@ export function defineOgImageComponent<T extends keyof OgImageComponents>(_compo
 export function defineOgImageScreenshot(_options: OgImagePageScreenshotOptions = {}) {
   if (import.meta.dev) {
     if (useRuntimeConfig()['nuxt-og-image']) {
-      console.warn('`defineOgImageScreenshot()` is skipped as the `chromium` compatibility is disabled.')
+      console.warn('`defineOgImageScreenshot()` is skipped as the `browser` compatibility is disabled.')
     }
     else {
       console.warn('`defineOgImageScreenshot()` is skipped as the OG Image module is not enabled.')

@@ -146,9 +146,7 @@
     "ufo": "catalog:",
     "ultrahtml": "catalog:",
     "unplugin": "catalog:",
-    "unwasm": "catalog:",
-    "wawoff2": "catalog:",
-    "yoga-wasm-web": "catalog:"
+    "wawoff2": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -199,6 +197,7 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "vue-tsc": "catalog:",
-    "wrangler": "catalog:"
+    "wrangler": "catalog:",
+    "yoga-wasm-web": "catalog:"
   }
 }

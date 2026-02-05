@@ -11,6 +11,7 @@ export default defineBuildConfig({
   ],
   externals: [
     'h3',
+    'yoga-wasm-web',
     'nitropack',
     '@nuxt/content',
     'zod',

@@ -228,11 +228,11 @@ export function useOgImage() {
     const normalized = activeComponentName.value.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
     const currentBase = normalized
       .replace(/Satori$/, '')
-      .replace(/Chromium$/, '')
+      .replace(/Browser$/, '')
       .replace(/Takumi$/, '')
     return allComponents.value.find(c =>
       c.renderer === targetRenderer
-      && (c.pascalName.replace(/Satori$/, '').replace(/Chromium$/, '').replace(/Takumi$/, '') === currentBase),
+      && (c.pascalName.replace(/Satori$/, '').replace(/Browser$/, '').replace(/Takumi$/, '') === currentBase),
     )
   }
 
@@ -271,11 +271,11 @@ export function useOgImage() {
     const r = renderer.value
     switch (imageFormat.value) {
       case 'png':
-        rendererLabel = r === 'satori' ? 'Satori and ReSVG' : r === 'takumi' ? 'Takumi' : 'Chromium'
+        rendererLabel = r === 'satori' ? 'Satori and ReSVG' : r === 'takumi' ? 'Takumi' : 'Browser'
         break
       case 'jpeg':
       case 'jpg':
-        rendererLabel = r === 'satori' ? 'Satori, ReSVG and Sharp' : r === 'takumi' ? 'Takumi' : 'Chromium'
+        rendererLabel = r === 'satori' ? 'Satori, ReSVG and Sharp' : r === 'takumi' ? 'Takumi' : 'Browser'
         break
       case 'svg':
         rendererLabel = r === 'takumi' ? 'Takumi' : 'Satori'

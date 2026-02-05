@@ -10,7 +10,7 @@ declare module '#og-image/renderers/satori' {
   const renderer: Renderer | { __mock__: true } | undefined
   export default renderer
 }
-declare module '#og-image/renderers/chromium' {
+declare module '#og-image/renderers/browser' {
   import type Renderer from '#og-image/types'
 
   const renderer: Renderer | { __mock__: true } | undefined
@@ -30,7 +30,7 @@ declare module '#og-image/bindings/resvg' {
   const instance: WasmResvg
   export default instance
 }
-declare module '#og-image/bindings/chromium' {
+declare module '#og-image/bindings/browser' {
   export const createBrowser: () => Promise<Browser | void>
 }
 
