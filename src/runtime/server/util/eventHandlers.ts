@@ -11,7 +11,7 @@ import { useOgImageBufferCache } from './cache'
 
 export async function imageEventHandler(e: H3Event) {
   const ctx = await resolveContext(e).catch((err: any) => {
-    console.error(`[OG Image] resolveContext error for ${e.path}:`, err?.message || err)
+    logger.error(`resolveContext error for ${e.path}:`, err?.message || err)
     throw err
   })
   if (ctx instanceof H3Error)
@@ -22,9 +22,14 @@ export async function imageEventHandler(e: H3Event) {
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
+    // Include renderer debug info (vnodes, svg, warnings) for satori renderer
+    const rendererDebug = renderer.name === 'satori'
+      ? await renderer.debug(ctx)
+      : {}
     return {
       extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
       siteUrl: useSiteConfig(e).url,
+      ...rendererDebug,
     }
   }
   switch (extension) {
@@ -47,7 +52,8 @@ export async function imageEventHandler(e: H3Event) {
       }
       // add svg headers
       setHeader(e, 'Content-Type', `image/svg+xml`)
-      return (await ctx.renderer.debug(ctx)).svg
+      const debugResult = await ctx.renderer.debug(ctx)
+      return debugResult.svg
     case 'png':
     case 'jpeg':
     case 'jpg':

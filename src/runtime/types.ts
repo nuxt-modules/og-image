@@ -55,6 +55,8 @@ export interface OgImageRuntimeConfig {
   buildCacheDir?: string
   /** Source directory for auto-eject (dev only) */
   srcDir?: string
+  /** Root directory for relative path display (dev only) */
+  rootDir?: string
   /** Path to community templates (dev only) */
   communityTemplatesDir?: string
 

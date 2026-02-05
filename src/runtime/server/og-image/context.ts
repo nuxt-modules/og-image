@@ -119,7 +119,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
     ? withQuery(basePath, queryParams._query)
     : basePath
-  const isDebugJsonPayload = extension === 'json' && runtimeConfig.debug
+  const isDebugJsonPayload = extension === 'json' && (import.meta.dev || runtimeConfig.debug)
 
   // Options come from: URL encoded params > query params > route rules > defaults
   const routeRuleMatcher = createNitroRouteRuleMatcher()

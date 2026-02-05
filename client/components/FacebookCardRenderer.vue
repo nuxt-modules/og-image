@@ -27,6 +27,7 @@ defineProps<{
 <style>
 .facebook-card {
   max-width: 500px;
+  margin: 0 auto;
   border-radius: 0;
   overflow: hidden;
   border: 1px solid #dadde1;

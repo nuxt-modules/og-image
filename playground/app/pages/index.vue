@@ -13,7 +13,7 @@ useServerSeoMeta({
   ogTitle: 'Welcome to the playground',
 })
 
-defineOgImage('NuxtSeo', {
+defineOgImage('NuxtSeo.takumi', {
   theme: '#fcfcfc',
   colorMode: 'dark',
 })

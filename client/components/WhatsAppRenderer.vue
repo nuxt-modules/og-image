@@ -61,6 +61,7 @@ defineProps<{
 <style>
 .whatsapp-dual-preview {
   display: flex;
+  justify-content: center;
   gap: 24px;
   flex-wrap: wrap;
   font-family: 'Hubot Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

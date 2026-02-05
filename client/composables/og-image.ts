@@ -1,24 +1,27 @@
-import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions } from '../../src/runtime/types'
+import type { Ref } from 'vue'
+import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions, RendererType } from '../../src/runtime/types'
 import { computed, inject, toValue, watch } from '#imports'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
+import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
 import { description, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
-import { GlobalDebugKey, PathDebugKey, RefetchPathDebugKey } from './keys'
+import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
 import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
 import { CreateOgImageDialogPromise } from './templates'
 
 export function useOgImage() {
-  const globalDebug = inject(GlobalDebugKey)!
+  const globalDebug = inject(GlobalDebugKey, ref(null) as Ref<any>)
 
   const emojis = ref<OgImageOptions['emojis']>('noto')
 
-  const debug = inject(PathDebugKey)!
-  const refreshPathDebug = inject(RefetchPathDebugKey)!
-  // TODO: handle pending / error
-  const pending = ref(false)
+  const debug = inject(PathDebugKey, ref(null) as Ref<any>)
+  const debugStatus = inject(PathDebugStatusKey, ref('idle') as Ref<'idle' | 'pending' | 'success' | 'error'>)
+  const refreshPathDebug = inject(RefetchPathDebugKey, async () => {})
+
+  const isDebugLoading = computed(() => debugStatus.value === 'pending')
   const error = ref(null)
 
   // Multi-image support
@@ -46,6 +49,11 @@ export function useOgImage() {
       }
     }
     return false
+  })
+
+  const hasDefinedOgImage = computed(() => {
+    const opts = debug.value?.extract?.options || []
+    return opts.length > 0
   })
 
   watch(debug, (val) => {
@@ -155,17 +163,51 @@ export function useOgImage() {
     return componentName
   })
 
+  const activeComponent = computed(() => {
+    const components = globalDebug.value?.componentNames || []
+    const name = activeComponentName.value
+    // Normalize dot-notation to PascalCase (NuxtSeo.takumi → NuxtSeoTakumi)
+    const normalizedName = name.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
+    const matching = components.filter((c: OgImageComponent) => c.pascalName === normalizedName || c.pascalName === name)
+    // Prefer app components over community/pro templates
+    return matching.find((c: OgImageComponent) => c.category === 'app') || matching[0]
+  })
+
+  const activeComponentRelativePath = computed(() => {
+    const component = activeComponent.value
+    if (!component?.path)
+      return null
+
+    const rootDir = globalDebug.value?.runtimeConfig?.rootDir
+    if (rootDir) {
+      return relative(rootDir, component.path)
+    }
+
+    return component.path
+  })
+
   const isOgImageTemplate = computed(() => {
-    const component = globalDebug.value?.componentNames?.find((c: OgImageComponent) => c.pascalName === activeComponentName.value)
+    const component = activeComponent.value
     return component?.path?.includes('node_modules') || component?.path?.includes('og-image/src/runtime/app/components/Templates/Community/')
   })
 
-  const renderer = computed(() => {
-    return optionsOverrides.value?.renderer || options.value?.renderer || 'satori'
+  // Derive renderer from: explicit override > options > active component > default
+  const renderer = computed<RendererType>(() => {
+    if (optionsOverrides.value?.renderer)
+      return optionsOverrides.value.renderer
+    if (options.value?.renderer)
+      return options.value.renderer
+    // Infer from active component's renderer
+    return activeComponent.value?.renderer || 'satori'
   })
 
+  const allComponents = computed<OgImageComponent[]>(() => {
+    return globalDebug.value?.componentNames || []
+  })
+
+  // Components filtered by current renderer
   const componentNames = computed<OgImageComponent[]>(() => {
-    const components = globalDebug.value?.componentNames || []
+    const components = allComponents.value.filter(c => c.renderer === renderer.value)
     return [
       components.find((name: OgImageComponent) => name.pascalName === activeComponentName.value),
       ...components.filter((name: OgImageComponent) => name.pascalName !== activeComponentName.value),
@@ -178,6 +220,37 @@ export function useOgImage() {
 
   const appComponents = computed(() => {
     return componentNames.value.filter(c => c.category === 'app')
+  })
+
+  // Check if active component has a variant for a given renderer
+  function getComponentVariantForRenderer(targetRenderer: RendererType): OgImageComponent | undefined {
+    // Normalize dot-notation to PascalCase first (NuxtSeo.takumi → NuxtSeoTakumi)
+    const normalized = activeComponentName.value.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
+    const currentBase = normalized
+      .replace(/Satori$/, '')
+      .replace(/Chromium$/, '')
+      .replace(/Takumi$/, '')
+    return allComponents.value.find(c =>
+      c.renderer === targetRenderer
+      && (c.pascalName.replace(/Satori$/, '').replace(/Chromium$/, '').replace(/Takumi$/, '') === currentBase),
+    )
+  }
+
+  // Check if current component is compatible with selected renderer
+  const isComponentCompatibleWithRenderer = computed(() => {
+    const component = activeComponent.value
+    if (!component)
+      return true // No component selected
+    return component.renderer === renderer.value
+  })
+
+  // Check which renderers have available components
+  const availableRenderers = computed(() => {
+    const renderers = new Set<RendererType>()
+    for (const c of allComponents.value) {
+      renderers.add(c.renderer)
+    }
+    return renderers
   })
 
   const windowSize = useWindowSize()
@@ -195,16 +268,17 @@ export function useOgImage() {
   function generateLoadTime(payload: { timeTaken: string, sizeKb: string }) {
     const extension = (imageFormat.value || '').toUpperCase()
     let rendererLabel = ''
+    const r = renderer.value
     switch (imageFormat.value) {
       case 'png':
-        rendererLabel = renderer.value === 'satori' ? 'Satori and ReSVG' : 'Chromium'
+        rendererLabel = r === 'satori' ? 'Satori and ReSVG' : r === 'takumi' ? 'Takumi' : 'Chromium'
         break
       case 'jpeg':
       case 'jpg':
-        rendererLabel = renderer.value === 'satori' ? 'Satori, ReSVG and Sharp' : 'Chromium'
+        rendererLabel = r === 'satori' ? 'Satori, ReSVG and Sharp' : r === 'takumi' ? 'Takumi' : 'Chromium'
         break
       case 'svg':
-        rendererLabel = 'Satori'
+        rendererLabel = r === 'takumi' ? 'Takumi' : 'Satori'
         break
     }
     isLoading.value = false
@@ -303,7 +377,7 @@ export function useOgImage() {
     // Data
     globalDebug,
     debug,
-    pending,
+    isDebugLoading,
     error,
     emojis,
 
@@ -312,6 +386,7 @@ export function useOgImage() {
     currentOptions,
     isCustomOgImage,
     isValidDebugError,
+    hasDefinedOgImage,
     defaults,
     height,
     width,
@@ -324,11 +399,17 @@ export function useOgImage() {
     socialSiteUrl,
     slackSocialPreviewSiteName,
     activeComponentName,
+    activeComponent,
+    activeComponentRelativePath,
     isOgImageTemplate,
     renderer,
+    allComponents,
     componentNames,
     communityComponents,
     appComponents,
+    isComponentCompatibleWithRenderer,
+    getComponentVariantForRenderer,
+    availableRenderers,
     sidePanelOpen,
     isLoading,
     pageFile,
