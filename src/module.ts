@@ -810,128 +810,132 @@ export default defineNuxtModule<ModuleOptions>({
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/og-image-canonical-urls.server`) })
 
+    // Register OgImage component directories from all layer roots (supports extends)
+    // Use _layers directly as nuxt.options.components.dirs doesn't include layer paths at module setup time
+    const componentRoots = (nuxt.options._layers || [])
+      .map(layer => join(layer.cwd, 'components'))
+      .filter(dir => existsSync(dir))
+
+    // Populate resolved OG component directory paths
+    for (const componentDir of config.componentDirs) {
+      let found = false
+      for (const root of componentRoots) {
+        const path = join(root, componentDir)
+        if (existsSync(path)) {
+          found = true
+          resolvedOgComponentPaths.push(path)
+          addComponentsDir({
+            path,
+            island: true,
+            watch: IS_MODULE_DEVELOPMENT,
+            prefix: componentDir === 'OgImageCommunity' ? 'OgImage' : undefined,
+          })
+        }
+      }
+      if (!found && !defaultComponentDirs.includes(componentDir)) {
+        logger.warn(`The configured component directory \`${componentDir}\` does not exist in any component root. Skipping.`)
+      }
+    }
+    // Also include the module's built-in templates directory
+    const builtinTemplatesDir = resolve('./runtime/app/components/Templates')
+    if (fs.existsSync(builtinTemplatesDir)) {
+      resolvedOgComponentPaths.push(builtinTemplatesDir)
+    }
+
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
-    const availableRenderers = new Set<RendererType>()
-    // Register OgImage component directories from all configured component roots (supports layers)
-    nuxt.hook('components:dirs', async (dirs) => {
-      const componentRoots = await Promise.all(
-        dirs.map(async (dir) => {
-          const dirPath = typeof dir === 'string' ? dir : dir.path
-          return resolver.resolvePath(dirPath).catch(() => null)
-        }) || [],
-      ).then(paths => paths.filter(Boolean) as string[])
+    // Lazy reference for CSS/font scanning - exclude community templates in production (bundled with known styling)
+    getOgComponents = () => nuxt.options.dev
+      ? ogImageComponentCtx.components
+      : ogImageComponentCtx.components.filter(c => c.category !== 'community')
 
-      // Populate resolved OG component directory paths
-      for (const componentDir of config.componentDirs) {
-        let found = false
-        for (const root of componentRoots) {
-          const path = join(root, componentDir)
-          if (existsSync(path)) {
-            found = true
-            resolvedOgComponentPaths.push(path)
-            addComponentsDir({
-              path,
-              island: true,
-              watch: IS_MODULE_DEVELOPMENT,
-              prefix: componentDir === 'OgImageCommunity' ? 'OgImage' : undefined,
-            })
-          }
-        }
-        if (!found && !defaultComponentDirs.includes(componentDir)) {
-          logger.warn(`The configured component directory \`${componentDir}\` does not exist in any component root. Skipping.`)
-        }
-      }
-      // Also include the module's built-in templates directory
-      const builtinTemplatesDir = resolve('./runtime/app/components/Templates')
-      if (fs.existsSync(builtinTemplatesDir)) {
-        resolvedOgComponentPaths.push(builtinTemplatesDir)
-      }
-
-      // Lazy reference for CSS/font scanning - exclude community templates in production (bundled with known styling)
-      getOgComponents = () => nuxt.options.dev
-        ? ogImageComponentCtx.components
-        : ogImageComponentCtx.components.filter(c => c.category !== 'community')
-
-      // Pre-scan component directories to detect renderers early (before nitro hooks fire)
-      // This ensures detectedRenderers is populated when nitro:init runs
-      let hasUserComponents = false
-      for (const componentDir of config.componentDirs) {
-        // OgImageCommunity is module-managed (community templates), not user-provided
-        const isUserDir = componentDir !== 'OgImageCommunity'
-        for (const root of componentRoots) {
-          const path = join(root, componentDir)
-          if (fs.existsSync(path)) {
-            const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
-            for (const file of files) {
-              const renderer = getRendererFromFilename(file)
-              if (renderer) {
-                if (isUserDir) {
-                  ogImageComponentCtx.detectedRenderers.add(renderer)
-                  hasUserComponents = true
-                }
+    // Pre-scan component directories to detect renderers early (before nitro hooks fire)
+    // This ensures detectedRenderers is populated when nitro:init runs
+    let hasUserComponents = false
+    for (const componentDir of config.componentDirs) {
+      // OgImageCommunity is module-managed (community templates), not user-provided
+      const isUserDir = componentDir !== 'OgImageCommunity'
+      for (const root of componentRoots) {
+        const path = join(root, componentDir)
+        if (fs.existsSync(path)) {
+          const files = fs.readdirSync(path).filter(f => f.endsWith('.vue'))
+          for (const file of files) {
+            const renderer = getRendererFromFilename(file)
+            if (renderer) {
+              if (isUserDir) {
+                ogImageComponentCtx.detectedRenderers.add(renderer)
+                hasUserComponents = true
               }
             }
           }
         }
       }
-      // No user components — ask which renderer to use (dev) or default (prod)
-      if (!hasUserComponents) {
-        if (nuxt.options.dev && !nuxt.options._prepare) {
-          const renderer = await promptForRendererSelection()
-          ogImageComponentCtx.detectedRenderers.add(renderer)
-        }
-        else {
-          ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
-        }
-      }
-
-      // Ensure renderer dependencies are installed for each detected renderer
-      if (!config.zeroRuntime) {
-        for (const renderer of ogImageComponentCtx.detectedRenderers) {
-          const binding = getRecommendedBinding(renderer, targetCompatibility)
-          const missing = await getMissingDependencies(renderer, binding)
-          if (missing.length === 0) {
-            availableRenderers.add(renderer)
-          }
-          else if (nuxt.options.dev && !nuxt.options._prepare) {
-            logger.warn(`${renderer} renderer requires: ${missing.join(', ')}`)
-            const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
-            if (success) {
-              availableRenderers.add(renderer)
-            }
-            else {
-              logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
-            }
-          }
-          else {
-            logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
-          }
-          // Set resvg WASM fallback compatibility when satori resolved to wasm binding
-          if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
-            logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
-            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-              dev: { resvg: 'wasm-fs' },
-              prerender: { resvg: 'wasm-fs' },
-            })
-            if (targetCompatibility.resvg === 'node') {
-              config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-                runtime: { resvg: 'wasm' },
-              })
-            }
-          }
-        }
+    }
+    // No user components — ask which renderer to use (dev) or default (prod)
+    if (!hasUserComponents) {
+      if (nuxt.options.dev && !nuxt.options._prepare) {
+        const renderer = await promptForRendererSelection()
+        ogImageComponentCtx.detectedRenderers.add(renderer)
       }
       else {
-        // zeroRuntime — all detected renderers considered available
-        for (const renderer of ogImageComponentCtx.detectedRenderers)
-          availableRenderers.add(renderer)
+        ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
       }
-    })
+    }
 
-    // Register community templates filtered by available renderers (dev only)
+    // Ensure renderer dependencies are installed for each detected renderer
+    const availableRenderers = new Set<RendererType>()
+    if (!config.zeroRuntime) {
+      for (const renderer of ogImageComponentCtx.detectedRenderers) {
+        const binding = getRecommendedBinding(renderer, targetCompatibility)
+        const missing = await getMissingDependencies(renderer, binding)
+        if (missing.length === 0) {
+          availableRenderers.add(renderer)
+        }
+        else if (nuxt.options.dev && !nuxt.options._prepare) {
+          logger.warn(`${renderer} renderer requires: ${missing.join(', ')}`)
+          const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
+          if (success) {
+            availableRenderers.add(renderer)
+          }
+          else {
+            logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
+          }
+        }
+        else {
+          logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+        }
+        // Set resvg WASM fallback compatibility when satori resolved to wasm binding
+        if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
+          logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
+          config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+            dev: { resvg: 'wasm-fs' },
+            prerender: { resvg: 'wasm-fs' },
+          })
+          if (targetCompatibility.resvg === 'node') {
+            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+              runtime: { resvg: 'wasm' },
+            })
+          }
+        }
+      }
+    }
+    else {
+      // zeroRuntime — all detected renderers considered available
+      for (const renderer of ogImageComponentCtx.detectedRenderers)
+        availableRenderers.add(renderer)
+    }
+
+    // Register community templates for all renderers with available dependencies (dev only)
+    // This allows users to use community templates for any renderer, not just ones they've created components for
     if (nuxt.options.dev) {
-      const rendererPatterns = [...availableRenderers]
+      const communityRenderers = new Set<RendererType>()
+      for (const renderer of (['satori', 'takumi', 'chromium'] as const)) {
+        const binding = getRecommendedBinding(renderer, targetCompatibility)
+        const missing = await getMissingDependencies(renderer, binding)
+        if (missing.length === 0)
+          communityRenderers.add(renderer)
+      }
+      const rendererPatterns = [...communityRenderers]
         .map(r => `**/*.${r}.vue`)
       if (rendererPatterns.length > 0) {
         addComponentsDir({
