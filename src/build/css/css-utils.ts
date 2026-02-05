@@ -107,7 +107,7 @@ export function extractClassStyles(css: string): Map<string, Record<string, stri
 
   // Match .selector { body }
   // Selector can contain escapes like \32 (with trailing space)
-  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gmi
+  const ruleRe = /^\.((?:\\[0-9a-f]+\s?|\\.|[^\s{])+)\s*\{([^}]+)\}/gim
 
   for (const match of css.matchAll(ruleRe)) {
     const rawSelector = match[1]!

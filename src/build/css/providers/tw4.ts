@@ -7,7 +7,6 @@ import {
   convertColorToHex,
   convertOklchToHex,
   decodeCssClassName,
-  extractClassStyles,
   extractCssVars,
   isSimpleClassSelector,
   loadLightningCss,
@@ -283,7 +282,7 @@ async function resolveVars(value: string, vars: Map<string, string>, depth = 0):
   }
 
   // Resolve var() references
-  let result = resolveCssVars(value, vars)
+  const result = resolveCssVars(value, vars)
 
   // If still has var(), recurse
   if (result.includes('var(') && depth < 10)
