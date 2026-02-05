@@ -53,8 +53,8 @@ describe('urlEncoding', () => {
       const encoded = encodeOgImageParams({
         satori: { fonts: [] },
       })
-      // satori should be base64 encoded
-      expect(encoded).toMatch(/^satori_[A-Za-z0-9+/]+$/)
+      // satori should be URL-safe base64 encoded (- and ~ instead of + and /)
+      expect(encoded).toMatch(/^satori_[A-Za-z0-9\-~]+$/)
     })
 
     it('skips undefined and null values', () => {
@@ -184,7 +184,20 @@ describe('urlEncoding', () => {
       }
       const encoded = encodeOgImageParams(original)
       expect(encoded).not.toContain('/satori') // slashes should not appear
-      expect(encoded).toMatch(/p_[A-Za-z0-9+/]+/) // base64 encoded
+      expect(encoded).not.toContain('/') // no slashes in URL-safe base64
+      expect(encoded).toMatch(/p_[A-Za-z0-9\-~]+/) // URL-safe base64 encoded
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual(original)
+    })
+
+    it('preserves _path that produces / in standard base64 (regression)', () => {
+      // '/blog/hello' produces base64 with / chars that break URL path parsing
+      const original = {
+        _path: '/blog/hello',
+        key: 'og',
+      }
+      const encoded = encodeOgImageParams(original)
+      expect(encoded).not.toContain('/') // must not contain / for URL safety
       const decoded = decodeOgImageParams(encoded)
       expect(decoded).toEqual(original)
     })

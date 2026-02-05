@@ -22,7 +22,6 @@ import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { isAbsolute, join, relative } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
-import { isDevelopment } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { clearTw4Cache, extractTw4Metadata } from './build/css/providers/tw4'
 import { setupDevHandler } from './build/dev'
@@ -233,7 +232,7 @@ export default defineNuxtModule<ModuleOptions>({
       },
       componentDirs: defaultComponentDirs,
       runtimeCacheStorage: true,
-      debug: isDevelopment,
+      debug: false,
       fontSubsets: ['latin'],
     }
   },

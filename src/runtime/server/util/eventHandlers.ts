@@ -18,8 +18,8 @@ export async function imageEventHandler(e: H3Event) {
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey } = useOgImageRuntimeConfig()
-  // debug
-  if (import.meta.dev && isDevToolsContextRequest) {
+  // debug - allow in dev mode OR when debug is enabled in config
+  if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
     return {
       extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
