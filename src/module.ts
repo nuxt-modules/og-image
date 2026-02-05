@@ -233,7 +233,7 @@ export default defineNuxtModule<ModuleOptions>({
       },
       componentDirs: defaultComponentDirs,
       runtimeCacheStorage: true,
-      debug: isDevelopment,
+      debug: false,
       fontSubsets: ['latin'],
     }
   },

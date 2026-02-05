@@ -59,19 +59,29 @@ const KNOWN_PARAMS = new Set([
 // Params that need base64 encoding (complex objects, or values with slashes)
 const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'fonts', '_query', '_path'])
 
-// Base64 encode/decode helpers (works in both browser and Node, handles Unicode)
+// URL-safe base64 encode/decode helpers (works in both browser and Node, handles Unicode)
+// Uses ~ instead of / and - instead of + to avoid breaking URL path segments
 function b64Encode(str: string): string {
   // UTF-8 encode first to handle Unicode (emojis, etc.)
+  let encoded: string
   if (typeof btoa === 'function') {
     const utf8 = new TextEncoder().encode(str)
     const binary = String.fromCharCode(...utf8)
-    return btoa(binary).replace(/=/g, '')
+    encoded = btoa(binary)
   }
-  return Buffer.from(str, 'utf8').toString('base64').replace(/=/g, '')
+  else {
+    encoded = Buffer.from(str, 'utf8').toString('base64')
+  }
+  // Make URL-safe: strip padding, replace + with - and / with ~
+  // Using ~ instead of standard URL-safe _ to avoid conflict with param separator
+  return encoded.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '~')
 }
 
 function b64Decode(str: string): string {
-  const padded = str + '='.repeat((4 - (str.length % 4)) % 4)
+  // Reverse URL-safe encoding before standard base64 decode
+  // Also handles legacy standard base64 (no ~ or - chars to replace = no-op)
+  const standard = str.replace(/-/g, '+').replace(/~/g, '/')
+  const padded = standard + '='.repeat((4 - (standard.length % 4)) % 4)
   if (typeof atob === 'function') {
     const binary = atob(padded)
     const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
