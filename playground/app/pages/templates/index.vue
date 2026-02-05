@@ -12,6 +12,9 @@ const templates = [
   { name: 'Brutalist', description: 'Neo-brutalist bold typography' },
   { name: 'Retro', description: 'Synthwave retro-futuristic' },
   { name: 'Newspaper', description: 'Editorial magazine style' },
+  { name: 'BlogPost', description: 'Sleek blog post with author and category' },
+  { name: 'Docs', description: 'Professional documentation template' },
+  { name: 'ProductCard', description: 'Vibrant product showcase card' },
 ]
 
 const loading = ref<Record<string, boolean>>({})

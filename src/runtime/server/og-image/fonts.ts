@@ -3,6 +3,7 @@ import type { FontConfig, SatoriFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
+import { logger } from '../../logger'
 import { fontCache } from './cache/lru'
 
 export interface LoadFontsOptions {
@@ -30,7 +31,7 @@ async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<
     // for variable fonts (which would crash Satori's opentype.js parser)
     const is404OnTtf = src.endsWith('.ttf') && (err.message?.includes('404') || err.message?.includes('not found'))
     if (!is404OnTtf) {
-      console.warn(`[nuxt-og-image] Failed to load font ${font.family}: ${err.message}`)
+      logger.warn(`Failed to load font ${font.family}: ${err.message}`)
     }
     return null
   })

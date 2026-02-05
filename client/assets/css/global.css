@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@nuxt/ui";
 
 @theme {
   --font-sans: 'Hubot Sans', ui-sans-serif, system-ui, sans-serif;

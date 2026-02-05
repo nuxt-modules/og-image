@@ -10,7 +10,25 @@ import { loadAllFonts } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
 
-export async function createSvg(event: OgImageRenderEventContext) {
+// Capture Satori warnings during render
+function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warnings: string[] }> {
+  const warnings: string[] = []
+  const originalWarn = console.warn
+  console.warn = (...args: any[]) => {
+    const msg = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')
+    // Only capture Satori-related warnings (they start with WARN or contain CSS property names)
+    if (msg.includes('WARN') || msg.includes('not supported') || msg.includes('Expected style'))
+      warnings.push(msg.replace(/^\s*WARN\s*/, ''))
+    originalWarn.apply(console, args)
+  }
+  return fn()
+    .then(result => ({ result, warnings }))
+    .finally(() => {
+      console.warn = originalWarn
+    })
+}
+
+export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg: string | void, warnings: string[] }> {
   const { options } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
   const [satori, vnodes, fonts] = await Promise.all([
@@ -35,14 +53,18 @@ export async function createSvg(event: OgImageRenderEventContext) {
     width: options.width!,
     height: options.height!,
   }) as SatoriOptions
-  return satori(vnodes, satoriOptions).catch((err) => {
-    return sendError(event.e, err, true)
-  })
+
+  const { result, warnings } = await withWarningCapture(() =>
+    satori(vnodes, satoriOptions).catch((err) => {
+      sendError(event.e, err, true)
+    }),
+  )
+  return { svg: result, warnings }
 }
 
 async function createPng(event: OgImageRenderEventContext) {
   const { resvgOptions } = useOgImageRuntimeConfig()
-  const svg = await createSvg(event)
+  const { svg } = await createSvg(event)
   if (!svg)
     throw new Error('Failed to create SVG')
   const options = defu(event.options.resvg, resvgOptions)
@@ -57,7 +79,7 @@ async function createJpeg(event: OgImageRenderEventContext) {
   if (compatibility.sharp === false) {
     throw new Error('Sharp dependency is not accessible. Please check you have it installed and are using a compatible runtime.')
   }
-  const svg = await createSvg(event)
+  const { svg } = await createSvg(event)
   if (!svg) {
     throw new Error('Failed to create SVG for JPEG rendering.')
   }
@@ -84,13 +106,14 @@ const SatoriRenderer: Renderer = {
     }
   },
   async debug(e) {
-    const [vnodes, svg] = await Promise.all([
+    const [vnodes, svgResult] = await Promise.all([
       createVNodes(e),
       createSvg(e),
     ])
     return {
       vnodes,
-      svg,
+      svg: svgResult.svg,
+      warnings: svgResult.warnings,
     }
   },
 }

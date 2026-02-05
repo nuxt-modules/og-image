@@ -629,6 +629,6 @@ else {
   console.log('  eject <name>      Eject a community template to your project')
   console.log('  migrate v6        Migrate to v6 (component suffixes + new API)')
   console.log('                    Options: --dry-run, --yes, --renderer <satori|browser|takumi>')
-  console.log('  enable <renderer> Install dependencies for a renderer (satori, chromium, takumi)')
+  console.log('  enable <renderer> Install dependencies for a renderer (satori, browser, takumi)')
   console.log('                    Options: --edge (install wasm versions for edge runtimes)')
 }

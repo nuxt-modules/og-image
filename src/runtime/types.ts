@@ -55,6 +55,8 @@ export interface OgImageRuntimeConfig {
   buildCacheDir?: string
   /** Source directory for auto-eject (dev only) */
   srcDir?: string
+  /** Root directory for relative path display (dev only) */
+  rootDir?: string
   /** Path to community templates (dev only) */
   communityTemplatesDir?: string
 
@@ -223,7 +225,7 @@ export interface RuntimeCompatibilitySchema {
   ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | 'wasm-edge' | false
-  takumi: 'node' | 'wasm' | false
+  takumi: 'node' | 'node-dev' | 'wasm' | false
   sharp: 'node' | false
   // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime
   emoji?: 'local' | 'fetch'

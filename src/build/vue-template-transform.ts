@@ -1,6 +1,7 @@
 import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
+import { logger } from '../runtime/logger'
 import { walkTemplateAst } from './css/css-utils'
 
 export interface ClassToStyleOptions {
@@ -14,11 +15,12 @@ interface StyleCollector {
   existingStyle?: string
   styleLoc?: { start: number, end: number }
   elementLoc: { start: number, end: number }
+  hasDynamicStyle?: boolean // :style binding detected
 }
 
 const ELEMENT_NODE = 1
 const ATTRIBUTE_NODE = 6
-// const DIRECTIVE_NODE = 7
+const DIRECTIVE_NODE = 7
 
 // Escape quotes for HTML attribute values
 function escapeAttrValue(value: string): string {
@@ -60,17 +62,29 @@ export async function transformVueTemplate(
         }
       }
       // Static style attribute
-      if (prop.type === ATTRIBUTE_NODE && prop.name === 'style' && prop.value) {
-        collector.existingStyle = prop.value.content
-        collector.styleLoc = {
-          start: prop.loc.start.offset,
-          end: prop.loc.end.offset,
+      if (prop.type === ATTRIBUTE_NODE && prop.name === 'style') {
+        if (prop.value) {
+          collector.existingStyle = prop.value.content
+          collector.styleLoc = {
+            start: prop.loc.start.offset,
+            end: prop.loc.end.offset,
+          }
+        }
+        else {
+          logger.warn(`[vue-template-transform] Found style attr without value at ${prop.loc.start.offset}`)
         }
       }
-      // TODO: Handle dynamic :class and :style bindings (type 7)
+      // Detect dynamic :style binding (v-bind:style or :style)
+      if (prop.type === DIRECTIVE_NODE && prop.name === 'bind' && (prop as any).arg?.content === 'style') {
+        collector.hasDynamicStyle = true
+      }
+      // TODO: Handle dynamic :class bindings (type 7)
     }
 
     if (collector.classes.length > 0) {
+      if (collector.existingStyle && !collector.styleLoc) {
+        logger.warn(`[vue-template-transform] BUG: existingStyle found but styleLoc is undefined!`)
+      }
       collectors.push(collector)
     }
   })
@@ -124,10 +138,15 @@ export async function transformVueTemplate(
     if (!resolvedSome)
       continue
 
-    hasChanges = true
-
     if (!collector.classLoc)
       continue
+
+    // If element has :style binding, we can't add inline styles (would cause duplicate)
+    // Keep classes intact so Satori's tw prop can handle them at runtime
+    if (collector.hasDynamicStyle)
+      continue
+
+    hasChanges = true
 
     if (hasUnresolved) {
       // Keep unresolved classes
@@ -144,6 +163,10 @@ export async function transformVueTemplate(
         s.overwrite(collector.styleLoc.start, collector.styleLoc.end, `style="${styleStr}"`)
       }
       else {
+        // BUG CHECK: If element has existingStyle but no styleLoc, we'd create duplicate!
+        if (collector.existingStyle) {
+          logger.error(`[vue-template-transform] Would create duplicate style! existingStyle="${collector.existingStyle}", classes=[${collector.classes.join(', ')}]`)
+        }
         s.appendLeft(collector.classLoc.start, `style="${styleStr}" `)
       }
     }

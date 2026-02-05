@@ -641,7 +641,15 @@ function parseClassStyles(css: string): Map<string, Record<string, string>> {
         return
 
       const camelProp = decl.prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase())
-      styles[camelProp] = decl.value
+      // Sanitize Satori-incompatible values
+      let value = decl.value
+      // TW4 uses calc(infinity*1px) for rounded-full, Satori doesn't support this
+      if (value.includes('calc(infinity'))
+        value = '9999px'
+      // Satori expects opacity as unitless decimal (0.6), not percentage (60%)
+      if (decl.prop === 'opacity' && value.endsWith('%'))
+        value = String(Number.parseFloat(value) / 100)
+      styles[camelProp] = value
     })
 
     if (Object.keys(styles).length > 0) {

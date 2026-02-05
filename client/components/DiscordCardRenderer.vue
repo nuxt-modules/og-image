@@ -26,6 +26,7 @@
 .discord-card {
   display: flex;
   max-width: 420px;
+  margin: 0 auto;
   border-radius: 4px;
   background: #f2f3f5;
   padding: 12px 16px;

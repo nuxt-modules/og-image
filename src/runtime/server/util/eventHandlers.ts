@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
-import { useSiteConfig } from '#site-config/server/composables/useSiteConfig'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createError, H3Error, setHeader } from 'h3'
+import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
 import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
@@ -10,7 +11,7 @@ import { useOgImageBufferCache } from './cache'
 
 export async function imageEventHandler(e: H3Event) {
   const ctx = await resolveContext(e).catch((err: any) => {
-    console.error(`[OG Image] resolveContext error for ${e.path}:`, err?.message || err)
+    logger.error(`resolveContext error for ${e.path}:`, err?.message || err)
     throw err
   })
   if (ctx instanceof H3Error)
@@ -21,9 +22,14 @@ export async function imageEventHandler(e: H3Event) {
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
+    // Include renderer debug info (vnodes, svg, warnings) for satori renderer
+    const rendererDebug = renderer.name === 'satori'
+      ? await renderer.debug(ctx)
+      : {}
     return {
       extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
-      siteUrl: useSiteConfig(e).url,
+      siteUrl: getSiteConfig(e).url,
+      ...rendererDebug,
     }
   }
   switch (extension) {
@@ -32,7 +38,7 @@ export async function imageEventHandler(e: H3Event) {
       // if the user is loading the iframe we need to render a nicer template
       // also used for chromium screenshots
       return html(ctx)
-    case 'svg':
+    case 'svg': {
       if (!debug && !import.meta.dev) {
         return createError({
           statusCode: 404,
@@ -46,7 +52,9 @@ export async function imageEventHandler(e: H3Event) {
       }
       // add svg headers
       setHeader(e, 'Content-Type', `image/svg+xml`)
-      return (await ctx.renderer.debug(ctx)).svg
+      const debugResult = await ctx.renderer.debug(ctx)
+      return debugResult.svg
+    }
     case 'png':
     case 'jpeg':
     case 'jpg':
@@ -85,7 +93,7 @@ export async function imageEventHandler(e: H3Event) {
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
     image = await renderer.createImage(ctx).catch((err: any) => {
-      console.error(`[OG Image] renderer.createImage error for ${e.path}:`, err?.message || err)
+      logger.error(`renderer.createImage error for ${e.path}:`, err?.message || err)
       throw err
     })
     if (image instanceof H3Error)

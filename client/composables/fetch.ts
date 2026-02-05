@@ -23,6 +23,7 @@ export interface PathDebugResponse {
   compatibilityHints?: string[]
   vnodes?: Record<string, unknown>
   svg?: string
+  warnings?: string[]
 }
 
 export interface GlobalDebugResponse {

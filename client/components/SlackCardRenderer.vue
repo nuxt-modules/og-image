@@ -36,6 +36,7 @@
   -webkit-font-smoothing: antialiased;
   min-height: 200px;
   max-width: 500px;
+  margin: 0 auto;
   background: oklch(100% 0 0);
   border-radius: 8px;
   padding: 8px 0;

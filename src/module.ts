@@ -1520,6 +1520,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
         runtimeConfig.srcDir = nuxt.options.srcDir
+        runtimeConfig.rootDir = nuxt.options.rootDir
         runtimeConfig.communityTemplatesDir = resolve('./runtime/app/components/Templates/Community')
       }
       // @ts-expect-error untyped

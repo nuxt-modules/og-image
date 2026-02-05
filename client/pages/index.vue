@@ -1,13 +1,17 @@
 <script lang="ts" setup>
+import type { RendererType } from '../../src/runtime/types'
 import JsonEditorVue from 'json-editor-vue'
 import { withHttps } from 'ufo'
+import { computed } from 'vue'
 import { useOgImage } from '../composables/og-image'
 import { isConnectionFailed, isFallbackMode } from '../composables/rpc'
 
 const {
   globalDebug,
+  isDebugLoading,
   isCustomOgImage,
   isValidDebugError,
+  hasDefinedOgImage,
   aspectRatio,
   imageFormat,
   socialPreview,
@@ -17,8 +21,13 @@ const {
   socialSiteUrl,
   slackSocialPreviewSiteName,
   activeComponentName,
+  activeComponent,
+  activeComponentRelativePath,
   isOgImageTemplate,
   renderer,
+  isComponentCompatibleWithRenderer,
+  getComponentVariantForRenderer,
+  availableRenderers,
   sidePanelOpen,
   isPageScreenshot,
   currentPageFile,
@@ -39,6 +48,39 @@ const {
   updateProps,
   refreshSources,
 } = useOgImage()
+
+function switchRenderer(newRenderer: RendererType) {
+  // Try to find same component for new renderer
+  const variant = getComponentVariantForRenderer(newRenderer)
+  if (variant) {
+    patchOptions({ renderer: newRenderer, component: variant.pascalName })
+  }
+  else {
+    // No variant found - just switch renderer, let server handle fallback
+    patchOptions({ renderer: newRenderer })
+  }
+}
+
+const rendererDropdownItems = computed(() => [[
+  {
+    label: 'Satori',
+    icon: 'logos:vercel-icon',
+    disabled: !availableRenderers.value.has('satori'),
+    onSelect: () => switchRenderer('satori'),
+  },
+  {
+    label: 'Browser',
+    icon: 'logos:chrome',
+    disabled: !availableRenderers.value.has('browser'),
+    onSelect: () => switchRenderer('browser'),
+  },
+  {
+    label: 'Takumi',
+    avatar: { src: 'https://takumi.kane.tw/logo.svg' },
+    disabled: !availableRenderers.value.has('takumi'),
+    onSelect: () => switchRenderer('takumi'),
+  },
+]])
 </script>
 
 <template>
@@ -89,8 +131,20 @@ const {
       </div>
     </div>
 
+    <!-- Loading state -->
+    <div v-else-if="isDebugLoading" class="h-full flex items-center justify-center p-6 sm:p-8">
+      <div class="max-w-lg text-center">
+        <div class="empty-state-icon animate-pulse">
+          <UIcon name="carbon:image-search" class="w-8 h-8" />
+        </div>
+        <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
+          Loading OG Image...
+        </h2>
+      </div>
+    </div>
+
     <!-- Missing defineOgImage error -->
-    <div v-else-if="isValidDebugError" class="h-full flex items-center justify-center p-6 sm:p-8">
+    <div v-else-if="isValidDebugError || !hasDefinedOgImage" class="h-full flex items-center justify-center p-6 sm:p-8">
       <div class="max-w-lg text-center animate-scale-in">
         <div class="empty-state-icon">
           <UIcon name="carbon:image-search" class="w-8 h-8" />
@@ -100,9 +154,9 @@ const {
         </h2>
         <p class="text-[var(--color-text-muted)] mb-4 text-sm sm:text-base">
           Add <code class="inline-code">defineOgImage()</code> to your
-          <button class="text-[var(--seo-green)] hover:underline font-medium" @click="openCurrentPageFile">
+          <UButton variant="link" class="cursor-pointer" @click="openCurrentPageFile">
             {{ currentPageFile }}
-          </button>
+          </UButton>
         </p>
         <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-sm text-[var(--color-text-subtle)]">
           Using Nuxt Content? See the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="text-[var(--seo-green)] hover:underline">integration guide</a>
@@ -122,15 +176,28 @@ const {
         <span>Fallback mode: Connected to localhost:3000</span>
       </div>
 
+      <!-- Renderer incompatibility banner -->
+      <div v-if="!isComponentCompatibleWithRenderer && activeComponent" class="alert-banner warning">
+        <UIcon name="carbon:warning" class="shrink-0" />
+        <span>
+          Component <code class="inline-code">{{ activeComponentName }}</code> uses {{ activeComponent.renderer }} renderer.
+          <NuxtLink to="/templates" class="text-[var(--seo-green)] hover:underline ml-1">Select a {{ renderer }} template</NuxtLink>
+        </span>
+      </div>
+
       <!-- Top toolbar -->
       <div class="toolbar">
         <!-- Left: Renderer + Format controls -->
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <!-- Renderer badge -->
-          <div class="renderer-badge" :class="renderer === 'browser' ? 'browser' : 'satori'">
-            <UIcon :name="renderer === 'browser' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">{{ renderer === 'browser' ? 'Browser' : 'Satori' }}</span>
-          </div>
+          <!-- Renderer dropdown -->
+          <UDropdownMenu :items="rendererDropdownItems">
+            <UButton color="neutral" variant="outline" size="xs">
+              <img v-if="renderer === 'takumi'" src="https://takumi.kane.tw/logo.svg" class="w-3.5 h-3.5" alt="">
+              <UIcon v-else :name="renderer === 'browser' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
+              <span class="hidden sm:inline">{{ renderer === 'browser' ? 'Browser' : renderer === 'takumi' ? 'Takumi' : 'Satori' }}</span>
+              <UIcon name="carbon:chevron-down" class="w-3 h-3 opacity-60" />
+            </UButton>
+          </UDropdownMenu>
 
           <!-- Format buttons -->
           <div class="format-buttons">
@@ -150,7 +217,7 @@ const {
               PNG
             </button>
             <button
-              v-if="renderer !== 'browser'"
+              v-if="renderer === 'satori'"
               class="format-btn"
               :class="{ active: imageFormat === 'svg' }"
               @click="patchOptions({ extension: 'svg' })"
@@ -170,21 +237,24 @@ const {
 
         <!-- Center: Component info -->
         <div v-if="!isPageScreenshot" class="component-info hidden md:flex">
-          <span class="font-medium text-[var(--color-text)]">{{ activeComponentName }}</span>
-          <button
+          <UButton
+            variant="link"
+            class="component-path-link cursor-pointer"
+            :disabled="isOgImageTemplate"
+            @click="openCurrentComponent"
+          >
+            <span v-if="activeComponentRelativePath"><span class="text-[var(--color-text-muted)]">{{ activeComponentRelativePath.replace(/[^/]+\.vue$/, '') }}</span><span class="text-[var(--color-text)]">{{ activeComponentRelativePath.match(/[^/]+\.vue$/)?.[0] || activeComponentName }}</span></span>
+            <span v-else class="text-[var(--color-text)]">{{ activeComponentName }}</span>
+          </UButton>
+          <UButton
             v-if="isOgImageTemplate"
-            class="component-action"
+            variant="link"
+            size="xs"
+            class="cursor-pointer text-[var(--color-text-subtle)]"
             @click="ejectComponent(activeComponentName)"
           >
             Eject
-          </button>
-          <button
-            v-else
-            class="component-action"
-            @click="openCurrentComponent"
-          >
-            View Source
-          </button>
+          </UButton>
         </div>
         <div v-else class="component-info hidden md:flex">
           <span class="text-[var(--color-text-subtle)]">Page Screenshot</span>
@@ -386,7 +456,6 @@ const {
             <ImageLoader
               v-if="imageFormat !== 'html'"
               :src="src"
-              class="!h-[300px]"
               :aspect-ratio="aspectRatio"
               @load="generateLoadTime"
               @refresh="refreshSources"
@@ -561,6 +630,7 @@ const {
   padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface-elevated);
+  position: relative;
 }
 
 @media (min-width: 640px) {
@@ -610,6 +680,16 @@ const {
   color: oklch(75% 0.15 145);
 }
 
+.renderer-badge.takumi {
+  background: oklch(85% 0.12 285 / 0.15);
+  color: oklch(55% 0.15 285);
+}
+
+.dark .renderer-badge.takumi {
+  background: oklch(40% 0.12 285 / 0.2);
+  color: oklch(75% 0.15 285);
+}
+
 /* Format buttons */
 .format-buttons {
   display: flex;
@@ -655,20 +735,19 @@ const {
 
 /* Component info */
 .component-info {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8125rem;
 }
 
-.component-action {
-  color: var(--color-text-subtle);
-  font-size: 0.75rem;
-  transition: color 150ms ease;
-}
-
-.component-action:hover {
-  color: var(--seo-green);
+.component-path-link {
+  font-size: 0.8125rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
 }
 
 /* Social tabs */

@@ -4,7 +4,7 @@ import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch
 import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute } from '#imports'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
-import { GlobalDebugKey, PathDebugKey, RefetchPathDebugKey } from './composables/keys'
+import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
 import { useOgImage } from './composables/og-image'
 import { appFetch, colorMode } from './composables/rpc'
 import { loadShiki } from './composables/shiki'
@@ -29,7 +29,7 @@ const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', 
   default: () => ({ runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }),
 })
 
-const { data: pathDebug, refresh: refreshPathDebug } = useAsyncData<PathDebugResponse>('path-debug', async () => {
+const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = useAsyncData<PathDebugResponse>('path-debug', async () => {
   if (!appFetch.value)
     return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
   // Build encoded URL with options for debug JSON
@@ -49,10 +49,11 @@ const { data: pathDebug, refresh: refreshPathDebug } = useAsyncData<PathDebugRes
 // @ts-expect-error untyped
 provide(GlobalDebugKey, globalDebug)
 provide(PathDebugKey, pathDebug)
+provide(PathDebugStatusKey, pathDebugStatus)
 provide(RefetchPathDebugKey, refreshPathDebug)
 
 const {
-  pending,
+  isDebugLoading,
   error,
   isPageScreenshot,
   refreshSources,
@@ -144,7 +145,7 @@ const runtimeVersion = computed(() => {
                 :class="[
                   currentTab === item.value ? 'active' : '',
                   isPageScreenshot && item.value === 'templates' ? 'hidden' : '',
-                  (pending || error ? 'opacity-50 pointer-events-none' : ''),
+                  (isDebugLoading || error ? 'opacity-50 pointer-events-none' : ''),
                 ]"
               >
                 <UTooltip :text="item.label" :delay-duration="300">

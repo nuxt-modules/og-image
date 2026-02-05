@@ -5,6 +5,7 @@ import MagicString from 'magic-string'
 import { ofetch } from 'ofetch'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
 import { createUnplugin } from 'unplugin'
+import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
 import { resolveClassesToStyles } from './css/providers/tw4'
 import { transformVueTemplate } from './vue-template-transform'
@@ -57,13 +58,21 @@ function buildIconSvg(iconData: { body: string, width?: number, height?: number 
 
   const attrPairs = attrs.matchAll(/(\w+(?:-\w+)*)="([^"]*)"/g)
   const filteredAttrs: string[] = []
+  let existingStyle = ''
   for (const [, key, value] of attrPairs) {
-    if (key !== 'name')
-      filteredAttrs.push(`${key}="${value}"`)
+    if (key === 'name')
+      continue
+    if (key === 'style' && value) {
+      existingStyle = value
+      continue
+    }
+    filteredAttrs.push(`${key}="${value}"`)
   }
+  // Merge existing style with display:flex
+  const mergedStyle = existingStyle ? `display:flex; ${existingStyle}` : 'display:flex'
   const attrsStr = filteredAttrs.length > 0 ? ` ${filteredAttrs.join(' ')}` : ''
 
-  let svg = `<span${attrsStr} style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
+  let svg = `<span${attrsStr} style="${mergedStyle}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
   svg = makeIdsUnique(svg)
   return svg
 }
@@ -119,7 +128,12 @@ async function fetchEmojiSvg(emoji: string, emojiSet: string): Promise<string | 
       })
       // Iconify API returns '404' text for missing icons
       if (svg && svg !== '404') {
-        let result = `<span style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"${svg.slice(4)}</span>`
+        // Extract viewBox and body from fetched SVG, build our own wrapper
+        const viewBoxMatch = svg.match(/viewBox="([^"]*)"/)
+        const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 128 128'
+        const bodyMatch = svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
+        const body = bodyMatch ? bodyMatch[1] : ''
+        let result = `<span style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="1em" height="1em">${body}</svg></span>`
         result = makeIdsUnique(result)
         emojiFetchCache.set(cacheKey, result)
         return result
@@ -150,6 +164,7 @@ function getMimeType(ext: string): string {
 // Satori unsupported utility patterns - filtered at build time
 // Reference: https://github.com/vercel/satori#css
 const SATORI_UNSUPPORTED_PATTERNS = [
+  /^z-/, // z-index not supported by Satori
   /^ring(-|$)/, // Ring utilities - not supported
   /^divide(-|$)/, // Divide utilities - not supported
   /^space-(x|y)(-|$)/, // Space utilities - use gap instead
@@ -377,7 +392,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
               if (unsupported.length > 0) {
                 const componentName = id.split('/').pop()
-                console.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
+                logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
               }
 
               // Use CSS provider (UnoCSS) when available
@@ -429,7 +444,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
         catch (err) {
           const componentName = id.split('/').pop()
-          console.warn(`[nuxt-og-image] ${componentName}: TW4 template transform failed, using original template`, (err as Error).message)
+          logger.warn(`[nuxt-og-image] ${componentName}: TW4 template transform failed, using original template`, (err as Error).message)
           // Continue without TW4 transforms - Satori will try to handle classes via tw prop
         }
       }
