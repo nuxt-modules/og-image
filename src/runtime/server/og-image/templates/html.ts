@@ -102,13 +102,15 @@ svg[data-emoji] {
 `,
       },
       ...fonts.map((font) => {
-        const cacheKey = `${font.family}-${font.weight}-${font.style}`
+        // Determine format from file extension
+        const ext = font.src.split('.').pop()?.toLowerCase()
+        const format = ext === 'woff2' ? 'woff2' : ext === 'woff' ? 'woff' : 'truetype'
         return `
           @font-face {
             font-family: '${font.family.replaceAll('+', ' ')}';
             font-style: ${font.style};
             font-weight: ${font.weight};
-            src: url('/_og/f/${cacheKey}') format('truetype');
+            src: url('${font.src}') format('${format}');
           }
           `
       }),
