@@ -101,7 +101,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     'chromium': false,
     'css-inline': false, // size constraint (2mb is max)
     'resvg': 'wasm',
-    'satori': 'wasm',
+    'satori': '0-15-wasm', // 0.16+ uses WebAssembly.instantiate() blocked by edge
     'takumi': 'wasm',
     'sharp': false,
     'emoji': 'fetch', // edge size limits - bundling 24MB icons not viable
