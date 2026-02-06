@@ -22,8 +22,8 @@ export async function imageEventHandler(e: H3Event) {
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
-    // Include renderer debug info (vnodes, svg, warnings) for satori renderer
-    const rendererDebug = renderer.name === 'satori'
+    // Include renderer debug info (vnodes, svg, warnings)
+    const rendererDebug = renderer.debug
       ? await renderer.debug(ctx)
       : {}
     return {
