@@ -867,64 +867,66 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
     // No user components — auto-detect from installed deps, prompt only if none installed
-    if (!hasUserComponents) {
+    if (!nuxt.options._prepare && !hasUserComponents) {
       const installedProviders = await getInstalledProviders()
       const preferred = installedProviders.find(p => p.provider === 'satori') || installedProviders[0]
       if (preferred) {
         ogImageComponentCtx.detectedRenderers.add(preferred.provider)
-        logger.success(`Using ${preferred.provider} renderer`)
+        logger.debug(`Using ${preferred.provider} renderer`)
       }
       else if (nuxt.options.dev && !nuxt.options._prepare) {
         const renderer = await promptForRendererSelection()
         ogImageComponentCtx.detectedRenderers.add(renderer)
-        logger.success(`Using ${renderer} renderer`)
+        logger.debug(`Using ${renderer} renderer`)
       }
       else {
         ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
       }
     }
 
-    // Ensure renderer dependencies are installed for each detected renderer
-    const availableRenderers = new Set<RendererType>()
-    if (!config.zeroRuntime) {
-      for (const renderer of ogImageComponentCtx.detectedRenderers) {
-        const binding = getRecommendedBinding(renderer, targetCompatibility)
-        const missing = await getMissingDependencies(renderer, binding)
-        if (missing.length === 0) {
-          availableRenderers.add(renderer)
-        }
-        else if (nuxt.options.dev && !nuxt.options._prepare) {
-          logger.warn(`${renderer} renderer requires: ${missing.join(', ')}`)
-          const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
-          if (success) {
+    if (!nuxt.options._prepare) {
+      // Ensure renderer dependencies are installed for each detected renderer
+      const availableRenderers = new Set<RendererType>()
+      if (!config.zeroRuntime) {
+        for (const renderer of ogImageComponentCtx.detectedRenderers) {
+          const binding = getRecommendedBinding(renderer, targetCompatibility)
+          const missing = await getMissingDependencies(renderer, binding)
+          if (missing.length === 0) {
             availableRenderers.add(renderer)
           }
-          else {
-            logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
+          else if (nuxt.options.dev && !nuxt.options._prepare) {
+            logger.warn(`${renderer} renderer requires: ${missing.join(', ')}`)
+            const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
+            if (success) {
+              availableRenderers.add(renderer)
+            }
+            else {
+              logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
+            }
           }
-        }
-        else {
-          logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
-        }
-        // Set resvg WASM fallback compatibility when satori resolved to wasm binding
-        if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
-          logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
-          config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-            dev: { resvg: 'wasm-fs' },
-            prerender: { resvg: 'wasm-fs' },
-          })
-          if (targetCompatibility.resvg === 'node') {
+          else {
+            logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+          }
+          // Set resvg WASM fallback compatibility when satori resolved to wasm binding
+          if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
+            logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
             config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-              runtime: { resvg: 'wasm' },
+              dev: { resvg: 'wasm-fs' },
+              prerender: { resvg: 'wasm-fs' },
             })
+            if (targetCompatibility.resvg === 'node') {
+              config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+                runtime: { resvg: 'wasm' },
+              })
+            }
           }
         }
       }
-    }
-    else {
-      // zeroRuntime — all detected renderers considered available
-      for (const renderer of ogImageComponentCtx.detectedRenderers)
-        availableRenderers.add(renderer)
+      else {
+        // zeroRuntime — all detected renderers considered available
+        for (const renderer of ogImageComponentCtx.detectedRenderers)
+          availableRenderers.add(renderer)
+      }
     }
 
     // Register community templates for all renderers with available dependencies (dev only)
