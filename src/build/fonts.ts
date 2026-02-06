@@ -10,7 +10,8 @@ import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
-import { extractCustomFontFamilies, extractFontFacesWithSubsets } from './css/css-utils'
+import { extractCustomFontFamilies } from './css/css-utils'
+import { extractFontFacesWithSubsets } from './css/font-face'
 
 // ============================================================================
 // Types

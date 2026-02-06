@@ -3,7 +3,7 @@ import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../type
 import resolvedFonts from '#og-image/fonts'
 import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
 import { querySelector } from 'ultrahtml/selector'
-import { htmlDecodeQuotes } from '../../util/encoding'
+import { decodeHtml, htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
 import classes from './plugins/classes'
 import emojis from './plugins/emojis'
@@ -24,7 +24,9 @@ function parseStyleAttr(style: string | null | undefined): Record<string, any> |
   if (!style)
     return undefined
   const result: Record<string, any> = {}
-  for (const decl of style.split(';')) {
+  // Decode &amp; before splitting — the `;` in `&amp;` would otherwise act as
+  // a CSS declaration separator and truncate values containing `&` (e.g. URLs).
+  for (const decl of style.replace(/&amp;/g, '&').split(';')) {
     const colonIdx = decl.indexOf(':')
     if (colonIdx === -1)
       continue
@@ -45,7 +47,7 @@ function elementToVNode(el: ElementNode): VNode {
     props.style = parsedStyle
 
   for (const [name, value] of Object.entries(attrs))
-    props[name] = value
+    props[name] = typeof value === 'string' ? decodeHtml(value) : value
 
   const children: (VNode | string)[] = []
   for (const child of el.children) {
@@ -65,7 +67,7 @@ function elementToVNode(el: ElementNode): VNode {
   return { type: el.name, props } as VNode
 }
 
-function htmlToVNode(html: string): VNode {
+export function htmlToVNode(html: string): VNode {
   const doc = parse(html)
   const root = querySelector(doc, 'div') as ElementNode | null
   if (!root)
@@ -106,10 +108,10 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   // do sync transforms
   walkSatoriTree(ctx, satoriTree, [
     classes,
+    twClasses, // Convert class -> tw and handle breakpoints (must run before flex)
     flex,
     encoding,
     nuxtIcon,
-    twClasses, // Convert class -> tw and handle breakpoints
   ])
   // do async transforms
   await Promise.all(walkSatoriTree(ctx, satoriTree, [

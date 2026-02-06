@@ -38,14 +38,27 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
-  // Build tailwind theme from TW4 font vars
+  // Build tailwind theme from TW4 font vars, filtered to loaded font families
+  // TW4 vars contain full font stacks (e.g. "ui-sans-serif, system-ui, ...") but Satori
+  // can only use fonts that are actually loaded — filter to available families
+  const loadedFamilies = new Set(fonts.map(f => f.name))
+  const defaultFamily = fonts[0]?.name
+  function resolveAvailableFamily(cssValue: string): string | undefined {
+    const families = cssValue.split(',').map(f => f.trim().replace(/^['"]|['"]$/g, ''))
+    const available = families.filter(f => loadedFamilies.has(f))
+    if (available.length > 0)
+      return available.join(', ')
+    return defaultFamily
+  }
   const fontFamily: Record<string, string> = {}
-  if (tw4FontVars['font-sans'])
-    fontFamily.sans = tw4FontVars['font-sans']
-  if (tw4FontVars['font-serif'])
-    fontFamily.serif = tw4FontVars['font-serif']
-  if (tw4FontVars['font-mono'])
-    fontFamily.mono = tw4FontVars['font-mono']
+  for (const [key, slot] of [['font-sans', 'sans'], ['font-serif', 'serif'], ['font-mono', 'mono']] as const) {
+    const val = tw4FontVars[key]
+    if (val) {
+      const resolved = resolveAvailableFamily(val)
+      if (resolved)
+        fontFamily[slot] = resolved
+    }
+  }
   const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions>{
     fonts,
     tailwindConfig: Object.keys(fontFamily).length ? { theme: { fontFamily } } : undefined,

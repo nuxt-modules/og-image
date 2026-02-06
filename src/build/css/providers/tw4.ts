@@ -1,13 +1,16 @@
+import type { CssProvider } from '../css-provider'
 import { readFile } from 'node:fs/promises'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
 import twColors from 'tailwindcss/colors'
 import {
-  COLOR_PROPERTIES,
   convertColorToHex,
   extractClassStyles,
   extractCssVars,
+  extractPerClassVars,
+  extractUniversalVars,
   loadLightningCss,
+  postProcessStyles,
   resolveCssVars,
   simplifyCss,
 } from '../css-utils'
@@ -154,17 +157,6 @@ export interface Tw4ResolverOptions {
   nuxtUiColors?: Record<string, string>
 }
 
-export interface StyleMap {
-  classes: Map<string, Record<string, string>>
-  vars: Map<string, string>
-}
-
-export interface GeneratorOptions {
-  cssPath: string
-  classes: string[]
-  nuxtUiColors?: Record<string, string>
-}
-
 // ============================================================================
 // Core compiler
 // ============================================================================
@@ -200,20 +192,36 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 // CSS parsing utilities
 // ============================================================================
 
+interface ParsedCssOutput {
+  classes: Map<string, Record<string, string>>
+  perClassVars: Map<string, Map<string, string>>
+}
+
 /**
  * Parse TW4 compiler output.
- * Extracts CSS variables into vars Map and returns class styles.
+ * Extracts CSS variables into vars Map and returns class styles + per-class vars.
  */
-function parseCssOutput(css: string, vars: Map<string, string>): Map<string, Record<string, string>> {
+function parseCssOutput(css: string, vars: Map<string, string>): ParsedCssOutput {
   // Extract :root/:host variables
-  const cssVars = extractCssVars(css)
-  for (const [name, value] of cssVars) {
+  for (const [name, value] of extractCssVars(css)) {
     if (!vars.has(name))
       vars.set(name, value)
   }
 
-  // Extract class styles (skip --tw-* and all CSS vars)
-  return extractClassStyles(css, { skipPrefixes: ['--'] })
+  // Extract universal selector defaults (TW4 base-layer: *, ::before, ::after)
+  // These provide default values for --tw-shadow, --tw-ring-shadow, etc.
+  for (const [name, value] of extractUniversalVars(css)) {
+    if (!vars.has(name))
+      vars.set(name, value)
+  }
+
+  // Extract per-class CSS variable overrides (e.g., .shadow-2xl { --tw-shadow: ... })
+  const perClassVars = extractPerClassVars(css)
+
+  // Extract class styles (skip --tw-* and all CSS vars from style output)
+  const classes = extractClassStyles(css, { skipPrefixes: ['--'] })
+
+  return { classes, perClassVars }
 }
 
 /**
@@ -258,16 +266,6 @@ async function resolveVars(value: string, vars: Map<string, string>, depth = 0):
     return resolveVars(result, vars, depth + 1)
 
   return evaluateCalc(result)
-}
-
-/**
- * Convert oklch colors in gradient values to hex.
- */
-function convertGradientColors(value: string): string {
-  return value.replace(/oklch\([^)]+\)/g, (match) => {
-    const hex = convertColorToHex(match)
-    return hex.startsWith('#') ? hex : match
-  })
 }
 
 // ============================================================================
@@ -387,30 +385,14 @@ export async function resolveClassesToStyles(
 
   if (uncached.length > 0) {
     const outputCss = compiler.build(uncached)
-    const parsedClasses = parseCssOutput(outputCss, vars)
+    const { classes: parsedClasses, perClassVars } = parseCssOutput(outputCss, vars)
 
     for (const [className, rawStyles] of parsedClasses) {
-      const styles: Record<string, string> = {}
-
-      for (const [prop, rawValue] of Object.entries(rawStyles)) {
-        let value = await resolveVars(rawValue, vars)
-
-        if (value.includes('var('))
-          continue
-
-        if (COLOR_PROPERTIES.has(prop)) {
-          if (prop === 'background-image' && value.includes('gradient')) {
-            value = convertGradientColors(value)
-          }
-          else {
-            value = convertColorToHex(value)
-          }
-        }
-
-        styles[prop] = value
-      }
-
-      resolvedStyleCache.set(className, Object.keys(styles).length ? styles : null)
+      // Merge global vars with per-class var overrides for resolution
+      const classVars = perClassVars.get(className)
+      const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
+      const styles = await postProcessStyles(rawStyles, mergedVars, resolveVars)
+      resolvedStyleCache.set(className, styles)
     }
 
     for (const c of uncached) {
@@ -486,49 +468,136 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
 }
 
 // ============================================================================
-// Public API - Style map generation
+// Arbitrary class rewriting (TW-specific)
 // ============================================================================
 
+// Map CSS property → TW utility prefix for arbitrary value rewriting
+const CSS_PROP_TO_TW_PREFIX: Record<string, string> = {
+  'background-color': 'bg',
+  'color': 'text',
+  'border-color': 'border',
+  'font-size': 'text',
+  'font-weight': 'font',
+  'line-height': 'leading',
+  'letter-spacing': 'tracking',
+  'opacity': 'opacity',
+  'width': 'w',
+  'height': 'h',
+  'max-width': 'max-w',
+  'max-height': 'max-h',
+  'min-width': 'min-w',
+  'min-height': 'min-h',
+  'border-radius': 'rounded',
+  'gap': 'gap',
+}
+
 /**
- * Generate a complete style map from TW4 classes.
+ * Convert a single-property resolved style back to a TW arbitrary value class.
+ * Returns undefined for multi-property classes or unmapped properties.
  */
-export async function generateStyleMap(options: GeneratorOptions): Promise<StyleMap> {
-  const { cssPath, classes, nuxtUiColors } = options
+function stylesToArbitraryClass(styles: Record<string, string>): string | undefined {
+  const entries = Object.entries(styles)
+  if (entries.length !== 1)
+    return undefined
+  const [prop, value] = entries[0]!
+  const prefix = CSS_PROP_TO_TW_PREFIX[prop]
+  if (!prefix)
+    return undefined
+  return `${prefix}-[${value}]`
+}
 
-  if (classes.length === 0) {
-    return { classes: new Map(), vars: new Map() }
+// ============================================================================
+// CssProvider factory
+// ============================================================================
+
+export interface Tw4ProviderOptions {
+  getCssPath: () => string | undefined
+  loadNuxtUiColors: () => Promise<Record<string, string> | undefined>
+  init?: () => Promise<void>
+}
+
+/**
+ * Create a TW4 CssProvider that implements the unified CssProvider interface.
+ * Bakes in responsive prefix extraction + conflict detection.
+ */
+export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
+  let initialized = false
+
+  return {
+    name: 'tailwind',
+
+    async resolveClassesToStyles(classes: string[]): Promise<Record<string, Record<string, string> | string>> {
+      if (!initialized && options.init) {
+        await options.init()
+        initialized = true
+      }
+
+      const cssPath = options.getCssPath()
+      if (!cssPath)
+        return {}
+
+      // Extract base classes from prefixed variants (e.g., lg:bg-black → bg-black)
+      const baseClasses = new Set<string>()
+      for (const cls of classes) {
+        const m = cls.match(/^(?:sm|md|lg|xl|2xl|dark):(.+)/)
+        if (m?.[1])
+          baseClasses.add(m[1])
+      }
+      const classesToResolve = [...new Set([...classes, ...baseClasses])]
+
+      const nuxtUiColors = await options.loadNuxtUiColors()
+      const tw4Resolved = await resolveClassesToStyles(classesToResolve, {
+        cssPath,
+        nuxtUiColors,
+      })
+
+      const resolved: Record<string, Record<string, string> | string> = {}
+
+      // Collect CSS properties overridden by prefixed variants (dark:, sm:, etc.)
+      // Base classes that conflict must stay as classes for runtime resolution
+      const prefixOverrideProps = new Set<string>()
+      for (const cls of classes) {
+        const prefixMatch = cls.match(/^(?:sm|md|lg|xl|2xl|dark):(.+)/)
+        if (prefixMatch) {
+          const baseStyles = tw4Resolved[prefixMatch[1]!]
+          if (baseStyles) {
+            for (const prop of Object.keys(baseStyles))
+              prefixOverrideProps.add(prop)
+          }
+        }
+      }
+
+      for (const cls of classes) {
+        // Responsive/dark prefixed classes: resolve value but keep as class
+        const prefixMatch = cls.match(/^((?:sm|md|lg|xl|2xl|dark):)(.+)/)
+        if (prefixMatch) {
+          const [, prefix, baseClass] = prefixMatch
+          const baseStyles = tw4Resolved[baseClass!]
+          if (baseStyles) {
+            const arbitrary = stylesToArbitraryClass(baseStyles)
+            resolved[cls] = arbitrary ? `${prefix}${arbitrary}` : cls
+          }
+          continue
+        }
+
+        if (tw4Resolved[cls]) {
+          const styles = tw4Resolved[cls]
+          // If a prefixed variant overrides any of this class's properties,
+          // keep as class rewrite so runtime can resolve the conflict
+          const hasConflict = Object.keys(styles).some(prop => prefixOverrideProps.has(prop))
+          if (hasConflict) {
+            const arbitrary = stylesToArbitraryClass(styles)
+            resolved[cls] = arbitrary || cls
+          }
+          else {
+            resolved[cls] = styles
+          }
+        }
+        // Classes not in map will be kept in class attr for Satori's tw prop
+      }
+      return resolved
+    },
+
+    clearCache: clearTw4Cache,
   }
-
-  await loadTw4Deps()
-
-  const cssContent = await readFile(cssPath, 'utf-8')
-  const baseDir = dirname(cssPath)
-
-  const compiler = await compile(cssContent, {
-    base: baseDir,
-    loadStylesheet: createStylesheetLoader(baseDir),
-  })
-
-  const rawCSS = compiler.build(classes)
-  const vars = extractCssVars(rawCSS)
-
-  // Build CSS variable declarations
-  if (nuxtUiColors)
-    buildNuxtUiVars(vars, nuxtUiColors)
-  const varsCSS = `:root {\n${[...vars].map(([n, v]) => `  ${n}: ${v};`).join('\n')}\n}`
-  const fullCSS = `${varsCSS}\n${rawCSS}`
-
-  // Resolve CSS variables
-  const resolvedCSS = resolveCssVars(fullCSS, vars)
-
-  // Simplify calc() with Lightning CSS
-  const simplifiedCSS = await simplifyCss(resolvedCSS)
-
-  // Convert oklch to hex
-  const hexCSS = simplifiedCSS.replace(/oklch\([^)]+\)/g, m => convertColorToHex(m))
-
-  // Parse into class map (camelCase for style objects, normalize TW4 values)
-  const classMap = extractClassStyles(hexCSS, { camelCase: true, normalize: true, merge: true })
-
-  return { classes: classMap, vars }
 }

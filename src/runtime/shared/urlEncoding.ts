@@ -161,6 +161,13 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     if (key === 'extension' || key === 'socialPreview')
       continue
 
+    // Skip default/empty values that the decoder already handles
+    // _path defaults to "/" on decode, _query empty object is a no-op
+    if (key === '_path' && value === '/')
+      continue
+    if (key === '_query' && typeof value === 'object' && Object.keys(value).length === 0)
+      continue
+
     // Skip values that match defaults
     if (defaults && key in defaults && defaults[key] === value)
       continue

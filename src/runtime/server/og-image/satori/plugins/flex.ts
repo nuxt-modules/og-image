@@ -1,19 +1,6 @@
 import type { VNode } from '../../../../types'
 import { defineSatoriTransformer } from '../utils'
 
-const BLOCK_ELEMENTS = [
-  'div',
-  'p',
-  'ul',
-  'ol',
-  'li',
-  'blockquote',
-  'pre',
-  'hr',
-  'table',
-  'dl',
-]
-
 const INLINE_ELEMENTS = [
   'span',
   'a',
@@ -38,7 +25,9 @@ const INLINE_ELEMENTS = [
   'h5',
 ]
 
-// automatically add missing flex rules
+// Add missing flex defaults for Satori compatibility.
+// Build-time handles elements with classes (emitting display:flex + flex-direction:row).
+// This plugin only handles bare elements the build-time transform didn't touch.
 export default defineSatoriTransformer({
   filter: (node: VNode) =>
     [...INLINE_ELEMENTS, 'div'].includes(node.type)
@@ -46,25 +35,27 @@ export default defineSatoriTransformer({
     && (!node.props?.class?.includes('hidden')),
   transform: (node: VNode) => {
     node.props.style = node.props.style || {}
-    if (node.props.style?.display && node.props.style?.display !== 'flex') {
+    // Skip if display is already set (build-time handled it)
+    if (node.props.style.display) {
       return
     }
     if (node.type === 'div') {
       node.props.style.display = 'flex'
-      // if any of the children are divs we swap it to old behavior
-      if (!node.props?.class?.includes('flex-') && Array.isArray(node.props.children) && node.props.children.some(child => typeof child === 'object' && child && BLOCK_ELEMENTS.includes(child.type))) {
+      // If class contains `flex`, user explicitly wants flex (default = row).
+      // Satori's tw prop handles flex-col/flex-row from the class.
+      // Only auto-column for bare divs without any flex class.
+      if (!node.props.style.flexDirection && !/\bflex\b/.test(node.props?.class || '')) {
         node.props.style.flexDirection = 'column'
-        return
       }
+      return
     }
-    // inline elements
-    let flexWrap = node.props?.class?.includes('flex-wrap')
-    if (!node.props?.class?.includes('flex-')) {
+    // Inline elements get flex + wrap defaults
+    node.props.style.display = 'flex'
+    if (!node.props.style.flexWrap) {
       node.props.style.flexWrap = 'wrap'
-      flexWrap = true
     }
-    if (flexWrap && !node.props?.class?.includes('gap')) {
-      node.props.style.gap = '0.2em' // 4px for 16px font
+    if (node.props.style.flexWrap === 'wrap' && !node.props.style.gap) {
+      node.props.style.gap = '0.2em'
     }
   },
 })

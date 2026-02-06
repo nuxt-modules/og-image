@@ -1,4 +1,5 @@
 import { Worker } from 'node:worker_threads'
+import { extractResourceUrls } from '@takumi-rs/core'
 
 const workerCode = `
 const { parentPort } = require('node:worker_threads')
@@ -98,4 +99,5 @@ class RendererWorkerProxy {
 export default {
   initWasmPromise: Promise.resolve(),
   Renderer: RendererWorkerProxy as unknown as typeof import('@takumi-rs/core').Renderer,
+  extractResourceUrls,
 }

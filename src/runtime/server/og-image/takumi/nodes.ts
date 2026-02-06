@@ -1,11 +1,12 @@
-import type { ElementNode, Node, TextNode } from 'ultrahtml'
-import type { OgImageRenderEventContext } from '../../../types'
-import { ELEMENT_NODE, parse, renderSync, TEXT_NODE } from 'ultrahtml'
-import { querySelector } from 'ultrahtml/selector'
+import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
+import encoding from '../satori/plugins/encoding'
+import twClasses from '../satori/plugins/twClasses'
 import { applyEmojis } from '../satori/transforms/emojis'
 import { applyInlineCss } from '../satori/transforms/inlineCss'
+import { walkSatoriTree } from '../satori/utils'
+import { htmlToVNode } from '../satori/vnodes'
 
 export interface TakumiNode {
   type: 'container' | 'image' | 'text'
@@ -31,90 +32,129 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
   }
 
   const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
-  const doc = parse(template)
-  const root = querySelector(doc, 'div') as ElementNode
-  return elementToNode(root, ctx)
+
+  // Parse to VNode tree and apply shared plugins (encoding + twClasses for dark:/responsive)
+  const vnodeTree = htmlToVNode(template)
+  walkSatoriTree(ctx, vnodeTree, [encoding, twClasses])
+
+  return vnodeToTakumiNode(vnodeTree)
 }
 
-function getTextContent(node: Node): string {
-  if (node.type === TEXT_NODE)
-    return (node as TextNode).value
-  if (node.type === ELEMENT_NODE) {
-    return (node as ElementNode).children.map(child => getTextContent(child)).join('')
-  }
-  return ''
-}
+function vnodeToTakumiNode(vnode: VNode): TakumiNode {
+  const { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
 
-function elementToNode(el: ElementNode, ctx: OgImageRenderEventContext): TakumiNode {
-  const { style, class: cls, src, width, height } = el.attributes
-
-  if (el.name === 'img') {
+  // SVG elements → base64 data URI image
+  if (vnode.type === 'svg') {
     return {
       type: 'image',
-      src: resolveImageSrc(src || '', ctx),
-      width: Number(width) || undefined,
-      height: Number(height) || undefined,
-      tw: cls || undefined,
-      style: parseStyleAttr(style),
-    }
-  }
-
-  if (el.name === 'svg') {
-    const svgString = renderSync(el)
-    const dataUri = `data:image/svg+xml;base64,${Buffer.from(svgString).toString('base64')}`
-    return {
-      type: 'image',
-      src: dataUri,
+      src: vnodeToSvgDataUri(vnode),
       width: Number(width) || undefined,
       height: Number(height) || undefined,
     }
   }
 
-  const firstChild = el.children[0]
-  if (el.children.length === 1 && firstChild?.type === TEXT_NODE) {
+  if (vnode.type === 'img') {
+    return {
+      type: 'image',
+      src: src || rest.href || '',
+      width: Number(width) || undefined,
+      height: Number(height) || undefined,
+      tw: tw || cls || undefined,
+      style,
+    }
+  }
+
+  // Single text child → text node
+  if (typeof children === 'string') {
     return {
       type: 'text',
-      text: getTextContent(el),
-      tw: cls || undefined,
-      style: parseStyleAttr(style),
+      text: children,
+      tw: tw || cls || undefined,
+      style,
     }
   }
 
-  const children: TakumiNode[] = []
-  for (const child of el.children) {
-    if (child.type === ELEMENT_NODE)
-      children.push(elementToNode(child as ElementNode, ctx))
-    else if (child.type === TEXT_NODE && (child as TextNode).value.trim())
-      children.push({ type: 'text', text: (child as TextNode).value.trim() })
+  // Array children
+  if (Array.isArray(children)) {
+    // If only one child and it's a string → text node
+    if (children.length === 1 && typeof children[0] === 'string') {
+      return {
+        type: 'text',
+        text: children[0],
+        tw: tw || cls || undefined,
+        style,
+      }
+    }
+
+    const takumiChildren: TakumiNode[] = []
+    for (const child of children) {
+      if (child && typeof child === 'object')
+        takumiChildren.push(vnodeToTakumiNode(child))
+      else if (typeof child === 'string' && child.trim())
+        takumiChildren.push({ type: 'text', text: child.trim() })
+    }
+
+    return {
+      type: 'container',
+      children: takumiChildren.length ? takumiChildren : undefined,
+      tw: tw || cls || undefined,
+      style,
+    }
   }
 
+  // No children
   return {
     type: 'container',
-    children: children.length ? children : undefined,
-    tw: cls || undefined,
-    style: parseStyleAttr(style),
+    tw: tw || cls || undefined,
+    style,
   }
 }
 
-function resolveImageSrc(src: string, _ctx: OgImageRenderEventContext): string {
-  if (src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://'))
-    return src
-  return src
+function vnodeToSvgDataUri(vnode: VNode): string {
+  const svg = vnodeToHtmlString(vnode)
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
 }
 
-function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
-  if (!style)
-    return undefined
-  const result: Record<string, any> = {}
-  for (const decl of style.split(';')) {
-    const [prop, ...valParts] = decl.split(':')
-    const val = valParts.join(':').trim()
-    if (prop?.trim() && val)
-      result[camelCase(prop.trim())] = val
+function vnodeToHtmlString(vnode: VNode): string {
+  const { style, children, ...attrs } = vnode.props
+  const attrParts: string[] = []
+
+  // Serialize style back to string
+  if (style && typeof style === 'object') {
+    const styleStr = Object.entries(style)
+      .map(([k, v]) => `${k.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}:${v}`)
+      .join(';')
+    if (styleStr)
+      attrParts.push(`style="${styleStr}"`)
   }
-  return Object.keys(result).length ? result : undefined
-}
+  else if (typeof style === 'string') {
+    attrParts.push(`style="${style}"`)
+  }
 
-function camelCase(str: string): string {
-  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+  for (const [key, val] of Object.entries(attrs)) {
+    if (key === 'tw' || key === 'class' || val == null)
+      continue
+    attrParts.push(`${key}="${String(val)}"`)
+  }
+
+  const open = attrParts.length ? `<${vnode.type} ${attrParts.join(' ')}>` : `<${vnode.type}>`
+
+  if (!children)
+    return `${open}</${vnode.type}>`
+
+  if (typeof children === 'string')
+    return `${open}${children}</${vnode.type}>`
+
+  if (Array.isArray(children)) {
+    const inner = children.map((c) => {
+      if (typeof c === 'string')
+        return c
+      if (c && typeof c === 'object')
+        return vnodeToHtmlString(c)
+      return ''
+    }).join('')
+    return `${open}${inner}</${vnode.type}>`
+  }
+
+  return `${open}</${vnode.type}>`
 }

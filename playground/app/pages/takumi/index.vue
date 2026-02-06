@@ -2,16 +2,9 @@
 import { ref } from 'vue'
 
 const templates = [
-  { name: 'NuxtSeo', slug: 'nuxt-seo', description: 'Flexible theme-aware template with icon support' },
-  { name: 'Nuxt', slug: 'nuxt', description: 'Official Nuxt branding with SVG graphics' },
-  { name: 'WithEmoji', slug: 'with-emoji', description: 'Centered emoji with title' },
-  { name: 'SimpleBlog', slug: 'simple-blog', description: 'Clean minimal blog template with auto URL' },
-  { name: 'Frame', slug: 'frame', description: 'Dark framed design with socials' },
-  { name: 'Pergel', slug: 'pergel', description: 'Warm gradient blobs on dark' },
-  { name: 'UnJs', slug: 'un-js', description: 'Package stats display for repos' },
-  { name: 'Brutalist', slug: 'brutalist', description: 'Neo-brutalist bold typography' },
   { name: 'BlogPost', slug: 'blog-post', description: 'Sleek blog post with author and category' },
   { name: 'Docs', slug: 'docs', description: 'Professional documentation template' },
+  { name: 'NuxtSeo', slug: 'nuxt-seo', description: 'Nuxt SEO branding with gradient backgrounds' },
   { name: 'ProductCard', slug: 'product-card', description: 'Vibrant product showcase card' },
 ]
 
@@ -22,22 +15,22 @@ const errors = ref<Record<string, boolean>>({})
   <div class="min-h-screen bg-gray-100 py-12 px-8">
     <div class="max-w-7xl mx-auto">
       <h1 class="text-4xl font-bold text-gray-900 mb-2">
-        OG Image Templates
+        Takumi Templates
       </h1>
       <p class="text-lg text-gray-600 mb-8">
-        Community templates for Nuxt OG Image
+        Takumi renderer community templates
       </p>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <NuxtLink
           v-for="template in templates"
           :key="template.name"
-          :to="`/templates/${template.slug}`"
+          :to="`/takumi/${template.slug}`"
           class="group block bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
         >
           <div class="aspect-[1200/630] bg-gray-200 relative overflow-hidden">
             <img
-              :src="`/__og-image__/image/templates/${template.slug}/og.png`"
+              :src="`/__og-image__/image/takumi/${template.name}/og.png`"
               :alt="template.name"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
