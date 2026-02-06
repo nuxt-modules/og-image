@@ -9,7 +9,6 @@ import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtm
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
-import { resolveClassesToStyles } from './css/providers/tw4'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -208,27 +207,9 @@ export interface AssetTransformOptions {
   /** Pre-loaded emoji icon set (skips dynamic import) */
   emojiIcons?: IconifyJSON | null
   /**
-   * CSS provider for resolving utility classes (UnoCSS, etc.)
-   * When set, used instead of TW4-specific style map.
+   * CSS provider for resolving utility classes (TW4, UnoCSS, etc.)
    */
   cssProvider?: CssProvider
-  /**
-   * Prebuilt TW4 style map: className -> { prop: value }
-   * Generated at build time from scanning all OG components
-   */
-  tw4StyleMap?: Record<string, Record<string, string>>
-  /**
-   * Lazy TW4 initializer - called on first transform to populate style map.
-   */
-  initTw4?: () => Promise<void>
-  /**
-   * Path to Tailwind CSS file for gradient resolution.
-   */
-  tw4CssPath?: string
-  /**
-   * Lazy loader for Nuxt UI colors from .nuxt/app.config.mjs.
-   */
-  loadNuxtUiColors?: () => Promise<Record<string, string> | undefined>
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -239,9 +220,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
     enforce: 'pre',
 
     transformInclude(id) {
-      if (!id.endsWith('.vue') || id.includes('node_modules'))
+      if (!id.endsWith('.vue'))
         return false
       // Check if file is inside any of the resolved OG component directories
+      // Note: don't exclude node_modules - built-in community templates live there when installed as a dependency
       return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
     },
 
@@ -384,28 +366,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Transform CSS utility classes to inline styles
-      // Use cssProvider (UnoCSS) if available, otherwise fall back to TW4 style map
-      const hasCssProvider = options.cssProvider
-
-      // Lazy init TW4 on first transform (only when no cssProvider)
-      if (!hasCssProvider && options.initTw4)
-        await options.initTw4()
-
-      // Check style map AFTER initTw4 completes (it populates the map)
-      const hasTw4StyleMap = options.tw4StyleMap && Object.keys(options.tw4StyleMap).length > 0
-
-      if (hasCssProvider || hasTw4StyleMap) {
+      if (options.cssProvider) {
         try {
-          const styleMap = options.tw4StyleMap || {}
-
           // Wrap current template back into full SFC for AST parsing
           const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
-
-          // Check if we have gradient classes that need combination logic (TW4 only)
-          const hasGradientClasses = !hasCssProvider && options.tw4CssPath && (
-            template.includes('bg-gradient') || template.includes('bg-radial')
-            || template.includes('from-') || template.includes('to-') || template.includes('via-')
-          )
 
           const result = await transformVueTemplate(fullCode, {
             resolveStyles: async (classes) => {
@@ -418,42 +382,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
               }
 
-              // Use CSS provider (UnoCSS) when available
-              if (options.cssProvider) {
-                return options.cssProvider.resolveClassesToStyles(supported)
-              }
-
-              // Use full resolution with gradient combination logic when gradient classes present
-              if (hasGradientClasses && options.tw4CssPath) {
-                const hasElementGradient = supported.some(c =>
-                  c.startsWith('bg-gradient') || c.startsWith('bg-radial')
-                  || c.startsWith('from-') || c.startsWith('to-') || c.startsWith('via-'),
-                )
-
-                if (hasElementGradient) {
-                  // Use resolveClassesToStyles which handles gradient combination
-                  const nuxtUiColors = await options.loadNuxtUiColors?.()
-                  return resolveClassesToStyles(supported, {
-                    cssPath: options.tw4CssPath,
-                    nuxtUiColors,
-                  })
-                }
-              }
-
-              // Simple map lookup for non-gradient classes
-              const resolved: Record<string, Record<string, string>> = {}
-              for (const cls of supported) {
-                // Handle responsive prefixes: extract base class
-                const baseClass = cls.replace(/^(sm|md|lg|xl|2xl):/, '')
-                if (styleMap[baseClass]) {
-                  resolved[cls] = styleMap[baseClass]
-                }
-                else if (styleMap[cls]) {
-                  resolved[cls] = styleMap[cls]
-                }
-                // Classes not in map will be kept in class attr for Satori's tw prop
-              }
-              return resolved
+              return options.cssProvider!.resolveClassesToStyles(supported)
             },
           })
 
@@ -467,8 +396,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
         catch (err) {
           const componentName = id.split('/').pop()
-          logger.warn(`[nuxt-og-image] ${componentName}: TW4 template transform failed, using original template`, (err as Error).message)
-          // Continue without TW4 transforms - Satori will try to handle classes via tw prop
+          logger.warn(`[nuxt-og-image] ${componentName}: CSS template transform failed, using original template`, (err as Error).message)
+          // Continue without CSS transforms - Satori will try to handle classes via tw prop
         }
       }
 

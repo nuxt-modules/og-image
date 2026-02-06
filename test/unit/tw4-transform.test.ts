@@ -162,6 +162,111 @@ describe('vue-template-transform', () => {
       expect(result?.code).toContain('#0000ff')
     })
 
+    it('should emit flex-direction:row when flex resolves to display:flex', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+
+      const code = `<template><div class="flex items-center gap-3"><span>text</span></div></template>`
+      const result = await transformVueTemplate(code, {
+        resolveStyles: async (classes) => {
+          const styles: Record<string, Record<string, string>> = {}
+          if (classes.includes('flex'))
+            styles.flex = { display: 'flex' }
+          if (classes.includes('items-center'))
+            styles['items-center'] = { 'align-items': 'center' }
+          if (classes.includes('gap-3'))
+            styles['gap-3'] = { gap: '0.75rem' }
+          return styles
+        },
+      })
+
+      expect(result).toBeDefined()
+      expect(result?.code).toContain('flex-direction: row')
+      expect(result?.code).toContain('display: flex')
+    })
+
+    it('should NOT emit flex-direction:row when flex-col also present', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+
+      const code = `<template><div class="flex flex-col justify-between"><span>text</span></div></template>`
+      const result = await transformVueTemplate(code, {
+        resolveStyles: async (classes) => {
+          const styles: Record<string, Record<string, string>> = {}
+          if (classes.includes('flex'))
+            styles.flex = { display: 'flex' }
+          if (classes.includes('flex-col'))
+            styles['flex-col'] = { 'flex-direction': 'column' }
+          if (classes.includes('justify-between'))
+            styles['justify-between'] = { 'justify-content': 'space-between' }
+          return styles
+        },
+      })
+
+      expect(result).toBeDefined()
+      expect(result?.code).toContain('flex-direction: column')
+      expect(result?.code).not.toContain('flex-direction: row')
+    })
+
+    it('should NOT emit flex-direction when no flex class', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+
+      const code = `<template><div class="w-full items-center"><span>text</span></div></template>`
+      const result = await transformVueTemplate(code, {
+        resolveStyles: async (classes) => {
+          const styles: Record<string, Record<string, string>> = {}
+          if (classes.includes('w-full'))
+            styles['w-full'] = { width: '100%' }
+          if (classes.includes('items-center'))
+            styles['items-center'] = { 'align-items': 'center' }
+          return styles
+        },
+      })
+
+      expect(result).toBeDefined()
+      expect(result?.code).not.toContain('flex-direction')
+    })
+
+    it('should emit flex-direction:row for flex gap-2 (CombinedTest fixture)', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+
+      // Matches: <div class="flex gap-2"> from CombinedTest.satori.vue
+      // gap-2 may or may not resolve at build-time — either way, flex-direction:row must be emitted
+      const code = `<template><div class="flex gap-2"><span>icon1</span><span>icon2</span></div></template>`
+      const result = await transformVueTemplate(code, {
+        resolveStyles: async (classes) => {
+          const styles: Record<string, Record<string, string>> = {}
+          if (classes.includes('flex'))
+            styles.flex = { display: 'flex' }
+          // gap-2 unresolved (stays as class for runtime)
+          return styles
+        },
+      })
+
+      expect(result).toBeDefined()
+      expect(result?.code).toContain('flex-direction: row')
+      expect(result?.code).toContain('display: flex')
+      // gap-2 should remain as unresolved class
+      expect(result?.code).toContain('class="gap-2"')
+    })
+
+    it('should respect inline style flex-direction override', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+
+      const code = `<template><div class="flex" style="flex-direction: column"><span>text</span></div></template>`
+      const result = await transformVueTemplate(code, {
+        resolveStyles: async (classes) => {
+          const styles: Record<string, Record<string, string>> = {}
+          if (classes.includes('flex'))
+            styles.flex = { display: 'flex' }
+          return styles
+        },
+      })
+
+      expect(result).toBeDefined()
+      // Inline style flex-direction:column should win over the auto-injected row
+      expect(result?.code).toContain('flex-direction: column')
+      expect(result?.code).not.toContain('flex-direction: row')
+    })
+
     it('should handle resolver errors gracefully', async () => {
       const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
 

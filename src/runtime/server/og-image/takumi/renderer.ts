@@ -1,7 +1,7 @@
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
 import { loadAllFonts } from '../fonts'
-import { useTakumi } from './instances'
+import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 
 interface TakumiState {
@@ -93,10 +93,23 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   rewriteFontFamilies(nodes, state.familySubsetNames)
 
+  // Fetch external images required by the node tree
+  const extractResourceUrls = await useExtractResourceUrls()
+  const resourceUrls = extractResourceUrls(nodes)
+  const fetchedResources = (await Promise.all(
+    resourceUrls.map(async (src) => {
+      const data = await $fetch(src, { responseType: 'arrayBuffer' }).catch(() => null)
+      if (!data)
+        return null
+      return { src, data }
+    }),
+  )).filter(r => r != null)
+
   const renderOptions = defu(options.takumi, {
-    width: options.width!,
-    height: options.height!,
+    width: Number(options.width),
+    height: Number(options.height),
     format,
+    fetchedResources,
   })
 
   return state.renderer.render(nodes, renderOptions)
@@ -104,7 +117,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
 const TakumiRenderer: Renderer = {
   name: 'takumi',
-  supportedFormats: ['png', 'jpeg', 'jpg'],
+  supportedFormats: ['png', 'jpeg', 'jpg', 'json'],
 
   async createImage(e) {
     switch (e.extension) {
@@ -117,8 +130,8 @@ const TakumiRenderer: Renderer = {
   },
 
   async debug(e) {
-    const nodes = await createTakumiNodes(e)
-    return { nodes }
+    const vnodes = await createTakumiNodes(e)
+    return { vnodes }
   },
 }
 

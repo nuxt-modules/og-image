@@ -5,7 +5,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="w-full h-full flex bg-elevated p-3">
+  <div class="w-full h-full flex flex-col bg-elevated p-3">
     <!-- Left: Large primary panel for color detection -->
     <div class="w-32 bg-primary rounded-lg mr-3 p-2 flex flex-col justify-center">
       <h1 class="text-lg font-bold text-white">

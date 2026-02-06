@@ -5,8 +5,13 @@ import { logger } from '../runtime/logger'
 import { walkTemplateAst } from './css/css-utils'
 
 export interface ClassToStyleOptions {
-  /** Resolve classes to inline CSS styles */
-  resolveStyles: (classes: string[]) => Promise<Record<string, Record<string, string>>>
+  /**
+   * Resolve classes to inline CSS styles.
+   * - Record<string, string> value → inline as style, remove from class attr
+   * - string value → rewrite class name (kept in class attr, not inlined)
+   * - undefined → unresolved, kept as-is in class attr
+   */
+  resolveStyles: (classes: string[]) => Promise<Record<string, Record<string, string> | string>>
 }
 
 interface StyleCollector {
@@ -102,10 +107,17 @@ export async function transformVueTemplate(
     // Build inline style from classes
     const styleProps: Record<string, string> = {}
     const unresolvedClasses: string[] = []
+    let hasClassRewrites = false
 
     for (const cls of collector.classes) {
       const resolved = styleMap[cls]
-      if (resolved && Object.keys(resolved).length > 0) {
+      if (typeof resolved === 'string') {
+        // Class rewrite: keep in class attr with new name
+        unresolvedClasses.push(resolved)
+        if (resolved !== cls)
+          hasClassRewrites = true
+      }
+      else if (resolved && Object.keys(resolved).length > 0) {
         Object.assign(styleProps, resolved)
       }
       else if (!resolved) {
@@ -126,6 +138,13 @@ export async function transformVueTemplate(
       }
     }
 
+    // If `flex` class resolved to display:flex without an explicit direction,
+    // emit flex-direction:row (CSS default) so the runtime flex plugin won't override it.
+    // Runs after inline style merge so style="flex-direction: column" can still override.
+    if (styleProps.display === 'flex' && !styleProps['flex-direction']) {
+      styleProps['flex-direction'] = 'row'
+    }
+
     // Build final style string (escape quotes to prevent HTML breakage)
     const styleStr = Object.entries(styleProps)
       .map(([prop, value]) => `${prop}: ${escapeAttrValue(value)}`)
@@ -133,17 +152,12 @@ export async function transformVueTemplate(
 
     const hasResolvedStyles = Object.keys(styleProps).length > 0
     const hasUnresolved = unresolvedClasses.length > 0
-    const resolvedSome = unresolvedClasses.length < collector.classes.length
+    const resolvedSome = unresolvedClasses.length < collector.classes.length || hasClassRewrites
 
     if (!resolvedSome)
       continue
 
     if (!collector.classLoc)
-      continue
-
-    // If element has :style binding, we can't add inline styles (would cause duplicate)
-    // Keep classes intact so Satori's tw prop can handle them at runtime
-    if (collector.hasDynamicStyle)
       continue
 
     hasChanges = true

@@ -326,7 +326,9 @@ export async function resolveOgImageFonts(options: {
 
   // 2. Satori-only: resolve missing font families via fontless
   // Takumi/browser can use WOFF2 and variable fonts directly
-  if (hasSatoriRenderer) {
+  // Skip when @nuxt/fonts is not installed — fontless can't resolve system/fallback fonts
+  // from TW4 font stacks (e.g. Menlo, Apple Color Emoji), just use bundled Inter instead
+  if (hasSatoriRenderer && hasNuxtFonts) {
     const coveredFamilies = new Set(allFonts.map(f => f.family))
     let missingFamilies: string[] = []
 

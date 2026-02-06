@@ -6,9 +6,9 @@ export interface CssProvider {
   /**
    * Resolve utility classes to inline styles for Satori.
    * @param classes Array of class names to resolve
-   * @returns Map of class name → CSS properties (kebab-case)
+   * @returns Map of class name → CSS properties (kebab-case) or string class rewrite
    */
-  resolveClassesToStyles: (classes: string[]) => Promise<Record<string, Record<string, string>>>
+  resolveClassesToStyles: (classes: string[]) => Promise<Record<string, Record<string, string> | string>>
   /**
    * Extract theme metadata (fonts, breakpoints, colors).
    */
