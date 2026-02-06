@@ -102,5 +102,18 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
       } satisfies SatoriFontConfig
     }),
   )
-  return results.filter((f): f is SatoriFontConfig => f !== null)
+  const loaded = results.filter((f): f is SatoriFontConfig => f !== null)
+
+  // Warn about required font weights that have no loaded font
+  if (import.meta.dev && reqs.weights.length > 0) {
+    const loadedWeights = new Set(loaded.map(f => f.weight))
+    const missing = reqs.weights.filter(w => !loadedWeights.has(w))
+    if (missing.length) {
+      const sorted = [...loadedWeights].sort((a, b) => a - b)
+      const component = options.component ? ` (${options.component})` : ''
+      logger.warn(`Font weight${missing.length > 1 ? 's' : ''} [${missing.join(', ')}] required${component} but not available. Loaded weights: [${sorted.join(', ')}]. Install @nuxt/fonts to auto-resolve missing weights.`)
+    }
+  }
+
+  return loaded
 }
