@@ -3,6 +3,7 @@ import type { RuntimeCompatibilitySchema } from '../runtime/types'
 import { addDependency, detectPackageManager } from 'nypm'
 import { getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
 import { logger } from '../runtime/logger'
+import { hasResolvableDependency } from '../util'
 
 export type ProviderName = 'satori' | 'takumi' | 'browser'
 export type BindingVariant = 'node' | 'wasm' | 'wasm-fs'
@@ -74,16 +75,6 @@ export const OPTIONAL_DEPENDENCIES: ProviderDependency[] = [
   { name: '@css-inline/css-inline-wasm', description: 'CSS inlining (WASM)', optional: true },
 ]
 
-export async function isPackageInstalled(packageName: string): Promise<boolean> {
-  try {
-    await import(packageName)
-    return true
-  }
-  catch {
-    return false
-  }
-}
-
 export async function getInstalledProviders(): Promise<{ provider: ProviderName, binding: BindingVariant }[]> {
   const installed: { provider: ProviderName, binding: BindingVariant }[] = []
 
@@ -91,7 +82,7 @@ export async function getInstalledProviders(): Promise<{ provider: ProviderName,
     // check node bindings first
     if (provider.bindings.node) {
       const allNodeInstalled = await Promise.all(
-        provider.bindings.node.map(dep => isPackageInstalled(dep.name)),
+        provider.bindings.node.map(dep => hasResolvableDependency(dep.name)),
       )
       if (allNodeInstalled.every(Boolean)) {
         installed.push({ provider: provider.name, binding: 'node' })
@@ -101,7 +92,7 @@ export async function getInstalledProviders(): Promise<{ provider: ProviderName,
     // check wasm bindings
     if (provider.bindings.wasm) {
       const allWasmInstalled = await Promise.all(
-        provider.bindings.wasm.map(dep => isPackageInstalled(dep.name)),
+        provider.bindings.wasm.map(dep => hasResolvableDependency(dep.name)),
       )
       if (allWasmInstalled.every(Boolean)) {
         installed.push({ provider: provider.name, binding: 'wasm' })
@@ -124,7 +115,7 @@ export async function getMissingDependencies(
   const missing: string[] = []
 
   for (const dep of deps) {
-    if (!await isPackageInstalled(dep.name))
+    if (!await hasResolvableDependency(dep.name))
       missing.push(dep.name)
   }
 
@@ -222,32 +213,6 @@ export async function promptForRendererSelection(): Promise<ProviderName> {
   return (renderer as ProviderName) || 'satori'
 }
 
-export async function promptForDependencyInstall(
-  pkg: string,
-  nuxt: Nuxt,
-): Promise<boolean> {
-  if (await isPackageInstalled(pkg))
-    return true
-
-  const confirm = await logger.prompt(`Install \`${pkg}\`?`, {
-    type: 'confirm',
-    initial: true,
-  })
-
-  if (!confirm) {
-    return false
-  }
-
-  return addDependency(pkg, {
-    cwd: nuxt.options.rootDir,
-  })
-    .then(() => true)
-    .catch(() => {
-      logger.error(`Failed to install ${pkg}`)
-      return false
-    })
-}
-
 export async function validateProviderSetup(
   renderer: ProviderName,
   compatibility: RuntimeCompatibilitySchema,
@@ -262,15 +227,15 @@ export async function validateProviderSetup(
 
   // provider-specific checks
   if (renderer === 'satori') {
-    const hasResvgNode = await isPackageInstalled('@resvg/resvg-js')
-    const hasResvgWasm = await isPackageInstalled('@resvg/resvg-wasm')
+    const hasResvgNode = await hasResolvableDependency('@resvg/resvg-js')
+    const hasResvgWasm = await hasResolvableDependency('@resvg/resvg-wasm')
     if (!hasResvgNode && !hasResvgWasm) {
       issues.push('Satori requires either @resvg/resvg-js (node) or @resvg/resvg-wasm to render PNGs')
     }
   }
 
   if (renderer === 'browser') {
-    const hasPlaywright = await isPackageInstalled('playwright-core')
+    const hasPlaywright = await hasResolvableDependency('playwright-core')
     if (!hasPlaywright && binding === 'node') {
       issues.push('Browser renderer requires playwright-core')
     }
