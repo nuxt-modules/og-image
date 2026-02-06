@@ -214,6 +214,252 @@ export const COLOR_PROPERTIES = new Set([
 ])
 
 // ============================================================================
+// Font-face parsing utilities
+// ============================================================================
+
+export interface FontFaceDescriptor {
+  /** Font family name */
+  family: string
+  /** Font sources with url and optional format */
+  sources: Array<{
+    type: 'url' | 'local'
+    url?: string
+    name?: string
+    format?: string
+  }>
+  /** Font weight - single value or [min, max] range for variable fonts */
+  weight: number | [number, number]
+  /** Font style: normal, italic, or oblique */
+  style: 'normal' | 'italic' | 'oblique'
+  /** Unicode ranges this font covers */
+  unicodeRange?: string
+}
+
+/**
+ * Extract @font-face rules from CSS using LightningCSS parser.
+ * Returns structured font descriptors with proper handling of:
+ * - Multiple src values (url + local fallbacks)
+ * - Weight ranges for variable fonts
+ * - Unicode ranges
+ * - Format hints
+ */
+export async function extractFontFaces(css: string): Promise<FontFaceDescriptor[]> {
+  const { transform } = await loadLightningCss()
+  const fonts: FontFaceDescriptor[] = []
+
+  transform({
+    filename: 'fonts.css',
+    code: Buffer.from(css),
+    minify: false,
+    visitor: {
+      Rule: {
+        'font-face': (rule) => {
+          let family: string | undefined
+          let weight: number | [number, number] = 400
+          let style: 'normal' | 'italic' | 'oblique' = 'normal'
+          let unicodeRange: string | undefined
+          const sources: FontFaceDescriptor['sources'] = []
+
+          for (const prop of rule.value.properties) {
+            switch (prop.type) {
+              case 'font-family': {
+                // FontFamily is either string or array of family names
+                const val = prop.value
+                family = Array.isArray(val) ? val[0] : val
+                break
+              }
+              case 'font-weight': {
+                // Size2DFor_FontWeight is [FontWeight, FontWeight]
+                // FontWeight is { type: 'absolute', value: AbsoluteFontWeight } | 'bolder' | 'lighter'
+                // AbsoluteFontWeight is { type: 'weight', value: number } | 'normal' | 'bold'
+                const [min, max] = prop.value
+                const getWeight = (fw: typeof min): number => {
+                  if (fw.type === 'absolute') {
+                    const abs = fw.value
+                    if (abs.type === 'weight')
+                      return abs.value
+                    if (abs.type === 'normal')
+                      return 400
+                    if (abs.type === 'bold')
+                      return 700
+                  }
+                  return 400 // bolder/lighter fallback
+                }
+                const minVal = getWeight(min)
+                const maxVal = getWeight(max)
+                weight = minVal === maxVal ? minVal : [minVal, maxVal]
+                break
+              }
+              case 'font-style': {
+                style = prop.value.type as 'normal' | 'italic' | 'oblique'
+                break
+              }
+              case 'unicode-range': {
+                // Convert UnicodeRange[] to CSS string format
+                unicodeRange = prop.value
+                  .map((r: { start: number, end: number }) =>
+                    r.start === r.end
+                      ? `U+${r.start.toString(16).toUpperCase()}`
+                      : `U+${r.start.toString(16).toUpperCase()}-${r.end.toString(16).toUpperCase()}`)
+                  .join(', ')
+                break
+              }
+              case 'source': {
+                for (const src of prop.value) {
+                  if (src.type === 'url') {
+                    sources.push({
+                      type: 'url',
+                      url: src.value.url.url,
+                      format: src.value.format?.type,
+                    })
+                  }
+                  else if (src.type === 'local') {
+                    const name = Array.isArray(src.value) ? src.value[0] : src.value
+                    sources.push({ type: 'local', name })
+                  }
+                }
+                break
+              }
+            }
+          }
+
+          if (family && sources.length > 0) {
+            fonts.push({ family, sources, weight, style, unicodeRange })
+          }
+
+          return rule
+        },
+      },
+    },
+  })
+
+  return fonts
+}
+
+/**
+ * Simplified font extraction that returns the first url source per font.
+ * More convenient for cases where you just need family/url/weight/style.
+ */
+export async function extractFontFacesSimple(css: string): Promise<Array<{
+  family: string
+  src: string
+  weight: number
+  style: string
+  unicodeRange?: string
+  isWoff2: boolean
+}>> {
+  const fonts = await extractFontFaces(css)
+  return fonts.map((font) => {
+    const urlSource = font.sources.find(s => s.type === 'url')
+    // For weight ranges, use 400 if in range, otherwise min
+    let weight: number
+    if (Array.isArray(font.weight)) {
+      const [min, max] = font.weight
+      weight = (min <= 400 && max >= 400) ? 400 : min
+    }
+    else {
+      weight = font.weight
+    }
+    const src = urlSource?.url || ''
+    return {
+      family: font.family,
+      src,
+      weight,
+      style: font.style,
+      unicodeRange: font.unicodeRange,
+      isWoff2: src.endsWith('.woff2'),
+    }
+  }).filter(f => f.src) // Filter out fonts without url sources
+}
+
+/**
+ * Extract @font-face rules with Google Fonts subset comments (e.g. latin, cyrillic-ext).
+ * Filters by allowed subsets; fonts without subset comments are always included.
+ */
+export async function extractFontFacesWithSubsets(
+  css: string,
+  allowedSubsets: string[] = ['latin'],
+): Promise<Array<{
+  family: string
+  src: string
+  weight: number
+  style: string
+  unicodeRange?: string
+  isWoff2: boolean
+  subset?: string
+}>> {
+  // Match subset comment + @font-face block pairs, and standalone @font-face blocks
+  // Subset comment format: /* latin */ or /* cyrillic-ext */
+  const fontFaceRe = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?(@font-face\s*\{[^}]+\})/g
+  const chunks: Array<{ subset?: string, css: string }> = []
+
+  for (const match of css.matchAll(fontFaceRe)) {
+    const subset = match[1] // undefined if no subset comment
+    const fontFaceCss = match[2]!
+    chunks.push({ subset, css: fontFaceCss })
+  }
+
+  // Parse each chunk and filter by allowed subsets
+  const results: Array<{
+    family: string
+    src: string
+    weight: number
+    style: string
+    unicodeRange?: string
+    isWoff2: boolean
+    subset?: string
+  }> = []
+
+  for (const chunk of chunks) {
+    // Filter: include if no subset (non-Google fonts) or subset is allowed
+    if (chunk.subset && !allowedSubsets.includes(chunk.subset))
+      continue
+
+    const fonts = await extractFontFacesSimple(chunk.css)
+    for (const font of fonts) {
+      results.push({ ...font, subset: chunk.subset })
+    }
+  }
+
+  return results
+}
+
+// ============================================================================
+// Font family utilities
+// ============================================================================
+
+/** Generic font families that don't map to loaded fonts */
+export const GENERIC_FONT_FAMILIES = new Set([
+  'sans-serif',
+  'serif',
+  'monospace',
+  'cursive',
+  'fantasy',
+  'system-ui',
+  'ui-sans-serif',
+  'ui-serif',
+  'ui-monospace',
+  'ui-rounded',
+  'emoji',
+  'math',
+  'fangsong',
+  'inherit',
+  'initial',
+  'unset',
+])
+
+/** Extract custom (non-generic) font family names from a CSS font-family value */
+export function extractCustomFontFamilies(cssValue: string): string[] {
+  const families: string[] = []
+  for (const part of cssValue.split(',')) {
+    const name = part.trim().replace(/^['"]|['"]$/g, '')
+    if (name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()))
+      families.push(name)
+  }
+  return families
+}
+
+// ============================================================================
 // Template utilities
 // ============================================================================
 

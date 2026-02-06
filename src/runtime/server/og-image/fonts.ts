@@ -59,7 +59,14 @@ function fontMatchesRequirements(font: FontConfig, requirements: typeof fontRequ
   // Check weight match
   // Note: font.weight is already normalized to a single value in module.ts
   // For variable fonts, the weight is set to 400 if in range, otherwise min
-  return requirements.weights.includes(font.weight)
+  if (!requirements.weights.includes(font.weight))
+    return false
+
+  // Family filtering is handled at build-time by resolveOgImageFonts.
+  // Don't filter by family at runtime — the resolved font set already
+  // includes fallback fonts (e.g. Inter) that may not be in the detected families list.
+
+  return true
 }
 
 export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<SatoriFontConfig[]> {

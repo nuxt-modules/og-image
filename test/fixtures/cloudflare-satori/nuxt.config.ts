@@ -4,11 +4,19 @@ import NuxtOgImage from '../../../src/module'
 export default defineNuxtConfig({
   extends: ['../.base'],
   modules: [
+    '@nuxt/fonts',
     NuxtOgImage,
   ],
 
   site: {
     url: 'https://example.com',
+  },
+
+  fonts: {
+    families: [
+      { name: 'Hubot Sans', stretch: '75% 125%', global: true },
+      { name: 'Nunito Sans' },
+    ],
   },
 
   ogImage: {
