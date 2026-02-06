@@ -49,6 +49,19 @@ describe('extractCustomFontFamilies', () => {
   it('handles whitespace', () => {
     expect(extractCustomFontFamilies('  Inter  ,  Roboto  ')).toEqual(['Inter', 'Roboto'])
   })
+
+  it('strips !important from value', () => {
+    expect(extractCustomFontFamilies('\'Inter\' !important')).toEqual(['Inter'])
+  })
+
+  it('strips !important with multiple families', () => {
+    expect(extractCustomFontFamilies('\'OptiEinstein\', \'Noto Sans\', sans-serif !important'))
+      .toEqual(['OptiEinstein', 'Noto Sans'])
+  })
+
+  it('strips !important from unquoted value', () => {
+    expect(extractCustomFontFamilies('Inter !important')).toEqual(['Inter'])
+  })
 })
 
 describe('resolveFontFamilies', () => {

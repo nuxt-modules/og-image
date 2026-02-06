@@ -450,8 +450,10 @@ export const GENERIC_FONT_FAMILIES = new Set([
 
 /** Extract custom (non-generic) font family names from a CSS font-family value */
 export function extractCustomFontFamilies(cssValue: string): string[] {
+  // Strip !important before parsing
+  const cleaned = cssValue.replace(/\s*!important\s*$/, '')
   const families: string[] = []
-  for (const part of cssValue.split(',')) {
+  for (const part of cleaned.split(',')) {
     const name = part.trim().replace(/^['"]|['"]$/g, '')
     if (name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()))
       families.push(name)
