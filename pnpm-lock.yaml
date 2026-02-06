@@ -144,6 +144,9 @@ catalogs:
     exsolve:
       specifier: ^1.0.8
       version: 1.0.8
+    fontless:
+      specifier: ^0.2.0
+      version: 0.2.0
     get-image-colors:
       specifier: ^4.0.1
       version: 4.0.1
@@ -249,6 +252,9 @@ catalogs:
     ultrahtml:
       specifier: ^1.6.0
       version: 1.6.0
+    unifont:
+      specifier: ^0.7.0
+      version: 0.7.3
     unplugin:
       specifier: ^3.0.0
       version: 3.0.0
@@ -264,9 +270,6 @@ catalogs:
     vue-tsc:
       specifier: ^3.2.4
       version: 3.2.4
-    wawoff2:
-      specifier: ^2.0.1
-      version: 2.0.1
     wrangler:
       specifier: ^4.62.0
       version: 4.62.0
@@ -383,9 +386,6 @@ importers:
       unstorage:
         specifier: ^1.15.0
         version: 1.17.4(db0@0.3.4(better-sqlite3@12.6.2))(ioredis@5.9.2)
-      wawoff2:
-        specifier: 'catalog:'
-        version: 2.0.1
     devDependencies:
       '@antfu/eslint-config':
         specifier: 'catalog:'
@@ -483,6 +483,9 @@ importers:
       eslint:
         specifier: 'catalog:'
         version: 9.39.2(jiti@2.6.1)
+      fontless:
+        specifier: 'catalog:'
+        version: 0.2.0(db0@0.3.4(better-sqlite3@12.6.2))(ioredis@5.9.2)(vite@8.0.0-beta.2(@types/node@25.2.0)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
       get-image-colors:
         specifier: 'catalog:'
         version: 4.0.1
@@ -522,6 +525,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+      unifont:
+        specifier: 'catalog:'
+        version: 0.7.3
       vitest:
         specifier: 'catalog:'
         version: 4.0.18(@types/node@25.2.0)(esbuild@0.27.2)(happy-dom@20.5.0)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2)
@@ -5960,6 +5966,15 @@ packages:
       vite:
         optional: true
 
+  fontless@0.2.0:
+    resolution: {integrity: sha512-8s83ExazIxe4b1mkq/fkFMyixcstRwAZ3gj+GFQRuNFJGmwRPiFKmobWMOSWm1zGLeG0nY5vhxyGRzyr2NUxQA==}
+    engines: {node: '>=18.12.0'}
+    peerDependencies:
+      vite: '*'
+    peerDependenciesMeta:
+      vite:
+        optional: true
+
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
     engines: {node: '>= 0.4'}
@@ -8997,6 +9012,9 @@ packages:
   unifont@0.6.0:
     resolution: {integrity: sha512-5Fx50fFQMQL5aeHyWnZX9122sSLckcDvcfFiBf3QYeHa7a1MKJooUy52b67moi2MJYkrfo/TWY+CoLdr/w0tTA==}
 
+  unifont@0.7.3:
+    resolution: {integrity: sha512-b0GtQzKCyuSHGsfj5vyN8st7muZ6VCI4XD4vFlr7Uy1rlWVYxC3npnfk8MyreHxJYrz1ooLDqDzFe9XqQTlAhA==}
+
   unimport@5.6.0:
     resolution: {integrity: sha512-8rqAmtJV8o60x46kBAJKtHpJDJWkA2xcBqWKPI14MgUb05o1pnpnCnXSxedUXyeq7p8fR5g3pTo2BaswZ9lD9A==}
     engines: {node: '>=18.12.0'}
@@ -9467,10 +9485,6 @@ packages:
   watchpack@2.5.1:
     resolution: {integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==}
     engines: {node: '>=10.13.0'}
-
-  wawoff2@2.0.1:
-    resolution: {integrity: sha512-r0CEmvpH63r4T15ebFqeOjGqU4+EgTx4I510NtK35EMciSdcTxCw3Byy3JnBonz7iyIFZ0AbVo0bbFpEVuhCYA==}
-    hasBin: true
 
   web-namespaces@2.0.1:
     resolution: {integrity: sha512-bKr1DkiNa2krS7qxNtdrtHAmzuYGFQLiQ13TsorsdT6ULTkPLKuu5+GsFpDlg6JFjUTwX2DyhMPG2be8uPrqsQ==}
@@ -15594,6 +15608,44 @@ snapshots:
       - ioredis
       - uploadthing
 
+  fontless@0.2.0(db0@0.3.4(better-sqlite3@12.6.2))(ioredis@5.9.2)(vite@8.0.0-beta.2(@types/node@25.2.0)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2)):
+    dependencies:
+      consola: 3.4.2
+      css-tree: 3.1.0
+      defu: 6.1.4
+      esbuild: 0.27.2
+      fontaine: 0.8.0
+      jiti: 2.6.1
+      lightningcss: 1.31.1
+      magic-string: 0.30.21
+      ohash: 2.0.11
+      pathe: 2.0.3
+      ufo: 1.6.3
+      unifont: 0.7.3
+      unstorage: 1.17.4(db0@0.3.4(better-sqlite3@12.6.2))(ioredis@5.9.2)
+    optionalDependencies:
+      vite: 8.0.0-beta.2(@types/node@25.2.0)(esbuild@0.27.2)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2)
+    transitivePeerDependencies:
+      - '@azure/app-configuration'
+      - '@azure/cosmos'
+      - '@azure/data-tables'
+      - '@azure/identity'
+      - '@azure/keyvault-secrets'
+      - '@azure/storage-blob'
+      - '@capacitor/preferences'
+      - '@deno/kv'
+      - '@netlify/blobs'
+      - '@planetscale/database'
+      - '@upstash/redis'
+      - '@vercel/blob'
+      - '@vercel/functions'
+      - '@vercel/kv'
+      - aws4fetch
+      - db0
+      - idb-keyval
+      - ioredis
+      - uploadthing
+
   for-each@0.3.5:
     dependencies:
       is-callable: 1.2.7
@@ -19522,6 +19574,12 @@ snapshots:
       ofetch: 1.5.1
       ohash: 2.0.11
 
+  unifont@0.7.3:
+    dependencies:
+      css-tree: 3.1.0
+      ofetch: 1.5.1
+      ohash: 2.0.11
+
   unimport@5.6.0:
     dependencies:
       acorn: 8.15.0
@@ -20128,10 +20186,6 @@ snapshots:
     dependencies:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
-
-  wawoff2@2.0.1:
-    dependencies:
-      argparse: 2.0.1
 
   web-namespaces@2.0.1: {}
 

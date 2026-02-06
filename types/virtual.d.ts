@@ -61,11 +61,13 @@ declare module '#og-image/font-requirements' {
   export const fontRequirements: {
     weights: number[]
     styles: Array<'normal' | 'italic'>
+    families: string[]
     isComplete: boolean
   }
   export const componentFontMap: Record<string, {
     weights: number[]
     styles: Array<'normal' | 'italic'>
+    families: string[]
     isComplete: boolean
   }>
 }

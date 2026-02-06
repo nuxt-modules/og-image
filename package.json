@@ -75,10 +75,12 @@
     "@takumi-rs/core": "^0.62.0",
     "@takumi-rs/wasm": "^0.62.0",
     "@unhead/vue": "^2.0.5",
+    "fontless": "^0.2.0",
     "playwright-core": "^1.50.0",
     "satori": ">=0.15.0",
     "sharp": "^0.34.0",
     "tailwindcss": "^4.0.0",
+    "unifont": "^0.7.0",
     "unstorage": "^1.15.0"
   },
   "peerDependenciesMeta": {
@@ -100,6 +102,9 @@
     "@takumi-rs/wasm": {
       "optional": true
     },
+    "fontless": {
+      "optional": true
+    },
     "playwright-core": {
       "optional": true
     },
@@ -110,6 +115,9 @@
       "optional": true
     },
     "tailwindcss": {
+      "optional": true
+    },
+    "unifont": {
       "optional": true
     }
   },
@@ -145,8 +153,7 @@
     "tinyglobby": "catalog:",
     "ufo": "catalog:",
     "ultrahtml": "catalog:",
-    "unplugin": "catalog:",
-    "wawoff2": "catalog:"
+    "unplugin": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -181,6 +188,7 @@
     "@vueuse/nuxt": "catalog:",
     "bumpp": "catalog:",
     "eslint": "catalog:",
+    "fontless": "catalog:",
     "get-image-colors": "catalog:",
     "globby": "catalog:",
     "happy-dom": "catalog:",
@@ -195,6 +203,7 @@
     "sharp": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
+    "unifont": "catalog:",
     "vitest": "catalog:",
     "vue-tsc": "catalog:",
     "wrangler": "catalog:",

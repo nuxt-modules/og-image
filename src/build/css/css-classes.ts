@@ -4,7 +4,7 @@ import type { OgImageComponent } from '../../runtime/types'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
-import { walkTemplateAst } from './css-utils'
+import { extractCustomFontFamilies, walkTemplateAst } from './css-utils'
 
 // Lazy-loaded to reduce startup memory
 let parseSfc: typeof import('@vue/compiler-sfc').parse | undefined
@@ -31,9 +31,23 @@ const FONT_WEIGHT_CLASSES: Record<string, number> = {
 // Regex for inline font-weight in style attributes
 const INLINE_FONT_WEIGHT_REGEX = /font-weight:\s*(\d+)/g
 
+// Regex for inline font-family in style attributes
+const INLINE_FONT_FAMILY_REGEX = /font-family:\s*([^;]+)/gi
+
+// font-* classes that are NOT font-family classes
+const FONT_NON_FAMILY_CLASSES = new Set([
+  ...Object.keys(FONT_WEIGHT_CLASSES),
+  'italic',
+  'not-italic',
+])
+
 export interface FontRequirements {
   weights: number[]
   styles: Array<'normal' | 'italic'>
+  /** Font family class suffixes detected (e.g., 'sans', 'serif', 'inter') */
+  familyClasses: string[]
+  /** Direct font family names from inline styles (e.g., 'Inter') */
+  familyNames: string[]
   /** false if dynamic patterns detected that couldn't be analyzed */
   isComplete: boolean
 }
@@ -41,6 +55,8 @@ export interface FontRequirements {
 export interface ComponentFontRequirements {
   weights: number[]
   styles: Array<'normal' | 'italic'>
+  familyClasses: string[]
+  familyNames: string[]
   isComplete: boolean
 }
 
@@ -233,16 +249,24 @@ export function filterProcessableClasses(classes: Set<string>): string[] {
  * Extract font weights from a Vue component.
  * Analyzes classes and inline styles to determine required font weights.
  */
-async function extractFontRequirementsFromVue(code: string): Promise<{ weights: Set<number>, styles: Set<'normal' | 'italic'>, isComplete: boolean }> {
+async function extractFontRequirementsFromVue(code: string): Promise<{
+  weights: Set<number>
+  styles: Set<'normal' | 'italic'>
+  familyClasses: Set<string>
+  familyNames: Set<string>
+  isComplete: boolean
+}> {
   const parse = await loadParser()
   const { descriptor } = parse(code)
 
   const weights = new Set<number>()
   const styles = new Set<'normal' | 'italic'>(['normal']) // Always include normal as default
+  const familyClasses = new Set<string>()
+  const familyNames = new Set<string>()
   let isComplete = true
 
   if (!descriptor.template?.ast)
-    return { weights, styles, isComplete }
+    return { weights, styles, familyClasses, familyNames, isComplete }
 
   walkTemplateAst(descriptor.template.ast.children, (node) => {
     if (node.type !== ELEMENT_NODE)
@@ -255,12 +279,14 @@ async function extractFontRequirementsFromVue(code: string): Promise<{ weights: 
       if (prop.type === ATTRIBUTE_NODE && prop.name === 'class' && prop.value) {
         for (const cls of prop.value.content.split(/\s+/)) {
           extractFontWeightFromClass(cls, weights, styles)
+          extractFontFamilyFromClass(cls, familyClasses, familyNames)
         }
       }
 
       // Static style="..."
       if (prop.type === ATTRIBUTE_NODE && prop.name === 'style' && prop.value) {
         extractFontWeightFromStyle(prop.value.content, weights, styles)
+        extractFontFamilyFromStyle(prop.value.content, familyNames)
       }
 
       // Dynamic :class bindings
@@ -271,29 +297,32 @@ async function extractFontRequirementsFromVue(code: string): Promise<{ weights: 
         if (argContent === 'class' && expr?.type === 4) {
           const content = (expr as any).content as string
           // Check for dynamic patterns we can't analyze
-          if (content.includes('props.') || content.includes('$props') || /\bfont(?:Weight|-weight)\b/i.test(content)) {
+          if (content.includes('props.') || content.includes('$props') || /\bfont(?:Weight|Family|-weight|-family)\b/i.test(content)) {
             isComplete = false
           }
           // Extract static class strings from expression
-          for (const match of content.matchAll(/['"`]([\w:.\-]+)['"`]/g)) {
+          for (const match of content.matchAll(/['"`]([\w:.\-[\]'"]+)['"`]/g)) {
             extractFontWeightFromClass(match[1]!, weights, styles)
+            extractFontFamilyFromClass(match[1]!, familyClasses, familyNames)
           }
         }
 
         // Dynamic :style bindings
         if (argContent === 'style' && expr?.type === 4) {
           const content = (expr as any).content as string
-          // Check for dynamic font-weight patterns
-          if (/font-?weight/i.test(content) && (content.includes('props.') || content.includes('$props') || content.includes('?'))) {
+          // Check for dynamic font-weight/font-family patterns
+          if (/font-?(?:weight|family)/i.test(content) && (content.includes('props.') || content.includes('$props') || content.includes('?'))) {
             isComplete = false
           }
           extractFontWeightFromStyle(content, weights, styles)
+          extractFontFamilyFromStyle(content, familyNames)
+          extractFontFamilyFromJsStyle(content, familyNames)
         }
       }
     }
   })
 
-  return { weights, styles, isComplete }
+  return { weights, styles, familyClasses, familyNames, isComplete }
 }
 
 /**
@@ -333,8 +362,66 @@ function extractFontWeightFromStyle(style: string, weights: Set<number>, styles:
   }
 }
 
+/**
+ * Extract font family from a class name.
+ * Detects font-* classes that aren't weight/style classes (e.g., font-sans, font-inter).
+ * Also handles arbitrary values like font-['Inter'].
+ */
+function extractFontFamilyFromClass(cls: string, familyClasses: Set<string>, familyNames: Set<string>): void {
+  const baseClass = cls.replace(/^(?:sm:|md:|lg:|xl:|2xl:|dark:|hover:|focus:|active:)+/, '')
+  if (!baseClass.startsWith('font-'))
+    return
+  if (FONT_NON_FAMILY_CLASSES.has(baseClass))
+    return
+
+  const suffix = baseClass.slice(5)
+  if (!suffix)
+    return
+
+  // Arbitrary value: font-['Inter'] or font-["Inter"] or font-[Inter]
+  const arbitraryMatch = suffix.match(/^\[['"]?(.+?)['"]?\]$/)
+  if (arbitraryMatch) {
+    familyNames.add(arbitraryMatch[1]!)
+    return
+  }
+
+  familyClasses.add(suffix)
+}
+
+/**
+ * Extract font family names from inline CSS style content.
+ */
+function extractFontFamilyFromStyle(style: string, familyNames: Set<string>): void {
+  for (const match of style.matchAll(INLINE_FONT_FAMILY_REGEX)) {
+    parseFontFamilyValue(match[1]!, familyNames)
+  }
+}
+
+/**
+ * Extract font family names from JS-style object notation (e.g., { fontFamily: 'Inter' }).
+ */
+function extractFontFamilyFromJsStyle(content: string, familyNames: Set<string>): void {
+  for (const match of content.matchAll(/fontFamily:\s*['"]([^'"]+)['"]/g)) {
+    parseFontFamilyValue(match[1]!, familyNames)
+  }
+}
+
+/**
+ * Parse a CSS font-family value and add non-generic family names to the set.
+ */
+function parseFontFamilyValue(value: string, familyNames: Set<string>): void {
+  for (const name of extractCustomFontFamilies(value))
+    familyNames.add(name)
+}
+
 interface FontRequirementsCache {
-  files: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, isComplete: boolean }>
+  files: Record<string, {
+    weights: number[]
+    styles: Array<'normal' | 'italic'>
+    familyClasses: string[]
+    familyNames: string[]
+    isComplete: boolean
+  }>
 }
 
 /**
@@ -348,6 +435,8 @@ export async function scanFontRequirements(
 ): Promise<FontRequirementsResult> {
   const allWeights = new Set<number>()
   const allStyles = new Set<'normal' | 'italic'>(['normal'])
+  const allFamilyClasses = new Set<string>()
+  const allFamilyNames = new Set<string>()
   let isComplete = true
   const componentMap: Record<string, ComponentFontRequirements> = {}
 
@@ -380,6 +469,8 @@ export async function scanFontRequirements(
     if (cached) {
       for (const w of cached.weights) allWeights.add(w)
       for (const s of cached.styles) allStyles.add(s)
+      for (const c of cached.familyClasses || []) allFamilyClasses.add(c)
+      for (const n of cached.familyNames || []) allFamilyNames.add(n)
       if (!cached.isComplete)
         isComplete = false
       // Store per-component (always include 400 as default)
@@ -389,6 +480,8 @@ export async function scanFontRequirements(
       componentMap[component.pascalName] = {
         weights: compWeights.sort((a, b) => a - b),
         styles: [...cached.styles] as Array<'normal' | 'italic'>,
+        familyClasses: cached.familyClasses || [],
+        familyNames: cached.familyNames || [],
         isComplete: cached.isComplete,
       }
       continue
@@ -397,8 +490,8 @@ export async function scanFontRequirements(
     // Parse component
     const content = await readFile(component.path, 'utf-8').catch(() => null)
     if (!content) {
-      cache.files[cacheKey] = { weights: [], styles: ['normal'], isComplete: true }
-      componentMap[component.pascalName] = { weights: [400], styles: ['normal'], isComplete: true }
+      cache.files[cacheKey] = { weights: [], styles: ['normal'], familyClasses: [], familyNames: [], isComplete: true }
+      componentMap[component.pascalName] = { weights: [400], styles: ['normal'], familyClasses: [], familyNames: [], isComplete: true }
       continue
     }
 
@@ -406,11 +499,15 @@ export async function scanFontRequirements(
     cache.files[cacheKey] = {
       weights: [...result.weights],
       styles: [...result.styles] as Array<'normal' | 'italic'>,
+      familyClasses: [...result.familyClasses],
+      familyNames: [...result.familyNames],
       isComplete: result.isComplete,
     }
 
     for (const w of result.weights) allWeights.add(w)
     for (const s of result.styles) allStyles.add(s)
+    for (const c of result.familyClasses) allFamilyClasses.add(c)
+    for (const n of result.familyNames) allFamilyNames.add(n)
     if (!result.isComplete)
       isComplete = false
 
@@ -421,6 +518,8 @@ export async function scanFontRequirements(
     componentMap[component.pascalName] = {
       weights: compWeights.sort((a, b) => a - b),
       styles: [...result.styles] as Array<'normal' | 'italic'>,
+      familyClasses: [...result.familyClasses],
+      familyNames: [...result.familyNames],
       isComplete: result.isComplete,
     }
   }
@@ -443,11 +542,13 @@ export async function scanFontRequirements(
 
   const weights = [...allWeights].sort((a, b) => a - b)
   const styles = [...allStyles] as Array<'normal' | 'italic'>
+  const familyClasses = [...allFamilyClasses]
+  const familyNames = [...allFamilyNames]
 
-  logger?.debug(`Fonts: Detected weights [${weights.join(', ')}], styles [${styles.join(', ')}]${isComplete ? '' : ' (incomplete analysis)'}`)
+  logger?.debug(`Fonts: Detected weights [${weights.join(', ')}], styles [${styles.join(', ')}]${familyClasses.length || familyNames.length ? `, families [classes: ${familyClasses.join(', ') || 'none'}, names: ${familyNames.join(', ') || 'none'}]` : ''}${isComplete ? '' : ' (incomplete analysis)'}`)
 
   return {
-    global: { weights, styles, isComplete },
+    global: { weights, styles, familyClasses, familyNames, isComplete },
     components: componentMap,
   }
 }
