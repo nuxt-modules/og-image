@@ -5,12 +5,14 @@
 import { useSiteConfig } from '#site-config/app/composables'
 
 const props = withDefaults(defineProps<{
+  colorMode?: 'dark' | 'light'
   title?: string
   icon?: string
   siteName?: string
   theme?: string
   image?: string
 }>(), {
+  colorMode: 'light',
   theme: '#6366f1',
 })
 
@@ -29,7 +31,7 @@ const siteName = props.siteName || siteConfig.name || 'Acme'
         <!-- Title -->
         <h1
           class="font-bold leading-[1.08] tracking-tight text-white text-[56px] line-clamp-3 italic"
-          style="display: block; text-shadow: 0 2px 10px rgba(0,0,0,0.2);"
+          style="display: block; text-shadow: 0 2px 10px rgba(0,0,0,0.2); text-wrap: balance;"
         >
           {{ title }}
         </h1>
@@ -46,17 +48,17 @@ const siteName = props.siteName || siteConfig.name || 'Acme'
       <!-- Product screenshot - absolute positioned, cut off on right -->
       <div
         v-if="image"
-        class="absolute flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden shadow-2xl hidden lg:flex"
+        class="absolute flex flex-col bg-white dark:bg-neutral-900 rounded-xl overflow-hidden shadow-2xl hidden lg:flex"
         style="right: -120px; top: 20px; bottom: 20px; width: 55%;"
       >
         <!-- Browser toolbar -->
-        <div class="flex flex-row items-center bg-[#2d2d2d] px-4 py-3">
-          <div class="w-3 h-3 rounded-full bg-[#ff5f57]" />
-          <div class="w-3 h-3 rounded-full bg-[#febc2e] ml-2" />
-          <div class="w-3 h-3 rounded-full bg-[#28c840] ml-2" />
+        <div class="flex flex-row items-center bg-neutral-200 dark:bg-neutral-800 px-4 py-3">
+          <div class="w-3 h-3 rounded-full bg-red-400" />
+          <div class="w-3 h-3 rounded-full bg-yellow-400 ml-2" />
+          <div class="w-3 h-3 rounded-full bg-green-500 ml-2" />
         </div>
         <!-- Screenshot area -->
-        <div class="flex-1 flex bg-[#f5f5f5]">
+        <div class="flex-1 flex bg-neutral-100 dark:bg-neutral-900">
           <img
             :src="image"
             class="w-full h-full object-cover object-left-top"

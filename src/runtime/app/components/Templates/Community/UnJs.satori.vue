@@ -6,6 +6,7 @@ import { computed } from 'vue'
  */
 
 const props = withDefaults(defineProps<{
+  colorMode?: 'dark' | 'light'
   title?: string
   description?: string
   emoji?: string
@@ -13,6 +14,7 @@ const props = withDefaults(defineProps<{
   stars?: string | number
   contributors?: string | number
 }>(), {
+  colorMode: 'light',
   title: 'unjs/h3',
   description: 'Minimal H(TTP) framework built for high performance and portability',
   emoji: '⚡',
@@ -35,23 +37,23 @@ const description = computed(() => (props.description || '').slice(0, 200))
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col relative overflow-hidden" style="background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);">
+  <div class="w-full h-full flex flex-col relative overflow-hidden bg-white dark:bg-neutral-900">
     <!-- Subtle pattern -->
-    <div class="absolute inset-0 opacity-[0.02]" style="background-image: radial-gradient(#9ca3af 1px, transparent 1px); background-size: 32px 32px;" />
+    <div class="absolute inset-0 opacity-[0.02]" :style="{ backgroundImage: 'radial-gradient(rgb(163 163 163) 1px, transparent 1px)', backgroundSize: '32px 32px' }" />
 
     <div class="py-14 px-16 h-full flex flex-col justify-between relative">
       <div class="flex flex-row justify-between items-start">
         <div class="max-w-[680px]">
-          <h1 class="mb-6 text-[56px] text-gray-900 font-normal flex flex-row items-baseline tracking-tight">
-            <span style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;" class="text-gray-500">
+          <h1 class="mb-6 text-[56px] text-neutral-900 dark:text-neutral-100 font-normal flex flex-row items-baseline tracking-tight" style="text-wrap: balance;">
+            <span style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;" class="text-neutral-500">
               {{ org }}
             </span>
-            <span v-if="repo" class="mx-2 text-gray-400">/</span>
-            <span v-if="repo" style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;" class="font-bold text-gray-900">
+            <span v-if="repo" class="mx-2 text-neutral-400">/</span>
+            <span v-if="repo" style="display: block; overflow: hidden; line-clamp: 1; text-overflow: clip;" class="font-bold text-neutral-900 dark:text-neutral-100">
               {{ repo }}
             </span>
           </h1>
-          <p class="text-gray-500 max-w-[650px] text-[32px] leading-[1.5]" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
+          <p class="text-neutral-500 max-w-[650px] text-[32px] leading-[1.5]" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
             {{ description }}
           </p>
         </div>
@@ -62,12 +64,12 @@ const description = computed(() => (props.description || '').slice(0, 200))
       <div class="flex flex-row items-center justify-between">
         <div class="flex flex-row text-[36px] gap-10">
           <div class="flex flex-row items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32" class="text-gray-400"><path fill="currentColor" d="m4.67 28l6.39-12l7.3 6.49a2 2 0 0 0 1.7.47a2 2 0 0 0 1.42-1.07L27 10.9l-1.82-.9l-5.49 11l-7.3-6.49a2 2 0 0 0-1.68-.51a2 2 0 0 0-1.42 1L4 25V2H2v26a2 2 0 0 0 2 2h26v-2Z" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32" class="text-neutral-400"><path fill="currentColor" d="m4.67 28l6.39-12l7.3 6.49a2 2 0 0 0 1.7.47a2 2 0 0 0 1.42-1.07L27 10.9l-1.82-.9l-5.49 11l-7.3-6.49a2 2 0 0 0-1.68-.51a2 2 0 0 0-1.42 1L4 25V2H2v26a2 2 0 0 0 2 2h26v-2Z" /></svg>
             <div>
-              <div class="font-bold text-gray-800">
+              <div class="font-bold text-neutral-800 dark:text-neutral-200">
                 {{ downloads }}
               </div>
-              <div class="text-[20px] text-gray-500">
+              <div class="text-[20px] text-neutral-500">
                 Monthly
               </div>
             </div>
@@ -75,10 +77,10 @@ const description = computed(() => (props.description || '').slice(0, 200))
           <div class="flex flex-row items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32" class="text-amber-500"><path fill="currentColor" d="m16 6.52l2.76 5.58l.46 1l1 .15l6.16.89l-4.38 4.3l-.75.73l.18 1l1.05 6.13l-5.51-2.89L16 23l-.93.49l-5.51 2.85l1-6.13l.18-1l-.74-.77l-4.42-4.35l6.16-.89l1-.15l.46-1L16 6.52M16 2l-4.55 9.22l-10.17 1.47l7.36 7.18L6.9 30l9.1-4.78L25.1 30l-1.74-10.13l7.36-7.17l-10.17-1.48Z" /></svg>
             <div>
-              <div class="font-bold text-gray-800">
+              <div class="font-bold text-neutral-800 dark:text-neutral-200">
                 {{ stars }}
               </div>
-              <div class="text-[20px] text-gray-500">
+              <div class="text-[20px] text-neutral-500">
                 Stars
               </div>
             </div>
@@ -86,10 +88,10 @@ const description = computed(() => (props.description || '').slice(0, 200))
           <div class="flex flex-row items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32" class="text-rose-400"><path fill="currentColor" d="M22.45 6a5.47 5.47 0 0 1 3.91 1.64a5.7 5.7 0 0 1 0 8L16 26.13L5.64 15.64a5.7 5.7 0 0 1 0-8a5.48 5.48 0 0 1 7.82 0l2.54 2.6l2.53-2.58A5.44 5.44 0 0 1 22.45 6m0-2a7.47 7.47 0 0 0-5.34 2.24L16 7.36l-1.11-1.12a7.49 7.49 0 0 0-10.68 0a7.72 7.72 0 0 0 0 10.82L16 29l11.79-11.94a7.72 7.72 0 0 0 0-10.82A7.49 7.49 0 0 0 22.45 4Z" /></svg>
             <div>
-              <div class="font-bold text-gray-800">
+              <div class="font-bold text-neutral-800 dark:text-neutral-200">
                 {{ contributors }}
               </div>
-              <div class="text-[20px] text-gray-500">
+              <div class="text-[20px] text-neutral-500">
                 Contributors
               </div>
             </div>

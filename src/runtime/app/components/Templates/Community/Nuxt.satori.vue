@@ -5,7 +5,8 @@
  */
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{ title?: string, description?: string, headline?: string }>(), {
+const props = withDefaults(defineProps<{ colorMode?: 'dark' | 'light', title?: string, description?: string, headline?: string }>(), {
+  colorMode: 'dark',
   title: 'title',
   description: 'description',
   headline: 'headline',
@@ -13,10 +14,15 @@ const props = withDefaults(defineProps<{ title?: string, description?: string, h
 
 const title = computed(() => (props.title || '').slice(0, 60))
 const description = computed(() => (props.description || '').slice(0, 200))
+
+const isDark = computed(() => props.colorMode === 'dark')
+const squareFill = computed(() => isDark.value ? '#0F172A' : '#ECFDF5')
+const strokeHighlight = computed(() => isDark.value ? 'white' : '#047857')
+const logoStrokeHighlight = computed(() => isDark.value ? 'white' : '#059669')
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col justify-center bg-[#020420]">
+  <div class="w-full h-full flex flex-col justify-center bg-white dark:bg-[#020420]">
     <svg
       class="absolute right-0 top-0"
       width="629"
@@ -45,14 +51,14 @@ const description = computed(() => (props.description || '').slice(0, 200))
       </defs>
     </svg>
 
-    <div class="max-w-[700px] pl-6 lg:pl-[100px]">
-      <p v-if="headline" class="uppercase text-[24px] text-[#00DC82] mb-4 font-bold">
+    <div class="max-w-[750px] pl-6 lg:pl-[80px]">
+      <p v-if="headline" class="uppercase text-[24px] text-[#00DC82] mb-4 font-bold ">
         {{ headline }}
       </p>
-      <h1 v-if="title" class="m-0 text-[75px] font-bold mb-4 text-white" style="display: block; line-clamp: 2; text-overflow: ellipsis;">
+      <h1 v-if="title" class="m-0 text-[70px] leading-tight font-bold mb-2 text-neutral-900 dark:text-white">
         {{ title }}
       </h1>
-      <p v-if="description" class="text-[32px] text-[#E4E4E7] leading-tight" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
+      <p v-if="description" class="text-[32px] text-neutral-500 dark:text-neutral-200 leading-tight" style="display: block; line-clamp: 3; text-overflow: ellipsis;">
         {{ description }}
       </p>
     </div>
@@ -98,8 +104,8 @@ const description = computed(() => (props.description || '').slice(0, 200))
           y2="261"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0F172A" />
-          <stop offset="1" stop-color="#0F172A" stop-opacity="0" />
+          <stop :stop-color="squareFill" />
+          <stop offset="1" :stop-color="squareFill" stop-opacity="0" />
         </linearGradient>
         <radialGradient
           id="paint1_radial_199_94959"
@@ -110,7 +116,7 @@ const description = computed(() => (props.description || '').slice(0, 200))
           gradientTransform="translate(167.875 167.875) rotate(-90) scale(100.596 107.502)"
         >
           <stop stop-color="white" />
-          <stop offset="1" stop-opacity="0" />
+          <stop offset="1" stop-color="white" stop-opacity="0" />
         </radialGradient>
         <linearGradient
           id="paint2_linear_199_94959"
@@ -120,8 +126,8 @@ const description = computed(() => (props.description || '').slice(0, 200))
           y2="229.234"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-opacity="0" />
+          <stop :stop-color="strokeHighlight" />
+          <stop offset="1" :stop-color="strokeHighlight" stop-opacity="0" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_199_94959"
@@ -132,8 +138,7 @@ const description = computed(() => (props.description || '').slice(0, 200))
           gradientUnits="userSpaceOnUse"
         >
           <stop stop-color="#00DC82" />
-          <stop offset="1" stop-opacity="0" />
-          <stop offset="1" stop-opacity="0" />
+          <stop offset="1" stop-color="#00DC82" stop-opacity="0" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_199_94959"
@@ -144,7 +149,7 @@ const description = computed(() => (props.description || '').slice(0, 200))
           gradientUnits="userSpaceOnUse"
         >
           <stop stop-color="#00DC82" />
-          <stop offset="1" stop-opacity="0" />
+          <stop offset="1" stop-color="#00DC82" stop-opacity="0" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_199_94959"
@@ -155,7 +160,7 @@ const description = computed(() => (props.description || '').slice(0, 200))
           gradientUnits="userSpaceOnUse"
         >
           <stop stop-color="#00DC82" />
-          <stop offset="1" stop-opacity="0" />
+          <stop offset="1" stop-color="#00DC82" stop-opacity="0" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_199_94959"
@@ -165,8 +170,8 @@ const description = computed(() => (props.description || '').slice(0, 200))
           y2="184.293"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-opacity="0" />
+          <stop :stop-color="logoStrokeHighlight" />
+          <stop offset="1" :stop-color="logoStrokeHighlight" stop-opacity="0" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_199_94959"
@@ -176,8 +181,8 @@ const description = computed(() => (props.description || '').slice(0, 200))
           y2="184.293"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="white" />
-          <stop offset="1" stop-opacity="0" />
+          <stop :stop-color="logoStrokeHighlight" />
+          <stop offset="1" :stop-color="logoStrokeHighlight" stop-opacity="0" />
         </linearGradient>
       </defs>
     </svg>

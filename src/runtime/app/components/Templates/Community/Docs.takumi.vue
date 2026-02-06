@@ -4,6 +4,7 @@
  */
 
 withDefaults(defineProps<{
+  colorMode?: 'dark' | 'light'
   title?: string
   description?: string
   icon?: string
@@ -11,6 +12,7 @@ withDefaults(defineProps<{
   primaryTextColor?: string
   site?: string
 }>(), {
+  colorMode: 'dark',
   title: 'Documentation',
   description: 'Comprehensive documentation for your project',
   primaryColor: 'hsla(354, 90%, 54%, 0.3)',
@@ -21,10 +23,8 @@ withDefaults(defineProps<{
 
 <template>
   <div
-    class="w-full h-full relative flex flex-col overflow-hidden"
+    class="w-full h-full relative flex flex-col overflow-hidden bg-white text-neutral-900 dark:bg-neutral-950 dark:text-white"
     :style="{
-      backgroundColor: '#050505',
-      color: 'white',
       backgroundImage: `linear-gradient(to bottom right, ${primaryColor}, transparent)`,
     }"
   >
@@ -37,8 +37,8 @@ withDefaults(defineProps<{
           {{ title }}
         </span>
         <span
-          class="text-[44px] font-normal"
-          style="color: #a1a1aa; line-height: 1.4; max-width: 95%; letter-spacing: -0.01em; line-clamp: 2; text-overflow: ellipsis; overflow: hidden;"
+          class="text-[44px] font-normal text-neutral-500 dark:text-neutral-400"
+          style="line-height: 1.4; max-width: 95%; letter-spacing: -0.01em; line-clamp: 2; text-overflow: ellipsis; overflow: hidden;"
         >
           {{ description }}
         </span>
