@@ -884,9 +884,9 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
+    const availableRenderers = new Set<RendererType>()
     if (!nuxt.options._prepare) {
       // Ensure renderer dependencies are installed for each detected renderer
-      const availableRenderers = new Set<RendererType>()
       if (!config.zeroRuntime) {
         for (const renderer of ogImageComponentCtx.detectedRenderers) {
           const binding = getRecommendedBinding(renderer, targetCompatibility)
