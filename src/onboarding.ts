@@ -8,14 +8,13 @@ import { isCI } from 'std-env'
 import { getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
 import { promptFontsMigration } from './migrations/fonts'
 import { logger } from './runtime/logger'
-import { getRendererFromFilename } from './util'
+import { getRendererFromFilename, hasResolvableDependency } from './util'
 import {
   ensureProviderDependencies,
   getInstalledProviders,
   getMissingDependencies,
   getProviderDependencies,
   getRecommendedBindingFromPreset,
-  isPackageInstalled,
   PROVIDER_DEPENDENCIES,
   validateProviderSetup,
 } from './utils/dependencies'
@@ -211,7 +210,7 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
   }
 
   // check optional deps
-  const hasSharp = await isPackageInstalled('sharp')
+  const hasSharp = await hasResolvableDependency('sharp')
   if (!hasSharp && state.selectedRenderer === 'satori') {
     const wantJpeg = await logger.prompt('Install sharp for JPEG output support?', {
       type: 'confirm',
