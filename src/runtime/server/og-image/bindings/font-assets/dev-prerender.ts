@@ -66,7 +66,8 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       || await readFile(join(rootDir, '.output', 'public', filename)).catch(() => null)
     if (data?.length)
       return data
-    throw new Error(`Font ${filename} not found in public directory`)
+    // Module-provided publicAssets (e.g. _og-fonts) aren't in user's public/ dir
+    // Fall through to event.$fetch which resolves via Nitro's asset server
   }
 
   // Dev: use event.$fetch for internal routing (handles @nuxt/fonts on-demand serving)

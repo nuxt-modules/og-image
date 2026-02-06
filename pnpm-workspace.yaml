@@ -67,6 +67,7 @@ catalog:
   devalue: ^5.6.2
   eslint: ^9.39.2
   exsolve: ^1.0.8
+  fontless: ^0.2.0
   get-image-colors: ^4.0.1
   globby: ^16.1.0
   happy-dom: ^20.5.0
@@ -102,12 +103,12 @@ catalog:
   typescript: ^5.9.3
   ufo: ^1.6.3
   ultrahtml: ^1.6.0
+  unifont: ^0.7.0
   unplugin: ^3.0.0
   vitest: ^4.0.18
   vue: ^3.5.27
   vue-router: ^5.0.2
   vue-tsc: ^3.2.4
-  wawoff2: ^2.0.1
   wrangler: ^4.62.0
   yoga-wasm-web: ^0.3.3
 onlyBuiltDependencies:

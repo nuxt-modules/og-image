@@ -27,8 +27,6 @@ export default defineBuildConfig({
     'unstorage/drivers/fs',
     'consola/utils',
     '#nitro-internal-virtual/storage',
-    // wawoff2 - used at build time for WOFF2→TTF conversion
-    'wawoff2',
     // @nuxt/fonts integration - fontless is only used when @nuxt/fonts is present
     'fontless',
     'unifont',
