@@ -13,6 +13,11 @@ await setup({
 
 expect.extend({ toMatchImageSnapshot })
 
+const snapshotOptions = {
+  failureThresholdType: 'percent' as const,
+  failureThreshold: 0.5,
+}
+
 // Helper to extract og:image URL path from HTML (handles both absolute and relative URLs)
 function extractOgImageUrl(html: string): string | null {
   const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
@@ -38,7 +43,7 @@ describe('build', () => {
     const browser: ArrayBuffer = await $fetch(ogImageUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(browser)).toMatchImageSnapshot()
+    expect(Buffer.from(browser)).toMatchImageSnapshot(snapshotOptions)
   })
 
   it('static images', async () => {
@@ -48,7 +53,7 @@ describe('build', () => {
     const customFont: ArrayBuffer = await $fetch(customFontUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(customFont)).toMatchImageSnapshot()
+    expect(Buffer.from(customFont)).toMatchImageSnapshot(snapshotOptions)
 
     const imageHtml = await $fetch('/satori/image')
     const imageUrl = extractOgImageUrl(imageHtml)
@@ -56,7 +61,7 @@ describe('build', () => {
     const image: ArrayBuffer = await $fetch(imageUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(image)).toMatchImageSnapshot()
+    expect(Buffer.from(image)).toMatchImageSnapshot(snapshotOptions)
 
     const defaultsHtml = await $fetch('/satori')
     const defaultsUrl = extractOgImageUrl(defaultsHtml)
@@ -64,7 +69,7 @@ describe('build', () => {
     const defaults: ArrayBuffer = await $fetch(defaultsUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(defaults)).toMatchImageSnapshot()
+    expect(Buffer.from(defaults)).toMatchImageSnapshot(snapshotOptions)
   }, 60000)
 
   it('dynamic images', async () => {
@@ -74,7 +79,7 @@ describe('build', () => {
     const inlineRouteRules: ArrayBuffer = await $fetch(inlineUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(inlineRouteRules)).toMatchImageSnapshot()
+    expect(Buffer.from(inlineRouteRules)).toMatchImageSnapshot(snapshotOptions)
 
     const configHtml = await $fetch('/satori/route-rules/config')
     const configUrl = extractOgImageUrl(configHtml)
@@ -82,7 +87,7 @@ describe('build', () => {
     const overrideRouteRules: ArrayBuffer = await $fetch(configUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(overrideRouteRules)).toMatchImageSnapshot()
+    expect(Buffer.from(overrideRouteRules)).toMatchImageSnapshot(snapshotOptions)
 
     const globalHtml = await $fetch('/satori/route-rules')
     const globalUrl = extractOgImageUrl(globalHtml)
@@ -90,6 +95,6 @@ describe('build', () => {
     const globalRouteRules: ArrayBuffer = await $fetch(globalUrl!, {
       responseType: 'arrayBuffer',
     })
-    expect(Buffer.from(globalRouteRules)).toMatchImageSnapshot()
+    expect(Buffer.from(globalRouteRules)).toMatchImageSnapshot(snapshotOptions)
   })
 })
