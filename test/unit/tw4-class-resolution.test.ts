@@ -188,6 +188,23 @@ describe('css-utils', () => {
       }
     })
 
+    it('resolves var() with calc() in fallback: var(--a, calc(1.75 / 1.125))', () => {
+      const result = resolveCssVars('var(--a, calc(1.75 / 1.125))', new Map())
+      expect(result).toBe('calc(1.75 / 1.125)')
+    })
+
+    it('resolves nested var() with calc() in fallback: var(--a, var(--b, calc(1.25 / .875)))', () => {
+      const result = resolveCssVars('var(--a, var(--b, calc(1.25 / .875)))', new Map())
+      expect(result).toBe('calc(1.25 / .875)')
+    })
+
+    it('resolves TW4 text-sm line-height pattern with calc fallback', () => {
+      // TW4: var(--text-sm--line-height, var(--tw-leading, calc(1.25 / .875)))
+      const result = resolveCssVars('var(--text-sm--line-height, var(--tw-leading, calc(1.25 / .875)))', new Map())
+      expect(result).toBe('calc(1.25 / .875)')
+      expect(result).not.toContain('var(')
+    })
+
     it('handles var() embedded in calc()', () => {
       const vars = new Map([['--spacing', '4px']])
       const result = resolveCssVars('calc(var(--spacing) * 2)', vars)

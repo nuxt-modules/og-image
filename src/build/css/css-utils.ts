@@ -122,16 +122,34 @@ export function resolveCssVars(css: string, vars: Map<string, string>): string {
  * Find and resolve the innermost (last/deepest) var() call.
  * By resolving the last `var(` first, nested fallbacks like
  * `var(--a, var(--b, initial))` resolve inside-out.
+ * Counts parenthesis depth to handle calc() etc. inside fallbacks.
  */
 function resolveInnermostVar(css: string, vars: Map<string, string>): string {
   const idx = css.lastIndexOf('var(')
   if (idx === -1)
     return css
-  const after = css.substring(idx + 4)
-  const close = after.indexOf(')')
+  // Walk forward from after `var(` counting paren depth to find matching `)`
+  let depth = 1
+  let close = -1
+  for (let i = idx + 4; i < css.length; i++) {
+    if (css[i] === '(') {
+      depth++
+    }
+    else if (css[i] === ')') {
+      depth--
+      if (depth === 0) {
+        close = i - idx - 4
+        break
+      }
+    }
+  }
   if (close === -1)
     return css
+  const after = css.substring(idx + 4)
   const content = after.substring(0, close)
+  // Only resolve if content has no nested var() — otherwise not truly innermost
+  if (content.includes('var('))
+    return css
   const comma = content.indexOf(',')
   let name: string
   let fallback: string | undefined
