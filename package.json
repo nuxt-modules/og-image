@@ -49,7 +49,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "snapshots": "tsx scripts/generate-template-snapshots.ts",
+    "snapshots": "node --import jiti/register scripts/generate-template-snapshots.ts",
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
     "build": "pnpm stub && nuxt-module-build build && pnpm run build:client",
     "build:client": "nuxt generate client",

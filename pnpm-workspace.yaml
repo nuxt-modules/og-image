@@ -33,7 +33,7 @@ catalog:
   '@iconify-json/simple-icons': ^1.2.69
   '@iconify-json/tabler': ^1.2.26
   '@img/sharp-linux-x64': ^0.34.5
-  '@nuxt/content': ^3.11.0
+  '@nuxt/content': ^3.11.2
   '@nuxt/devtools': ^3.1.1
   '@nuxt/devtools-kit': ^3.1.1
   '@nuxt/devtools-ui-kit': ^3.1.1
@@ -51,8 +51,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.66.13
-  '@takumi-rs/wasm': ^0.66.13
+  '@takumi-rs/core': ^0.67.1
+  '@takumi-rs/wasm': ^0.67.1
   '@vitejs/plugin-vue': ^6.0.4
   '@vue/compiler-sfc': ^3.5.27
   '@vueuse/core': ^14.2.0
@@ -81,7 +81,7 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.3.0
   nuxt-site-config: ^3.2.19
-  nypm: ^0.6.4
+  nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
   pathe: ^2.0.3
@@ -103,13 +103,13 @@ catalog:
   typescript: ^5.9.3
   ufo: ^1.6.3
   ultrahtml: ^1.6.0
-  unifont: ^0.7.0
+  unifont: ^0.7.3
   unplugin: ^3.0.0
   vitest: ^4.0.18
   vue: ^3.5.27
   vue-router: ^5.0.2
   vue-tsc: ^3.2.4
-  wrangler: ^4.62.0
+  wrangler: ^4.63.0
   yoga-wasm-web: ^0.3.3
 onlyBuiltDependencies:
   - '@parcel/watcher'
