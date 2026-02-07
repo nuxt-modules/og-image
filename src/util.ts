@@ -54,6 +54,19 @@ export interface ParsedComponentName {
  * Parse a component name into base name + renderer.
  * Supports: 'Banner.satori', 'BannerSatori', 'Banner'
  */
+export function matchesComponentName(registeredPascalName: string, inputName: string): boolean {
+  const cBase = registeredPascalName
+    .replace(/^OgImage/, '')
+    .replace(/\.?(satori|browser|takumi)$/i, '')
+    .replace(/(Satori|Browser|Takumi)$/, '')
+  const { baseName } = parseComponentName(inputName)
+  const strippedBaseName = baseName.replace(/^OgImage/, '')
+  return cBase === baseName
+    || cBase === strippedBaseName
+    || cBase === `OgImage${baseName}`
+    || cBase === `OgImage${strippedBaseName}`
+}
+
 export function parseComponentName(name: string): ParsedComponentName {
   // dot notation: 'Banner.satori'
   for (const suffix of VALID_RENDERER_SUFFIXES) {

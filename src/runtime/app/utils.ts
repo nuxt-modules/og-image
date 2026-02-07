@@ -109,8 +109,8 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
     for (const component of componentNames) {
       // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
       const basePascalName = component.pascalName.replace(/(Satori|Browser|Takumi)$/, '')
-      const baseKebabName = component.kebabName.replace(/-(satori|browser|takumi)$/, '')
-      if (basePascalName.endsWith(originalName) || baseKebabName.endsWith(originalName)) {
+      const strippedPascalName = basePascalName.replace(/^OgImage/, '')
+      if (strippedPascalName === originalName || basePascalName === originalName || basePascalName === `OgImage${originalName}`) {
         return component.pascalName
       }
     }

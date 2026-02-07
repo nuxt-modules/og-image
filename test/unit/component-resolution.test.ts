@@ -1,7 +1,41 @@
 import { describe, expect, it } from 'vitest'
-import { getRendererFromFilename, parseComponentName, stripRendererSuffix } from '../../src/util'
+import { getRendererFromFilename, matchesComponentName, parseComponentName, stripRendererSuffix } from '../../src/util'
 
 describe('component resolution', () => {
+  describe('matchesComponentName', () => {
+    it('default matches OgImageDefaultSatori', () => {
+      expect(matchesComponentName('OgImageDefaultSatori', 'Default')).toBe(true)
+    })
+
+    it('default does NOT match OgImageBlogDefaultSatori', () => {
+      expect(matchesComponentName('OgImageBlogDefaultSatori', 'Default')).toBe(false)
+    })
+
+    it('banner matches OgImageBannerSatori', () => {
+      expect(matchesComponentName('OgImageBannerSatori', 'Banner')).toBe(true)
+    })
+
+    it('banner does NOT match OgImageSiteBannerSatori', () => {
+      expect(matchesComponentName('OgImageSiteBannerSatori', 'Banner')).toBe(false)
+    })
+
+    it('nuxtSeo matches NuxtSeoSatori', () => {
+      expect(matchesComponentName('NuxtSeoSatori', 'NuxtSeo')).toBe(true)
+    })
+
+    it('blog matches OgImageBlogSatori', () => {
+      expect(matchesComponentName('OgImageBlogSatori', 'Blog')).toBe(true)
+    })
+
+    it('ogImageDefault matches OgImageDefaultSatori', () => {
+      expect(matchesComponentName('OgImageDefaultSatori', 'OgImageDefault')).toBe(true)
+    })
+
+    it('exact pascalName match', () => {
+      expect(matchesComponentName('OgImageDefaultSatori', 'OgImageDefaultSatori')).toBe(true)
+    })
+  })
+
   describe('parseComponentName', () => {
     it('parses dot notation', () => {
       expect(parseComponentName('Banner.satori')).toEqual({ baseName: 'Banner', renderer: 'satori' })
