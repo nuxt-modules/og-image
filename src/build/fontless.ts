@@ -335,10 +335,10 @@ export async function resolveOgImageFonts(options: {
     if (fontRequirements.families.length > 0) {
       missingFamilies = fontRequirements.families.filter(f => !coveredFamilies.has(f))
     }
-    else if (allFonts.length === 0) {
+    else {
       const defaultVar = tw4FontVars['font-sans']
       if (defaultVar)
-        missingFamilies = extractCustomFontFamilies(defaultVar)
+        missingFamilies = extractCustomFontFamilies(defaultVar).filter(f => !coveredFamilies.has(f))
     }
 
     if (missingFamilies.length > 0) {
