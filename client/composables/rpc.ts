@@ -68,6 +68,17 @@ onDevtoolsClientConnected(async (client) => {
   })
   devtools.value = client.devtools
   devtoolsClient.value = client
+
+  // Listen for Vite HMR events relayed through the host app's window
+  // This is more reliable than DevTools RPC which can miss events during reconnection
+  const hostWindow = client.host.nuxt.vueApp._container?.ownerDocument?.defaultView
+  if (hostWindow) {
+    hostWindow.addEventListener('nuxt-og-image:refresh', () => refreshSources())
+    hostWindow.addEventListener('nuxt-og-image:refresh-global', () => {
+      globalRefreshTime.value = Date.now()
+    })
+  }
+
   // @ts-expect-error untyped
   ogImageRpc.value = client.devtools.extendClientRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
     refreshRouteData(path) {

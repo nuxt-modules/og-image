@@ -1290,6 +1290,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
     if (nuxt.options.dev) {
       setupDevHandler(config, resolver, getDetectedRenderers)
       setupDevToolsUI(config, resolve)
+      addPlugin({ mode: 'client', src: resolve('./runtime/app/plugins/og-image-hmr.client') })
 
       // Capture Nitro for HMR reload
       const useNitro = new Promise<import('nitropack/types').Nitro>((resolveNitro) => {
@@ -1298,7 +1299,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
 
       // HMR: watch for TW4 CSS and OgImage component changes
       nuxt.hook('builder:watch', async (_event, relativePath) => {
-        const absolutePath = join(nuxt.options.rootDir, relativePath)
+        const absolutePath = isAbsolute(relativePath) ? relativePath : join(nuxt.options.rootDir, relativePath)
 
         // Check if TW4 CSS file changed
         const isTw4CssChange = tw4State.cssPath && absolutePath === tw4State.cssPath
