@@ -1,24 +1,32 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nitro } from 'nitropack/types'
 import type { Nuxt } from 'nuxt/schema'
+import type { ViteDevServer } from 'vite'
 import type { ModuleOptions } from '../module'
 import type { ClientFunctions, ServerFunctions } from '../rpc-types'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { addCustomTab, extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
-import { relative } from 'pathe'
+import { isAbsolute, relative, resolve as resolvePath } from 'pathe'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030
+
+function isOgImagePath(path: string, componentDirs: string[]) {
+  return componentDirs.some(dir => path.includes(dir))
+}
 
 export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   const clientPath = resolve('./client')
   const isProductionBuild = existsSync(clientPath)
 
+  let viteServer: ViteDevServer | undefined
+
   // Serve production-built client (used when package is published)
   if (isProductionBuild) {
     nuxt.hook('vite:serverCreated', async (server) => {
+      viteServer = server
       const sirv = await import('sirv').then(r => r.default || r)
       server.middlewares.use(
         DEVTOOLS_UI_ROUTE,
@@ -28,6 +36,9 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
   }
   // In local development, start a separate Nuxt Server and proxy to serve the client
   else {
+    nuxt.hook('vite:serverCreated', (server) => {
+      viteServer = server
+    })
     nuxt.hook('vite:extendConfig', (config) => {
       if (!config.server) {
         (config as any).server = {}
@@ -42,11 +53,24 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     })
   }
 
+  // HMR via Vite custom events — works regardless of DevTools RPC connection state
+  nuxt.hook('builder:watch', (e, watchPath) => {
+    const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
+    if (!isOgImagePath(normalizedPath, options.componentDirs))
+      return
+    if (e === 'change') {
+      viteServer?.ws.send({ type: 'custom', event: 'nuxt-og-image:refresh' })
+    }
+    else {
+      viteServer?.ws.send({ type: 'custom', event: 'nuxt-og-image:refresh-global' })
+    }
+  })
+
   const useNitro = new Promise<Nitro>((resolve) => {
     nuxt.hooks.hook('nitro:init', resolve)
   })
 
-  // wait for DevTools to be initialized
+  // DevTools RPC — kept as secondary notification path
   onDevToolsInitialized(async () => {
     const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
       async ejectCommunityTemplate(path: string) {
@@ -68,26 +92,22 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       },
     })
 
-    nuxt.hook('builder:watch', (e, path) => {
-      path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
-      // needs to be for a page change
-      if ((e === 'change' || e.includes('link')) && (path.startsWith('pages') || path.startsWith('content'))) {
-        rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
-          .catch(() => {}) // ignore errors
+    nuxt.hook('builder:watch', (e, watchPath) => {
+      const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
+      if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
+        rpc.broadcast.refreshRouteData(normalizedPath)
+          .catch(() => {})
       }
-      if (options.componentDirs.some(dir => path.includes(dir))) {
+      if (isOgImagePath(normalizedPath, options.componentDirs)) {
         if (e === 'change') {
           rpc.broadcast.refresh()
             .catch(() => {})
         }
         else {
-          rpc.broadcast.refreshGlobalData().catch(() => {
-          })
+          rpc.broadcast.refreshGlobalData().catch(() => {})
         }
       }
     })
-    // call client RPC functions
-    // since it might have multiple clients connected, we use `broadcast` to call all of them
   })
 
   addCustomTab({
