@@ -56,7 +56,7 @@ export interface ParsedComponentName {
  */
 export function matchesComponentName(registeredPascalName: string, inputName: string): boolean {
   const cBase = registeredPascalName
-    .replace(/^OgImage/, '')
+    .replace(/^OgImage(Community|Template)?/, '')
     .replace(/\.?(satori|browser|takumi)$/i, '')
     .replace(/(Satori|Browser|Takumi)$/, '')
   const { baseName } = parseComponentName(inputName)

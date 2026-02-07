@@ -32,7 +32,7 @@ function parseInputName(name: string): { baseName: string, renderer: RendererTyp
  */
 function getComponentBaseName(component: OgImageComponent): string {
   return component.pascalName
-    .replace(/^OgImage/, '')
+    .replace(/^OgImage(Community|Template)?/, '')
     .replace(/\.?(satori|browser|takumi)$/i, '')
     .replace(/(Satori|Browser|Takumi)$/, '')
 }

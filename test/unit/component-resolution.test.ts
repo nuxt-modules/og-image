@@ -34,6 +34,18 @@ describe('component resolution', () => {
     it('exact pascalName match', () => {
       expect(matchesComponentName('OgImageDefaultSatori', 'OgImageDefaultSatori')).toBe(true)
     })
+
+    it('nuxtSeo matches OgImageCommunityNuxtSeoSatori (ejected community)', () => {
+      expect(matchesComponentName('OgImageCommunityNuxtSeoSatori', 'NuxtSeo')).toBe(true)
+    })
+
+    it('nuxtSeo matches OgImageCommunityNuxtSeoTakumi (ejected community)', () => {
+      expect(matchesComponentName('OgImageCommunityNuxtSeoTakumi', 'NuxtSeo')).toBe(true)
+    })
+
+    it('banner matches OgImageTemplBannerSatori should not match', () => {
+      expect(matchesComponentName('OgImageTemplateBannerSatori', 'Banner')).toBe(true)
+    })
   })
 
   describe('parseComponentName', () => {
