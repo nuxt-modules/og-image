@@ -7,7 +7,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { addCustomTab, extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
-import { relative } from 'pathe'
+import { isAbsolute, relative, resolve as resolvePath } from 'pathe'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030
@@ -68,21 +68,21 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       },
     })
 
-    nuxt.hook('builder:watch', (e, path) => {
-      path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
+    nuxt.hook('builder:watch', (e, watchPath) => {
+      // Use pathe's resolve (not the module resolver) to normalize the path
+      const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
       // needs to be for a page change
-      if ((e === 'change' || e.includes('link')) && (path.startsWith('pages') || path.startsWith('content'))) {
-        rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
+      if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
+        rpc.broadcast.refreshRouteData(normalizedPath) // client needs to figure it if it's for the page we're on
           .catch(() => {}) // ignore errors
       }
-      if (options.componentDirs.some(dir => path.includes(dir))) {
+      if (options.componentDirs.some(dir => normalizedPath.includes(dir))) {
         if (e === 'change') {
           rpc.broadcast.refresh()
             .catch(() => {})
         }
         else {
-          rpc.broadcast.refreshGlobalData().catch(() => {
-          })
+          rpc.broadcast.refreshGlobalData().catch(() => {})
         }
       }
     })
