@@ -7,7 +7,7 @@ import {
   RadioGroupLabel,
   RadioGroupOption,
 } from '@headlessui/vue'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { GlobalDebugKey } from '../composables/keys'
 import { CreateOgImageDialogPromise } from '../composables/templates'
 
@@ -17,7 +17,12 @@ function handleClose(_a: unknown, resolve: (value: string | false) => void) {
 
 const globalDebug = inject(GlobalDebugKey) as Ref<GlobalDebugResponse | null>
 
-const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
+const componentDirs = computed(() => globalDebug.value?.runtimeConfig?.componentDirs || [])
+const component = ref(componentDirs.value[0])
+watch(componentDirs, (dirs) => {
+  if (!component.value && dirs.length > 0)
+    component.value = dirs[0]
+})
 </script>
 
 <template>
@@ -37,7 +42,7 @@ const component = ref(globalDebug.value?.runtimeConfig?.componentDirs?.[0])
             </div>
             <div class="space-y-2">
               <RadioGroupOption
-                v-for="dir in globalDebug?.runtimeConfig?.componentDirs"
+                v-for="dir in componentDirs"
                 :key="dir"
                 v-slot="{ active, checked }"
                 as="template"
