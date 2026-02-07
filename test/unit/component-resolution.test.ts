@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getRendererFromFilename, matchesComponentName, parseComponentName, stripRendererSuffix } from '../../src/util'
+import { getRegisteredBaseNames, getRendererFromFilename, matchesComponentName, parseComponentName, stripRendererSuffix } from '../../src/util'
 
 describe('component resolution', () => {
   describe('matchesComponentName', () => {
@@ -43,8 +43,59 @@ describe('component resolution', () => {
       expect(matchesComponentName('OgImageCommunityNuxtSeoTakumi', 'NuxtSeo')).toBe(true)
     })
 
-    it('banner matches OgImageTemplBannerSatori should not match', () => {
+    it('banner matches OgImageTemplateBannerSatori', () => {
       expect(matchesComponentName('OgImageTemplateBannerSatori', 'Banner')).toBe(true)
+    })
+
+    // Nuxt deduplicates when filename starts with the last word of the directory prefix.
+    // e.g. OgImage/ImageTest.satori.vue → OgImageTestSatori (not OgImageImageTestSatori)
+    it('imageTest matches OgImageTestSatori (Nuxt prefix deduplication)', () => {
+      expect(matchesComponentName('OgImageTestSatori', 'ImageTest')).toBe(true)
+    })
+
+    it('imageTest does NOT match OgImageBlogTestSatori', () => {
+      expect(matchesComponentName('OgImageBlogTestSatori', 'ImageTest')).toBe(false)
+    })
+
+    it('test still matches OgImageTestSatori (non-deduplicated interpretation)', () => {
+      expect(matchesComponentName('OgImageTestSatori', 'Test')).toBe(true)
+    })
+
+    it('communityNuxtSeo matches OgImageCommunityNuxtSeoSatori (community dedup)', () => {
+      expect(matchesComponentName('OgImageNuxtSeoSatori', 'CommunityNuxtSeo')).toBe(false)
+    })
+  })
+
+  describe('getRegisteredBaseNames', () => {
+    it('standard OgImage prefix', () => {
+      expect(getRegisteredBaseNames('OgImageBannerSatori')).toEqual(['Banner', 'ImageBanner'])
+    })
+
+    it('dedup case: OgImage/ImageTest → OgImageTestSatori', () => {
+      expect(getRegisteredBaseNames('OgImageTestSatori')).toEqual(['Test', 'ImageTest'])
+    })
+
+    it('community prefix', () => {
+      expect(getRegisteredBaseNames('OgImageCommunityNuxtSeoSatori')).toEqual(['NuxtSeo', 'CommunityNuxtSeo'])
+    })
+
+    it('template prefix', () => {
+      expect(getRegisteredBaseNames('OgImageTemplateBannerSatori')).toEqual(['Banner', 'TemplateBanner'])
+    })
+
+    it('no prefix (e.g. NuxtSeo)', () => {
+      expect(getRegisteredBaseNames('NuxtSeoSatori')).toEqual(['NuxtSeo'])
+    })
+
+    it('full dedup: overlap word IS the name', () => {
+      // OgImage/Image.satori.vue → OgImageSatori (Nuxt dedup removes entire overlap)
+      expect(getRegisteredBaseNames('OgImageSatori')).toEqual(['Image'])
+    })
+
+    it('withoutPrefix equals overlap word — no duplicate dedup candidate', () => {
+      // OgImage/ImageImage.satori.vue → OgImageImageSatori (dedup: OgImage + ImageImage → OgImageImage)
+      // withoutPrefix = 'Image', which equals overlapWord, so no additional candidate
+      expect(getRegisteredBaseNames('OgImageImageSatori')).toEqual(['Image'])
     })
   })
 

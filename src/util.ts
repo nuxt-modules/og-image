@@ -51,20 +51,63 @@ export interface ParsedComponentName {
 }
 
 /**
- * Parse a component name into base name + renderer.
- * Supports: 'Banner.satori', 'BannerSatori', 'Banner'
+ * Known OgImage directory prefixes and their last PascalCase word.
+ * Nuxt deduplicates when a filename starts with the last word(s) of the directory prefix,
+ * so we need to account for that when matching user input to registered names.
  */
-export function matchesComponentName(registeredPascalName: string, inputName: string): boolean {
-  const cBase = registeredPascalName
-    .replace(/^OgImage(Community|Template)?/, '')
+const OGIMAGE_PREFIXES = [
+  { prefix: 'OgImageCommunity', overlapWord: 'Community' },
+  { prefix: 'OgImageTemplate', overlapWord: 'Template' },
+  { prefix: 'OgImage', overlapWord: 'Image' },
+] as const
+
+/**
+ * Get all possible base names for a registered component PascalCase name.
+ * Returns multiple candidates to handle Nuxt's PascalCase word deduplication.
+ */
+export function getRegisteredBaseNames(registeredPascalName: string): string[] {
+  const stripped = registeredPascalName
     .replace(/\.?(satori|browser|takumi)$/i, '')
     .replace(/(Satori|Browser|Takumi)$/, '')
+
+  const names: string[] = []
+  for (const { prefix, overlapWord } of OGIMAGE_PREFIXES) {
+    if (!stripped.startsWith(prefix))
+      continue
+    const withoutPrefix = stripped.slice(prefix.length)
+    if (withoutPrefix) {
+      names.push(withoutPrefix)
+      // Account for Nuxt deduplication: re-prepend the overlap word as an alternative
+      if (withoutPrefix !== overlapWord)
+        names.push(overlapWord + withoutPrefix)
+    }
+    else {
+      // Full dedup: the entire filename was consumed by the prefix overlap
+      // e.g. OgImage/Image.satori.vue → OgImageSatori → withoutPrefix is ''
+      names.push(overlapWord)
+    }
+    break
+  }
+
+  if (names.length === 0)
+    names.push(stripped)
+
+  return names
+}
+
+/**
+ * Check if a registered component name matches a user-provided input name.
+ */
+export function matchesComponentName(registeredPascalName: string, inputName: string): boolean {
+  const baseNames = getRegisteredBaseNames(registeredPascalName)
   const { baseName } = parseComponentName(inputName)
   const strippedBaseName = baseName.replace(/^OgImage/, '')
-  return cBase === baseName
+  return baseNames.some(cBase =>
+    cBase === baseName
     || cBase === strippedBaseName
     || cBase === `OgImage${baseName}`
-    || cBase === `OgImage${strippedBaseName}`
+    || cBase === `OgImage${strippedBaseName}`,
+  )
 }
 
 export function parseComponentName(name: string): ParsedComponentName {

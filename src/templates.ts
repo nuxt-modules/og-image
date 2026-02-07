@@ -3,7 +3,7 @@ import type { ModuleOptions } from './module'
 import type { OgImageComponent } from './runtime/types'
 import { addTemplate, addTypeTemplate } from '@nuxt/kit'
 import { relative, resolve } from 'pathe'
-import { stripRendererSuffix } from './util'
+import { getRegisteredBaseNames, stripRendererSuffix } from './util'
 
 interface TemplateContext {
   nuxt: Nuxt
@@ -23,11 +23,11 @@ export function registerTypeTemplates(ctx: TemplateContext) {
       // Build base name → renderers map to detect ambiguous names
       const baseNameRenderers = new Map<string, string[]>()
       for (const component of componentCtx.components) {
-        const strippedName = sortedDirs.reduce((n, dir) => n.replace(new RegExp(`^${dir}`), ''), component.pascalName)
-        const baseName = stripRendererSuffix(strippedName)
-        const renderers = baseNameRenderers.get(baseName) || []
-        renderers.push(component.renderer)
-        baseNameRenderers.set(baseName, renderers)
+        for (const baseName of getRegisteredBaseNames(component.pascalName)) {
+          const renderers = baseNameRenderers.get(baseName) || []
+          renderers.push(component.renderer)
+          baseNameRenderers.set(baseName, renderers)
+        }
       }
 
       const lines: string[] = []
@@ -38,17 +38,26 @@ export function registerTypeTemplates(ctx: TemplateContext) {
         )
         const importType = `typeof import('${relativeComponentPath}')['default']`
         const strippedName = sortedDirs.reduce((n, dir) => n.replace(new RegExp(`^${dir}`), ''), component.pascalName)
-        const baseName = stripRendererSuffix(strippedName)
         const renderer = component.renderer
+        const baseNames = getRegisteredBaseNames(component.pascalName)
 
-        // Primary: dot notation 'NuxtSeo.satori'
-        lines.push(`    '${baseName}.${renderer}': ${importType}`)
         // Alias: PascalCase 'NuxtSeoSatori'
         lines.push(`    '${strippedName}': ${importType}`)
-        // Shorthand: bare name 'NuxtSeo' only if unambiguous (single renderer)
-        const renderers = baseNameRenderers.get(baseName) || []
-        if (renderers.length === 1) {
-          lines.push(`    '${baseName}': ${importType}`)
+        // Add all base name variants (handles Nuxt prefix deduplication)
+        const seen = new Set<string>([strippedName])
+        for (const baseName of baseNames) {
+          // Primary: dot notation 'NuxtSeo.satori'
+          const dotName = `${baseName}.${renderer}`
+          if (!seen.has(dotName)) {
+            lines.push(`    '${dotName}': ${importType}`)
+            seen.add(dotName)
+          }
+          // Shorthand: bare name 'NuxtSeo' only if unambiguous (single renderer)
+          const renderers = baseNameRenderers.get(baseName) || []
+          if (renderers.length === 1 && !seen.has(baseName)) {
+            lines.push(`    '${baseName}': ${importType}`)
+            seen.add(baseName)
+          }
         }
       }
 

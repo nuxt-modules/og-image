@@ -109,9 +109,25 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
     for (const component of componentNames) {
       // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
       const basePascalName = component.pascalName.replace(/(Satori|Browser|Takumi)$/, '')
-      const strippedPascalName = basePascalName.replace(/^OgImage(Community|Template)?/, '')
-      if (strippedPascalName === originalName || basePascalName === originalName || basePascalName === `OgImage${originalName}`) {
+      if (basePascalName === originalName)
         return component.pascalName
+      // Strip directory prefix and check all possible base names
+      // including dedup-aware variants (Nuxt merges overlapping prefix/filename words)
+      const prefixes = [
+        { prefix: 'OgImageCommunity', overlapWord: 'Community' },
+        { prefix: 'OgImageTemplate', overlapWord: 'Template' },
+        { prefix: 'OgImage', overlapWord: 'Image' },
+      ] as const
+      for (const { prefix, overlapWord } of prefixes) {
+        if (!basePascalName.startsWith(prefix))
+          continue
+        const withoutPrefix = basePascalName.slice(prefix.length)
+        if (withoutPrefix === originalName)
+          return component.pascalName
+        // Dedup-aware: re-prepend the overlap word
+        if (withoutPrefix && withoutPrefix !== overlapWord && (overlapWord + withoutPrefix) === originalName)
+          return component.pascalName
+        break
       }
     }
   }

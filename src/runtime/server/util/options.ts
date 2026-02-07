@@ -28,13 +28,59 @@ function parseInputName(name: string): { baseName: string, renderer: RendererTyp
 }
 
 /**
- * Get the base name of a registered component (strip OgImage prefix + renderer suffix).
+ * Strip renderer suffix from a PascalCase component name.
  */
-function getComponentBaseName(component: OgImageComponent): string {
-  return component.pascalName
-    .replace(/^OgImage(Community|Template)?/, '')
+function stripRenderer(name: string): string {
+  return name
     .replace(/\.?(satori|browser|takumi)$/i, '')
     .replace(/(Satori|Browser|Takumi)$/, '')
+}
+
+/**
+ * Known OgImage directory prefixes and their last PascalCase word.
+ * Nuxt deduplicates when a filename starts with the last word(s) of the directory prefix,
+ * so we need to account for that when matching user input to registered names.
+ */
+const OGIMAGE_PREFIXES = [
+  { prefix: 'OgImageCommunity', overlapWord: 'Community' },
+  { prefix: 'OgImageTemplate', overlapWord: 'Template' },
+  { prefix: 'OgImage', overlapWord: 'Image' },
+] as const
+
+/**
+ * Get all possible base names for a registered component.
+ * Returns multiple candidates to handle Nuxt's PascalCase word deduplication
+ * between directory prefix and filename.
+ *
+ * e.g. OgImageTestSatori → ['Test', 'ImageTest']
+ *   because 'ImageTest.satori.vue' in OgImage/ gets deduplicated to OgImageTestSatori
+ */
+function getComponentBaseNames(component: OgImageComponent): string[] {
+  const names: string[] = []
+  const stripped = stripRenderer(component.pascalName)
+
+  for (const { prefix, overlapWord } of OGIMAGE_PREFIXES) {
+    if (!stripped.startsWith(prefix))
+      continue
+    const withoutPrefix = stripped.slice(prefix.length)
+    if (withoutPrefix) {
+      names.push(withoutPrefix)
+      // Account for Nuxt deduplication: if the filename started with the overlap word,
+      // Nuxt would have merged it with the prefix, so re-prepend it as an alternative.
+      if (withoutPrefix !== overlapWord)
+        names.push(overlapWord + withoutPrefix)
+    }
+    else {
+      names.push(overlapWord)
+    }
+    break
+  }
+
+  // If no known prefix matched, use the full name minus renderer
+  if (names.length === 0)
+    names.push(stripped)
+
+  return names
 }
 
 /**
@@ -53,11 +99,13 @@ function resolveComponent(name: string): { component: OgImageComponent, renderer
 
   // find all components whose base name matches (supports shorthand like 'Banner' matching 'OgImageBannerSatori')
   const matches = componentNames.filter((c: OgImageComponent) => {
-    const cBase = getComponentBaseName(c)
-    return cBase === baseName
+    const baseNames = getComponentBaseNames(c)
+    return baseNames.some(cBase =>
+      cBase === baseName
       || cBase === strippedBaseName
       || cBase === `OgImage${baseName}`
-      || cBase === `OgImage${strippedBaseName}`
+      || cBase === `OgImage${strippedBaseName}`,
+    )
   })
 
   // filter by renderer if specified
@@ -67,7 +115,7 @@ function resolveComponent(name: string): { component: OgImageComponent, renderer
 
   if (filtered.length === 0) {
     if (renderer && matches.length > 0) {
-      const available = matches.map((c: OgImageComponent) => `${getComponentBaseName(c)}.${c.renderer}`).join(', ')
+      const available = matches.map((c: OgImageComponent) => `${getComponentBaseNames(c)[0]}.${c.renderer}`).join(', ')
       throw createError({
         statusCode: 500,
         message: `[Nuxt OG Image] Component "${name}" not found. Available variants: ${available}`,
