@@ -3,7 +3,7 @@ import type { ModuleOptions } from './module'
 import type { OgImageComponent } from './runtime/types'
 import { addTemplate, addTypeTemplate } from '@nuxt/kit'
 import { relative, resolve } from 'pathe'
-import { getRegisteredBaseNames, stripRendererSuffix } from './util'
+import { getRegisteredBaseNames } from './util'
 
 interface TemplateContext {
   nuxt: Nuxt
