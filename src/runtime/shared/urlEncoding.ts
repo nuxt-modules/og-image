@@ -168,8 +168,8 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     if (key === '_query' && typeof value === 'object' && Object.keys(value).length === 0)
       continue
 
-    // Skip values that match defaults
-    if (defaults && key in defaults && defaults[key] === value)
+    // Skip values that match defaults (but never skip component)
+    if (defaults && key in defaults && defaults[key] === value && key !== 'component')
       continue
 
     // Use alias for known params, otherwise use key as-is (for props)

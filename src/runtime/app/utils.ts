@@ -83,9 +83,10 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             if (payload._query && Object.keys(payload._query).length === 0) {
               delete payload._query
             }
+            const ALWAYS_INCLUDE = new Set(['component', '_hash', 'key'])
             const final: Record<string, any> = {}
             for (const k in payload) {
-              if (payload[k] !== (defaults as any)[k]) {
+              if (ALWAYS_INCLUDE.has(k) || payload[k] !== (defaults as any)[k]) {
                 final[k] = payload[k]
               }
             }
