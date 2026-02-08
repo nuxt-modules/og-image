@@ -56,6 +56,8 @@ export function useOgImage() {
     return opts.length > 0
   })
 
+  const fetchError = computed(() => debug.value?.fetchError || null)
+
   watch(debug, (val) => {
     if (!val)
       return
@@ -412,6 +414,7 @@ export function useOgImage() {
     isCustomOgImage,
     isValidDebugError,
     hasDefinedOgImage,
+    fetchError,
     defaults,
     height,
     width,

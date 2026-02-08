@@ -25,6 +25,7 @@ export interface PathDebugResponse {
   vnodes?: Record<string, unknown>
   svg?: string
   warnings?: string[]
+  fetchError?: { statusCode?: number, message: string, stack?: string[] }
 }
 
 export interface GlobalDebugResponse {

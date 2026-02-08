@@ -41,7 +41,14 @@ const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = 
   }
   const encoded = encodeOgImageParams(params)
   const url = `/_og/d/${encoded || 'default'}.json`
-  return appFetch.value(url)
+  return (appFetch.value(url) as Promise<PathDebugResponse>).catch((err: any): PathDebugResponse => ({
+    extract: { options: [], socialPreview: { root: {}, images: [] } },
+    fetchError: {
+      statusCode: err?.data?.statusCode || err?.statusCode,
+      message: err?.data?.stack?.[0] || err?.data?.message || err?.message || 'Unknown error',
+      stack: err?.data?.stack,
+    },
+  }))
 }, {
   watch: [appFetch, path, refreshTime, ogImageKey],
   default: () => ({ extract: { options: [], socialPreview: { root: {}, images: [] } } }),

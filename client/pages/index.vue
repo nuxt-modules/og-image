@@ -13,6 +13,7 @@ const {
   isCustomOgImage,
   isValidDebugError,
   hasDefinedOgImage,
+  fetchError,
   aspectRatio,
   imageFormat,
   socialPreview,
@@ -288,6 +289,27 @@ function resetAll() {
         <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
           Loading OG Image&#8230;
         </h2>
+      </div>
+    </div>
+
+    <!-- Server error (e.g. font loading failure) -->
+    <div v-else-if="fetchError" class="h-full flex items-center justify-center p-6 sm:p-8">
+      <div class="max-w-lg text-center animate-scale-in">
+        <div class="empty-state-icon empty-state-icon--error">
+          <UIcon name="carbon:warning" class="w-8 h-8" />
+        </div>
+        <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
+          OG Image Error
+        </h2>
+        <p class="text-[var(--color-text-muted)] mb-4 text-sm sm:text-base">
+          {{ fetchError.message }}
+        </p>
+        <details v-if="fetchError.stack?.length" class="text-left">
+          <summary class="text-xs text-[var(--color-text-subtle)] cursor-pointer hover:text-[var(--color-text-muted)]">
+            Stack trace
+          </summary>
+          <pre class="mt-2 text-xs text-[var(--color-text-subtle)] overflow-auto max-h-48 p-3 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border-subtle)]">{{ fetchError.stack.join('\n') }}</pre>
+        </details>
       </div>
     </div>
 
@@ -1114,6 +1136,16 @@ function resetAll() {
 
 .dark .empty-state-icon {
   background: oklch(65% 0.2 145 / 0.15);
+}
+
+.empty-state-icon--error {
+  background: oklch(55% 0.2 25 / 0.12);
+  color: oklch(55% 0.2 25);
+}
+
+.dark .empty-state-icon--error {
+  background: oklch(55% 0.2 25 / 0.15);
+  color: oklch(75% 0.15 25);
 }
 
 /* Fonts tab */
