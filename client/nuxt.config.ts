@@ -12,6 +12,7 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/global.css'],
 
+  // @ts-expect-error @nuxt/fonts module config
   fonts: {
     families: [
       { name: 'Hubot Sans' },

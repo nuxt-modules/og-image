@@ -133,8 +133,8 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     else {
       // avoid another fetch to the base path to resolve options
       const url = isPlaywrightPage(page)
-        ? withQuery(path, options.props)
-        : `${useNitroOrigin(e)}${withQuery(path, options.props)}`
+        ? withQuery(path, options.props || {})
+        : `${useNitroOrigin(e)}${withQuery(path, options.props || {})}`
       await gotoWithIdle(page, url, 10000)
     }
 

@@ -123,6 +123,7 @@
   },
   "dependencies": {
     "@clack/prompts": "catalog:",
+    "@nuxt/devtools-kit": "catalog:",
     "@nuxt/kit": "catalog:",
     "@vue/compiler-sfc": "catalog:",
     "chrome-launcher": "catalog:",
@@ -165,7 +166,6 @@
     "@img/sharp-linux-x64": "catalog:",
     "@nuxt/content": "catalog:",
     "@nuxt/devtools": "catalog:",
-    "@nuxt/devtools-kit": "catalog:",
     "@nuxt/devtools-ui-kit": "catalog:",
     "@nuxt/fonts": "catalog:",
     "@nuxt/icon": "catalog:",

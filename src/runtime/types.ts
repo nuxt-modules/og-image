@@ -1,4 +1,3 @@
-import type { OgImageComponents } from '#og-image/components'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { H3Error, H3Event } from 'h3'
@@ -118,7 +117,7 @@ export interface OgImagePrebuilt extends OgImageOptions {
 
 export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
 
-export interface OgImageOptions<T extends keyof OgImageComponents = keyof OgImageComponents> {
+export interface OgImageOptions {
   /**
    * The width of the screenshot.
    *
@@ -144,11 +143,11 @@ export interface OgImageOptions<T extends keyof OgImageComponents = keyof OgImag
   /**
    * The name of the component to render.
    */
-  component?: T | string
+  component?: string
   /**
    * Props to pass to the component.
    */
-  props?: OgImageComponents[T] | Record<string, any>
+  props?: Record<string, any>
   /**
    * Override renderer. Only used internally for screenshots.
    * For normal usage, renderer is determined by component filename suffix.
