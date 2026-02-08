@@ -11,8 +11,6 @@ import {
   extractUniversalVars,
   loadLightningCss,
   postProcessStyles,
-  resolveCssVars,
-  simplifyCss,
 } from '../css-utils'
 
 // Lazy-loaded heavy dependencies
@@ -224,50 +222,6 @@ function parseCssOutput(css: string, vars: Map<string, string>): ParsedCssOutput
   return { classes, perClassVars }
 }
 
-/**
- * Evaluate calc() expressions using Lightning CSS.
- */
-async function evaluateCalc(value: string): Promise<string> {
-  if (!value.includes('calc('))
-    return value
-
-  const fakeCss = `.x{v:${value}}`
-  const result = await simplifyCss(fakeCss)
-  // Safe: value ends with [^\s;] to prevent overlap with trailing \s*
-  const match = result.match(/\.x\s*\{\s*v:\s*([^\s;](?:[^;]*[^\s;])?);?\s*\}/)
-  return match?.[1]?.trim() ?? value
-}
-
-/**
- * Resolve var() references in a value string.
- */
-async function resolveVars(value: string, vars: Map<string, string>, depth = 0): Promise<string> {
-  if (depth > 10 || !value.includes('var('))
-    return evaluateCalc(value)
-
-  // Handle calc(var(--name) * N) pattern first
-  const calcMatch = value.match(/calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/)
-  if (calcMatch?.[1] && calcMatch?.[2]) {
-    const varValue = vars.get(calcMatch[1])
-    if (varValue) {
-      const numMatch = varValue.match(/([\d.]+)(rem|px|em|%)/)
-      if (numMatch?.[1] && numMatch?.[2]) {
-        const computed = Number.parseFloat(numMatch[1]) * Number.parseFloat(calcMatch[2])
-        return `${computed}${numMatch[2]}`
-      }
-    }
-  }
-
-  // Resolve var() references
-  const result = resolveCssVars(value, vars)
-
-  // If still has var(), recurse
-  if (result.includes('var(') && depth < 10)
-    return resolveVars(result, vars, depth + 1)
-
-  return evaluateCalc(result)
-}
-
 // ============================================================================
 // Gradient handling
 // ============================================================================
@@ -391,7 +345,7 @@ export async function resolveClassesToStyles(
       // Merge global vars with per-class var overrides for resolution
       const classVars = perClassVars.get(className)
       const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
-      const styles = await postProcessStyles(rawStyles, mergedVars, resolveVars)
+      const styles = await postProcessStyles(rawStyles, mergedVars)
       resolvedStyleCache.set(className, styles)
     }
 

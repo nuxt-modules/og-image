@@ -74,6 +74,24 @@ export function extractUniversalVars(css: string): Map<string, string> {
 }
 
 /**
+ * Extract initial-value from @property rules.
+ * CSS Houdini @property provides registered custom property defaults.
+ * Used by UnoCSS preset-wind4 for shadow/ring variable defaults.
+ */
+export function extractPropertyInitialValues(css: string): Map<string, string> {
+  const vars = new Map<string, string>()
+  const propertyRe = /@property\s+(--[\w-]+)\s*\{([^}]+)\}/g
+  for (const match of css.matchAll(propertyRe)) {
+    const name = match[1]!
+    const body = match[2]!
+    const initialMatch = body.match(/initial-value\s*:\s*([^\s;][^;]*);?/)
+    if (initialMatch?.[1])
+      vars.set(name, initialMatch[1].trim())
+  }
+  return vars
+}
+
+/**
  * Extract per-class CSS variable declarations.
  * Returns a map of className -> { varName -> value } for classes that define CSS variables.
  * Used to capture TW4 class-scoped overrides (e.g., `.shadow-2xl { --tw-shadow: ... }`).
@@ -437,6 +455,56 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
 }
 
 // ============================================================================
+// Calc evaluation
+// ============================================================================
+
+/**
+ * Evaluate calc() expressions using Lightning CSS.
+ */
+export async function evaluateCalc(value: string): Promise<string> {
+  if (!value.includes('calc('))
+    return value
+  const fakeCss = `.x{v:${value}}`
+  const result = await simplifyCss(fakeCss)
+  // Safe: value ends with [^\s;] to prevent overlap with trailing \s*
+  const match = result.match(/\.x\s*\{\s*v:\s*([^\s;](?:[^;]*[^\s;])?);?\s*\}/)
+  return match?.[1]?.trim() ?? value
+}
+
+// ============================================================================
+// Deep var resolution
+// ============================================================================
+
+/**
+ * Resolve var() references recursively with calc() evaluation.
+ * Handles calc(var(--name) * N) optimization and nested var() references.
+ */
+export async function resolveVarsDeep(value: string, vars: Map<string, string>, depth = 0): Promise<string> {
+  if (depth > 10 || !value.includes('var('))
+    return evaluateCalc(value)
+
+  // Optimize: calc(var(--name) * N) → pre-computed value
+  const calcMatch = value.match(/calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/)
+  if (calcMatch?.[1] && calcMatch?.[2]) {
+    const varValue = vars.get(calcMatch[1])
+    if (varValue) {
+      const numMatch = varValue.match(/([\d.]+)(rem|px|em|%)/)
+      if (numMatch?.[1] && numMatch?.[2]) {
+        const computed = Number.parseFloat(numMatch[1]) * Number.parseFloat(calcMatch[2])
+        return `${computed}${numMatch[2]}`
+      }
+    }
+  }
+
+  const result = resolveCssVars(value, vars)
+
+  if (result.includes('var(') && depth < 10)
+    return resolveVarsDeep(result, vars, depth + 1)
+
+  return evaluateCalc(result)
+}
+
+// ============================================================================
 // Post-processing pipeline
 // ============================================================================
 
@@ -452,7 +520,7 @@ export async function postProcessStyles(
   resolveVar?: (value: string, vars: Map<string, string>) => Promise<string> | string,
 ): Promise<Record<string, string> | null> {
   const styles: Record<string, string> = {}
-  const resolve = resolveVar || ((value: string, v: Map<string, string>) => resolveCssVars(value, v))
+  const resolve = resolveVar || resolveVarsDeep
 
   for (const [prop, rawValue] of Object.entries(rawStyles)) {
     let value = await resolve(rawValue, vars)
@@ -465,9 +533,23 @@ export async function postProcessStyles(
     if (value === 'initial' || value === 'inherit' || value === 'unset' || value === 'revert')
       continue
 
+    // Skip malformed calc() from unresolved vars (e.g., "calc( * 16)")
+    if (/calc\(\s*[*/]/.test(value))
+      continue
+
     // Normalize calc(infinity * 1px) → 9999px (TW4 rounded-full, etc.)
-    if (value.includes('calc(infinity'))
+    // Also catch Lightning CSS pre-evaluated infinity: 3.40282e38px
+    if (value.includes('calc(infinity') || /\d\.?\d*e\+?\d+px/.test(value))
       value = '9999px'
+
+    // Clean up empty segments in comma-separated values
+    // (e.g., ", , , 0 10px 15px" → "0 10px 15px" from unresolved shadow vars)
+    if (value.includes(',')) {
+      const cleaned = value.split(',').map(s => s.trim()).filter(Boolean).join(', ')
+      if (!cleaned)
+        continue
+      value = cleaned
+    }
 
     // Convert colors
     if (COLOR_PROPERTIES.has(prop)) {
@@ -478,6 +560,12 @@ export async function postProcessStyles(
         })
       }
       else {
+        // Handle color-mix(in oklab, <color> N%, transparent) → <color>
+        if (value.startsWith('color-mix(')) {
+          const mixMatch = value.match(/color-mix\(in\s+\w+,\s*([#\w().,\s]+?)\s+(\d+)%,\s*transparent\)/)
+          if (mixMatch?.[1] && mixMatch?.[2] === '100')
+            value = mixMatch[1].trim()
+        }
         value = convertColorToHex(value)
       }
     }

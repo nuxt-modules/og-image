@@ -1,7 +1,7 @@
 import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
 import { logger } from '../../../runtime/logger'
-import { extractClassStyles, postProcessStyles, simplifyCss } from '../css-utils'
+import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, postProcessStyles, simplifyCss } from '../css-utils'
 
 // State
 let unoConfig: UserConfig | null = null
@@ -73,14 +73,39 @@ export function createUnoProvider(): CssProvider {
 
       const simplifiedCss = await simplifyCss(css)
 
-      // Extract class styles and collect CSS variables in a single pass
+      // Extract CSS variables from all sources
       const vars = new Map<string, string>()
+
+      // :root/:host variables (e.g., --spacing: 0.25rem)
+      for (const [name, value] of extractCssVars(simplifiedCss))
+        vars.set(name, value)
+
+      // @property initial-values (CSS Houdini defaults for shadow/ring vars)
+      for (const [name, value] of extractPropertyInitialValues(simplifiedCss)) {
+        if (!vars.has(name))
+          vars.set(name, value)
+      }
+
+      // Universal selector variables (*, ::before, ::after)
+      // Provides defaults for --un-shadow, --un-ring-shadow, etc.
+      for (const [name, value] of extractUniversalVars(simplifiedCss)) {
+        if (!vars.has(name))
+          vars.set(name, value)
+      }
+
+      // Per-class CSS variable overrides (e.g., .shadow-lg { --un-shadow: ... })
+      const perClassVars = extractPerClassVars(simplifiedCss)
+
+      // Extract class styles, collecting additional vars
       const classMap = extractClassStyles(simplifiedCss, { collectVars: vars })
 
       const result: Record<string, Record<string, string>> = {}
 
       for (const [className, rawStyles] of classMap) {
-        const styles = await postProcessStyles(rawStyles, vars)
+        // Merge global vars with per-class overrides
+        const classVars = perClassVars.get(className)
+        const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
+        const styles = await postProcessStyles(rawStyles, mergedVars)
         if (styles)
           result[className] = styles
       }
