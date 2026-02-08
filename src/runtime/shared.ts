@@ -111,13 +111,13 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
       // with a simple kebab case conversion
       props[key.replace(/-([a-z])/g, g => String(g[1]).toUpperCase())] = val
     })
-  return {
-    ...Object.fromEntries(
-      Object.entries({ ...options })
-        .filter(([k]) => filterIsOgImageOption(k) || ignoreKeys.includes(k)),
-    ),
-    props,
-  } as OgImageOptions
+  const result: Record<string, any> = Object.fromEntries(
+    Object.entries({ ...options })
+      .filter(([k]) => filterIsOgImageOption(k) || ignoreKeys.includes(k)),
+  )
+  if (Object.keys(props).length > 0)
+    result.props = props
+  return result as OgImageOptions
 }
 
 export function withoutQuery(path: string) {
