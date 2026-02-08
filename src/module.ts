@@ -1054,7 +1054,7 @@ export default defineNuxtModule<ModuleOptions>({
             }
           }
         }
-        else {
+        else if (!nuxt.options._prepare) {
           const message = `OG Image components missing renderer suffix (.satori.vue, .browser.vue, .takumi.vue):\n${
             invalidComponents.map(c => `  ${c}`).join('\n')
           }\n\nRun: npx nuxt-og-image migrate v6`
