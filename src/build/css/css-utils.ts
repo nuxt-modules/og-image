@@ -1,21 +1,19 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
-import { formatHex, parse, toGamut } from 'culori'
-
-// Gamut map oklch to sRGB using culori's toGamut
-const toSrgbGamut = toGamut('rgb', 'oklch')
 
 // ============================================================================
 // Lightning CSS lazy loading (replaces postcss)
 // ============================================================================
 
 let transform: typeof import('lightningcss').transform
+let Features: typeof import('lightningcss').Features
 
 export async function loadLightningCss() {
   if (!transform) {
     const lcss = await import('lightningcss')
     transform = lcss.transform
+    Features = lcss.Features
   }
-  return { transform }
+  return { transform, Features }
 }
 
 /**
@@ -299,17 +297,41 @@ export function extractClassStyles(
 // ============================================================================
 
 /**
- * Convert any CSS color to hex with proper gamut mapping for oklch.
+ * Downlevel a CSS color value to hex/rgba using Lightning CSS.
+ * Handles oklch(), oklab(), color-mix(), lab(), lch(), etc.
  * Returns original value if parsing fails or contains var().
  */
-export function convertColorToHex(value: string): string {
+export async function downlevelColor(prop: string, value: string): Promise<string> {
   if (!value || value.includes('var('))
     return value
-  const color = parse(value)
-  if (!color)
+  const { transform, Features } = await loadLightningCss()
+  const css = `.x{${prop}:${value}}`
+  try {
+    const result = transform({
+      filename: 'color.css',
+      code: Buffer.from(css),
+      include: Features.Colors,
+      minify: false,
+    })
+    // Lightning CSS outputs fallback first, then progressive enhancement:
+    //   .x { color: #007565; color: lab(...) }
+    // Extract the first value (hex/rgba fallback)
+    const output = result.code.toString()
+    const propPattern = `${prop}:`
+    const idx = output.indexOf(propPattern)
+    if (idx === -1)
+      return value
+    const afterProp = output.slice(idx + propPattern.length)
+    // Find end of first declaration (semicolon or closing brace)
+    const endIdx = Math.min(
+      ...[afterProp.indexOf(';'), afterProp.indexOf('}')]
+        .filter(i => i !== -1),
+    )
+    return endIdx > 0 ? afterProp.slice(0, endIdx).trim() : value
+  }
+  catch {
     return value
-  const mapped = toSrgbGamut(color)
-  return formatHex(mapped) || value
+  }
 }
 
 /**
@@ -551,24 +573,9 @@ export async function postProcessStyles(
       value = cleaned
     }
 
-    // Convert colors
-    if (COLOR_PROPERTIES.has(prop)) {
-      if (prop === 'background-image' && value.includes('gradient')) {
-        value = value.replace(/oklch\([^)]+\)/g, (match) => {
-          const hex = convertColorToHex(match)
-          return hex.startsWith('#') ? hex : match
-        })
-      }
-      else {
-        // Handle color-mix(in oklab, <color> N%, transparent) → <color>
-        if (value.startsWith('color-mix(')) {
-          const mixMatch = value.match(/color-mix\(in\s+\w+,\s*([#\w().,\s]+?)\s+(\d+)%,\s*transparent\)/)
-          if (mixMatch?.[1] && mixMatch?.[2] === '100')
-            value = mixMatch[1].trim()
-        }
-        value = convertColorToHex(value)
-      }
-    }
+    // Downlevel modern colors (oklch, color-mix, etc.) to hex/rgba via Lightning CSS
+    if (COLOR_PROPERTIES.has(prop))
+      value = await downlevelColor(prop, value)
 
     // Normalize opacity percentage to decimal
     if (prop === 'opacity' && value.endsWith('%'))

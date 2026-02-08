@@ -4,13 +4,14 @@ import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
 import twColors from 'tailwindcss/colors'
 import {
-  convertColorToHex,
+  downlevelColor,
   extractClassStyles,
   extractCssVars,
   extractPerClassVars,
   extractUniversalVars,
   loadLightningCss,
   postProcessStyles,
+  resolveVarsDeep,
 } from '../css-utils'
 
 // Lazy-loaded heavy dependencies
@@ -258,18 +259,18 @@ async function resolveGradientColor(cls: string, vars: Map<string, string>): Pro
     const varName = `--color-${shadeMatch[1]}-${shadeMatch[2]}`
     const value = vars.get(varName)
     if (value) {
-      const resolved = await resolveVars(value, vars)
+      const resolved = await resolveVarsDeep(value, vars)
       if (!resolved.includes('var('))
-        return convertColorToHex(resolved)
+        return downlevelColor('color', resolved)
     }
   }
 
   const varName = `--color-${colorName}`
   const value = vars.get(varName)
   if (value) {
-    const resolved = await resolveVars(value, vars)
+    const resolved = await resolveVarsDeep(value, vars)
     if (!resolved.includes('var('))
-      return convertColorToHex(resolved)
+      return downlevelColor('color', resolved)
   }
 
   return null
@@ -388,7 +389,7 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
   const colors: Tw4Colors = {}
 
   for (const [name, value] of vars) {
-    const resolvedValue = await resolveVars(value, vars)
+    const resolvedValue = await resolveVarsDeep(value, vars)
 
     if (name.startsWith('--font-')) {
       fontVars[name.slice(2)] = resolvedValue
@@ -401,7 +402,7 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
     else if (name.startsWith('--color-') && !resolvedValue.includes('var(')) {
       const colorPath = name.slice(8)
       const shadeMatch = colorPath.match(/^(.+)-(\d+)$/)
-      const hexValue = convertColorToHex(resolvedValue)
+      const hexValue = await downlevelColor('color', resolvedValue)
 
       if (shadeMatch) {
         const [, colorName, shade] = shadeMatch
