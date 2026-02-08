@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from '#imports'
+import { onBeforeUnmount, ref, watch } from '#imports'
 
 const props = defineProps<{
   src: string
@@ -12,22 +12,36 @@ const props = defineProps<{
 const emit = defineEmits(['load'])
 
 const error = ref<string[] | false>(false)
-const loading = ref(true)
+const isLoading = ref(false)
+const showSpinner = ref(false)
 const loadStart = ref(0)
+let spinnerTimer: ReturnType<typeof setTimeout> | undefined
 
 watch(() => props.src, () => {
-  loading.value = true
+  isLoading.value = true
+  showSpinner.value = false
   error.value = false
   loadStart.value = Date.now()
+  clearTimeout(spinnerTimer)
+  spinnerTimer = setTimeout(() => {
+    if (isLoading.value)
+      showSpinner.value = true
+  }, 200)
 }, { immediate: true })
 
 function onLoad() {
-  loading.value = false
+  isLoading.value = false
+  showSpinner.value = false
+  clearTimeout(spinnerTimer)
   emit('load', { timeTaken: Date.now() - loadStart.value, sizeKb: '' })
 }
 
+onBeforeUnmount(() => clearTimeout(spinnerTimer))
+
 function onError() {
-  loading.value = false
+  isLoading.value = false
+  showSpinner.value = false
+  clearTimeout(spinnerTimer)
   $fetch(props.src).catch((err: { data?: { stack?: string[] } }) => {
     error.value = err.data?.stack || ['Failed to load image']
   })
@@ -39,12 +53,12 @@ function onError() {
     class="image-loader"
     :style="{ aspectRatio, minHeight }"
     :class="{
-      'is-valid': !error && !loading,
+      'is-valid': !error && !isLoading,
       'is-error': error,
     }"
   >
     <img
-      v-show="!loading && !error"
+      v-show="!isLoading && !error"
       :src="src"
       :style="{ aspectRatio }"
       @load="onLoad"
@@ -52,7 +66,7 @@ function onError() {
     >
 
     <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
+    <div v-if="showSpinner" class="loading-state">
       <div class="loading-spinner" />
     </div>
 
@@ -77,8 +91,7 @@ function onError() {
   height: 100%;
   margin: 0 auto;
   width: 100%;
-  transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
-  border-radius: var(--radius-md);
+  transition: box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
   background: var(--color-surface-sunken);
 }
@@ -89,7 +102,6 @@ function onError() {
   max-width: 1200px;
   object-fit: contain;
   background: var(--color-surface-sunken);
-  border-radius: var(--radius-md);
 }
 
 .image-loader.is-valid {

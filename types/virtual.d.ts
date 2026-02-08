@@ -1,6 +1,10 @@
 declare module '#og-image/components' {
   import type { Component } from 'vue'
 
+  export interface OgImageComponents {
+    [key: string]: Record<string, any>
+  }
+
   const components: Record<string, Component>
   export default components
 }

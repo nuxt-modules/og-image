@@ -3,6 +3,7 @@ import type { FontConfig, SatoriFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
+import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontCache } from './cache/lru'
 
@@ -15,6 +16,8 @@ export interface LoadFontsOptions {
   supportsWoff2: boolean
   /** Component pascalName — filters fonts to only what this component needs */
   component?: string
+  /** When set, ensures this font family is included even if not in requirements */
+  fontFamilyOverride?: string
 }
 
 async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<BufferSource | null> {
@@ -73,6 +76,15 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   const componentReqs = options.component ? (componentFontMap as Record<string, typeof fontRequirements>)[options.component] : null
   const reqs = (componentReqs && componentReqs.isComplete) ? componentReqs : fontRequirements
   const fonts = (resolvedFonts as FontConfig[]).filter(f => fontMatchesRequirements(f, reqs))
+
+  // Supplement with override family from available (unfiltered) fonts if not already loaded
+  if (options.fontFamilyOverride) {
+    const loadedFamilies = new Set(fonts.map(f => f.family))
+    if (!loadedFamilies.has(options.fontFamilyOverride)) {
+      const overrideFonts = (availableFonts as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
+      fonts.push(...overrideFonts)
+    }
+  }
 
   const results = await Promise.all(
     fonts.map(async (f) => {

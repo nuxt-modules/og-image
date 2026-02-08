@@ -16,6 +16,7 @@ export async function loadShiki() {
     langs: [
       import('@shikijs/langs/xml'),
       import('@shikijs/langs/json'),
+      import('@shikijs/langs/js'),
     ],
     engine: createJavaScriptRegexEngine(),
   })
@@ -23,7 +24,7 @@ export async function loadShiki() {
   return shiki.value
 }
 
-export function renderCodeHighlight(code: Ref<string> | string, lang: 'json' | 'xml') {
+export function renderCodeHighlight(code: Ref<string> | string, lang: 'json' | 'xml' | 'js') {
   return computed(() => {
     const colorMode = devtools.value?.colorMode || 'light'
     return shiki.value!.codeToHtml(toValue(code) || '', {

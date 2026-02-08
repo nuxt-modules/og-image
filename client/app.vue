@@ -4,6 +4,7 @@ import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch
 import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute } from '#imports'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
+import RendererSelectModal from './components/RendererSelectModal.vue'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
 import { useOgImage } from './composables/og-image'
 import { appFetch, colorMode } from './composables/rpc'
@@ -99,6 +100,7 @@ const runtimeVersion = computed(() => {
     <div class="relative bg-base flex flex-col min-h-screen">
       <div class="gradient-bg" />
       <CreateOgImageDialog />
+      <RendererSelectModal />
 
       <!-- Header -->
       <header class="header glass sticky top-0 z-50">
@@ -191,7 +193,7 @@ const runtimeVersion = computed(() => {
       </header>
 
       <!-- Main Content -->
-      <div class="flex-1 flex flex-col p-3 sm:p-4" style="min-height: calc(100vh - 60px);">
+      <div class="main-content">
         <main class="mx-auto flex flex-col w-full max-w-7xl">
           <NuxtPage />
         </main>
@@ -253,7 +255,7 @@ const runtimeVersion = computed(() => {
 .nav-tab {
   position: relative;
   border-radius: var(--radius-sm);
-  transition: all 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .nav-tab-inner {
@@ -308,6 +310,28 @@ const runtimeVersion = computed(() => {
   background: var(--color-surface-sunken) !important;
 }
 
+/* Main content wrapper */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  min-height: calc(100vh - 60px);
+}
+
+@media (min-width: 640px) {
+  .main-content {
+    padding: 1rem;
+  }
+}
+
+@media (max-height: 600px) {
+  .main-content {
+    padding: 0;
+    min-height: 0;
+  }
+}
+
 /* Base HTML */
 html {
   font-family: var(--font-sans);
@@ -330,7 +354,7 @@ textarea {
   border-radius: var(--radius-md);
 }
 
-textarea:focus {
+textarea:focus-visible {
   border-color: var(--seo-green);
   outline: none;
 }
@@ -354,10 +378,6 @@ textarea:focus {
   --jse-main-border: none !important;
 }
 
-.no-main-menu {
-  border: none !important;
-}
-
 .jse-main {
   min-height: 1em !important;
 }
@@ -365,26 +385,5 @@ textarea:focus {
 .jse-contents {
   border-width: 0 !important;
   border-radius: var(--radius-md) !important;
-}
-
-/* Tab panels */
-.tab-panels {
-  width: 100%;
-}
-
-div[role="tabpanel"] {
-  width: 100%;
-  display: flex;
-}
-
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-.no-scrollbar {
-  scrollbar-width: none;
 }
 </style>

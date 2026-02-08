@@ -101,8 +101,9 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
     }
   }
   // get the body content of the html
-  const defaultFont = getDefaultFontFamily()
-  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden; font-family: ${defaultFont};">${html}</div>`
+  const fontFamilyOverride = (ctx.options.props as Record<string, any>)?.fontFamily
+  const font = fontFamilyOverride ? `'${fontFamilyOverride}', sans-serif` : getDefaultFontFamily()
+  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden; font-family: ${font};">${html}</div>`
   // convert html to satori vnode tree
   const satoriTree = htmlToVNode(template)
   // do sync transforms

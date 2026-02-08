@@ -3,16 +3,16 @@
   "private": true,
   "devDependencies": {
     "@iconify-json/carbon": "catalog:",
-    "@iconify-json/simple-icons": "catalog:",
+    "@iconify-json/simple-icons": "catalog:devtools",
     "@nuxt/devtools-kit": "catalog:",
     "@nuxt/devtools-ui-kit": "catalog:",
     "@nuxt/fonts": "catalog:",
     "@nuxt/kit": "catalog:",
     "@nuxtjs/tailwindcss": "catalog:",
     "@vueuse/core": "catalog:",
-    "json-editor-vue": "catalog:",
+    "json-editor-vue": "catalog:devtools",
     "nuxt": "catalog:",
-    "shiki": "catalog:",
+    "shiki": "catalog:devtools",
     "vue": "catalog:",
     "vue-router": "catalog:"
   }

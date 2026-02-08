@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import type { RendererType } from '../../src/runtime/types'
 import JsonEditorVue from 'json-editor-vue'
+import { useHead } from 'nuxt/app'
 import { withHttps } from 'ufo'
-import { computed } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useOgImage } from '../composables/og-image'
+import { RendererSelectDialogPromise } from '../composables/renderer-select'
 import { isConnectionFailed, isFallbackMode } from '../composables/rpc'
 
 const {
@@ -15,6 +16,7 @@ const {
   aspectRatio,
   imageFormat,
   socialPreview,
+  imageColorMode,
   src,
   socialPreviewTitle,
   socialPreviewDescription,
@@ -26,8 +28,6 @@ const {
   isOgImageTemplate,
   renderer,
   isComponentCompatibleWithRenderer,
-  getComponentVariantForRenderer,
-  availableRenderers,
   sidePanelOpen,
   isPageScreenshot,
   currentPageFile,
@@ -42,45 +42,193 @@ const {
   openImage,
   openCurrentPageFile,
   openCurrentComponent,
-  patchOptions,
   ejectComponent,
   resetProps,
   updateProps,
   refreshSources,
 } = useOgImage()
 
-function switchRenderer(newRenderer: RendererType) {
-  // Try to find same component for new renderer
-  const variant = getComponentVariantForRenderer(newRenderer)
-  if (variant) {
-    patchOptions({ renderer: newRenderer, component: variant.pascalName })
-  }
-  else {
-    // No variant found - just switch renderer, let server handle fallback
-    patchOptions({ renderer: newRenderer })
-  }
+const rendererIcons: Record<string, string> = {
+  satori: 'logos:vercel-icon',
+  browser: 'logos:chrome',
 }
 
-const rendererDropdownItems = computed(() => [[
-  {
-    label: 'Satori',
-    icon: 'logos:vercel-icon',
-    disabled: !availableRenderers.value.has('satori'),
-    onSelect: () => switchRenderer('satori'),
-  },
-  {
-    label: 'Browser',
-    icon: 'logos:chrome',
-    disabled: !availableRenderers.value.has('browser'),
-    onSelect: () => switchRenderer('browser'),
-  },
-  {
-    label: 'Takumi',
-    avatar: { src: 'https://takumi.kane.tw/logo.svg' },
-    disabled: !availableRenderers.value.has('takumi'),
-    onSelect: () => switchRenderer('takumi'),
-  },
-]])
+const activeFormatLabel = computed(() => {
+  const ext = imageFormat.value === 'jpeg' ? 'JPG' : imageFormat.value?.toUpperCase() || 'PNG'
+  const name = renderer.value === 'browser' ? 'Browser' : renderer.value === 'takumi' ? 'Takumi' : 'Satori'
+  return `${name} - ${ext}`
+})
+
+const socialItems = [
+  { label: 'Raw', icon: 'carbon:image', value: '' },
+  // Optical size adjustments: thin logos scale up, dense filled shapes scale down
+  { label: 'Twitter / X', icon: 'simple-icons:x', value: 'twitter', iconScale: 0.8 },
+  { label: 'Facebook', icon: 'simple-icons:facebook', value: 'facebook', iconScale: 0.92 },
+  { label: 'LinkedIn', icon: 'simple-icons:linkedin', value: 'linkedin', iconScale: 0.92 },
+  { label: 'Discord', icon: 'simple-icons:discord', value: 'discord', iconScale: 0.95 },
+  { label: 'Slack', icon: 'simple-icons:slack', value: 'slack' },
+  { label: 'WhatsApp', icon: 'simple-icons:whatsapp', value: 'whatsapp', iconScale: 0.92 },
+  { label: 'Bluesky', icon: 'simple-icons:bluesky', value: 'bluesky', iconScale: 0.92 },
+]
+
+const protoTab = ref('meta-tags')
+const protoTabs = computed(() => {
+  const tabs = [
+    { label: 'Meta Tags', value: 'meta-tags' },
+    { label: 'OG Image Props', value: 'og-props' },
+    { label: 'Fonts', value: 'fonts' },
+  ]
+  if (!socialPreview.value)
+    return tabs.filter(t => t.value !== 'meta-tags')
+  return tabs
+})
+
+watch(socialPreview, (val) => {
+  if (!val && protoTab.value === 'meta-tags')
+    protoTab.value = 'og-props'
+})
+
+const isTwitterMode = computed(() => socialPreview.value === 'twitter')
+const metaLabelPrefix = computed(() => isTwitterMode.value ? 'Twitter' : 'OG')
+
+interface FontFileEntry {
+  key: string
+  family: string
+  weight: number
+  style: string
+  src: string
+  label: string
+  loaded: boolean
+}
+
+const fontFiles = computed<FontFileEntry[]>(() => {
+  const available = globalDebug.value?.availableFonts || []
+  const resolved = globalDebug.value?.resolvedFonts || []
+  if (!available.length && !resolved.length)
+    return []
+  // Build set of resolved keys for loaded check
+  const resolvedKeys = new Set(resolved.map((f: any) => `${f.family}-${f.weight}-${f.style}`))
+  // Dedupe by family+weight+style (multiple unicode-range subsets)
+  const seen = new Set<string>()
+  const entries: FontFileEntry[] = []
+  for (const f of available.length ? available : resolved) {
+    const key = `${f.family}-${f.weight}-${f.style}`
+    if (seen.has(key))
+      continue
+    seen.add(key)
+    entries.push({
+      key,
+      family: f.family,
+      weight: f.weight,
+      style: f.style,
+      src: f.src,
+      label: `${f.family} ${f.weight}${f.style === 'italic' ? 'i' : ''}`,
+      loaded: resolvedKeys.has(key),
+    })
+  }
+  // Sort: by family, then weight, then style
+  entries.sort((a, b) => a.family.localeCompare(b.family) || a.weight - b.weight || a.style.localeCompare(b.style))
+  return entries
+})
+
+const fontFamilyNames = computed(() => [...new Set(fontFiles.value.map(f => f.family))])
+const resolvedFamilyNames = computed(() => [...new Set(fontFiles.value.filter(f => f.loaded).map(f => f.family))])
+
+const detectedFontRequirements = computed(() => globalDebug.value?.fontRequirements)
+
+const unresolvedFamilies = computed(() => {
+  const detected = detectedFontRequirements.value?.families
+  if (!detected?.length)
+    return []
+  const available = new Set(fontFamilyNames.value)
+  return detected.filter((f: string) => !available.has(f))
+})
+
+const fontFaceCss = computed(() => {
+  const rules: string[] = []
+  const seen = new Set<string>()
+  for (const f of fontFiles.value) {
+    if (seen.has(f.family))
+      continue
+    seen.add(f.family)
+    rules.push(`@font-face { font-family: 'ogp-${f.family}'; src: url('${f.src}'); font-display: swap; }`)
+  }
+  return rules.join('\n')
+})
+
+useHead({ style: computed(() => fontFaceCss.value ? [fontFaceCss.value] : []) })
+
+const fontOverride = ref('')
+
+function applyFontOverride(family: string) {
+  const next = fontOverride.value === family ? '' : family
+  fontOverride.value = next
+  hasMadeChanges.value = true
+  updateProps({ fontFamily: next || undefined })
+}
+
+const metaOverrides = reactive({
+  ogTitle: '',
+  twitterTitle: '',
+  siteName: '',
+  description: '',
+})
+
+const effectiveTitle = computed(() => {
+  if (socialPreview.value === 'twitter' && metaOverrides.twitterTitle)
+    return metaOverrides.twitterTitle
+  return metaOverrides.ogTitle || socialPreviewTitle.value
+})
+
+const effectiveDescription = computed(() => {
+  return metaOverrides.description || socialPreviewDescription.value
+})
+
+const effectiveSiteName = computed(() => {
+  return metaOverrides.siteName || slackSocialPreviewSiteName.value
+})
+
+const effectiveSiteUrl = computed(() => {
+  return metaOverrides.siteName || socialSiteUrl.value
+})
+
+function updateMetaField(field: keyof typeof metaOverrides, value: string) {
+  metaOverrides[field] = value
+  hasMadeChanges.value = true
+}
+
+const hasMetaOverrides = computed(() => Object.values(metaOverrides).some(Boolean))
+
+const seoMetaSnippet = computed(() => {
+  const entries: string[] = []
+  if (metaOverrides.ogTitle)
+    entries.push(`  ogTitle: '${metaOverrides.ogTitle.replace(/'/g, '\\\'')}'`)
+  if (metaOverrides.description)
+    entries.push(`  ogDescription: '${metaOverrides.description.replace(/'/g, '\\\'')}'`)
+  if (metaOverrides.siteName)
+    entries.push(`  ogSiteName: '${metaOverrides.siteName.replace(/'/g, '\\\'')}'`)
+  if (metaOverrides.twitterTitle)
+    entries.push(`  twitterTitle: '${metaOverrides.twitterTitle.replace(/'/g, '\\\'')}'`)
+  if (!entries.length)
+    return ''
+  return `useSeoMeta({\n${entries.join(',\n')}\n})`
+})
+
+const snippetCopied = ref(false)
+
+function copySnippet() {
+  if (!seoMetaSnippet.value)
+    return
+  navigator.clipboard.writeText(seoMetaSnippet.value)
+  snippetCopied.value = true
+  setTimeout(() => snippetCopied.value = false, 2000)
+}
+
+function resetAll() {
+  resetProps(true)
+  fontOverride.value = ''
+  Object.assign(metaOverrides, { ogTitle: '', twitterTitle: '', siteName: '', description: '' })
+}
 </script>
 
 <template>
@@ -138,7 +286,7 @@ const rendererDropdownItems = computed(() => [[
           <UIcon name="carbon:image-search" class="w-8 h-8" />
         </div>
         <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
-          Loading OG Image...
+          Loading OG Image&#8230;
         </h2>
       </div>
     </div>
@@ -189,50 +337,12 @@ const rendererDropdownItems = computed(() => [[
       <div class="toolbar">
         <!-- Left: Renderer + Format controls -->
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <!-- Renderer dropdown -->
-          <UDropdownMenu :items="rendererDropdownItems">
-            <UButton color="neutral" variant="outline" size="xs">
-              <img v-if="renderer === 'takumi'" src="https://takumi.kane.tw/logo.svg" class="w-3.5 h-3.5" alt="">
-              <UIcon v-else :name="renderer === 'browser' ? 'logos:chrome' : 'logos:vercel-icon'" class="w-3.5 h-3.5" />
-              <span class="hidden sm:inline">{{ renderer === 'browser' ? 'Browser' : renderer === 'takumi' ? 'Takumi' : 'Satori' }}</span>
-              <UIcon name="carbon:chevron-down" class="w-3 h-3 opacity-60" />
-            </UButton>
-          </UDropdownMenu>
-
-          <!-- Format buttons -->
-          <div class="format-buttons">
-            <button
-              v-if="!!globalDebug?.compatibility?.sharp || renderer === 'browser' || options?.extension === 'jpeg'"
-              class="format-btn"
-              :class="{ active: imageFormat === 'jpeg' || imageFormat === 'jpg' }"
-              @click="patchOptions({ extension: 'jpg' })"
-            >
-              JPG
-            </button>
-            <button
-              class="format-btn"
-              :class="{ active: imageFormat === 'png' }"
-              @click="patchOptions({ extension: 'png' })"
-            >
-              PNG
-            </button>
-            <button
-              v-if="renderer === 'satori'"
-              class="format-btn"
-              :class="{ active: imageFormat === 'svg' }"
-              @click="patchOptions({ extension: 'svg' })"
-            >
-              SVG
-            </button>
-            <button
-              v-if="!isPageScreenshot"
-              class="format-btn"
-              :class="{ active: imageFormat === 'html' }"
-              @click="patchOptions({ extension: 'html' })"
-            >
-              HTML
-            </button>
-          </div>
+          <UButton color="neutral" variant="ghost" size="xs" aria-label="Change renderer and format" @click="RendererSelectDialogPromise.start()">
+            <img v-if="renderer === 'takumi'" src="https://takumi.kane.tw/logo.svg" class="w-3.5 h-3.5" width="14" height="14" alt="">
+            <UIcon v-else :name="rendererIcons[renderer] || 'logos:vercel-icon'" class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">{{ activeFormatLabel }}</span>
+            <UIcon name="carbon:chevron-down" class="w-3 h-3 opacity-60" />
+          </UButton>
         </div>
 
         <!-- Center: Component info -->
@@ -270,79 +380,37 @@ const rendererDropdownItems = computed(() => [[
           class="props-toggle"
           @click="sidePanelOpen = !sidePanelOpen"
         >
-          <span class="hidden sm:inline">Props</span>
+          <span class="hidden sm:inline">Debug</span>
         </UButton>
       </div>
 
       <!-- Social preview tabs -->
-      <div class="social-tabs">
-        <div class="social-buttons">
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === '' }"
-            @click="socialPreview = ''"
-          >
-            <UIcon name="carbon:image" class="w-3.5 h-3.5" />
-            Raw
-          </button>
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === 'twitter' }"
-            @click="socialPreview = 'twitter'"
-          >
-            <UIcon name="simple-icons:x" class="w-3.5 h-3.5" />
-            X
-          </button>
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === 'facebook' }"
-            @click="socialPreview = 'facebook'"
-          >
-            <UIcon name="simple-icons:facebook" class="w-3.5 h-3.5" />
-            Facebook
-          </button>
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === 'linkedin' }"
-            @click="socialPreview = 'linkedin'"
-          >
-            <UIcon name="simple-icons:linkedin" class="w-3.5 h-3.5" />
-            LinkedIn
-          </button>
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === 'discord' }"
-            @click="socialPreview = 'discord'"
-          >
-            <UIcon name="simple-icons:discord" class="w-3.5 h-3.5" />
-            Discord
-          </button>
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === 'slack' }"
-            @click="socialPreview = 'slack'"
-          >
-            <UIcon name="simple-icons:slack" class="w-3.5 h-3.5" />
-            Slack
-          </button>
-          <button
-            class="social-btn"
-            :class="{ active: socialPreview === 'whatsapp' }"
-            @click="socialPreview = 'whatsapp'"
-          >
-            <UIcon name="simple-icons:whatsapp" class="w-3.5 h-3.5" />
-            WhatsApp
-          </button>
-        </div>
+      <div class="px-3 sm:px-4 border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
+        <UTabs
+          v-model="socialPreview"
+          :items="socialItems"
+          :content="false"
+          size="xs"
+          variant="link"
+          color="neutral"
+        >
+          <template #leading="{ item, ui }">
+            <UIcon
+              :name="item.icon"
+              :class="ui.leadingIcon"
+              :style="item.iconScale ? { transform: `scale(${item.iconScale})` } : undefined"
+            />
+          </template>
+        </UTabs>
       </div>
 
       <!-- Preview area -->
-      <div class="preview-area panel-grids">
+      <div class="preview-area panel-grids" :class="{ 'preview-area--panel-open': sidePanelOpen && !isPageScreenshot }">
         <div class="preview-content">
           <!-- Twitter/X preview -->
-          <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="socialPreviewTitle" :aspect-ratio="aspectRatio">
+          <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="effectiveTitle" :aspect-ratio="aspectRatio">
             <template #domain>
-              <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ socialSiteUrl }}</a>
+              <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ effectiveSiteUrl }}</a>
             </template>
             <ImageLoader
               v-if="imageFormat !== 'html'"
@@ -364,13 +432,13 @@ const rendererDropdownItems = computed(() => [[
           <!-- Facebook preview -->
           <FacebookCardRenderer v-else-if="socialPreview === 'facebook'">
             <template #siteName>
-              {{ socialSiteUrl }}
+              {{ effectiveSiteUrl }}
             </template>
             <template #title>
-              {{ socialPreviewTitle }}
+              {{ effectiveTitle }}
             </template>
             <template #description>
-              {{ socialPreviewDescription }}
+              {{ effectiveDescription }}
             </template>
             <ImageLoader
               v-if="imageFormat !== 'html'"
@@ -391,10 +459,10 @@ const rendererDropdownItems = computed(() => [[
           <!-- LinkedIn preview -->
           <LinkedInCardRenderer v-else-if="socialPreview === 'linkedin'">
             <template #siteName>
-              {{ socialSiteUrl }}
+              {{ effectiveSiteUrl }}
             </template>
             <template #title>
-              {{ socialPreviewTitle }}
+              {{ effectiveTitle }}
             </template>
             <ImageLoader
               v-if="imageFormat !== 'html'"
@@ -415,13 +483,13 @@ const rendererDropdownItems = computed(() => [[
           <!-- Discord preview -->
           <DiscordCardRenderer v-else-if="socialPreview === 'discord'">
             <template #siteName>
-              {{ slackSocialPreviewSiteName }}
+              {{ effectiveSiteName }}
             </template>
             <template #title>
-              {{ socialPreviewTitle }}
+              {{ effectiveTitle }}
             </template>
             <template #description>
-              {{ socialPreviewDescription }}
+              {{ effectiveDescription }}
             </template>
             <ImageLoader
               v-if="imageFormat !== 'html'"
@@ -442,16 +510,16 @@ const rendererDropdownItems = computed(() => [[
           <!-- Slack preview -->
           <SlackCardRenderer v-else-if="socialPreview === 'slack'">
             <template #favIcon>
-              <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`" alt="">
+              <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`" width="30" height="30" alt="">
             </template>
             <template #siteName>
-              {{ slackSocialPreviewSiteName }}
+              {{ effectiveSiteName }}
             </template>
             <template #title>
-              {{ socialPreviewTitle }}
+              {{ effectiveTitle }}
             </template>
             <template #description>
-              {{ socialPreviewDescription }}
+              {{ effectiveDescription }}
             </template>
             <ImageLoader
               v-if="imageFormat !== 'html'"
@@ -472,16 +540,16 @@ const rendererDropdownItems = computed(() => [[
           <!-- WhatsApp preview -->
           <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'">
             <template #siteName>
-              {{ slackSocialPreviewSiteName }}
+              {{ effectiveSiteName }}
             </template>
             <template #title>
-              {{ socialPreviewTitle }}
+              {{ effectiveTitle }}
             </template>
             <template #description>
-              {{ socialPreviewDescription }}
+              {{ effectiveDescription }}
             </template>
             <template #url>
-              {{ socialSiteUrl }}
+              {{ effectiveSiteUrl }}
             </template>
             <img
               v-if="imageFormat !== 'html'"
@@ -490,6 +558,33 @@ const rendererDropdownItems = computed(() => [[
               @load="generateLoadTime({ timeTaken: '0', sizeKb: '' })"
             >
           </WhatsAppRenderer>
+
+          <!-- Bluesky preview -->
+          <BlueskyCardRenderer v-else-if="socialPreview === 'bluesky'">
+            <template #siteName>
+              {{ effectiveSiteUrl }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <template #description>
+              {{ effectiveDescription }}
+            </template>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </BlueskyCardRenderer>
 
           <!-- Raw preview -->
           <div v-else class="raw-preview">
@@ -515,17 +610,17 @@ const rendererDropdownItems = computed(() => [[
           </div>
 
           <!-- Multi-image key selector -->
-          <div v-if="allImageKeys.length > 1" class="image-key-selector">
-            <button
-              v-for="key in allImageKeys"
-              :key="key"
-              class="key-btn"
-              :class="{ active: ogImageKey === key || (!ogImageKey && key === 'og') }"
-              @click="ogImageKey = key"
-            >
-              {{ key }}
-            </button>
-          </div>
+          <UTabs
+            v-if="allImageKeys.length > 1"
+            :items="allImageKeys.map((key: string) => ({ label: key, value: key }))"
+            :model-value="ogImageKey || 'og'"
+            :content="false"
+            size="xs"
+            variant="pill"
+            color="neutral"
+            class="mt-3 justify-center"
+            @update:model-value="ogImageKey = $event as string"
+          />
         </div>
       </div>
 
@@ -541,10 +636,7 @@ const rendererDropdownItems = computed(() => [[
         <div v-if="sidePanelOpen && !isPageScreenshot" class="props-panel">
           <div class="props-header">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-[var(--color-text)]">Props</span>
-              <UBadge v-if="hasMadeChanges" color="warning" variant="subtle" size="xs">
-                modified
-              </UBadge>
+              <span class="text-sm font-medium text-[var(--color-text)]">Debug</span>
             </div>
             <div class="flex items-center gap-1">
               <UButton
@@ -552,7 +644,7 @@ const rendererDropdownItems = computed(() => [[
                 variant="ghost"
                 color="neutral"
                 size="xs"
-                @click="resetProps(true)"
+                @click="resetAll()"
               >
                 Reset
               </UButton>
@@ -561,17 +653,190 @@ const rendererDropdownItems = computed(() => [[
                 color="neutral"
                 size="xs"
                 icon="carbon:close"
+                aria-label="Close panel"
                 @click="sidePanelOpen = false"
               />
             </div>
           </div>
           <div class="props-content">
-            <JsonEditorVue
-              :model-value="propEditor"
-              class="jse-theme-dark"
-              :main-menu-bar="false"
-              :navigation-bar="false"
-              @update:model-value="updateProps"
+            <div class="px-3 pt-2 border-b border-[var(--color-border)]">
+              <UTabs
+                v-model="protoTab"
+                :items="protoTabs"
+                :content="false"
+                size="xs"
+                variant="link"
+                color="neutral"
+              />
+            </div>
+
+            <!-- Meta Tags Tab -->
+            <div v-if="protoTab === 'meta-tags'">
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>{{ metaLabelPrefix }} Title</span>
+                  <UTooltip :text="isTwitterMode ? 'The twitter:title meta tag. Controls the title shown on Twitter/X cards.' : 'The og:title meta tag. Controls the title shown when shared on social platforms.'" :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UInput
+                  :model-value="isTwitterMode ? (metaOverrides.twitterTitle || socialPreviewTitle) : (metaOverrides.ogTitle || socialPreviewTitle)"
+                  size="xs"
+                  :name="isTwitterMode ? 'twitter-title' : 'og-title'"
+                  autocomplete="off"
+                  :placeholder="isTwitterMode ? 'twitter:title…' : 'og:title…'"
+                  @update:model-value="updateMetaField(isTwitterMode ? 'twitterTitle' : 'ogTitle', $event as string)"
+                />
+              </div>
+
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>{{ metaLabelPrefix }} Description</span>
+                  <UTooltip :text="isTwitterMode ? 'The twitter:description meta tag. Controls the description shown on Twitter/X cards.' : 'The og:description meta tag. Controls the description shown when shared on social platforms.'" :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UInput
+                  :model-value="metaOverrides.description || socialPreviewDescription"
+                  size="xs"
+                  :name="isTwitterMode ? 'twitter-description' : 'og-description'"
+                  autocomplete="off"
+                  :placeholder="isTwitterMode ? 'twitter:description…' : 'og:description…'"
+                  @update:model-value="updateMetaField('description', $event as string)"
+                />
+              </div>
+
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>{{ socialPreview === 'discord' ? 'OG Site Name' : 'OG URL' }}</span>
+                  <UTooltip :text="socialPreview === 'discord' ? 'The og:site_name meta tag. Discord uses this for the provider name above the title.' : 'The og:url meta tag. The canonical URL shown in social card previews.'" :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UInput
+                  :model-value="metaOverrides.siteName || slackSocialPreviewSiteName"
+                  size="xs"
+                  :name="socialPreview === 'discord' ? 'og-site-name' : 'og-url'"
+                  autocomplete="off"
+                  :placeholder="socialPreview === 'discord' ? 'og:site_name…' : 'og:url…'"
+                  @update:model-value="updateMetaField('siteName', $event as string)"
+                />
+              </div>
+            </div>
+
+            <!-- OG Image Props Tab -->
+            <div v-else-if="protoTab === 'og-props'">
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>Color Mode</span>
+                  <UTooltip text="Changes the color mode passed to the OG image renderer." :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
+                  :icon="imageColorMode === 'dark' ? 'carbon:moon' : 'carbon:sun'"
+                  @click="imageColorMode = imageColorMode === 'dark' ? 'light' : 'dark'"
+                >
+                  {{ imageColorMode === 'dark' ? 'Dark' : 'Light' }}
+                </UButton>
+              </div>
+
+              <JsonEditorVue
+                :model-value="propEditor"
+                class="jse-theme-dark"
+                :main-menu-bar="false"
+                :navigation-bar="false"
+                @update:model-value="updateProps"
+              />
+            </div>
+
+            <!-- Fonts Tab -->
+            <div v-else-if="protoTab === 'fonts'" class="fonts-tab">
+              <!-- Detected requirements — compact summary bar -->
+              <div v-if="detectedFontRequirements" class="fonts-detected">
+                <div class="fonts-detected-inner">
+                  <span class="fonts-detected-label">Detected</span>
+                  <span v-for="w in detectedFontRequirements.weights" :key="`w-${w}`" class="fonts-chip">{{ w }}</span>
+                  <span v-for="s in detectedFontRequirements.styles" :key="`s-${s}`" class="fonts-chip">{{ s }}</span>
+                  <template v-if="detectedFontRequirements.families?.length">
+                    <span class="fonts-detected-sep" />
+                    <span
+                      v-for="f in detectedFontRequirements.families"
+                      :key="f"
+                      class="fonts-chip"
+                      :class="unresolvedFamilies.includes(f) ? 'fonts-chip--error' : 'fonts-chip--family'"
+                    >
+                      <UIcon v-if="unresolvedFamilies.includes(f)" name="carbon:warning-filled" class="w-2.5 h-2.5 shrink-0" />
+                      {{ f }}
+                    </span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Resolved fonts actually used for rendering -->
+              <div v-if="resolvedFamilyNames.length" class="fonts-detected fonts-resolved">
+                <div class="fonts-detected-inner">
+                  <span class="fonts-detected-label">Rendering</span>
+                  <span v-for="f in resolvedFamilyNames" :key="f" class="fonts-chip fonts-chip--family">{{ f }}</span>
+                </div>
+              </div>
+
+              <!-- Font specimen list -->
+              <div v-if="fontFiles.length" class="fonts-specimen">
+                <template v-for="family in fontFamilyNames" :key="family">
+                  <button
+                    class="fonts-family-row"
+                    :class="{ active: fontOverride === family }"
+                    @click="applyFontOverride(family)"
+                  >
+                    <span class="fonts-family-name" :style="{ fontFamily: `'ogp-${family}', sans-serif` }">{{ family }}</span>
+                    <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
+                  </button>
+                  <div class="fonts-variants">
+                    <div
+                      v-for="f in fontFiles.filter(ff => ff.family === family)"
+                      :key="f.key"
+                      class="fonts-variant"
+                      :class="{ loaded: f.loaded }"
+                    >
+                      <span class="fonts-variant-dot" />
+                      <span class="fonts-variant-label">{{ f.weight }}{{ f.style === 'italic' ? 'i' : '' }}</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <div v-else class="fonts-empty">
+                No fonts resolved. Install <code class="inline-code">@nuxt/fonts</code> to enable.
+              </div>
+            </div>
+
+            <!-- useSeoMeta snippet for meta tag overrides -->
+            <div v-if="protoTab === 'meta-tags' && hasMetaOverrides" class="snippet-wrapper">
+              <div class="snippet-header">
+                <code class="snippet-label">useSeoMeta</code>
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  :icon="snippetCopied ? 'carbon:checkmark' : 'carbon:copy'"
+                  @click="copySnippet"
+                />
+              </div>
+              <OCodeBlock :code="seoMetaSnippet" lang="js" class="snippet-block" />
+            </div>
+
+            <UAlert
+              v-else-if="hasMadeChanges && protoTab !== 'meta-tags'"
+              color="warning"
+              variant="subtle"
+              icon="carbon:warning"
+              title="Unsaved changes"
+              description="These changes are for preview only and won't persist."
+              class="mx-3 my-2"
             />
           </div>
         </div>
@@ -587,6 +852,21 @@ const rendererDropdownItems = computed(() => [[
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.preview-container:hover {
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+@media (max-height: 600px) {
+  .preview-container {
+    height: 100vh;
+    min-height: 0;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
 }
 
 /* Alert banners */
@@ -649,90 +929,6 @@ const rendererDropdownItems = computed(() => [[
   background: var(--color-surface-sunken);
 }
 
-/* Renderer badge */
-.renderer-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.renderer-badge.browser {
-  background: oklch(85% 0.1 230 / 0.15);
-  color: oklch(55% 0.12 230);
-}
-
-.dark .renderer-badge.browser {
-  background: oklch(45% 0.1 230 / 0.2);
-  color: oklch(75% 0.1 230);
-}
-
-.renderer-badge.satori {
-  background: oklch(85% 0.12 145 / 0.15);
-  color: oklch(55% 0.15 145);
-}
-
-.dark .renderer-badge.satori {
-  background: oklch(40% 0.12 145 / 0.2);
-  color: oklch(75% 0.15 145);
-}
-
-.renderer-badge.takumi {
-  background: oklch(85% 0.12 285 / 0.15);
-  color: oklch(55% 0.15 285);
-}
-
-.dark .renderer-badge.takumi {
-  background: oklch(40% 0.12 285 / 0.2);
-  color: oklch(75% 0.15 285);
-}
-
-/* Format buttons */
-.format-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-}
-
-.format-btn {
-  padding: 0.25rem 0.5rem;
-  border-radius: calc(var(--radius-sm) - 2px);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  transition: all 150ms ease;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-@media (min-width: 640px) {
-  .format-btn {
-    padding: 0.25rem 0.625rem;
-    font-size: 0.75rem;
-  }
-}
-
-.format-btn:hover {
-  color: var(--color-text);
-}
-
-.format-btn.active {
-  background: var(--color-surface-elevated);
-  color: var(--color-text);
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.06);
-}
-
-.dark .format-btn.active {
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
-}
-
 /* Component info */
 .component-info {
   position: absolute;
@@ -750,61 +946,6 @@ const rendererDropdownItems = computed(() => [[
   font-family: var(--font-mono, ui-monospace, monospace);
 }
 
-/* Social tabs */
-.social-tabs {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-}
-
-@media (min-width: 640px) {
-  .social-tabs {
-    padding: 0.5rem 1rem;
-  }
-}
-
-.social-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-}
-
-.social-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: calc(var(--radius-sm) - 2px);
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  transition: all 150ms ease;
-}
-
-@media (min-width: 640px) {
-  .social-btn {
-    padding: 0.25rem 0.625rem;
-  }
-}
-
-.social-btn:hover {
-  color: var(--color-text);
-}
-
-.social-btn.active {
-  background: var(--color-surface-elevated);
-  color: var(--color-text);
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.06);
-}
-
-.dark .social-btn.active {
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
-}
-
 /* Preview area */
 .preview-area {
   flex: 1;
@@ -814,11 +955,16 @@ const rendererDropdownItems = computed(() => [[
   padding: 1rem;
   overflow: auto;
   position: relative;
+  transition: padding 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (min-width: 640px) {
   .preview-area {
     padding: 1.5rem;
+  }
+
+  .preview-area--panel-open {
+    padding-right: 20rem;
   }
 }
 
@@ -826,6 +972,37 @@ const rendererDropdownItems = computed(() => [[
   width: 100%;
   max-width: 42rem;
   margin: 0 auto;
+}
+
+@media (max-height: 600px) {
+  .preview-area {
+    padding: 0.5rem;
+    overflow: hidden;
+  }
+
+  .preview-content {
+    max-width: 100%;
+    /* Scale cards to fit available height — toolbar ~40px, tabs ~36px, padding 16px */
+    max-height: calc(100vh - 160px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Constrain all card renderers to fit viewport height */
+  .preview-content :deep(img) {
+    max-height: calc(100vh - 280px);
+    width: auto;
+    object-fit: contain;
+  }
+
+  .preview-content :deep(.discord-image),
+  .preview-content :deep(.facebook-image),
+  .preview-content :deep(.linkedin-image),
+  .preview-content :deep(.bluesky-image),
+  .preview-content :deep(.slack-image) {
+    max-height: calc(100vh - 280px);
+  }
 }
 
 .raw-preview {
@@ -847,36 +1024,11 @@ const rendererDropdownItems = computed(() => [[
   color: var(--color-text-subtle);
 }
 
-/* Image key selector */
-.image-key-selector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  margin-top: 0.75rem;
-}
-
-.key-btn {
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  transition: all 150ms ease;
-}
-
-.key-btn:hover {
-  color: var(--color-text);
-}
-
-.key-btn.active {
-  background: var(--color-surface-elevated);
-  color: var(--color-text);
-  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.08);
-}
-
-.dark .key-btn.active {
-  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.25);
+@media (max-height: 600px) {
+  .status-line {
+    margin-top: 0.375rem;
+    font-size: 0.6875rem;
+  }
 }
 
 /* Props panel */
@@ -907,6 +1059,15 @@ const rendererDropdownItems = computed(() => [[
   }
 }
 
+@media (max-height: 600px) {
+  .props-panel {
+    top: 5.5rem;
+    bottom: 0.25rem;
+    right: 0.25rem;
+    border-radius: var(--radius-md);
+  }
+}
+
 .props-header {
   display: flex;
   align-items: center;
@@ -921,6 +1082,22 @@ const rendererDropdownItems = computed(() => [[
   overflow: auto;
 }
 
+.props-field {
+  padding: 0.375rem 0.75rem;
+}
+
+.props-field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 /* Empty state */
 .empty-state-icon {
   display: inline-flex;
@@ -929,14 +1106,213 @@ const rendererDropdownItems = computed(() => [[
   width: 4rem;
   height: 4rem;
   border-radius: var(--radius-lg);
-  background: oklch(85% 0.1 230 / 0.15);
-  color: oklch(55% 0.12 230);
+  background: oklch(65% 0.2 145 / 0.12);
+  color: var(--seo-green);
   margin-bottom: 1.5rem;
 }
 
 .dark .empty-state-icon {
-  background: oklch(45% 0.1 230 / 0.2);
-  color: oklch(75% 0.1 230);
+  background: oklch(65% 0.2 145 / 0.15);
+}
+
+/* Fonts tab */
+.fonts-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Detected requirements — compact summary bar */
+.fonts-detected {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.fonts-detected-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.fonts-detected-label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+  margin-right: 0.125rem;
+}
+
+.fonts-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  padding: 0.0625rem 0.3125rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1.4;
+  border-radius: 3px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+}
+
+.fonts-chip--family {
+  color: var(--seo-green);
+  border-color: oklch(65% 0.2 145 / 0.2);
+  background: oklch(65% 0.2 145 / 0.06);
+}
+
+.dark .fonts-chip--family {
+  background: oklch(65% 0.2 145 / 0.1);
+}
+
+.fonts-chip--error {
+  color: oklch(55% 0.2 25);
+  border-color: oklch(55% 0.2 25 / 0.25);
+  background: oklch(55% 0.2 25 / 0.08);
+}
+
+.dark .fonts-chip--error {
+  color: oklch(75% 0.15 25);
+  background: oklch(55% 0.2 25 / 0.12);
+}
+
+.fonts-resolved {
+  border-bottom: none;
+  padding-top: 0;
+}
+
+.fonts-detected + .fonts-resolved {
+  padding-top: 0;
+}
+
+.fonts-detected-sep {
+  width: 1px;
+  height: 0.75rem;
+  background: var(--color-border);
+  margin: 0 0.125rem;
+  flex-shrink: 0;
+}
+
+/* Font specimen list */
+.fonts-specimen {
+  display: flex;
+  flex-direction: column;
+}
+
+.fonts-family-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fonts-family-row:hover {
+  background: var(--color-surface-sunken);
+}
+
+.fonts-family-row.active {
+  background: oklch(65% 0.2 145 / 0.06);
+}
+
+.dark .fonts-family-row.active {
+  background: oklch(65% 0.2 145 / 0.08);
+}
+
+.fonts-family-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.fonts-family-row.active .fonts-family-name {
+  color: var(--seo-green);
+}
+
+.fonts-family-check {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--seo-green);
+  flex-shrink: 0;
+}
+
+.fonts-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.625rem;
+  padding: 0.125rem 0.75rem 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.fonts-variant {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fonts-variant-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-border);
+}
+
+.fonts-variant.loaded .fonts-variant-dot {
+  background: var(--seo-green);
+}
+
+.fonts-variant-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-text-subtle);
+  line-height: 1;
+}
+
+.fonts-variant.loaded .fonts-variant-label {
+  color: var(--color-text-muted);
+}
+
+.fonts-empty {
+  padding: 1rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+/* Snippet block */
+.snippet-wrapper {
+  margin: 0.5rem 0.75rem;
+}
+
+.snippet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.375rem;
+}
+
+.snippet-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: -0.01em;
+}
+
+.snippet-block {
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  padding: 0.5rem 0.625rem !important;
 }
 
 /* Inline code */

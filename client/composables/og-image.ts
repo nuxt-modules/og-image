@@ -7,7 +7,7 @@ import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
-import { description, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
+import { description, globalRefreshTime, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
 import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
 import { CreateOgImageDialogPromise } from './templates'
@@ -61,7 +61,8 @@ export function useOgImage() {
       return
     options.value = separateProps(toValue(currentOptions.value) || {}, ['socialPreview', 'options'])
     emojis.value = options.value.emojis
-    propEditor.value = options.value.props
+    if (!hasMadeChanges.value)
+      propEditor.value = options.value.props || {}
   }, {
     immediate: true,
   })
@@ -102,6 +103,7 @@ export function useOgImage() {
   })
 
   const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
+  const imageColorMode = ref<'dark' | 'light'>(colorMode.value)
 
   const src = computed(() => {
     if (isCustomOgImage.value) {
@@ -112,17 +114,16 @@ export function useOgImage() {
       return joinURL(host.value, url)
     }
     // Build encoded URL with options (Cloudinary-style)
-    const params = {
-      ...options.value,
-      ...optionsOverrides.value,
-      key: ogImageKey.value || 'og',
-      _path: path.value,
-      _query: query.value,
-    }
+    // Use defu to deep-merge props (shallow spread would drop original props like title)
+    const params = defu(
+      { key: ogImageKey.value || 'og', _path: path.value, _query: query.value },
+      optionsOverrides.value,
+      options.value,
+    )
     const encoded = encodeOgImageParams(params)
     return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
       timestamp: refreshTime.value, // Cache bust for devtools
-      colorMode: colorMode.value, // Pass color mode to renderer
+      colorMode: imageColorMode.value, // Pass color mode to renderer
     })
   })
 
@@ -156,7 +157,7 @@ export function useOgImage() {
   }
 
   const activeComponentName = computed(() => {
-    let componentName = optionsOverrides.value?.component || options.value?.component || 'NuxtSeo'
+    let componentName = String(optionsOverrides.value?.component || options.value?.component || 'NuxtSeo')
     for (const componentDirName of (globalDebug?.value?.runtimeConfig.componentDirs || [])) {
       componentName = componentName.replace(componentDirName, '')
     }
@@ -370,7 +371,11 @@ export function useOgImage() {
     if (!dir)
       return
     const v = await ogImageRpc.value!.ejectCommunityTemplate(`${dir}/${component}.vue`)
-    await devtoolsClient.value?.devtools.rpc.openInEditor(v)
+    // Refresh component list so the ejected app component is picked up
+    globalRefreshTime.value = Date.now()
+    refreshSources()
+    if (v)
+      await devtoolsClient.value?.devtools.rpc.openInEditor(v)
   }
 
   async function resetProps(fetch = true) {
@@ -413,6 +418,7 @@ export function useOgImage() {
     aspectRatio,
     imageFormat,
     socialPreview,
+    imageColorMode,
     src,
     socialPreviewTitle,
     socialPreviewDescription,

@@ -31,10 +31,11 @@ function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warni
 export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg: string | void, warnings: string[] }> {
   const { options } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
+  const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
   const [satori, vnodes, fonts] = await Promise.all([
     useSatori(),
     createVNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: false, component: options.component }),
+    loadAllFonts(event.e, { supportsWoff2: false, component: options.component, fontFamilyOverride }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)

@@ -31,6 +31,7 @@ import { convertWoff2ToTtf, persistFontUrlMapping, resolveOgImageFonts } from '.
 import {
   buildFontRequirements,
   copyTtfFontsToOutput,
+  parseFontsFromTemplate,
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
@@ -1124,6 +1125,14 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         logger,
         ogFontsDir: resolve('./runtime/public/_og-fonts'),
       })
+      return `export default ${JSON.stringify(fonts)}`
+    }
+
+    // All available fonts (unfiltered) for devtools Fonts tab
+    nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
+      const fonts = hasNuxtFonts
+        ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets: config.fontSubsets })
+        : []
       return `export default ${JSON.stringify(fonts)}`
     }
 

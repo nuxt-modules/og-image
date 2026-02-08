@@ -2,6 +2,7 @@
 // @ts-nocheck - vue-router type recursion causes excessive stack depth
 import type {
   DevToolsMetaDataExtraction,
+  FontConfig,
   OgImageComponent,
   OgImageOptions,
   OgImageRuntimeConfig,
@@ -31,4 +32,6 @@ export interface GlobalDebugResponse {
   componentNames: OgImageComponent[]
   siteConfigUrl?: string
   compatibility?: RuntimeCompatibilitySchema
+  resolvedFonts?: FontConfig[]
+  availableFonts?: FontConfig[]
 }

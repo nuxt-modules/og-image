@@ -3,7 +3,6 @@
 
 <template>
   <div class="discord-card">
-    <div class="discord-bar" />
     <div class="discord-body">
       <div class="discord-sitename">
         <slot name="siteName" />
@@ -25,49 +24,47 @@
 <style>
 .discord-card {
   display: flex;
-  max-width: 420px;
+  max-width: 432px;
   margin: 0 auto;
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid #e3e5e8;
+  border-left: 4px solid #e3e5e8;
   background: #f2f3f5;
-  padding: 12px 16px;
-  box-shadow: 0 4px 24px oklch(0% 0 0 / 0.1);
-  font-family: 'Hubot Sans', 'gg sans', 'Noto Sans', sans-serif;
+  overflow: hidden;
+  font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 .dark .discord-card {
-  background: #2f3136;
-  box-shadow: 0 4px 24px oklch(0% 0 0 / 0.25);
-}
-
-.discord-bar {
-  width: 4px;
-  border-radius: 4px;
-  background: #5865f2;
-  margin-right: 12px;
-  flex-shrink: 0;
+  background: #2b2d31;
+  border-color: #232428;
+  border-left-color: #1e1f22;
 }
 
 .discord-body {
   flex: 1;
   min-width: 0;
+  padding: 8px 16px 16px 12px;
 }
 
 .discord-sitename {
   font-size: 12px;
-  color: oklch(55% 0.04 285);
-  margin-bottom: 4px;
+  font-weight: 400;
+  color: #4e5058;
+  margin-bottom: 2px;
+  line-height: 16px;
 }
 
 .dark .discord-sitename {
-  color: oklch(70% 0.03 285);
+  color: #b5bac1;
 }
 
 .discord-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #006ce7;
   cursor: pointer;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  line-height: 22px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -75,7 +72,7 @@
 }
 
 .dark .discord-title {
-  color: #00aff4;
+  color: #00a8fc;
 }
 
 .discord-title:hover {
@@ -84,24 +81,25 @@
 
 .discord-description {
   font-size: 14px;
-  color: oklch(40% 0.03 285);
-  line-height: 1.4;
-  margin-bottom: 12px;
+  color: #313338;
+  line-height: 18px;
+  margin-bottom: 16px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  white-space: pre-wrap;
 }
 
 .dark .discord-description {
-  color: oklch(75% 0.02 285);
+  color: #dbdee1;
 }
 
 .discord-image {
   border-radius: 4px;
   overflow: hidden;
   position: relative;
-  max-width: 100%;
+  max-width: 400px;
   max-height: 300px;
 }
 
@@ -110,17 +108,18 @@
   max-width: 100%;
   max-height: 300px;
   border-radius: 4px;
+  display: block;
 }
 
 .discord-image-overlay {
   position: absolute;
   inset: 0;
-  box-shadow: inset 0 0 0 1px oklch(0% 0 0 / 0.05);
+  box-shadow: inset 0 0 0 1px oklch(0% 0 0 / 0.04);
   border-radius: 4px;
   pointer-events: none;
 }
 
 .dark .discord-image-overlay {
-  box-shadow: inset 0 0 0 1px oklch(100% 0 0 / 0.05);
+  box-shadow: inset 0 0 0 1px oklch(100% 0 0 / 0.06);
 }
 </style>

@@ -73,9 +73,10 @@ function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options } = event
 
+  const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
   const [nodes, fonts] = await Promise.all([
     createTakumiNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: true, component: options.component }),
+    loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
@@ -83,9 +84,12 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const state = await useTakumiState(event)
   await loadFontsIntoRenderer(state, fonts)
 
-  // Set default fontFamily on root node using all loaded subset names
+  // Set fontFamily on root node — use override if specified, otherwise all loaded subsets
   nodes.style = nodes.style || {}
-  if (!nodes.style.fontFamily) {
+  if (fontFamilyOverride && state.familySubsetNames.has(fontFamilyOverride)) {
+    nodes.style.fontFamily = fontFamilyOverride
+  }
+  else if (!nodes.style.fontFamily) {
     const allSubsetNames = [...state.familySubsetNames.values()].flat()
     if (allSubsetNames.length)
       nodes.style.fontFamily = allSubsetNames.join(', ')

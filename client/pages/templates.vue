@@ -25,7 +25,7 @@ function selectTemplate(componentName: string) {
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner" />
       <p class="loading-text">
-        Loading templates...
+        Loading templates&#8230;
       </p>
     </div>
 

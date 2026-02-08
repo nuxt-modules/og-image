@@ -87,6 +87,11 @@ declare module '#og-image/fonts' {
   export default fonts
 }
 
+declare module '#og-image/fonts-available' {
+  const fonts: Array<{ family: string, src: string, weight: number, style: string, satoriSrc?: string, unicodeRange?: string }>
+  export default fonts
+}
+
 declare module '#og-image/font-requirements' {
   export const fontRequirements: {
     weights: number[]

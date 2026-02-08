@@ -25,12 +25,10 @@ catalog:
   '@clack/prompts': ^1.0.0
   '@css-inline/css-inline': ^0.20.0
   '@css-inline/css-inline-wasm': ^0.20.0
-  '@headlessui/vue': ^1.7.23
   '@iconify-json/carbon': ^1.2.18
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.9
-  '@iconify-json/simple-icons': ^1.2.69
   '@iconify-json/tabler': ^1.2.26
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.11.2
@@ -74,7 +72,6 @@ catalog:
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
   jiti: ^2.6.1
-  json-editor-vue: ^0.18.1
   lightningcss: ^1.31.1
   magic-string: ^0.30.21
   magicast: ^0.5.2
@@ -93,7 +90,6 @@ catalog:
   satori: 0.19.1
   satori-legacy: npm:satori@0.15.2
   sharp: ^0.34.5
-  shiki: ^3.22.0
   sirv: ^3.0.2
   std-env: ^3.10.0
   strip-literal: ^3.1.0
@@ -111,6 +107,12 @@ catalog:
   vue-tsc: ^3.2.4
   wrangler: ^4.63.0
   yoga-wasm-web: ^0.3.3
+catalogs:
+  devtools:
+    '@iconify-json/simple-icons': ^1.2.69
+    json-editor-vue: ^0.18.1
+    shiki: ^3.22.0
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'

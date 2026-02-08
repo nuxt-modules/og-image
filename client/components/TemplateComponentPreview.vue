@@ -111,7 +111,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
   border-radius: 10px;
   overflow: hidden;
   border: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   background: oklch(98% 0.005 285);
 }
 
@@ -120,12 +120,12 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 }
 
 .template-preview:hover {
-  border-color: #22c55e;
+  border-color: var(--seo-green);
   box-shadow: 0 4px 16px oklch(0% 0 0 / 0.08);
 }
 
 .template-preview.is-active {
-  border-color: #22c55e;
+  border-color: var(--seo-green);
   box-shadow: 0 0 0 3px oklch(75% 0.15 145 / 0.2);
 }
 
@@ -139,7 +139,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
   position: absolute;
   top: 8px;
   right: 8px;
-  color: #22c55e;
+  color: var(--seo-green);
   z-index: 1;
   filter: drop-shadow(0 1px 2px oklch(0% 0 0 / 0.2));
 }
@@ -162,7 +162,7 @@ const loadStats = ref<{ timeTaken: string, sizeKb: string }>()
 }
 
 .template-action:hover {
-  color: #22c55e;
+  color: var(--seo-green);
 }
 
 .dark .template-action {

@@ -2,11 +2,6 @@
 import type { Ref } from 'vue'
 import type { GlobalDebugResponse } from '../composables/fetch'
 import { inject } from '#imports'
-import {
-  RadioGroup,
-  RadioGroupLabel,
-  RadioGroupOption,
-} from '@headlessui/vue'
 import { computed, ref, watch } from 'vue'
 import { GlobalDebugKey } from '../composables/keys'
 import { CreateOgImageDialogPromise } from '../composables/templates'
@@ -18,91 +13,44 @@ function handleClose(_a: unknown, resolve: (value: string | false) => void) {
 const globalDebug = inject(GlobalDebugKey) as Ref<GlobalDebugResponse | null>
 
 const componentDirs = computed(() => globalDebug.value?.runtimeConfig?.componentDirs || [])
-const component = ref(componentDirs.value[0])
+const selected = ref(componentDirs.value[0])
 watch(componentDirs, (dirs) => {
-  if (!component.value && dirs.length > 0)
-    component.value = dirs[0]
+  if (!selected.value && dirs.length > 0)
+    selected.value = dirs[0]
 })
 </script>
 
 <template>
   <CreateOgImageDialogPromise v-slot="{ resolve, args }">
-    <div my-10>
-      <UModal :open="true" style="max-height: 80vh;" @update:open="handleClose('a', resolve)" @close="handleClose('b', resolve)">
-        <div flex="~ col gap-2" w-200 p4 border="t base">
-          <h2 text-xl class="text-primary">
-            Eject Component
-          </h2>
+    <UModal
+      :open="true"
+      title="Eject Component"
+      description="Copy a community template to an OG Image component directory in your project. You can configure directories using componentDirs in nuxt.config."
+      @update:open="handleClose('a', resolve)"
+      @close="handleClose('b', resolve)"
+    >
+      <template #body>
+        <URadioGroup
+          v-model="selected"
+          :items="componentDirs.map((dir: string) => ({
+            label: `./components/${dir}/${args[0]}.vue`,
+            value: dir,
+          }))"
+          variant="card"
+          legend="Choose Output Path"
+        />
+      </template>
 
-          <p>Copy a community template to a OG Image component directory in your project. You can configure directories using <span class="opacity-50">componentDirs</span> in nuxt.config.</p>
-
-          <RadioGroup v-model="component">
-            <div class="mb-3 mt-6 font-medium text-sm">
-              <RadioGroupLabel>Choose Output Path</RadioGroupLabel>
-            </div>
-            <div class="space-y-2">
-              <RadioGroupOption
-                v-for="dir in componentDirs"
-                :key="dir"
-                v-slot="{ active, checked }"
-                as="template"
-                :value="dir"
-              >
-                <div
-                  :class="[
-                    active
-                      ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-sky-300'
-                      : '',
-                    checked ? 'bg-sky-700/75 text-white ' : 'bg-white ',
-                  ]"
-                  class="relative flex cursor-pointer rounded-lg px-5 py-4 shadow-md focus:outline-none"
-                >
-                  <div class="flex w-full items-center justify-between">
-                    <div class="flex items-center">
-                      <div class="text-sm">
-                        <RadioGroupLabel
-                          as="p"
-                          :class="checked ? 'text-white' : 'text-gray-900'"
-                          class="font-medium"
-                        >
-                          ./components/{{ dir }}/{{ args[0] }}.vue
-                        </RadioGroupLabel>
-                      </div>
-                    </div>
-                    <div v-show="checked" class="shrink-0 text-white">
-                      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="12"
-                          fill="#fff"
-                          fill-opacity="0.2"
-                        />
-                        <path
-                          d="M7 13l3 3 7-7"
-                          stroke="#fff"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </RadioGroupOption>
-            </div>
-          </RadioGroup>
-
-          <div flex="~ gap-3" mt2 justify-end>
-            <UButton variant="ghost" @click="resolve(false)">
-              Cancel
-            </UButton>
-            <UButton color="primary" class="px-3 py-1.5 rounded" @click="resolve(component || false)">
-              Create Component
-            </UButton>
-          </div>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton variant="ghost" color="neutral" @click="resolve(false)">
+            Cancel
+          </UButton>
+          <UButton color="primary" @click="resolve(selected || false)">
+            Create Component
+          </UButton>
         </div>
-      </UModal>
-    </div>
+      </template>
+    </UModal>
   </CreateOgImageDialogPromise>
 </template>

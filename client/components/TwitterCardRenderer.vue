@@ -85,7 +85,7 @@ const isSmallCard = computed(() => {
   border: 1px solid oklch(92% 0.01 285);
   background: oklch(100% 0 0);
   box-shadow: 0 4px 24px oklch(0% 0 0 / 0.06);
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dark .twitter-card .card-container {
