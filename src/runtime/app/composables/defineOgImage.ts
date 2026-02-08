@@ -1,9 +1,9 @@
 import type { OgImageComponents } from '#og-image/components'
-import type { ExtractComponentProps, OgImageOptions } from '../../types'
+import type { OgImageOptions, ReactiveComponentProps } from '../../types'
 import { _defineOgImageRaw } from './_defineOgImageRaw'
 
 type OgImageComponentOptions<T extends keyof OgImageComponents> = OgImageOptions & {
-  props?: Partial<ExtractComponentProps<OgImageComponents[T]>>
+  props?: ReactiveComponentProps<OgImageComponents[T]>
 }
 
 /**
@@ -15,7 +15,7 @@ type OgImageComponentOptions<T extends keyof OgImageComponents> = OgImageOptions
  */
 export function defineOgImage<T extends keyof OgImageComponents>(
   component: T,
-  propsOrOptions: Partial<ExtractComponentProps<OgImageComponents[T]>> | OgImageComponentOptions<T>[] = {},
+  propsOrOptions: ReactiveComponentProps<OgImageComponents[T]> | OgImageComponentOptions<T>[] = {},
   options: OgImageOptions = {},
 ): string[] {
   // Handle array of options

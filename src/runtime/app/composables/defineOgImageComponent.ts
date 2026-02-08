@@ -1,5 +1,5 @@
 import type { OgImageComponents } from '#og-image/components'
-import type { ExtractComponentProps, OgImageOptions } from '../../types'
+import type { OgImageOptions, ReactiveComponentProps } from '../../types'
 import { logger } from '../../logger'
 import { defineOgImage } from './defineOgImage'
 
@@ -9,7 +9,7 @@ import { defineOgImage } from './defineOgImage'
  */
 export function defineOgImageComponent<T extends keyof OgImageComponents>(
   component: T,
-  props: Partial<ExtractComponentProps<OgImageComponents[T]>> = {} as Partial<ExtractComponentProps<OgImageComponents[T]>>,
+  props: ReactiveComponentProps<OgImageComponents[T]> = {},
   options: OgImageOptions = {},
 ): string[] {
   if (import.meta.dev) {
