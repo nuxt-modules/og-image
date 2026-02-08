@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
 import { buildDir } from '#og-image-virtual/build-dir.mjs'
+import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
@@ -79,6 +80,16 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
 
   // Use event.$fetch for internal routing — avoids network issues with IPv6/HTTPS dev server
   const { app } = useRuntimeConfig()
+  const origin = getNitroOrigin(event)
+  if (import.meta.dev && !origin.includes('::1')) {
+    const arrayBuffer = await $fetch(withBase(path, app.baseURL), {
+      responseType: 'arrayBuffer',
+      baseURL: getNitroOrigin(event),
+    }).catch(() => null) as ArrayBuffer
+    if (arrayBuffer) {
+      return Buffer.from(arrayBuffer)
+    }
+  }
   const fullPath = withBase(path, app.baseURL)
   const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
