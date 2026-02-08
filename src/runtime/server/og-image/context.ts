@@ -142,7 +142,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     autoEjectCommunityTemplate(normalised.component, runtimeConfig, { requestPath: e.path })
 
   const rendererType = normalised.renderer
-  const key = normalised.options.cacheKey || resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams)
+  // In hash mode, basePath is always '/' (since _path isn't in the prerender cache payload),
+  // so use the options hash directly as cache key to avoid all hash-mode images sharing one cache entry.
+  const key = normalised.options.cacheKey
+    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams))
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (rendererType) {
