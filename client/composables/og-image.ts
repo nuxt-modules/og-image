@@ -21,7 +21,7 @@ export function useOgImage() {
   const debugStatus = inject(PathDebugStatusKey, ref('idle') as Ref<'idle' | 'pending' | 'success' | 'error'>)
   const refreshPathDebug = inject(RefetchPathDebugKey, async () => {})
 
-  const isDebugLoading = computed(() => debugStatus.value === 'pending')
+  const isDebugLoading = computed(() => debugStatus.value === 'pending' && !debug.value?.extract?.options?.length)
   const error = ref(null)
 
   // Multi-image support

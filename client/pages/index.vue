@@ -353,7 +353,7 @@ function resetAll() {
             :disabled="isOgImageTemplate"
             @click="openCurrentComponent"
           >
-            <span v-if="activeComponentRelativePath"><span class="text-[var(--color-text-muted)]">{{ activeComponentRelativePath.replace(/[^/]+\.vue$/, '') }}</span><span class="text-[var(--color-text)]">{{ activeComponentRelativePath.match(/[^/]+\.vue$/)?.[0] || activeComponentName }}</span></span>
+            <span v-if="activeComponentRelativePath"><span class="text-[var(--color-text-muted)] hidden min-[850px]:inline">{{ activeComponentRelativePath.replace(/[^/]+\.vue$/, '') }}</span><span class="text-[var(--color-text)]">{{ activeComponentRelativePath.match(/[^/]+\.vue$/)?.[0] || activeComponentName }}</span></span>
             <span v-else class="text-[var(--color-text)]">{{ activeComponentName }}</span>
           </UButton>
           <UButton
@@ -1038,6 +1038,7 @@ function resetAll() {
   top: 7rem;
   bottom: 0.75rem;
   width: 18rem;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-lg);
