@@ -17,12 +17,10 @@ function buildTailwindConfig() {
 
   // Add font families
   const fontFamily: Record<string, string[]> = {}
-  if (tw4FontVars['font-sans'])
-    fontFamily.sans = [tw4FontVars['font-sans']]
-  if (tw4FontVars['font-serif'])
-    fontFamily.serif = [tw4FontVars['font-serif']]
-  if (tw4FontVars['font-mono'])
-    fontFamily.mono = [tw4FontVars['font-mono']]
+  for (const [key, val] of Object.entries(tw4FontVars)) {
+    if (key.startsWith('font-') && val && /[a-z]/i.test(val))
+      fontFamily[key.slice(5)] = [val]
+  }
   if (Object.keys(fontFamily).length > 0)
     theme.fontFamily = fontFamily
 

@@ -1,5 +1,4 @@
-import type { DevToolsMetaDataExtraction, OgImageOptions } from './types'
-import { defu } from 'defu'
+import type { DevToolsMetaDataExtraction } from './types'
 
 export function extractSocialPreviewTags(html: string): [Record<string, string>, DevToolsMetaDataExtraction[]] {
   // we need to extract the social media tag data for description and title, allow property to be before and after
@@ -66,56 +65,6 @@ export function toBase64Image(data: string | ArrayBuffer) {
   const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
   const type = detectBase64MimeType(base64)
   return `data:${type};base64,${base64}`
-}
-
-export function isInternalRoute(path: string) {
-  return path.startsWith('/_') || path.startsWith('@')
-}
-
-function filterIsOgImageOption(key: string) {
-  const keys: (keyof OgImageOptions)[] = [
-    'url',
-    'extension',
-    'width',
-    'height',
-    'alt',
-    'props',
-    'renderer', // internal use only (screenshots)
-    'html',
-    'component',
-    'emojis',
-    '_query',
-    'fonts',
-    'satori',
-    'resvg',
-    'sharp',
-    'screenshot',
-    'cacheMaxAgeSeconds',
-    'key',
-  ]
-  return keys.includes(key as keyof OgImageOptions)
-}
-
-export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []): OgImageOptions {
-  options = options || {}
-  const _props = defu(options.props as Record<string, any>, Object.fromEntries(
-    Object.entries({ ...options })
-      .filter(([k]) => !filterIsOgImageOption(k) && !ignoreKeys.includes(k)),
-  ))
-  // need to make sure all props are camelCased
-  const props: Record<string, any> = {}
-  Object.entries(_props)
-    .forEach(([key, val]) => {
-      // with a simple kebab case conversion
-      props[key.replace(/-([a-z])/g, g => g[1]!.toUpperCase())] = val
-    })
-  return {
-    ...Object.fromEntries(
-      Object.entries({ ...options })
-        .filter(([k]) => filterIsOgImageOption(k) || ignoreKeys.includes(k)),
-    ),
-    props,
-  } as OgImageOptions
 }
 
 export function withoutQuery(path: string) {

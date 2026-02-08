@@ -66,6 +66,19 @@ describe('urlEncoding', () => {
       expect(encoded).toBe('w_1200')
     })
 
+    it('skips empty props', () => {
+      const encoded = encodeOgImageParams({ props: {} })
+      expect(encoded).toBe('')
+    })
+
+    it('skips props with only undefined values', () => {
+      const encoded = encodeOgImageParams({
+        width: 1200,
+        props: { title: undefined, description: undefined },
+      })
+      expect(encoded).toBe('w_1200')
+    })
+
     it('skips extension and socialPreview', () => {
       const encoded = encodeOgImageParams({
         width: 1200,

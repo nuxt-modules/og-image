@@ -1054,7 +1054,7 @@ export default defineNuxtModule<ModuleOptions>({
             }
           }
         }
-        else {
+        else if (!nuxt.options._prepare) {
           const message = `OG Image components missing renderer suffix (.satori.vue, .browser.vue, .takumi.vue):\n${
             invalidComponents.map(c => `  ${c}`).join('\n')
           }\n\nRun: npx nuxt-og-image migrate v6`
@@ -1298,7 +1298,7 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
 
       // HMR: watch for TW4 CSS and OgImage component changes
       nuxt.hook('builder:watch', async (_event, relativePath) => {
-        const absolutePath = join(nuxt.options.rootDir, relativePath)
+        const absolutePath = isAbsolute(relativePath) ? relativePath : join(nuxt.options.rootDir, relativePath)
 
         // Check if TW4 CSS file changed
         const isTw4CssChange = tw4State.cssPath && absolutePath === tw4State.cssPath
