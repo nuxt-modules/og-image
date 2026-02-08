@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import type { FontConfig, SatoriFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
-import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
+import { componentFontMap, fontRequirements, hasNuxtFonts } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
@@ -123,7 +123,10 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
     if (missing.length) {
       const sorted = [...loadedWeights].sort((a, b) => a - b)
       const component = options.component ? ` (${options.component})` : ''
-      logger.warn(`Font weight${missing.length > 1 ? 's' : ''} [${missing.join(', ')}] required${component} but not available. Loaded weights: [${sorted.join(', ')}]. Install @nuxt/fonts to auto-resolve missing weights.`)
+      const hint = hasNuxtFonts
+        ? 'Check that @nuxt/fonts is configured to serve these weights.'
+        : 'Install @nuxt/fonts to auto-resolve missing weights.'
+      logger.warn(`Font weight${missing.length > 1 ? 's' : ''} [${missing.join(', ')}] required${component} but not available. Loaded weights: [${sorted.join(', ')}]. ${hint}`)
     }
   }
 

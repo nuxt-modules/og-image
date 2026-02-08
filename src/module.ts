@@ -1145,7 +1145,8 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         families: fontRequirementsState.families,
         isComplete: fontRequirementsState.isComplete,
       })}
-export const componentFontMap = ${JSON.stringify(fontRequirementsState.componentMap)}`
+export const componentFontMap = ${JSON.stringify(fontRequirementsState.componentMap)}
+export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
     }
 
     // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme

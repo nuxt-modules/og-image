@@ -105,6 +105,7 @@ declare module '#og-image/font-requirements' {
     families: string[]
     isComplete: boolean
   }>
+  export const hasNuxtFonts: boolean
 }
 
 declare module '#og-image-virtual/unocss-config.mjs' {
