@@ -7,13 +7,14 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { addCustomTab, extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
-import { relative } from 'pathe'
+import { isAbsolute, join, relative, resolve as resolvePath } from 'pathe'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030
 
 export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   const clientPath = resolve('./client')
+  const communityTemplatesDir = resolve('./runtime/app/components/Templates/Community')
   const isProductionBuild = existsSync(clientPath)
 
   // Serve production-built client (used when package is published)
@@ -51,15 +52,13 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
       async ejectCommunityTemplate(path: string) {
         const [dirName, componentName] = path.split('/')
-        const dir = resolve(nuxt.options.srcDir, 'components', dirName || '')
+        const dir = join(nuxt.options.srcDir, 'components', dirName || '')
         if (!existsSync(dir)) {
-          mkdirSync(dir)
+          mkdirSync(dir, { recursive: true })
         }
-        const newPath = resolve(dir, componentName || '')
-        const templatePath = resolve(`./runtime/app/components/Templates/Community/${componentName}`)
-        // readFile, we need to modify it
+        const newPath = join(dir, componentName || '')
+        const templatePath = join(communityTemplatesDir, componentName || '')
         const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)
-        // copy the file over
         await writeFile(newPath, template, { encoding: 'utf-8' })
         await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
         const nitro = await useNitro
@@ -68,21 +67,21 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       },
     })
 
-    nuxt.hook('builder:watch', (e, path) => {
-      path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
+    nuxt.hook('builder:watch', (e, watchPath) => {
+      // Use pathe's resolve (not the module resolver) to normalize the path
+      const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
       // needs to be for a page change
-      if ((e === 'change' || e.includes('link')) && (path.startsWith('pages') || path.startsWith('content'))) {
-        rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
+      if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
+        rpc.broadcast.refreshRouteData(normalizedPath) // client needs to figure it if it's for the page we're on
           .catch(() => {}) // ignore errors
       }
-      if (options.componentDirs.some(dir => path.includes(dir))) {
+      if (options.componentDirs.some(dir => normalizedPath.includes(dir))) {
         if (e === 'change') {
           rpc.broadcast.refresh()
             .catch(() => {})
         }
         else {
-          rpc.broadcast.refreshGlobalData().catch(() => {
-          })
+          rpc.broadcast.refreshGlobalData().catch(() => {})
         }
       }
     })
