@@ -385,7 +385,8 @@ export function extractCustomFontFamilies(cssValue: string): string[] {
   const families: string[] = []
   for (const part of cleaned.split(',')) {
     const name = part.trim().replace(/^['"]|['"]$/g, '')
-    if (name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()))
+    // Skip generic families, numeric values (font-weights like 700), and CSS variables
+    if (name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !/^\d+$/.test(name) && !name.startsWith('var('))
       families.push(name)
   }
   return families

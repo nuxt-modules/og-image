@@ -53,7 +53,6 @@ function getFontlessContext(nuxt: Nuxt): FontlessContext | undefined {
 export async function initFontless(options: {
   nuxt: Nuxt
   logger?: ConsolaInstance
-  userFamilies?: FontlessOptions['families']
 }): Promise<void> {
   if (getFontlessContext(options.nuxt))
     return
@@ -72,6 +71,10 @@ export async function initFontless(options: {
     bunny: unifontProviders.bunny,
   } as Record<string, (opts: unknown) => any>
 
+  // Honour user's @nuxt/fonts families config (provider overrides, custom sources, etc.)
+  const nuxtFontsConfig = (options.nuxt.options as any).fonts as FontlessOptions | undefined
+  const userFamilies = nuxtFontsConfig?.families
+
   const resolver = await createResolver({
     normalizeFontData: faces => normalizeFontData(
       {
@@ -84,16 +87,24 @@ export async function initFontless(options: {
     ),
     logger: options.logger,
     options: {
-      families: options.userFamilies,
-      priority: ['fontsource', 'google', 'bunny'],
+      families: userFamilies,
+      // Google first — only provider with reliable WOFF format negotiation via user-agent.
+      // fontsource/bunny serve WOFF2-only for most fonts, and unifont's cascade stops
+      // at the first provider that recognizes the family (even if it returns empty fonts
+      // after format filtering), so they must come after Google.
+      priority: nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'],
       defaults: {
         weights: [400, 700],
         styles: ['normal', 'italic'],
         subsets: ['latin'],
+        // Satori can't use WOFF2 — request WOFF (static) format from providers
+        formats: ['woff'],
       },
     },
     providers,
   })
+
+  options.logger?.debug(`fontless initialized with formats: ['woff'], priority: ${JSON.stringify(nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'])}`)
 
   ;(options.nuxt as any)._ogImageFontless = { resolver, renderedFontURLs } satisfies FontlessContext
 }
@@ -159,7 +170,9 @@ async function downloadStaticFonts(options: {
         for (const src of srcs) {
           if (typeof src !== 'object' || !('url' in src))
             continue
-          const url = src.url
+          // fontless normalizeFontData rewrites URLs to local asset paths (/_fonts/...)
+          // Use originalURL (the actual remote URL) for downloading
+          const url = (src as any).originalURL || src.url
           const format = src.format || (url.endsWith('.woff') ? 'woff' : url.endsWith('.ttf') ? 'truetype' : undefined)
           if (format !== 'truetype' && format !== 'woff')
             continue

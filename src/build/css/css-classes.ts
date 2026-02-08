@@ -136,8 +136,18 @@ async function extractFontRequirementsFromVue(code: string): Promise<{
 function extractFontWeightFromClass(cls: string, weights: Set<number>, styles: Set<'normal' | 'italic'>): void {
   const baseClass = cls.replace(/^(?:sm:|md:|lg:|xl:|2xl:|dark:|hover:|focus:|active:)+/, '')
   const weight = FONT_WEIGHT_CLASSES[baseClass]
-  if (weight !== undefined)
+  if (weight !== undefined) {
     weights.add(weight)
+    return
+  }
+  // Tailwind arbitrary weight: font-[700], font-[800]
+  const arbitraryWeight = baseClass.match(/^font-\[(\d+)\]$/)
+  if (arbitraryWeight) {
+    const w = Number.parseInt(arbitraryWeight[1]!, 10)
+    if (w >= 100 && w <= 900)
+      weights.add(w)
+    return
+  }
   if (baseClass === 'italic')
     styles.add('italic')
 }
@@ -163,7 +173,11 @@ function extractFontFamilyFromClass(cls: string, familyClasses: Set<string>, fam
     return
   const arbitraryMatch = suffix.match(/^\[['"]?(.+?)['"]?\]$/)
   if (arbitraryMatch) {
-    familyNames.add(arbitraryMatch[1]!)
+    const value = arbitraryMatch[1]!
+    // Skip numeric values — those are font-weight (e.g. font-[700]), not font-family
+    if (/^\d+$/.test(value))
+      return
+    familyNames.add(value)
     return
   }
   familyClasses.add(suffix)
