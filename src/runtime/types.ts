@@ -6,7 +6,7 @@ import type { Hookable } from 'hookable'
 import type { NitroRuntimeHooks } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions, SharpOptions } from 'sharp'
-import type { Ref } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 
 interface NitroApp {
   hooks: Hookable<NitroRuntimeHooks>
@@ -252,6 +252,10 @@ export interface Renderer {
 export type ExtractComponentProps<T extends Component> = T extends new (...args: any) => any
   ? Omit<InstanceType<T>['$props'], keyof ComponentCustomProps | keyof VNodeProps | keyof AllowedComponentProps>
   : never
+
+export type ReactiveComponentProps<T extends Component> = {
+  [K in keyof ExtractComponentProps<T>]?: MaybeRefOrGetter<ExtractComponentProps<T>[K]>
+}
 
 export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'resvg' | 'sharp'>
 
