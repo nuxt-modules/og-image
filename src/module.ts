@@ -480,24 +480,32 @@ export default defineNuxtModule<ModuleOptions>({
       return fontScanPromise
     }
 
-    const nuxtUiDefaults: Record<string, string> = {
-      primary: 'green',
-      secondary: 'blue',
-      success: 'green',
-      info: 'blue',
-      warning: 'yellow',
-      error: 'red',
-      neutral: 'slate',
-    }
-
-    // Load Nuxt UI colors from nuxt.options.appConfig (populated by @nuxt/ui module)
-    function loadNuxtUiColors(): Record<string, string> | undefined {
+    // Load Nuxt UI colors from .nuxt/app.config.mjs
+    async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
       if (tw4State.nuxtUiColors)
         return tw4State.nuxtUiColors
       if (!hasNuxtModule('@nuxt/ui'))
         return undefined
-      const appConfig = nuxt.options.appConfig as { ui?: { colors?: Record<string, string> } }
-      tw4State.nuxtUiColors = { ...nuxtUiDefaults, ...appConfig?.ui?.colors }
+      const appConfigPath = join(nuxt.options.buildDir, 'app.config.mjs')
+      if (!existsSync(appConfigPath)) {
+        return { ...(nuxt.options.appConfig.ui as any)?.colors } as Record<string, string> | undefined
+      }
+      const rawContent = await readFile(appConfigPath, 'utf-8')
+      // Parse inlineConfig JSON from generated file (avoids needing defu/jiti resolution from buildDir)
+      const inlineMatch = rawContent.match(/const\s+inlineConfig\s*=\s*(\{[\s\S]*?\n\})/)
+      let inlineConfig: { ui?: { colors?: Record<string, string> } } = {}
+      if (inlineMatch?.[1]) {
+        inlineConfig = JSON.parse(inlineMatch[1])
+      }
+      // Import user's app.config separately (absolute path, no defu needed)
+      // eslint-disable-next-line regexp/no-super-linear-backtracking
+      const userConfigMatch = rawContent.match(/import\s+\w+\s+from\s+"([^"]+)"(?:\s*\n)+export default/)
+      let userConfig: { ui?: { colors?: Record<string, string> } } = {}
+      if (userConfigMatch?.[1]) {
+        userConfig = await import(userConfigMatch[1]).then(m => m.default || m).catch(() => ({}))
+      }
+      const mergedAppConfig = defu(userConfig, inlineConfig)
+      tw4State.nuxtUiColors = defu(mergedAppConfig?.ui?.colors, (nuxt.options.appConfig.ui as any)?.colors)
       logger.debug(`Nuxt UI colors: ${JSON.stringify(tw4State.nuxtUiColors)}`)
       return tw4State.nuxtUiColors
     }
@@ -557,7 +565,7 @@ export default defineNuxtModule<ModuleOptions>({
         }
 
         // Load Nuxt UI colors from .nuxt/app.config.mjs
-        const nuxtUiColors = loadNuxtUiColors()
+        const nuxtUiColors = await loadNuxtUiColors()
 
         // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
         const metadata = await extractTw4Metadata({
