@@ -71,7 +71,6 @@ catalog:
   happy-dom: ^20.5.0
   image-size: ^2.0.2
   jest-image-snapshot: ^6.5.1
-  jiti: ^2.6.1
   lightningcss: ^1.31.1
   magic-string: ^0.30.21
   magicast: ^0.5.2
@@ -112,7 +111,6 @@ catalogs:
     '@iconify-json/simple-icons': ^1.2.69
     json-editor-vue: ^0.18.1
     shiki: ^3.22.0
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'

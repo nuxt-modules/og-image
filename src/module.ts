@@ -18,7 +18,6 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
-import { createJiti } from 'jiti'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { isAbsolute, join, relative } from 'pathe'
@@ -491,37 +490,14 @@ export default defineNuxtModule<ModuleOptions>({
       neutral: 'slate',
     }
 
-    // Load Nuxt UI colors from .nuxt/app.config.mjs
-    async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
+    // Load Nuxt UI colors from nuxt.options.appConfig (populated by @nuxt/ui module)
+    function loadNuxtUiColors(): Record<string, string> | undefined {
       if (tw4State.nuxtUiColors)
         return tw4State.nuxtUiColors
       if (!hasNuxtModule('@nuxt/ui'))
         return undefined
-      const appConfigPath = join(nuxt.options.buildDir, 'app.config.mjs')
-      if (!existsSync(appConfigPath))
-        return { ...nuxtUiDefaults }
-      const rawContent = await readFile(appConfigPath, 'utf-8')
-      // Strip client-side HMR code that can't run in Node
-      const strippedContent = rawContent.replace(/\/\*\* client \*\*\/[\s\S]*?\/\*\* client-end \*\*\//g, '')
-      const jiti = createJiti(nuxt.options.buildDir, {
-        interopDefault: true,
-        moduleCache: false,
-      })
-      // Shim defineAppConfig (Nuxt auto-import) so jiti can evaluate user's app.config.ts
-      const hadShim = 'defineAppConfig' in globalThis
-      const prev = (globalThis as any).defineAppConfig
-      ;(globalThis as any).defineAppConfig = (c: any) => c
-      let mergedAppConfig: { ui?: { colors?: Record<string, string> } }
-      try {
-        mergedAppConfig = await jiti.evalModule(strippedContent, { filename: appConfigPath }) as typeof mergedAppConfig
-      }
-      finally {
-        if (hadShim)
-          (globalThis as any).defineAppConfig = prev
-        else
-          delete (globalThis as any).defineAppConfig
-      }
-      tw4State.nuxtUiColors = { ...nuxtUiDefaults, ...mergedAppConfig?.ui?.colors }
+      const appConfig = nuxt.options.appConfig as { ui?: { colors?: Record<string, string> } }
+      tw4State.nuxtUiColors = { ...nuxtUiDefaults, ...appConfig?.ui?.colors }
       logger.debug(`Nuxt UI colors: ${JSON.stringify(tw4State.nuxtUiColors)}`)
       return tw4State.nuxtUiColors
     }
@@ -581,7 +557,7 @@ export default defineNuxtModule<ModuleOptions>({
         }
 
         // Load Nuxt UI colors from .nuxt/app.config.mjs
-        const nuxtUiColors = await loadNuxtUiColors()
+        const nuxtUiColors = loadNuxtUiColors()
 
         // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
         const metadata = await extractTw4Metadata({

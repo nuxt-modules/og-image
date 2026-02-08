@@ -467,7 +467,7 @@ function stylesToArbitraryClass(styles: Record<string, string>): string | undefi
 
 export interface Tw4ProviderOptions {
   getCssPath: () => string | undefined
-  loadNuxtUiColors: () => Promise<Record<string, string> | undefined>
+  loadNuxtUiColors: () => Record<string, string> | undefined
   init?: () => Promise<void>
 }
 
@@ -500,7 +500,7 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
       }
       const classesToResolve = [...new Set([...classes, ...baseClasses])]
 
-      const nuxtUiColors = await options.loadNuxtUiColors()
+      const nuxtUiColors = options.loadNuxtUiColors()
       const tw4Resolved = await resolveClassesToStyles(classesToResolve, {
         cssPath,
         nuxtUiColors,

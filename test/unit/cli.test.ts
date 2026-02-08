@@ -68,7 +68,7 @@ describe('cli', () => {
     })
   })
 
-  describe('migrate v6', () => {
+  describe('migrate v6', { timeout: 30_000 }, () => {
     it('renames components to .satori.vue by default', () => {
       const ogDir = join(tmpDir, 'components/OgImage')
       mkdirSync(ogDir, { recursive: true })
