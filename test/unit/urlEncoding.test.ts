@@ -101,6 +101,15 @@ describe('urlEncoding', () => {
       expect(encoded).toBe('c_MyComponent,title_Test')
     })
 
+    it('always includes component even when matching defaults', () => {
+      const defaults = { component: 'NuxtSeo', width: 1200 }
+      const encoded = encodeOgImageParams({
+        component: 'NuxtSeo',
+        width: 1200,
+      }, defaults)
+      expect(encoded).toBe('c_NuxtSeo')
+    })
+
     it('includes values different from defaults', () => {
       const defaults = { width: 1200, height: 600 }
       const encoded = encodeOgImageParams({
@@ -179,6 +188,15 @@ describe('urlEncoding', () => {
       const encoded = encodeOgImageParams(original)
       const decoded = decodeOgImageParams(encoded)
       expect(decoded).toEqual(original)
+    })
+
+    it('preserves component name even when matching defaults', () => {
+      const defaults = { component: 'NuxtSeo', width: 1200 }
+      const original = { component: 'NuxtSeo', width: 1200, props: { title: 'Test' } }
+      const encoded = encodeOgImageParams(original, defaults)
+      expect(encoded).toContain('c_NuxtSeo')
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded.component).toBe('NuxtSeo')
     })
 
     it('preserves special characters in props', () => {
