@@ -2,7 +2,6 @@ import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
 import { buildDir } from '#og-image-virtual/build-dir.mjs'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
@@ -70,7 +69,6 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     // Fall through to event.$fetch which resolves via Nitro's asset server
   }
 
-  // Dev: use event.$fetch for internal routing (handles @nuxt/fonts on-demand serving)
   // For converted TTF fonts, try og-image's TTF cache first
   if (path.startsWith('/_fonts/') && path.endsWith('.ttf')) {
     const filename = path.slice('/_fonts/'.length)
@@ -79,15 +77,9 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       return cached
   }
 
+  // Use event.$fetch for internal routing — avoids network issues with IPv6/HTTPS dev server
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
-  if (import.meta.dev) {
-    const arrayBuffer = await $fetch(fullPath, {
-      responseType: 'arrayBuffer',
-      baseURL: getNitroOrigin(event),
-    }) as ArrayBuffer
-    return Buffer.from(arrayBuffer)
-  }
   const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
   }) as ArrayBuffer
