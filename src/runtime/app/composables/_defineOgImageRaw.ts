@@ -2,7 +2,7 @@ import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../
 import { appendHeader } from 'h3'
 import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { ref, toValue } from 'vue'
-import { createOgImageMeta, getOgImagePath, resolveComponentName, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
+import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 /**
  * Internal raw implementation for defining OG images.
@@ -105,9 +105,6 @@ function processOgImageOptions(
   if (validOptions.url) {
     setHeadOgImagePrebuilt(validOptions)
     return toValue(validOptions.url)
-  }
-  if (validOptions.component) {
-    validOptions.component = resolveComponentName(validOptions.component, defaults.component || '')
   }
   const { path, hash } = getOgImagePath(basePath, validOptions)
   if (import.meta.prerender) {
