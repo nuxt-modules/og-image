@@ -51,13 +51,13 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
     return defaultFamily
   }
   const fontFamily: Record<string, string> = {}
-  for (const [key, slot] of [['font-sans', 'sans'], ['font-serif', 'serif'], ['font-mono', 'mono']] as const) {
-    const val = tw4FontVars[key]
-    if (val) {
-      const resolved = resolveAvailableFamily(val)
-      if (resolved)
-        fontFamily[slot] = resolved
-    }
+  for (const [key, val] of Object.entries(tw4FontVars)) {
+    if (!key.startsWith('font-') || !val || !/[a-z]/i.test(val))
+      continue
+    const slot = key.slice(5) // 'font-sans' → 'sans', 'font-display' → 'display'
+    const resolved = resolveAvailableFamily(val)
+    if (resolved)
+      fontFamily[slot] = resolved
   }
   const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions>{
     fonts,

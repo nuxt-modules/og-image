@@ -138,6 +138,8 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     if (key === 'props' && typeof value === 'object') {
       // Flatten simple props to top level
       for (const [propKey, propValue] of Object.entries(value)) {
+        if (propValue === undefined || propValue === null)
+          continue
         if (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean') {
           flattened[propKey] = propValue
         }
@@ -177,12 +179,18 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
 
     if (COMPLEX_PARAMS.has(key)) {
       // Base64 encode complex objects
-      const b64 = b64Encode(JSON.stringify(value))
+      const json = JSON.stringify(value)
+      if (json === '{}')
+        continue
+      const b64 = b64Encode(json)
       parts.push(`${alias}_${b64}`)
     }
     else if (typeof value === 'object') {
       // Unexpected object (like remaining complex props), base64 encode
-      const b64 = b64Encode(JSON.stringify(value))
+      const json = JSON.stringify(value)
+      if (json === '{}')
+        continue
+      const b64 = b64Encode(json)
       parts.push(`${alias}_${b64}`)
     }
     else {

@@ -27,9 +27,11 @@ export function defineOgImage<T extends keyof OgImageComponents>(
   }
 
   // Single image
-  return _defineOgImageRaw({
+  const input: OgImageOptions = {
     ...options,
     component: component as string,
-    props: propsOrOptions,
-  })
+  }
+  if (propsOrOptions && Object.keys(propsOrOptions).length > 0)
+    input.props = propsOrOptions
+  return _defineOgImageRaw(input)
 }
