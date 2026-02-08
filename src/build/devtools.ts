@@ -52,12 +52,24 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
       async ejectCommunityTemplate(path: string) {
         const [dirName, componentName] = path.split('/')
+        const nameWithoutExt = componentName?.replace('.vue', '') || ''
+        // Handle both dot-notation (NuxtSeo.takumi) and PascalCase (NuxtSeoTakumi)
+        let dotNotationName: string
+        if (nameWithoutExt.includes('.')) {
+          dotNotationName = `${nameWithoutExt}.vue`
+        }
+        else {
+          const rendererMatch = nameWithoutExt.match(/(Satori|Browser|Takumi)$/)
+          const renderer = rendererMatch?.[1]?.toLowerCase() || 'satori'
+          const baseName = nameWithoutExt.replace(/(Satori|Browser|Takumi)$/, '')
+          dotNotationName = `${baseName}.${renderer}.vue`
+        }
         const dir = join(nuxt.options.srcDir, 'components', dirName || '')
         if (!existsSync(dir)) {
           mkdirSync(dir, { recursive: true })
         }
-        const newPath = join(dir, componentName || '')
-        const templatePath = join(communityTemplatesDir, componentName || '')
+        const newPath = join(dir, dotNotationName)
+        const templatePath = join(communityTemplatesDir, dotNotationName)
         const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)
         await writeFile(newPath, template, { encoding: 'utf-8' })
         await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
@@ -68,6 +80,8 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     })
 
     nuxt.hook('builder:watch', (e, watchPath) => {
+      if (!e || !watchPath)
+        return
       // Use pathe's resolve (not the module resolver) to normalize the path
       const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
       // needs to be for a page change
