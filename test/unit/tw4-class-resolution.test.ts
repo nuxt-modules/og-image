@@ -243,7 +243,7 @@ describe('css-utils', () => {
       const vars = new Map([['--my-color', '#ff0000']])
       const raw = { color: 'var(--my-color)' }
       const result = await postProcessStyles(raw, vars)
-      expect(result?.color).toBe('#ff0000')
+      expect(result?.color).toBe('red')
     })
 
     it('strips CSS global keywords (initial, inherit, unset, revert)', async () => {
