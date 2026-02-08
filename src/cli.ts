@@ -550,6 +550,19 @@ async function runMigrate(args: string[]): Promise<void> {
     console.log('\n[Dry run - no changes made]')
     console.log('Run without --dry-run to apply changes.')
   }
+  else {
+    const spinner = p.spinner()
+    spinner.start('Running nuxt prepare to update types...')
+    const { exec } = await import('tinyexec')
+    try {
+      await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+      spinner.stop('Types updated')
+    }
+    catch {
+      spinner.stop('Failed to run nuxt prepare')
+      p.log.warn('Run manually: npx nuxt prepare')
+    }
+  }
 
   p.outro(dryRun ? 'Dry run complete' : 'Migration complete!')
 }
