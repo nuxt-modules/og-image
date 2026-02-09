@@ -25,7 +25,7 @@ async function loadTw4Deps() {
       import('tailwindcss/colors'),
     ])
     compile = tailwindModule.compile
-    twColors = colorsModule.default as any
+    twColors = (colorsModule.default || colorsModule) as any
   }
 }
 
@@ -490,8 +490,10 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
       return initPromise
     initPromise = (async () => {
       cssPath = await options.resolveCssPath()
-      if (!cssPath)
+      if (!cssPath) {
+        initialized = true
         return
+      }
       const content = await readFile(cssPath, 'utf-8')
       if (!content.includes('@theme') && !content.includes('@import "tailwindcss"'))
         cssPath = undefined
