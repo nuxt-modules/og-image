@@ -104,6 +104,7 @@ declare module '#og-image/font-requirements' {
     styles: Array<'normal' | 'italic'>
     families: string[]
     isComplete: boolean
+    category?: 'app' | 'community' | 'pro'
   }>
   export const hasNuxtFonts: boolean
 }
