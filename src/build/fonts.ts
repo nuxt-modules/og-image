@@ -44,7 +44,7 @@ export interface FontRequirementsState {
   /** Resolved font family names. Empty = don't filter by family. */
   families: string[]
   isComplete: boolean
-  componentMap: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], isComplete: boolean }>
+  componentMap: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], isComplete: boolean, category?: 'app' | 'community' | 'pro' }>
 }
 
 // ============================================================================
@@ -126,12 +126,14 @@ export async function buildFontRequirements(options: {
     options.fontVars,
   )
 
+  const categoryByName = Object.fromEntries(options.components.map(c => [c.pascalName, c.category]))
   const componentMap = Object.fromEntries(
     Object.entries(result.components).map(([name, comp]) => [name, {
       weights: comp.weights,
       styles: comp.styles,
       families: resolveFontFamilies(comp.familyClasses, comp.familyNames, options.fontVars),
       isComplete: comp.isComplete,
+      category: categoryByName[name],
     }]),
   )
 
