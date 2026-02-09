@@ -119,7 +119,9 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   const loaded = results.filter((f): f is SatoriFontConfig => f !== null)
 
   // Warn about required font weights that have no loaded font (deduplicated)
-  if (import.meta.dev && reqs.weights.length > 0) {
+  // Skip warnings for bundled community templates — users can't control their font usage
+  const isCommunity = options.component && (componentFontMap as Record<string, any>)[options.component]?.category === 'community'
+  if (import.meta.dev && reqs.weights.length > 0 && !isCommunity) {
     const families = reqs.families.length > 0 ? reqs.families : [...new Set(loaded.map(f => f.family))]
     for (const family of families) {
       const loadedWeights = new Set(loaded.filter(f => f.family === family).map(f => f.weight))
