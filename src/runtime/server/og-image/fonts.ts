@@ -72,6 +72,8 @@ function fontMatchesRequirements(font: FontConfig, requirements: typeof fontRequ
   return true
 }
 
+const _warnedFontKeys = new Set<string>()
+
 export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<SatoriFontConfig[]> {
   const componentReqs = options.component ? (componentFontMap as Record<string, typeof fontRequirements>)[options.component] : null
   const reqs = (componentReqs && componentReqs.isComplete) ? componentReqs : fontRequirements
@@ -116,17 +118,24 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   )
   const loaded = results.filter((f): f is SatoriFontConfig => f !== null)
 
-  // Warn about required font weights that have no loaded font
+  // Warn about required font weights that have no loaded font (deduplicated)
   if (import.meta.dev && reqs.weights.length > 0) {
-    const loadedWeights = new Set(loaded.map(f => f.weight))
-    const missing = reqs.weights.filter(w => !loadedWeights.has(w))
-    if (missing.length) {
+    const families = reqs.families.length > 0 ? reqs.families : [...new Set(loaded.map(f => f.family))]
+    for (const family of families) {
+      const loadedWeights = new Set(loaded.filter(f => f.family === family).map(f => f.weight))
+      const missing = reqs.weights.filter(w => !loadedWeights.has(w))
+      if (!missing.length)
+        continue
+      const warnKey = `${family}-${missing.join(',')}-${options.component || ''}`
+      if (_warnedFontKeys.has(warnKey))
+        continue
+      _warnedFontKeys.add(warnKey)
       const sorted = [...loadedWeights].sort((a, b) => a - b)
       const component = options.component ? ` (${options.component})` : ''
       const hint = hasNuxtFonts
         ? 'Check that @nuxt/fonts is configured to serve these weights.'
         : 'Install @nuxt/fonts to auto-resolve missing weights.'
-      logger.warn(`Font weight${missing.length > 1 ? 's' : ''} [${missing.join(', ')}] required${component} but not available. Loaded weights: [${sorted.join(', ')}]. ${hint}`)
+      logger.warn(`Font "${family}" weight${missing.length > 1 ? 's' : ''} [${missing.join(', ')}] required${component} but not available. Loaded weights: [${sorted.join(', ')}]. ${hint}`)
     }
   }
 
