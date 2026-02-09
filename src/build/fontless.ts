@@ -223,10 +223,13 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
       .map(f => fontKey(f)),
   )
 
+  // Don't filter by family — @nuxt/fonts fonts are explicitly configured by the user
+  // and may not appear in fontRequirements.families (which only tracks CSS class usage)
   const woff2Fonts = parsedFonts.filter(f =>
     f.src.endsWith('.woff2')
     && !hasNonWoff2.has(fontKey(f))
-    && matchesFontRequirements(f, fontRequirements),
+    && fontRequirements.weights.includes(f.weight)
+    && fontRequirements.styles.includes(f.style as 'normal' | 'italic'),
   )
 
   if (woff2Fonts.length === 0) {
@@ -370,8 +373,21 @@ export async function resolveOgImageFonts(options: {
   }
 
   // 3. Apply requirements filtering (all renderers benefit from reduced font payloads)
+  // Only filter by weight/style for @nuxt/fonts fonts — they're user-configured and should
+  // always be included. The family filter only applies to fontless-resolved fonts (step 2)
+  // since fontRequirements.families may only contain system/emoji font names from TW4 vars,
+  // not the actual @nuxt/fonts families (e.g. Inter).
+  const nuxtFontFamilies = new Set(
+    hasNuxtFonts
+      ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets })).map(f => f.family)
+      : [],
+  )
   const fonts = fontRequirements.isComplete
-    ? allFonts.filter(f => matchesFontRequirements(f, fontRequirements))
+    ? allFonts.filter(f =>
+        nuxtFontFamilies.has(f.family)
+          ? fontRequirements.weights.includes(f.weight) && fontRequirements.styles.includes(f.style as 'normal' | 'italic')
+          : matchesFontRequirements(f, fontRequirements),
+      )
     : allFonts
   logger.debug(`Resolved ${fonts.length} fonts (from ${allFonts.length} total${fontRequirements.families.length ? `, families: ${fontRequirements.families.join(', ')}` : ''})`)
 

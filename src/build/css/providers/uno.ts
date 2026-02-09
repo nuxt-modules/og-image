@@ -113,6 +113,34 @@ export function createUnoProvider(): CssProvider {
       return result
     },
 
+    async extractMetadata() {
+      const gen = await getGenerator()
+      const theme = gen.config.theme as Record<string, any> || {}
+      const breakpoints: Record<string, number> = {}
+      const colors: Record<string, string | Record<string, string>> = {}
+
+      // Extract breakpoints (e.g., { sm: '640px', md: '768px' } → { sm: 640, md: 768 })
+      if (theme.breakpoints) {
+        for (const [name, value] of Object.entries(theme.breakpoints)) {
+          const px = Number.parseInt(String(value).replace('px', ''), 10)
+          if (!Number.isNaN(px))
+            breakpoints[name] = px
+        }
+      }
+
+      // Extract colors (flatten nested color objects)
+      if (theme.colors) {
+        for (const [name, value] of Object.entries(theme.colors)) {
+          if (typeof value === 'string')
+            colors[name] = value
+          else if (typeof value === 'object' && value !== null)
+            colors[name] = value as Record<string, string>
+        }
+      }
+
+      return { breakpoints, colors }
+    },
+
     clearCache: clearUnoCache,
   }
 }
