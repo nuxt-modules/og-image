@@ -110,10 +110,17 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
   // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
   if (component && componentNames) {
     const originalName = component
+    // Normalize dot-notation to PascalCase (Default.takumi → DefaultTakumi)
+    const normalizedName = originalName.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
+    // Strip renderer suffix to get the base input name (DefaultTakumi → Default)
+    const inputBase = normalizedName.replace(/(Satori|Browser|Takumi)$/, '')
     for (const component of componentNames) {
+      // Exact match with normalized name
+      if (component.pascalName === normalizedName)
+        return component.pascalName
       // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
       const basePascalName = component.pascalName.replace(/(Satori|Browser|Takumi)$/, '')
-      if (basePascalName === originalName)
+      if (basePascalName === originalName || basePascalName === inputBase)
         return component.pascalName
       // Strip directory prefix and check all possible base names
       // including dedup-aware variants (Nuxt merges overlapping prefix/filename words)
@@ -126,11 +133,14 @@ export function resolveComponentName(component: OgImageOptions['component'], fal
         if (!basePascalName.startsWith(prefix))
           continue
         const withoutPrefix = basePascalName.slice(prefix.length)
-        if (withoutPrefix === originalName)
+        if (withoutPrefix === originalName || withoutPrefix === inputBase)
           return component.pascalName
         // Dedup-aware: re-prepend the overlap word
-        if (withoutPrefix && withoutPrefix !== overlapWord && (overlapWord + withoutPrefix) === originalName)
-          return component.pascalName
+        if (withoutPrefix && withoutPrefix !== overlapWord) {
+          const withOverlap = overlapWord + withoutPrefix
+          if (withOverlap === originalName || withOverlap === inputBase)
+            return component.pascalName
+        }
         break
       }
     }

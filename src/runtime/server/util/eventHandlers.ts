@@ -22,12 +22,20 @@ export async function imageEventHandler(e: H3Event) {
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
-    // Include renderer debug info (vnodes, svg, warnings)
-    const rendererDebug = renderer.debug
-      ? await renderer.debug(ctx)
-      : {}
+    // Run extraction and renderer debug in parallel
+    // renderer.debug may fail if the resolved component is a default fallback
+    // that doesn't match the page's actual defineOgImage component
+    const [extract, rendererDebug] = await Promise.all([
+      fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
+      renderer.debug
+        ? renderer.debug(ctx).catch((err: any) => {
+            logger.debug(`renderer.debug failed for ${ctx.options.component}: ${err?.message || err}`)
+            return {}
+          })
+        : {},
+    ])
     return {
-      extract: await fetchPathHtmlAndExtractOptions(e, ctx.basePath, ctx.key),
+      extract,
       siteUrl: getSiteConfig(e).url,
       ...rendererDebug,
     }

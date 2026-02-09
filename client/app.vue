@@ -2,6 +2,7 @@
 import type { OgImageRuntimeConfig } from '../src/runtime/types'
 import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch'
 import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute } from '#imports'
+import defu from 'defu'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
 import RendererSelectModal from './components/RendererSelectModal.vue'
@@ -9,7 +10,7 @@ import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey }
 import { useOgImage } from './composables/og-image'
 import { appFetch, colorMode } from './composables/rpc'
 import { loadShiki } from './composables/shiki'
-import { globalRefreshTime, ogImageKey, optionsOverrides, path, refreshTime } from './util/logic'
+import { globalRefreshTime, ogImageKey, options, optionsOverrides, path, query, refreshTime } from './util/logic'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 
 useHead({
@@ -33,12 +34,12 @@ const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', 
 const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = useAsyncData<PathDebugResponse>('path-debug', async () => {
   if (!appFetch.value)
     return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
-  // Build encoded URL with options for debug JSON
-  const params = {
-    ...optionsOverrides.value,
-    key: ogImageKey.value || 'og',
-    _path: path.value, // Include path for context
-  }
+  // Build debug URL the same way as the image URL, just with .json extension
+  const params = defu(
+    { key: ogImageKey.value || 'og', _path: path.value, _query: query.value },
+    optionsOverrides.value,
+    options.value,
+  )
   const encoded = encodeOgImageParams(params)
   const url = `/_og/d/${encoded || 'default'}.json`
   return (appFetch.value(url) as Promise<PathDebugResponse>).catch((err: any): PathDebugResponse => ({

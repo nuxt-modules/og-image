@@ -166,14 +166,27 @@ export function useOgImage() {
     return componentName
   })
 
+  // Strip component directory prefixes from a pascalName (same logic as activeComponentName)
+  function stripComponentDirPrefix(pascalName: string): string {
+    let result = pascalName
+    for (const dir of (globalDebug?.value?.runtimeConfig.componentDirs || [])) {
+      result = result.replace(dir, '')
+    }
+    return result
+  }
+
   const activeComponent = computed(() => {
     const components = globalDebug.value?.componentNames || []
     const name = activeComponentName.value
     // Normalize dot-notation to PascalCase (NuxtSeo.takumi → NuxtSeoTakumi)
     const normalizedName = name.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
 
-    // First try exact match
-    let matching = components.filter((c: OgImageComponent) => c.pascalName === normalizedName || c.pascalName === name)
+    // First try exact match (also comparing dir-stripped names since activeComponentName strips prefixes)
+    let matching = components.filter((c: OgImageComponent) => {
+      const stripped = stripComponentDirPrefix(c.pascalName)
+      return c.pascalName === normalizedName || c.pascalName === name
+        || stripped === normalizedName || stripped === name
+    })
 
     // If no exact match, try matching by base name (without renderer suffix)
     // This handles cases like component: 'BlogPost' matching 'BlogPostSatori'
@@ -183,9 +196,9 @@ export function useOgImage() {
         for (const suffix of rendererSuffixes) {
           if (c.pascalName.endsWith(suffix)) {
             const baseName = c.pascalName.slice(0, -suffix.length)
-            if (baseName === normalizedName || baseName === name) {
-              return true
-            }
+            const strippedBase = stripComponentDirPrefix(baseName)
+            if (baseName === normalizedName || baseName === name
+              || strippedBase === normalizedName || strippedBase === name) { return true }
           }
         }
         return false
