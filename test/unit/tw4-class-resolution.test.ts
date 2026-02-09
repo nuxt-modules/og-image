@@ -268,6 +268,12 @@ describe('css-utils', () => {
       const result = await postProcessStyles(raw, new Map())
       expect(result?.color).toMatch(/^#[0-9a-f]{6}$/i)
     })
+
+    it('strips gradient color interpolation method (in oklab)', async () => {
+      const raw = { 'background-image': 'linear-gradient(to top right in oklab, #3b82f6 0%, rgba(0, 0, 0, 0) 100%)' }
+      const result = await postProcessStyles(raw, new Map())
+      expect(result?.['background-image']).toBe('linear-gradient(to top right, #3b82f6 0%, rgba(0, 0, 0, 0) 100%)')
+    })
   })
 })
 
@@ -620,6 +626,40 @@ describe('tw4 class resolution', () => {
       WithEmoji: [
         'opacity-[0.03]',
       ],
+      // npmx.dev OG image template — uses bg-gradient-to-tr with arbitrary from-[color]
+      NpmxDev: [
+        'h-full',
+        'w-full',
+        'flex',
+        'flex-col',
+        'justify-center',
+        'px-20',
+        'relative',
+        'overflow-hidden',
+        'flex-wrap',
+        'items-center',
+        'items-start',
+        'gap-4',
+        'gap-6',
+        'gap-x-3',
+        'text-8xl',
+        'text-4xl',
+        'font-bold',
+        'font-light',
+        'font-normal',
+        'tracking-tighter',
+        'px-3',
+        'py-1',
+        'rounded-lg',
+        'border',
+        'rounded-xl',
+        'w-16',
+        'h-16',
+        'shadow-lg',
+        'bg-gradient-to-tr',
+        // Note: from-[#3b82f6] is a gradient color modifier — doesn't resolve standalone
+        // (sets --tw-gradient-from which is a CSS var skipped by postProcessStyles)
+      ],
     }
 
     for (const [template, classes] of Object.entries(templateClasses)) {
@@ -652,6 +692,17 @@ describe('resolveClassesToStyles conversions', () => {
     const resolved = await resolve(['rotate-[30deg]'])
     expect(resolved['rotate-[30deg]'], 'rotate-[30deg] should resolve').toBeDefined()
     expect(resolved['rotate-[30deg]'].transform).toBe('rotate(30deg)')
+  })
+
+  it('bg-gradient-to-tr from-[#3b82f6] produces gradient without "in oklab"', async () => {
+    clearTw4Cache()
+    const resolved = await resolve(['bg-gradient-to-tr', 'from-[#3b82f6]'])
+    // The gradient direction class should carry the background-image
+    const bgImage = resolved['bg-gradient-to-tr']?.['background-image']
+    expect(bgImage, 'bg-gradient-to-tr should have background-image').toBeDefined()
+    expect(bgImage).toContain('linear-gradient')
+    expect(bgImage).not.toContain('in oklab')
+    expect(bgImage).not.toContain('in oklch')
   })
 
   it('all Brutalist template classes resolve', async () => {
@@ -903,6 +954,46 @@ describe('assetTransformPlugin with TW4', () => {
       // Original unresolved responsive classes should be gone
       expect(result!.code).not.toMatch(/lg:bg-black/)
       expect(result!.code).not.toMatch(/lg:text-neutral-500/)
+    })
+
+    it('npmx.dev gradient template: bg-gradient-to-tr from-[#3b82f6] produces no "in oklab"', async () => {
+      const plugin = AssetTransformPlugin.raw({
+        ogComponentPaths,
+        rootDir: tmpDir,
+        srcDir: tmpDir,
+        publicDir: join(tmpDir, 'public'),
+        cssProvider: tw4Provider,
+      }, { framework: 'vite' })
+
+      const code = `<template>
+  <div class="h-full w-full flex flex-col justify-center px-20 bg-[#050505] text-[#fafafa] relative overflow-hidden">
+    <div class="relative flex flex-col gap-6">
+      <div class="flex items-start gap-4">
+        <div class="flex items-start justify-center w-16 h-16 rounded-xl bg-gradient-to-tr from-[#3b82f6] shadow-lg" style="background-color: #60a5fa">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 22V12" /></svg>
+        </div>
+        <h1 class="text-8xl font-bold tracking-tighter" style="font-family: 'Geist Sans', sans-serif">
+          <span class="opacity-80" style="color: #60a5fa">./</span>npmx
+        </h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-3 text-4xl font-light text-[#a3a3a3]" style="font-family: 'Geist Sans', sans-serif">
+        <span>a fast, modern browser for the </span>
+        <span class="px-3 py-1 rounded-lg border font-normal" style="color: #60a5fa; background-color: #60a5fa10; border-color: #60a5fa30">npm registry</span>
+      </div>
+    </div>
+    <div class="absolute w-[550px] h-[550px] rounded-full" style="background-color: #60a5fa10" />
+  </div>
+</template>`
+
+      const id = join(tmpDir, 'components', 'NpmxDefault.takumi.vue')
+      const result = await plugin.transform?.(code, id)
+
+      expect(result, 'transform should produce output').toBeDefined()
+      // Must not contain "in oklab" — Takumi can't parse it
+      expect(result!.code).not.toContain('in oklab')
+      expect(result!.code).not.toContain('in oklch')
+      // Should still have a gradient
+      expect(result!.code).toContain('linear-gradient')
     })
 
     it('dark: prefixed classes are preserved (not inlined)', async () => {

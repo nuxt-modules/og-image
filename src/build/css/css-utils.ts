@@ -335,6 +335,16 @@ export async function downlevelColor(prop: string, value: string): Promise<strin
 }
 
 /**
+ * Strip gradient color interpolation methods (e.g. `in oklab`, `in oklch`)
+ * from CSS gradient values. TW4 generates these but image renderers
+ * (Satori, Takumi) don't support them and Lightning CSS doesn't downlevel them.
+ */
+const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
+export function stripGradientColorSpace(value: string): string {
+  return value.replace(GRADIENT_COLOR_SPACE_RE, '')
+}
+
+/**
  * CSS properties that contain colors (need oklch→hex conversion)
  */
 export const COLOR_PROPERTIES = new Set([
@@ -577,6 +587,12 @@ export async function postProcessStyles(
     // Downlevel modern colors (oklch, color-mix, etc.) to hex/rgba via Lightning CSS
     if (COLOR_PROPERTIES.has(prop))
       value = await downlevelColor(prop, value)
+
+    // Strip gradient color interpolation methods (`in oklab`, `in oklch`, etc.)
+    // TW4 generates these but Satori/Takumi don't support them.
+    // Lightning CSS doesn't downlevel these, so strip manually.
+    if (prop === 'background-image' && value.includes('-gradient('))
+      value = stripGradientColorSpace(value)
 
     // Normalize opacity percentage to decimal
     if (prop === 'opacity' && value.endsWith('%'))

@@ -59,6 +59,43 @@ describe('takumiNodes', () => {
     })
   })
 
+  describe('stripGradientColorSpace', () => {
+    // Same regex as css-utils.ts
+    const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
+    function stripGradientColorSpace(value: string): string {
+      return value.replace(GRADIENT_COLOR_SPACE_RE, '')
+    }
+
+    it('strips "in oklab" from TW4 gradient', () => {
+      expect(stripGradientColorSpace(
+        'linear-gradient(to top right in oklab, #3b82f6 0%, rgba(0, 0, 0, 0) 100%)',
+      )).toBe(
+        'linear-gradient(to top right, #3b82f6 0%, rgba(0, 0, 0, 0) 100%)',
+      )
+    })
+
+    it('strips "in oklch" from gradient', () => {
+      expect(stripGradientColorSpace(
+        'linear-gradient(to right in oklch, red, blue)',
+      )).toBe(
+        'linear-gradient(to right, red, blue)',
+      )
+    })
+
+    it('strips "in srgb-linear"', () => {
+      expect(stripGradientColorSpace(
+        'radial-gradient(circle in srgb-linear, #000, #fff)',
+      )).toBe(
+        'radial-gradient(circle, #000, #fff)',
+      )
+    })
+
+    it('leaves gradients without color space untouched', () => {
+      const value = 'linear-gradient(to right, #000, #fff)'
+      expect(stripGradientColorSpace(value)).toBe(value)
+    })
+  })
+
   describe('camelCase', () => {
     it('converts basic kebab case', () => {
       expect(camelCase('font-size')).toBe('fontSize')
