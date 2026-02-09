@@ -31,17 +31,36 @@ const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', 
   default: () => ({ runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }),
 })
 
+// Read og:image URL from host document — already has correct component/params from defineOgImage
+function getHostOgImageDebugUrl(): string | undefined {
+  try {
+    const doc = window.parent?.document
+    if (!doc)
+      return
+    const meta = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[name="twitter:image"]')
+    const content = meta?.getAttribute('content')
+    if (!content?.includes('/_og/'))
+      return
+    return new URL(content).pathname.replace(/\.(png|jpeg|jpg|webp)$/, '.json')
+  }
+  catch {}
+}
+
 const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = useAsyncData<PathDebugResponse>('path-debug', async () => {
   if (!appFetch.value)
     return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
-  // Build debug URL the same way as the image URL, just with .json extension
-  const params = defu(
-    { key: ogImageKey.value || 'og', _path: path.value, _query: query.value },
-    optionsOverrides.value,
-    options.value,
-  )
-  const encoded = encodeOgImageParams(params)
-  const url = `/_og/d/${encoded || 'default'}.json`
+  // Prefer reading the og:image URL from the host document — avoids chicken-and-egg
+  // on first load where options.value is empty and server defaults to wrong component
+  let url = getHostOgImageDebugUrl()
+  if (!url) {
+    const params = defu(
+      { key: ogImageKey.value || 'og', _path: path.value, _query: query.value },
+      optionsOverrides.value,
+      options.value,
+    )
+    const encoded = encodeOgImageParams(params)
+    url = `/_og/d/${encoded || 'default'}.json`
+  }
   return (appFetch.value(url) as Promise<PathDebugResponse>).catch((err: any): PathDebugResponse => ({
     extract: { options: [], socialPreview: { root: {}, images: [] } },
     fetchError: {

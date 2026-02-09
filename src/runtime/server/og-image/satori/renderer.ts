@@ -4,7 +4,6 @@ import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
-import { sendError } from 'h3'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { loadAllFonts } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
@@ -69,9 +68,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   }) as SatoriOptions
 
   const { result, warnings } = await withWarningCapture(() =>
-    satori(vnodes, satoriOptions).catch((err) => {
-      sendError(event.e, err, true)
-    }),
+    satori(vnodes, satoriOptions),
   )
   return { svg: result, warnings }
 }
