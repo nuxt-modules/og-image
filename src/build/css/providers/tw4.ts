@@ -2,7 +2,6 @@ import type { CssProvider } from '../css-provider'
 import { readFile } from 'node:fs/promises'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
-import twColors from 'tailwindcss/colors'
 import {
   downlevelColor,
   extractClassStyles,
@@ -16,14 +15,17 @@ import {
 
 // Lazy-loaded heavy dependencies
 let compile: typeof import('tailwindcss').compile
+let twColors: Record<string, Record<number, string>>
 
 async function loadTw4Deps() {
   if (!compile) {
-    const [, tailwindModule] = await Promise.all([
+    const [, tailwindModule, colorsModule] = await Promise.all([
       loadLightningCss(),
       import('tailwindcss'),
+      import('tailwindcss/colors'),
     ])
     compile = tailwindModule.compile
+    twColors = colorsModule.default as any
   }
 }
 
@@ -74,7 +76,7 @@ export function buildNuxtUiVars(
   vars: Map<string, string>,
   nuxtUiColors: Record<string, string>,
 ): void {
-  const colors = twColors as unknown as Record<string, Record<number, string>>
+  const colors = twColors
   const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
 
   for (const [semantic, colorName] of Object.entries(nuxtUiColors)) {
@@ -466,28 +468,43 @@ function stylesToArbitraryClass(styles: Record<string, string>): string | undefi
 // ============================================================================
 
 export interface Tw4ProviderOptions {
-  getCssPath: () => string | undefined
+  /** Resolve the Tailwind CSS entry file path */
+  resolveCssPath: () => Promise<string | undefined>
+  /** Load Nuxt UI semantic color mappings (if @nuxt/ui is installed) */
   loadNuxtUiColors: () => Promise<Record<string, string> | undefined>
-  init?: () => Promise<void>
 }
 
 /**
  * Create a TW4 CssProvider that implements the unified CssProvider interface.
- * Bakes in responsive prefix extraction + conflict detection.
+ * Owns CSS path resolution, lazy initialization, and responsive prefix handling.
  */
 export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
+  let cssPath: string | undefined
+  let initPromise: Promise<void> | undefined
   let initialized = false
+
+  async function init() {
+    if (initialized)
+      return
+    if (initPromise)
+      return initPromise
+    initPromise = (async () => {
+      cssPath = await options.resolveCssPath()
+      if (!cssPath)
+        return
+      const content = await readFile(cssPath, 'utf-8')
+      if (!content.includes('@theme') && !content.includes('@import "tailwindcss"'))
+        cssPath = undefined
+      initialized = true
+    })()
+    return initPromise
+  }
 
   return {
     name: 'tailwind',
 
     async resolveClassesToStyles(classes: string[]): Promise<Record<string, Record<string, string> | string>> {
-      if (!initialized && options.init) {
-        await options.init()
-        initialized = true
-      }
-
-      const cssPath = options.getCssPath()
+      await init()
       if (!cssPath)
         return {}
 
@@ -551,6 +568,14 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
         // Classes not in map will be kept in class attr for Satori's tw prop
       }
       return resolved
+    },
+
+    async extractMetadata() {
+      await init()
+      if (!cssPath)
+        return { fontVars: {}, breakpoints: {}, colors: {} }
+      const nuxtUiColors = await options.loadNuxtUiColors()
+      return extractTw4Metadata({ cssPath, nuxtUiColors })
     },
 
     clearCache: clearTw4Cache,

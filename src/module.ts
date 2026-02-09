@@ -3,6 +3,7 @@ import type { Nuxt } from '@nuxt/schema'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
+import type { CssProvider } from './build/css/css-provider'
 import type {
   BrowserConfig,
   CompatibilityFlagEnvOverrides,
@@ -20,10 +21,9 @@ import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, 
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
-import { isAbsolute, join, relative } from 'pathe'
+import { isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { setupBuildHandler } from './build/build'
-import { clearTw4Cache, createTw4Provider, extractTw4Metadata } from './build/css/providers/tw4'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
 import { convertWoff2ToTtf, persistFontUrlMapping, resolveOgImageFonts } from './build/fontless'
@@ -401,12 +401,12 @@ export default defineNuxtModule<ModuleOptions>({
     const cssFramework = detectCssProvider(nuxt)
 
     // CSS provider for class resolution (UnoCSS or TW4)
-    let cssProvider: import('./build/css/css-provider').CssProvider | undefined
+    let cssProvider: CssProvider | undefined
 
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
       logger.info('UnoCSS detected, using UnoCSS provider for OG image styling')
-      const { setUnoConfig, setUnoRootDir, createUnoProvider, clearUnoCache } = await import('./build/css/providers/uno')
+      const { setUnoConfig, setUnoRootDir, createUnoProvider } = await import('./build/css/providers/uno')
 
       // Set root directory for loading uno.config.ts
       setUnoRootDir(nuxt.options.rootDir)
@@ -423,7 +423,7 @@ export default defineNuxtModule<ModuleOptions>({
       if (nuxt.options.dev) {
         nuxt.hook('builder:watch', async (_event, relativePath) => {
           if (relativePath.includes('uno.config')) {
-            clearUnoCache()
+            cssProvider?.clearCache?.()
             logger.info('HMR: UnoCSS config changed, cleared cache')
           }
         })
@@ -431,16 +431,12 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Add build-time asset transform plugin for OgImage components
-    // Lazy TW4 initialization - all setup deferred until first access (only when not using UnoCSS)
-    const tw4State = {
-      cssPath: undefined as string | undefined,
+    // CSS theme metadata - populated lazily from cssProvider.extractMetadata()
+    const cssMetadata = {
       fontVars: {} as Record<string, string>,
       breakpoints: {} as Record<string, number>,
       colors: {} as Record<string, string | Record<string, string>>,
-      nuxtUiColors: undefined as Record<string, string> | undefined,
-      initialized: false,
     }
-    let tw4InitPromise: Promise<void> | undefined
 
     // Font requirements state - detected from component analysis
     const fontRequirementsState = {
@@ -464,10 +460,11 @@ export default defineNuxtModule<ModuleOptions>({
         return fontScanPromise
 
       fontScanPromise = (async () => {
+        await loadCssMetadata()
         const result = await buildFontRequirements({
           components: getOgComponents(),
           buildDir: nuxt.options.buildDir,
-          fontVars: tw4State.fontVars,
+          fontVars: cssMetadata.fontVars,
           logger,
         })
         fontRequirementsState.weights = result.weights
@@ -481,9 +478,10 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Load Nuxt UI colors from .nuxt/app.config.mjs
+    let cachedNuxtUiColors: Record<string, string> | undefined
     async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
-      if (tw4State.nuxtUiColors)
-        return tw4State.nuxtUiColors
+      if (cachedNuxtUiColors)
+        return cachedNuxtUiColors
       if (!hasNuxtModule('@nuxt/ui'))
         return undefined
       const appConfigPath = join(nuxt.options.buildDir, 'app.config.mjs')
@@ -505,94 +503,55 @@ export default defineNuxtModule<ModuleOptions>({
         userConfig = await import(userConfigMatch[1]).then(m => m.default || m).catch(() => ({}))
       }
       const mergedAppConfig = defu(userConfig, inlineConfig)
-      tw4State.nuxtUiColors = defu(mergedAppConfig?.ui?.colors, (nuxt.options.appConfig.ui as any)?.colors)
-      logger.debug(`Nuxt UI colors: ${JSON.stringify(tw4State.nuxtUiColors)}`)
-      return tw4State.nuxtUiColors
-    }
-
-    // Auto-detect Tailwind v4 CSS from nuxt.options.css
-    async function detectTailwindCssPath(): Promise<string | undefined> {
-      for (const cssEntry of nuxt.options.css) {
-        // @ts-expect-error untyped
-        const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
-        if (!cssPath || !cssPath.endsWith('.css'))
-          continue
-        const resolved = await resolver.resolvePath(cssPath).catch(() => null)
-        if (!resolved || !existsSync(resolved))
-          continue
-        const content = await readFile(resolved, 'utf-8')
-        if (content.includes('@import "tailwindcss"') || content.includes('@import \'tailwindcss\''))
-          return resolved
-      }
-    }
-
-    // Lazy initializer - called on first access by vite plugin or virtual module
-    async function initTw4(): Promise<void> {
-      if (tw4State.initialized)
-        return
-      if (tw4InitPromise)
-        return tw4InitPromise
-      tw4InitPromise = (async () => {
-        // Skip TW4 initialization when using UnoCSS
-        if (cssFramework === 'unocss') {
-          tw4State.initialized = true
-          return
-        }
-
-        let resolvedCssPath: string | undefined
-        if (config.tailwindCss) {
-          resolvedCssPath = await resolver.resolvePath(config.tailwindCss)
-        }
-        else {
-          // Try alias first, but fall through to auto-detect if it's a virtual module (not a real file)
-          const aliasPath = nuxt.options.alias['#tailwindcss'] as string | undefined
-          if (aliasPath && existsSync(aliasPath))
-            resolvedCssPath = aliasPath
-          else
-            resolvedCssPath = await detectTailwindCssPath()
-        }
-
-        tw4State.cssPath = resolvedCssPath
-        if (!resolvedCssPath || !existsSync(resolvedCssPath)) {
-          tw4State.initialized = true
-          return
-        }
-
-        const tw4CssContent = await readFile(resolvedCssPath, 'utf-8')
-        if (!tw4CssContent.includes('@theme') && !tw4CssContent.includes('@import "tailwindcss"')) {
-          tw4State.initialized = true
-          return
-        }
-
-        // Load Nuxt UI colors from .nuxt/app.config.mjs
-        const nuxtUiColors = await loadNuxtUiColors()
-
-        // Extract TW4 metadata (fonts, breakpoints, colors) for runtime
-        const metadata = await extractTw4Metadata({
-          cssPath: resolvedCssPath,
-          nuxtUiColors,
-        }).catch((e) => {
-          logger.warn(`TW4 metadata extraction failed: ${e.message}`)
-          return { fontVars: {}, breakpoints: {}, colors: {} }
-        })
-
-        tw4State.fontVars = metadata.fontVars
-        tw4State.breakpoints = metadata.breakpoints
-        tw4State.colors = metadata.colors
-
-        logger.debug(`TW4 enabled from ${relative(nuxt.options.rootDir, resolvedCssPath)}`)
-        tw4State.initialized = true
-      })()
-      return tw4InitPromise
+      cachedNuxtUiColors = defu(mergedAppConfig?.ui?.colors, (nuxt.options.appConfig.ui as any)?.colors)
+      logger.debug(`Nuxt UI colors: ${JSON.stringify(cachedNuxtUiColors)}`)
+      return cachedNuxtUiColors
     }
 
     // Create TW4 provider when not using UnoCSS
     if (!cssProvider && cssFramework === 'tailwind') {
+      const { createTw4Provider } = await import('./build/css/providers/tw4')
       cssProvider = createTw4Provider({
-        getCssPath: () => tw4State.cssPath,
+        async resolveCssPath() {
+          if (config.tailwindCss)
+            return resolver.resolvePath(config.tailwindCss)
+          // Try alias first, but fall through to auto-detect if it's a virtual module (not a real file)
+          const aliasPath = nuxt.options.alias['#tailwindcss'] as string | undefined
+          if (aliasPath && existsSync(aliasPath))
+            return aliasPath
+          // Auto-detect from nuxt.options.css entries
+          for (const cssEntry of nuxt.options.css) {
+            // @ts-expect-error untyped
+            const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
+            if (!cssPath || !cssPath.endsWith('.css'))
+              continue
+            const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+            if (!resolved || !existsSync(resolved))
+              continue
+            const content = await readFile(resolved, 'utf-8')
+            if (content.includes('@import "tailwindcss"') || content.includes('@import \'tailwindcss\''))
+              return resolved
+          }
+        },
         loadNuxtUiColors,
-        init: initTw4,
       })
+    }
+
+    // Lazy CSS metadata loader - calls cssProvider.extractMetadata() once
+    let cssMetadataPromise: Promise<void> | undefined
+    async function loadCssMetadata(): Promise<void> {
+      if (cssMetadataPromise)
+        return cssMetadataPromise
+      cssMetadataPromise = (async () => {
+        if (!cssProvider?.extractMetadata)
+          return
+        const metadata = await cssProvider.extractMetadata().catch((e) => {
+          logger.warn(`CSS metadata extraction failed: ${(e as Error).message}`)
+          return { fontVars: {}, breakpoints: {}, colors: {} }
+        })
+        Object.assign(cssMetadata, metadata)
+      })()
+      return cssMetadataPromise
     }
 
     // Collect resolved OG component directory paths for the asset transform plugin (populated later, accessed via getter)
@@ -1097,6 +1056,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
+      await loadCssMetadata()
       await scanFontRequirementsLazy()
       const fonts = await resolveOgImageFonts({
         nuxt,
@@ -1105,7 +1065,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         convertedWoff2Files,
         fontSubsets: config.fontSubsets,
         fontRequirements: fontRequirementsState,
-        tw4FontVars: tw4State.fontVars,
+        tw4FontVars: cssMetadata.fontVars,
         logger,
         ogFontsDir: resolve('./runtime/public/_og-fonts'),
       })
@@ -1133,12 +1093,13 @@ export const componentFontMap = ${JSON.stringify(fontRequirementsState.component
 export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
     }
 
-    // TW4 theme vars virtual module - provides fonts, breakpoints, and colors from @theme
+    // CSS theme vars virtual module - provides fonts, breakpoints, and colors from CSS provider
     // Note: classMap is NOT included here as it's too heavy - transforms happen at build time via AssetTransformPlugin
-    nuxt.options.nitro.virtual['#og-image-virtual/tw4-theme.mjs'] = () => {
-      return `export const tw4FontVars = ${JSON.stringify(tw4State.fontVars)}
-export const tw4Breakpoints = ${JSON.stringify(tw4State.breakpoints)}
-export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
+    nuxt.options.nitro.virtual['#og-image-virtual/tw4-theme.mjs'] = async () => {
+      await loadCssMetadata()
+      return `export const tw4FontVars = ${JSON.stringify(cssMetadata.fontVars)}
+export const tw4Breakpoints = ${JSON.stringify(cssMetadata.breakpoints)}
+export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}`
@@ -1290,12 +1251,15 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
         nuxt.hooks.hook('nitro:init', resolveNitro)
       })
 
-      // HMR: watch for TW4 CSS and OgImage component changes
+      // HMR: watch for CSS and OgImage component changes
       nuxt.hook('builder:watch', async (_event, relativePath) => {
         const absolutePath = isAbsolute(relativePath) ? relativePath : join(nuxt.options.rootDir, relativePath)
 
-        // Check if TW4 CSS file changed
-        const isTw4CssChange = tw4State.cssPath && absolutePath === tw4State.cssPath
+        // Check if a project CSS file changed (could affect CSS provider output)
+        const isCssChange = absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
+          const src = typeof entry === 'string' ? entry : (entry as any)?.src
+          return src && absolutePath.endsWith(src.replace(/^~\//, ''))
+        })
 
         // Check if OgImage component changed
         const isOgImageComponent = config.componentDirs.some((dir) => {
@@ -1303,10 +1267,12 @@ export const tw4Colors = ${JSON.stringify(tw4State.colors)}`
           return absolutePath.startsWith(componentDir) && absolutePath.endsWith('.vue')
         })
 
-        if (isTw4CssChange || isOgImageComponent) {
-          // Clear TW4 caches - resolveClassesToStyles will re-resolve on next transform
-          clearTw4Cache()
-          logger.debug('HMR: Cleared TW4 cache')
+        if (isCssChange || isOgImageComponent) {
+          // Clear CSS provider and metadata caches
+          cssProvider?.clearCache?.()
+          cssMetadataPromise = undefined
+          Object.assign(cssMetadata, { fontVars: {}, breakpoints: {}, colors: {} })
+          logger.debug('HMR: Cleared CSS provider cache')
 
           // Update templates to refresh virtual modules and trigger Nitro reload
           await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })

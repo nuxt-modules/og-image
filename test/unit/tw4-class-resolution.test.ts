@@ -709,7 +709,7 @@ describe('resolveClassesToStyles conversions', () => {
 describe('assetTransformPlugin with TW4', () => {
   const ogComponentPaths = [join(tmpDir, 'components')]
   const tw4Provider = createTw4Provider({
-    getCssPath: () => cssPath,
+    resolveCssPath: async () => cssPath,
     loadNuxtUiColors: async () => undefined,
   })
 
