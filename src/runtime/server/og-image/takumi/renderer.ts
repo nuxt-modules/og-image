@@ -211,12 +211,12 @@ function linearGradientToSvg(gradient: string, backgroundColor?: string): string
   }
 
   const stops = parts.slice(stopsStartIdx).map((stop, i, arr) => {
-    const stopMatch = stop.match(/^([\s\S]*?)(\s+\d+%)?$/)
+    const stopMatch = stop.match(/^(\S(?:.*\S)?)(?:\s+(\d+%))?$/)
     let color = stopMatch?.[1] || stop
-    const offset = stopMatch?.[2]?.trim() || `${Math.round((i / (arr.length - 1)) * 100)}%`
+    const offset = stopMatch?.[2] || `${Math.round((i / (arr.length - 1)) * 100)}%`
 
     let opacity = '1'
-    const rgbaMatch = color.match(/rgba?\(([\s\S]*)\)/)
+    const rgbaMatch = color.match(/rgba?\((.+)\)/)
     if (rgbaMatch) {
       const cParts = rgbaMatch[1]!.split(',').map(p => p.trim())
       if (cParts.length === 4) {
