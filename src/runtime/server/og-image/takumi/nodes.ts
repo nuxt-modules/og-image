@@ -8,6 +8,7 @@ import { applyEmojis } from '../satori/transforms/emojis'
 import { applyInlineCss } from '../satori/transforms/inlineCss'
 import { walkSatoriTree } from '../satori/utils'
 import { htmlToVNode } from '../satori/vnodes'
+import { stripGradientColorSpace } from '../utils/css'
 
 export interface TakumiNode {
   type: 'container' | 'image' | 'text'
@@ -42,11 +43,21 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
 }
 
 async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeight?: number): Promise<TakumiNode> {
-  const { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
+  let { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
+
+  if (style && typeof style === 'object') {
+    style = Object.fromEntries(
+      Object.entries(style).filter(([_, v]) => v !== undefined && v !== null && v !== ''),
+    )
+    if (Object.keys(style).length === 0)
+      style = undefined
+  }
 
   // Helper to resolve units to pixels
   const resolvePx = (val: any, total?: number) => {
     if (typeof val === 'string') {
+      if (val.includes('calc('))
+        return undefined
       const num = Number.parseFloat(val)
       if (Number.isNaN(num))
         return undefined
@@ -187,7 +198,7 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
 
 // Extract dimensions from tailwind classes (enhanced support)
 function extractTwDim(twCls: string | undefined, prefix: string, total?: number): number | undefined {
-  if (!twCls)
+  if (!twCls || twCls.includes('calc('))
     return undefined
 
   // Match arbitrary value classes (w-[31.5%], h-[48%], w-[100px])
@@ -231,8 +242,7 @@ function vnodeToHtmlString(vnode: VNode): string {
 
   const kebabCase = (str: string) => str.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
 
-  const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
-  const stripColorSpace = (val: any) => typeof val === 'string' ? val.replace(GRADIENT_COLOR_SPACE_RE, '') : val
+  const stripColorSpace = (val: any) => typeof val === 'string' ? stripGradientColorSpace(val) : val
 
   if (vnode.type === 'svg') {
     if (!attrs.xmlns)
@@ -245,9 +255,13 @@ function vnodeToHtmlString(vnode: VNode): string {
 
   // Helper to resolve units to pixels
   const resolveValue = (val: any) => {
-    if (typeof val === 'string' && (val.endsWith('em') || val.endsWith('rem'))) {
-      const num = Number.parseFloat(val)
-      return !Number.isNaN(num) ? `${num * 16}px` : val
+    if (typeof val === 'string') {
+      if (val.includes('calc('))
+        return val
+      if (val.endsWith('em') || val.endsWith('rem')) {
+        const num = Number.parseFloat(val)
+        return !Number.isNaN(num) ? `${num * 16}px` : val
+      }
     }
     return val
   }
@@ -255,6 +269,7 @@ function vnodeToHtmlString(vnode: VNode): string {
   // Serialize style back to string
   if (style && typeof style === 'object') {
     const styleStr = Object.entries(style)
+      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
       .map(([k, v]) => `${kebabCase(k)}:${stripColorSpace(resolveValue(v))}`)
       .join(';')
     if (styleStr)

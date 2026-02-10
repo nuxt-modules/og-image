@@ -230,7 +230,7 @@ describe('css-utils', () => {
     it('normalizes calc(infinity) via Lightning CSS', async () => {
       const raw = { 'border-radius': 'calc(infinity)' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('3.40282e38')
+      expect(result?.['border-radius']).toBe('3.40282e38px')
     })
 
     it('passes through opacity (normalization handled by simplifyCss)', async () => {
@@ -273,7 +273,7 @@ describe('css-utils', () => {
     it('strips gradient color interpolation method (in oklab)', async () => {
       const raw = { 'background-image': 'linear-gradient(to top right in oklab, #3b82f6 0%, rgba(0, 0, 0, 0) 100%)' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['background-image']).toBe('linear-gradient(to top right, #3b82f6 0%, rgba(0, 0, 0, 0) 100%)')
+      expect(result?.['background-image']).toBe('linear-gradient(to top right, #3b82f6 0%, transparent 100%)')
     })
   })
 })

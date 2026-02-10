@@ -156,8 +156,9 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
   }
 
   for (const [key, value] of Object.entries(flattened)) {
-    if (value === undefined || value === null)
+    if (value === undefined || value === null || value === '') {
       continue
+    }
 
     // Skip internal/meta fields
     if (key === 'extension' || key === 'socialPreview')
@@ -261,7 +262,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
       else if (value === 'false') {
         options[paramName] = false
       }
-      else {
+      else if (value !== '') {
         const num = Number(value)
         options[paramName] = Number.isNaN(num) ? value : num
       }
@@ -277,7 +278,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
       else if (value === 'false') {
         options.props[paramName] = false
       }
-      else {
+      else if (value !== '') {
         const num = Number(value)
         options.props[paramName] = Number.isNaN(num) ? value : num
       }

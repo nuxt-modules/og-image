@@ -3,6 +3,7 @@ import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { loadAllFonts } from '../fonts'
+import { stripGradientColorSpace } from '../utils/css'
 import { detectImageExt } from '../utils/image-detector'
 import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -155,8 +156,7 @@ function linearGradientToSvg(gradient: string, backgroundColor?: string): string
 
   // Strip gradient color interpolation methods (e.g. `in oklab`, `in oklch`)
   // TW4 generates these but image renderers (Satori, Takumi) don't support them.
-  const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
-  const cleanedGradient = match[1]!.replace(GRADIENT_COLOR_SPACE_RE, '')
+  const cleanedGradient = stripGradientColorSpace(match[1]!)
 
   const parts = cleanedGradient.split(/,(?![^(]*\))/).map(p => p.trim())
   let x1 = '0%'

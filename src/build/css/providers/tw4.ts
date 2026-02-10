@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
 import {
-  downlevelColor,
   extractClassStyles,
   extractCssVars,
   extractPerClassVars,
@@ -265,8 +264,10 @@ async function resolveGradientColor(cls: string, vars: Map<string, string>): Pro
     const value = vars.get(varName)
     if (value) {
       const resolved = await resolveVarsDeep(value, vars)
-      if (!resolved.includes('var('))
-        return downlevelColor('color', resolved)
+      if (!resolved.includes('var(')) {
+        const simplified = await simplifyCss(`.x{color:${resolved}}`)
+        return simplified.match(/color:([^;}]+)/)?.[1]?.trim() ?? resolved
+      }
     }
   }
 
@@ -274,8 +275,10 @@ async function resolveGradientColor(cls: string, vars: Map<string, string>): Pro
   const value = vars.get(varName)
   if (value) {
     const resolved = await resolveVarsDeep(value, vars)
-    if (!resolved.includes('var('))
-      return downlevelColor('color', resolved)
+    if (!resolved.includes('var(')) {
+      const simplified = await simplifyCss(`.x{color:${resolved}}`)
+      return simplified.match(/color:([^;}]+)/)?.[1]?.trim() ?? resolved
+    }
   }
 
   return null
@@ -352,7 +355,13 @@ export async function resolveClassesToStyles(
       const classVars = perClassVars.get(className)
       const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
       const styles = await postProcessStyles(rawStyles, mergedVars)
-      resolvedStyleCache.set(className, styles)
+      // Gradients must resolve to something for buildGradient to find them later
+      if (!styles && className.startsWith('bg-gradient-')) {
+        resolvedStyleCache.set(className, rawStyles)
+      }
+      else {
+        resolvedStyleCache.set(className, styles)
+      }
     }
 
     for (const c of uncached) {
@@ -407,7 +416,9 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
     else if (name.startsWith('--color-') && !resolvedValue.includes('var(')) {
       const colorPath = name.slice(8)
       const shadeMatch = colorPath.match(/^(.+)-(\d+)$/)
-      const hexValue = await downlevelColor('color', resolvedValue)
+
+      const simplified = await simplifyCss(`.x{color:${resolvedValue}}`)
+      const hexValue = simplified.match(/color:([^;}]+)/)?.[1]?.trim() ?? resolvedValue
 
       if (shadeMatch) {
         const [, colorName, shade] = shadeMatch

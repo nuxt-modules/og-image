@@ -61,8 +61,13 @@ export async function applyInlineCss(ctx: OgImageRenderEventContext, island: Nux
   // extract classses from the css
   const classes = css.match(/\.([\w-]+)/g)?.map((c: string) => c.replace('.', ''))
   // remove classes from the html to avoid satori errors
-  if (classes)
-    html = html.replace(new RegExp(`class="(${classes.join('|')})"`, 'g'), '')
+  if (classes?.length) {
+    // Match class names surrounded by word boundaries or start/end of string within class="..."
+    html = html.replace(/class="([^"]*)"/g, (match, classAttr) => {
+      const remaining = classAttr.split(/\s+/).filter((c: string) => !classes.includes(c)).join(' ')
+      return remaining ? `class="${remaining}"` : ''
+    })
+  }
 
   island.html = html
   return true

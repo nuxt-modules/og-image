@@ -1,19 +1,16 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
+import { GRADIENT_COLOR_SPACE_RE } from '../../runtime/server/og-image/utils/css'
 
 // ============================================================================
-// Lightning CSS lazy loading (replaces postcss)
+// Lightning CSS lazy loading
 // ============================================================================
 
 let transform: typeof import('lightningcss').transform
 let Features: typeof import('lightningcss').Features
 
-/**
- * Standard legacy browser targets for Satori/Takumi compatibility.
- * Forces Lightning CSS to downlevel modern features (modern colors, oklab interpolation, etc.).
- */
 const LEGACY_TARGETS = {
-  chrome: 110 << 16, // Chrome 110 (pre-oklch/oklab in some aspects)
-  safari: 16 << 16,
+  chrome: 60 << 16,
+  safari: 10 << 16,
 }
 
 export async function loadLightningCss() {
@@ -26,221 +23,201 @@ export async function loadLightningCss() {
 }
 
 /**
+ * Shared Lightning CSS transformation logic.
+ */
+export async function transformWithLightningCss(
+  css: string,
+  options: {
+    minify?: boolean
+    filename?: string
+    targets?: Record<string, number>
+    include?: number
+  } = {},
+) {
+  const { transform } = await loadLightningCss()
+  const {
+    minify = true,
+    filename = 'input.css',
+    targets = LEGACY_TARGETS,
+    include,
+  } = options
+
+  const transformOptions: any = {
+    filename,
+    code: Buffer.from(css),
+    minify,
+    targets,
+    drafts: { customMedia: true },
+  }
+  if (include !== undefined)
+    transformOptions.include = include
+
+  return transform(transformOptions)
+}
+
+// ============================================================================
+// CSS parsing utilities
+// ============================================================================
+
+/**
+ * Extract CSS declarations from a CSS block body.
+ */
+function extractDeclarations(body: string, onDeclaration: (prop: string, value: string) => void) {
+  const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
+  for (const match of body.matchAll(declRe)) {
+    if (match[1] && match[2])
+      onDeclaration(match[1], match[2].trim())
+  }
+}
+
+/**
+ * Iterate over CSS blocks matching a selector pattern.
+ */
+function walkBlockRules(css: string, selectorRe: RegExp, onBlock: (body: string) => void) {
+  for (const match of css.matchAll(selectorRe)) {
+    if (match[1])
+      onBlock(match[1])
+  }
+}
+
+/**
+ * Iterate over simple class rules in a CSS string.
+ */
+function walkClassRules(css: string, onRule: (className: string, body: string) => void) {
+  const ruleRe = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
+  for (const match of css.matchAll(ruleRe)) {
+    const rawSelector = match[1]!
+    if (isSimpleClassSelector(rawSelector))
+      onRule(decodeCssClassName(rawSelector), match[2]!)
+  }
+}
+
+/**
  * Simplify CSS using Lightning CSS with minification.
- * Minification folds constant calc() expressions (e.g. calc(200px * 1.5) → 300px)
- * and normalizes values.
  */
 export async function simplifyCss(css: string): Promise<string> {
-  const { transform } = await loadLightningCss()
-  const result = transform({
-    filename: 'input.css',
-    code: Buffer.from(css),
-    minify: true,
-    targets: LEGACY_TARGETS,
-  })
+  const result = await transformWithLightningCss(css, { minify: true })
   return result.code.toString()
 }
 
-/**
- * Extract CSS variables from :root/:host blocks.
- * Uses safe regex patterns that avoid exponential backtracking.
- */
 export function extractCssVars(css: string): Map<string, string> {
   const vars = new Map<string, string>()
-  // Safe: [^}]+ cannot backtrack dangerously
-  const rootRe = /:(?:root|host)\s*\{([^}]+)\}/g
-  for (const match of css.matchAll(rootRe)) {
-    const body = match[1]!
-    // Safe: value starts with non-whitespace [^\s;] then any [^;]*
-    // This prevents \s* from exchanging characters with value
-    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
-    for (const m of body.matchAll(declRe)) {
-      if (m[1] && m[2])
-        vars.set(m[1], m[2].trim())
-    }
-  }
+  walkBlockRules(css, /:(?:root|host)\s*\{([^}]+)\}/g, (body) => {
+    extractDeclarations(body, (prop, value) => {
+      if (prop.startsWith('--'))
+        vars.set(prop, value)
+    })
+  })
   return vars
 }
 
-/**
- * Extract CSS variables from universal selector blocks (*, ::before, ::after, etc.).
- * TW4 puts default shadow/ring/inset variables here as base-layer defaults.
- */
 export function extractUniversalVars(css: string): Map<string, string> {
   const vars = new Map<string, string>()
-  // Match blocks starting with `*` (e.g., `*, ::after, ::before { ... }`)
-  const universalRe = /\*[^{]*\{([^}]+)\}/g
-  for (const match of css.matchAll(universalRe)) {
-    const body = match[1]!
-    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
-    for (const m of body.matchAll(declRe)) {
-      if (m[1] && m[2])
-        vars.set(m[1], m[2].trim())
-    }
-  }
+  walkBlockRules(css, /\*[^{]*\{([^}]+)\}/g, (body) => {
+    extractDeclarations(body, (prop, value) => {
+      if (prop.startsWith('--'))
+        vars.set(prop, value)
+    })
+  })
   return vars
 }
 
-/**
- * Extract initial-value from @property rules.
- * CSS Houdini @property provides registered custom property defaults.
- * Used by UnoCSS preset-wind4 for shadow/ring variable defaults.
- */
 export function extractPropertyInitialValues(css: string): Map<string, string> {
   const vars = new Map<string, string>()
   const propertyRe = /@property\s+(--[\w-]+)\s*\{([^}]+)\}/g
   for (const match of css.matchAll(propertyRe)) {
-    const name = match[1]!
-    const body = match[2]!
-    const initialMatch = body.match(/initial-value\s*:\s*([^\s;][^;]*);?/)
+    const initialMatch = match[2]!.match(/initial-value\s*:\s*([^\s;][^;]*);?/)
     if (initialMatch?.[1])
-      vars.set(name, initialMatch[1].trim())
+      vars.set(match[1]!, initialMatch[1].trim())
   }
   return vars
 }
 
-/**
- * Extract per-class CSS variable declarations.
- * Returns a map of className -> { varName -> value } for classes that define CSS variables.
- * Used to capture TW4 class-scoped overrides (e.g., `.shadow-2xl { --tw-shadow: ... }`).
- */
 export function extractPerClassVars(css: string): Map<string, Map<string, string>> {
   const result = new Map<string, Map<string, string>>()
-  const ruleRe = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
-
-  for (const match of css.matchAll(ruleRe)) {
-    const rawSelector = match[1]!
-    if (!isSimpleClassSelector(rawSelector))
-      continue
-    const className = decodeCssClassName(rawSelector)
-    const body = match[2]!
+  walkClassRules(css, (className, body) => {
     const classVars = new Map<string, string>()
-    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
-    for (const m of body.matchAll(declRe)) {
-      if (m[1] && m[2])
-        classVars.set(m[1], m[2].trim())
-    }
+    extractDeclarations(body, (prop, value) => {
+      if (prop.startsWith('--'))
+        classVars.set(prop, value)
+    })
     if (classVars.size > 0)
       result.set(className, classVars)
-  }
+  })
   return result
 }
 
-/**
- * Resolve all var() references in a CSS string.
- * Handles nested var() fallbacks like var(--a, var(--b, initial)) by
- * resolving innermost var() calls first (inside-out).
- */
+// ============================================================================
+// Variable resolution
+// ============================================================================
+
 export function resolveCssVars(css: string, vars: Map<string, string>): string {
   let result = css
   let iterations = 0
   while (result.includes('var(') && iterations < 20) {
     const next = resolveInnermostVar(result, vars)
     if (next === result)
-      break // no progress
+      break
     result = next
     iterations++
   }
   return result
 }
 
-/**
- * Find and resolve the innermost (last/deepest) var() call.
- * By resolving the last `var(` first, nested fallbacks like
- * `var(--a, var(--b, initial))` resolve inside-out.
- * Counts parenthesis depth to handle calc() etc. inside fallbacks.
- */
+function findClosingParen(str: string, startIdx: number): number {
+  let depth = 1
+  for (let i = startIdx; i < str.length; i++) {
+    if (str[i] === '(') {
+      depth++
+    }
+    else if (str[i] === ')') {
+      if (--depth === 0)
+        return i
+    }
+  }
+  return -1
+}
+
 function resolveInnermostVar(css: string, vars: Map<string, string>): string {
   const idx = css.lastIndexOf('var(')
   if (idx === -1)
     return css
-  // Walk forward from after `var(` counting paren depth to find matching `)`
-  let depth = 1
-  let close = -1
-  for (let i = idx + 4; i < css.length; i++) {
-    if (css[i] === '(') {
-      depth++
-    }
-    else if (css[i] === ')') {
-      depth--
-      if (depth === 0) {
-        close = i - idx - 4
-        break
-      }
-    }
-  }
-  if (close === -1)
+  const closeIdx = findClosingParen(css, idx + 4)
+  if (closeIdx === -1)
     return css
-  const after = css.substring(idx + 4)
-  const content = after.substring(0, close)
-  // Only resolve if content has no nested var() — otherwise not truly innermost
+  const content = css.substring(idx + 4, closeIdx)
   if (content.includes('var('))
     return css
   const comma = content.indexOf(',')
-  let name: string
-  let fallback: string | undefined
-  if (comma >= 0) {
-    name = content.substring(0, comma).trim()
-    fallback = content.substring(comma + 1).trim()
-  }
-  else {
-    name = content.trim()
-  }
+  const name = (comma >= 0 ? content.substring(0, comma) : content).trim()
+  const fallback = comma >= 0 ? content.substring(comma + 1).trim() : undefined
   const resolved = vars.get(name) ?? fallback ?? ''
-  return css.substring(0, idx) + resolved + css.substring(idx + 4 + close + 1)
+  return css.substring(0, idx) + resolved + css.substring(closeIdx + 1)
 }
 
-/**
- * Decode CSS selector escape sequences to get the actual class name.
- * Handles: .\32xl -> 2xl (hex escapes), .m-0\.5 -> m-0.5 (escaped chars)
- */
+// ============================================================================
+// Selector utilities
+// ============================================================================
+
 export function decodeCssClassName(selector: string): string {
   let className = selector.startsWith('.') ? selector.slice(1) : selector
-  // Hex escapes: \32 -> '2' (CSS allows 1-6 hex digits + optional space)
-  // Safe: {1,6} limits repetition, no nested quantifiers
   className = className.replace(/\\([0-9a-f]{1,6})\s?/gi, (_, hex) =>
     String.fromCodePoint(Number.parseInt(hex, 16)))
-  // Escaped special chars: \. -> .
-  className = className.replace(/\\(.)/g, '$1')
-  return className
+  return className.replace(/\\(.)/g, '$1')
 }
 
-/**
- * Check if selector is a simple class (no pseudo-classes, combinators).
- * Must handle CSS escapes like `\32 xl` where space is part of escape.
- */
 export function isSimpleClassSelector(selector: string): boolean {
-  // Remove escape sequences to check for real spaces/combinators
-  // Safe: {1,6} limits hex digit repetition
   const withoutEscapes = selector.replace(/\\[0-9a-f]{1,6}\s?/gi, '_').replace(/\\./g, '_')
-
-  // Check for combinators (real spaces, >, +, ~)
-  if (/[\s>+~]/.test(withoutEscapes))
-    return false
-
-  // Check for unescaped pseudo-class (: followed by alpha)
-  if (/:[a-z]/i.test(withoutEscapes))
-    return false
-
-  return true
+  return !/[\s>+~]/.test(withoutEscapes) && !/:[a-z]/i.test(withoutEscapes)
 }
 
 export interface ExtractClassStylesOptions {
-  /** Convert property names to camelCase (default: false) */
   camelCase?: boolean
-  /** Skip properties starting with these prefixes (default: ['--']) */
   skipPrefixes?: string[]
-  /** Merge styles for duplicate class selectors (default: false, overwrites) */
   merge?: boolean
-  /** Collect CSS variables (--*) per class into this map instead of skipping them */
   collectVars?: Map<string, string>
 }
 
-/**
- * Extract class rules from CSS into a map of className -> styles.
- * Only extracts simple class selectors (no pseudo-classes, combinators).
- * Uses safe regex patterns to avoid exponential backtracking.
- */
 export function extractClassStyles(
   css: string,
   options: ExtractClassStylesOptions = {},
@@ -248,129 +225,31 @@ export function extractClassStyles(
   const { camelCase = false, skipPrefixes = ['--'], merge = false, collectVars } = options
   const classes = new Map<string, Record<string, string>>()
 
-  // Match .selector { body }
-  // Safe regex: hex escapes limited to 1-6 digits (CSS spec)
-  // [^\\\s{] excludes backslash to prevent overlap with escape sequences
-  // \\[^0-9a-f] handles non-hex escapes without overlapping hex escapes
-  const ruleRe = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
-
-  for (const match of css.matchAll(ruleRe)) {
-    const rawSelector = match[1]!
-    const body = match[2]!
-
-    if (!isSimpleClassSelector(rawSelector))
-      continue
-
-    const className = decodeCssClassName(rawSelector)
+  walkClassRules(css, (className, body) => {
     const styles: Record<string, string> = merge ? (classes.get(className) || {}) : {}
-
-    // Safe: value starts with non-whitespace [^\s;] to prevent overlap with \s*
-    // Semicolons may be omitted before } in minified CSS, so match ; or end-of-body
-    const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
-    for (const declMatch of body.matchAll(declRe)) {
-      const prop = declMatch[1]!
-      const value = declMatch[2]!.trim()
-
-      // Collect CSS variables into separate map if requested
+    extractDeclarations(body, (prop, value) => {
       if (prop.startsWith('--')) {
         if (collectVars)
           collectVars.set(prop, value)
         if (skipPrefixes.some(p => prop.startsWith(p)))
-          continue
+          return
       }
       else if (skipPrefixes.some(p => prop.startsWith(p))) {
-        continue
+        return
       }
-
       const finalProp = camelCase ? prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase()) : prop
       styles[finalProp] = value
-    }
-
+    })
     if (Object.keys(styles).length)
       classes.set(className, styles)
-  }
-
+  })
   return classes
 }
-
-// ============================================================================
-// Color utilities
-// ============================================================================
-
-/**
- * Downlevel a CSS color value to hex/rgba using Lightning CSS.
- * Handles oklch(), oklab(), color-mix(), lab(), lch(), etc.
- * Returns original value if parsing fails or contains var().
- */
-export async function downlevelColor(prop: string, value: string): Promise<string> {
-  if (!value || value.includes('var('))
-    return value
-  const { transform, Features } = await loadLightningCss()
-  const css = `.x{${prop}:${value}}`
-  try {
-    const result = transform({
-      filename: 'color.css',
-      code: Buffer.from(css),
-      include: Features.Colors,
-      minify: false,
-      targets: LEGACY_TARGETS,
-    })
-    // Lightning CSS outputs fallback first, then progressive enhancement:
-    //   .x { color: #007565; color: lab(...) }
-    // Extract the first value (hex/rgba fallback)
-    const output = result.code.toString()
-    const propPattern = `${prop}:`
-    const idx = output.indexOf(propPattern)
-    if (idx === -1)
-      return value
-    const afterProp = output.slice(idx + propPattern.length)
-    // Find end of first declaration (semicolon or closing brace)
-    const endIdx = Math.min(
-      ...[afterProp.indexOf(';'), afterProp.indexOf('}')]
-        .filter(i => i !== -1),
-    )
-    return endIdx > 0 ? afterProp.slice(0, endIdx).trim() : value
-  }
-  catch {
-    return value
-  }
-}
-
-/**
- * Strip gradient color interpolation methods (e.g. `in oklab`, `in oklch`)
- * from CSS gradient values. TW4 generates these but image renderers
- * (Satori, Takumi) don't support them and Lightning CSS doesn't downlevel them.
- */
-const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
-export function stripGradientColorSpace(value: string): string {
-  return value.replace(GRADIENT_COLOR_SPACE_RE, '')
-}
-
-/**
- * CSS properties that contain colors (need oklch→hex conversion)
- */
-export const COLOR_PROPERTIES = new Set([
-  'color',
-  'background-color',
-  'background-image',
-  'border-color',
-  'border-top-color',
-  'border-right-color',
-  'border-bottom-color',
-  'border-left-color',
-  'outline-color',
-  'fill',
-  'stroke',
-  'text-decoration-color',
-  'caret-color',
-  'accent-color',
-])
 
 // ============================================================================
 // Font family utilities
 // ============================================================================
 
-/** Generic font families that don't map to loaded fonts */
 export const GENERIC_FONT_FAMILIES = new Set([
   'sans-serif',
   'serif',
@@ -388,105 +267,16 @@ export const GENERIC_FONT_FAMILIES = new Set([
   'inherit',
   'initial',
   'unset',
+  'revert',
+  'revert-layer',
 ])
 
-/** Extract custom (non-generic) font family names from a CSS font-family value */
 export function extractCustomFontFamilies(cssValue: string): string[] {
-  // Strip !important before parsing
-  const cleaned = cssValue.replace(/\s*!important\s*$/, '')
-  const families: string[] = []
-  for (const part of cleaned.split(',')) {
-    const name = part.trim().replace(/^['"]|['"]$/g, '')
-    // Skip generic families, numeric values (font-weights like 700), and CSS variables
-    if (name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !/^\d+$/.test(name) && !name.startsWith('var('))
-      families.push(name)
-  }
-  return families
-}
-
-// ============================================================================
-// Satori compatibility transforms
-// ============================================================================
-
-/**
- * Convert CSS individual transform properties (rotate, scale, translate)
- * to the shorthand `transform` property for Satori compatibility.
- * Mutates the styles object in place.
- */
-export function convertIndividualTransforms(styles: Record<string, string>): void {
-  const parts: string[] = []
-
-  if (styles.translate) {
-    // CSS `translate: x y` → `translate(x, y)` or `translateX(x)`
-    const vals = styles.translate.trim().split(/\s+/)
-    if (vals.length === 2)
-      parts.push(`translate(${vals[0]}, ${vals[1]})`)
-    else if (vals.length === 1 && vals[0])
-      parts.push(`translateX(${vals[0]})`)
-    delete styles.translate
-  }
-  if (styles.rotate) {
-    parts.push(`rotate(${styles.rotate})`)
-    delete styles.rotate
-  }
-  if (styles.scale) {
-    const vals = styles.scale.trim().split(/\s+/).filter(Boolean)
-    if (vals.length >= 1)
-      parts.push(`scale(${vals.join(', ')})`)
-    delete styles.scale
-  }
-
-  if (parts.length > 0) {
-    // Prepend to existing transform if present
-    const existing = styles.transform
-    styles.transform = existing ? `${parts.join(' ')} ${existing}` : parts.join(' ')
-  }
-}
-
-/**
- * Expand CSS logical properties to physical longhands for Satori compatibility.
- * Satori doesn't support `inset`, `inset-inline`, `inset-block`,
- * `padding-inline`, `padding-block`, `margin-inline`, or `margin-block`.
- * Mutates the styles object in place.
- */
-export function convertLogicalProperties(styles: Record<string, string>): void {
-  if (styles.inset) {
-    const v = styles.inset
-    styles.top ??= v
-    styles.right ??= v
-    styles.bottom ??= v
-    styles.left ??= v
-    delete styles.inset
-  }
-  // inset-inline (TW4 output for inset-x-*)
-  const inlineVal = styles['inset-inline']
-  if (inlineVal) {
-    styles.left ??= inlineVal
-    styles.right ??= inlineVal
-    delete styles['inset-inline']
-  }
-  // inset-block (TW4 output for inset-y-*)
-  const blockVal = styles['inset-block']
-  if (blockVal) {
-    styles.top ??= blockVal
-    styles.bottom ??= blockVal
-    delete styles['inset-block']
-  }
-  // Expand logical box properties to physical longhands (kebab-case only)
-  const logicalProps = [
-    ['padding-inline', 'padding-left', 'padding-right'],
-    ['padding-block', 'padding-top', 'padding-bottom'],
-    ['margin-inline', 'margin-left', 'margin-right'],
-    ['margin-block', 'margin-top', 'margin-bottom'],
-  ] as const
-  for (const [logical, physA, physB] of logicalProps) {
-    if (styles[logical]) {
-      const v = styles[logical]
-      styles[physA] ??= v
-      styles[physB] ??= v
-      delete styles[logical]
-    }
-  }
+  return cssValue
+    .replace(/\s*!important\s*$/, '')
+    .split(',')
+    .map(p => p.trim().replace(/^['"]|['"]$/g, ''))
+    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !/^\d+$/.test(name) && !name.startsWith('var('))
 }
 
 // ============================================================================
@@ -499,10 +289,8 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
 export async function evaluateCalc(value: string): Promise<string> {
   if (!value.includes('calc('))
     return value
-  const fakeCss = `.x{width:${value}}`
-  const result = await simplifyCss(fakeCss)
-  const match = result.match(/\.x\{width:([^}]+)\}/)
-  return match?.[1]?.trim() ?? value
+  const result = await simplifyCss(`.x{width:${value}}`)
+  return result.match(/width:([^;}]+)/)?.[1]?.trim() ?? value
 }
 
 // ============================================================================
@@ -517,7 +305,6 @@ export async function resolveVarsDeep(value: string, vars: Map<string, string>, 
   if (depth > 10 || !value.includes('var('))
     return evaluateCalc(value)
 
-  // Optimize: calc(var(--name) * N) → pre-computed value
   const calcMatch = value.match(/calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/)
   if (calcMatch?.[1] && calcMatch?.[2]) {
     const varValue = vars.get(calcMatch[1])
@@ -531,11 +318,9 @@ export async function resolveVarsDeep(value: string, vars: Map<string, string>, 
   }
 
   const result = resolveCssVars(value, vars)
-
-  if (result.includes('var(') && depth < 10)
-    return resolveVarsDeep(result, vars, depth + 1)
-
-  return evaluateCalc(result)
+  return result.includes('var(') && depth < 10
+    ? resolveVarsDeep(result, vars, depth + 1)
+    : evaluateCalc(result)
 }
 
 // ============================================================================
@@ -543,10 +328,76 @@ export async function resolveVarsDeep(value: string, vars: Map<string, string>, 
 // ============================================================================
 
 /**
+ * Downlevel a CSS color value to hex/rgba using Lightning CSS.
+ */
+export async function downlevelColor(prop: string, value: string): Promise<string> {
+  if (!value || value.includes('var('))
+    return value
+  try {
+    const result = await transformWithLightningCss(`.x{${prop}:${value}}`, { minify: true })
+    const output = result.code.toString()
+    // Extract the first value (fallback) from minified output .x{prop:val1;prop:val2}
+    const match = output.match(new RegExp(`[{;]${prop}:(.*?)[;}]`))
+    return match?.[1]?.trim() ?? value
+  }
+  catch {
+    return value
+  }
+}
+
+/**
+ * Convert individual transform properties to shorthand transform for Satori.
+ */
+export function convertIndividualTransforms(styles: Record<string, string>): void {
+  const parts: string[] = []
+  if (styles.translate) {
+    const vals = styles.translate.trim().split(/\s+/)
+    parts.push(vals.length === 2 ? `translate(${vals[0]}, ${vals[1]})` : `translateX(${vals[0]})`)
+    delete styles.translate
+  }
+  if (styles.rotate) {
+    parts.push(`rotate(${styles.rotate})`)
+    delete styles.rotate
+  }
+  if (styles.scale) {
+    const vals = styles.scale.trim().split(/\s+/).filter(Boolean)
+    parts.push(`scale(${vals.join(', ')})`)
+    delete styles.scale
+  }
+  if (parts.length > 0) {
+    styles.transform = styles.transform ? `${parts.join(' ')} ${styles.transform}` : parts.join(' ')
+  }
+}
+
+/**
+ * Expand logical properties to physical longhands for Satori.
+ */
+export function convertLogicalProperties(styles: Record<string, string>): void {
+  const mapping = [
+    ['inset', ['top', 'right', 'bottom', 'left']],
+    ['inset-inline', ['left', 'right']],
+    ['inset-block', ['top', 'bottom']],
+    ['padding-inline', ['padding-left', 'padding-right']],
+    ['padding-block', ['padding-top', 'padding-bottom']],
+    ['margin-inline', ['margin-left', 'margin-right']],
+    ['margin-block', ['margin-top', 'margin-bottom']],
+  ] as const
+  for (const [logical, physicals] of mapping) {
+    if (styles[logical]) {
+      const v = styles[logical]
+      for (const phys of physicals) styles[phys] ??= v
+      delete styles[logical]
+    }
+  }
+}
+
+function stripGradientColorSpace(value: string): string {
+  return value.replace(GRADIENT_COLOR_SPACE_RE, '')
+}
+
+/**
  * Shared post-processing pipeline for resolved CSS styles.
- * Handles: resolve vars → skip unresolvable → convert colors →
- * convertIndividualTransforms → convertLogicalProperties.
- * Returns null if no styles survive processing.
+ * Handles: resolve vars → skip unresolvable → downlevel colors → transforms → logical props.
  */
 export async function postProcessStyles(
   rawStyles: Record<string, string>,
@@ -559,20 +410,11 @@ export async function postProcessStyles(
   for (const [prop, rawValue] of Object.entries(rawStyles)) {
     let value = await resolve(rawValue, vars)
 
-    // Skip unresolvable var() references
-    if (value.includes('var('))
+    if (value.includes('var(') || /^(?:initial|inherit|unset|revert|revert-layer)$/.test(value))
       continue
-
-    // Skip CSS global keywords — Satori doesn't understand them
-    if (value === 'initial' || value === 'inherit' || value === 'unset' || value === 'revert')
-      continue
-
-    // Skip malformed calc() from unresolved vars (e.g., "calc( * 16)")
     if (/calc\(\s*[*/]/.test(value))
       continue
 
-    // Clean up empty segments in comma-separated values
-    // (e.g., ", , , 0 10px 15px" → "0 10px 15px" from unresolved shadow vars)
     if (value.includes(',')) {
       const cleaned = value.split(',').map(s => s.trim()).filter(Boolean).join(', ')
       if (!cleaned)
@@ -580,20 +422,17 @@ export async function postProcessStyles(
       value = cleaned
     }
 
-    // Downlevel modern colors (oklch, color-mix, etc.) to hex/rgba via Lightning CSS
-    if (COLOR_PROPERTIES.has(prop))
+    // Downlevel modern colors
+    if (/color|fill|stroke|outline|border|background|caret|accent/.test(prop)) {
       value = await downlevelColor(prop, value)
+    }
 
-    // Strip gradient color interpolation methods (`in oklab`, `in oklch`, etc.)
-    // TW4 generates these but Satori/Takumi don't support them.
-    // Lightning CSS doesn't always downlevel these in all properties, so strip manually.
     if (prop === 'background-image' && value.includes('-gradient('))
       value = stripGradientColorSpace(value)
 
     styles[prop] = value
   }
 
-  // Satori compat transforms
   convertIndividualTransforms(styles)
   convertLogicalProperties(styles)
 
@@ -604,9 +443,6 @@ export async function postProcessStyles(
 // Template utilities
 // ============================================================================
 
-/**
- * Walk Vue template AST nodes recursively.
- */
 export function walkTemplateAst(
   nodes: TemplateChildNode[],
   visitor: (node: TemplateChildNode) => void,
