@@ -34,7 +34,7 @@
           <span class="text-sm">svg</span>
         </div>
         <div class="flex flex-col items-center">
-          <img src="https://placehold.co/100x100" width="100" height="100" />
+          <img src="https://placehold.co/100x100" width="100" height="100">
           <span class="text-sm">100x100</span>
         </div>
         <div class="flex flex-col items-center">

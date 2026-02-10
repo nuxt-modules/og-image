@@ -461,22 +461,6 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
       }
 
-      // Evaluate calc() and strip color spaces in inline style="" attributes using Lightning CSS.
-      // Wraps each style as a CSS rule so calc() gets proper type context.
-      {
-        const styleAttrRegex = /style="([^"]*)"/g
-        let styleAttrMatch
-        // eslint-disable-next-line no-cond-assign
-        while ((styleAttrMatch = styleAttrRegex.exec(template)) !== null) {
-          const styleValue = styleAttrMatch[1]!
-          const simplified = await evaluateCalc(styleValue)
-          if (simplified && simplified !== styleValue) {
-            template = `${template.slice(0, styleAttrMatch.index)}style="${simplified}"${template.slice(styleAttrMatch.index + styleAttrMatch[0].length)}`
-            styleAttrRegex.lastIndex = styleAttrMatch.index + `style="${simplified}"`.length
-            hasChanges = true
-          }
-        }
-      }
 
       // Inline <style> blocks into template elements at build time.
       // Both satori and takumi need inline styles — <style> blocks aren't applied at render time.

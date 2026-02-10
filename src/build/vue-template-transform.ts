@@ -86,7 +86,7 @@ export async function transformVueTemplate(
       // TODO: Handle dynamic :class bindings (type 7)
     }
 
-    if (collector.classes.length > 0) {
+    if (collector.classes.length > 0 || collector.existingStyle) {
       if (collector.existingStyle && !collector.styleLoc) {
         logger.warn(`[vue-template-transform] BUG: existingStyle found but styleLoc is undefined!`)
       }
@@ -152,23 +152,23 @@ export async function transformVueTemplate(
 
     const hasResolvedStyles = Object.keys(styleProps).length > 0
     const hasUnresolved = unresolvedClasses.length > 0
-    const resolvedSome = unresolvedClasses.length < collector.classes.length || hasClassRewrites
+    const resolvedSome = collector.classes.length > 0 && (unresolvedClasses.length < collector.classes.length || hasClassRewrites)
+    const styleChanged = collector.existingStyle && styleStr !== collector.existingStyle
 
-    if (!resolvedSome)
-      continue
-
-    if (!collector.classLoc)
+    if (!resolvedSome && !styleChanged)
       continue
 
     hasChanges = true
 
-    if (hasUnresolved) {
-      // Keep unresolved classes
-      s.overwrite(collector.classLoc.start, collector.classLoc.end, `class="${unresolvedClasses.join(' ')}"`)
-    }
-    else {
-      // Remove class attr entirely
-      s.remove(collector.classLoc.start, collector.classLoc.end)
+    if (collector.classLoc) {
+      if (hasUnresolved) {
+        // Keep unresolved classes
+        s.overwrite(collector.classLoc.start, collector.classLoc.end, `class="${unresolvedClasses.join(' ')}"`)
+      }
+      else {
+        // Remove class attr entirely
+        s.remove(collector.classLoc.start, collector.classLoc.end)
+      }
     }
 
     // Add/update style attribute
@@ -181,7 +181,9 @@ export async function transformVueTemplate(
         if (collector.existingStyle) {
           logger.error(`[vue-template-transform] Would create duplicate style! existingStyle="${collector.existingStyle}", classes=[${collector.classes.join(', ')}]`)
         }
-        s.appendLeft(collector.classLoc.start, `style="${styleStr}" `)
+        // Insert style after tag name or before other attributes
+        const insertPos = collector.classLoc?.start || (code.indexOf(' ', collector.elementLoc.start) + 1) || (collector.elementLoc.start + 5)
+        s.appendLeft(insertPos, `style="${styleStr}" `)
       }
     }
   }
