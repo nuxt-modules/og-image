@@ -10,7 +10,7 @@ import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtm
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
-import { extractClassStyles, simplifyCss } from './css/css-utils'
+import { evaluateCalc, extractClassStyles, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -461,19 +461,18 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
       }
 
-      // Evaluate calc() in inline style="" attributes using Lightning CSS.
+      // Evaluate calc() and strip color spaces in inline style="" attributes using Lightning CSS.
       // Wraps each style as a CSS rule so calc() gets proper type context.
-      if (template.includes('calc(')) {
-        const styleAttrRegex = /style="([^"]*calc\([^"]*)"/g
+      {
+        const styleAttrRegex = /style="([^"]*)"/g
         let styleAttrMatch
         // eslint-disable-next-line no-cond-assign
         while ((styleAttrMatch = styleAttrRegex.exec(template)) !== null) {
           const styleValue = styleAttrMatch[1]!
-          const simplified = await simplifyCss(`.x{${styleValue}}`)
-          const inner = simplified.match(/\.x\{([\s\S]*?)\}/)?.[1]?.trim()
-          if (inner && inner !== styleValue) {
-            template = `${template.slice(0, styleAttrMatch.index)}style="${inner}"${template.slice(styleAttrMatch.index + styleAttrMatch[0].length)}`
-            styleAttrRegex.lastIndex = styleAttrMatch.index + `style="${inner}"`.length
+          const simplified = await evaluateCalc(styleValue)
+          if (simplified && simplified !== styleValue) {
+            template = `${template.slice(0, styleAttrMatch.index)}style="${simplified}"${template.slice(styleAttrMatch.index + styleAttrMatch[0].length)}`
+            styleAttrRegex.lastIndex = styleAttrMatch.index + `style="${simplified}"`.length
             hasChanges = true
           }
         }
@@ -544,6 +543,12 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                   el.attributes.class = remaining.join(' ')
                 else
                   delete el.attributes.class
+
+                // viewBox must be preserved (not kebab-cased)
+                if (el.attributes.viewbox) {
+                  el.attributes.viewBox = el.attributes.viewbox
+                  delete el.attributes.viewbox
+                }
               })
 
               template = renderSync(doc).replace(/^<div>/, '').replace(/<\/div>$/, '')

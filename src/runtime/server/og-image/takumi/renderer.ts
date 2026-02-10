@@ -153,7 +153,12 @@ function linearGradientToSvg(gradient: string, backgroundColor?: string): string
   if (!match)
     return null
 
-  const parts = match[1]!.split(/,(?![^(]*\))/).map(p => p.trim())
+  // Strip gradient color interpolation methods (e.g. `in oklab`, `in oklch`)
+  // TW4 generates these but image renderers (Satori, Takumi) don't support them.
+  const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
+  const cleanedGradient = match[1]!.replace(GRADIENT_COLOR_SPACE_RE, '')
+
+  const parts = cleanedGradient.split(/,(?![^(]*\))/).map(p => p.trim())
   let x1 = '0%'
   let y1 = '0%'
   let x2 = '0%'
@@ -185,22 +190,38 @@ function linearGradientToSvg(gradient: string, backgroundColor?: string): string
     stopsStartIdx = 1
   }
 
-  const stops = parts.slice(stopsStartIdx).map((stop, i, arr) => {
-    const stopMatch = stop.match(/^(\S(?:.*\S)?)(?:\s+(\d+%))?$/)
-    let color = stopMatch?.[1] || stop
-    const offset = stopMatch?.[2] || `${Math.round((i / (arr.length - 1)) * 100)}%`
+  const stops = parts.slice(stopsStartIdx)
+    .map((stop, i, arr) => {
+      // Color hints (e.g. `linear-gradient(red, 50%, blue)`) or interpolation hints
+      // We skip these as SVG stops must have colors
+      if (!Number.isNaN(Number(stop)))
+        return null
 
-    let opacity = '1'
-    const rgbaMatch = color.match(/rgba?\((.+)\)/)
-    if (rgbaMatch) {
-      const cParts = rgbaMatch[1]!.split(',').map(p => p.trim())
-      if (cParts.length === 4) {
-        color = `rgb(${cParts[0]},${cParts[1]},${cParts[2]})`
-        opacity = cParts[3]!
+      // Split color from optional offset (e.g. `#fff 50%` or `rgba(...) 100%`)
+      let color = stop
+      let offset = `${Math.round((i / (arr.length - 1)) * 100)}%`
+      const lastSpaceIdx = stop.lastIndexOf(' ')
+      if (lastSpaceIdx !== -1) {
+        const maybeOffset = stop.slice(lastSpaceIdx + 1)
+        if (maybeOffset.endsWith('%') && !Number.isNaN(Number.parseFloat(maybeOffset))) {
+          color = stop.slice(0, lastSpaceIdx).trim()
+          offset = maybeOffset
+        }
       }
-    }
-    return `<stop offset="${offset}" stop-color="${color}" stop-opacity="${opacity}" />`
-  }).join('')
+
+      let opacity = '1'
+      const rgbaMatch = color.match(/rgba?\((.+)\)/)
+      if (rgbaMatch) {
+        const cParts = rgbaMatch[1]!.split(',').map(p => p.trim())
+        if (cParts.length === 4) {
+          color = `rgb(${cParts[0]},${cParts[1]},${cParts[2]})`
+          opacity = cParts[3]!
+        }
+      }
+      return `<stop offset="${offset}" stop-color="${color}" stop-opacity="${opacity}" />`
+    })
+    .filter(Boolean)
+    .join('')
 
   const bgRect = backgroundColor ? `<rect width="100" height="100" fill="${backgroundColor}" />` : ''
   return `<svg width="2000" height="2000" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">${stops}</linearGradient></defs>${bgRect}<rect width="100" height="100" fill="url(#g)" /></svg>`
@@ -265,7 +286,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     for (const url of urlsToTry) {
       const data = await $fetch(url, { responseType: 'arrayBuffer' }).catch(() => null)
       if (data) {
-        resourceMap.set(src, new Uint8Array(data))
+        resourceMap.set(src, new Uint8Array(data as ArrayBuffer))
         break
       }
     }

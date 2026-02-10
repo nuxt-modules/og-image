@@ -231,6 +231,9 @@ function vnodeToHtmlString(vnode: VNode): string {
 
   const kebabCase = (str: string) => str.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
 
+  const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
+  const stripColorSpace = (val: any) => typeof val === 'string' ? val.replace(GRADIENT_COLOR_SPACE_RE, '') : val
+
   if (vnode.type === 'svg') {
     if (!attrs.xmlns)
       attrParts.push('xmlns="http://www.w3.org/2000/svg"')
@@ -252,19 +255,21 @@ function vnodeToHtmlString(vnode: VNode): string {
   // Serialize style back to string
   if (style && typeof style === 'object') {
     const styleStr = Object.entries(style)
-      .map(([k, v]) => `${kebabCase(k)}:${resolveValue(v)}`)
+      .map(([k, v]) => `${kebabCase(k)}:${stripColorSpace(resolveValue(v))}`)
       .join(';')
     if (styleStr)
       attrParts.push(`style="${styleStr.replace(/"/g, '&quot;')}"`)
   }
   else if (typeof style === 'string') {
-    attrParts.push(`style="${(style as string).replace(/"/g, '&quot;')}"`)
+    attrParts.push(`style="${stripColorSpace(style as string).replace(/"/g, '&quot;')}"`)
   }
 
   for (const [key, val] of Object.entries(attrs)) {
     if (key === 'tw' || key === 'class' || val == null)
       continue
-    attrParts.push(`${kebabCase(key)}="${String(resolveValue(val)).replace(/"/g, '&quot;')}"`)
+    // viewBox must be preserved as-is for SVG
+    const finalKey = key === 'viewBox' ? key : kebabCase(key)
+    attrParts.push(`${finalKey}="${String(resolveValue(val)).replace(/"/g, '&quot;')}"`)
   }
 
   const open = attrParts.length ? `<${vnode.type} ${attrParts.join(' ')}>` : `<${vnode.type}>`

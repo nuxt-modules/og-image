@@ -7,6 +7,15 @@ import type { TemplateChildNode } from '@vue/compiler-core'
 let transform: typeof import('lightningcss').transform
 let Features: typeof import('lightningcss').Features
 
+/**
+ * Standard legacy browser targets for Satori/Takumi compatibility.
+ * Forces Lightning CSS to downlevel modern features (modern colors, oklab interpolation, etc.).
+ */
+const LEGACY_TARGETS = {
+  chrome: 110 << 16, // Chrome 110 (pre-oklch/oklab in some aspects)
+  safari: 16 << 16,
+}
+
 export async function loadLightningCss() {
   if (!transform) {
     const lcss = await import('lightningcss')
@@ -27,6 +36,7 @@ export async function simplifyCss(css: string): Promise<string> {
     filename: 'input.css',
     code: Buffer.from(css),
     minify: true,
+    targets: LEGACY_TARGETS,
   })
   return result.code.toString()
 }
@@ -303,6 +313,7 @@ export async function downlevelColor(prop: string, value: string): Promise<strin
       code: Buffer.from(css),
       include: Features.Colors,
       minify: false,
+      targets: LEGACY_TARGETS,
     })
     // Lightning CSS outputs fallback first, then progressive enhancement:
     //   .x { color: #007565; color: lab(...) }
@@ -575,7 +586,7 @@ export async function postProcessStyles(
 
     // Strip gradient color interpolation methods (`in oklab`, `in oklch`, etc.)
     // TW4 generates these but Satori/Takumi don't support them.
-    // Lightning CSS doesn't downlevel these, so strip manually.
+    // Lightning CSS doesn't always downlevel these in all properties, so strip manually.
     if (prop === 'background-image' && value.includes('-gradient('))
       value = stripGradientColorSpace(value)
 
