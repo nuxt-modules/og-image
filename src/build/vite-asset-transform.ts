@@ -10,7 +10,7 @@ import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtm
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
-import { evaluateCalc, extractClassStyles, simplifyCss } from './css/css-utils'
+import { extractClassStyles, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -460,7 +460,6 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           }
         }
       }
-
 
       // Inline <style> blocks into template elements at build time.
       // Both satori and takumi need inline styles — <style> blocks aren't applied at render time.
