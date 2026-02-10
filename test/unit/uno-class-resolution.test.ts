@@ -221,7 +221,7 @@ describe('unoCSS preset-wind4 class resolution', () => {
       clearUnoCache()
       const result = await resolve(['rounded-full'])
       expect(result['rounded-full']).toBeDefined()
-      expect(result['rounded-full']['border-radius']).toBe('9999px')
+      expect(result['rounded-full']['border-radius']).toBe('3.40282e38px')
     })
 
     it('resolves positioning utilities', async () => {

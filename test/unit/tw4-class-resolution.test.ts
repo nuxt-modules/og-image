@@ -88,14 +88,14 @@ describe('css-utils', () => {
       expect(result.get('flex')).toEqual({ display: 'flex' })
     })
 
-    it('normalizes TW4 infinity and percentage opacity', () => {
+    it('preserves calc(infinity) and percentage opacity (normalization happens in postProcessStyles)', () => {
       const css = `
 .rounded-full { border-radius: calc(infinity * 1px); }
 .opacity-50 { opacity: 50%; }
 `
-      const result = extractClassStyles(css, { normalize: true })
-      expect(result.get('rounded-full')?.['border-radius']).toBe('9999px')
-      expect(result.get('opacity-50')?.opacity).toBe('0.5')
+      const result = extractClassStyles(css)
+      expect(result.get('rounded-full')?.['border-radius']).toBe('calc(infinity * 1px)')
+      expect(result.get('opacity-50')?.opacity).toBe('50%')
     })
 
     it('handles multiple properties per class', () => {
@@ -221,22 +221,23 @@ describe('css-utils', () => {
   })
 
   describe('postProcessStyles', () => {
-    it('normalizes calc(infinity * 1px) to 9999px', async () => {
+    it('normalizes calc(infinity * 1px) via Lightning CSS', async () => {
       const raw = { 'border-radius': 'calc(infinity * 1px)' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('9999px')
+      expect(result?.['border-radius']).toBe('3.40282e38px')
     })
 
-    it('normalizes calc(infinity) to 9999px', async () => {
+    it('normalizes calc(infinity) via Lightning CSS', async () => {
       const raw = { 'border-radius': 'calc(infinity)' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('9999px')
+      expect(result?.['border-radius']).toBe('3.40282e38')
     })
 
-    it('normalizes opacity percentage to decimal', async () => {
+    it('passes through opacity (normalization handled by simplifyCss)', async () => {
+      // simplifyCss converts 50% → .5 before postProcessStyles is called
       const raw = { opacity: '50%' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.opacity).toBe('0.5')
+      expect(result?.opacity).toBe('50%')
     })
 
     it('resolves var() from provided vars map', async () => {
@@ -280,12 +281,12 @@ describe('css-utils', () => {
 describe('tw4 class resolution', () => {
   describe('arbitrary opacity', () => {
     it.each([
-      ['opacity-[0.4]', 'opacity', '0.4'],
-      ['opacity-[0.02]', 'opacity', '0.02'],
-      ['opacity-[0.03]', 'opacity', '0.03'],
-      ['opacity-[0.04]', 'opacity', '0.04'],
-      ['opacity-[0.07]', 'opacity', '0.07'],
-      ['opacity-[0.015]', 'opacity', '0.015'],
+      ['opacity-[0.4]', 'opacity', '.4'],
+      ['opacity-[0.02]', 'opacity', '.02'],
+      ['opacity-[0.03]', 'opacity', '.03'],
+      ['opacity-[0.04]', 'opacity', '.04'],
+      ['opacity-[0.07]', 'opacity', '.07'],
+      ['opacity-[0.015]', 'opacity', '.015'],
     ])('%s → %s: %s', async (cls, prop, expected) => {
       const result = await resolve([cls])
       expect(result[cls], `${cls} should resolve`).toBeDefined()
@@ -295,9 +296,9 @@ describe('tw4 class resolution', () => {
 
   describe('arbitrary tracking (letter-spacing)', () => {
     it.each([
-      ['tracking-[0.2em]', 'letter-spacing', '0.2em'],
-      ['tracking-[0.3em]', 'letter-spacing', '0.3em'],
-      ['tracking-[0.4em]', 'letter-spacing', '0.4em'],
+      ['tracking-[0.2em]', 'letter-spacing', '.2em'],
+      ['tracking-[0.3em]', 'letter-spacing', '.3em'],
+      ['tracking-[0.4em]', 'letter-spacing', '.4em'],
     ])('%s → %s: %s', async (cls, prop, expected) => {
       const result = await resolve([cls])
       expect(result[cls], `${cls} should resolve`).toBeDefined()
@@ -307,8 +308,8 @@ describe('tw4 class resolution', () => {
 
   describe('arbitrary leading (line-height)', () => {
     it.each([
-      ['leading-[0.9]', 'line-height', '0.9'],
-      ['leading-[0.95]', 'line-height', '0.95'],
+      ['leading-[0.9]', 'line-height', '.9'],
+      ['leading-[0.95]', 'line-height', '.95'],
       ['leading-[1.05]', 'line-height', '1.05'],
     ])('%s → %s: %s', async (cls, prop, expected) => {
       const result = await resolve([cls])
@@ -548,10 +549,10 @@ describe('tw4 class resolution', () => {
       }
     })
 
-    it('normalizes rounded-full calc(infinity) to 9999px', async () => {
+    it('normalizes rounded-full calc(infinity) via Lightning CSS', async () => {
       const result = await resolve(['rounded-full'])
       expect(result['rounded-full'], 'rounded-full should resolve').toBeDefined()
-      expect(result['rounded-full']?.['border-radius']).toBe('9999px')
+      expect(result['rounded-full']?.['border-radius']).toBe('3.40282e38px')
     })
 
     it('resolves tracking utilities', async () => {
