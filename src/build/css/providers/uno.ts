@@ -1,12 +1,18 @@
 import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
+import { readFile } from 'node:fs/promises'
 import { logger } from '../../../runtime/logger'
 import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, postProcessStyles, simplifyCss } from '../css-utils'
+
+export interface UnoProviderOptions {
+  resolveCssPath?: () => Promise<string | undefined>
+}
 
 // State
 let unoConfig: UserConfig | null = null
 let rootDir: string | null = null
 let generator: Awaited<ReturnType<typeof import('@unocss/core').createGenerator>> | null = null
+let cachedUserVars: Map<string, string> | null = null
 
 /**
  * Set root directory for loading uno.config.ts
@@ -28,6 +34,7 @@ export function setUnoConfig(config: UserConfig): void {
  */
 export function clearUnoCache(): void {
   generator = null
+  cachedUserVars = null
 }
 
 async function getGenerator() {
@@ -57,14 +64,35 @@ async function getGenerator() {
   return generator
 }
 
+async function loadUserVars(resolveCssPath?: () => Promise<string | undefined>): Promise<Map<string, string>> {
+  if (cachedUserVars)
+    return cachedUserVars
+  cachedUserVars = new Map()
+  if (!resolveCssPath)
+    return cachedUserVars
+  const cssPath = await resolveCssPath()
+  if (!cssPath)
+    return cachedUserVars
+  try {
+    const content = await readFile(cssPath, 'utf-8')
+    const simplified = await simplifyCss(content)
+    for (const [name, value] of extractCssVars(simplified))
+      cachedUserVars.set(name, value)
+  }
+  catch (e) {
+    logger.warn('[og-image UnoCSS] Failed to read CSS file for vars:', (e as Error).message)
+  }
+  return cachedUserVars
+}
+
 /**
  * Create UnoCSS provider instance.
  */
-export function createUnoProvider(): CssProvider {
+export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
   return {
     name: 'unocss',
 
-    async resolveClassesToStyles(classes: string[]): Promise<Record<string, Record<string, string>>> {
+    async resolveClassesToStyles(classes: string[], context?: string): Promise<Record<string, Record<string, string>>> {
       if (classes.length === 0)
         return {}
 
@@ -75,6 +103,10 @@ export function createUnoProvider(): CssProvider {
 
       // Extract CSS variables from all sources
       const vars = new Map<string, string>()
+
+      // User CSS vars (e.g., --bg, --fg from app's main.css)
+      for (const [name, value] of await loadUserVars(options?.resolveCssPath))
+        vars.set(name, value)
 
       // :root/:host variables (e.g., --spacing: 0.25rem)
       for (const [name, value] of extractCssVars(simplifiedCss))
@@ -105,7 +137,7 @@ export function createUnoProvider(): CssProvider {
         // Merge global vars with per-class overrides
         const classVars = perClassVars.get(className)
         const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
-        const styles = await postProcessStyles(rawStyles, mergedVars)
+        const styles = await postProcessStyles(rawStyles, mergedVars, undefined, context)
         if (styles)
           result[className] = styles
       }

@@ -29,7 +29,6 @@ export default defineNuxtConfig({
 
   ogImage: {
     debug: true,
-    tailwindCss: '~/assets/css/main.css',
   },
 
   site: {

@@ -384,7 +384,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
               }
 
-              return options.cssProvider!.resolveClassesToStyles(supported)
+              const componentName = id.split('/').pop()?.replace(/\.\w+$/, '')
+              return options.cssProvider!.resolveClassesToStyles(supported, componentName)
             },
           })
 

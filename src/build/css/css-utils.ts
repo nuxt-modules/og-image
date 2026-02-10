@@ -1,5 +1,8 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
+import { logger } from '../../runtime/logger'
 import { GRADIENT_COLOR_SPACE_RE } from '../../runtime/server/og-image/utils/css'
+
+const _warnedVars = new Set<string>()
 
 // ============================================================================
 // Lightning CSS lazy loading
@@ -61,12 +64,26 @@ export async function transformWithLightningCss(
 
 /**
  * Extract CSS declarations from a CSS block body.
+ * Within a minified rule, duplicate properties are lightningcss
+ * progressive-enhancement fallbacks — keep the first (legacy) value.
  */
 function extractDeclarations(body: string, onDeclaration: (prop: string, value: string) => void) {
   const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
+  const seen = new Set<string>()
   for (const match of body.matchAll(declRe)) {
-    if (match[1] && match[2])
+    if (match[1] && match[2] && !seen.has(match[1])) {
+      seen.add(match[1])
       onDeclaration(match[1], match[2].trim())
+    }
+  }
+  // CSS space toggle pattern: --custom-prop: ; (value is a single space)
+  // Used by UnoCSS/Tailwind for conditional shadow-inset, ring-inset, etc.
+  const toggleRe = /(--[\w-]+)\s*:\s+;/g
+  for (const match of body.matchAll(toggleRe)) {
+    if (match[1] && !seen.has(match[1])) {
+      seen.add(match[1])
+      onDeclaration(match[1], ' ')
+    }
   }
 }
 
@@ -191,7 +208,9 @@ function resolveInnermostVar(css: string, vars: Map<string, string>): string {
   const comma = content.indexOf(',')
   const name = (comma >= 0 ? content.substring(0, comma) : content).trim()
   const fallback = comma >= 0 ? content.substring(comma + 1).trim() : undefined
-  const resolved = vars.get(name) ?? fallback ?? ''
+  const resolved = vars.get(name) ?? fallback
+  if (resolved === undefined)
+    return css
   return css.substring(0, idx) + resolved + css.substring(closeIdx + 1)
 }
 
@@ -403,6 +422,7 @@ export async function postProcessStyles(
   rawStyles: Record<string, string>,
   vars: Map<string, string>,
   resolveVar?: (value: string, vars: Map<string, string>) => Promise<string> | string,
+  context?: string,
 ): Promise<Record<string, string> | null> {
   const styles: Record<string, string> = {}
   const resolve = resolveVar || resolveVarsDeep
@@ -410,8 +430,20 @@ export async function postProcessStyles(
   for (const [prop, rawValue] of Object.entries(rawStyles)) {
     let value = await resolve(rawValue, vars)
 
-    if (value.includes('var(') || /^(?:initial|inherit|unset|revert|revert-layer)$/.test(value))
+    if (value.includes('var(') || /^(?:initial|inherit|unset|revert|revert-layer)$/.test(value)) {
+      // Warn about unresolved CSS variables
+      if (value.includes('var(')) {
+        const unresolvedVars = [...value.matchAll(/var\((--[\w-]+)/g)].map(m => m[1])
+        for (const name of unresolvedVars) {
+          const key = `${context || ''}:${name}`
+          if (!_warnedVars.has(key)) {
+            _warnedVars.add(key)
+            logger.warn(`[og-image]${context ? ` ${context}:` : ''} CSS variable ${name} not found, style will be skipped`)
+          }
+        }
+      }
       continue
+    }
     if (/calc\(\s*[*/]/.test(value))
       continue
 

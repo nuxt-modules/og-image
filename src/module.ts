@@ -169,15 +169,6 @@ export interface ModuleOptions {
    */
   cacheQueryParams?: boolean
   /**
-   * Path to your Tailwind CSS 4 entry file for OG image styling.
-   *
-   * Use this when using Tailwind 4 with the Vite plugin instead of @nuxtjs/tailwindcss.
-   * The CSS file should include `@import "tailwindcss"` and any `@theme` customizations.
-   *
-   * @example '~/assets/css/main.css'
-   */
-  tailwindCss?: string
-  /**
    * Font subsets to include for OG image rendering.
    *
    * By default, unicode-range from @font-face declarations is used automatically.
@@ -412,7 +403,20 @@ export default defineNuxtModule<ModuleOptions>({
       })
 
       // Create the provider instance
-      cssProvider = createUnoProvider()
+      cssProvider = createUnoProvider({
+        async resolveCssPath() {
+          for (const cssEntry of nuxt.options.css) {
+            // @ts-expect-error untyped
+            const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
+            if (!cssPath || !cssPath.endsWith('.css'))
+              continue
+            const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+            if (!resolved || !existsSync(resolved))
+              continue
+            return resolved
+          }
+        },
+      })
 
       // HMR: watch for uno.config changes
       if (nuxt.options.dev) {
@@ -508,8 +512,6 @@ export default defineNuxtModule<ModuleOptions>({
       const { createTw4Provider } = await import('./build/css/providers/tw4')
       cssProvider = createTw4Provider({
         async resolveCssPath() {
-          if (config.tailwindCss)
-            return resolver.resolvePath(config.tailwindCss)
           // Try alias first, but fall through to auto-detect if it's a virtual module (not a real file)
           const aliasPath = nuxt.options.alias['#tailwindcss'] as string | undefined
           if (aliasPath && existsSync(aliasPath))

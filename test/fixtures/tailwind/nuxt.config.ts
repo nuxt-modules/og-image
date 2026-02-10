@@ -11,7 +11,6 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   ogImage: {
     debug: true,
-    tailwindCss: '~/assets/css/main.css',
   },
   site: {
     url: 'https://nuxtseo.com',

@@ -8,7 +8,7 @@ export interface CssProvider {
    * @param classes Array of class names to resolve
    * @returns Map of class name → CSS properties (kebab-case) or string class rewrite
    */
-  resolveClassesToStyles: (classes: string[]) => Promise<Record<string, Record<string, string> | string>>
+  resolveClassesToStyles: (classes: string[], context?: string) => Promise<Record<string, Record<string, string> | string>>
   /**
    * Extract theme metadata (fonts, breakpoints, colors).
    */

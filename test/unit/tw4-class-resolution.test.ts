@@ -170,8 +170,8 @@ describe('css-utils', () => {
       expect(resolveCssVars('var(--a) var(--b)', vars)).toBe('10px 20px')
     })
 
-    it('resolves var() with no fallback and missing var to empty string', () => {
-      expect(resolveCssVars('var(--missing)', new Map())).toBe('')
+    it('preserves var() with no fallback when var is missing', () => {
+      expect(resolveCssVars('var(--missing)', new Map())).toBe('var(--missing)')
     })
 
     it('does not leave stray parentheses', () => {

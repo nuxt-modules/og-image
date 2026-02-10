@@ -57,9 +57,9 @@ describe('resolveVarsDeep', () => {
     expect(result).toBe('6rem')
   })
 
-  it('returns empty string for completely missing vars (no calc)', async () => {
+  it('preserves var() reference for completely missing vars (no calc)', async () => {
     const result = await resolveVarsDeep('var(--missing)', new Map())
-    expect(result).toBe('')
+    expect(result).toBe('var(--missing)')
   })
 })
 

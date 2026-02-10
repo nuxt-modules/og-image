@@ -341,6 +341,7 @@ async function buildGradient(
 export async function resolveClassesToStyles(
   classes: string[],
   options: Tw4ResolverOptions,
+  context?: string,
 ): Promise<Record<string, Record<string, string>>> {
   const { compiler, vars } = await getCompiler(options.cssPath, options.nuxtUiColors)
 
@@ -354,7 +355,7 @@ export async function resolveClassesToStyles(
       // Merge global vars with per-class var overrides for resolution
       const classVars = perClassVars.get(className)
       const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
-      const styles = await postProcessStyles(rawStyles, mergedVars)
+      const styles = await postProcessStyles(rawStyles, mergedVars, undefined, context)
       // Gradients must resolve to something for buildGradient to find them later
       if (!styles && className.startsWith('bg-gradient-')) {
         resolvedStyleCache.set(className, rawStyles)
@@ -519,7 +520,7 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
   return {
     name: 'tailwind',
 
-    async resolveClassesToStyles(classes: string[]): Promise<Record<string, Record<string, string> | string>> {
+    async resolveClassesToStyles(classes: string[], context?: string): Promise<Record<string, Record<string, string> | string>> {
       await init()
       if (!cssPath)
         return {}
@@ -537,7 +538,7 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
       const tw4Resolved = await resolveClassesToStyles(classesToResolve, {
         cssPath,
         nuxtUiColors,
-      })
+      }, context)
 
       const resolved: Record<string, Record<string, string> | string> = {}
 

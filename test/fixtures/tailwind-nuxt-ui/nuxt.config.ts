@@ -24,7 +24,6 @@ export default defineNuxtConfig({
     defaults: {
       component: 'NuxtUiTest',
     },
-    tailwindCss: '~/assets/css/main.css',
   },
 
   devtools: { enabled: false },
