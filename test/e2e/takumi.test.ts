@@ -58,6 +58,46 @@ describe('takumi renderer', () => {
     expect(Buffer.from(image)).toMatchImageSnapshot()
   }, 60000)
 
+  it.runIf(hasTakumi)('renders takumi image with <img> and background-image', async () => {
+    const html = await $fetch('/prefix/takumi/image') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(image)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'takumi-image-rendering',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('renders takumi image with calc() expressions', async () => {
+    const html = await $fetch('/prefix/takumi/calc') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    // Should render calc(), <style>, and <style scoped> blocks correctly
+    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(image)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'takumi-calc-rendering',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('renders takumi image with complex images (GithubAvatars)', async () => {
+    const html = await $fetch('/prefix/takumi/github-avatars') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(image)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'takumi-github-avatars-rendering',
+    })
+  }, 60000)
+
   it.runIf(!hasTakumi)('skips takumi tests when @takumi-rs/core not installed', () => {
     expect(true).toBe(true)
   })

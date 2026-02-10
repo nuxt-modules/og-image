@@ -42,7 +42,7 @@ withDefaults(defineProps<{
     <div class="flex justify-between items-end">
       <div class="flex gap-3">
         <div class="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center">
-          <span class="text-white text-lg">✓</span>
+          <span class="text-white text-lg">✔</span>
         </div>
         <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
           <span class="text-white text-lg">⚡</span>
