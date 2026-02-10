@@ -259,7 +259,7 @@ export function extractClassStyles(
     const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!
-      let value = declMatch[2]!.trim()
+      const value = declMatch[2]!.trim()
 
       // Collect CSS variables into separate map if requested
       if (prop.startsWith('--')) {

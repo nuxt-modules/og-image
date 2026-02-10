@@ -1,12 +1,14 @@
 <template>
   <div class="flex flex-col items-center justify-center w-full h-full bg-slate-900 text-white p-20">
-    <h1 class="text-5xl font-bold mb-12">Takumi SVG Features</h1>
-    
+    <h1 class="text-5xl font-bold mb-12">
+      Takumi SVG Features
+    </h1>
+
     <div class="grid grid-cols-2 gap-12">
       <!-- Native SVG (no rasterization) -->
       <div class="flex flex-col items-center">
-        <svg 
-          width="120" height="120" viewBox="0 0 100 100" 
+        <svg
+          width="120" height="120" viewBox="0 0 100 100"
           data-takumi-native
           class="border border-slate-700 p-2"
         >
@@ -23,8 +25,8 @@
 
       <!-- Rasterized SVG (default) -->
       <div class="flex flex-col items-center">
-        <svg 
-          width="120" height="120" viewBox="0 0 100 100" 
+        <svg
+          width="120" height="120" viewBox="0 0 100 100"
           class="border border-slate-700 p-2"
         >
           <circle cx="50" cy="50" r="40" stroke="green" stroke-width="4" fill="yellow" />
@@ -34,7 +36,7 @@
 
       <!-- SVG as Background Image (External) -->
       <div class="flex flex-col items-center">
-        <div 
+        <div
           class="w-32 h-32 border border-slate-700"
           style="background-image: url('/card-gradient-bg.svg'); background-size: contain; background-repeat: no-repeat;"
         />
@@ -43,7 +45,7 @@
 
       <!-- SVG as Background Image (Data URI) -->
       <div class="flex flex-col items-center">
-        <div 
+        <div
           class="w-32 h-32 border border-slate-700"
           style="background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InB1cnBsZSIvPjwvc3ZnPg=='); background-size: cover;"
         />
