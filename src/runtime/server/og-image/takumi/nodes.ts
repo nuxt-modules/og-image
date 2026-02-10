@@ -46,15 +46,15 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
 
   // Helper to resolve units to pixels
   const resolvePx = (val: any, total?: number) => {
-    if (typeof val === 'string' && val.endsWith('%') && total) {
-      return (Number.parseFloat(val) / 100) * total
-    }
-    if (typeof val === 'string' && (val.endsWith('em') || val.endsWith('rem'))) {
+    if (typeof val === 'string') {
       const num = Number.parseFloat(val)
-      return !Number.isNaN(num) ? num * 16 : undefined
-    }
-    if (typeof val === 'string' && val.endsWith('px')) {
-      return Number.parseFloat(val) || undefined
+      if (Number.isNaN(num))
+        return undefined
+      if (val.endsWith('%') && total)
+        return (num / 100) * total
+      if (val.endsWith('em') || val.endsWith('rem'))
+        return num * 16
+      return num
     }
     if (typeof val === 'number')
       return val
