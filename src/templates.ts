@@ -1,14 +1,111 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from './module'
 import type { OgImageComponent } from './runtime/types'
+import { readFileSync } from 'node:fs'
 import { addTemplate, addTypeTemplate } from '@nuxt/kit'
+import { parse as parseSfc } from '@vue/compiler-sfc'
 import { relative, resolve } from 'pathe'
+import { stripLiteral } from 'strip-literal'
 import { getRegisteredBaseNames } from './util'
 
 interface TemplateContext {
   nuxt: Nuxt
   config: ModuleOptions
   componentCtx: { components: OgImageComponent[] }
+}
+
+/**
+ * Extract the type literal from `defineProps<TYPE>()` in a Vue SFC string.
+ * Returns null if extraction fails or the type references imported identifiers.
+ */
+export function extractDefinePropsType(sfcContent: string): string | null {
+  const { descriptor } = parseSfc(sfcContent)
+  const scriptContent = descriptor.scriptSetup?.content
+  if (!scriptContent)
+    return null
+
+  // Search on stripped content (comments/strings replaced with spaces, positions preserved)
+  // to avoid matching defineProps< inside comments or string literals
+  const stripped = stripLiteral(scriptContent)
+  const definePropsIndex = stripped.indexOf('defineProps<')
+  if (definePropsIndex === -1)
+    return null
+
+  // Match balanced angle brackets to extract the type parameter
+  const typeStart = definePropsIndex + 'defineProps<'.length
+  let depth = 1
+  let i = typeStart
+  while (i < scriptContent.length && depth > 0) {
+    const char = scriptContent[i]
+    if (char === '<') {
+      depth++
+    }
+    else if (char === '>') {
+      // Skip `=>` (arrow functions) — not a closing angle bracket
+      if (i > 0 && scriptContent[i - 1] !== '=')
+        depth--
+    }
+    i++
+  }
+  if (depth !== 0)
+    return null
+
+  const typeString = scriptContent.slice(typeStart, i - 1).trim()
+  // Must be an object type literal (not a type reference like `Props`)
+  if (!typeString.startsWith('{') || !typeString.endsWith('}'))
+    return null
+
+  // Collect imported identifiers from the script
+  const importedIdentifiers = new Set<string>()
+  const importRegex = /import\s+(?:type\s+)?(?:\{([^}]+)\}|(\w+))/g
+  let match
+  // eslint-disable-next-line no-cond-assign
+  while ((match = importRegex.exec(scriptContent)) !== null) {
+    if (match[1]) {
+      for (const id of match[1].split(',')) {
+        const name = id.trim().split(/\s+as\s+/).pop()?.trim()
+        if (name)
+          importedIdentifiers.add(name)
+      }
+    }
+    if (match[2])
+      importedIdentifiers.add(match[2])
+  }
+
+  // Bail if the type references any imported identifier (would need the import context)
+  for (const id of importedIdentifiers) {
+    if (new RegExp(`\\b${id}\\b`).test(typeString))
+      return null
+  }
+
+  return typeString
+}
+
+/**
+ * Get the type expression for a component in the generated declaration.
+ *
+ * For app components, avoids `typeof import('...vue')['default']` which causes
+ * circular type resolution: nuxt.d.ts -> component types -> .vue -> auto-imports -> nuxt.d.ts.
+ * Instead, extracts the defineProps type inline or falls back to a generic DefineComponent.
+ */
+function getComponentTypeExpression(component: OgImageComponent, nuxt: Nuxt): string {
+  if (component.category === 'app') {
+    let sfcContent: string | null = null
+    try {
+      sfcContent = component.path ? readFileSync(component.path, 'utf-8') : null
+    }
+    catch {}
+    const extractedProps = sfcContent ? extractDefinePropsType(sfcContent) : null
+    return extractedProps
+      ? `import('vue').DefineComponent<${extractedProps}>`
+      : `import('vue').DefineComponent<Record<string, any>>`
+  }
+  // Non-app components (community, pro) are pre-compiled with .d.ts — safe to import
+  const relativeComponentPath = relative(
+    resolve(nuxt.options.rootDir, nuxt.options.buildDir, 'module'),
+    component.path!,
+  )
+  return `typeof import('${relativeComponentPath}')['default']`
 }
 
 export function registerTypeTemplates(ctx: TemplateContext) {
@@ -32,11 +129,7 @@ export function registerTypeTemplates(ctx: TemplateContext) {
 
       const lines: string[] = []
       for (const component of componentCtx.components) {
-        const relativeComponentPath = relative(
-          resolve(nuxt.options.rootDir, nuxt.options.buildDir, 'module'),
-          component.path!,
-        )
-        const importType = `typeof import('${relativeComponentPath}')['default']`
+        const importType = getComponentTypeExpression(component, nuxt)
         const strippedName = sortedDirs.reduce((n, dir) => n.replace(new RegExp(`^${dir}`), ''), component.pascalName)
         const renderer = component.renderer
         const baseNames = getRegisteredBaseNames(component.pascalName)
