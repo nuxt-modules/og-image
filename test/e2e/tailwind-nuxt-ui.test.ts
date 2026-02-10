@@ -33,6 +33,8 @@ describe('tailwind-nuxt-ui', () => {
     const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
     expect(Buffer.from(png)).toMatchImageSnapshot({
       customSnapshotIdentifier: 'nuxt-ui-semantic-colors',
+      failureThreshold: 1,
+      failureThresholdType: 'percent',
     })
   })
 

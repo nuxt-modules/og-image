@@ -1,11 +1,11 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
-import sizeOf from 'image-size'
 import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
 import { logger } from '../../../util/logger'
+import { getImageDimensions } from '../../utils/image-detector'
 import { defineSatoriTransformer } from '../utils'
 
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
@@ -83,12 +83,7 @@ export default defineSatoriTransformer([
 
       // if we're missing either a height or width on an image we can try and compute it using the image size
       if (imageBuffer && (!node.props.width || !node.props.height)) {
-        try {
-          const imageSize = sizeOf(imageBuffer as Uint8Array)
-          dimensions = { width: imageSize.width, height: imageSize.height }
-        }
-        catch {
-        }
+        dimensions = getImageDimensions(imageBuffer as Uint8Array)
         // apply a natural aspect ratio if missing a dimension
         if (dimensions?.width && dimensions?.height) {
           const naturalAspectRatio = dimensions.width / dimensions.height

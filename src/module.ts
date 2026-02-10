@@ -405,7 +405,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
-      logger.info('UnoCSS detected, using UnoCSS provider for OG image styling')
+      logger.debug('UnoCSS detected, using UnoCSS provider for OG image styling')
       const { setUnoConfig, setUnoRootDir, createUnoProvider } = await import('./build/css/providers/uno')
 
       // Set root directory for loading uno.config.ts
@@ -424,7 +424,7 @@ export default defineNuxtModule<ModuleOptions>({
         nuxt.hook('builder:watch', async (_event, relativePath) => {
           if (relativePath.includes('uno.config')) {
             cssProvider?.clearCache?.()
-            logger.info('HMR: UnoCSS config changed, cleared cache')
+            logger.debug('HMR: UnoCSS config changed, cleared cache')
           }
         })
       }

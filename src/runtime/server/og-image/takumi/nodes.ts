@@ -2,6 +2,7 @@ import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
 import encoding from '../satori/plugins/encoding'
+import imageSrc from '../satori/plugins/imageSrc'
 import twClasses from '../satori/plugins/twClasses'
 import { applyEmojis } from '../satori/transforms/emojis'
 import { applyInlineCss } from '../satori/transforms/inlineCss'
@@ -35,40 +36,108 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
 
   // Parse to VNode tree and apply shared plugins (encoding + twClasses for dark:/responsive)
   const vnodeTree = htmlToVNode(template)
-  walkSatoriTree(ctx, vnodeTree, [encoding, twClasses])
+  await Promise.all(walkSatoriTree(ctx, vnodeTree, [encoding, twClasses, imageSrc]))
 
-  return vnodeToTakumiNode(vnodeTree)
+  return await vnodeToTakumiNode(vnodeTree, Number(ctx.options.width), Number(ctx.options.height))
 }
 
-function vnodeToTakumiNode(vnode: VNode): TakumiNode {
+async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeight?: number): Promise<TakumiNode> {
   const { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
 
-  // SVG elements → base64 data URI image
-  if (vnode.type === 'svg') {
-    return {
-      type: 'image',
-      src: vnodeToSvgDataUri(vnode),
-      width: Number(width) || undefined,
-      height: Number(height) || undefined,
+  // Helper to resolve units to pixels
+  const resolvePx = (val: any, total?: number) => {
+    if (typeof val === 'string' && val.endsWith('%') && total) {
+      return (Number.parseFloat(val) / 100) * total
     }
+    if (typeof val === 'string' && (val.endsWith('em') || val.endsWith('rem'))) {
+      const num = Number.parseFloat(val)
+      return !Number.isNaN(num) ? num * 16 : undefined
+    }
+    if (typeof val === 'string' && val.endsWith('px')) {
+      return Number.parseFloat(val) || undefined
+    }
+    if (typeof val === 'number')
+      return val
+    return undefined
   }
 
-  if (vnode.type === 'img') {
+  // Dimension fallback logic
+  const resolvedWidth = resolvePx(width, parentWidth) || resolvePx(style?.width, parentWidth) || extractTwDim(tw || cls, 'w', parentWidth)
+  const resolvedHeight = resolvePx(height, parentHeight) || resolvePx(style?.height, parentHeight) || extractTwDim(tw || cls, 'h', parentHeight)
+
+  // SVG elements → convert to SVG data URI for takumi to handle
+  if (vnode.type === 'svg') {
+    let finalWidth = resolvedWidth
+    let finalHeight = resolvedHeight
+
+    // Parse viewBox for missing dimensions
+    if ((!finalWidth || !finalHeight) && typeof rest.viewBox === 'string') {
+      const parts = rest.viewBox.split(/[ ,]+/).map(Number)
+      if (parts.length === 4 && !parts.some(Number.isNaN)) {
+        const vbWidth = parts[2]!
+        const vbHeight = parts[3]!
+        if (!finalWidth && !finalHeight) {
+          finalWidth = vbWidth
+          finalHeight = vbHeight
+        }
+        else if (finalWidth) {
+          finalHeight = Math.round(finalWidth * (vbHeight / vbWidth))
+        }
+        else if (finalHeight) {
+          finalWidth = Math.round(finalHeight * (vbWidth / vbHeight))
+        }
+      }
+    }
+
+    if (finalWidth && !finalHeight)
+      finalHeight = finalWidth
+    else if (finalHeight && !finalWidth)
+      finalWidth = finalHeight
+
+    const renderWidth = finalWidth || 100
+    const renderHeight = finalHeight || 100
+
+    const svgProps = { ...vnode.props }
+    svgProps.width = renderWidth
+    svgProps.height = renderHeight
+    const svg = vnodeToHtmlString({ ...vnode, props: svgProps })
+
     return {
       type: 'image',
-      src: src || rest.href || '',
-      width: Number(width) || undefined,
-      height: Number(height) || undefined,
+      src: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`,
+      width: renderWidth,
+      height: renderHeight,
       tw: tw || cls || undefined,
       style,
     }
   }
 
-  // Single text child → text node
+  if (vnode.type === 'img') {
+    let finalWidth = resolvedWidth
+    let finalHeight = resolvedHeight
+
+    if (finalWidth && !finalHeight)
+      finalHeight = finalWidth
+    else if (finalHeight && !finalWidth)
+      finalWidth = finalHeight
+
+    return {
+      type: 'image',
+      src: src || rest.href || '',
+      width: finalWidth,
+      height: finalHeight,
+      tw: tw || cls || undefined,
+      style,
+    }
+  }
+
+  // Single text child → container with text child
   if (typeof children === 'string') {
     return {
-      type: 'text',
-      text: children,
+      type: 'container',
+      children: [{ type: 'text', text: children }],
+      width: resolvedWidth,
+      height: resolvedHeight,
       tw: tw || cls || undefined,
       style,
     }
@@ -76,11 +145,13 @@ function vnodeToTakumiNode(vnode: VNode): TakumiNode {
 
   // Array children
   if (Array.isArray(children)) {
-    // If only one child and it's a string → text node
+    // If only one child and it's a string → container with text child
     if (children.length === 1 && typeof children[0] === 'string') {
       return {
-        type: 'text',
-        text: children[0],
+        type: 'container',
+        children: [{ type: 'text', text: children[0] }],
+        width: resolvedWidth,
+        height: resolvedHeight,
         tw: tw || cls || undefined,
         style,
       }
@@ -89,7 +160,7 @@ function vnodeToTakumiNode(vnode: VNode): TakumiNode {
     const takumiChildren: TakumiNode[] = []
     for (const child of children) {
       if (child && typeof child === 'object')
-        takumiChildren.push(vnodeToTakumiNode(child))
+        takumiChildren.push(await vnodeToTakumiNode(child, resolvedWidth, resolvedHeight))
       else if (typeof child === 'string' && child.trim())
         takumiChildren.push({ type: 'text', text: child.trim() })
     }
@@ -97,6 +168,8 @@ function vnodeToTakumiNode(vnode: VNode): TakumiNode {
     return {
       type: 'container',
       children: takumiChildren.length ? takumiChildren : undefined,
+      width: resolvedWidth,
+      height: resolvedHeight,
       tw: tw || cls || undefined,
       style,
     }
@@ -105,56 +178,106 @@ function vnodeToTakumiNode(vnode: VNode): TakumiNode {
   // No children
   return {
     type: 'container',
+    width: resolvedWidth,
+    height: resolvedHeight,
     tw: tw || cls || undefined,
     style,
   }
 }
 
-function vnodeToSvgDataUri(vnode: VNode): string {
-  const svg = vnodeToHtmlString(vnode)
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+// Extract dimensions from tailwind classes (enhanced support)
+function extractTwDim(twCls: string | undefined, prefix: string, total?: number): number | undefined {
+  if (!twCls)
+    return undefined
+
+  // Match arbitrary value classes (w-[31.5%], h-[48%], w-[100px])
+  const arbMatch = twCls.match(new RegExp(`\\b${prefix}-\\[([^\\]]+)\\]\\b`))
+  if (arbMatch?.[1]) {
+    const val = arbMatch[1]
+    if (val.endsWith('%') && total)
+      return (Number.parseFloat(val) / 100) * total
+    if (val.endsWith('px'))
+      return Number.parseFloat(val)
+    if (!Number.isNaN(Number(val)))
+      return Number(val)
+  }
+
+  // Match basic numeric classes (w-32, h-64)
+  const numMatch = twCls.match(new RegExp(`\\b${prefix}-(\\d+)\\b`))
+  if (numMatch?.[1])
+    return Number.parseInt(numMatch[1]) * 4
+
+  // Match fraction classes (w-1/3, w-full, h-screen)
+  if (total) {
+    if (twCls.includes(`${prefix}-full`))
+      return total
+    if (twCls.includes(`${prefix}-1/2`))
+      return total * 0.5
+    if (twCls.includes(`${prefix}-1/3`))
+      return total * (1 / 3)
+    if (twCls.includes(`${prefix}-2/3`))
+      return total * (2 / 3)
+    if (twCls.includes(`${prefix}-1/4`))
+      return total * 0.25
+    if (twCls.includes(`${prefix}-3/4`))
+      return total * 0.75
+  }
+  return undefined
 }
 
 function vnodeToHtmlString(vnode: VNode): string {
   const { style, children, ...attrs } = vnode.props
   const attrParts: string[] = []
 
+  const kebabCase = (str: string) => str.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
+
+  if (vnode.type === 'svg') {
+    if (!attrs.xmlns)
+      attrParts.push('xmlns="http://www.w3.org/2000/svg"')
+    if (!attrs.width && vnode.props.width)
+      attrParts.push(`width="${vnode.props.width}"`)
+    if (!attrs.height && vnode.props.height)
+      attrParts.push(`height="${vnode.props.height}"`)
+  }
+
+  // Helper to resolve units to pixels
+  const resolveValue = (val: any) => {
+    if (typeof val === 'string' && (val.endsWith('em') || val.endsWith('rem'))) {
+      const num = Number.parseFloat(val)
+      return !Number.isNaN(num) ? `${num * 16}px` : val
+    }
+    return val
+  }
+
   // Serialize style back to string
   if (style && typeof style === 'object') {
     const styleStr = Object.entries(style)
-      .map(([k, v]) => `${k.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}:${v}`)
+      .map(([k, v]) => `${kebabCase(k)}:${resolveValue(v)}`)
       .join(';')
     if (styleStr)
-      attrParts.push(`style="${styleStr}"`)
+      attrParts.push(`style="${styleStr.replace(/"/g, '&quot;')}"`)
   }
   else if (typeof style === 'string') {
-    attrParts.push(`style="${style}"`)
+    attrParts.push(`style="${(style as string).replace(/"/g, '&quot;')}"`)
   }
 
   for (const [key, val] of Object.entries(attrs)) {
     if (key === 'tw' || key === 'class' || val == null)
       continue
-    attrParts.push(`${key}="${String(val)}"`)
+    attrParts.push(`${kebabCase(key)}="${String(resolveValue(val)).replace(/"/g, '&quot;')}"`)
   }
 
   const open = attrParts.length ? `<${vnode.type} ${attrParts.join(' ')}>` : `<${vnode.type}>`
 
-  if (!children)
-    return `${open}</${vnode.type}>`
+  const inner = Array.isArray(children)
+    ? (children as (VNode | string)[]).map((c) => {
+        if (typeof c === 'string')
+          return c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        if (c && typeof c === 'object')
+          return vnodeToHtmlString(c)
+        return ''
+      }).join('')
+    : (typeof children === 'string' ? children.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '')
 
-  if (typeof children === 'string')
-    return `${open}${children}</${vnode.type}>`
-
-  if (Array.isArray(children)) {
-    const inner = children.map((c) => {
-      if (typeof c === 'string')
-        return c
-      if (c && typeof c === 'object')
-        return vnodeToHtmlString(c)
-      return ''
-    }).join('')
-    return `${open}${inner}</${vnode.type}>`
-  }
-
-  return `${open}</${vnode.type}>`
+  return `${open}${inner}</${vnode.type}>`
 }
