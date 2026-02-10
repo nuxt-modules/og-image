@@ -161,6 +161,11 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({ width: 1200, props: { count: 42 } })
     })
 
+    it('ignores empty string values during decoding', () => {
+      const decoded = decodeOgImageParams('c_Default,primaryColor_')
+      expect(decoded).toEqual({ component: 'Default', props: {} })
+    })
+
     it('handles empty string', () => {
       const decoded = decodeOgImageParams('')
       expect(decoded).toEqual({})
@@ -206,6 +211,14 @@ describe('urlEncoding', () => {
       const encoded = encodeOgImageParams(original)
       const decoded = decodeOgImageParams(encoded)
       expect(decoded).toEqual(original)
+    })
+
+    it('skips empty strings in roundtrip', () => {
+      const original = { props: { title: '' } }
+      const encoded = encodeOgImageParams(original)
+      expect(encoded).toBe('')
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({})
     })
 
     it('preserves _path with slashes (base64 encoded)', () => {
