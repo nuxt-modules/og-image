@@ -1,4 +1,3 @@
-import type { AddComponentOptions } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
@@ -17,7 +16,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { addBuildPlugin, addComponent, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
@@ -98,10 +97,6 @@ export interface ModuleOptions {
    * @false false
    */
   debug: boolean
-  /**
-   * Options to pass to the <OgImage> and <OgImageScreenshot> component.
-   */
-  componentOptions?: Pick<AddComponentOptions, 'global'>
   /**
    * Configure the runtime cache storage for generated OG images.
    * - `true` - Use Nitro's default cache storage (default)
@@ -737,12 +732,6 @@ export default defineNuxtModule<ModuleOptions>({
         }
       })
 
-    addComponent({
-      name: 'OgImageScreenshot',
-      filePath: resolve(`./runtime/app/components/OgImage/OgImageScreenshot`),
-      ...config.componentOptions,
-    })
-
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
@@ -914,7 +903,7 @@ export default defineNuxtModule<ModuleOptions>({
           valid = true
 
         if (valid && fs.existsSync(component.filePath)) {
-          // Only validate .vue files - non-vue files (like OgImageScreenshot.ts) are runtime components, not templates
+          // Only validate .vue files - non-vue files are runtime components, not templates
           if (!component.filePath.endsWith('.vue'))
             return
 

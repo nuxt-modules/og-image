@@ -228,6 +228,24 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   return result
 }
 
+// Convert Vue template attrs like `title="Hello" :width="1200"` to a JS object string
+function attrsToProps(attrs: string): string {
+  if (!attrs)
+    return ''
+  const props: string[] = []
+  // Match :prop="expr" or prop="value" or prop (boolean)
+  const attrRegex = /:(\w+)="([^"]*)"|(\w+)="([^"]*)"|(\w+)/g
+  for (const m of attrs.matchAll(attrRegex)) {
+    if (m[1]) // dynamic :prop="expr"
+      props.push(`${m[1]}: ${m[2]}`)
+    else if (m[3]) // static prop="value"
+      props.push(`${m[3]}: '${m[4]}'`)
+    else if (m[5]) // boolean prop
+      props.push(`${m[5]}: true`)
+  }
+  return props.length ? `{ ${props.join(', ')} }` : ''
+}
+
 // Migrate defineOgImage API
 function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: string, count: number }> } {
   const cwd = process.cwd()
@@ -240,6 +258,42 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
     let content = readFileSync(file, 'utf-8')
     let modified = false
     let changeCount = 0
+
+    // Pattern 0: <OgImageScreenshot /> and <OgImage /> component usage → composable
+    // Handles self-closing and open/close tags, with or without props
+    content = content.replace(/<OgImageScreenshot([^>]*?)\/>/g, (_match, attrs: string) => {
+      modified = true
+      changeCount++
+      const propsStr = attrsToProps(attrs.trim())
+      return propsStr
+        ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
+        : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
+    })
+    content = content.replace(/<OgImageScreenshot([^>]*)>[\s\S]*?<\/OgImageScreenshot>/g, (_match, attrs: string) => {
+      modified = true
+      changeCount++
+      const propsStr = attrsToProps(attrs.trim())
+      return propsStr
+        ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
+        : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
+    })
+    // OgImage but not OgImageScreenshot (use word boundary via negative lookahead)
+    content = content.replace(/<OgImage(?!Screenshot)([^>]*?)\/>/g, (_match, attrs: string) => {
+      modified = true
+      changeCount++
+      const propsStr = attrsToProps(attrs.trim())
+      return propsStr
+        ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
+        : `<!-- Migrated: use defineOgImage() in <script setup> -->`
+    })
+    content = content.replace(/<OgImage(?!Screenshot)([^>]*)>[\s\S]*?<\/OgImage>/g, (_match, attrs: string) => {
+      modified = true
+      changeCount++
+      const propsStr = attrsToProps(attrs.trim())
+      return propsStr
+        ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
+        : `<!-- Migrated: use defineOgImage() in <script setup> -->`
+    })
 
     // Pattern 1: defineOgImageComponent → defineOgImage
     if (/defineOgImageComponent\s*\(/.test(content)) {
@@ -430,6 +484,7 @@ async function runMigrate(args: string[]): Promise<void> {
   if (migrationCheck.needsNuxtFonts) {
     tasks.push('Install @nuxt/fonts module')
   }
+  tasks.push('Migrate <OgImage> and <OgImageScreenshot> components to composables')
   tasks.push('Update defineOgImage() calls to new API')
 
   p.note(tasks.map(t => `• ${t}`).join('\n'), 'Migration tasks')
