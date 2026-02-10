@@ -3,34 +3,9 @@ import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { loadAllFonts } from '../fonts'
+import { detectImageExt } from '../utils/image-detector'
 import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
-
-function detectImageExt(data: Uint8Array, src: string): string {
-  // Magic bytes
-  if (data[0] === 0x89 && data[1] === 0x50)
-    return 'png'
-  if (data[0] === 0xFF && data[1] === 0xD8)
-    return 'jpg'
-  if (data[0] === 0x47 && data[1] === 0x49 && data[2] === 0x46)
-    return 'gif'
-  if (data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46)
-    return 'webp'
-  // SVG detection
-  const head = new TextDecoder().decode(data.subarray(0, 100))
-  if (head.includes('<svg') || head.includes('<?xml'))
-    return 'svg'
-  // URL hints
-  if (src.startsWith('data:image/svg+xml') || src.includes('.svg'))
-    return 'svg'
-  if (src.startsWith('data:image/png') || src.includes('.png'))
-    return 'png'
-  if (src.startsWith('data:image/jpeg') || src.includes('.jpg') || src.includes('.jpeg'))
-    return 'jpg'
-  if (src.startsWith('data:image/webp') || src.includes('.webp'))
-    return 'webp'
-  return 'png'
-}
 
 interface TakumiState {
   renderer: any
