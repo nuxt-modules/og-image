@@ -138,21 +138,21 @@ defineProps<{
         mask-rad
       </div>
 
-      <!-- Filter with icons -->
+      <!-- Filter demo boxes (icons don't work with Satori) -->
       <div class="m-2 flex flex-col items-center justify-center bg-zinc-800 rounded-xl w-48 h-48">
-        <Icon name="logos:nuxt-icon" class="w-32 h-32" />
+        <div class="w-32 h-32 bg-gradient-to-br from-green-400 to-blue-600 rounded-lg" />
         <span class="text-white text-sm mt-2">normal</span>
       </div>
       <div class="m-2 flex flex-col items-center justify-center bg-zinc-800 rounded-xl w-48 h-48" style="filter: brightness(1.5)">
-        <Icon name="logos:nuxt-icon" class="w-32 h-32" />
+        <div class="w-32 h-32 bg-gradient-to-br from-green-400 to-blue-600 rounded-lg" />
         <span class="text-white text-sm mt-2">bright</span>
       </div>
       <div class="m-2 flex flex-col items-center justify-center bg-zinc-800 rounded-xl w-48 h-48" style="filter: grayscale(1)">
-        <Icon name="logos:nuxt-icon" class="w-32 h-32" />
+        <div class="w-32 h-32 bg-gradient-to-br from-green-400 to-blue-600 rounded-lg" />
         <span class="text-white text-sm mt-2">gray</span>
       </div>
       <div class="m-2 flex flex-col items-center justify-center bg-zinc-800 rounded-xl w-48 h-48" style="filter: saturate(2)">
-        <Icon name="logos:nuxt-icon" class="w-32 h-32" />
+        <div class="w-32 h-32 bg-gradient-to-br from-green-400 to-blue-600 rounded-lg" />
         <span class="text-white text-sm mt-2">saturate</span>
       </div>
     </div>
