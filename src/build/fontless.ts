@@ -252,7 +252,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
     styles: Array.from(styles),
   }))
 
-  logger.info(`Resolving static fonts for: ${families.map(f => f.family).join(', ')}`)
+  logger.debug(`Resolving static fonts for: ${families.map(f => f.family).join(', ')}`)
 
   try {
     const downloaded = await downloadStaticFonts({
@@ -266,7 +266,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
       convertedWoff2Files.add(font.filename)
 
     if (convertedWoff2Files.size > 0) {
-      logger.info(`Resolved ${convertedWoff2Files.size} static font files via fontless`)
+      logger.debug(`Resolved ${convertedWoff2Files.size} static font files via fontless`)
     }
     else {
       logger.warn(`No static fonts available for Satori. Falling back to bundled Inter font. Consider using 'takumi' renderer for variable font support.`)
@@ -306,7 +306,7 @@ export async function resolveMissingFontFamilies(options: {
   }))
 
   if (results.length > 0)
-    logger.info(`Resolved ${results.length} font files via fontless for: ${missingFamilies.join(', ')}`)
+    logger.debug(`Resolved ${results.length} font files via fontless for: ${missingFamilies.join(', ')}`)
 
   return results
 }

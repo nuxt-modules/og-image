@@ -58,7 +58,7 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
       }
 
       if (cleanedCount > 0)
-        logger.info(`Cleaned ${cleanedCount} orphaned OG image cache file${cleanedCount > 1 ? 's' : ''}.`)
+        logger.debug(`Cleaned ${cleanedCount} orphaned OG image cache file${cleanedCount > 1 ? 's' : ''}.`)
     })
   })
 }
