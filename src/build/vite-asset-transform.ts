@@ -2,6 +2,7 @@ import type { IconifyJSON } from '@iconify/types'
 import type { ElementNode, Node } from 'ultrahtml'
 import type { CssProvider } from './css/css-provider'
 import { readFile } from 'node:fs/promises'
+import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { ofetch } from 'ofetch'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
@@ -9,6 +10,7 @@ import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtm
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
+import { extractClassStyles, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -455,6 +457,109 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
           for (const { from, to } of replacements) {
             template = template.replace(from, to)
+          }
+        }
+      }
+
+      // Evaluate calc() in inline style="" attributes using Lightning CSS.
+      // Wraps each style as a CSS rule so calc() gets proper type context.
+      if (template.includes('calc(')) {
+        const styleAttrRegex = /style="([^"]*calc\([^"]*)"/g
+        let styleAttrMatch
+        // eslint-disable-next-line no-cond-assign
+        while ((styleAttrMatch = styleAttrRegex.exec(template)) !== null) {
+          const styleValue = styleAttrMatch[1]!
+          const simplified = await simplifyCss(`.x{${styleValue}}`)
+          const inner = simplified.match(/\.x\{([\s\S]*?)\}/)?.[1]?.trim()
+          if (inner && inner !== styleValue) {
+            template = `${template.slice(0, styleAttrMatch.index)}style="${inner}"${template.slice(styleAttrMatch.index + styleAttrMatch[0].length)}`
+            styleAttrRegex.lastIndex = styleAttrMatch.index + `style="${inner}"`.length
+            hasChanges = true
+          }
+        }
+      }
+
+      // Inline <style> blocks into template elements at build time.
+      // Both satori and takumi need inline styles — <style> blocks aren't applied at render time.
+      {
+        const { descriptor } = parseSfc(code)
+        if (descriptor.styles.length > 0) {
+          for (const styleBlock of descriptor.styles) {
+            const rawCss = styleBlock.content
+            // Strip scoped data-v attribute selectors so we can match by class name alone
+            const scopeId = styleBlock.scoped
+              ? (rawCss.match(/\[data-v-([a-f0-9]+)\]/)?.[0] ?? null)
+              : null
+            const cleanCss = scopeId ? rawCss.replaceAll(scopeId, '') : rawCss
+
+            const simplified = await simplifyCss(cleanCss)
+            const classMap = extractClassStyles(simplified, { skipPrefixes: [] })
+
+            if (classMap.size > 0) {
+              // Walk template elements and merge matching styles
+              const wrappedTemplate = `<div>${template}</div>`
+              const doc = parseHtml(wrappedTemplate)
+
+              walkSync(doc, (node) => {
+                if (node.type !== ELEMENT_NODE)
+                  return
+                const el = node as ElementNode
+                const classAttr = el.attributes?.class
+                if (!classAttr)
+                  return
+
+                const elClasses = classAttr.split(/\s+/).filter(Boolean)
+                const matchedStyles: Record<string, string> = {}
+                const consumedClasses = new Set<string>()
+
+                for (const cls of elClasses) {
+                  const styles = classMap.get(cls)
+                  if (styles) {
+                    Object.assign(matchedStyles, styles)
+                    consumedClasses.add(cls)
+                  }
+                }
+
+                if (Object.keys(matchedStyles).length === 0)
+                  return
+
+                // Merge into existing inline style (inline style takes precedence)
+                const existingStyle = el.attributes?.style || ''
+                const existingProps: Record<string, string> = {}
+                for (const decl of existingStyle.split(';')) {
+                  const [prop, ...valParts] = decl.split(':')
+                  const value = valParts.join(':').trim()
+                  if (prop?.trim() && value)
+                    existingProps[prop.trim()] = value
+                }
+
+                const merged = { ...matchedStyles, ...existingProps }
+                el.attributes.style = Object.entries(merged)
+                  .map(([p, v]) => `${p}:${v}`)
+                  .join(';')
+
+                // Remove consumed classes
+                const remaining = elClasses.filter(c => !consumedClasses.has(c))
+                if (remaining.length > 0)
+                  el.attributes.class = remaining.join(' ')
+                else
+                  delete el.attributes.class
+              })
+
+              template = renderSync(doc).replace(/^<div>/, '').replace(/<\/div>$/, '')
+              hasChanges = true
+            }
+          }
+
+          // Remove all <style> blocks from the SFC — styles are now inlined
+          for (const styleBlock of descriptor.styles) {
+            const styleStart = code.indexOf(styleBlock.loc.source) - '<style'.length
+            // Find the full <style...>...</style> tag
+            const fullTagStart = code.lastIndexOf('<style', styleStart + '<style'.length)
+            const fullTagEnd = code.indexOf('</style>', styleStart) + '</style>'.length
+            if (fullTagStart >= 0 && fullTagEnd > fullTagStart) {
+              s.remove(fullTagStart, fullTagEnd)
+            }
           }
         }
       }

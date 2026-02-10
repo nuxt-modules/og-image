@@ -2,7 +2,7 @@ import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { logger } from '../runtime/logger'
-import { walkTemplateAst } from './css/css-utils'
+import { evaluateCalc, walkTemplateAst } from './css/css-utils'
 
 export interface ClassToStyleOptions {
   /**
@@ -126,14 +126,14 @@ export async function transformVueTemplate(
       // else: resolved but empty (e.g., gradient helper classes) - skip
     }
 
-    // Merge with existing inline style
+    // Merge with existing inline style, evaluating any calc() expressions
     if (collector.existingStyle) {
       for (const decl of collector.existingStyle.split(';')) {
         const [prop, ...valParts] = decl.split(':')
         const value = valParts.join(':').trim()
         if (prop?.trim() && value) {
-          // Existing style takes precedence
-          styleProps[prop.trim()] = value
+          // Existing style takes precedence — evaluate calc() at build time
+          styleProps[prop.trim()] = await evaluateCalc(value)
         }
       }
     }

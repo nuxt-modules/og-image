@@ -11,6 +11,7 @@ import {
   loadLightningCss,
   postProcessStyles,
   resolveVarsDeep,
+  simplifyCss,
 } from '../css-utils'
 
 // Lazy-loaded heavy dependencies
@@ -202,7 +203,9 @@ interface ParsedCssOutput {
  * Parse TW4 compiler output.
  * Extracts CSS variables into vars Map and returns class styles + per-class vars.
  */
-function parseCssOutput(css: string, vars: Map<string, string>): ParsedCssOutput {
+async function parseCssOutput(rawCss: string, vars: Map<string, string>): Promise<ParsedCssOutput> {
+  const css = await simplifyCss(rawCss)
+
   // Extract :root/:host variables
   for (const [name, value] of extractCssVars(css)) {
     if (!vars.has(name))
@@ -342,7 +345,7 @@ export async function resolveClassesToStyles(
 
   if (uncached.length > 0) {
     const outputCss = compiler.build(uncached)
-    const { classes: parsedClasses, perClassVars } = parseCssOutput(outputCss, vars)
+    const { classes: parsedClasses, perClassVars } = await parseCssOutput(outputCss, vars)
 
     for (const [className, rawStyles] of parsedClasses) {
       // Merge global vars with per-class var overrides for resolution
@@ -384,7 +387,7 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
   const { compiler, vars } = await getCompiler(options.cssPath, options.nuxtUiColors)
 
   const themeCss = compiler.build([])
-  parseCssOutput(themeCss, vars)
+  await parseCssOutput(themeCss, vars)
 
   const fontVars: Tw4FontVars = {}
   const breakpoints: Tw4Breakpoints = {}

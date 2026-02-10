@@ -17,16 +17,16 @@ export async function loadLightningCss() {
 }
 
 /**
- * Simplify CSS using Lightning CSS.
- * - Evaluates calc() expressions where possible
- * - Normalizes values
+ * Simplify CSS using Lightning CSS with minification.
+ * Minification folds constant calc() expressions (e.g. calc(200px * 1.5) → 300px)
+ * and normalizes values.
  */
 export async function simplifyCss(css: string): Promise<string> {
   const { transform } = await loadLightningCss()
   const result = transform({
     filename: 'input.css',
     code: Buffer.from(css),
-    minify: false,
+    minify: true,
   })
   return result.code.toString()
 }
@@ -43,7 +43,7 @@ export function extractCssVars(css: string): Map<string, string> {
     const body = match[1]!
     // Safe: value starts with non-whitespace [^\s;] then any [^;]*
     // This prevents \s* from exchanging characters with value
-    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*);/g
+    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
     for (const m of body.matchAll(declRe)) {
       if (m[1] && m[2])
         vars.set(m[1], m[2].trim())
@@ -62,7 +62,7 @@ export function extractUniversalVars(css: string): Map<string, string> {
   const universalRe = /\*[^{]*\{([^}]+)\}/g
   for (const match of css.matchAll(universalRe)) {
     const body = match[1]!
-    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*);/g
+    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
     for (const m of body.matchAll(declRe)) {
       if (m[1] && m[2])
         vars.set(m[1], m[2].trim())
@@ -105,7 +105,7 @@ export function extractPerClassVars(css: string): Map<string, Map<string, string
     const className = decodeCssClassName(rawSelector)
     const body = match[2]!
     const classVars = new Map<string, string>()
-    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*);/g
+    const declRe = /(--[\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
     for (const m of body.matchAll(declRe)) {
       if (m[1] && m[2])
         classVars.set(m[1], m[2].trim())
@@ -218,8 +218,6 @@ export function isSimpleClassSelector(selector: string): boolean {
 export interface ExtractClassStylesOptions {
   /** Convert property names to camelCase (default: false) */
   camelCase?: boolean
-  /** Normalize TW4 values: infinity calc → 9999px, opacity % → decimal (default: false) */
-  normalize?: boolean
   /** Skip properties starting with these prefixes (default: ['--']) */
   skipPrefixes?: string[]
   /** Merge styles for duplicate class selectors (default: false, overwrites) */
@@ -237,7 +235,7 @@ export function extractClassStyles(
   css: string,
   options: ExtractClassStylesOptions = {},
 ): Map<string, Record<string, string>> {
-  const { camelCase = false, normalize = false, skipPrefixes = ['--'], merge = false, collectVars } = options
+  const { camelCase = false, skipPrefixes = ['--'], merge = false, collectVars } = options
   const classes = new Map<string, Record<string, string>>()
 
   // Match .selector { body }
@@ -257,7 +255,8 @@ export function extractClassStyles(
     const styles: Record<string, string> = merge ? (classes.get(className) || {}) : {}
 
     // Safe: value starts with non-whitespace [^\s;] to prevent overlap with \s*
-    const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*);/g
+    // Semicolons may be omitted before } in minified CSS, so match ; or end-of-body
+    const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
     for (const declMatch of body.matchAll(declRe)) {
       const prop = declMatch[1]!
       let value = declMatch[2]!.trim()
@@ -271,14 +270,6 @@ export function extractClassStyles(
       }
       else if (skipPrefixes.some(p => prop.startsWith(p))) {
         continue
-      }
-
-      // Normalize TW4-specific values
-      if (normalize) {
-        if (value.includes('calc(infinity'))
-          value = '9999px'
-        if (prop === 'opacity' && value.endsWith('%'))
-          value = String(Number.parseFloat(value) / 100)
       }
 
       const finalProp = camelCase ? prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase()) : prop
@@ -497,10 +488,9 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
 export async function evaluateCalc(value: string): Promise<string> {
   if (!value.includes('calc('))
     return value
-  const fakeCss = `.x{v:${value}}`
+  const fakeCss = `.x{width:${value}}`
   const result = await simplifyCss(fakeCss)
-  // Safe: value ends with [^\s;] to prevent overlap with trailing \s*
-  const match = result.match(/\.x\s*\{\s*v:\s*([^\s;](?:[^;]*[^\s;])?);?\s*\}/)
+  const match = result.match(/\.x\{width:([^}]+)\}/)
   return match?.[1]?.trim() ?? value
 }
 
@@ -543,7 +533,7 @@ export async function resolveVarsDeep(value: string, vars: Map<string, string>, 
 
 /**
  * Shared post-processing pipeline for resolved CSS styles.
- * Handles: resolve vars → skip unresolvable → convert colors → normalize opacity →
+ * Handles: resolve vars → skip unresolvable → convert colors →
  * convertIndividualTransforms → convertLogicalProperties.
  * Returns null if no styles survive processing.
  */
@@ -570,11 +560,6 @@ export async function postProcessStyles(
     if (/calc\(\s*[*/]/.test(value))
       continue
 
-    // Normalize calc(infinity * 1px) → 9999px (TW4 rounded-full, etc.)
-    // Also catch Lightning CSS pre-evaluated infinity: 3.40282e38px
-    if (value.includes('calc(infinity') || /\d\.?\d*e\+?\d+px/.test(value))
-      value = '9999px'
-
     // Clean up empty segments in comma-separated values
     // (e.g., ", , , 0 10px 15px" → "0 10px 15px" from unresolved shadow vars)
     if (value.includes(',')) {
@@ -593,10 +578,6 @@ export async function postProcessStyles(
     // Lightning CSS doesn't downlevel these, so strip manually.
     if (prop === 'background-image' && value.includes('-gradient('))
       value = stripGradientColorSpace(value)
-
-    // Normalize opacity percentage to decimal
-    if (prop === 'opacity' && value.endsWith('%'))
-      value = String(Number.parseFloat(value) / 100)
 
     styles[prop] = value
   }

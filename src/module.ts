@@ -565,7 +565,7 @@ export default defineNuxtModule<ModuleOptions>({
         get ogComponentPaths() { return resolvedOgComponentPaths },
         rootDir: nuxt.options.rootDir,
         srcDir: nuxt.options.srcDir,
-        publicDir: join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
+        publicDir: isAbsolute(nuxt.options.dir.public) ? nuxt.options.dir.public : join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         cssProvider,
       }))
     })
