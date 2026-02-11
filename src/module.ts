@@ -416,6 +416,7 @@ export default defineNuxtModule<ModuleOptions>({
             return resolved
           }
         },
+        resolveColorPreference: () => resolvedColorPreference,
       })
 
       // HMR: watch for uno.config changes

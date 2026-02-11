@@ -10,7 +10,8 @@ import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtm
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
-import { extractClassStyles, simplifyCss } from './css/css-utils'
+import { extractFontRequirementsFromVue } from './css/css-classes'
+import { extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -212,6 +213,10 @@ export interface AssetTransformOptions {
    * CSS provider for resolving utility classes (TW4, UnoCSS, etc.)
    */
   cssProvider?: CssProvider
+  /**
+   * Callback invoked after extracting font requirements from each component.
+   */
+  onFontRequirements?: (id: string, reqs: Awaited<ReturnType<typeof extractFontRequirementsFromVue>>) => void
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -404,6 +409,22 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
       }
 
+      // Resolve var() in HTML attributes (e.g., SVG fill="var(--bg)")
+      if (options.cssProvider?.getVars && template.includes('var(')) {
+        const vars = await options.cssProvider.getVars()
+        if (vars.size > 0) {
+          // Match attribute="...var(--...)..." patterns, excluding style and class attributes
+          template = template.replace(/\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g, (match, attr, value) => {
+            const resolved = resolveCssVars(value, vars)
+            if (resolved !== value) {
+              hasChanges = true
+              return `${attr}="${resolved}"`
+            }
+            return match
+          })
+        }
+      }
+
       // Transform images: src="/path" or src="~/path" or src="@/path"
       if (!template.includes('data-no-inline')) {
         const imgRegex = /(?<!:)src="((?:\/|~\/|@\/)[^"]+\.(png|jpg|jpeg|gif|webp|svg))"/g
@@ -551,6 +572,13 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             }
           }
         }
+      }
+
+      // Extract font requirements from the original code (before transforms)
+      if (options.onFontRequirements) {
+        extractFontRequirementsFromVue(code).then((reqs) => {
+          options.onFontRequirements!(id, reqs)
+        })
       }
 
       if (!hasChanges)

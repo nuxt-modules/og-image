@@ -119,7 +119,8 @@ export async function simplifyCss(css: string): Promise<string> {
 
 export function extractCssVars(css: string): Map<string, string> {
   const vars = new Map<string, string>()
-  walkBlockRules(css, /:(?:root|host)\s*\{([^}]+)\}/g, (body) => {
+  // Match :root or :host with any compound selectors (e.g. :root[data-theme='dark'], :root:not(...))
+  walkBlockRules(css, /:(?:root|host)[^\s{]*\s*\{([^}]+)\}/g, (body) => {
     extractDeclarations(body, (prop, value) => {
       if (prop.startsWith('--'))
         vars.set(prop, value)
@@ -162,6 +163,347 @@ export function extractPerClassVars(css: string): Map<string, Map<string, string
       result.set(className, classVars)
   })
   return result
+}
+
+// ============================================================================
+// AST-based CSS extraction (single-pass via lightningcss visitor)
+// ============================================================================
+
+/**
+ * Serialize lightningcss TokenOrValue[] back to a CSS string.
+ */
+export function serializeTokens(tokens: any[]): string {
+  const parts: string[] = []
+  for (const tov of tokens) {
+    switch (tov.type) {
+      case 'token':
+        parts.push(serializeToken(tov.value))
+        break
+      case 'color':
+        parts.push(serializeColor(tov.value))
+        break
+      case 'unresolved-color':
+        parts.push(serializeUnresolvedColor(tov.value))
+        break
+      case 'var':
+        parts.push(`var(${tov.value.name.ident}${tov.value.fallback ? `, ${serializeTokens(tov.value.fallback)}` : ''})`)
+        break
+      case 'env':
+        parts.push(`env(${serializeEnvName(tov.value.name)}${tov.value.fallback ? `, ${serializeTokens(tov.value.fallback)}` : ''})`)
+        break
+      case 'function':
+        parts.push(`${tov.value.name}(${serializeTokens(tov.value.arguments)})`)
+        break
+      case 'length':
+        parts.push(`${tov.value.value}${tov.value.unit}`)
+        break
+      case 'angle':
+        parts.push(`${tov.value.value}${tov.value.type}`)
+        break
+      case 'time':
+        parts.push(`${tov.value.value}${tov.value.type === 'seconds' ? 's' : 'ms'}`)
+        break
+      case 'resolution':
+        parts.push(`${tov.value.value}${tov.value.type}`)
+        break
+      case 'percentage':
+        parts.push(`${tov.value * 100}%`)
+        break
+      case 'dashed-ident':
+        parts.push(tov.value)
+        break
+      case 'url':
+        parts.push(`url(${tov.value.url})`)
+        break
+      case 'animation-name':
+        parts.push(typeof tov.value === 'string' ? tov.value : tov.value.value || '')
+        break
+    }
+  }
+  return parts.join('')
+}
+
+function serializeToken(token: any): string {
+  switch (token.type) {
+    case 'ident': return token.value
+    case 'number': return String(token.value)
+    case 'percentage': return `${token.value * 100}%`
+    case 'dimension': return `${token.value}${token.unit}`
+    case 'string': return `"${token.value}"`
+    case 'hash': case 'id-hash': return `#${token.value}`
+    case 'white-space': return ' '
+    case 'delim': return token.value
+    case 'comma': return ', '
+    case 'colon': return ':'
+    case 'semicolon': return ';'
+    case 'unquoted-url': return token.value
+    case 'at-keyword': return `@${token.value}`
+    default: return ''
+  }
+}
+
+function serializeColor(color: any): string {
+  if (typeof color === 'string')
+    return color // SystemColor
+  const a = color.alpha !== undefined && color.alpha !== 1 ? ` / ${color.alpha}` : ''
+  switch (color.type) {
+    case 'currentcolor': return 'currentColor'
+    case 'rgb': return color.alpha !== 1
+      ? `rgba(${color.r}, ${color.g}, ${color.b}, ${color.alpha})`
+      : `rgb(${color.r}, ${color.g}, ${color.b})`
+    case 'hsl': return `hsl(${color.h} ${color.s}% ${color.l}%${a})`
+    case 'hwb': return `hwb(${color.h} ${color.w}% ${color.b}%${a})`
+    case 'lab': return `lab(${color.l} ${color.a} ${color.b}${a})`
+    case 'lch': return `lch(${color.l} ${color.c} ${color.h}${a})`
+    case 'oklab': return `oklab(${color.l} ${color.a} ${color.b}${a})`
+    case 'oklch': return `oklch(${color.l} ${color.c} ${color.h}${a})`
+    case 'light-dark': return `light-dark(${serializeColor(color.light)}, ${serializeColor(color.dark)})`
+    default:
+      // PredefinedColor (srgb, display-p3, etc.) and xyz
+      if ('x' in color)
+        return `color(${color.type} ${color.x} ${color.y} ${color.z}${a})`
+      if ('r' in color)
+        return `color(${color.type} ${color.r} ${color.g} ${color.b}${a})`
+      return ''
+  }
+}
+
+function serializeUnresolvedColor(color: any): string {
+  const alpha = serializeTokens(color.alpha)
+  switch (color.type) {
+    case 'rgb': return `rgb(${color.r}, ${color.g}, ${color.b}, ${alpha})`
+    case 'hsl': return `hsl(${color.h} ${color.s}% ${color.l}% / ${alpha})`
+    case 'light-dark': return `light-dark(${serializeTokens(color.light)}, ${serializeTokens(color.dark)})`
+    default: return ''
+  }
+}
+
+function serializeEnvName(name: any): string {
+  if (name.type === 'ua')
+    return name.value
+  return name.ident || ''
+}
+
+/**
+ * Result of single-pass CSS variable extraction.
+ * Root vars are split by color mode so consumers can pick the right set.
+ */
+export interface ExtractedCssVars {
+  /** Vars from plain :root {} (no theme qualifier) */
+  rootVars: Map<string, string>
+  /** Vars from dark-mode :root selectors (e.g. :root[data-theme='dark'], :root:not([data-theme='light'])) */
+  darkVars: Map<string, string>
+  /** Vars from light-mode :root selectors (e.g. :root[data-theme='light']) */
+  lightVars: Map<string, string>
+  universalVars: Map<string, string>
+  propertyInitials: Map<string, string>
+  perClassVars: Map<string, Map<string, string>>
+}
+
+/**
+ * Resolve extracted vars for a given color preference.
+ * Base vars are overlaid with the matching theme vars.
+ */
+export function resolveExtractedVars(extracted: ExtractedCssVars, colorPreference: 'light' | 'dark'): Map<string, string> {
+  const vars = new Map(extracted.rootVars)
+  const themeVars = colorPreference === 'dark' ? extracted.darkVars : extracted.lightVars
+  for (const [name, value] of themeVars)
+    vars.set(name, value)
+  return vars
+}
+
+/**
+ * Check if any selector component in a selector list matches a predicate.
+ */
+function selectorsContain(selectors: any[], predicate: (component: any) => boolean): boolean {
+  for (const selector of selectors) {
+    for (const component of selector) {
+      if (predicate(component))
+        return true
+    }
+  }
+  return false
+}
+
+function isRootOrHost(selectors: any[]): boolean {
+  return selectorsContain(selectors, c =>
+    c.type === 'pseudo-class' && (c.kind === 'root' || c.kind === 'host'))
+}
+
+function isUniversal(selectors: any[]): boolean {
+  return selectorsContain(selectors, c => c.type === 'universal')
+}
+
+/**
+ * Detect color mode from selector components.
+ * Returns 'dark', 'light', or undefined (plain :root).
+ */
+function detectSelectorColorMode(selectors: any[]): 'dark' | 'light' | undefined {
+  for (const selector of selectors) {
+    for (const component of selector) {
+      // :root.dark or :root.light
+      if (component.type === 'class') {
+        if (component.name === 'dark')
+          return 'dark'
+        if (component.name === 'light')
+          return 'light'
+      }
+      // :root[data-theme='dark'] or [data-mode='dark']
+      if (component.type === 'attribute' && component.operation) {
+        const val = component.operation.value?.toLowerCase()
+        if (val === 'dark')
+          return 'dark'
+        if (val === 'light')
+          return 'light'
+      }
+      // :root:not([data-theme='light']) → dark mode
+      if (component.type === 'pseudo-class' && component.kind === 'not') {
+        const innerMode = detectSelectorColorMode(component.selectors || [])
+        if (innerMode === 'light')
+          return 'dark'
+        if (innerMode === 'dark')
+          return 'light'
+      }
+    }
+  }
+  return undefined
+}
+
+function getSimpleClassName(selectors: any[]): string | undefined {
+  // Only match simple single-class selectors (no combinators, no pseudo-classes besides the class)
+  if (selectors.length !== 1)
+    return undefined
+  const selector = selectors[0]
+  if (selector.length !== 1)
+    return undefined
+  const component = selector[0]
+  return component.type === 'class' ? component.name : undefined
+}
+
+function extractCustomProps(declarations: any): Map<string, string> {
+  const vars = new Map<string, string>()
+  for (const decl of declarations?.declarations || []) {
+    if (decl.property === 'custom') {
+      const name = decl.value.name as string
+      if (name.startsWith('--'))
+        vars.set(name, serializeTokens(decl.value.value).trim())
+    }
+  }
+  return vars
+}
+
+function extractPropertyInitialValue(rule: any): { name: string, value: string } | undefined {
+  if (!rule.initialValue)
+    return undefined
+  const name = rule.name as string
+  const iv = rule.initialValue
+  // ParsedComponent → CSS string
+  let value: string
+  switch (iv.type) {
+    case 'length':
+      value = `${iv.value.value}${iv.value.unit}`
+      break
+    case 'number':
+      value = String(iv.value)
+      break
+    case 'percentage':
+      value = `${iv.value * 100}%`
+      break
+    case 'color':
+      value = serializeColor(iv.value)
+      break
+    case 'string':
+      value = iv.value
+      break
+    case 'token':
+      value = serializeTokens([iv])
+      break
+    default:
+      value = serializeTokens(iv.value ? [iv] : [])
+      break
+  }
+  return value ? { name, value: value.trim() } : undefined
+}
+
+/**
+ * Extract all CSS variable sources in a single lightningcss pass.
+ * Replaces extractCssVars + extractUniversalVars + extractPropertyInitialValues + extractPerClassVars.
+ */
+export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars> {
+  const rootVars = new Map<string, string>()
+  const darkVars = new Map<string, string>()
+  const lightVars = new Map<string, string>()
+  const universalVars = new Map<string, string>()
+  const propertyInitials = new Map<string, string>()
+  const perClassVars = new Map<string, Map<string, string>>()
+
+  try {
+    const { transform } = await loadLightningCss()
+    transform({
+      filename: 'vars.css',
+      code: Buffer.from(css),
+      minify: false,
+      errorRecovery: true,
+      visitor: {
+        Rule: {
+          style: (rule: any) => {
+            const selectors = rule.value.selectors
+            const declarations = rule.value.declarations
+
+            if (isRootOrHost(selectors)) {
+              const colorMode = detectSelectorColorMode(selectors)
+              const target = colorMode === 'dark' ? darkVars : colorMode === 'light' ? lightVars : rootVars
+              for (const [name, value] of extractCustomProps(declarations))
+                target.set(name, value)
+            }
+            else if (isUniversal(selectors)) {
+              for (const [name, value] of extractCustomProps(declarations))
+                universalVars.set(name, value)
+            }
+            else {
+              const className = getSimpleClassName(selectors)
+              if (className) {
+                const classVarMap = extractCustomProps(declarations)
+                if (classVarMap.size > 0) {
+                  const decoded = decodeCssClassName(className)
+                  const existing = perClassVars.get(decoded)
+                  if (existing) {
+                    for (const [k, v] of classVarMap) existing.set(k, v)
+                  }
+                  else {
+                    perClassVars.set(decoded, classVarMap)
+                  }
+                }
+              }
+            }
+
+            return rule
+          },
+          property: (rule: any) => {
+            const result = extractPropertyInitialValue(rule.value)
+            if (result)
+              propertyInitials.set(result.name, result.value)
+            return rule
+          },
+        },
+      },
+    })
+  }
+  catch {
+    // Fallback to regex-based extraction if lightningcss visitor fails
+    // Note: regex fallback does not support color mode splitting
+    for (const [name, value] of extractCssVars(css))
+      rootVars.set(name, value)
+    for (const [name, value] of extractUniversalVars(css))
+      universalVars.set(name, value)
+    for (const [name, value] of extractPropertyInitialValues(css))
+      propertyInitials.set(name, value)
+    for (const [name, value] of extractPerClassVars(css)) {
+      perClassVars.set(name, value)
+    }
+  }
+
+  return { rootVars, darkVars, lightVars, universalVars, propertyInitials, perClassVars }
 }
 
 // ============================================================================

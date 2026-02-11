@@ -14,6 +14,10 @@ export interface CssProvider {
    */
   extractMetadata?: () => Promise<CssMetadata>
   /**
+   * Get the resolved CSS variable map for resolving var() in attributes.
+   */
+  getVars?: () => Promise<Map<string, string>>
+  /**
    * Clear cached compiler state (for HMR).
    */
   clearCache?: () => void

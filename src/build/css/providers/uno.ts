@@ -2,10 +2,11 @@ import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
 import { readFile } from 'node:fs/promises'
 import { logger } from '../../../runtime/logger'
-import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, postProcessStyles, simplifyCss } from '../css-utils'
+import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
 
 export interface UnoProviderOptions {
   resolveCssPath?: () => Promise<string | undefined>
+  resolveColorPreference?: () => 'light' | 'dark'
 }
 
 // State
@@ -64,20 +65,28 @@ async function getGenerator() {
   return generator
 }
 
-async function loadUserVars(resolveCssPath?: () => Promise<string | undefined>): Promise<Map<string, string>> {
+async function loadUserVars(resolveCssPath?: () => Promise<string | undefined>, resolveColorPreference?: () => 'light' | 'dark'): Promise<Map<string, string>> {
   if (cachedUserVars)
     return cachedUserVars
   cachedUserVars = new Map()
   if (!resolveCssPath)
     return cachedUserVars
   const cssPath = await resolveCssPath()
-  if (!cssPath)
+  if (!cssPath) {
+    logger.debug('[og-image UnoCSS] No CSS path resolved for user vars')
     return cachedUserVars
+  }
   try {
     const content = await readFile(cssPath, 'utf-8')
-    const simplified = await simplifyCss(content)
-    for (const [name, value] of extractCssVars(simplified))
+    const extracted = await extractVarsFromCss(content)
+    const colorPreference = resolveColorPreference?.() || 'light'
+    const resolved = resolveExtractedVars(extracted, colorPreference)
+    for (const [name, value] of resolved)
       cachedUserVars.set(name, value)
+    logger.debug(`[og-image UnoCSS] Loaded ${cachedUserVars.size} user CSS vars (${colorPreference} mode) from ${cssPath}`)
+    if (extracted.darkVars.size || extracted.lightVars.size) {
+      logger.debug(`[og-image UnoCSS] Theme vars: ${extracted.rootVars.size} base, ${extracted.darkVars.size} dark, ${extracted.lightVars.size} light`)
+    }
   }
   catch (e) {
     logger.warn('[og-image UnoCSS] Failed to read CSS file for vars:', (e as Error).message)
@@ -105,25 +114,29 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
       const vars = new Map<string, string>()
 
       // User CSS vars (e.g., --bg, --fg from app's main.css)
-      for (const [name, value] of await loadUserVars(options?.resolveCssPath))
+      // Uses AST-based extraction to handle compound :root selectors and color mode
+      const userVars = await loadUserVars(options?.resolveCssPath, options?.resolveColorPreference)
+      for (const [name, value] of userVars)
         vars.set(name, value)
 
-      // :root/:host variables (e.g., --spacing: 0.25rem)
-      for (const [name, value] of extractCssVars(simplifiedCss))
+      // Generated CSS vars use regex (lightningcss visitor can't handle var() in property values)
+      const rootVars = extractCssVars(simplifiedCss)
+      for (const [name, value] of rootVars)
         vars.set(name, value)
 
-      // @property initial-values (CSS Houdini defaults for shadow/ring vars)
-      for (const [name, value] of extractPropertyInitialValues(simplifiedCss)) {
+      const propVars = extractPropertyInitialValues(simplifiedCss)
+      for (const [name, value] of propVars) {
         if (!vars.has(name))
           vars.set(name, value)
       }
 
-      // Universal selector variables (*, ::before, ::after)
-      // Provides defaults for --un-shadow, --un-ring-shadow, etc.
-      for (const [name, value] of extractUniversalVars(simplifiedCss)) {
+      const uniVars = extractUniversalVars(simplifiedCss)
+      for (const [name, value] of uniVars) {
         if (!vars.has(name))
           vars.set(name, value)
       }
+
+      logger.debug(`[og-image UnoCSS] Vars: ${userVars.size} user, ${rootVars.size} :root, ${propVars.size} @property, ${uniVars.size} universal → ${vars.size} total`)
 
       // Per-class CSS variable overrides (e.g., .shadow-lg { --un-shadow: ... })
       const perClassVars = extractPerClassVars(simplifiedCss)
@@ -148,8 +161,24 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
     async extractMetadata() {
       const gen = await getGenerator()
       const theme = gen.config.theme as Record<string, any> || {}
+      const fontVars: Record<string, string> = {}
       const breakpoints: Record<string, number> = {}
       const colors: Record<string, string | Record<string, string>> = {}
+
+      // Extract font families (e.g., { sans: "'Geist', sans-serif" } → { 'font-sans': "'Geist', sans-serif" })
+      if (theme.font) {
+        for (const [name, value] of Object.entries(theme.font)) {
+          if (typeof value === 'string')
+            fontVars[`font-${name}`] = value
+        }
+      }
+      // Also check fontFamily (used by some UnoCSS presets)
+      if (theme.fontFamily) {
+        for (const [name, value] of Object.entries(theme.fontFamily)) {
+          if (typeof value === 'string')
+            fontVars[`font-${name}`] = value
+        }
+      }
 
       // Extract breakpoints (e.g., { sm: '640px', md: '768px' } → { sm: 640, md: 768 })
       if (theme.breakpoints) {
@@ -170,7 +199,11 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
         }
       }
 
-      return { breakpoints, colors }
+      return { fontVars, breakpoints, colors }
+    },
+
+    async getVars() {
+      return loadUserVars(options?.resolveCssPath, options?.resolveColorPreference)
     },
 
     clearCache: clearUnoCache,

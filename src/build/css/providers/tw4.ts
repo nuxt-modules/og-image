@@ -212,7 +212,6 @@ async function parseCssOutput(rawCss: string, vars: Map<string, string>): Promis
   }
 
   // Extract universal selector defaults (TW4 base-layer: *, ::before, ::after)
-  // These provide default values for --tw-shadow, --tw-ring-shadow, etc.
   for (const [name, value] of extractUniversalVars(css)) {
     if (!vars.has(name))
       vars.set(name, value)
@@ -593,6 +592,15 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
         return { fontVars: {}, breakpoints: {}, colors: {} }
       const nuxtUiColors = await options.loadNuxtUiColors()
       return extractTw4Metadata({ cssPath, nuxtUiColors })
+    },
+
+    async getVars() {
+      await init()
+      if (!cssPath)
+        return new Map()
+      const nuxtUiColors = await options.loadNuxtUiColors()
+      const { vars } = await getCompiler(cssPath, nuxtUiColors)
+      return vars
     },
 
     clearCache: clearTw4Cache,
