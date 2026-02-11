@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import type { FontConfig, SatoriFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
-import { componentFontMap, fontRequirements, hasNuxtFonts } from '#og-image/font-requirements'
+import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
@@ -46,38 +46,56 @@ async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<
   return data
 }
 
+function findClosestWeight(target: number, available: number[]): number {
+  return available.reduce((closest, w) =>
+    Math.abs(w - target) < Math.abs(closest - target) ? w : closest,
+  )
+}
+
 /**
- * Check if a font matches the detected requirements.
- * For variable fonts (weight ranges), checks if any required weight is in range.
+ * Select fonts matching requirements with closest-weight fallback.
+ * Groups by family and for each required weight picks exact match or closest available.
  */
-function fontMatchesRequirements(font: FontConfig, requirements: typeof fontRequirements): boolean {
-  // If analysis was incomplete, load all fonts as fallback
-  if (!requirements.isComplete)
-    return true
+function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof fontRequirements): FontConfig[] {
+  if (requirements.hasDynamicBindings)
+    return [...allFonts]
 
-  // Check style match
-  if (!requirements.styles.includes(font.style as 'normal' | 'italic'))
-    return false
+  // Group style-matched fonts by family
+  const byFamily = new Map<string, FontConfig[]>()
+  for (const f of allFonts) {
+    if (!requirements.styles.includes(f.style as 'normal' | 'italic'))
+      continue
+    const arr = byFamily.get(f.family) || []
+    arr.push(f)
+    byFamily.set(f.family, arr)
+  }
 
-  // Check weight match
-  // Note: font.weight is already normalized to a single value in module.ts
-  // For variable fonts, the weight is set to 400 if in range, otherwise min
-  if (!requirements.weights.includes(font.weight))
-    return false
-
-  // Family filtering is handled at build-time by resolveOgImageFonts.
-  // Don't filter by family at runtime — the resolved font set already
-  // includes fallback fonts (e.g. Inter) that may not be in the detected families list.
-
-  return true
+  const selected: FontConfig[] = []
+  for (const [, familyFonts] of byFamily) {
+    const availableWeights = [...new Set(familyFonts.map(f => f.weight))].sort((a, b) => a - b)
+    if (availableWeights.length === 0)
+      continue
+    const selectedWeights = new Set<number>()
+    for (const w of requirements.weights) {
+      if (availableWeights.includes(w)) {
+        selectedWeights.add(w)
+      }
+      else {
+        selectedWeights.add(findClosestWeight(w, availableWeights))
+      }
+    }
+    selected.push(...familyFonts.filter(f => selectedWeights.has(f.weight)))
+  }
+  return selected
 }
 
 const _warnedFontKeys = new Set<string>()
 
 export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<SatoriFontConfig[]> {
   const componentReqs = options.component ? (componentFontMap as Record<string, typeof fontRequirements>)[options.component] : null
-  const reqs = (componentReqs && componentReqs.isComplete) ? componentReqs : fontRequirements
-  const fonts = (resolvedFonts as FontConfig[]).filter(f => fontMatchesRequirements(f, reqs))
+  const usingGlobalFallback = !!(componentReqs && componentReqs.hasDynamicBindings)
+  const reqs = (componentReqs && !componentReqs.hasDynamicBindings) ? componentReqs : fontRequirements
+  const fonts = selectFontsForRequirements(resolvedFonts as FontConfig[], reqs)
 
   // Supplement with override family from available (unfiltered) fonts if not already loaded
   if (options.fontFamilyOverride) {
@@ -118,26 +136,27 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   )
   const loaded = results.filter((f): f is SatoriFontConfig => f !== null)
 
-  // Warn about required font weights that have no loaded font (deduplicated)
+  // Warn about weight substitutions (deduplicated)
   // Skip warnings for bundled community templates — users can't control their font usage
   const isCommunity = options.component && (componentFontMap as Record<string, any>)[options.component]?.category === 'community'
   if (import.meta.dev && reqs.weights.length > 0 && !isCommunity) {
     const families = reqs.families.length > 0 ? reqs.families : [...new Set(loaded.map(f => f.family))]
+    const component = options.component ? ` (${options.component})` : ''
+    const fallbackNote = usingGlobalFallback ? ' Note: using global font requirements because this component has dynamic font bindings.' : ''
     for (const family of families) {
-      const loadedWeights = new Set(loaded.filter(f => f.family === family).map(f => f.weight))
-      const missing = reqs.weights.filter(w => !loadedWeights.has(w))
-      if (!missing.length)
+      const loadedWeights = [...new Set(loaded.filter(f => f.family === family).map(f => f.weight))].sort((a, b) => a - b)
+      if (loadedWeights.length === 0)
         continue
-      const warnKey = `${family}-${missing.join(',')}-${options.component || ''}`
-      if (_warnedFontKeys.has(warnKey))
-        continue
-      _warnedFontKeys.add(warnKey)
-      const sorted = [...loadedWeights].sort((a, b) => a - b)
-      const component = options.component ? ` (${options.component})` : ''
-      const hint = hasNuxtFonts
-        ? 'Check that @nuxt/fonts is configured to serve these weights.'
-        : 'Install @nuxt/fonts to auto-resolve missing weights.'
-      logger.warn(`Font "${family}" weight${missing.length > 1 ? 's' : ''} [${missing.join(', ')}] required${component} but not available. Loaded weights: [${sorted.join(', ')}]. ${hint}`)
+      for (const reqWeight of reqs.weights) {
+        if (loadedWeights.includes(reqWeight))
+          continue
+        const closest = findClosestWeight(reqWeight, loadedWeights)
+        const warnKey = `${family}-${reqWeight}-${closest}-${options.component || ''}`
+        if (_warnedFontKeys.has(warnKey))
+          continue
+        _warnedFontKeys.add(warnKey)
+        logger.warn(`Font "${family}" weight ${reqWeight} not configured${component}, using ${closest} instead.${fallbackNote}`)
+      }
     }
   }
 

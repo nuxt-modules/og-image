@@ -5,7 +5,6 @@
 
 import type { ConsolaInstance } from 'consola'
 import type { Nuxt } from 'nuxt/schema'
-import type { OgImageComponent } from '../runtime/types'
 import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -43,8 +42,8 @@ export interface FontRequirementsState {
   styles: Array<'normal' | 'italic'>
   /** Resolved font family names. Empty = don't filter by family. */
   families: string[]
-  isComplete: boolean
-  componentMap: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], isComplete: boolean, category?: 'app' | 'community' | 'pro' }>
+  hasDynamicBindings: boolean
+  componentMap: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], hasDynamicBindings: boolean, category?: 'app' | 'community' | 'pro' }>
 }
 
 // ============================================================================
@@ -106,44 +105,6 @@ export function resolveFontFamilies(
     families.add(name)
 
   return [...families]
-}
-
-/**
- * Scan OG image components for font weight/style/family usage and resolve to actual family names.
- */
-export async function buildFontRequirements(options: {
-  components: OgImageComponent[]
-  buildDir: string
-  fontVars: Record<string, string>
-  logger: ConsolaInstance
-}): Promise<FontRequirementsState> {
-  const { scanFontRequirements } = await import('./css/css-classes')
-  const result = await scanFontRequirements(options.components, options.logger, options.buildDir)
-
-  const families = resolveFontFamilies(
-    result.global.familyClasses,
-    result.global.familyNames,
-    options.fontVars,
-  )
-
-  const categoryByName = Object.fromEntries(options.components.map(c => [c.pascalName, c.category]))
-  const componentMap = Object.fromEntries(
-    Object.entries(result.components).map(([name, comp]) => [name, {
-      weights: comp.weights,
-      styles: comp.styles,
-      families: resolveFontFamilies(comp.familyClasses, comp.familyNames, options.fontVars),
-      isComplete: comp.isComplete,
-      category: categoryByName[name],
-    }]),
-  )
-
-  return {
-    weights: result.global.weights,
-    styles: result.global.styles,
-    families,
-    isComplete: result.global.isComplete,
-    componentMap,
-  }
 }
 
 // ============================================================================

@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 describe('font-requirements', () => {
-  describe('extractFontWeightFromClass', () => {
-    it('should map tailwind font weight classes correctly', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-
-      // We can't test private functions directly, but we can verify the mapping works
-      // by checking the exported interface
-      expect(scanFontRequirements).toBeDefined()
+  describe('module exports', () => {
+    it('should be exported', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
+      expect(extractFontRequirementsFromVue).toBeDefined()
     })
   })
 
@@ -35,354 +32,198 @@ describe('font-requirements', () => {
     })
   })
 
-  describe('scanFontRequirements', () => {
-    it('should return default requirements for empty components', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
+  describe('extractFontRequirementsFromVue', () => {
+    it('should return default requirements for empty template', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const result = await scanFontRequirements([])
+      const result = await extractFontRequirementsFromVue('<template><div></div></template>')
 
-      expect(result.global.weights).toContain(400) // Always includes 400 as fallback
-      expect(result.global.styles).toContain('normal') // Always includes normal
-      expect(result.global.isComplete).toBe(true)
-      expect(result.components).toEqual({})
+      expect(result.weights.size).toBe(0)
+      expect(result.styles).toContain('normal')
+      expect(result.hasDynamicBindings).toBe(false)
     })
 
     it('should extract weights from vue component with font classes', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      // Create a temp component file
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="font-bold">Bold text</div>
   <span class="font-light">Light text</span>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-hash', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.weights).toContain(700) // font-bold
-      expect(result.global.weights).toContain(300) // font-light
-      expect(result.global.weights).toContain(400) // default fallback
-      expect(result.global.isComplete).toBe(true)
-      expect(result.components.Test).toBeDefined()
-      expect(result.components.Test.weights).toContain(700)
-      expect(result.components.Test.weights).toContain(300)
-
-      // Cleanup
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.weights).toContain(700) // font-bold
+      expect(result.weights).toContain(300) // font-light
+      expect(result.hasDynamicBindings).toBe(false)
     })
 
     it('should extract weights from inline styles', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div style="font-weight: 600">Semi-bold text</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-hash-2', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.weights).toContain(600)
-      expect(result.global.isComplete).toBe(true)
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.weights).toContain(600)
+      expect(result.hasDynamicBindings).toBe(false)
     })
 
     it('should handle responsive prefixes', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="md:font-bold lg:font-black">Responsive weights</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-hash-3', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.weights).toContain(700) // md:font-bold → 700
-      expect(result.global.weights).toContain(900) // lg:font-black → 900
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.weights).toContain(700) // md:font-bold → 700
+      expect(result.weights).toContain(900) // lg:font-black → 900
     })
 
     it('should detect italic style', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="italic font-bold">Italic bold</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-hash-4', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.styles).toContain('italic')
-      expect(result.global.styles).toContain('normal')
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.styles).toContain('italic')
+      expect(result.styles).toContain('normal')
     })
 
-    it('should mark incomplete for dynamic font-weight patterns', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+    it('should detect dynamic font bindings', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div :class="{ 'font-bold': props.isBold }">Dynamic weight</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-hash-5', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
       // Should still extract the static class from the expression
-      expect(result.global.weights).toContain(700)
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.weights).toContain(700)
     })
   })
 
   describe('font family detection', () => {
     it('should detect font-family classes like font-sans, font-serif', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="font-sans font-bold">Sans text</div>
   <span class="font-serif">Serif text</span>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-1', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.familyClasses).toContain('sans')
-      expect(result.global.familyClasses).toContain('serif')
-      expect(result.global.familyNames).toEqual([])
-      expect(result.components.Test.familyClasses).toContain('sans')
-      expect(result.components.Test.familyClasses).toContain('serif')
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyClasses).toContain('sans')
+      expect(result.familyClasses).toContain('serif')
+      expect(result.familyNames.size).toBe(0)
     })
 
     it('should detect custom font-family classes like font-inter', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="font-inter">Custom font</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-2', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.familyClasses).toContain('inter')
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyClasses).toContain('inter')
     })
 
     it('should not confuse weight classes with family classes', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="font-bold font-sans italic">Mixed classes</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-3', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
       // font-bold is a weight class, not family
-      expect(result.global.familyClasses).toContain('sans')
-      expect(result.global.familyClasses).not.toContain('bold')
-      expect(result.global.familyClasses).not.toContain('normal')
-      expect(result.global.weights).toContain(700)
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyClasses).toContain('sans')
+      expect(result.familyClasses).not.toContain('bold')
+      expect(result.familyClasses).not.toContain('normal')
+      expect(result.weights).toContain(700)
     })
 
     it('should extract font-family from inline styles', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div style="font-family: 'Inter', sans-serif">Inline font</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-4', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.familyNames).toContain('Inter')
+      expect(result.familyNames).toContain('Inter')
       // sans-serif is a generic family, should be excluded
-      expect(result.global.familyNames).not.toContain('sans-serif')
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyNames).not.toContain('sans-serif')
     })
 
     it('should handle arbitrary font-family values like font-[Inter]', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="font-['Inter']">Arbitrary font</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-5', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.familyNames).toContain('Inter')
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyNames).toContain('Inter')
     })
 
     it('should return empty families when no font-family classes used', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="font-bold">No family class</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-6', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.familyClasses).toEqual([])
-      expect(result.global.familyNames).toEqual([])
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyClasses.size).toBe(0)
+      expect(result.familyNames.size).toBe(0)
     })
 
     it('should detect font-family classes with responsive prefixes', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
-      const fs = await import('node:fs/promises')
-      const path = await import('node:path')
-      const os = await import('node:os')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'og-test-'))
-      const componentPath = path.join(tempDir, 'Test.vue')
-
-      await fs.writeFile(componentPath, `
+      const result = await extractFontRequirementsFromVue(`
 <template>
   <div class="md:font-serif lg:font-mono">Responsive font families</div>
 </template>
 `)
 
-      const result = await scanFontRequirements([
-        { path: componentPath, hash: 'test-family-7', pascalName: 'Test', kebabName: 'test', category: 'app', renderer: 'satori' },
-      ])
-
-      expect(result.global.familyClasses).toContain('serif')
-      expect(result.global.familyClasses).toContain('mono')
-
-      await fs.rm(tempDir, { recursive: true })
+      expect(result.familyClasses).toContain('serif')
+      expect(result.familyClasses).toContain('mono')
     })
   })
 
-  describe('fontRequirements interface', () => {
+  describe('extractFontRequirementsFromVue return shape', () => {
     it('should have correct shape', async () => {
-      const { scanFontRequirements } = await import('../../src/build/css/css-classes')
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
-      const result = await scanFontRequirements([])
+      const result = await extractFontRequirementsFromVue('<template><div></div></template>')
 
-      expect(result).toHaveProperty('global')
-      expect(result).toHaveProperty('components')
-      expect(result.global).toHaveProperty('weights')
-      expect(result.global).toHaveProperty('styles')
-      expect(result.global).toHaveProperty('familyClasses')
-      expect(result.global).toHaveProperty('familyNames')
-      expect(result.global).toHaveProperty('isComplete')
-      expect(Array.isArray(result.global.weights)).toBe(true)
-      expect(Array.isArray(result.global.styles)).toBe(true)
-      expect(Array.isArray(result.global.familyClasses)).toBe(true)
-      expect(Array.isArray(result.global.familyNames)).toBe(true)
-      expect(typeof result.global.isComplete).toBe('boolean')
-      expect(typeof result.components).toBe('object')
+      expect(result).toHaveProperty('weights')
+      expect(result).toHaveProperty('styles')
+      expect(result).toHaveProperty('familyClasses')
+      expect(result).toHaveProperty('familyNames')
+      expect(result).toHaveProperty('hasDynamicBindings')
+      expect(result.weights).toBeInstanceOf(Set)
+      expect(result.styles).toBeInstanceOf(Set)
+      expect(result.familyClasses).toBeInstanceOf(Set)
+      expect(result.familyNames).toBeInstanceOf(Set)
+      expect(typeof result.hasDynamicBindings).toBe('boolean')
     })
   })
 })

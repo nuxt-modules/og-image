@@ -66,13 +66,13 @@ declare module '#og-image/font-requirements' {
     weights: number[]
     styles: Array<'normal' | 'italic'>
     families: string[]
-    isComplete: boolean
+    hasDynamicBindings: boolean
   }
   export const componentFontMap: Record<string, {
     weights: number[]
     styles: Array<'normal' | 'italic'>
     families: string[]
-    isComplete: boolean
+    hasDynamicBindings: boolean
   }>
   export const hasNuxtFonts: boolean
 }

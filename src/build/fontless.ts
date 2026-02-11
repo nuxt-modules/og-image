@@ -382,14 +382,25 @@ export async function resolveOgImageFonts(options: {
       ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets })).map(f => f.family)
       : [],
   )
-  const fonts = fontRequirements.isComplete
+  const fonts = !fontRequirements.hasDynamicBindings
     ? allFonts.filter(f =>
         nuxtFontFamilies.has(f.family)
-          ? fontRequirements.weights.includes(f.weight) && fontRequirements.styles.includes(f.style as 'normal' | 'italic')
+          // Keep all @nuxt/fonts weights — runtime will pick closest match per requirement
+          ? fontRequirements.styles.includes(f.style as 'normal' | 'italic')
           : matchesFontRequirements(f, fontRequirements),
       )
     : allFonts
-  logger.debug(`Resolved ${fonts.length} fonts (from ${allFonts.length} total${fontRequirements.families.length ? `, families: ${fontRequirements.families.join(', ')}` : ''})`)
+  // Group resolved fonts by family for debug output
+  const fontsByFamily = new Map<string, number[]>()
+  for (const f of fonts) {
+    const weights = fontsByFamily.get(f.family) || []
+    weights.push(f.weight)
+    fontsByFamily.set(f.family, weights)
+  }
+  const familyBreakdown = [...fontsByFamily.entries()]
+    .map(([family, weights]) => `  ${family} → ${[...new Set(weights)].sort((a, b) => a - b).join(', ')}`)
+    .join('\n')
+  logger.debug(`Resolved ${fonts.length} fonts (from ${allFonts.length} total)\n${familyBreakdown}`)
 
   // 4. Non-satori renderers: return whatever we have (they handle WOFF2/variable natively)
   if (!hasSatoriRenderer) {

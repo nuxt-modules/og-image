@@ -27,9 +27,9 @@ import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
 import { convertWoff2ToTtf, persistFontUrlMapping, resolveOgImageFonts } from './build/fontless'
 import {
-  buildFontRequirements,
   copyTtfFontsToOutput,
   parseFontsFromTemplate,
+  resolveFontFamilies,
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
@@ -389,6 +389,9 @@ export default defineNuxtModule<ModuleOptions>({
     // CSS provider for class resolution (UnoCSS or TW4)
     let cssProvider: CssProvider | undefined
 
+    // Color preference for CSS variable extraction — set later by @nuxtjs/color-mode detection
+    let resolvedColorPreference: 'light' | 'dark' = 'light'
+
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
       logger.debug('UnoCSS detected, using UnoCSS provider for OG image styling')
@@ -443,38 +446,29 @@ export default defineNuxtModule<ModuleOptions>({
       weights: [400] as number[], // default to 400
       styles: ['normal'] as Array<'normal' | 'italic'>,
       families: [] as string[], // resolved family names; empty = don't filter
-      isComplete: true,
-      componentMap: {} as Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], isComplete: boolean }>,
+      hasDynamicBindings: false,
+      componentMap: {} as Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], hasDynamicBindings: boolean, category?: 'app' | 'community' | 'pro' }>,
       scanned: false,
     }
-    let fontScanPromise: Promise<void> | undefined
 
-    // Lazy reference to OG image components (populated in components:extend hook)
-    let getOgComponents: () => OgImageComponent[] = () => []
-
-    // Lazy font requirements scanner - scans components for font weight/style/family usage
-    async function scanFontRequirementsLazy(): Promise<void> {
-      if (fontRequirementsState.scanned)
-        return
-      if (fontScanPromise)
-        return fontScanPromise
-
-      fontScanPromise = (async () => {
-        await loadCssMetadata()
-        const result = await buildFontRequirements({
-          components: getOgComponents(),
-          buildDir: nuxt.options.buildDir,
-          fontVars: cssMetadata.fontVars,
-          logger,
-        })
-        fontRequirementsState.weights = result.weights
-        fontRequirementsState.styles = result.styles
-        fontRequirementsState.isComplete = result.isComplete
-        fontRequirementsState.families = result.families
-        fontRequirementsState.componentMap = result.componentMap
-        fontRequirementsState.scanned = true
-      })()
-      return fontScanPromise
+    // Recompute global aggregates from componentMap entries
+    function recomputeFontRequirements() {
+      const allWeights = new Set<number>([400])
+      const allStyles = new Set<'normal' | 'italic'>(['normal'])
+      const allFamilies = new Set<string>()
+      let hasDynamic = false
+      for (const entry of Object.values(fontRequirementsState.componentMap)) {
+        for (const w of entry.weights) allWeights.add(w)
+        for (const s of entry.styles) allStyles.add(s)
+        for (const f of entry.families) allFamilies.add(f)
+        if (entry.hasDynamicBindings)
+          hasDynamic = true
+      }
+      fontRequirementsState.weights = [...allWeights].sort((a, b) => a - b)
+      fontRequirementsState.styles = [...allStyles] as Array<'normal' | 'italic'>
+      fontRequirementsState.families = [...allFamilies]
+      fontRequirementsState.hasDynamicBindings = hasDynamic
+      fontRequirementsState.scanned = true
     }
 
     // Load Nuxt UI colors from .nuxt/app.config.mjs
@@ -555,6 +549,9 @@ export default defineNuxtModule<ModuleOptions>({
     // Collect resolved OG component directory paths for the asset transform plugin (populated later, accessed via getter)
     const resolvedOgComponentPaths: string[] = []
 
+    // we're going to expose the og image components to the ssr build so we can fix prop usage
+    const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
+
     // Add Vite plugin in modules:done (after all aliases registered)
     nuxt.hook('modules:done', () => {
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, CSS class resolution
@@ -565,6 +562,34 @@ export default defineNuxtModule<ModuleOptions>({
         srcDir: nuxt.options.srcDir,
         publicDir: isAbsolute(nuxt.options.dir.public) ? nuxt.options.dir.public : join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         cssProvider,
+        onFontRequirements(id, reqs) {
+          // Map file id → pascalName using ogImageComponentCtx
+          const component = ogImageComponentCtx.components.find(c => c.path === id)
+          if (!component)
+            return
+
+          // Lazy-load CSS metadata for font var resolution
+          loadCssMetadata().then(() => {
+            const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars)
+            const compWeights = [...reqs.weights]
+            if (!compWeights.includes(400))
+              compWeights.push(400)
+
+            fontRequirementsState.componentMap[component.pascalName] = {
+              weights: compWeights.sort((a, b) => a - b),
+              styles: [...reqs.styles] as Array<'normal' | 'italic'>,
+              families,
+              hasDynamicBindings: reqs.hasDynamicBindings,
+              category: component.category,
+            }
+
+            recomputeFontRequirements()
+            const familyInfo = families.length
+              ? families.map(f => `  ${f} → ${compWeights.join(', ')}`).join('\n')
+              : `  (no families) → ${compWeights.join(', ')}`
+            logger.debug(`Fonts: ${component.pascalName}${reqs.hasDynamicBindings ? ' (dynamic)' : ''}\n${familyInfo}`)
+          })
+        },
       }))
     })
 
@@ -776,13 +801,6 @@ export default defineNuxtModule<ModuleOptions>({
     if (fs.existsSync(builtinTemplatesDir)) {
       resolvedOgComponentPaths.push(builtinTemplatesDir)
     }
-
-    // we're going to expose the og image components to the ssr build so we can fix prop usage
-    const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
-    // Lazy reference for CSS/font scanning - exclude community templates in production (bundled with known styling)
-    getOgComponents = () => nuxt.options.dev
-      ? ogImageComponentCtx.components
-      : ogImageComponentCtx.components.filter(c => c.category !== 'community')
 
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
@@ -1049,7 +1067,6 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
       await loadCssMetadata()
-      await scanFontRequirementsLazy()
       const fonts = await resolveOgImageFonts({
         nuxt,
         hasNuxtFonts,
@@ -1073,13 +1090,12 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     }
 
     // Font requirements virtual module - provides detected font weights/styles from component analysis
-    nuxt.options.nitro.virtual['#og-image/font-requirements'] = async () => {
-      await scanFontRequirementsLazy()
+    nuxt.options.nitro.virtual['#og-image/font-requirements'] = () => {
       return `export const fontRequirements = ${JSON.stringify({
         weights: fontRequirementsState.weights,
         styles: fontRequirementsState.styles,
         families: fontRequirementsState.families,
-        isComplete: fontRequirementsState.isComplete,
+        hasDynamicBindings: fontRequirementsState.hasDynamicBindings,
       })}
 export const componentFontMap = ${JSON.stringify(fontRequirementsState.componentMap)}
 export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
@@ -1111,7 +1127,7 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
         if (fontProcessingDone || !hasSatoriRenderer())
           return
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
-        await scanFontRequirementsLazy()
+        // fontRequirementsState is already populated by Vite transforms (which complete before vite:compiled)
         await convertWoff2ToTtf({
           nuxt,
           logger,
@@ -1192,6 +1208,7 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
         colorPreference = colorModeOptions.fallback
       if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
+      resolvedColorPreference = colorPreference as 'light' | 'dark'
       const runtimeConfig = <OgImageRuntimeConfig>{
         version,
         // binding options
@@ -1264,6 +1281,9 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
           cssProvider?.clearCache?.()
           cssMetadataPromise = undefined
           Object.assign(cssMetadata, { fontVars: {}, breakpoints: {}, colors: {} })
+
+          // Font requirements are handled by the Vite transform — HMR re-runs the transform automatically
+
           logger.debug('HMR: Cleared CSS provider cache')
 
           // Update templates to refresh virtual modules and trigger Nitro reload

@@ -13,7 +13,7 @@ vi.mock('../../src/build/fonts', async (importOriginal) => {
 const { resolveOgImageFonts } = await import('../../src/build/fontless')
 const { parseFontsFromTemplate } = await import('../../src/build/fonts')
 
-const baseFontReqs = { weights: [400, 700], styles: ['normal' as const], families: [] as string[], isComplete: true, componentMap: {} }
+const baseFontReqs = { weights: [400, 700], styles: ['normal' as const], families: [] as string[], hasDynamicBindings: false, componentMap: {} }
 
 function createOpts(overrides: Record<string, any> = {}) {
   // Fresh nuxt mock per call to avoid cache leakage
@@ -72,7 +72,7 @@ describe('resolveOgImageFonts', () => {
     expect(fonts).toEqual([staticFont])
   })
 
-  it('filters by requirements when isComplete', async () => {
+  it('filters by requirements when no dynamic bindings', async () => {
     const fonts400 = { family: 'Inter', src: '/inter-400.ttf', weight: 400, style: 'normal' }
     const fonts300 = { family: 'Inter', src: '/inter-300.ttf', weight: 300, style: 'normal' }
     vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([fonts400, fonts300])
@@ -81,11 +81,11 @@ describe('resolveOgImageFonts', () => {
     expect(result).toEqual([fonts400])
   })
 
-  it('skips filtering when isComplete is false', async () => {
+  it('skips filtering when hasDynamicBindings is true', async () => {
     const fonts400 = { family: 'Inter', src: '/inter-400.ttf', weight: 400, style: 'normal' }
     const fonts300 = { family: 'Inter', src: '/inter-300.ttf', weight: 300, style: 'normal' }
     vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([fonts400, fonts300])
-    const opts = createOpts({ fontRequirements: { ...baseFontReqs, isComplete: false } })
+    const opts = createOpts({ fontRequirements: { ...baseFontReqs, hasDynamicBindings: true } })
     const result = await resolveOgImageFonts(opts)
     expect(result).toEqual([fonts400, fonts300])
   })

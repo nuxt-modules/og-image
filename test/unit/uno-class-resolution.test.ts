@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { evaluateCalc, extractPropertyInitialValues, postProcessStyles, resolveVarsDeep } from '../../src/build/css/css-utils'
+import { evaluateCalc, extractCssVars, extractPropertyInitialValues, extractVarsFromCss, postProcessStyles, resolveExtractedVars, resolveVarsDeep } from '../../src/build/css/css-utils'
 import { clearUnoCache, createUnoProvider, setUnoConfig, setUnoRootDir } from '../../src/build/css/providers/uno'
 
 // ============================================================================
@@ -85,6 +85,87 @@ describe('extractPropertyInitialValues', () => {
     expect(vars.get('--un-shadow')).toBe('0 0 #0000')
     expect(vars.get('--un-ring-shadow')).toBe('0 0 #0000')
     expect(vars.has('--un-shadow-color')).toBe(false) // no initial-value
+  })
+})
+
+describe('extractVarsFromCss (AST-based)', () => {
+  it('splits vars by color mode from compound :root selectors', async () => {
+    const css = `
+:root:not([data-theme='light']), :root[data-theme='dark'] {
+  --bg: oklch(0.171 0 0);
+  --fg: oklch(0.982 0 0);
+  --fg-muted: oklch(0.749 0 0);
+}
+:root[data-theme='light'] {
+  --bg: oklch(1 0 0);
+  --fg: oklch(0.146 0 0);
+}
+`
+    const extracted = await extractVarsFromCss(css)
+    // Dark mode vars
+    expect(extracted.darkVars.has('--bg')).toBe(true)
+    expect(extracted.darkVars.has('--fg')).toBe(true)
+    expect(extracted.darkVars.has('--fg-muted')).toBe(true)
+    // Light mode vars
+    expect(extracted.lightVars.has('--bg')).toBe(true)
+    expect(extracted.lightVars.has('--fg')).toBe(true)
+    // No plain :root vars
+    expect(extracted.rootVars.size).toBe(0)
+  })
+
+  it('resolves dark mode vars correctly', async () => {
+    const css = `
+:root { --base: 1; }
+:root[data-theme='dark'] { --bg: black; --fg: white; }
+:root[data-theme='light'] { --bg: white; --fg: black; }
+`
+    const extracted = await extractVarsFromCss(css)
+    const dark = resolveExtractedVars(extracted, 'dark')
+    expect(dark.get('--base')).toBe('1')
+    expect(dark.get('--bg')).toBe('black')
+    expect(dark.get('--fg')).toBe('white')
+
+    const light = resolveExtractedVars(extracted, 'light')
+    expect(light.get('--base')).toBe('1')
+    expect(light.get('--bg')).toBe('white')
+    expect(light.get('--fg')).toBe('black')
+  })
+
+  it('detects :root.dark and :root.light class selectors', async () => {
+    const css = `
+:root.dark { --bg: black; }
+:root.light { --bg: white; }
+`
+    const extracted = await extractVarsFromCss(css)
+    expect(extracted.darkVars.has('--bg')).toBe(true)
+    expect(extracted.lightVars.has('--bg')).toBe(true)
+    expect(extracted.darkVars.get('--bg')).not.toBe(extracted.lightVars.get('--bg'))
+  })
+
+  it('extracts vars from plain :root', async () => {
+    const css = ':root { --color: red; --size: 16px; }'
+    const { rootVars } = await extractVarsFromCss(css)
+    expect(rootVars.get('--color')).toBe('red')
+    expect(rootVars.get('--size')).toBe('16px')
+  })
+
+  it('extracts universal vars', async () => {
+    const css = '*, ::before, ::after { --un-shadow: 0 0 transparent; }'
+    const { universalVars } = await extractVarsFromCss(css)
+    expect(universalVars.has('--un-shadow')).toBe(true)
+  })
+
+  it('extracts per-class vars', async () => {
+    const css = '.shadow-lg { --un-shadow: 0 10px 15px -3px rgba(0,0,0,.1); }'
+    const { perClassVars } = await extractVarsFromCss(css)
+    expect(perClassVars.has('shadow-lg')).toBe(true)
+    expect(perClassVars.get('shadow-lg')?.has('--un-shadow')).toBe(true)
+  })
+
+  it('regex handles compound :root selectors', () => {
+    const css = `:root[data-theme='dark'] { --bg: black; }`
+    const vars = extractCssVars(css)
+    expect(vars.has('--bg')).toBe(true)
   })
 })
 
