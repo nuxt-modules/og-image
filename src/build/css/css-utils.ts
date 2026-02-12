@@ -752,6 +752,23 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
   }
 }
 
+/**
+ * Clamp extreme CSS values that cause renderer issues.
+ * e.g. lightningcss evaluates calc(infinity * 1px) → 3.40282e+38px which hangs takumi.
+ */
+function clampExtremeValues(styles: Record<string, string>): void {
+  for (const [prop, value] of Object.entries(styles)) {
+    if (!value.includes('e+') && !value.includes('e38'))
+      continue
+    const match = value.match(/^(-?[\d.]+e\+?\d+)(px|rem|em|%)$/)
+    if (match?.[1] && match?.[2]) {
+      const num = Number.parseFloat(match[1])
+      if (Math.abs(num) > 9999)
+        styles[prop] = `9999${match[2]}`
+    }
+  }
+}
+
 function stripGradientColorSpace(value: string): string {
   return value.replace(GRADIENT_COLOR_SPACE_RE, '')
 }
@@ -809,6 +826,7 @@ export async function postProcessStyles(
 
   convertIndividualTransforms(styles)
   convertLogicalProperties(styles)
+  clampExtremeValues(styles)
 
   return Object.keys(styles).length ? styles : null
 }
