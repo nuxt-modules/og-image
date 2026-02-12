@@ -18,7 +18,7 @@ packages:
   - playground
   - client
 overrides:
-  vite: npm:vite@8.0.0-beta.2
+  vite: npm:vite@8.0.0-beta.13
 
 catalog:
   '@antfu/eslint-config': ^7.3.0
