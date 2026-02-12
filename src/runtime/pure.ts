@@ -43,7 +43,7 @@ export function extractSocialPreviewTags(html: string): [Record<string, string>,
   return [rootData, data as DevToolsMetaDataExtraction[]]
 }
 
-function detectBase64MimeType(data: string) {
+export function detectBase64MimeType(data: string) {
   const signatures = {
     'R0lGODdh': 'image/gif',
     'R0lGODlh': 'image/gif',
@@ -51,6 +51,9 @@ function detectBase64MimeType(data: string) {
     '/9j/': 'image/jpeg',
     'UklGR': 'image/webp',
     'AAABAA': 'image/x-icon',
+    'PHN2Zy': 'image/svg+xml', // <svg
+    'PD94bW': 'image/svg+xml', // <?xml
+    'PCEt': 'image/svg+xml', // <!--
   }
 
   for (const s in signatures) {

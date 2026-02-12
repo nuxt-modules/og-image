@@ -3,7 +3,7 @@ import type { OgImageOptions, OgImagePrebuilt } from './types'
 import { defu } from 'defu'
 import { toValue } from 'vue'
 
-export { extractSocialPreviewTags } from './pure'
+export { extractSocialPreviewTags, toBase64Image } from './pure'
 export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, hashOgImageOptions, parseOgImageUrl } from './shared/urlEncoding'
 
 export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
@@ -43,30 +43,6 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
       meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
   }
   return meta
-}
-
-function detectBase64MimeType(data: string) {
-  const signatures = {
-    'R0lGODdh': 'image/gif',
-    'R0lGODlh': 'image/gif',
-    'iVBORw0KGgo': 'image/png',
-    '/9j/': 'image/jpeg',
-    'UklGR': 'image/webp',
-    'AAABAA': 'image/x-icon',
-  }
-
-  for (const s in signatures) {
-    if (data.startsWith(s)) {
-      return signatures[s as keyof typeof signatures]
-    }
-  }
-  return 'image/svg+xml'
-}
-
-export function toBase64Image(data: string | ArrayBuffer) {
-  const base64 = typeof data === 'string' ? data : Buffer.from(data).toString('base64')
-  const type = detectBase64MimeType(base64)
-  return `data:${type};base64,${base64}`
 }
 
 export function isInternalRoute(path: string) {
