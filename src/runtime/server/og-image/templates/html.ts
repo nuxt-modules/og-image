@@ -81,6 +81,10 @@ export async function html(ctx: OgImageRenderEventContext) {
     width: ${options.width}px;
     height: ${options.height}px;
 }
+.og-scale-wrapper > :first-child {
+    width: 100%;
+    height: 100%;
+}
 div {
   display: flex;
 }
