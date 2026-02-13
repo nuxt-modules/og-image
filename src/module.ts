@@ -512,7 +512,25 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Lazy CSS metadata loader - calls cssProvider.extractMetadata() once
     let cssMetadataPromise: Promise<void> | undefined
+
+    // HMR dirty flags — set on file change, flushed lazily before next CSS operation.
+    // This ensures zero work when the user isn't actively working with OG images.
+    let _cssDirty = false
+    let _cssConfigDirty = false
+    function flushCssDirtyState() {
+      if (!_cssDirty && !_cssConfigDirty)
+        return
+      // Both need clearCache: TW4 compiler reads the CSS file directly,
+      // UnoCSS config changes rebuild the generator
+      cssProvider?.clearCache?.()
+      cssMetadataPromise = undefined
+      Object.assign(cssMetadata, { fontVars: {}, breakpoints: {}, colors: {} })
+      _cssConfigDirty = false
+      _cssDirty = false
+    }
+
     async function loadCssMetadata(): Promise<void> {
+      flushCssDirtyState()
       if (cssMetadataPromise)
         return cssMetadataPromise
       cssMetadataPromise = (async () => {
@@ -543,6 +561,7 @@ export default defineNuxtModule<ModuleOptions>({
         srcDir: nuxt.options.srcDir,
         publicDir: isAbsolute(nuxt.options.dir.public) ? nuxt.options.dir.public : join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         cssProvider,
+        beforeCssResolve: flushCssDirtyState,
         onFontRequirements(id, reqs) {
           // Map file id → pascalName using ogImageComponentCtx
           const component = ogImageComponentCtx.components.find(c => c.path === id)
@@ -1189,7 +1208,6 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
         colorPreference = colorModeOptions.fallback
       if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
-      resolvedColorPreference = colorPreference as 'light' | 'dark'
       const runtimeConfig = <OgImageRuntimeConfig>{
         version,
         // binding options
@@ -1241,36 +1259,37 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
         nuxt.hooks.hook('nitro:init', resolveNitro)
       })
 
-      // HMR: watch for CSS and OgImage component changes
-      nuxt.hook('builder:watch', async (_event, relativePath) => {
+      // HMR: single watcher using dirty flags for CSS, eager only for component add/remove
+      nuxt.hook('builder:watch', async (event, relativePath) => {
         const absolutePath = isAbsolute(relativePath) ? relativePath : join(nuxt.options.rootDir, relativePath)
 
-        // Check if a project CSS file changed (could affect CSS provider output)
-        const isCssChange = absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
+        // CSS file change → mark dirty, flushed lazily on next OG image render
+        if (absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
           const src = typeof entry === 'string' ? entry : (entry as any)?.src
           return src && absolutePath.endsWith(src.replace(/^~\//, ''))
-        })
+        })) {
+          _cssDirty = true
+          return
+        }
 
-        // Check if OgImage component changed
-        const isOgImageComponent = config.componentDirs.some((dir) => {
-          const componentDir = join(nuxt.options.srcDir, 'components', dir)
-          return absolutePath.startsWith(componentDir) && absolutePath.endsWith('.vue')
-        })
+        // CSS framework config change → mark dirty (heavier reset, clears compiler/generator)
+        if (cssFramework === 'unocss' && relativePath.includes('uno.config')) {
+          _cssConfigDirty = true
+          return
+        }
 
-        if (isCssChange || isOgImageComponent) {
-          // Clear CSS provider and metadata caches
-          cssProvider?.clearCache?.()
-          cssMetadataPromise = undefined
-          Object.assign(cssMetadata, { fontVars: {}, breakpoints: {}, colors: {} })
-
-          // Font requirements are handled by the Vite transform — HMR re-runs the transform automatically
-
-          logger.debug('HMR: Cleared CSS provider cache')
-
-          // Update templates to refresh virtual modules and trigger Nitro reload
-          await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
-          const nitro = await useNitro
-          await nitro.hooks.callHook('rollup:reload')
+        // OG image component add/remove → eager (updates component registry + Nitro rebuild)
+        if ((event === 'add' || event === 'unlink')) {
+          const isOgImageComponent = config.componentDirs.some((dir) => {
+            const componentDir = join(nuxt.options.srcDir, 'components', dir)
+            return absolutePath.startsWith(componentDir) && absolutePath.endsWith('.vue')
+          })
+          if (isOgImageComponent) {
+            logger.debug(`HMR: OG image component ${event === 'add' ? 'added' : 'removed'}`)
+            await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
+            const nitro = await useNitro
+            await nitro.hooks.callHook('rollup:reload')
+          }
         }
       })
     }
