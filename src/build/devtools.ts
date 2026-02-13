@@ -79,11 +79,27 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       },
     })
 
+    let cssRefreshTimer: ReturnType<typeof setTimeout> | undefined
     nuxt.hook('builder:watch', (e, watchPath) => {
       if (!e || !watchPath)
         return
       // Use pathe's resolve (not the module resolver) to normalize the path
       const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
+      const absolutePath = isAbsolute(watchPath) ? watchPath : join(nuxt.options.rootDir, watchPath)
+
+      // CSS file or framework config change → debounced refresh so devtools re-renders with fresh styles
+      const isCssChange = absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
+        const src = typeof entry === 'string' ? entry : (entry as any)?.src
+        return src && absolutePath.endsWith(src.replace(/^~\//, ''))
+      })
+      if (isCssChange || normalizedPath.includes('uno.config')) {
+        clearTimeout(cssRefreshTimer)
+        cssRefreshTimer = setTimeout(() => {
+          rpc.broadcast.refresh().catch(() => {})
+        }, 200)
+        return
+      }
+
       // needs to be for a page change
       if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
         rpc.broadcast.refreshRouteData(normalizedPath) // client needs to figure it if it's for the page we're on
