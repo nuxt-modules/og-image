@@ -12,11 +12,10 @@ export function setupGenerateHandler(_options: ModuleOptions, resolve: Resolver,
     // bindings - generate mode disables all renderers (prerender handles them)
     await applyNitroPresetCompatibility(nitroConfig, {
       compatibility: {
-        'browser': false,
-        'satori': false,
-        'css-inline': false,
-        'resvg': false,
-        'sharp': false,
+        browser: false,
+        satori: false,
+        resvg: false,
+        sharp: false,
       },
       resolve,
       detectedRenderers: new Set<RendererType>(),
