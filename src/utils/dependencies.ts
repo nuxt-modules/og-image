@@ -71,8 +71,6 @@ export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
 
 export const OPTIONAL_DEPENDENCIES: ProviderDependency[] = [
   { name: 'sharp', description: 'JPEG image output support', optional: true },
-  { name: '@css-inline/css-inline', description: 'CSS inlining (native)', optional: true },
-  { name: '@css-inline/css-inline-wasm', description: 'CSS inlining (WASM)', optional: true },
 ]
 
 export async function getInstalledProviders(): Promise<{ provider: ProviderName, binding: BindingVariant }[]> {

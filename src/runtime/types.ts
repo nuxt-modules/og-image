@@ -221,7 +221,6 @@ export interface SatoriFontConfig extends FontConfig {
 
 export interface RuntimeCompatibilitySchema {
   browser: 'chrome-launcher' | 'on-demand' | 'playwright' | 'cloudflare' | false
-  ['css-inline']: 'node' | 'wasm' | 'wasm-fs' | false
   resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | 'wasm-edge' | false
   takumi: 'node' | 'node-dev' | 'wasm' | false

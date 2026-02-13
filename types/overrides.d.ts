@@ -4,15 +4,6 @@ declare module 'jest-image-snapshot' {
   export function configureToMatchImageSnapshot(options?: any): any
 }
 
-declare module '@css-inline/css-inline-wasm' {
-  export default function (): {
-    inline: (html: string, options?: {
-      loadRemoteStylesheets?: boolean
-      extraCss?: string
-    }) => string
-  }
-}
-
 declare module 'nuxt/dist/core/runtime/nitro/renderer' {
   export const islandRenderer: any
 }

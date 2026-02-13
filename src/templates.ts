@@ -190,12 +190,6 @@ declare module '#og-image/bindings/sharp' {
   export default _default
 }
 
-declare module '#og-image/bindings/css-inline' {
-  import cssInline from '@css-inline/css-inline'
-  const _default: { initWasmPromise: Promise<void>, cssInline: typeof cssInline }
-  export default _default
-}
-
 declare module '#og-image/bindings/takumi' {
   const _default: any
   export default _default

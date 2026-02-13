@@ -38,13 +38,6 @@ declare module '#og-image/bindings/browser' {
   export const createBrowser: () => Promise<Browser | void>
 }
 
-declare module '#og-image/bindings/css-inline' {
-  import type _CssInline from 'css-inline'
-
-  const cssInline: _CssInline
-  export default cssInline
-}
-
 declare module '#og-image/bindings/sharp' {
   import type _sharp from 'sharp'
 
@@ -88,19 +81,4 @@ declare module '#og-image-cache' {
   export const fontCache: Storage<BufferSource> | undefined
 
   export const emojiCache: Storage<string>
-}
-
-declare module '@css-inline/css-inline-wasm' {
-  export function inline(css: string, html: string): string
-  export default function init(): Promise<void>
-  const cssInline: {
-    inline: (css: string, html: string) => string
-  }
-  export { cssInline }
-}
-
-declare module 'culori' {
-  export function parse(color: string): any
-  export function toGamut(colorSpace: string, mode: string): (color: any) => any
-  export function formatHex(color: any): string | undefined
 }

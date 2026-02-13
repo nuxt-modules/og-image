@@ -6,7 +6,6 @@ import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { env, provider } from 'std-env'
 import { logger } from './runtime/logger'
-import { hasResolvableDependency } from './util'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -25,13 +24,12 @@ const autodetectableStaticProviders = {
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
-  'browser': 'on-demand', // this gets changed build start
-  'css-inline': 'node',
-  'resvg': 'node',
-  'satori': 'node',
-  'takumi': 'node',
-  'sharp': 'node', // will be disabled if they're missing the dependency
-  'emoji': 'local', // can bundle icons, no size constraints
+  browser: 'on-demand', // this gets changed build start
+  resvg: 'node',
+  satori: 'node',
+  takumi: 'node',
+  sharp: 'node', // will be disabled if they're missing the dependency
+  emoji: 'local', // can bundle icons, no size constraints
 }
 
 const NodeDevRuntime: RuntimeCompatibilitySchema = {
@@ -41,36 +39,33 @@ const NodeDevRuntime: RuntimeCompatibilitySchema = {
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {
-  'browser': 'cloudflare',
-  'css-inline': false,
-  'resvg': 'wasm',
-  'satori': '0-15-wasm',
-  'takumi': 'wasm',
-  'sharp': false,
-  'emoji': 'fetch', // edge size limits - use API instead of bundling 24MB icons
-  'wasm': {
+  browser: 'cloudflare',
+  resvg: 'wasm',
+  satori: 'wasm',
+  takumi: 'wasm',
+  sharp: false,
+  emoji: 'fetch', // edge size limits - use API instead of bundling 24MB icons
+  wasm: {
     esmImport: true,
     lazy: true,
   },
 }
 const awsLambda: RuntimeCompatibilitySchema = {
-  'browser': false,
-  'css-inline': 'wasm',
-  'resvg': 'node',
-  'satori': 'node',
-  'takumi': 'node',
-  'sharp': false, // 0.33.x has issues
-  'emoji': 'local', // serverless has larger size limits
+  browser: false,
+  resvg: 'node',
+  satori: 'node',
+  takumi: 'node',
+  sharp: false, // 0.33.x has issues
+  emoji: 'local', // serverless has larger size limits
 }
 
 export const WebContainer: RuntimeCompatibilitySchema = {
-  'browser': false,
-  'css-inline': 'wasm-fs',
-  'resvg': 'wasm-fs',
-  'satori': 'wasm-fs',
-  'takumi': 'wasm',
-  'sharp': false,
-  'emoji': 'fetch', // webcontainer has size constraints
+  browser: false,
+  resvg: 'wasm-fs',
+  satori: 'wasm-fs',
+  takumi: 'wasm',
+  sharp: false,
+  emoji: 'fetch', // webcontainer has size constraints
 }
 
 export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
@@ -82,14 +77,13 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'aws-lambda': awsLambda,
   'netlify': awsLambda,
   'netlify-edge': {
-    'browser': false,
-    'css-inline': 'wasm',
-    'resvg': 'wasm',
-    'satori': 'node',
-    'takumi': 'wasm',
-    'sharp': false,
-    'emoji': 'fetch', // edge size limits
-    'wasm': {
+    browser: false,
+    resvg: 'wasm',
+    satori: 'node',
+    takumi: 'wasm',
+    sharp: false,
+    emoji: 'fetch', // edge size limits
+    wasm: {
       rollup: {
         targetEnv: 'auto-inline',
         sync: ['@resvg/resvg-wasm/index_bg.wasm'],
@@ -99,14 +93,13 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'firebase': awsLambda,
   'vercel': awsLambda,
   'vercel-edge': {
-    'browser': false,
-    'css-inline': false, // size constraint (2mb is max)
-    'resvg': 'wasm',
-    'satori': '0-15-wasm', // 0.16+ uses WebAssembly.instantiate() blocked by edge
-    'takumi': 'wasm',
-    'sharp': false,
-    'emoji': 'fetch', // edge size limits - bundling 24MB icons not viable
-    'wasm': {
+    browser: false,
+    resvg: 'wasm',
+    satori: 'wasm',
+    takumi: 'wasm',
+    sharp: false,
+    emoji: 'fetch', // edge size limits - bundling 24MB icons not viable
+    wasm: {
       // lowers workers kb size
       esmImport: true,
       lazy: true,
@@ -152,9 +145,6 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   const target = resolveNitroPreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
 
-  const hasCssInlineNode = await hasResolvableDependency('@css-inline/css-inline')
-  const hasCssInlineWasm = await hasResolvableDependency('@css-inline/css-inline-wasm')
-
   const { resolve, detectedRenderers } = options
 
   // Enable renderers based on detected component suffixes
@@ -180,11 +170,6 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')
       binding = compatibility[key]
-    if (key === 'css-inline' && typeof binding === 'string') {
-      if ((binding === 'node' && !hasCssInlineNode) || (['wasm', 'wasm-fs'].includes(binding) && !hasCssInlineWasm)) {
-        binding = false
-      }
-    }
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {
@@ -197,7 +182,6 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     await applyBinding('takumi'),
     await applyBinding('resvg'),
     await applyBinding('sharp'),
-    await applyBinding('css-inline'),
     nitroConfig.alias || {},
   )
   // if we're using any wasm modules we need to enable the wasm runtime

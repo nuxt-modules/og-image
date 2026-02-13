@@ -22,9 +22,7 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': ^7.3.0
-  '@clack/prompts': ^1.0.0
-  '@css-inline/css-inline': ^0.20.0
-  '@css-inline/css-inline-wasm': ^0.20.0
+  '@clack/prompts': ^1.0.1
   '@iconify-json/carbon': ^1.2.18
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7

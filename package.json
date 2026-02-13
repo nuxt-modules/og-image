@@ -68,8 +68,6 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@css-inline/css-inline": "^0.19.0",
-    "@css-inline/css-inline-wasm": "^0.19.0",
     "@resvg/resvg-js": "^2.6.0",
     "@resvg/resvg-wasm": "^2.6.0",
     "@takumi-rs/core": "^0.62.0",
@@ -84,12 +82,6 @@
     "unstorage": "^1.15.0"
   },
   "peerDependenciesMeta": {
-    "@css-inline/css-inline": {
-      "optional": true
-    },
-    "@css-inline/css-inline-wasm": {
-      "optional": true
-    },
     "@resvg/resvg-js": {
       "optional": true
     },
@@ -154,8 +146,6 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
-    "@css-inline/css-inline": "catalog:",
-    "@css-inline/css-inline-wasm": "catalog:",
     "@iconify-json/carbon": "catalog:",
     "@iconify-json/logos": "catalog:",
     "@iconify-json/noto": "catalog:",
