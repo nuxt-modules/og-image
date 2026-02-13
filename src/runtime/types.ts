@@ -222,7 +222,7 @@ export interface SatoriFontConfig extends FontConfig {
 export interface RuntimeCompatibilitySchema {
   browser: 'chrome-launcher' | 'on-demand' | 'playwright' | 'cloudflare' | false
   resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
-  satori: 'node' | 'wasm' | '0-15-wasm' | 'wasm-fs' | 'wasm-edge' | false
+  satori: 'node' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   takumi: 'node' | 'node-dev' | 'wasm' | false
   sharp: 'node' | false
   // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime
