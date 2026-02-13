@@ -67,13 +67,10 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         // TODO maybe implement https://github.com/pi0/nuxt-shiki/blob/50e80fb6454de561e667630b4e410d2f7b5f2d35/src/module.ts#L103-L128
         wasmEntries.push(join(dirname(serverEntry), 'chunks/wasm.mjs'))
         wasmEntries.push(join(dirname(serverEntry), 'chunks/_/wasm.mjs'))
-        wasmEntries.push(join(dirname(serverEntry), 'chunks/0-15-wasm.mjs'))
-        wasmEntries.push(join(dirname(serverEntry), 'chunks/_/0-15-wasm.mjs'))
         wasmEntries.push(join(dirname(serverEntry), 'chunks/index_bg.mjs'))
       }
       const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
       const yogaHash = await resolveFilePathSha1('yoga-wasm-web/dist/yoga.wasm')
-      const cssInlineHash = await resolveFilePathSha1('@css-inline/css-inline-wasm/index_bg.wasm')
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
           continue
@@ -103,7 +100,6 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           // Try the original source import paths first (before nitro's WASM plugin resolves them)
           contents = contents
             .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
-            .replaceAll('"@css-inline/css-inline-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${cssInlineHash}.wasm${postfix}"`)
             .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
           // Nitro's WASM plugin may have already resolved the paths (hashed filenames, moved to wasm/).
           // For vercel-edge, append ?module to any .wasm imports that nitro already resolved.
