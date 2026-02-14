@@ -1,19 +1,22 @@
 import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
+import type { ExtractedCssVars } from '../css-utils'
 import { readFile } from 'node:fs/promises'
+import { defu } from 'defu'
 import { logger } from '../../../runtime/logger'
 import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
 
 export interface UnoProviderOptions {
   resolveCssPath?: () => Promise<string | undefined>
-  resolveColorPreference?: () => 'light' | 'dark'
 }
 
 // State
 let unoConfig: UserConfig | null = null
 let rootDir: string | null = null
-let generator: Awaited<ReturnType<typeof import('@unocss/core').createGenerator>> | null = null
-let cachedUserVars: Map<string, string> | null = null
+type UnoGen = Awaited<ReturnType<typeof import('@unocss/core').createGenerator>>
+let generator: UnoGen | null = null
+let pendingGenerator: Promise<UnoGen> | null = null
+let cachedExtracted: ExtractedCssVars | null = null
 
 /**
  * Set root directory for loading uno.config.ts
@@ -31,67 +34,88 @@ export function setUnoConfig(config: UserConfig): void {
 }
 
 /**
- * Clear cached state (for HMR).
+ * Clear cached user CSS vars (for HMR when CSS files change).
+ */
+export function clearUnoUserVarsCache(): void {
+  cachedExtracted = null
+}
+
+/**
+ * Clear all cached state including generator (for HMR when uno.config changes).
  */
 export function clearUnoCache(): void {
   generator = null
-  cachedUserVars = null
+  pendingGenerator = null
+  cachedExtracted = null
 }
 
-async function getGenerator() {
+async function getGenerator(): Promise<UnoGen> {
   if (generator)
     return generator
 
-  let loadedConfig: UserConfig | undefined
-  try {
-    const { loadConfig } = await import('@unocss/config')
-    const result = await loadConfig(rootDir || process.cwd())
-    loadedConfig = result.config
-  }
-  catch (e) {
-    logger.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
-  }
+  // Deduplicate concurrent generator creation during HMR cache invalidation
+  if (pendingGenerator)
+    return pendingGenerator
 
-  const finalConfig = loadedConfig
-    ? { ...loadedConfig, ...unoConfig, theme: { ...loadedConfig.theme, ...unoConfig?.theme } }
-    : unoConfig
+  pendingGenerator = (async () => {
+    let loadedConfig: UserConfig | undefined
+    try {
+      const { loadConfig } = await import('@unocss/config')
+      const result = await loadConfig(rootDir || process.cwd())
+      loadedConfig = result.config
+    }
+    catch (e) {
+      logger.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
+    }
 
-  if (!finalConfig) {
-    throw new Error('UnoCSS config not found. Ensure uno.config.ts exists or @unocss/nuxt is loaded.')
-  }
+    const finalConfig = loadedConfig
+      ? defu(unoConfig || {}, loadedConfig) as UserConfig
+      : unoConfig
 
-  const { createGenerator } = await import('@unocss/core')
-  generator = await createGenerator(finalConfig)
-  return generator
+    if (!finalConfig) {
+      throw new Error('UnoCSS config not found. Ensure uno.config.ts exists or @unocss/nuxt is loaded.')
+    }
+
+    const { createGenerator } = await import('@unocss/core')
+    generator = await createGenerator(finalConfig)
+    return generator
+  })()
+
+  const p = pendingGenerator!
+  p.finally(() => {
+    pendingGenerator = null
+  })
+  return p
 }
 
-async function loadUserVars(resolveCssPath?: () => Promise<string | undefined>, resolveColorPreference?: () => 'light' | 'dark'): Promise<Map<string, string>> {
-  if (cachedUserVars)
-    return cachedUserVars
-  cachedUserVars = new Map()
-  if (!resolveCssPath)
-    return cachedUserVars
+async function loadExtractedVars(resolveCssPath?: () => Promise<string | undefined>): Promise<ExtractedCssVars> {
+  if (cachedExtracted)
+    return cachedExtracted
+  const empty: ExtractedCssVars = { rootVars: new Map(), qualifiedRules: [], universalVars: new Map(), propertyInitials: new Map(), perClassVars: new Map() }
+  if (!resolveCssPath) {
+    cachedExtracted = empty
+    return cachedExtracted
+  }
   const cssPath = await resolveCssPath()
   if (!cssPath) {
     logger.debug('[og-image UnoCSS] No CSS path resolved for user vars')
-    return cachedUserVars
+    cachedExtracted = empty
+    return cachedExtracted
   }
   try {
     const content = await readFile(cssPath, 'utf-8')
-    const extracted = await extractVarsFromCss(content)
-    const colorPreference = resolveColorPreference?.() || 'light'
-    const resolved = resolveExtractedVars(extracted, colorPreference)
-    for (const [name, value] of resolved)
-      cachedUserVars.set(name, value)
-    logger.debug(`[og-image UnoCSS] Loaded ${cachedUserVars.size} user CSS vars (${colorPreference} mode) from ${cssPath}`)
-    if (extracted.darkVars.size || extracted.lightVars.size) {
-      logger.debug(`[og-image UnoCSS] Theme vars: ${extracted.rootVars.size} base, ${extracted.darkVars.size} dark, ${extracted.lightVars.size} light`)
-    }
+    cachedExtracted = await extractVarsFromCss(content)
+    logger.debug(`[og-image UnoCSS] Extracted ${cachedExtracted.rootVars.size} base vars, ${cachedExtracted.qualifiedRules.length} qualified rules from ${cssPath}`)
   }
   catch (e) {
     logger.warn('[og-image UnoCSS] Failed to read CSS file for vars:', (e as Error).message)
+    cachedExtracted = empty
   }
-  return cachedUserVars
+  return cachedExtracted
+}
+
+function resolveUserVars(extracted: ExtractedCssVars, rootAttrs: Record<string, string>): Map<string, string> {
+  return resolveExtractedVars(extracted, rootAttrs)
 }
 
 /**
@@ -101,7 +125,7 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
   return {
     name: 'unocss',
 
-    async resolveClassesToStyles(classes: string[], context?: string): Promise<Record<string, Record<string, string>>> {
+    async resolveClassesToStyles(classes: string[], context?: string, rootAttrs?: Record<string, string>): Promise<Record<string, Record<string, string>>> {
       if (classes.length === 0)
         return {}
 
@@ -114,14 +138,15 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
       const vars = new Map<string, string>()
 
       // User CSS vars (e.g., --bg, --fg from app's main.css)
-      // Uses AST-based extraction to handle compound :root selectors and color mode
-      const userVars = await loadUserVars(options?.resolveCssPath, options?.resolveColorPreference)
+      // Uses AST-based extraction to handle compound :root selectors and attribute matching
+      const extracted = await loadExtractedVars(options?.resolveCssPath)
+      const userVars = resolveUserVars(extracted, rootAttrs || {})
       for (const [name, value] of userVars)
         vars.set(name, value)
 
       // Generated CSS vars use regex (lightningcss visitor can't handle var() in property values)
-      const rootVars = extractCssVars(simplifiedCss)
-      for (const [name, value] of rootVars)
+      const rootVarsFromCss = extractCssVars(simplifiedCss)
+      for (const [name, value] of rootVarsFromCss)
         vars.set(name, value)
 
       const propVars = extractPropertyInitialValues(simplifiedCss)
@@ -136,13 +161,13 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
           vars.set(name, value)
       }
 
-      logger.debug(`[og-image UnoCSS] Vars: ${userVars.size} user, ${rootVars.size} :root, ${propVars.size} @property, ${uniVars.size} universal → ${vars.size} total`)
+      logger.debug(`[og-image UnoCSS] Vars: ${userVars.size} user, ${rootVarsFromCss.size} :root, ${propVars.size} @property, ${uniVars.size} universal → ${vars.size} total`)
 
       // Per-class CSS variable overrides (e.g., .shadow-lg { --un-shadow: ... })
       const perClassVars = extractPerClassVars(simplifiedCss)
 
       // Extract class styles, collecting additional vars
-      const classMap = extractClassStyles(simplifiedCss, { collectVars: vars })
+      const classMap = extractClassStyles(simplifiedCss, { collectVars: vars, merge: true })
 
       const result: Record<string, Record<string, string>> = {}
 
@@ -154,7 +179,6 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
         if (styles)
           result[className] = styles
       }
-
       return result
     },
 
@@ -202,10 +226,50 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
       return { fontVars, breakpoints, colors }
     },
 
-    async getVars() {
-      return loadUserVars(options?.resolveCssPath, options?.resolveColorPreference)
+    async getVars(rootAttrs?: Record<string, string>) {
+      const extracted = await loadExtractedVars(options?.resolveCssPath)
+      return resolveUserVars(extracted, rootAttrs || {})
     },
 
+    clearUserVarsCache: clearUnoUserVarsCache,
     clearCache: clearUnoCache,
+
+    async resolveIcon(prefix: string, name: string) {
+      const gen = await getGenerator()
+      const iconClass = `i-${prefix}-${name}`
+      const { css } = await gen.generate([iconClass])
+      if (!css)
+        return null
+
+      // Extract SVG from data URL in the generated CSS (--un-icon or mask-image)
+      const urlMatch = css.match(/url\("data:image\/svg\+xml[;,]([^"]+)"\)/)
+      if (!urlMatch?.[1])
+        return null
+
+      let svgContent: string
+      if (urlMatch[0].includes(';base64,')) {
+        svgContent = Buffer.from(urlMatch[1], 'base64').toString('utf-8')
+      }
+      else {
+        // Percent-encoded (default for presetIcons), may have utf8, prefix
+        const raw = urlMatch[1].replace(/^utf8,/, '')
+        svgContent = decodeURIComponent(raw)
+      }
+
+      // Handle both single and double quotes in SVG attributes
+      const viewBoxMatch = svgContent.match(/viewBox=['"](\d+)\s+(\d+)\s+(\d+)\s+(\d+)['"]/)
+      const widthAttr = svgContent.match(/\bwidth=['"](\d+)['"]/)
+      const heightAttr = svgContent.match(/\bheight=['"](\d+)['"]/)
+
+      const width = viewBoxMatch?.[3] ? Number.parseInt(viewBoxMatch[3]) : (widthAttr?.[1] ? Number.parseInt(widthAttr[1]) : 24)
+      const height = viewBoxMatch?.[4] ? Number.parseInt(viewBoxMatch[4]) : (heightAttr?.[1] ? Number.parseInt(heightAttr[1]) : 24)
+
+      // Extract inner body
+      const bodyMatch = svgContent.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
+      if (!bodyMatch?.[1])
+        return null
+
+      return { body: bodyMatch[1], width, height }
+    },
   }
 }

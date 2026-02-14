@@ -1,6 +1,6 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
 import { logger } from '../../runtime/logger'
-import { GRADIENT_COLOR_SPACE_RE } from '../../runtime/server/og-image/utils/css'
+import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css'
 
 const _warnedVars = new Set<string>()
 
@@ -45,7 +45,7 @@ export async function transformWithLightningCss(
     include,
   } = options
 
-  const transformOptions: any = {
+  const transformOptions: Parameters<typeof transform>[0] = {
     filename,
     code: Buffer.from(css),
     minify,
@@ -115,6 +115,37 @@ function walkClassRules(css: string, onRule: (className: string, body: string) =
 export async function simplifyCss(css: string): Promise<string> {
   const result = await transformWithLightningCss(css, { minify: true })
   return result.code.toString()
+}
+
+/**
+ * Strip `@supports` blocks from minified CSS.
+ * Lightning CSS emits progressive-enhancement blocks (e.g. lab() colors inside @supports)
+ * alongside legacy fallbacks. We only need the legacy values for OG image renderers.
+ */
+export function stripAtSupports(css: string): string {
+  let result = css
+  let idx: number
+  // eslint-disable-next-line no-cond-assign
+  while ((idx = result.indexOf('@supports')) !== -1) {
+    // Find the opening brace of the @supports block (skip the condition with nested parens)
+    const braceStart = result.indexOf('{', idx)
+    if (braceStart === -1)
+      break
+    // Find matching closing brace
+    let depth = 1
+    let i = braceStart + 1
+    while (i < result.length && depth > 0) {
+      if (result[i] === '{')
+        depth++
+      else if (result[i] === '}')
+        depth--
+      i++
+    }
+    if (depth !== 0)
+      break
+    result = result.slice(0, idx) + result.slice(i)
+  }
+  return result
 }
 
 export function extractCssVars(css: string): Map<string, string> {
@@ -284,31 +315,44 @@ function serializeEnvName(name: any): string {
   return name.ident || ''
 }
 
+export interface SelectorAttrReq {
+  name: string
+  value: string
+  negated: boolean
+}
+
 /**
  * Result of single-pass CSS variable extraction.
- * Root vars are split by color mode so consumers can pick the right set.
+ * Root vars are plain :root; qualifiedRules carry attribute requirements.
  */
 export interface ExtractedCssVars {
   /** Vars from plain :root {} (no theme qualifier) */
   rootVars: Map<string, string>
-  /** Vars from dark-mode :root selectors (e.g. :root[data-theme='dark'], :root:not([data-theme='light'])) */
-  darkVars: Map<string, string>
-  /** Vars from light-mode :root selectors (e.g. :root[data-theme='light']) */
-  lightVars: Map<string, string>
+  /** Rules with attribute requirements (e.g. :root[data-theme='dark'][data-bg-theme='slate']) */
+  qualifiedRules: Array<{ reqs: SelectorAttrReq[], vars: Map<string, string> }>
   universalVars: Map<string, string>
   propertyInitials: Map<string, string>
   perClassVars: Map<string, Map<string, string>>
 }
 
 /**
- * Resolve extracted vars for a given color preference.
- * Base vars are overlaid with the matching theme vars.
+ * Resolve extracted vars for a given set of root attributes.
+ * Base vars are overlaid with matching qualified rules (fewer reqs first).
  */
-export function resolveExtractedVars(extracted: ExtractedCssVars, colorPreference: 'light' | 'dark'): Map<string, string> {
+export function resolveExtractedVars(extracted: ExtractedCssVars, rootAttrs: Record<string, string>): Map<string, string> {
   const vars = new Map(extracted.rootVars)
-  const themeVars = colorPreference === 'dark' ? extracted.darkVars : extracted.lightVars
-  for (const [name, value] of themeVars)
-    vars.set(name, value)
+  // Sort by specificity: fewer reqs first so more-specific rules overlay later
+  const sorted = [...extracted.qualifiedRules].sort((a, b) => a.reqs.length - b.reqs.length)
+  for (const rule of sorted) {
+    const matches = rule.reqs.every((req) => {
+      const actual = rootAttrs[req.name]
+      return req.negated ? actual !== req.value : actual === req.value
+    })
+    if (matches) {
+      for (const [name, value] of rule.vars)
+        vars.set(name, value)
+    }
+  }
   return vars
 }
 
@@ -335,38 +379,44 @@ function isUniversal(selectors: any[]): boolean {
 }
 
 /**
- * Detect color mode from selector components.
- * Returns 'dark', 'light', or undefined (plain :root).
+ * Extract attribute requirements from a single selector's components.
+ * Maps class selectors (.dark/.light) to data-theme equivalents.
+ * Returns empty array for plain :root.
  */
-function detectSelectorColorMode(selectors: any[]): 'dark' | 'light' | undefined {
-  for (const selector of selectors) {
-    for (const component of selector) {
-      // :root.dark or :root.light
-      if (component.type === 'class') {
-        if (component.name === 'dark')
-          return 'dark'
-        if (component.name === 'light')
-          return 'light'
-      }
-      // :root[data-theme='dark'] or [data-mode='dark']
-      if (component.type === 'attribute' && component.operation) {
-        const val = component.operation.value?.toLowerCase()
-        if (val === 'dark')
-          return 'dark'
-        if (val === 'light')
-          return 'light'
-      }
-      // :root:not([data-theme='light']) → dark mode
-      if (component.type === 'pseudo-class' && component.kind === 'not') {
-        const innerMode = detectSelectorColorMode(component.selectors || [])
-        if (innerMode === 'light')
-          return 'dark'
-        if (innerMode === 'dark')
-          return 'light'
+function extractSingleSelectorReqs(components: any[]): SelectorAttrReq[] {
+  const reqs: SelectorAttrReq[] = []
+  for (const component of components) {
+    // :root.dark or :root.light → data-theme equivalents
+    if (component.type === 'class') {
+      if (component.name === 'dark' || component.name === 'light')
+        reqs.push({ name: 'data-theme', value: component.name, negated: false })
+    }
+    // :root[data-theme='dark'], :root[data-bg-theme='slate'], etc.
+    if (component.type === 'attribute' && component.operation) {
+      const name = component.name as string
+      const value = component.operation.value as string
+      if (name && value)
+        reqs.push({ name, value, negated: false })
+    }
+    // :not([data-theme='light']) → negated requirement
+    if (component.type === 'pseudo-class' && component.kind === 'not') {
+      for (const innerSelector of (component.selectors || [])) {
+        const innerReqs = extractSingleSelectorReqs(innerSelector)
+        for (const req of innerReqs)
+          reqs.push({ ...req, negated: !req.negated })
       }
     }
   }
-  return undefined
+  return reqs
+}
+
+/**
+ * Extract attribute requirements per selector in a selector list.
+ * Comma-separated selectors are treated independently (OR semantics).
+ * Returns one SelectorAttrReq[] per selector.
+ */
+function extractSelectorAttrReqsList(selectors: any[]): SelectorAttrReq[][] {
+  return selectors.map((selector: any[]) => extractSingleSelectorReqs(selector))
 }
 
 function getSimpleClassName(selectors: any[]): string | undefined {
@@ -431,8 +481,7 @@ function extractPropertyInitialValue(rule: any): { name: string, value: string }
  */
 export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars> {
   const rootVars = new Map<string, string>()
-  const darkVars = new Map<string, string>()
-  const lightVars = new Map<string, string>()
+  const qualifiedRules: ExtractedCssVars['qualifiedRules'] = []
   const universalVars = new Map<string, string>()
   const propertyInitials = new Map<string, string>()
   const perClassVars = new Map<string, Map<string, string>>()
@@ -451,10 +500,22 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
             const declarations = rule.value.declarations
 
             if (isRootOrHost(selectors)) {
-              const colorMode = detectSelectorColorMode(selectors)
-              const target = colorMode === 'dark' ? darkVars : colorMode === 'light' ? lightVars : rootVars
-              for (const [name, value] of extractCustomProps(declarations))
-                target.set(name, value)
+              const vars = extractCustomProps(declarations)
+              if (vars.size === 0)
+                return undefined
+              // Each selector in a comma-separated list is independent (OR semantics)
+              const perSelectorReqs = extractSelectorAttrReqsList(selectors)
+              const hasUnqualified = perSelectorReqs.some(reqs => reqs.length === 0)
+              if (hasUnqualified) {
+                // At least one plain :root selector — treat as root vars
+                for (const [name, value] of vars)
+                  rootVars.set(name, value)
+              }
+              // Push each qualified selector as its own rule
+              for (const reqs of perSelectorReqs) {
+                if (reqs.length > 0)
+                  qualifiedRules.push({ reqs, vars })
+              }
             }
             else if (isUniversal(selectors)) {
               for (const [name, value] of extractCustomProps(declarations))
@@ -476,14 +537,11 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
                 }
               }
             }
-
-            return rule
           },
           property: (rule: any) => {
             const result = extractPropertyInitialValue(rule.value)
             if (result)
               propertyInitials.set(result.name, result.value)
-            return rule
           },
         },
       },
@@ -491,7 +549,7 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
   }
   catch {
     // Fallback to regex-based extraction if lightningcss visitor fails
-    // Note: regex fallback does not support color mode splitting
+    // Note: regex fallback does not support qualified rule splitting
     for (const [name, value] of extractCssVars(css))
       rootVars.set(name, value)
     for (const [name, value] of extractUniversalVars(css))
@@ -503,7 +561,7 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
     }
   }
 
-  return { rootVars, darkVars, lightVars, universalVars, propertyInitials, perClassVars }
+  return { rootVars, qualifiedRules, universalVars, propertyInitials, perClassVars }
 }
 
 // ============================================================================
@@ -813,9 +871,26 @@ export async function postProcessStyles(
       value = cleaned
     }
 
-    // Downlevel modern colors
+    // Simplify font-family: extract the first custom family name, unwrapped.
+    // OG renderers don't do font fallback — generic families (monospace, sans-serif)
+    // are noise. Also avoids &quot; encoding in HTML style attributes which breaks
+    // parsing when htmlDecodeQuotes() decodes them back to literal " at runtime.
+    if (prop === 'font-family') {
+      const custom = extractCustomFontFamilies(value)
+      if (custom.length) {
+        const name = custom[0]!
+        // Quote multi-word font names so CSS parses them as a single family
+        value = name.includes(' ') ? `'${name}'` : name
+      }
+    }
+
+    // Downlevel modern colors (Lightning CSS handles standard color-mix with %)
     if (/color|fill|stroke|outline|border|background|caret|accent/.test(prop)) {
       value = await downlevelColor(prop, value)
+      // Fallback: resolve color-mix() with non-standard fraction syntax (.14 instead of 14%)
+      // that Lightning CSS passes through unchanged
+      if (value.includes('color-mix('))
+        value = resolveColorMix(value)
     }
 
     if (prop === 'background-image' && value.includes('-gradient('))

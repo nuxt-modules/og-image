@@ -8,7 +8,7 @@ export interface CssProvider {
    * @param classes Array of class names to resolve
    * @returns Map of class name → CSS properties (kebab-case) or string class rewrite
    */
-  resolveClassesToStyles: (classes: string[], context?: string) => Promise<Record<string, Record<string, string> | string>>
+  resolveClassesToStyles: (classes: string[], context?: string, rootAttrs?: Record<string, string>) => Promise<Record<string, Record<string, string> | string>>
   /**
    * Extract theme metadata (fonts, breakpoints, colors).
    */
@@ -16,11 +16,20 @@ export interface CssProvider {
   /**
    * Get the resolved CSS variable map for resolving var() in attributes.
    */
-  getVars?: () => Promise<Map<string, string>>
+  getVars?: (rootAttrs?: Record<string, string>) => Promise<Map<string, string>>
   /**
-   * Clear cached compiler state (for HMR).
+   * Clear cached user CSS vars only (for HMR when CSS files change).
+   */
+  clearUserVarsCache?: () => void
+  /**
+   * Clear all cached state including compiler (for HMR when config changes).
    */
   clearCache?: () => void
+  /**
+   * Resolve a custom icon by prefix and name (e.g. from UnoCSS presetIcons collections).
+   * Returns the SVG body and dimensions, or null if not found.
+   */
+  resolveIcon?: (prefix: string, name: string) => Promise<{ body: string, width: number, height: number } | null>
 }
 
 export interface CssMetadata {

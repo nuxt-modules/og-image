@@ -126,16 +126,25 @@ export function buildNuxtUiVars(
 // Compiler cache and state
 // ============================================================================
 
-let cachedCompiler: Awaited<ReturnType<typeof import('tailwindcss').compile>> | null = null
+type TwCompiler = Awaited<ReturnType<typeof import('tailwindcss').compile>>
+let cachedCompiler: TwCompiler | null = null
 let cachedCssPath: string | null = null
 let cachedVars: Map<string, string> | null = null
+let pendingCompiler: Promise<{ compiler: TwCompiler, vars: Map<string, string> }> | null = null
 const resolvedStyleCache = new Map<string, Record<string, string> | null>()
 
-/** Clear the compiler cache (useful for HMR) */
+/** Clear user vars and style cache only (for HMR when CSS files change) */
+export function clearTw4UserVarsCache() {
+  cachedVars = null
+  resolvedStyleCache.clear()
+}
+
+/** Clear the full compiler cache (for HMR when config changes) */
 export function clearTw4Cache() {
   cachedCompiler = null
   cachedCssPath = null
   cachedVars = null
+  pendingCompiler = null
   resolvedStyleCache.clear()
 }
 
@@ -162,31 +171,44 @@ export interface Tw4ResolverOptions {
 // Core compiler
 // ============================================================================
 
-async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string>) {
+async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string>): Promise<{ compiler: TwCompiler, vars: Map<string, string> }> {
   if (cachedCompiler && cachedCssPath === cssPath)
     return { compiler: cachedCompiler, vars: cachedVars! }
 
-  await loadTw4Deps()
+  // Deduplicate concurrent compilations — without this, clearing the cache
+  // during HMR causes every OG component transform to independently recompile TW4
+  if (pendingCompiler)
+    return pendingCompiler
 
-  const userCss = await readFile(cssPath, 'utf-8')
-  const baseDir = dirname(cssPath)
+  pendingCompiler = (async () => {
+    await loadTw4Deps()
 
-  const compiler = await compile(userCss, {
-    loadStylesheet: createStylesheetLoader(baseDir),
+    const userCss = await readFile(cssPath, 'utf-8')
+    const baseDir = dirname(cssPath)
+
+    const compiler = await compile(userCss, {
+      loadStylesheet: createStylesheetLoader(baseDir),
+    })
+
+    const vars = new Map<string, string>()
+
+    // Add Nuxt UI color fallbacks
+    if (nuxtUiColors)
+      buildNuxtUiVars(vars, nuxtUiColors)
+
+    cachedCompiler = compiler
+    cachedCssPath = cssPath
+    cachedVars = vars
+    resolvedStyleCache.clear()
+
+    return { compiler, vars }
+  })()
+
+  const p = pendingCompiler!
+  p.finally(() => {
+    pendingCompiler = null
   })
-
-  const vars = new Map<string, string>()
-
-  // Add Nuxt UI color fallbacks
-  if (nuxtUiColors)
-    buildNuxtUiVars(vars, nuxtUiColors)
-
-  cachedCompiler = compiler
-  cachedCssPath = cssPath
-  cachedVars = vars
-  resolvedStyleCache.clear()
-
-  return { compiler, vars }
+  return p
 }
 
 // ============================================================================
@@ -221,7 +243,7 @@ async function parseCssOutput(rawCss: string, vars: Map<string, string>): Promis
   const perClassVars = extractPerClassVars(css)
 
   // Extract class styles (skip --tw-* and all CSS vars from style output)
-  const classes = extractClassStyles(css, { skipPrefixes: ['--'] })
+  const classes = extractClassStyles(css, { skipPrefixes: ['--'], merge: true })
 
   return { classes, perClassVars }
 }
@@ -603,6 +625,7 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
       return vars
     },
 
+    clearUserVarsCache: clearTw4UserVarsCache,
     clearCache: clearTw4Cache,
   }
 }
