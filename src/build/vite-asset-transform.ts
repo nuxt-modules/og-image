@@ -411,7 +411,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       // Uses targeted string replacement (not ultrahtml renderSync) to preserve Vue directives like v-if
       if (options.cssProvider?.resolveIcon) {
         // Match elements with icon classes — self-closing or empty paired tags only
-        const iconElRe = /<(\w+)\b((?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*\s+class="([^"]*)"(?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*)(\s*\/?>)(?:\s*<\/\1>)?/g
+        const iconElRe = /<(\w+)((?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*\s+class="([^"]*)"(?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*)\s*\/?>(?:\s*<\/\1>)?/g
         const replacements: Array<{ from: string, to: string }> = []
 
         let elMatch
