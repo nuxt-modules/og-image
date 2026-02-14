@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import type { FontConfig, SatoriFontConfig } from '../../types'
+import type { FontConfig, RuntimeFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
@@ -91,7 +91,11 @@ function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof
 
 const _warnedFontKeys = new Set<string>()
 
-export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<SatoriFontConfig[]> {
+// Satori uses a WeakMap font cache keyed by array identity — returning the same
+// array reference across requests lets satori skip re-parsing font binaries.
+const _fontArrayCache = new Map<string, RuntimeFontConfig[]>()
+
+export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<RuntimeFontConfig[]> {
   const componentReqs = options.component ? (componentFontMap as Record<string, typeof fontRequirements>)[options.component] : null
   const usingGlobalFallback = !!(componentReqs && componentReqs.hasDynamicBindings)
   const reqs = (componentReqs && !componentReqs.hasDynamicBindings) ? componentReqs : fontRequirements
@@ -128,13 +132,19 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
         return null
       return {
         ...f,
-        name: f.family,
         cacheKey: `${f.family}-${f.weight}-${f.style}-${src}`,
         data,
-      } satisfies SatoriFontConfig
+      } satisfies RuntimeFontConfig
     }),
   )
-  const loaded = results.filter((f): f is SatoriFontConfig => f !== null)
+  const loaded = results.filter((f): f is RuntimeFontConfig => f !== null)
+
+  // Return a stable array reference so satori's WeakMap font cache hits
+  const fingerprint = loaded.map(f => f.cacheKey).sort().join('|')
+  const cachedArray = _fontArrayCache.get(fingerprint)
+  if (cachedArray)
+    return cachedArray
+  _fontArrayCache.set(fingerprint, loaded)
 
   // Warn about weight substitutions (deduplicated)
   // Skip warnings for bundled community templates — users can't control their font usage
