@@ -41,6 +41,12 @@ Install `nuxt-og-image` dependency to your project:
 npx nuxi@latest module add og-image
 ```
 
+> [!TIP]
+> Generate an Agent Skill for this package using [skilld](https://github.com/harlan-zw/skilld):
+> ```bash
+> npx skilld add nuxt-og-image
+> ```
+
 ## Documentation
 
 [📖 Read the full documentation](https://nuxtseo.com/og-image/getting-started/installation) for more information.
