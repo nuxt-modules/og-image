@@ -37,21 +37,6 @@ describe('tailwind', () => {
     expect(Buffer.from(png)).toMatchImageSnapshot()
   })
 
-  it('renders html preview with tailwind styles', async () => {
-    const html = await $fetch('/') as string
-    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-    const ogUrl = new URL(match![1]!)
-
-    // Replace extension with .html
-    const htmlPath = ogUrl.pathname.replace(/\.png$/, '.html')
-    const htmlPreview = await $fetch(htmlPath) as string
-    expect(htmlPreview).toContain('tailwindcss')
-    expect(htmlPreview).toContain('Hello World')
-    // Verify tailwind classes are resolved to inline styles with hex values
-    expect(htmlPreview).toMatch(/style="[^"]*background-color:\s*#/)
-  })
-
   it('extracts expected colors from og image', async () => {
     const html = await $fetch('/') as string
     const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)

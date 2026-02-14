@@ -73,4 +73,68 @@ describe('unocss', () => {
     })
     expect(hasChroma).toBe(true)
   })
+
+  it('resolves compound data-* rootAttrs for themed OG image', async () => {
+    const html = await $fetch('/themed') as string
+    expect(html).toContain('og:image')
+
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    expect(match?.[1]).toBeTruthy()
+
+    const ogUrl = new URL(match![1]!)
+    const htmlPath = ogUrl.pathname.replace(/\.png$/, '.html')
+    const htmlPreview = await $fetch(htmlPath) as string
+
+    // Template has data-theme="dark" data-bg-theme="slate" on root
+    // uno.config colors reference CSS vars (bg: 'var(--bg)'), theme.css provides values per selector
+    // :root[data-theme='dark'][data-bg-theme='slate'] { --bg: #0f172a; --bg-subtle: #1e293b }
+    expect(htmlPreview).toContain('Dark Themed')
+    // Verify var(--bg) is resolved to actual color (not left as var())
+    expect(htmlPreview).not.toMatch(/background-color:\s*var\(--bg\)/)
+    // Verify dark+slate background: #0f172a (compound selector wins over base dark #0a0a0a)
+    expect(htmlPreview).toMatch(/background-color:\s*#0f172a/i)
+    // Verify var(--fg) is resolved (not left as var())
+    expect(htmlPreview).not.toMatch(/(?<![a-z-])color:\s*var\(--fg\)/)
+  })
+
+  it('renders themed og image snapshot', async () => {
+    const html = await $fetch('/themed') as string
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    const ogUrl = new URL(match![1]!)
+
+    const png: ArrayBuffer = await $fetch(ogUrl.pathname, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot()
+  })
+
+  it('resolves zinc bg-theme differently from slate', async () => {
+    const html = await $fetch('/themed-zinc') as string
+    expect(html).toContain('og:image')
+
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    expect(match?.[1]).toBeTruthy()
+
+    const ogUrl = new URL(match![1]!)
+    const htmlPath = ogUrl.pathname.replace(/\.png$/, '.html')
+    const htmlPreview = await $fetch(htmlPath) as string
+
+    // :root[data-theme='dark'][data-bg-theme='zinc'] { --bg: #18181b; --bg-subtle: #27272a }
+    expect(htmlPreview).toContain('Dark Zinc')
+    // Zinc bg (#18181b) — distinct from slate (#0f172a) and base dark (#0a0a0a)
+    expect(htmlPreview).toMatch(/background-color:\s*#18181b/i)
+    // bg-subtle should be zinc's #27272a
+    expect(htmlPreview).toMatch(/background-color:\s*#27272a/i)
+  })
+
+  it('renders zinc themed og image snapshot', async () => {
+    const html = await $fetch('/themed-zinc') as string
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    const ogUrl = new URL(match![1]!)
+
+    const png: ArrayBuffer = await $fetch(ogUrl.pathname, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot()
+  })
 }, 60000)

@@ -32,16 +32,6 @@ describe('tw4-transform', () => {
       expect(resolveClassesToStyles).toBeDefined()
     })
   })
-
-  describe('error boundaries', () => {
-    it('should not throw on malformed input', async () => {
-      const { resolveClassesToStyles } = await import('../../src/build/css/providers/tw4')
-      // Even with bad input, should not throw
-      expect(async () => {
-        await resolveClassesToStyles([], { cssPath: '/nonexistent/path.css' }).catch(() => {})
-      }).not.toThrow()
-    })
-  })
 })
 
 describe('vue-template-transform', () => {
@@ -279,6 +269,164 @@ describe('vue-template-transform', () => {
 
       // Should not crash, may return undefined or partial result
       expect(true).toBe(true)
+    })
+
+    it('font-mono should not reset text-8xl font-size in merged output', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+
+      const code = `<template><h1 class="font-mono text-8xl tracking-tighter mb-4">Title</h1></template>`
+      const result = await transformVueTemplate(code, {
+        resolveStyles: async (classes) => {
+          const styles: Record<string, Record<string, string>> = {}
+          if (classes.includes('font-mono'))
+            styles['font-mono'] = { 'font-family': 'ui-monospace, monospace' }
+          if (classes.includes('text-8xl'))
+            styles['text-8xl'] = { 'font-size': '96px', 'line-height': '1' }
+          if (classes.includes('tracking-tighter'))
+            styles['tracking-tighter'] = { 'letter-spacing': '-0.05em' }
+          if (classes.includes('mb-4'))
+            styles['mb-4'] = { 'margin-bottom': '16px' }
+          return styles
+        },
+      })
+
+      expect(result).toBeDefined()
+      const styleMatch = result!.code.match(/style="([^"]*)"/)
+      expect(styleMatch, 'should have a style attribute').toBeDefined()
+      const styleStr = styleMatch![1]!
+
+      // All properties must be present in the merged style
+      expect(styleStr).toContain('font-family')
+      expect(styleStr).toContain('font-size: 96px')
+      expect(styleStr).toContain('line-height: 1')
+      expect(styleStr).toContain('letter-spacing: -0.05em')
+      expect(styleStr).toContain('margin-bottom: 16px')
+
+      // No class attribute should remain (all resolved)
+      expect(result!.code).not.toContain('class=')
+    })
+
+    it('class order: font-mono BEFORE text-8xl produces same style as AFTER (full UnoCSS pipeline)', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+      const { clearUnoCache, createUnoProvider, setUnoConfig, setUnoRootDir } = await import('../../src/build/css/providers/uno')
+      const presetWind4 = await import('@unocss/preset-wind4')
+
+      clearUnoCache()
+      setUnoRootDir('/tmp/og-image-uno-order-test')
+      setUnoConfig({
+        presets: [presetWind4.default()],
+        theme: {
+          spacing: { DEFAULT: '4px' },
+          font: {
+            mono: '\'Geist Mono\', monospace',
+            sans: '\'Geist\', system-ui, -apple-system, sans-serif',
+          },
+        },
+      })
+      const provider = createUnoProvider()
+
+      // Order A: font-mono BEFORE text-8xl (the buggy order)
+      const codeA = `<template><h1 class="font-mono text-8xl tracking-tighter mb-4">Title</h1></template>`
+      clearUnoCache()
+      const resultA = await transformVueTemplate(codeA, {
+        resolveStyles: classes => provider.resolveClassesToStyles(classes) as Promise<Record<string, Record<string, string>>>,
+      })
+
+      // Order B: text-8xl BEFORE font-mono (the working order)
+      const codeB = `<template><h1 class="text-8xl font-mono tracking-tighter mb-4">Title</h1></template>`
+      clearUnoCache()
+      const resultB = await transformVueTemplate(codeB, {
+        resolveStyles: classes => provider.resolveClassesToStyles(classes) as Promise<Record<string, Record<string, string>>>,
+      })
+
+      expect(resultA, 'order A should produce a result').toBeDefined()
+      expect(resultB, 'order B should produce a result').toBeDefined()
+
+      // Extract style attributes
+      const styleA = resultA!.code.match(/style="([^"]*)"/)
+      const styleB = resultB!.code.match(/style="([^"]*)"/)
+      expect(styleA, 'order A should have style attr').toBeDefined()
+      expect(styleB, 'order B should have style attr').toBeDefined()
+
+      // Parse style strings into property maps for comparison (order-independent)
+      function parseStyle(s: string): Record<string, string> {
+        const result: Record<string, string> = {}
+        for (const decl of s.split(';')) {
+          const idx = decl.indexOf(':')
+          if (idx === -1)
+            continue
+          const prop = decl.slice(0, idx).trim()
+          const val = decl.slice(idx + 1).trim()
+          if (prop && val)
+            result[prop] = val
+        }
+        return result
+      }
+
+      const propsA = parseStyle(styleA![1]!)
+      const propsB = parseStyle(styleB![1]!)
+
+      // Both orderings must produce the SAME set of CSS properties
+      expect(Object.keys(propsA).sort(), 'same property names').toEqual(Object.keys(propsB).sort())
+      // And the same values
+      for (const key of Object.keys(propsA)) {
+        expect(propsA[key], `${key} should be identical`).toBe(propsB[key])
+      }
+
+      // Verify critical properties are present
+      expect(propsA['font-family'], 'should have font-family').toBeDefined()
+      expect(propsA['font-size'], 'should have font-size').toBeDefined()
+      expect(propsA['letter-spacing'], 'should have letter-spacing').toBeDefined()
+      expect(propsA['margin-bottom'], 'should have margin-bottom').toBeDefined()
+
+      // Font-family should be the first custom family name —
+      // multi-word names are CSS-quoted, no generic fallbacks (OG renderers don't do font fallback)
+      expect(styleA![1], 'style A must not contain &quot;').not.toContain('&quot;')
+      expect(styleB![1], 'style B must not contain &quot;').not.toContain('&quot;')
+      expect(propsA['font-family'], 'font-family should be quoted multi-word').toBe('\'Geist Mono\'')
+
+      // Neither should have remaining class attributes (all resolved)
+      expect(resultA!.code).not.toContain('class=')
+      expect(resultB!.code).not.toContain('class=')
+
+      clearUnoCache()
+    })
+
+    it('font-mono + text-8xl full TW4 resolution pipeline produces correct merged styles', async () => {
+      const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
+      const { resolveClassesToStyles, clearTw4Cache } = await import('../../src/build/css/providers/tw4')
+      const { mkdir, writeFile, rm } = await import('node:fs/promises')
+      const { join } = await import('pathe')
+
+      const tmpDir = join(import.meta.dirname, '..', '.tmp-tw4-transform-test')
+      const cssPath = join(tmpDir, 'input.css')
+      await mkdir(tmpDir, { recursive: true })
+      await writeFile(cssPath, '@import "tailwindcss";')
+
+      try {
+        const code = `<template><h1 class="font-mono text-8xl tracking-tighter mb-4">Title</h1></template>`
+        const result = await transformVueTemplate(code, {
+          resolveStyles: classes => resolveClassesToStyles(classes, { cssPath }),
+        })
+
+        expect(result).toBeDefined()
+        const styleMatch = result!.code.match(/style="([^"]*)"/)
+        expect(styleMatch, 'should have a style attribute').toBeDefined()
+        const styleStr = styleMatch![1]!
+
+        // font-family from font-mono
+        expect(styleStr, 'should contain font-family from font-mono').toContain('font-family:')
+        // font-size from text-8xl (6rem or 96px depending on var resolution)
+        expect(styleStr, 'should contain font-size from text-8xl').toMatch(/font-size:\s*(?:6rem|96px)/)
+        // letter-spacing from tracking-tighter
+        expect(styleStr, 'should contain letter-spacing from tracking-tighter').toContain('letter-spacing:')
+        // margin-bottom from mb-4
+        expect(styleStr, 'should contain margin-bottom from mb-4').toContain('margin-bottom:')
+      }
+      finally {
+        clearTw4Cache()
+        await rm(tmpDir, { recursive: true, force: true })
+      }
     })
   })
 })

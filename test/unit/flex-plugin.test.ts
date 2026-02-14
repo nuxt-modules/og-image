@@ -207,7 +207,7 @@ describe('flex plugin (runtime)', () => {
   describe('runtime — build-time did NOT run (classes still in class attr)', () => {
     it('combinedTest: flex gap-2 stays row when flex is in class', () => {
       // <div class="flex gap-2"> with span children — build-time didn't resolve
-      // twClasses moved gap to style, flex stays in class/tw
+      // styleDirectives moved gap to style, flex stays in class/tw
       const node: VNode = {
         type: 'div',
         props: {

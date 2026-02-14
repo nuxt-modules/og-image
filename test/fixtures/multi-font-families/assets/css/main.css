@@ -1,7 +1,26 @@
 @import "tailwindcss";
 
+/* Manual @font-face — NOT managed by @nuxt/fonts.
+   Tests that og-image parses app CSS for local font declarations. */
+@font-face {
+  font-family: 'LocalSans';
+  src: url('/fonts/LocalSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LocalSans';
+  src: url('/fonts/LocalSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
 @theme {
   --font-display: 'Lobster', cursive;
   --font-mono: 'JetBrains Mono', monospace;
   --font-serif: 'Playfair Display', serif;
+  --font-variable: 'Nunito Sans', sans-serif;
+  --font-local-sans: 'LocalSans', sans-serif;
+  --font-local-serif: 'LocalSerif', serif;
 }

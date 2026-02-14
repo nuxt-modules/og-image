@@ -26,36 +26,26 @@ defineProps<{
 
     <!-- Main content -->
     <div class="flex gap-4 flex-1">
-      <!-- Left: Card with buttons -->
-      <UCard class="flex-1">
-        <template #header>
-          <div class="flex items-center gap-2">
-            <UAvatar text="NU" color="primary" size="md" />
-            <span class="font-semibold text-white">Nuxt UI</span>
+      <!-- Left: Avatar section -->
+      <div class="flex-1 flex flex-col gap-3">
+        <div class="flex items-center gap-3 bg-gray-800 rounded-lg p-4">
+          <UAvatar text="NU" color="primary" size="lg" />
+          <div>
+            <div class="font-semibold text-white">
+              Nuxt UI
+            </div>
+            <div class="text-gray-400 text-sm">
+              Component Library
+            </div>
           </div>
-        </template>
-
-        <div class="flex flex-col gap-3">
-          <UButton color="primary" variant="solid" block>
-            Primary Button
-          </UButton>
-          <UButton color="secondary" variant="soft" block>
-            Secondary Soft
-          </UButton>
-          <UButton color="error" variant="outline" block>
-            Error Outline
-          </UButton>
         </div>
-
-        <template #footer>
-          <div class="flex items-center gap-2 text-gray-400 text-sm">
-            <span>Press</span>
-            <UKbd>⌘</UKbd>
-            <UKbd>K</UKbd>
-            <span>to search</span>
-          </div>
-        </template>
-      </UCard>
+        <div class="flex items-center gap-2 text-gray-400 text-sm bg-gray-800 rounded-lg p-4">
+          <span>Press</span>
+          <UKbd>⌘</UKbd>
+          <UKbd>K</UKbd>
+          <span>to search</span>
+        </div>
+      </div>
 
       <!-- Right: Stats -->
       <div class="flex-1 flex flex-col gap-3">
@@ -73,14 +63,6 @@ defineProps<{
           </div>
           <div class="text-2xl font-bold text-success">
             4.5K
-          </div>
-        </div>
-        <div class="bg-gray-800 rounded-lg p-4">
-          <div class="text-gray-400 text-sm">
-            Contributors
-          </div>
-          <div class="text-2xl font-bold text-warning">
-            89
           </div>
         </div>
       </div>

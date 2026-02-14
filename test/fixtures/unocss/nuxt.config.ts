@@ -7,6 +7,7 @@ export default defineNuxtConfig({
     NuxtOgImage,
     '@unocss/nuxt',
   ],
+  css: ['~/assets/theme.css'],
   site: {
     url: 'https://nuxtseo.com',
   },

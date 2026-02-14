@@ -1,0 +1,13 @@
+{
+  "name": "nested-components-fixture",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@nuxtjs/tailwindcss": "catalog:",
+    "nuxt": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "nuxt-og-image": "workspace:*"
+  }
+}

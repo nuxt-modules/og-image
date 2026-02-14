@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 /**
- * Mirrors parseStyleAttr from src/runtime/server/og-image/satori/vnodes.ts
+ * Mirrors parseStyleAttr from src/runtime/server/og-image/core/vnodes.ts
  * to verify the &amp; decoding fix without hitting virtual module imports.
  */
 function camelCase(str: string): string {

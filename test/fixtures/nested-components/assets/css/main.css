@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-badge: #3b82f6;
+}

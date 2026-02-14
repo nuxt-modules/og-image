@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import encoding from '../../src/runtime/server/og-image/satori/plugins/encoding'
+import encoding from '../../src/runtime/server/og-image/core/plugins/encoding'
 import { decodeHtml } from '../../src/runtime/server/util/encoding'
 
 describe('encoding', () => {

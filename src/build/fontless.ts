@@ -14,8 +14,10 @@ import type { Nuxt } from 'nuxt/schema'
 import type { FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
 import { join } from 'pathe'
+import { createStorage } from 'unstorage'
+import fsDriver from 'unstorage/drivers/fs-lite'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseFontsFromTemplate } from './fonts'
+import { downloadFontFile, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseFontsFromTemplate, SATORI_FONTS_PREFIX } from './fonts'
 
 // ============================================================================
 // Types
@@ -25,7 +27,7 @@ export interface ProcessFontsOptions {
   nuxt: Nuxt
   logger: ConsolaInstance
   fontRequirements: FontRequirementsState
-  convertedWoff2Files: Set<string>
+  convertedWoff2Files: Map<string, string>
   fontSubsets?: string[]
 }
 
@@ -75,6 +77,11 @@ export async function initFontless(options: {
   const nuxtFontsConfig = (options.nuxt.options as any).fonts as FontlessOptions | undefined
   const userFamilies = nuxtFontsConfig?.families
 
+  // Persistent cache avoids re-fetching from Google/Bunny/Fontsource on every dev restart
+  const storage = createStorage({
+    driver: fsDriver({ base: join(options.nuxt.options.rootDir, 'node_modules/.cache/nuxt-og-image/unifont') }),
+  })
+
   const resolver = await createResolver({
     normalizeFontData: faces => normalizeFontData(
       {
@@ -86,6 +93,7 @@ export async function initFontless(options: {
       faces,
     ),
     logger: options.logger,
+    storage,
     options: {
       families: userFamilies,
       // Google first — only provider with reliable WOFF format negotiation via user-agent.
@@ -133,6 +141,37 @@ export function persistFontUrlMapping(options: {
 // ============================================================================
 
 /**
+ * Resolve which requested weights a font entry covers.
+ * For static fonts (weight is a single number), returns that weight if requested.
+ * For variable fonts (weight is a range), returns all requested weights within the range.
+ */
+function resolveWeightsFromFontEntry(fontWeight: unknown, requestedWeights: number[]): number[] {
+  if (typeof fontWeight === 'number')
+    return requestedWeights.includes(fontWeight) ? [fontWeight] : []
+  // Parse range from string "200 900" or array [200, 900]
+  let min: number, max: number
+  if (Array.isArray(fontWeight) && fontWeight.length >= 2) {
+    min = Number(fontWeight[0])
+    max = Number(fontWeight[1])
+  }
+  else if (typeof fontWeight === 'string') {
+    const parts = fontWeight.split(/\s+/).map(Number)
+    if (parts.length >= 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+      min = parts[0]!
+      max = parts[1]!
+    }
+    else {
+      const n = Number(fontWeight)
+      return (!Number.isNaN(n) && requestedWeights.includes(n)) ? [n] : (requestedWeights.includes(400) ? [400] : [])
+    }
+  }
+  else {
+    return requestedWeights.includes(400) ? [400] : []
+  }
+  return requestedWeights.filter(w => w >= min && w <= max)
+}
+
+/**
  * Resolve font families via fontless → download static TTF/WOFF files to disk.
  * Combines resolution and download into a single pipeline.
  */
@@ -140,7 +179,6 @@ async function downloadStaticFonts(options: {
   families: { family: string, weights: number[], styles: Array<'normal' | 'italic'> }[]
   nuxt: Nuxt
   logger: ConsolaInstance
-  filenameFromUrl?: boolean
 }): Promise<DownloadedFont[]> {
   if (options.families.length === 0)
     return []
@@ -156,48 +194,128 @@ async function downloadStaticFonts(options: {
   }
 
   const results: DownloadedFont[] = []
+  // Alternative providers for retrying when a provider returns variable font binaries
+  // (same URL for multiple weights). Fontsource and Bunny serve per-weight static files.
+  const fallbackProviders = ['fontsource', 'bunny']
 
   for (const { family, weights, styles } of options.families) {
-    try {
-      const resolution = await fontlessCtx.resolver(family, { name: family, weights, styles } as FontFamilyProviderOverride)
-      if (!resolution?.fonts?.length) {
-        options.logger.debug(`No fonts found for ${family} via fontless`)
-        continue
+    const familyResults = await resolveAndDownloadFamily({
+      family,
+      weights,
+      styles,
+      ttfDir,
+      resolver: fontlessCtx.resolver,
+      logger: options.logger,
+    })
+
+    // Detect variable font binaries: same URL used for multiple weights means the provider
+    // returned a variable font file, which Satori can't render at different weights.
+    const urlToWeights = new Map<string, number[]>()
+    for (const r of familyResults) urlToWeights.set(r.url, [...(urlToWeights.get(r.url) || []), r.weight])
+    const hasVariableBinary = [...urlToWeights.values()].some(ws => ws.length > 1)
+
+    if (hasVariableBinary && weights.length > 1) {
+      options.logger.debug(`${family}: provider returned variable font binary, retrying with alternative providers`)
+      // Delete the variable font files so fallback providers can re-download with static binaries
+      for (const r of familyResults) {
+        const filePath = join(ttfDir, r.filename)
+        if (fs.existsSync(filePath))
+          fs.unlinkSync(filePath)
       }
+      let resolved = false
+      // Try alternative providers that serve per-weight static files
+      for (const provider of fallbackProviders) {
+        const altResults = await resolveAndDownloadFamily({
+          family,
+          weights,
+          styles,
+          ttfDir,
+          logger: options.logger,
+          resolver: fontlessCtx.resolver,
+          provider,
+        })
+        if (altResults.length === 0)
+          continue
+        const altUrls = new Map<string, number[]>()
+        for (const r of altResults) altUrls.set(r.url, [...(altUrls.get(r.url) || []), r.weight])
+        if ([...altUrls.values()].some(ws => ws.length > 1)) {
+          // Still variable — clean up before trying next provider
+          for (const r of altResults) {
+            const filePath = join(ttfDir, r.filename)
+            if (fs.existsSync(filePath))
+              fs.unlinkSync(filePath)
+          }
+          continue
+        }
+        results.push(...altResults)
+        resolved = true
+        break
+      }
+      // Fall back to the original variable font results if no static alternative found
+      if (!resolved)
+        results.push(...familyResults)
+    }
+    else {
+      results.push(...familyResults)
+    }
+  }
 
-      for (const font of resolution.fonts) {
-        const srcs = Array.isArray(font.src) ? font.src : [font.src]
-        for (const src of srcs) {
-          if (typeof src !== 'object' || !('url' in src))
-            continue
-          // fontless normalizeFontData rewrites URLs to local asset paths (/_fonts/...)
-          // Use originalURL (the actual remote URL) for downloading
-          const url = (src as any).originalURL || src.url
-          const format = src.format || (url.endsWith('.woff') ? 'woff' : url.endsWith('.ttf') ? 'truetype' : undefined)
-          if (format !== 'truetype' && format !== 'woff')
-            continue
-          const weight = typeof font.weight === 'number' ? font.weight : 400
-          const style = font.style || 'normal'
-          if (!weights.includes(weight) || !styles.includes(style as 'normal' | 'italic'))
-            continue
+  return results
+}
 
-          const ext = format === 'truetype' ? 'ttf' : 'woff'
-          const filename = options.filenameFromUrl
-            ? (url.split('/').pop() || `${family}-${weight}.${ext}`).replace(/[^a-z0-9.-]/gi, '_')
-            : `${family.replace(/[^a-z0-9]/gi, '_')}-${weight}-${style}.${ext}`
+/** Resolve and download fonts for a single family. Returns results with URLs for dedup detection. */
+async function resolveAndDownloadFamily(options: {
+  family: string
+  weights: number[]
+  styles: Array<'normal' | 'italic'>
+  ttfDir: string
+  resolver: FontlessContext['resolver']
+  logger: ConsolaInstance
+  provider?: string
+}): Promise<(DownloadedFont & { url: string })[]> {
+  const { family, weights, styles, ttfDir, logger } = options
+  const results: (DownloadedFont & { url: string })[] = []
 
+  try {
+    const override = options.provider
+      ? { name: family, weights, styles, provider: options.provider } as FontFamilyProviderOverride
+      : { name: family, weights, styles } as FontFamilyProviderOverride
+    const resolution = await options.resolver(family, override)
+    if (!resolution?.fonts?.length)
+      return results
+
+    for (const font of resolution.fonts) {
+      const srcs = Array.isArray(font.src) ? font.src : [font.src]
+      for (const src of srcs) {
+        if (typeof src !== 'object' || !('url' in src))
+          continue
+        const url = (src as any).originalURL || src.url
+        const format = src.format || (url.endsWith('.woff') ? 'woff' : url.endsWith('.ttf') ? 'truetype' : undefined)
+        if (format !== 'truetype' && format !== 'woff')
+          continue
+        const style = font.style || 'normal'
+        if (!styles.includes(style as 'normal' | 'italic'))
+          continue
+
+        const resolvedWeights = resolveWeightsFromFontEntry(font.weight, weights)
+        if (resolvedWeights.length === 0)
+          continue
+
+        const ext = format === 'truetype' ? 'ttf' : 'woff'
+        for (const weight of resolvedWeights) {
+          const filename = `${family.replace(/[^a-z0-9]/gi, '_')}-${weight}-${style}.${ext}`
           const destPath = join(ttfDir, filename)
           if (!await downloadFontFile(url, destPath))
             continue
 
-          results.push({ family, weight, style, format, filename })
-          options.logger.debug(`Resolved static font: ${family} ${weight}`)
+          results.push({ family, weight, style, format, filename, url })
+          logger.debug(`Resolved static font: ${family} ${weight}`)
         }
       }
     }
-    catch (err) {
-      options.logger.debug(`Failed to resolve fallback font for ${family}:`, err)
-    }
+  }
+  catch (err) {
+    options.logger.debug(`Failed to resolve fallback font for ${family}:`, err)
   }
 
   return results
@@ -237,11 +355,13 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
     return
   }
 
-  // Group WOFF2 fonts by family and collect needed weights/styles
+  // Group WOFF2 fonts by family, requesting ALL fontRequirements.weights for each family.
+  // @nuxt/fonts may serve variable fonts with a single weight entry (e.g. 400), but the
+  // underlying font supports a full weight range. By requesting all needed weights from
+  // fontless, we get static alternatives for every weight the templates actually use.
   const familyMap = new Map<string, { weights: Set<number>, styles: Set<'normal' | 'italic'> }>()
   for (const font of woff2Fonts) {
-    const existing = familyMap.get(font.family) || { weights: new Set(), styles: new Set() }
-    existing.weights.add(font.weight)
+    const existing = familyMap.get(font.family) || { weights: new Set(fontRequirements.weights), styles: new Set() }
     existing.styles.add(font.style as 'normal' | 'italic')
     familyMap.set(font.family, existing)
   }
@@ -259,11 +379,12 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
       families,
       nuxt,
       logger,
-      filenameFromUrl: true,
     })
 
-    for (const font of downloaded)
-      convertedWoff2Files.add(font.filename)
+    for (const font of downloaded) {
+      const key = `${font.family}-${font.weight}-${font.style}`
+      convertedWoff2Files.set(key, `${SATORI_FONTS_PREFIX}/${font.filename}`)
+    }
 
     if (convertedWoff2Files.size > 0) {
       logger.debug(`Resolved ${convertedWoff2Files.size} static font files via fontless`)
@@ -299,10 +420,10 @@ export async function resolveMissingFontFamilies(options: {
 
   const results = downloaded.map(f => ({
     family: f.family,
-    src: `${FONTS_URL_PREFIX}/${f.filename}`,
+    src: `${SATORI_FONTS_PREFIX}/${f.filename}`,
     weight: f.weight,
     style: f.style,
-    satoriSrc: `${FONTS_URL_PREFIX}/${f.filename}`,
+    satoriSrc: `${SATORI_FONTS_PREFIX}/${f.filename}`,
   }))
 
   if (results.length > 0)
@@ -324,7 +445,7 @@ export async function resolveOgImageFonts(options: {
   nuxt: Nuxt
   hasNuxtFonts: boolean
   hasSatoriRenderer: boolean
-  convertedWoff2Files: Set<string>
+  convertedWoff2Files: Map<string, string>
   fontSubsets?: string[]
   fontRequirements: FontRequirementsState
   tw4FontVars: Record<string, string>
@@ -339,6 +460,19 @@ export async function resolveOgImageFonts(options: {
   const allFonts = hasNuxtFonts
     ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets })
     : []
+
+  // 1b. Extract manual @font-face declarations from app CSS files (e.g. main.css)
+  const appCssFonts = await parseAppCssFontFaces(nuxt).catch(() => [])
+  if (appCssFonts.length > 0) {
+    const existingKeys = new Set(allFonts.map(f => fontKey(f)))
+    for (const font of appCssFonts) {
+      if (!existingKeys.has(fontKey(font))) {
+        allFonts.push(font)
+        existingKeys.add(fontKey(font))
+      }
+    }
+    logger.debug(`Parsed ${appCssFonts.length} fonts from app CSS @font-face declarations`)
+  }
 
   // 2. Satori-only: resolve missing font families via fontless
   // Takumi/browser can use WOFF2 and variable fonts directly

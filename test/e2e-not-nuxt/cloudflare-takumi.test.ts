@@ -200,7 +200,8 @@ describe('cloudflare-takumi', () => {
         catch {}
       }
 
-      const result = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
+      const buffer = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
+      const result = buffer.asUint8Array()
       // Should render actual text (small PNG), not NO GLYPH boxes (larger PNG)
       expect(result.length).toBeLessThan(2800)
     })
@@ -219,10 +220,11 @@ describe('cloudflare-takumi', () => {
         catch {}
       }
 
-      const result = renderer.render(
+      const buffer = renderer.render(
         makeNodes(names.join(', ')),
         { width: 400, height: 80, format: 'png' },
       )
+      const result = buffer.asUint8Array()
 
       // With unique names the renderer falls through subsets until it finds the glyph.
       // NO GLYPH boxes for 5 chars ("Hello") produce a larger PNG than actual text.

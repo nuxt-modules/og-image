@@ -37,6 +37,7 @@ export async function extractFontFaces(css: string): Promise<FontFaceDescriptor[
     filename: 'fonts.css',
     code: Buffer.from(css),
     minify: false,
+    errorRecovery: true,
     visitor: {
       Rule: {
         'font-face': (rule) => {

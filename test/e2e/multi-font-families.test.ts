@@ -54,4 +54,53 @@ describe('multi-font-families', () => {
       customSnapshotIdentifier: 'multi-font-jetbrains',
     })
   })
+
+  it('renders variable font with bold weight', async () => {
+    const html = await $fetch('/variable-bold') as string
+    expect(html).toContain('og:image')
+    const basePath = extractOgImageUrl(html)
+    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-variable-bold',
+    })
+  })
+
+  it('downloads static font files for variable font weights', async () => {
+    // Verify fontless downloaded static WOFF files under /_og-satori-fonts/ (not /_fonts/)
+    const font400: ArrayBuffer = await $fetch('/_og-satori-fonts/Nunito_Sans-400-normal.woff', { responseType: 'arrayBuffer' })
+    expect(font400.byteLength).toBeGreaterThan(1000)
+    const font700: ArrayBuffer = await $fetch('/_og-satori-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' })
+    expect(font700.byteLength).toBeGreaterThan(1000)
+  })
+
+  it('renders local font card', async () => {
+    const html = await $fetch('/local-font') as string
+    expect(html).toContain('og:image')
+    const basePath = extractOgImageUrl(html)
+    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-local',
+    })
+  })
+
+  it('serves local font files from public directory', async () => {
+    // LocalSans (Inter TTF) — loaded via manual @font-face in main.css
+    const sansRegular: ArrayBuffer = await $fetch('/fonts/LocalSans-Regular.ttf', { responseType: 'arrayBuffer' })
+    expect(sansRegular.byteLength).toBeGreaterThan(1000)
+    // LocalSerif (Merriweather TTF) — loaded via @nuxt/fonts provider: 'none'
+    const serifRegular: ArrayBuffer = await $fetch('/fonts/LocalSerif-Regular.ttf', { responseType: 'arrayBuffer' })
+    expect(serifRegular.byteLength).toBeGreaterThan(1000)
+    const serifBold: ArrayBuffer = await $fetch('/fonts/LocalSerif-Bold.ttf', { responseType: 'arrayBuffer' })
+    expect(serifBold.byteLength).toBeGreaterThan(1000)
+  })
+
+  it('renders takumi variable font with bold weight', async () => {
+    const html = await $fetch('/takumi-variable-bold') as string
+    expect(html).toContain('og:image')
+    const basePath = extractOgImageUrl(html)
+    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-takumi-variable-bold',
+    })
+  })
 }, 60000)

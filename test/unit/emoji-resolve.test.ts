@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getEmojiCodePoint, getEmojiIconNames } from '../../src/runtime/server/og-image/satori/transforms/emojis/emoji-utils'
+import { getEmojiCodePoint, getEmojiIconNames } from '../../src/runtime/server/og-image/core/transforms/emojis/emoji-utils'
 
 describe('emoji map utility', () => {
   it('should convert emoji character to code point', () => {

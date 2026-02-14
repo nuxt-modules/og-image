@@ -89,7 +89,7 @@ describe('extractPropertyInitialValues', () => {
 })
 
 describe('extractVarsFromCss (AST-based)', () => {
-  it('splits vars by color mode from compound :root selectors', async () => {
+  it('splits vars into qualifiedRules from compound :root selectors', async () => {
     const css = `
 :root:not([data-theme='light']), :root[data-theme='dark'] {
   --bg: oklch(0.171 0 0);
@@ -102,15 +102,18 @@ describe('extractVarsFromCss (AST-based)', () => {
 }
 `
     const extracted = await extractVarsFromCss(css)
-    // Dark mode vars
-    expect(extracted.darkVars.has('--bg')).toBe(true)
-    expect(extracted.darkVars.has('--fg')).toBe(true)
-    expect(extracted.darkVars.has('--fg-muted')).toBe(true)
-    // Light mode vars
-    expect(extracted.lightVars.has('--bg')).toBe(true)
-    expect(extracted.lightVars.has('--fg')).toBe(true)
-    // No plain :root vars
+    // Should have qualified rules, not plain rootVars
+    expect(extracted.qualifiedRules.length).toBeGreaterThan(0)
     expect(extracted.rootVars.size).toBe(0)
+    // Dark mode resolution
+    const dark = resolveExtractedVars(extracted, { 'data-theme': 'dark' })
+    expect(dark.has('--bg')).toBe(true)
+    expect(dark.has('--fg')).toBe(true)
+    expect(dark.has('--fg-muted')).toBe(true)
+    // Light mode resolution
+    const light = resolveExtractedVars(extracted, { 'data-theme': 'light' })
+    expect(light.has('--bg')).toBe(true)
+    expect(light.has('--fg')).toBe(true)
   })
 
   it('resolves dark mode vars correctly', async () => {
@@ -120,12 +123,12 @@ describe('extractVarsFromCss (AST-based)', () => {
 :root[data-theme='light'] { --bg: white; --fg: black; }
 `
     const extracted = await extractVarsFromCss(css)
-    const dark = resolveExtractedVars(extracted, 'dark')
+    const dark = resolveExtractedVars(extracted, { 'data-theme': 'dark' })
     expect(dark.get('--base')).toBe('1')
     expect(dark.get('--bg')).toBe('black')
     expect(dark.get('--fg')).toBe('white')
 
-    const light = resolveExtractedVars(extracted, 'light')
+    const light = resolveExtractedVars(extracted, { 'data-theme': 'light' })
     expect(light.get('--base')).toBe('1')
     expect(light.get('--bg')).toBe('white')
     expect(light.get('--fg')).toBe('black')
@@ -137,9 +140,73 @@ describe('extractVarsFromCss (AST-based)', () => {
 :root.light { --bg: white; }
 `
     const extracted = await extractVarsFromCss(css)
-    expect(extracted.darkVars.has('--bg')).toBe(true)
-    expect(extracted.lightVars.has('--bg')).toBe(true)
-    expect(extracted.darkVars.get('--bg')).not.toBe(extracted.lightVars.get('--bg'))
+    const dark = resolveExtractedVars(extracted, { 'data-theme': 'dark' })
+    const light = resolveExtractedVars(extracted, { 'data-theme': 'light' })
+    expect(dark.get('--bg')).toBe('black')
+    expect(light.get('--bg')).toBe('white')
+    expect(dark.get('--bg')).not.toBe(light.get('--bg'))
+  })
+
+  it('resolves compound selectors with multiple data-* attrs', async () => {
+    const css = `
+:root[data-theme='dark'] { --bg: oklch(0.171 0 0); }
+:root[data-theme='dark'][data-bg-theme='slate'] { --bg: oklch(0.151 0.018 264); }
+:root[data-theme='light'] { --bg: oklch(1 0 0); }
+`
+    const extracted = await extractVarsFromCss(css)
+    // Dark + slate: compound rule should overlay base dark
+    const darkSlate = resolveExtractedVars(extracted, { 'data-theme': 'dark', 'data-bg-theme': 'slate' })
+    expect(darkSlate.get('--bg')).toMatch(/oklch\(0\.15\d*\s+0\.01\d*\s+264\)/)
+    // Dark only: base dark rule
+    const dark = resolveExtractedVars(extracted, { 'data-theme': 'dark' })
+    expect(dark.get('--bg')).toMatch(/oklch\(0\.17\d*\s+0\s+0\)/)
+    // Light: light rule
+    const light = resolveExtractedVars(extracted, { 'data-theme': 'light' })
+    expect(light.get('--bg')).toMatch(/oklch\(1\s+0\s+0\)/)
+  })
+
+  it('handles comma-separated :root selectors independently', async () => {
+    // Real-world pattern: :root:not([data-theme='light']), :root[data-theme='dark'] { --bg: ... }
+    // Each comma-separated selector should be its own qualified rule (OR, not AND)
+    const css = `
+:root:not([data-theme='light']),
+:root[data-theme='dark'] {
+  --bg: #0a0a0a;
+  --fg: #fafafa;
+}
+:root[data-theme='dark'][data-bg-theme='zinc'] {
+  --bg: #18181b;
+}
+`
+    const extracted = await extractVarsFromCss(css)
+    // With data-theme=dark + data-bg-theme=zinc, zinc compound rule should win for --bg
+    const darkZinc = resolveExtractedVars(extracted, { 'data-theme': 'dark', 'data-bg-theme': 'zinc' })
+    // lightningcss may convert hex to rgb
+    expect(darkZinc.get('--bg')).toMatch(/(?:#18181b|rgb\(24, 24, 27\))/)
+    expect(darkZinc.get('--fg')).toMatch(/(?:#fafafa|rgb\(250, 250, 250\))/)
+    // Without bg-theme, base dark should apply
+    const dark = resolveExtractedVars(extracted, { 'data-theme': 'dark' })
+    expect(dark.get('--bg')).toMatch(/(?:#0a0a0a|rgb\(10, 10, 10\))/)
+  })
+
+  it('npmx.dev exact: var(--bg-color, oklch(...)) with zinc compound', async () => {
+    const css = `
+:root:not([data-theme='light']),
+:root[data-theme='dark'] {
+  --bg: var(--bg-color, oklch(0.171 0 0));
+  --fg: oklch(0.982 0 0);
+}
+:root[data-theme='dark'][data-bg-theme='zinc'] {
+  --bg: oklch(0.5147 0.2491 285.823);
+}
+`
+    const extracted = await extractVarsFromCss(css)
+
+    const darkZinc = resolveExtractedVars(extracted, { 'data-theme': 'dark', 'data-bg-theme': 'zinc' })
+    // Zinc compound rule should win — NOT the base dark oklch(0.171 0 0)
+    const bgVal = darkZinc.get('--bg')!
+    expect(bgVal).not.toContain('0.171')
+    expect(bgVal).toMatch(/oklch|0\.51/)
   })
 
   it('extracts vars from plain :root', async () => {
@@ -302,7 +369,7 @@ describe('unoCSS preset-wind4 class resolution', () => {
       clearUnoCache()
       const result = await resolve(['rounded-full'])
       expect(result['rounded-full']).toBeDefined()
-      expect(result['rounded-full']['border-radius']).toBe('3.40282e38px')
+      expect(result['rounded-full']['border-radius']).toBe('9999px')
     })
 
     it('resolves positioning utilities', async () => {
@@ -319,6 +386,44 @@ describe('unoCSS preset-wind4 class resolution', () => {
       for (const cls of ['text-4xl', 'font-bold', 'italic', 'uppercase']) {
         expect(result[cls], `${cls} should resolve`).toBeDefined()
       }
+    })
+
+    it('font-mono does not reset text-8xl font-size', async () => {
+      clearUnoCache()
+      const result = await resolve(['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4'])
+
+      expect(result['font-mono'], 'font-mono should resolve').toBeDefined()
+      expect(result['font-mono']?.['font-family'], 'font-mono should set font-family').toBeDefined()
+      expect(result['font-mono']?.['font-size'], 'font-mono must NOT set font-size').toBeUndefined()
+      expect(result['font-mono']?.font, 'font-mono must NOT produce font shorthand').toBeUndefined()
+
+      expect(result['text-8xl'], 'text-8xl should resolve alongside font-mono').toBeDefined()
+      expect(result['text-8xl']?.['font-size'], 'text-8xl should have font-size').toBeDefined()
+    })
+
+    it('font-mono combined with text sizes preserves font-size', async () => {
+      for (const size of ['text-sm', 'text-lg', 'text-xl', 'text-4xl', 'text-8xl']) {
+        clearUnoCache()
+        const result = await resolve(['font-mono', size])
+        expect(result[size], `${size} should resolve alongside font-mono`).toBeDefined()
+        expect(result[size]?.['font-size'], `${size} should have font-size`).toBeDefined()
+        expect(result['font-mono']?.['font-size'], `font-mono should not steal font-size from ${size}`).toBeUndefined()
+      }
+    })
+
+    it('merged font-mono + text-8xl contains all properties', async () => {
+      clearUnoCache()
+      const result = await resolve(['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4'])
+      const merged: Record<string, string> = {}
+      for (const cls of ['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4']) {
+        if (result[cls])
+          Object.assign(merged, result[cls])
+      }
+      expect(merged['font-family'], 'merged should have font-family').toBeDefined()
+      expect(merged['font-size'], 'merged should have font-size').toBeDefined()
+      expect(merged['letter-spacing'], 'merged should have letter-spacing').toBeDefined()
+      expect(merged['margin-bottom'], 'merged should have margin-bottom').toBeDefined()
+      expect(merged.font, 'merged should NOT have font shorthand').toBeUndefined()
     })
   })
 
@@ -449,5 +554,177 @@ describe('unoCSS preset-wind class resolution', () => {
       const result = await resolve(['bg-black', 'text-white'])
       expect(result['bg-black']?.['background-color']).toMatch(/^#/)
     })
+  })
+})
+
+// ============================================================================
+// UnoCSS preset-wind4 with custom theme (npmx.dev config)
+// ============================================================================
+
+describe('unoCSS preset-wind4 with custom font theme', () => {
+  let resolve: (classes: string[]) => Promise<Record<string, Record<string, string>>>
+
+  beforeAll(async () => {
+    const presetWind4 = await import('@unocss/preset-wind4')
+    clearUnoCache()
+    setUnoRootDir('/tmp/og-image-uno-test-custom-font')
+    setUnoConfig({
+      presets: [presetWind4.default()],
+      theme: {
+        spacing: { DEFAULT: '4px' },
+        font: {
+          mono: '\'Geist Mono\', monospace',
+          sans: '\'Geist\', system-ui, -apple-system, sans-serif',
+        },
+      },
+    })
+    const provider = createUnoProvider()
+    resolve = classes => provider.resolveClassesToStyles(classes) as Promise<Record<string, Record<string, string>>>
+  })
+
+  afterAll(() => {
+    clearUnoCache()
+  })
+
+  it('font-mono resolves to custom Geist Mono font-family', async () => {
+    clearUnoCache()
+    const result = await resolve(['font-mono'])
+    expect(result['font-mono'], 'font-mono should resolve').toBeDefined()
+    expect(result['font-mono']?.['font-family'], 'should have font-family').toBeDefined()
+    expect(result['font-mono']?.['font-family']).toContain('Geist Mono')
+    // Must NOT produce a font shorthand
+    expect(result['font-mono']?.font, 'must NOT produce font shorthand').toBeUndefined()
+    // Must NOT set font-size
+    expect(result['font-mono']?.['font-size'], 'must NOT set font-size').toBeUndefined()
+  })
+
+  it('text-8xl resolves font-size with custom spacing', async () => {
+    clearUnoCache()
+    const result = await resolve(['text-8xl'])
+    expect(result['text-8xl'], 'text-8xl should resolve').toBeDefined()
+    expect(result['text-8xl']?.['font-size'], 'should have font-size').toBeDefined()
+  })
+
+  it('class order: font-mono BEFORE text-8xl resolves identically to AFTER', async () => {
+    clearUnoCache()
+    const orderA = await resolve(['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4'])
+    clearUnoCache()
+    const orderB = await resolve(['text-8xl', 'font-mono', 'tracking-tighter', 'mb-4'])
+
+    // Both orderings must produce identical results for each class
+    for (const cls of ['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4']) {
+      expect(orderA[cls], `orderA ${cls} should resolve`).toBeDefined()
+      expect(orderB[cls], `orderB ${cls} should resolve`).toBeDefined()
+      expect(orderA[cls], `${cls} should be identical regardless of class order`).toEqual(orderB[cls])
+    }
+  })
+
+  it('raw UnoCSS CSS: font-mono rule only sets font-family, not font shorthand', async () => {
+    const { createGenerator } = await import('unocss')
+    const presetWind4 = await import('@unocss/preset-wind4')
+
+    const gen = await createGenerator({
+      presets: [presetWind4.default()],
+      theme: {
+        spacing: { DEFAULT: '4px' },
+        font: {
+          mono: '\'Geist Mono\', monospace',
+          sans: '\'Geist\', system-ui, -apple-system, sans-serif',
+        },
+      },
+    })
+
+    // Order A: font-mono first
+    const { css: cssA } = await gen.generate(['font-mono', 'text-8xl'])
+    // Order B: text-8xl first
+    const { css: cssB } = await gen.generate(['text-8xl', 'font-mono'])
+
+    // Extract just the .font-mono rule from raw CSS
+    const fontMonoRuleRe = /\.font-mono\s*\{([^}]+)\}/
+    const ruleA = cssA.match(fontMonoRuleRe)?.[1]
+    const ruleB = cssB.match(fontMonoRuleRe)?.[1]
+    expect(ruleA, 'font-mono rule should exist in order A').toBeDefined()
+    expect(ruleB, 'font-mono rule should exist in order B').toBeDefined()
+
+    // font-mono rule must NOT contain font-size or font shorthand
+    const fontShorthandInRule = /(?:^|;)\s*font\s*:[^;]*(?:;|$)/
+    expect(ruleA, 'font-mono rule A should not have font shorthand').not.toMatch(fontShorthandInRule)
+    expect(ruleB, 'font-mono rule B should not have font shorthand').not.toMatch(fontShorthandInRule)
+    expect(ruleA).not.toContain('font-size')
+    expect(ruleB).not.toContain('font-size')
+
+    // Check minified output too
+    const { simplifyCss } = await import('../../src/build/css/css-utils')
+    const minA = await simplifyCss(cssA)
+    const minB = await simplifyCss(cssB)
+
+    const minRuleA = minA.match(fontMonoRuleRe)?.[1]
+    const minRuleB = minB.match(fontMonoRuleRe)?.[1]
+    expect(minRuleA, 'minified font-mono rule A should exist').toBeDefined()
+    expect(minRuleB, 'minified font-mono rule B should exist').toBeDefined()
+    expect(minRuleA, 'minified font-mono A should not have font shorthand').not.toMatch(fontShorthandInRule)
+    expect(minRuleB, 'minified font-mono B should not have font shorthand').not.toMatch(fontShorthandInRule)
+  })
+
+  it('font-mono does not reset text-8xl font-size (npmx.dev repro)', async () => {
+    clearUnoCache()
+    // Exact classes from Package.takumi.vue line 86
+    const result = await resolve(['text-8xl', 'font-mono', 'tracking-tighter', 'mb-4'])
+
+    // font-mono should only set font-family
+    expect(result['font-mono'], 'font-mono should resolve').toBeDefined()
+    expect(result['font-mono']?.['font-family']).toContain('Geist Mono')
+    expect(result['font-mono']?.['font-size'], 'font-mono must NOT set font-size').toBeUndefined()
+    expect(result['font-mono']?.font, 'font-mono must NOT produce font shorthand').toBeUndefined()
+
+    // text-8xl must resolve with font-size
+    expect(result['text-8xl'], 'text-8xl should resolve').toBeDefined()
+    expect(result['text-8xl']?.['font-size'], 'text-8xl must have font-size').toBeDefined()
+
+    // tracking-tighter must resolve
+    expect(result['tracking-tighter'], 'tracking-tighter should resolve').toBeDefined()
+    expect(result['tracking-tighter']?.['letter-spacing'], 'should have letter-spacing').toBeDefined()
+
+    // mb-4 must resolve
+    expect(result['mb-4'], 'mb-4 should resolve').toBeDefined()
+
+    // Simulate Object.assign merge (what vue-template-transform does)
+    const merged: Record<string, string> = {}
+    for (const cls of ['text-8xl', 'font-mono', 'tracking-tighter', 'mb-4']) {
+      if (result[cls])
+        Object.assign(merged, result[cls])
+    }
+    expect(merged['font-family'], 'merged should have font-family').toContain('Geist Mono')
+    expect(merged['font-size'], 'merged should have font-size').toBeDefined()
+    expect(merged['letter-spacing'], 'merged should have letter-spacing').toBeDefined()
+    expect(merged['margin-bottom'], 'merged should have margin-bottom').toBeDefined()
+  })
+
+  it('font-mono + all text sizes preserve font-size with custom theme', async () => {
+    for (const size of ['text-sm', 'text-lg', 'text-xl', 'text-4xl', 'text-8xl']) {
+      clearUnoCache()
+      const result = await resolve(['font-mono', size])
+      expect(result[size], `${size} should resolve alongside font-mono`).toBeDefined()
+      expect(result[size]?.['font-size'], `${size} should have font-size`).toBeDefined()
+      expect(result['font-mono']?.['font-size'], `font-mono should not steal font-size from ${size}`).toBeUndefined()
+    }
+  })
+
+  it('font-sans resolves to custom Geist font-family', async () => {
+    clearUnoCache()
+    const result = await resolve(['font-sans'])
+    expect(result['font-sans'], 'font-sans should resolve').toBeDefined()
+    expect(result['font-sans']?.['font-family']).toContain('Geist')
+    expect(result['font-sans']?.font, 'must NOT produce font shorthand').toBeUndefined()
+    expect(result['font-sans']?.['font-size'], 'must NOT set font-size').toBeUndefined()
+  })
+
+  it('font-family is unwrapped to first custom family name (quoted multi-word, no generic fallbacks)', async () => {
+    clearUnoCache()
+    const result = await resolve(['font-mono', 'font-sans'])
+    // OG renderers don't do font fallback — generic families are noise.
+    // Multi-word names get CSS quotes so they parse as a single family name.
+    expect(result['font-mono']?.['font-family']).toBe('\'Geist Mono\'')
+    expect(result['font-sans']?.['font-family']).toBe('Geist')
   })
 })

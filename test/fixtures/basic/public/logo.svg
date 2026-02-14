@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="224" height="40" viewBox="0 0 224 40">
+  <rect width="224" height="40" fill="#00DC82" />
+  <text x="50%" y="50%" fill="white" font-family="sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central">Nuxt OG Image</text>
+</svg>

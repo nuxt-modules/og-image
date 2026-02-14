@@ -224,13 +224,13 @@ describe('css-utils', () => {
     it('normalizes calc(infinity * 1px) via Lightning CSS', async () => {
       const raw = { 'border-radius': 'calc(infinity * 1px)' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('3.40282e38px')
+      expect(result?.['border-radius']).toBe('9999px')
     })
 
     it('normalizes calc(infinity) via Lightning CSS', async () => {
       const raw = { 'border-radius': 'calc(infinity)' }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('3.40282e38px')
+      expect(result?.['border-radius']).toBe('9999px')
     })
 
     it('passes through opacity (normalization handled by simplifyCss)', async () => {
@@ -472,6 +472,106 @@ describe('tw4 class resolution', () => {
         expect(lh).toMatch(/^[\d.]+(%|rem|em|px)?$|^normal$|^initial$/)
       }
     })
+
+    it('font-mono does not reset text-8xl font-size or other sibling classes', async () => {
+      // Resolve individually
+      const individual = {
+        'font-mono': await resolve(['font-mono']),
+        'text-8xl': await resolve(['text-8xl']),
+        'tracking-tighter': await resolve(['tracking-tighter']),
+        'mb-4': await resolve(['mb-4']),
+      }
+
+      // Resolve combined (as they appear on a single element)
+      const combined = await resolve(['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4'])
+
+      // font-mono should only set font-family, not interfere with other properties
+      expect(combined['font-mono'], 'font-mono should resolve').toBeDefined()
+      expect(combined['font-mono']?.['font-family'], 'font-mono should have font-family').toBeDefined()
+      expect(combined['font-mono']?.['font-size'], 'font-mono must NOT set font-size').toBeUndefined()
+      expect(combined['font-mono']?.['line-height'], 'font-mono must NOT set line-height').toBeUndefined()
+      expect(combined['font-mono']?.['letter-spacing'], 'font-mono must NOT set letter-spacing').toBeUndefined()
+
+      // text-8xl must still resolve properly alongside font-mono
+      expect(combined['text-8xl'], 'text-8xl should resolve when combined with font-mono').toBeDefined()
+      expect(combined['text-8xl']?.['font-size'], 'text-8xl should have font-size').toBeDefined()
+
+      // Each class should resolve identically whether alone or combined
+      for (const cls of ['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4'] as const) {
+        const solo = individual[cls]?.[cls]
+        const combo = combined[cls]
+        if (solo && combo) {
+          expect(combo, `${cls} should resolve the same when combined`).toEqual(solo)
+        }
+      }
+    })
+
+    it('font-mono combined with text sizes preserves font-size', async () => {
+      const sizes = ['text-sm', 'text-lg', 'text-xl', 'text-4xl', 'text-8xl']
+      for (const size of sizes) {
+        const result = await resolve(['font-mono', size])
+        expect(result[size], `${size} should resolve alongside font-mono`).toBeDefined()
+        expect(result[size]?.['font-size'], `${size} should have font-size alongside font-mono`).toBeDefined()
+        // font-mono should not have stolen font-size
+        expect(result['font-mono']?.['font-size'], `font-mono should not have font-size when paired with ${size}`).toBeUndefined()
+      }
+    })
+
+    it('font-mono does not produce a font shorthand that would reset font-size', async () => {
+      const result = await resolve(['font-mono'])
+      expect(result['font-mono'], 'font-mono should resolve').toBeDefined()
+      const styles = result['font-mono']!
+      // font shorthand resets font-size, font-weight, line-height etc. — must not appear
+      expect(styles.font, 'font-mono must NOT produce a "font" shorthand').toBeUndefined()
+      // Should only set font-family (and optionally font-feature-settings, font-variation-settings)
+      expect(styles['font-family'], 'font-mono should set font-family').toBeDefined()
+    })
+
+    it('font-sans does not produce a font shorthand that would reset font-size', async () => {
+      const result = await resolve(['font-sans'])
+      expect(result['font-sans'], 'font-sans should resolve').toBeDefined()
+      const styles = result['font-sans']!
+      expect(styles.font, 'font-sans must NOT produce a "font" shorthand').toBeUndefined()
+      expect(styles['font-family'], 'font-sans should set font-family').toBeDefined()
+    })
+
+    it('font-serif does not produce a font shorthand that would reset font-size', async () => {
+      const result = await resolve(['font-serif'])
+      expect(result['font-serif'], 'font-serif should resolve').toBeDefined()
+      const styles = result['font-serif']!
+      expect(styles.font, 'font-serif must NOT produce a "font" shorthand').toBeUndefined()
+      expect(styles['font-family'], 'font-serif should set font-family').toBeDefined()
+    })
+
+    it('font-mono resolves only font-related properties (no unexpected resets)', async () => {
+      const result = await resolve(['font-mono'])
+      const styles = result['font-mono']!
+      // Only these properties should be set by font-mono
+      const allowedProps = new Set(['font-family', 'font-feature-settings', 'font-variation-settings'])
+      for (const prop of Object.keys(styles)) {
+        expect(allowedProps.has(prop), `font-mono should not set "${prop}": "${styles[prop]}"`).toBe(true)
+      }
+    })
+
+    it('merged font-mono + text-8xl style string contains all expected properties', async () => {
+      const result = await resolve(['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4'])
+
+      // Simulate the merge that vue-template-transform does (Object.assign)
+      const merged: Record<string, string> = {}
+      for (const cls of ['font-mono', 'text-8xl', 'tracking-tighter', 'mb-4']) {
+        if (result[cls])
+          Object.assign(merged, result[cls])
+      }
+
+      // All properties must coexist
+      expect(merged['font-family'], 'merged should have font-family').toBeDefined()
+      expect(merged['font-size'], 'merged should have font-size').toBeDefined()
+      expect(merged['letter-spacing'], 'merged should have letter-spacing').toBeDefined()
+      expect(merged['margin-bottom'], 'merged should have margin-bottom').toBeDefined()
+
+      // No shorthand that would override individual properties
+      expect(merged.font, 'merged should NOT have font shorthand').toBeUndefined()
+    })
   })
 
   describe('standard utilities', () => {
@@ -515,6 +615,19 @@ describe('tw4 class resolution', () => {
       expect(result['text-black']?.color).toMatch(/^#/)
     })
 
+    it('resolves opacity modifier colors to rgba (no color-mix or lab)', async () => {
+      const result = await resolve(['bg-sky-400/[0.14]', 'bg-white/[0.04]', 'bg-white/[0.08]'])
+      for (const cls of ['bg-sky-400/[0.14]', 'bg-white/[0.04]', 'bg-white/[0.08]']) {
+        expect(result[cls], `${cls} should resolve`).toBeDefined()
+        const bg = result[cls]?.['background-color']
+        expect(bg, `${cls} background-color should exist`).toBeDefined()
+        expect(bg, `${cls} should not contain color-mix()`).not.toContain('color-mix(')
+        expect(bg, `${cls} should not contain lab()`).not.toContain('lab(')
+        expect(bg, `${cls} should not contain oklch()`).not.toContain('oklch(')
+        expect(bg, `${cls} should be rgba`).toMatch(/^rgba?\(/)
+      }
+    })
+
     it('resolves positioning utilities', async () => {
       const result = await resolve(['relative', 'absolute', 'inset-0', 'inset-10', 'overflow-hidden'])
       for (const cls of ['relative', 'absolute', 'inset-0', 'inset-10', 'overflow-hidden']) {
@@ -552,7 +665,7 @@ describe('tw4 class resolution', () => {
     it('normalizes rounded-full calc(infinity) via Lightning CSS', async () => {
       const result = await resolve(['rounded-full'])
       expect(result['rounded-full'], 'rounded-full should resolve').toBeDefined()
-      expect(result['rounded-full']?.['border-radius']).toBe('3.40282e38px')
+      expect(result['rounded-full']?.['border-radius']).toBe('9999px')
     })
 
     it('resolves tracking utilities', async () => {
