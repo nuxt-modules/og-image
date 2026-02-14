@@ -168,6 +168,7 @@ export interface OgImageOptions {
   takumi?: {
     format?: 'png' | 'jpeg' | 'webp'
     persistentImages?: Array<{ src: string, data: ArrayBuffer }>
+    devicePixelRatio?: number
   }
   /** @deprecated Legacy font override — no longer used at runtime */
   fonts?: any
@@ -213,9 +214,8 @@ export interface FontConfig {
   unicodeRange?: string
 }
 
-export interface SatoriFontConfig extends FontConfig {
+export interface RuntimeFontConfig extends FontConfig {
   cacheKey: string
-  name: string
   data: BufferSource
 }
 
@@ -267,7 +267,7 @@ export interface VNode {
   _emojiMatches?: RegExpMatchArray | null
 }
 
-export interface SatoriTransformer {
+export interface VNodeTransformer {
   filter: (node: VNode) => boolean
   transform: (node: VNode, e: OgImageRenderEventContext) => Promise<void> | void
 }

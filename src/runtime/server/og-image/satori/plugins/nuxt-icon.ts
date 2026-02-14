@@ -1,8 +1,8 @@
 import type { VNode } from '../../../../types'
 import { logger } from '../../../util/logger'
-import { defineSatoriTransformer } from '../utils'
+import { defineTransformer } from '../../core/plugins'
 
-export default defineSatoriTransformer([
+export default defineTransformer([
   // need to make sure parent div has flex for the emoji to render inline
   {
     filter: (node: VNode) =>

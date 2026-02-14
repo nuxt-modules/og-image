@@ -1,38 +1,10 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
-import { tw4Breakpoints, tw4Colors, tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import resolvedFonts from '#og-image/fonts'
 import { createHeadCore } from '@unhead/vue'
 import { renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
 import { fetchIsland } from '../../util/kit'
-import { applyEmojis } from '../satori/transforms/emojis'
-
-// Build Tailwind config from extracted TW4 theme
-function buildTailwindConfig() {
-  const theme: Record<string, any> = {}
-
-  // Add colors
-  if (Object.keys(tw4Colors).length > 0)
-    theme.colors = tw4Colors
-
-  // Add font families
-  const fontFamily: Record<string, string[]> = {}
-  for (const [key, val] of Object.entries(tw4FontVars)) {
-    if (key.startsWith('font-') && val && /[a-z]/i.test(val))
-      fontFamily[key.slice(5)] = [val]
-  }
-  if (Object.keys(fontFamily).length > 0)
-    theme.fontFamily = fontFamily
-
-  // Add breakpoints (screens)
-  if (Object.keys(tw4Breakpoints).length > 0) {
-    theme.screens = Object.fromEntries(
-      Object.entries(tw4Breakpoints).map(([k, v]) => [k, `${v}px`]),
-    )
-  }
-
-  return { theme: { extend: theme } }
-}
+import { applyEmojis } from '../core/transforms/emojis'
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
@@ -60,82 +32,65 @@ export async function html(ctx: OgImageRenderEventContext) {
   const scaledWidth = Math.round(Number(options.width) * scale)
   const scaledHeight = Math.round(Number(options.height) * scale)
 
+  const fontFaces = fonts.map((font) => {
+    const ext = font.src.split('.').pop()?.toLowerCase()
+    const format = ext === 'woff2' ? 'woff2' : ext === 'woff' ? 'woff' : 'truetype'
+    return `@font-face {
+  font-family: '${font.family.replaceAll('+', ' ')}';
+  font-style: ${font.style};
+  font-weight: ${font.weight};
+  src: url('${font.src}') format('${format}');
+}`
+  }).join('\n')
+
+  const bgColor = (options.props as Record<string, any>)?.colorMode === 'dark' ? '#1b1b1b' : '#fff'
+
   head.push({
     style: [
       {
-        // default font is the first font family
-        innerHTML: `body { font-family: \'${defaultFontFamily}\', sans-serif;  }`,
-      },
-      {
-        innerHTML: `html, body {
-    margin: 0;
-    padding: 0;
-    width: ${scaledWidth}px;
-    height: ${scaledHeight}px;
-    overflow: hidden;
-    background-color: ${(options.props as Record<string, any>)?.colorMode === 'dark' ? '#1b1b1b' : '#fff'};
+        innerHTML: `/* reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+img, svg { display: block; max-width: 100%; }
+
+/* viewport */
+html, body {
+  width: ${scaledWidth}px;
+  height: ${scaledHeight}px;
+  overflow: hidden;
+  font-family: '${defaultFontFamily}', sans-serif;
+  background-color: ${bgColor};
 }
+
+/* scale wrapper */
 .og-scale-wrapper {
-    transform: scale(${scale});
-    transform-origin: top left;
-    width: ${options.width}px;
-    height: ${options.height}px;
+  transform: scale(${scale});
+  transform-origin: top left;
+  width: ${options.width}px;
+  height: ${options.height}px;
 }
 .og-scale-wrapper > :first-child {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
-div {
-  display: flex;
-}
+
+/* match satori flex defaults for divs */
+div { display: flex; }
 div:has(div, p, ul, ol, li, blockquote, pre, hr, table, dl) {
-  display: flex;
   flex-direction: column;
 }
 div:not(:has(div, p, ul, ol, li, blockquote, pre, hr, table, dl)) {
-  display: flex;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-svg[data-emoji] {
-  display: inline-block;
-}
-`,
+svg[data-emoji] { display: inline-block; }
+
+/* fonts */
+${fontFaces}`,
       },
-      ...fonts.map((font) => {
-        // Determine format from file extension
-        const ext = font.src.split('.').pop()?.toLowerCase()
-        const format = ext === 'woff2' ? 'woff2' : ext === 'woff' ? 'woff' : 'truetype'
-        return `
-          @font-face {
-            font-family: '${font.family.replaceAll('+', ' ')}';
-            font-style: ${font.style};
-            font-weight: ${font.weight};
-            src: url('${font.src}') format('${format}');
-          }
-          `
-      }),
     ],
     meta: [
-      {
-        charset: 'utf-8',
-      },
-    ],
-    script: [
-      {
-        src: 'https://cdn.tailwindcss.com',
-      },
-      {
-        innerHTML: `tailwind.config = ${JSON.stringify(buildTailwindConfig())}`,
-      },
-    ],
-    link: [
-      {
-        // reset css to match svg output
-        href: 'https://cdn.jsdelivr.net/npm/gardevoir',
-        rel: 'stylesheet',
-      },
+      { charset: 'utf-8' },
     ],
   })
 

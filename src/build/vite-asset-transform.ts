@@ -9,9 +9,10 @@ import { dirname, isAbsolute, join, resolve } from 'pathe'
 import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtml'
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
-import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/satori/transforms/emojis/emoji-utils'
+import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/core/transforms/emojis/emoji-utils'
+import { resolveColorMix } from '../runtime/server/og-image/utils/css'
 import { extractFontRequirementsFromVue } from './css/css-classes'
-import { extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
+import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -196,6 +197,13 @@ const SATORI_UNSUPPORTED_PATTERNS = [
   /^content-(?!center|start|end|between|around|evenly|stretch)/, // content-* except flex alignment
 ]
 
+// UnoCSS icon class pattern: i-{collection}-{name}
+const ICON_CLASS_RE = /^i-([a-z\d]+)-(.+)$/
+
+function isIconClass(cls: string): boolean {
+  return ICON_CLASS_RE.test(cls)
+}
+
 function isSatoriUnsupported(cls: string): boolean {
   return SATORI_UNSUPPORTED_PATTERNS.some(p => p.test(cls))
 }
@@ -206,6 +214,8 @@ export interface AssetTransformOptions {
   rootDir: string
   srcDir: string
   publicDir: string
+  /** Nuxt build directory (for resolving #build/ aliases) */
+  buildDir?: string
   emojiSet?: string
   /** Pre-loaded emoji icon set (skips dynamic import) */
   emojiIcons?: IconifyJSON | null
@@ -214,9 +224,17 @@ export interface AssetTransformOptions {
    */
   cssProvider?: CssProvider
   /**
+   * Fallback color preference from @nuxtjs/color-mode (used when template has no data-theme).
+   */
+  colorPreference?: 'light' | 'dark'
+  /**
    * Callback invoked after extracting font requirements from each component.
    */
   onFontRequirements?: (id: string, reqs: Awaited<ReturnType<typeof extractFontRequirementsFromVue>>) => void
+  /**
+   * Called before CSS operations to flush any dirty HMR state.
+   */
+  beforeCssResolve?: () => void
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -227,6 +245,9 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
     enforce: 'pre',
 
     transformInclude(id) {
+      // Accept ?og-image query param (nested components rewritten by ComponentImportRewritePlugin)
+      if (id.includes('?og-image'))
+        return true
       if (!id.endsWith('.vue'))
         return false
       // Check if file is inside any of the resolved OG component directories
@@ -234,7 +255,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
     },
 
-    async transform(code, id) {
+    async transform(code, rawId) {
+      // Strip ?og-image query param for path operations (nested component imports)
+      const id = rawId.replace(/\?og-image(?:-depth=\d+)?$/, '')
+
       const templateMatch = code.match(/<template>([\s\S]*?)<\/template>/)
       if (!templateMatch)
         return
@@ -337,7 +361,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
 
         // Second pass: replace icon elements with SVG
-        if (iconSets.size > 0 && iconElements.length > 0) {
+        if (iconElements.length > 0) {
+          let anyReplaced = false
           for (const { node: el, parent, index } of iconElements) {
             const iconName = el.attributes.name
             if (!iconName)
@@ -347,41 +372,126 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             if (!prefix || !name)
               continue
 
+            // Try @iconify-json package first
             const icons = iconSets.get(prefix)
-            if (!icons)
+            const iconData = icons?.icons?.[name]
+
+            let svgHtml: string | undefined
+            if (iconData) {
+              svgHtml = buildIconSvg(iconData, icons!.width || 24, icons!.height || 24, el.attributes)
+            }
+            // Fallback: resolve from CSS provider (e.g. UnoCSS presetIcons custom collections)
+            else if (options.cssProvider?.resolveIcon) {
+              const resolved = await options.cssProvider.resolveIcon(prefix, name)
+              if (resolved)
+                svgHtml = buildIconSvg(resolved, resolved.width, resolved.height, el.attributes)
+            }
+
+            if (!svgHtml)
               continue
 
-            const iconData = icons.icons?.[name]
-            if (!iconData)
-              continue
-
+            anyReplaced = true
             hasChanges = true
-            // Build SVG and parse it back to AST node
-            const svgHtml = buildIconSvg(iconData, icons.width || 24, icons.height || 24, el.attributes)
             const svgDoc = parseHtml(svgHtml)
-            // Replace the icon element with the SVG span
             if ('children' in parent && Array.isArray(parent.children)) {
               parent.children[index] = svgDoc.children[0]
             }
           }
 
-          // Render back to HTML, removing the wrapper div
-          const rendered = renderSync(doc)
-          // Remove wrapper div
-          template = rendered.replace(/^<div>/, '').replace(/<\/div>$/, '')
+          if (anyReplaced) {
+            // Render back to HTML, removing the wrapper div
+            const rendered = renderSync(doc)
+            // Remove wrapper div
+            template = rendered.replace(/^<div>/, '').replace(/<\/div>$/, '')
+          }
         }
       }
 
+      // Transform UnoCSS icon classes (i-{collection}-{name}) to inline SVGs
+      // Uses targeted string replacement (not ultrahtml renderSync) to preserve Vue directives like v-if
+      if (options.cssProvider?.resolveIcon) {
+        // Match elements with icon classes — self-closing or empty paired tags only
+        const iconElRe = /<(\w+)\b((?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*\s+class="([^"]*)"(?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*)(\s*\/?>)(?:\s*<\/\1>)?/g
+        const replacements: Array<{ from: string, to: string }> = []
+
+        let elMatch
+        // eslint-disable-next-line no-cond-assign
+        while ((elMatch = iconElRe.exec(template)) !== null) {
+          const [fullMatch, , attrsStr, classValue] = elMatch
+          if (!classValue)
+            continue
+
+          // Check if class contains an icon pattern
+          const classes = classValue.split(/\s+/).filter(Boolean)
+          let iconPrefix: string | undefined
+          let iconName: string | undefined
+          for (const cls of classes) {
+            const im = cls.match(ICON_CLASS_RE)
+            if (im?.[1] && im[2]) {
+              iconPrefix = im[1]
+              iconName = im[2]
+              break
+            }
+          }
+          if (!iconPrefix || !iconName)
+            continue
+
+          const resolved = await options.cssProvider.resolveIcon!(iconPrefix, iconName)
+          if (!resolved)
+            continue
+
+          // Parse attributes from raw string, excluding class (rebuilt below), name,
+          // and Vue dynamic bindings for style (:style/v-bind:style — the element is
+          // replaced with a static SVG wrapper so dynamic bindings can't be evaluated)
+          const attrs: Record<string, string> = {}
+          const attrRe = /\b([a-z_:@][\w.:-]*)(?:="([^"]*)")?/gi
+          let am
+          // eslint-disable-next-line no-cond-assign
+          while ((am = attrRe.exec(attrsStr!)) !== null) {
+            if (am[1] && am[1] !== 'class' && am[1] !== ':style' && am[1] !== 'v-bind:style')
+              attrs[am[1]] = am[2] ?? ''
+          }
+
+          // Keep non-icon classes
+          const otherClasses = classes.filter(c => !isIconClass(c))
+          if (otherClasses.length > 0)
+            attrs.class = otherClasses.join(' ')
+
+          const svgHtml = buildIconSvg(resolved, resolved.width, resolved.height, attrs)
+          replacements.push({ from: fullMatch, to: svgHtml })
+        }
+
+        for (const { from, to } of replacements) {
+          template = template.replace(from, to)
+          hasChanges = true
+        }
+      }
+
+      // Extract data-* attrs from the template root element for CSS var resolution
+      const rootAttrs: Record<string, string> = {}
+      const rootAttrMatch = template.match(/^\s*<(\w+)\s([^>]*)>/)
+      if (rootAttrMatch?.[2]) {
+        const attrRe = /\bdata-([\w-]+)="([^"]*)"/g
+        for (const m of rootAttrMatch[2].matchAll(attrRe)) {
+          if (m[1] && m[2])
+            rootAttrs[`data-${m[1]}`] = m[2]
+        }
+      }
+      // Fallback: if no data-theme on root, use colorPreference from module config
+      if (!rootAttrs['data-theme'] && options.colorPreference)
+        rootAttrs['data-theme'] = options.colorPreference
+
       // Transform CSS utility classes to inline styles
       if (options.cssProvider) {
+        options.beforeCssResolve?.()
         try {
           // Wrap current template back into full SFC for AST parsing
           const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
 
           const result = await transformVueTemplate(fullCode, {
             resolveStyles: async (classes) => {
-              // Filter unsupported classes first
-              const supported = classes.filter(cls => !isSatoriUnsupported(cls))
+              // Filter unsupported classes and icon classes (handled via SVG replacement)
+              const supported = classes.filter(cls => !isSatoriUnsupported(cls) && !isIconClass(cls))
               const unsupported = classes.filter(cls => isSatoriUnsupported(cls))
 
               if (unsupported.length > 0) {
@@ -390,7 +500,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               }
 
               const componentName = id.split('/').pop()?.replace(/\.\w+$/, '')
-              return options.cssProvider!.resolveClassesToStyles(supported, componentName)
+              return options.cssProvider!.resolveClassesToStyles(supported, componentName, rootAttrs)
             },
           })
 
@@ -409,19 +519,64 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
       }
 
-      // Resolve var() in HTML attributes (e.g., SVG fill="var(--bg)")
+      // Resolve var() in HTML attributes and inline styles
       if (options.cssProvider?.getVars && template.includes('var(')) {
-        const vars = await options.cssProvider.getVars()
+        const vars = await options.cssProvider.getVars(rootAttrs)
         if (vars.size > 0) {
-          // Match attribute="...var(--...)..." patterns, excluding style and class attributes
-          template = template.replace(/\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g, (match, attr, value) => {
+          // Non-style, non-class attributes (e.g., SVG fill="var(--bg)")
+          const COLOR_ATTRS = /^(?:color|fill|stroke|flood-color|lighting-color|stop-color)$/
+          const replacements: Array<{ from: string, to: string }> = []
+          template.replace(/\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g, (match, attr, value) => {
             const resolved = resolveCssVars(value, vars)
             if (resolved !== value) {
-              hasChanges = true
-              return `${attr}="${resolved}"`
+              replacements.push({ from: match, to: `${attr}="${resolved}"` })
             }
             return match
           })
+          // Downlevel modern colors (oklch, etc.) in color-related attributes
+          for (const r of replacements) {
+            const attrMatch = r.to.match(/^([a-z-]+)="(.*)"$/i)
+            if (attrMatch?.[1] && attrMatch[2] !== undefined && COLOR_ATTRS.test(attrMatch[1])) {
+              const downleveled = await downlevelColor(attrMatch[1], attrMatch[2])
+              r.to = `${attrMatch[1]}="${downleveled}"`
+            }
+            template = template.replace(r.from, r.to)
+            hasChanges = true
+          }
+
+          // Inline style attributes: resolve var() and downlevel colors per-declaration
+          const COLOR_PROPS = /color|fill|stroke|background|border|outline|shadow|accent|caret/
+          const styleReplacements: Array<{ from: string, to: string }> = []
+          template.replace(/\bstyle="([^"]*var\(--[^"]+)"/g, (match, styleValue) => {
+            const resolved = resolveCssVars(styleValue, vars)
+            if (resolved !== styleValue)
+              styleReplacements.push({ from: match, to: `style="${resolved}"` })
+            return match
+          })
+          for (const r of styleReplacements) {
+            // Downlevel modern colors in each declaration
+            const styleContent = r.to.slice('style="'.length, -1)
+            const declarations = styleContent.split(';').filter(Boolean)
+            const downleveled: string[] = []
+            for (const decl of declarations) {
+              const colonIdx = decl.indexOf(':')
+              if (colonIdx === -1) {
+                downleveled.push(decl)
+                continue
+              }
+              const prop = decl.slice(0, colonIdx).trim()
+              let value = decl.slice(colonIdx + 1).trim()
+              if (COLOR_PROPS.test(prop) && !value.includes('var(')) {
+                value = await downlevelColor(prop, value)
+                if (value.includes('color-mix('))
+                  value = resolveColorMix(value)
+              }
+              downleveled.push(`${prop}: ${value}`)
+            }
+            r.to = `style="${downleveled.join('; ')}"`
+            template = template.replace(r.from, r.to)
+            hasChanges = true
+          }
         }
       }
 

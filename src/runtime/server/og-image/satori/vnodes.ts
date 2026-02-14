@@ -1,78 +1,14 @@
-import type { ElementNode, TextNode } from 'ultrahtml'
 import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../types'
 import resolvedFonts from '#og-image/fonts'
-import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
-import { querySelector } from 'ultrahtml/selector'
-import { decodeHtml, htmlDecodeQuotes } from '../../util/encoding'
-import { fetchIsland } from '../../util/kit'
+import { walkTree } from '../core/plugins'
+import { createVNodes as coreCreateVNodes } from '../core/vnodes'
 import classes from './plugins/classes'
 import emojis from './plugins/emojis'
-import encoding from './plugins/encoding'
 import flex from './plugins/flex'
-import imageSrc from './plugins/imageSrc'
 import nuxtIcon from './plugins/nuxt-icon'
-import twClasses from './plugins/twClasses'
-import { applyEmojis } from './transforms/emojis'
-import { walkSatoriTree } from './utils'
 
-function camelCase(str: string): string {
-  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
-}
-
-function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
-  if (!style)
-    return undefined
-  const result: Record<string, any> = {}
-  // Decode &amp; before splitting — the `;` in `&amp;` would otherwise act as
-  // a CSS declaration separator and truncate values containing `&` (e.g. URLs).
-  for (const decl of style.replace(/&amp;/g, '&').split(';')) {
-    const colonIdx = decl.indexOf(':')
-    if (colonIdx === -1)
-      continue
-    const prop = decl.slice(0, colonIdx).trim()
-    const val = decl.slice(colonIdx + 1).trim()
-    if (prop && val)
-      result[camelCase(prop)] = val
-  }
-  return Object.keys(result).length ? result : undefined
-}
-
-function elementToVNode(el: ElementNode): VNode {
-  const props: VNode['props'] = {}
-
-  const { style, ...attrs } = el.attributes
-  const parsedStyle = parseStyleAttr(style)
-  if (parsedStyle)
-    props.style = parsedStyle
-
-  for (const [name, value] of Object.entries(attrs))
-    props[name] = typeof value === 'string' ? decodeHtml(value) : value
-
-  const children: (VNode | string)[] = []
-  for (const child of el.children) {
-    if (child.type === ELEMENT_NODE) {
-      children.push(elementToVNode(child as ElementNode))
-    }
-    else if (child.type === TEXT_NODE) {
-      const text = (child as TextNode).value
-      if (text.trim())
-        children.push(text)
-    }
-  }
-
-  if (children.length)
-    props.children = children
-
-  return { type: el.name, props } as VNode
-}
-
-export function htmlToVNode(html: string): VNode {
-  const doc = parse(html)
-  const root = querySelector(doc, 'div') as ElementNode | null
-  if (!root)
-    throw new Error('Failed to parse HTML - no root div found')
-  return elementToVNode(root)
-}
+// Re-export shared utilities for external consumers
+export { htmlToVNode, SVG_CAMEL_ATTR_VALUES, warnUnsupportedSvgElements } from '../core/vnodes'
 
 // Get default font family from resolved fonts
 function getDefaultFontFamily(): string {
@@ -84,38 +20,12 @@ function getDefaultFontFamily(): string {
 }
 
 export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNode> {
-  let html = ctx.options.html
-  if (!html) {
-    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
-    // this fixes any inline style props that need to be wrapped in single quotes, such as:
-    // background image, fonts, etc
-    island.html = htmlDecodeQuotes(island.html)
-    // pre-transform HTML - apply emoji replacements
-    await applyEmojis(ctx, island)
-    html = island.html
-    if (html?.includes('<body>')) {
-      // get inner contents of body
-      html = html.match(/<body>([\s\S]*)<\/body>/)?.[1] || ''
-    }
-  }
-  // get the body content of the html
   const fontFamilyOverride = (ctx.options.props as Record<string, any>)?.fontFamily
   const font = fontFamilyOverride ? `'${fontFamilyOverride}', sans-serif` : getDefaultFontFamily()
-  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden; font-family: ${font};">${html}</div>`
-  // convert html to satori vnode tree
-  const satoriTree = htmlToVNode(template)
-  // do sync transforms
-  walkSatoriTree(ctx, satoriTree, [
-    classes,
-    twClasses, // Convert class -> tw and handle breakpoints (must run before flex)
-    flex,
-    encoding,
-    nuxtIcon,
-  ])
-  // do async transforms
-  await Promise.all(walkSatoriTree(ctx, satoriTree, [
-    emojis,
-    imageSrc,
-  ]))
-  return satoriTree
+  const vnodes = await coreCreateVNodes(ctx, { wrapperStyle: `font-family: ${font};` })
+  // satori-only sync transforms
+  walkTree(ctx, vnodes, [classes, flex, nuxtIcon])
+  // satori-only async transforms
+  await Promise.all(walkTree(ctx, vnodes, [emojis]))
+  return vnodes
 }

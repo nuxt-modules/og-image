@@ -1,14 +1,6 @@
 import type { OgImageRenderEventContext, VNode } from '../../../types'
-import { htmlDecodeQuotes } from '../../util/encoding'
-import { fetchIsland } from '../../util/kit'
-import encoding from '../satori/plugins/encoding'
-import imageSrc from '../satori/plugins/imageSrc'
-import twClasses from '../satori/plugins/twClasses'
-import { applyEmojis } from '../satori/transforms/emojis'
-import { applyInlineCss } from '../satori/transforms/inlineCss'
-import { walkSatoriTree } from '../satori/utils'
-import { htmlToVNode } from '../satori/vnodes'
-import { stripGradientColorSpace } from '../utils/css'
+import { createVNodes, SVG_CAMEL_ATTR_VALUES } from '../core/vnodes'
+import { resolveUnsupportedUnits, stripGradientColorSpace } from '../utils/css'
 
 export interface TakumiNode {
   type: 'container' | 'image' | 'text'
@@ -22,32 +14,18 @@ export interface TakumiNode {
 }
 
 export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<TakumiNode> {
-  let html = ctx.options.html
-  if (!html) {
-    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
-    island.html = htmlDecodeQuotes(island.html)
-    await applyInlineCss(ctx, island)
-    await applyEmojis(ctx, island)
-    html = island.html
-    if (html?.includes('<body>'))
-      html = html.match(/<body>([\s\S]*)<\/body>/)?.[1] || ''
-  }
-
-  const template = `<div style="position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;">${html}</div>`
-
-  // Parse to VNode tree and apply shared plugins (encoding + twClasses for dark:/responsive)
-  const vnodeTree = htmlToVNode(template)
-  await Promise.all(walkSatoriTree(ctx, vnodeTree, [encoding, twClasses, imageSrc]))
-
+  const vnodeTree = await createVNodes(ctx)
   return await vnodeToTakumiNode(vnodeTree, Number(ctx.options.width), Number(ctx.options.height))
 }
 
-async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeight?: number): Promise<TakumiNode> {
+async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeight?: number, inheritedColor?: string): Promise<TakumiNode> {
   let { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
 
   if (style && typeof style === 'object') {
     style = Object.fromEntries(
-      Object.entries(style).filter(([_, v]) => v !== undefined && v !== null && v !== ''),
+      Object.entries(style)
+        .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+        .map(([k, v]) => [k, typeof v === 'string' ? resolveUnsupportedUnits(v, parentWidth, parentHeight) : v]),
     )
     if (Object.keys(style).length === 0)
       style = undefined
@@ -75,6 +53,9 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
   // Dimension fallback logic
   const resolvedWidth = resolvePx(width, parentWidth) || resolvePx(style?.width, parentWidth) || extractTwDim(tw || cls, 'w', parentWidth)
   const resolvedHeight = resolvePx(height, parentHeight) || resolvePx(style?.height, parentHeight) || extractTwDim(tw || cls, 'h', parentHeight)
+
+  // Resolve color for currentColor inheritance (CSS color cascades to children)
+  const nodeColor = style?.color || inheritedColor
 
   // SVG elements → convert to SVG data URI for takumi to handle
   if (vnode.type === 'svg') {
@@ -111,7 +92,11 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
     const svgProps = { ...vnode.props }
     svgProps.width = renderWidth
     svgProps.height = renderHeight
-    const svg = vnodeToHtmlString({ ...vnode, props: svgProps })
+    let svg = vnodeToHtmlString({ ...vnode, props: svgProps })
+
+    // Resolve currentColor before base64 encoding — images lose CSS inheritance context
+    if (nodeColor && svg.includes('currentColor'))
+      svg = svg.replaceAll('currentColor', nodeColor)
 
     return {
       type: 'image',
@@ -171,7 +156,7 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
     const takumiChildren: TakumiNode[] = []
     for (const child of children) {
       if (child && typeof child === 'object')
-        takumiChildren.push(await vnodeToTakumiNode(child, resolvedWidth, resolvedHeight))
+        takumiChildren.push(await vnodeToTakumiNode(child, resolvedWidth, resolvedHeight, nodeColor))
       else if (typeof child === 'string' && child.trim())
         takumiChildren.push({ type: 'text', text: child.trim() })
     }
@@ -282,8 +267,8 @@ function vnodeToHtmlString(vnode: VNode): string {
   for (const [key, val] of Object.entries(attrs)) {
     if (key === 'tw' || key === 'class' || val == null)
       continue
-    // viewBox must be preserved as-is for SVG
-    const finalKey = key === 'viewBox' ? key : kebabCase(key)
+    // SVG attributes like viewBox, preserveAspectRatio must preserve their casing
+    const finalKey = SVG_CAMEL_ATTR_VALUES.has(key) ? key : kebabCase(key)
     attrParts.push(`${finalKey}="${String(resolveValue(val)).replace(/"/g, '&quot;')}"`)
   }
 

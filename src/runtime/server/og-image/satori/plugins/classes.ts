@@ -1,8 +1,8 @@
 import type { VNode } from '../../../../types'
-import { defineSatoriTransformer } from '../utils'
+import { defineTransformer } from '../../core/plugins'
 
 // copy classes to tw classes so they get processed
-export default defineSatoriTransformer([
+export default defineTransformer([
   {
     filter: (node: VNode) => !!node.props?.class && !node.props?.tw,
     transform(node: VNode) {

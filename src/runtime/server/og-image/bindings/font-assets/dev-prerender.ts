@@ -36,18 +36,20 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   if (import.meta.prerender) {
     const rootDir = getRootDir()
 
-    // @nuxt/fonts managed fonts (includes converted TTFs from WOFF2)
+    // Satori static font downloads (separate from @nuxt/fonts to avoid conflicts)
+    if (path.startsWith('/_og-satori-fonts/')) {
+      const filename = path.slice('/_og-satori-fonts/'.length)
+      const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
+        || await readFile(join(rootDir, '.output', 'public', '_og-satori-fonts', filename)).catch(() => null)
+      if (cached?.length)
+        return cached
+    }
+
+    // @nuxt/fonts managed fonts
     if (path.startsWith('/_fonts/')) {
       const filename = path.slice('/_fonts/'.length)
 
-      // Try filesystem locations first (faster, no network)
-      // For converted TTF files, check og-image's cache first
-      if (filename.endsWith('.ttf')) {
-        const ttfCached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
-        if (ttfCached?.length)
-          return ttfCached
-      }
-      // Try .output/public/_fonts (includes WOFF files and copied TTFs)
+      // Try .output/public/_fonts (WOFF/WOFF2 files from @nuxt/fonts)
       const cached = await readFile(join(rootDir, '.output', 'public', '_fonts', filename)).catch(() => null)
       if (cached?.length)
         return cached
@@ -70,9 +72,9 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     // Fall through to event.$fetch which resolves via Nitro's asset server
   }
 
-  // For converted TTF fonts, try og-image's TTF cache first
-  if (path.startsWith('/_fonts/') && path.endsWith('.ttf')) {
-    const filename = path.slice('/_fonts/'.length)
+  // Satori static fonts — try og-image's cache first (dev mode)
+  if (path.startsWith('/_og-satori-fonts/')) {
+    const filename = path.slice('/_og-satori-fonts/'.length)
     const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
     if (cached?.length)
       return cached

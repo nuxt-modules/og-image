@@ -1,59 +1,11 @@
-import type { ElementNode, TextNode } from 'ultrahtml'
+import type { ElementNode } from 'ultrahtml'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { getEmojiSvg } from '#og-image/emoji-transform'
-import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
+import { parse } from 'ultrahtml'
 import { querySelector } from 'ultrahtml/selector'
-import { RE_MATCH_EMOJIS } from '../transforms/emojis/emoji-utils'
-import { defineSatoriTransformer } from '../utils'
-
-function camelCase(str: string): string {
-  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
-}
-
-function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
-  if (!style)
-    return undefined
-  const result: Record<string, any> = {}
-  for (const decl of style.split(';')) {
-    const colonIdx = decl.indexOf(':')
-    if (colonIdx === -1)
-      continue
-    const prop = decl.slice(0, colonIdx).trim()
-    const val = decl.slice(colonIdx + 1).trim()
-    if (prop && val)
-      result[camelCase(prop)] = val
-  }
-  return Object.keys(result).length ? result : undefined
-}
-
-function elementToVNode(el: ElementNode): VNode {
-  const props: VNode['props'] = {}
-
-  const { style, ...attrs } = el.attributes
-  const parsedStyle = parseStyleAttr(style)
-  if (parsedStyle)
-    props.style = parsedStyle
-
-  for (const [name, value] of Object.entries(attrs))
-    props[name] = value
-
-  const children: (VNode | string)[] = []
-  for (const child of el.children) {
-    if (child.type === ELEMENT_NODE) {
-      children.push(elementToVNode(child as ElementNode))
-    }
-    else if (child.type === TEXT_NODE) {
-      const text = (child as TextNode).value
-      if (text.trim())
-        children.push(text)
-    }
-  }
-
-  if (children.length)
-    props.children = children
-
-  return { type: el.name, props } as VNode
-}
+import { defineTransformer } from '../../core/plugins'
+import { RE_MATCH_EMOJIS } from '../../core/transforms/emojis/emoji-utils'
+import { elementToVNode } from '../../core/vnodes'
 
 function svgToVNode(svg: string): VNode | null {
   const doc = parse(svg)
@@ -68,7 +20,7 @@ function isEmojiSvg(node: VNode) {
     && typeof node.props?.['data-emoji'] !== 'undefined'
 }
 
-export default defineSatoriTransformer([
+export default defineTransformer([
   // Transform text nodes that contain emojis to replace them with SVG nodes
   {
     filter: (node: VNode) => {

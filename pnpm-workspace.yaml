@@ -47,8 +47,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.67.3
-  '@takumi-rs/wasm': ^0.67.3
+  '@takumi-rs/core': ^0.68.2
+  '@takumi-rs/wasm': ^0.68.2
   '@vitejs/plugin-vue': ^6.0.4
   '@vue/compiler-sfc': ^3.5.28
   '@vueuse/core': ^14.2.1
@@ -63,7 +63,7 @@ catalog:
   devalue: ^5.6.2
   eslint: ^9.39.2
   exsolve: ^1.0.8
-  fontless: ^0.2.0
+  fontless: ^0.2.1
   get-image-colors: ^4.0.1
   globby: ^16.1.0
   happy-dom: ^20.6.1
@@ -94,7 +94,7 @@ catalog:
   typescript: ^5.9.3
   ufo: ^1.6.3
   ultrahtml: ^1.6.0
-  unifont: ^0.7.3
+  unifont: ^0.7.4
   unplugin: ^3.0.0
   vitest: ^4.0.18
   vue: ^3.5.28

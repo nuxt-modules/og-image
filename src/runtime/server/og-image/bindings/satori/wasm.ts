@@ -1,4 +1,4 @@
-import _satori, { init } from 'satori'
+import _satori, { init } from 'satori/standalone'
 
 const yogaWasm = import('yoga-wasm-web/dist/yoga.wasm?module' as string)
   .then(m => m.default || m)

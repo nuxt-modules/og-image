@@ -1,6 +1,6 @@
-import type { OgImageRenderEventContext, SatoriTransformer, VNode } from '../../../types'
+import type { OgImageRenderEventContext, VNode, VNodeTransformer } from '../../../types'
 
-export function walkSatoriTree(e: OgImageRenderEventContext, node: VNode, plugins: (SatoriTransformer | SatoriTransformer[])[]) {
+export function walkTree(e: OgImageRenderEventContext, node: VNode, plugins: (VNodeTransformer | VNodeTransformer[])[]) {
   const promises: (Promise<void> | void)[] = []
 
   // Apply plugins to the current node
@@ -24,13 +24,13 @@ export function walkSatoriTree(e: OgImageRenderEventContext, node: VNode, plugin
   for (const child of node.props.children || []) {
     if (child && typeof child === 'object') {
       promises.push(
-        ...walkSatoriTree(e, child, plugins),
+        ...walkTree(e, child, plugins),
       )
     }
   }
   return promises
 }
 
-export function defineSatoriTransformer(transformer: SatoriTransformer | SatoriTransformer[]) {
+export function defineTransformer(transformer: VNodeTransformer | VNodeTransformer[]) {
   return transformer
 }

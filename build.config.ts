@@ -25,6 +25,7 @@ export default defineBuildConfig({
     'sharp',
     'unstorage',
     'unstorage/drivers/fs',
+    'unstorage/drivers/fs-lite',
     'consola/utils',
     '#nitro-internal-virtual/storage',
     // @nuxt/fonts integration - fontless is only used when @nuxt/fonts is present

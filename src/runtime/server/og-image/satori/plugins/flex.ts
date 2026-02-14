@@ -1,5 +1,5 @@
 import type { VNode } from '../../../../types'
-import { defineSatoriTransformer } from '../utils'
+import { defineTransformer } from '../../core/plugins'
 
 const INLINE_ELEMENTS = [
   'span',
@@ -28,7 +28,7 @@ const INLINE_ELEMENTS = [
 // Add missing flex defaults for Satori compatibility.
 // Build-time handles elements with classes (emitting display:flex + flex-direction:row).
 // This plugin only handles bare elements the build-time transform didn't touch.
-export default defineSatoriTransformer({
+export default defineTransformer({
   filter: (node: VNode) =>
     [...INLINE_ELEMENTS, 'div'].includes(node.type)
     && (Array.isArray(node.props?.children) && node.props?.children.length >= 1)

@@ -62,3 +62,6 @@ Temporary Items
 
 # for testing atm
 docs/public
+
+# Skilld references (recreated by `skilld install`)
+.skilld

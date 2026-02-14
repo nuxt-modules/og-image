@@ -1,6 +1,6 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer } from '../../../types'
+import type { OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../../../types'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
@@ -8,6 +8,9 @@ import { useOgImageRuntimeConfig } from '../../utils'
 import { loadAllFonts } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
+
+// Stable font array cache — satori uses a WeakMap keyed by array identity
+const _satoriFontCache = new WeakMap<RuntimeFontConfig[], Array<RuntimeFontConfig & { name: string }>>()
 
 // Capture Satori warnings during render
 function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warnings: string[] }> {
@@ -38,11 +41,15 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
+  // Remap to satori's font format (requires `name` instead of `family`).
+  // Cache by source array reference so satori's WeakMap font cache hits.
+  const satoriFonts = _satoriFontCache.get(fonts) ?? fonts.map(f => ({ ...f, name: f.family }))
+  _satoriFontCache.set(fonts, satoriFonts)
   // Build tailwind theme from TW4 font vars, filtered to loaded font families
   // TW4 vars contain full font stacks (e.g. "ui-sans-serif, system-ui, ...") but Satori
   // can only use fonts that are actually loaded — filter to available families
-  const loadedFamilies = new Set(fonts.map(f => f.name))
-  const defaultFamily = fonts[0]?.name
+  const loadedFamilies = new Set(satoriFonts.map(f => f.name))
+  const defaultFamily = satoriFonts[0]?.name
   function resolveAvailableFamily(cssValue: string): string | undefined {
     const families = cssValue.split(',').map(f => f.trim().replace(/^['"]|['"]$/g, ''))
     const available = families.filter(f => loadedFamilies.has(f))
@@ -60,7 +67,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
       fontFamily[slot] = resolved
   }
   const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions>{
-    fonts,
+    fonts: satoriFonts,
     tailwindConfig: Object.keys(fontFamily).length ? { theme: { fontFamily } } : undefined,
     embedFont: true,
     width: options.width!,

@@ -1,8 +1,8 @@
 import type { VNode } from '../../../../types'
 import { decodeHtml } from '../../../util/encoding'
-import { defineSatoriTransformer } from '../utils'
+import { defineTransformer } from '../plugins'
 
-export default defineSatoriTransformer([
+export default defineTransformer([
   // clean up vue inspector data attributes
   {
     filter: (node: VNode) => node.props?.['data-v-inspector'],

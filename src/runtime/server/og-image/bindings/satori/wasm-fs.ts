@@ -1,4 +1,4 @@
-import _satori, { init } from 'satori'
+import _satori, { init } from 'satori/standalone'
 import { readWasmFile } from '../../../util/wasm'
 
 const wasmBinary = readWasmFile('yoga-wasm-web/dist/yoga.wasm')

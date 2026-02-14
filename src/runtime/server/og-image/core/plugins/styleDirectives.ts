@@ -1,6 +1,6 @@
 import type { VNode } from '../../../../types'
 import { tw4Breakpoints } from '#og-image-virtual/tw4-theme.mjs'
-import { defineSatoriTransformer } from '../utils'
+import { defineTransformer } from '../plugins'
 
 // Default Tailwind breakpoints (fallback if not extracted from TW4 CSS)
 const DEFAULT_BREAKPOINTS: Record<string, number> = {
@@ -102,9 +102,9 @@ function resolveDarkToken(baseClass: string, renderWidth: number): string | null
   return baseClass
 }
 
-// Convert class prop to tw prop for Satori, handling responsive breakpoints and dark mode
+// Resolve style directives: responsive breakpoints, dark mode, and gap classes
 // Note: TW4 class transformations and unsupported class filtering happen at build time via AssetTransformPlugin
-export default defineSatoriTransformer({
+export default defineTransformer({
   filter: (node: VNode) => !!node.props?.class,
   transform: (node: VNode, ctx) => {
     const classes: string = node.props.class || ''
@@ -188,8 +188,6 @@ export default defineSatoriTransformer({
       node.props.style = { ...node.props.style, ...gapStyles }
     }
 
-    const twClasses = processedClasses.join(' ')
-    node.props.tw = twClasses
-    node.props.class = twClasses
+    node.props.class = processedClasses.join(' ')
   },
 })

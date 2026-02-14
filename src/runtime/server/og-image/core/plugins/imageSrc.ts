@@ -6,7 +6,7 @@ import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
 import { logger } from '../../../util/logger'
 import { getImageDimensions } from '../../utils/image-detector'
-import { defineSatoriTransformer } from '../utils'
+import { defineTransformer } from '../plugins'
 
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
   // try hydrating from storage
@@ -23,7 +23,7 @@ async function resolveLocalFilePathImage(publicStoragePath: string, src: string)
 }
 
 // for relative links we embed them as base64 input or just fix the URL to be absolute
-export default defineSatoriTransformer([
+export default defineTransformer([
   // fix <img src="">
   {
     filter: (node: VNode) => node.type === 'img' && node.props?.src,
@@ -68,11 +68,15 @@ export default defineSatoriTransformer([
       else if (!src.startsWith('data:')) {
         src = decodeHtml(src)
         node.props.src = src
-        // see if we can fetch it from a kv host if we're using an edge provider
+        // fetch remote images and embed as base64 to avoid satori re-fetching at render time
         imageBuffer = (await $fetch(src, {
           responseType: 'arrayBuffer',
         })
           .catch(() => {})) as BufferSource | undefined
+        if (imageBuffer) {
+          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+          node.props.src = toBase64Image(buffer)
+        }
       }
 
       // convert string dimensions to numbers for Satori

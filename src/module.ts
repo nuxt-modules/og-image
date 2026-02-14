@@ -352,7 +352,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Check if emojis are disabled
     if (config.defaults.emojis === false) {
       logger.debug('Emoji support disabled.')
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/noop')
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/core/transforms/emojis/noop')
       buildEmojiSet = undefined
     }
     else {
@@ -360,7 +360,7 @@ export default defineNuxtModule<ModuleOptions>({
       buildEmojiSet = config.defaults.emojis || 'noto'
 
       // Runtime: always use fetch to avoid 24MB bundle (only needed for dynamic emojis)
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/satori/transforms/emojis/fetch')
+      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/core/transforms/emojis/fetch')
     }
 
     // CSS framework detection - supports UnoCSS and Tailwind
@@ -369,9 +369,6 @@ export default defineNuxtModule<ModuleOptions>({
 
     // CSS provider for class resolution (UnoCSS or TW4)
     let cssProvider: CssProvider | undefined
-
-    // Color preference for CSS variable extraction — set later by @nuxtjs/color-mode detection
-    let resolvedColorPreference: 'light' | 'dark' = 'light'
 
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
@@ -400,18 +397,7 @@ export default defineNuxtModule<ModuleOptions>({
             return resolved
           }
         },
-        resolveColorPreference: () => resolvedColorPreference,
       })
-
-      // HMR: watch for uno.config changes
-      if (nuxt.options.dev) {
-        nuxt.hook('builder:watch', async (_event, relativePath) => {
-          if (relativePath.includes('uno.config')) {
-            cssProvider?.clearCache?.()
-            logger.debug('HMR: UnoCSS config changed, cleared cache')
-          }
-        })
-      }
     }
 
     // Add build-time asset transform plugin for OgImage components
@@ -421,6 +407,9 @@ export default defineNuxtModule<ModuleOptions>({
       breakpoints: {} as Record<string, number>,
       colors: {} as Record<string, string | Record<string, string>>,
     }
+
+    // Pending font requirement resolution promises (from async onFontRequirements callbacks)
+    const pendingFontRequirements: Promise<void>[] = []
 
     // Font requirements state - detected from component analysis
     const fontRequirementsState = {
@@ -568,8 +557,9 @@ export default defineNuxtModule<ModuleOptions>({
           if (!component)
             return
 
-          // Lazy-load CSS metadata for font var resolution
-          loadCssMetadata().then(() => {
+          // Lazy-load CSS metadata for font var resolution.
+          // Track pending promise so convertWoff2ToTtf can await all resolutions.
+          const p = loadCssMetadata().then(() => {
             const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars)
             const compWeights = [...reqs.weights]
             if (!compWeights.includes(400))
@@ -589,6 +579,7 @@ export default defineNuxtModule<ModuleOptions>({
               : `  (no families) → ${compWeights.join(', ')}`
             logger.debug(`Fonts: ${component.pascalName}${reqs.hasDynamicBindings ? ' (dynamic)' : ''}\n${familyInfo}`)
           })
+          pendingFontRequirements.push(p)
         },
       }))
     })
@@ -1031,15 +1022,22 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
+    nuxt.options.nitro.publicAssets ||= []
     // When @nuxt/fonts is not installed, serve static Inter TTFs as public assets
     if (!hasNuxtFonts) {
-      nuxt.options.nitro.publicAssets ||= []
       nuxt.options.nitro.publicAssets.push({
         dir: resolve('./runtime/public/_og-fonts'),
         baseURL: '/_og-fonts',
         maxAge: 60 * 60 * 24 * 365,
       })
     }
+    // Serve Satori static font downloads (separate from @nuxt/fonts /_fonts/)
+    const satoriTtfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+    nuxt.options.nitro.publicAssets.push({
+      dir: satoriTtfDir,
+      baseURL: '/_og-satori-fonts',
+      maxAge: 60 * 60 * 24 * 365,
+    })
 
     nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
       // Use dev-prerender binding which handles dev/prerender/runtime for node
@@ -1058,8 +1056,9 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       // For non-cloudflare (node), use dev-prerender for everything
       return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
     }
-    // Track which WOFF2 files were successfully converted to TTF (satori only)
-    const convertedWoff2Files = new Set<string>()
+    // Track fontless-downloaded static fonts by font identity (family+weight+style → download path)
+    // Used to set satoriSrc on @nuxt/fonts entries, bypassing variable font WOFF files
+    const convertedWoff2Files = new Map<string, string>()
 
     // Whether satori is a detected renderer — gates WOFF2 conversion and fontless logic
     // Takumi and browser renderers handle WOFF2 and variable fonts natively
@@ -1127,7 +1126,12 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
         if (fontProcessingDone || !hasSatoriRenderer())
           return
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
-        // fontRequirementsState is already populated by Vite transforms (which complete before vite:compiled)
+        // Skip until font requirements are populated (OG components are server-side,
+        // so onFontRequirements runs during the server Vite build, not the client build)
+        if (pendingFontRequirements.length === 0)
+          return
+        // Wait for all async font requirement resolutions to complete
+        await Promise.all(pendingFontRequirements)
         await convertWoff2ToTtf({
           nuxt,
           logger,
@@ -1254,7 +1258,7 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
       setupDevHandler(config, resolver, getDetectedRenderers)
       setupDevToolsUI(config, resolve)
 
-      // Capture Nitro for HMR reload
+      // Capture Nitro for HMR reload (only needed for component add/remove)
       const useNitro = new Promise<import('nitropack/types').Nitro>((resolveNitro) => {
         nuxt.hooks.hook('nitro:init', resolveNitro)
       })

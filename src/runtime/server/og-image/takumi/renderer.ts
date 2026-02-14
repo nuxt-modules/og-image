@@ -3,7 +3,8 @@ import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { loadAllFonts } from '../fonts'
-import { stripGradientColorSpace } from '../utils/css'
+import { resolveColorMix } from '../utils/css'
+import { linearGradientToSvg, radialGradientToSvg } from '../utils/gradient-svg'
 import { detectImageExt } from '../utils/image-detector'
 import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -29,11 +30,11 @@ async function useTakumiState(event: OgImageRenderEventContext): Promise<TakumiS
   return nitro._takumiState
 }
 
-async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ name: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }>) {
+async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }>) {
   for (const font of fonts) {
     if (!font.data)
       continue
-    const uniqueKey = font.cacheKey || `${font.name}-${font.weight}-${font.style}`
+    const uniqueKey = font.cacheKey || `${font.family}-${font.weight}-${font.style}`
     if (state.loadedFontKeys.has(uniqueKey))
       continue
 
@@ -41,7 +42,7 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ name: st
       ? new Uint8Array(font.data)
       : Uint8Array.from(font.data as Uint8Array)
 
-    const subsetName = `${font.name}__${state.subsetCounter++}`
+    const subsetName = `${font.family}__${state.subsetCounter++}`
     try {
       await state.renderer.loadFont({
         name: subsetName,
@@ -49,9 +50,9 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ name: st
         weight: font.weight,
         style: font.style as 'normal' | 'italic' | 'oblique',
       })
-      if (!state.familySubsetNames.has(font.name))
-        state.familySubsetNames.set(font.name, [])
-      state.familySubsetNames.get(font.name)!.push(subsetName)
+      if (!state.familySubsetNames.has(font.family))
+        state.familySubsetNames.set(font.family, [])
+      state.familySubsetNames.get(font.family)!.push(subsetName)
     }
     catch {}
     state.loadedFontKeys.add(uniqueKey)
@@ -149,94 +150,55 @@ function rewriteResourceUrls(node: any, map: Map<string, string>) {
   walk(node)
 }
 
-function linearGradientToSvg(gradient: string, backgroundColor?: string): string | null {
-  const match = gradient.match(/linear-gradient\((.*)\)/)
-  if (!match)
-    return null
-
-  // Strip gradient color interpolation methods (e.g. `in oklab`, `in oklch`)
-  // TW4 generates these but image renderers (Satori, Takumi) don't support them.
-  const cleanedGradient = stripGradientColorSpace(match[1]!)
-
-  const parts = cleanedGradient.split(/,(?![^(]*\))/).map(p => p.trim())
-  let x1 = '0%'
-  let y1 = '0%'
-  let x2 = '0%'
-  let y2 = '100%'
-  let stopsStartIdx = 0
-
-  if (parts[0]!.includes('deg')) {
-    const angle = Number.parseInt(parts[0]!) || 180
-    const rad = (angle - 90) * (Math.PI / 180)
-    x1 = `${50 - Math.cos(rad) * 50}%`
-    y1 = `${50 - Math.sin(rad) * 50}%`
-    x2 = `${50 + Math.cos(rad) * 50}%`
-    y2 = `${50 + Math.sin(rad) * 50}%`
-    stopsStartIdx = 1
-  }
-  else if (parts[0]!.includes('to ')) {
-    if (parts[0]!.includes('right')) {
-      x1 = '0%'
-      x2 = '100%'
-      y1 = '0%'
-      y2 = '0%'
-    }
-    else if (parts[0]!.includes('bottom')) {
-      x1 = '0%'
-      x2 = '0%'
-      y1 = '0%'
-      y2 = '100%'
-    }
-    stopsStartIdx = 1
-  }
-
-  const stops = parts.slice(stopsStartIdx)
-    .map((stop, i, arr) => {
-      // Color hints (e.g. `linear-gradient(red, 50%, blue)`) or interpolation hints
-      // We skip these as SVG stops must have colors
-      if (!Number.isNaN(Number(stop)))
-        return null
-
-      // Split color from optional offset (e.g. `#fff 50%` or `rgba(...) 100%`)
-      let color = stop
-      let offset = `${Math.round((i / (arr.length - 1)) * 100)}%`
-      const lastSpaceIdx = stop.lastIndexOf(' ')
-      if (lastSpaceIdx !== -1) {
-        const maybeOffset = stop.slice(lastSpaceIdx + 1)
-        if (maybeOffset.endsWith('%') && !Number.isNaN(Number.parseFloat(maybeOffset))) {
-          color = stop.slice(0, lastSpaceIdx).trim()
-          offset = maybeOffset
-        }
+/**
+ * Sanitize node styles for the takumi WASM renderer.
+ * Resolves color-mix() to rgba, strips unresolved var() references,
+ * and removes other CSS values the WASM renderer can't handle.
+ */
+function sanitizeTakumiStyles(node: any) {
+  if (node.style) {
+    for (const prop of Object.keys(node.style)) {
+      const value = node.style[prop]
+      if (typeof value !== 'string')
+        continue
+      let v = value
+      // Resolve color-mix() to rgba
+      if (v.includes('color-mix('))
+        v = resolveColorMix(v)
+      // If color-mix() still present after resolution, strip the property
+      if (v.includes('color-mix(')) {
+        delete node.style[prop]
+        continue
       }
-
-      let opacity = '1'
-      const rgbaMatch = color.match(/rgba?\((.+)\)/)
-      if (rgbaMatch) {
-        const cParts = rgbaMatch[1]!.split(',').map(p => p.trim())
-        if (cParts.length === 4) {
-          color = `rgb(${cParts[0]},${cParts[1]},${cParts[2]})`
-          opacity = cParts[3]!
-        }
+      // Strip properties with unresolved var() references
+      if (v.includes('var(')) {
+        delete node.style[prop]
+        continue
       }
-      return `<stop offset="${offset}" stop-color="${color}" stop-opacity="${opacity}" />`
-    })
-    .filter(Boolean)
-    .join('')
-
-  const bgRect = backgroundColor ? `<rect width="100" height="100" fill="${backgroundColor}" />` : ''
-  return `<svg width="2000" height="2000" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">${stops}</linearGradient></defs>${bgRect}<rect width="100" height="100" fill="url(#g)" /></svg>`
+      // Strip modern color functions the WASM renderer can't handle
+      if (/\b(?:lab|lch|oklab|oklch|color)\(/.test(v)) {
+        delete node.style[prop]
+        continue
+      }
+      if (v !== value)
+        node.style[prop] = v
+    }
+  }
+  if (node.children) {
+    for (const child of node.children)
+      sanitizeTakumiStyles(child)
+  }
 }
 
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options } = event
 
   const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
-  const [nodes, fonts] = await Promise.all([
-    await createTakumiNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride }),
-  ])
+  const nodes = await createTakumiNodes(event)
+  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
+  sanitizeTakumiStyles(nodes)
 
   const state = await useTakumiState(event)
   await loadFontsIntoRenderer(state, fonts)
@@ -257,10 +219,15 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const resourceUrls = extractResourceUrls(nodes)
   const { dataUris, bgUrls } = extractInlineResources(nodes)
 
-  const gradients: { node: any, value: string }[] = []
+  const gradients: { node: any, value: string, prop: string }[] = []
   const walkG = (n: any) => {
-    if (n.style?.backgroundImage?.includes('linear-gradient'))
-      gradients.push({ node: n, value: n.style.backgroundImage })
+    for (const prop of ['backgroundImage', 'background'] as const) {
+      const v = n.style?.[prop]
+      if (v?.includes('linear-gradient') || v?.includes('radial-gradient')) {
+        gradients.push({ node: n, value: v, prop })
+        break
+      }
+    }
     if (n.children) {
       for (const child of n.children)
         walkG(child)
@@ -298,8 +265,15 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const resourceRewriteMap = new Map<string, string>()
 
   let resourceIdx = 0
-  for (const [originalSrc, data] of resourceMap.entries()) {
+  for (let [originalSrc, data] of resourceMap.entries()) {
     const ext = detectImageExt(data, originalSrc)
+    // Strip <text>/<tspan> from SVG resources — takumi WASM hangs on them
+    if (ext === 'svg') {
+      const svg = Buffer.from(data).toString('utf-8')
+      const stripped = svg.replace(/<text[\s\S]*?<\/text>/gi, '')
+      if (stripped !== svg)
+        data = new Uint8Array(Buffer.from(stripped))
+    }
     const virtualUrl = `virtual:asset-${resourceIdx++}.${ext}`
     fetchedResources.push({ src: virtualUrl, data })
     resourceRewriteMap.set(originalSrc, virtualUrl)
@@ -308,27 +282,39 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   }
 
   for (const gradient of gradients) {
-    const svg = linearGradientToSvg(gradient.value, gradient.node.style?.backgroundColor)
+    const svg = gradient.value.includes('radial-gradient')
+      ? radialGradientToSvg(gradient.value, gradient.node.style?.backgroundColor)
+      : linearGradientToSvg(gradient.value, gradient.node.style?.backgroundColor)
     if (svg) {
       const data = new Uint8Array(Buffer.from(svg))
       const virtualUrl = `virtual:gradient-${fetchedResources.length}.svg`
       fetchedResources.push({ src: virtualUrl, data })
       gradient.node.style.backgroundImage = `url(${virtualUrl})`
+      if (gradient.prop === 'background')
+        delete gradient.node.style.background
       if (!gradient.node.style.backgroundSize)
         gradient.node.style.backgroundSize = 'cover'
+    }
+    else {
+      // Conversion failed — remove to prevent WASM crash
+      delete gradient.node.style[gradient.prop]
     }
   }
 
   rewriteResourceUrls(nodes, resourceRewriteMap)
 
+  const dpr = options.takumi?.devicePixelRatio ?? 2
   const renderOptions = defu(options.takumi, {
-    width: Number(options.width),
-    height: Number(options.height),
+    width: Number(options.width) * dpr,
+    height: Number(options.height) * dpr,
     format,
     fetchedResources,
+    devicePixelRatio: dpr,
   })
 
-  return state.renderer.render(nodes, renderOptions)
+  const result = await state.renderer.render(nodes, renderOptions)
+  // @takumi-rs/wasm returns WasmBuffer (zero-copy), @takumi-rs/core returns Buffer
+  return 'asUint8Array' in result ? result.asUint8Array() : result
 }
 
 const TakumiRenderer: Renderer = {
