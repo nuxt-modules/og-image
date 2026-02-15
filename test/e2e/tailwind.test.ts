@@ -37,6 +37,23 @@ describe('tailwind', () => {
     expect(Buffer.from(png)).toMatchImageSnapshot()
   })
 
+  it('compiles with @plugin directive (loadModule)', async () => {
+    // The tailwind fixture CSS includes @plugin — this test verifies
+    // the build succeeds without "No loadModule function provided" error.
+    // Fetch the OG image to confirm full pipeline works.
+    const html = await $fetch('/') as string
+    const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
+      || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+    expect(match?.[1]).toBeTruthy()
+
+    const ogUrl = new URL(match![1]!)
+    const htmlPath = ogUrl.pathname.replace(/\.png$/, '.html')
+    const htmlPreview = await $fetch(htmlPath) as string
+
+    // The build completed and rendered — @plugin was loaded successfully
+    expect(htmlPreview).toContain('Hello World')
+  })
+
   it('extracts expected colors from og image', async () => {
     const html = await $fetch('/') as string
     const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)

@@ -278,6 +278,50 @@ describe('css-utils', () => {
   })
 })
 
+// ============================================================================
+// @plugin / @config directive support (loadModule)
+// ============================================================================
+
+describe('tw4 @plugin directive (loadModule)', () => {
+  const pluginTmpDir = join(import.meta.dirname, '..', '.tmp-tw4-plugin-test')
+  const pluginCssPath = join(pluginTmpDir, 'input.css')
+  const pluginPath = join(pluginTmpDir, 'test-plugin.mjs')
+
+  beforeAll(async () => {
+    await mkdir(pluginTmpDir, { recursive: true })
+    // Minimal TW4 plugin that registers a custom utility
+    await writeFile(pluginPath, `
+import plugin from 'tailwindcss/plugin'
+export default plugin(function({ addUtilities }) {
+  addUtilities({
+    '.og-test-util': {
+      'background-color': '#ff00ff',
+    },
+  })
+})
+`)
+    await writeFile(pluginCssPath, `@import "tailwindcss";\n@plugin "./test-plugin.mjs";`)
+  })
+
+  afterAll(async () => {
+    clearTw4Cache()
+    await rm(pluginTmpDir, { recursive: true, force: true })
+  })
+
+  it('compiles CSS with @plugin without throwing loadModule error', async () => {
+    clearTw4Cache()
+    const result = await resolveClassesToStyles(['flex'], { cssPath: pluginCssPath })
+    expect(result.flex).toBeDefined()
+  })
+
+  it('resolves custom utility from @plugin', async () => {
+    clearTw4Cache()
+    const result = await resolveClassesToStyles(['og-test-util'], { cssPath: pluginCssPath })
+    expect(result['og-test-util']).toBeDefined()
+    expect(result['og-test-util']?.['background-color']).toMatch(/#f0f|#ff00ff|fuchsia/)
+  })
+})
+
 describe('tw4 class resolution', () => {
   describe('arbitrary opacity', () => {
     it.each([

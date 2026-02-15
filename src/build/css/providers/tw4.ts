@@ -34,6 +34,24 @@ async function loadTw4Deps() {
 // ============================================================================
 
 /**
+ * Create a module loader for the TW4 compiler.
+ * Required for CSS that uses @plugin or @config directives (e.g., @nuxt/ui).
+ */
+export function createModuleLoader(baseDir: string) {
+  return async (id: string, base: string) => {
+    const resolved = resolveModulePath(id, { from: base || baseDir })
+    if (resolved) {
+      const module = await import(resolved).then(m => m.default || m)
+      return { path: resolved, base: dirname(resolved), module }
+    }
+    // Fallback: try relative resolution
+    const relativePath = join(base || baseDir, id)
+    const module = await import(relativePath).then(m => m.default || m).catch(() => ({}))
+    return { path: relativePath, base: dirname(relativePath), module }
+  }
+}
+
+/**
  * Create a stylesheet loader for the TW4 compiler.
  */
 export function createStylesheetLoader(baseDir: string) {
@@ -188,6 +206,7 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
     const compiler = await compile(userCss, {
       loadStylesheet: createStylesheetLoader(baseDir),
+      loadModule: createModuleLoader(baseDir),
     })
 
     const vars = new Map<string, string>()

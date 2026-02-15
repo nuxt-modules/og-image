@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "../../plugins/og-test-plugin.mjs";
 
 @theme {
   /* Custom colors - primary = green palette */
