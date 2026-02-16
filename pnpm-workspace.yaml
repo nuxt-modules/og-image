@@ -33,7 +33,7 @@ catalog:
   '@nuxt/devtools': ^3.2.1
   '@nuxt/devtools-kit': ^3.2.1
   '@nuxt/devtools-ui-kit': ^3.2.1
-  '@nuxt/fonts': ^0.13.0
+  '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
   '@nuxt/kit': ^4.3.1
