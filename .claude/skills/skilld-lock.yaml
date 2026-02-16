@@ -1,0 +1,43 @@
+skills:
+  kane50613-takumi:
+    packageName: "@takumi-rs/core"
+    version: 0.68.2
+    repo: kane50613/takumi
+    source: "https://github.com/kane50613/takumi/tree/master/docs"
+    syncedAt: 2026-02-14
+    generator: skilld
+  vercel-satori:
+    packageName: satori
+    version: 0.19.2
+    repo: vercel/satori
+    source: "ungh://vercel/satori"
+    syncedAt: 2026-02-14
+    generator: skilld
+  parcel-bundler-lightningcss:
+    packageName: lightningcss
+    version: 1.31.1
+    repo: parcel-bundler/lightningcss
+    source: "https://github.com/parcel-bundler/lightningcss/tree/master/docs"
+    syncedAt: 2026-02-14
+    generator: skilld
+  unjs-unifont:
+    packageName: unifont
+    version: 0.7.4
+    repo: unjs/unifont
+    source: "ungh://unjs/unifont"
+    syncedAt: 2026-02-14
+    generator: skilld
+  unjs-fontaine:
+    packageName: fontless
+    version: 0.2.1
+    repo: unjs/fontaine
+    source: "ungh://unjs/fontaine/packages/fontless"
+    syncedAt: 2026-02-14
+    generator: skilld
+  nuxt-fonts:
+    packageName: "@nuxt/fonts"
+    version: 0.14.0
+    repo: nuxt/fonts
+    source: "https://fonts.nuxt.com/llms.txt"
+    syncedAt: 2026-02-15
+    generator: skilld
