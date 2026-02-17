@@ -235,6 +235,11 @@ export interface AssetTransformOptions {
    * Called before CSS operations to flush any dirty HMR state.
    */
   beforeCssResolve?: () => void
+  /**
+   * Called when a file is transformed via ?og-image query param (nested component).
+   * Used to track which files need HMR-triggered Nitro reloads.
+   */
+  onNestedTransform?: (filePath: string) => void
 }
 
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
@@ -258,6 +263,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
     async transform(code, rawId) {
       // Strip ?og-image query param for path operations (nested component imports)
       const id = rawId.replace(/\?og-image(?:-depth=\d+)?$/, '')
+
+      // Track nested component files for HMR
+      if (rawId.includes('?og-image'))
+        options.onNestedTransform?.(id)
 
       const templateMatch = code.match(/<template>([\s\S]*?)<\/template>/)
       if (!templateMatch)

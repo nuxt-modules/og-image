@@ -541,6 +541,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Reference to the full Nuxt component registry (populated by components:extend hook)
     let allNuxtComponents: import('@nuxt/schema').Component[] = []
 
+    // Files that have been transformed via ?og-image (nested components used by OG templates).
+    // Used by builder:watch to detect when a nested component changes and trigger a Nitro reload.
+    const ogImageTransformedFiles = new Set<string>()
+
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
 
@@ -562,6 +566,7 @@ export default defineNuxtModule<ModuleOptions>({
         publicDir: isAbsolute(nuxt.options.dir.public) ? nuxt.options.dir.public : join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         cssProvider,
         beforeCssResolve: flushCssDirtyState,
+        onNestedTransform: filePath => ogImageTransformedFiles.add(filePath),
         onFontRequirements(id, reqs) {
           // Map file id → pascalName using ogImageComponentCtx
           const component = ogImageComponentCtx.components.find(c => c.path === id)
@@ -1301,18 +1306,29 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           return
         }
 
-        // OG image component add/remove → eager (updates component registry + Nitro rebuild)
-        if ((event === 'add' || event === 'unlink')) {
-          const isOgImageComponent = config.componentDirs.some((dir) => {
-            const componentDir = join(nuxt.options.srcDir, 'components', dir)
-            return absolutePath.startsWith(componentDir) && absolutePath.endsWith('.vue')
-          })
-          if (isOgImageComponent) {
-            logger.debug(`HMR: OG image component ${event === 'add' ? 'added' : 'removed'}`)
-            await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
-            const nitro = await useNitro
-            await nitro.hooks.callHook('rollup:reload')
-          }
+        if (!absolutePath.endsWith('.vue'))
+          return
+
+        const isOgImageComponent = config.componentDirs.some((dir) => {
+          const componentDir = join(nuxt.options.srcDir, 'components', dir)
+          return absolutePath.startsWith(componentDir)
+        })
+
+        // OG image component add/remove → updates component registry + Nitro rebuild
+        if (isOgImageComponent && (event === 'add' || event === 'unlink')) {
+          logger.debug(`HMR: OG image component ${event === 'add' ? 'added' : 'removed'}`)
+          await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
+          const nitro = await useNitro
+          await nitro.hooks.callHook('rollup:reload')
+          return
+        }
+
+        // OG image component or nested component changed → Nitro rebuild for fresh SSR.
+        // ogImageTransformedFiles tracks all files processed via ?og-image imports.
+        if (event === 'change' && (isOgImageComponent || ogImageTransformedFiles.has(absolutePath))) {
+          logger.debug(`HMR: OG image component changed, reloading`)
+          const nitro = await useNitro
+          await nitro.hooks.callHook('rollup:reload')
         }
       })
     }
