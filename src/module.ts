@@ -35,6 +35,7 @@ import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
+import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
 import {
   ensureDependencies,
   getPresetNitroPresetCompatibility,
@@ -537,11 +538,21 @@ export default defineNuxtModule<ModuleOptions>({
     // Collect resolved OG component directory paths for the asset transform plugin (populated later, accessed via getter)
     const resolvedOgComponentPaths: string[] = []
 
+    // Reference to the full Nuxt component registry (populated by components:extend hook)
+    let allNuxtComponents: import('@nuxt/schema').Component[] = []
+
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
 
     // Add Vite plugin in modules:done (after all aliases registered)
     nuxt.hook('modules:done', () => {
+      // Rewrites nested component imports in OG templates to add ?og-image query param,
+      // ensuring child components also get CSS class → inline style transforms
+      addVitePlugin(ComponentImportRewritePlugin.vite({
+        get ogComponentPaths() { return resolvedOgComponentPaths },
+        getComponents: () => allNuxtComponents,
+      }))
+
       // Handles: emoji → SVG (when local), Icon/UIcon → inline SVG, local images → data URI, CSS class resolution
       addVitePlugin(AssetTransformPlugin.vite({
         emojiSet: buildEmojiSet,
@@ -897,6 +908,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     nuxt.hook('components:extend', (components) => {
+      allNuxtComponents = components
       ogImageComponentCtx.components = []
       // Don't clear detectedRenderers - pre-scan already populated it and nitro:init may have already fired
       const invalidComponents: string[] = []

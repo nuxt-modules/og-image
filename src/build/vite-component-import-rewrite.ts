@@ -198,6 +198,9 @@ export interface ComponentImportRewriteOptions {
   getComponents: () => Component[]
 }
 
+// Maximum depth for cascading import rewrites (prevents infinite loops)
+const MAX_IMPORT_REWRITE_DEPTH = 5
+
 /**
  * Injects explicit imports with ?og-image for nested components used in OG templates.
  * Runs with enforce: 'pre' so the explicit import overrides Nuxt's auto-import.
@@ -209,18 +212,22 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
     enforce: 'pre',
 
     transformInclude(id) {
-      // Only rewrite imports in OG template files themselves — NOT in ?og-image
-      // nested components. This prevents unbounded cascading through the entire
-      // component tree. Nested components still get AssetTransformPlugin via
-      // ?og-image, but they don't propagate further.
-      if (id.includes('?og-image'))
-        return false
+      // Allow cascading through ?og-image files up to a depth limit
+      const depthMatch = id.match(/\?og-image(?:-depth=(\d+))?$/)
+      if (depthMatch) {
+        const depth = depthMatch[1] ? Number.parseInt(depthMatch[1]) : 0
+        return depth < MAX_IMPORT_REWRITE_DEPTH
+      }
       if (!id.endsWith('.vue'))
         return false
       return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
     },
 
-    transform(code, _id) {
+    transform(code, rawId) {
+      // Parse current depth from ?og-image-depth=N
+      const depthMatch = rawId.match(/\?og-image(?:-depth=(\d+))?$/)
+      const currentDepth = depthMatch?.[1] ? Number.parseInt(depthMatch[1]) : 0
+      const nextQuery = `?og-image-depth=${currentDepth + 1}`
       const { descriptor } = parseSfc(code)
       if (!descriptor.template?.ast) {
         return
@@ -273,7 +280,7 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
             const source = m[3]!
             // Replace the source path with ?og-image appended
             const matchStart = scriptStart + m.index! + m[0].indexOf(source)
-            s.overwrite(matchStart, matchStart + source.length, `${source}?og-image`)
+            s.overwrite(matchStart, matchStart + source.length, `${source}${nextQuery}`)
             rewritten.add(importName!)
           }
         }
@@ -291,7 +298,7 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
 
       // Build import statements for new imports
       const importStatements = imports
-        .map(i => `import ${i.name} from '${i.filePath}?og-image'`)
+        .map(i => `import ${i.name} from '${i.filePath}${nextQuery}'`)
         .join('\n')
 
       // Inject into existing <script setup> or create one
