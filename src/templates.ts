@@ -146,6 +146,7 @@ declare module '#og-image-virtual/component-names.mjs' {
 
 declare module '#og-image-virtual/build-dir.mjs' {
   export const buildDir: string
+  export const rootDir: string
 }
 
 declare module '#og-image/compatibility' {

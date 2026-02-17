@@ -1053,8 +1053,14 @@ import { resolve as cfResolve } from '${cfBinding}'
 export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : cfResolve
 `
       }
-      // For non-cloudflare (node), use dev-prerender for everything
-      return `export { resolve } from '${resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')}'`
+      // For non-cloudflare (node), use dev-prerender for dev/prerender, node binding for runtime
+      const devBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')
+      const nodeBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/node')
+      return `
+import { resolve as devResolve } from '${devBinding}'
+import { resolve as nodeResolve } from '${nodeBinding}'
+export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : nodeResolve
+`
     }
     // Track fontless-downloaded static fonts by font identity (family+weight+style → download path)
     // Used to set satoriSrc on @nuxt/fonts entries, bypassing variable font WOFF files
@@ -1109,7 +1115,8 @@ export const tw4Breakpoints = ${JSON.stringify(cssMetadata.breakpoints)}
 export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
-      return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}`
+      return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}
+export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     }
 
     // @nuxt/fonts + satori font processing — convert WOFF2 to static TTF via fontless

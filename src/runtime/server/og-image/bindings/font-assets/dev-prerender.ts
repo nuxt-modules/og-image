@@ -1,17 +1,11 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
-import { buildDir } from '#og-image-virtual/build-dir.mjs'
+import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
 import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
-
-function getRootDir(): string {
-  const normalizedBuildDir = buildDir.replace(/\\/g, '/')
-  const idx = normalizedBuildDir.indexOf('/.nuxt')
-  return idx !== -1 ? buildDir.slice(0, idx) : process.cwd()
-}
 
 let fontUrlMapping: Record<string, string> | undefined
 
@@ -34,8 +28,6 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   }
 
   if (import.meta.prerender) {
-    const rootDir = getRootDir()
-
     // Satori static font downloads (separate from @nuxt/fonts to avoid conflicts)
     if (path.startsWith('/_og-satori-fonts/')) {
       const filename = path.slice('/_og-satori-fonts/'.length)
