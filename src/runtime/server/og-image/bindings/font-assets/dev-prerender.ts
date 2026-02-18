@@ -72,6 +72,19 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       return cached
   }
 
+  // @nuxt/fonts managed fonts — in dev mode, /_fonts/ is served by a Nuxt dev server handler
+  // (addDevServerHandler) which isn't reachable via event.$fetch (Nitro-internal only).
+  // Use the persisted font URL mapping to download directly from the CDN.
+  if (import.meta.dev && path.startsWith('/_fonts/')) {
+    const filename = path.slice('/_fonts/'.length)
+    const mapping = await loadFontUrlMapping()
+    if (mapping[filename]) {
+      const res = await fetch(mapping[filename]).catch(() => null)
+      if (res?.ok)
+        return Buffer.from(await res.arrayBuffer())
+    }
+  }
+
   // Use event.$fetch for internal routing — avoids network issues with IPv6/HTTPS dev server
   const { app } = useRuntimeConfig()
   const origin = getNitroOrigin(event)
