@@ -436,7 +436,12 @@ export async function resolveClassesToStyles(
 export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<Tw4Metadata> {
   const { compiler, vars } = await getCompiler(options.cssPath, options.nuxtUiColors)
 
-  const themeCss = compiler.build([])
+  // TW4 tree-shakes @theme vars not referenced by utility classes.
+  // Extract --font-* names from the raw CSS and pass corresponding
+  // font-* class candidates so the compiler emits them.
+  const userCss = await readFile(options.cssPath, 'utf-8')
+  const fontCandidates = [...userCss.matchAll(/--font-([\w-]+)\s*:/g)].map(m => `font-${m[1]}`)
+  const themeCss = compiler.build(fontCandidates)
   await parseCssOutput(themeCss, vars)
 
   const fontVars: Tw4FontVars = {}

@@ -87,10 +87,11 @@ export function resolveFontFamilies(
 
   const families = new Set<string>()
 
-  // Always include the default font family (font-sans) when filtering
-  const defaultVar = fontVars['font-sans']
-  if (defaultVar) {
-    for (const f of extractCustomFontFamilies(defaultVar))
+  // Always include the font-sans default — the wrapper div uses it as its font-family,
+  // so it must be in the requirements to ensure it gets resolved and loaded.
+  const sansValue = fontVars['font-sans']
+  if (sansValue) {
+    for (const f of extractCustomFontFamilies(sansValue))
       families.add(f)
   }
 

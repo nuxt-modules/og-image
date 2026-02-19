@@ -1,11 +1,12 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../../../types'
+import type { FontConfig, OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../../../types'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
+import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { loadAllFonts } from '../fonts'
+import { loadAllFonts, loadAllFontsDebug } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
 
@@ -30,14 +31,16 @@ function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warni
     })
 }
 
-export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg: string | void, warnings: string[] }> {
+export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg: string | void, warnings: string[], fonts: RuntimeFontConfig[] }> {
   const { options } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
   const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
+  // Always include the default font (first resolved, e.g. Lobster) so the wrapper div renders correctly
+  const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
   const [satori, vnodes, fonts] = await Promise.all([
     useSatori(),
     createVNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: false, component: options.component, fontFamilyOverride }),
+    loadAllFonts(event.e, { supportsWoff2: false, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont }),
   ])
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
@@ -77,7 +80,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const { result, warnings } = await withWarningCapture(() =>
     satori(vnodes, satoriOptions),
   )
-  return { svg: result, warnings }
+  return { svg: result, warnings, fonts }
 }
 
 async function createPng(event: OgImageRenderEventContext) {
@@ -132,6 +135,17 @@ const SatoriRenderer: Renderer = {
       vnodes,
       svg: svgResult.svg,
       warnings: svgResult.warnings,
+      fontDebug: {
+        ...loadAllFontsDebug(e.options.component),
+        fonts: svgResult.fonts.map(f => ({
+          family: f.family,
+          weight: f.weight,
+          style: f.style,
+          src: f.src,
+          satoriSrc: f.satoriSrc,
+          size: f.data ? (f.data as ArrayBuffer).byteLength : 0,
+        })),
+      },
     }
   },
 }
