@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
 import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
-import { getNitroOrigin } from '#site-config/server/composables'
+import { getRequestURL } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
@@ -85,16 +85,24 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     }
   }
 
-  // Use event.$fetch for internal routing — avoids network issues with IPv6/HTTPS dev server
+  // In dev, try reading public/ files directly from the filesystem first.
+  // Native fetch to the Nuxt dev server can hit Vue Router SSR instead of
+  // Vite's static file middleware, returning HTML instead of font data.
+  if (import.meta.dev) {
+    const filename = path.slice(1)
+    const data = await readFile(join(rootDir, 'public', filename)).catch(() => null)
+    if (data?.length)
+      return data
+  }
+
   const { app } = useRuntimeConfig()
-  const origin = getNitroOrigin(event)
-  if (import.meta.dev && !origin.includes('::1')) {
-    const arrayBuffer = await $fetch(withBase(path, app.baseURL), {
-      responseType: 'arrayBuffer',
-      baseURL: getNitroOrigin(event),
-    }).catch(() => null) as ArrayBuffer
-    if (arrayBuffer) {
-      return Buffer.from(arrayBuffer)
+  if (import.meta.dev) {
+    const reqUrl = getRequestURL(event)
+    const origin = `${reqUrl.protocol}//${reqUrl.host}`
+    const url = new URL(withBase(path, app.baseURL), origin).href
+    const res = await fetch(url).catch(() => null)
+    if (res?.ok) {
+      return Buffer.from(await res.arrayBuffer())
     }
   }
   const fullPath = withBase(path, app.baseURL)

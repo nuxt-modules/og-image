@@ -17,6 +17,7 @@ trustPolicyExclude:
 packages:
   - playground
   - client
+
 overrides:
   vite: npm:vite@8.0.0-beta.13
 
@@ -43,12 +44,12 @@ catalog:
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.2.3
-  '@nuxtjs/tailwindcss': ^7.0.0-beta.1
+  '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
-  '@tailwindcss/vite': ^4.1.18
-  '@takumi-rs/core': ^0.68.2
-  '@takumi-rs/wasm': ^0.68.2
+  '@tailwindcss/vite': ^4.2.0
+  '@takumi-rs/core': ^0.68.8
+  '@takumi-rs/wasm': ^0.68.8
   '@vitejs/plugin-vue': ^6.0.4
   '@vue/compiler-sfc': ^3.5.28
   '@vueuse/core': ^14.2.1
@@ -60,20 +61,20 @@ catalog:
   consola: ^3.4.2
   culori: ^4.0.2
   defu: ^6.1.4
-  devalue: ^5.6.2
-  eslint: ^9.39.2
+  devalue: ^5.6.3
+  eslint: ^10.0.0
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
-  globby: ^16.1.0
-  happy-dom: ^20.6.1
+  globby: ^16.1.1
+  happy-dom: ^20.6.3
   jest-image-snapshot: ^6.5.1
   lightningcss: ^1.31.1
   magic-string: ^0.30.21
   magicast: ^0.5.2
   mocked-exports: ^0.1.1
   nuxt: ^4.3.1
-  nuxt-site-config: ^3.2.19
+  nuxt-site-config: ^3.2.20
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -88,7 +89,7 @@ catalog:
   sirv: ^3.0.2
   std-env: ^3.10.0
   strip-literal: ^3.1.0
-  tailwindcss: ^4.1.18
+  tailwindcss: ^4.2.0
   tinyexec: ^1.0.2
   tinyglobby: ^0.2.15
   typescript: ^5.9.3
@@ -100,11 +101,11 @@ catalog:
   vue: ^3.5.28
   vue-router: ^5.0.2
   vue-tsc: ^3.2.4
-  wrangler: ^4.65.0
+  wrangler: ^4.66.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
-    '@iconify-json/simple-icons': ^1.2.70
+    '@iconify-json/simple-icons': ^1.2.71
     json-editor-vue: ^0.18.1
     shiki: ^3.22.0
 onlyBuiltDependencies:
