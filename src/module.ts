@@ -15,7 +15,7 @@ import type {
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -575,7 +575,7 @@ export default defineNuxtModule<ModuleOptions>({
 
           // Lazy-load CSS metadata for font var resolution.
           // Track pending promise so convertWoff2ToTtf can await all resolutions.
-          const p = loadCssMetadata().then(() => {
+          const p = loadCssMetadata().then(async () => {
             const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars)
             const compWeights = [...reqs.weights]
             if (!compWeights.includes(400))
@@ -590,6 +590,13 @@ export default defineNuxtModule<ModuleOptions>({
             }
 
             recomputeFontRequirements()
+
+            // Persist component font map to disk so Nitro runtime can read it in dev mode
+            // (virtual modules are cached on first import, before any components are transformed)
+            const mapPath = join(nuxt.options.buildDir, 'cache', 'og-image', 'component-font-map.json')
+            await mkdir(join(nuxt.options.buildDir, 'cache', 'og-image'), { recursive: true })
+            await writeFile(mapPath, JSON.stringify(fontRequirementsState.componentMap))
+
             const familyInfo = families.length
               ? families.map(f => `  ${f} → ${compWeights.join(', ')}`).join('\n')
               : `  (no families) → ${compWeights.join(', ')}`
@@ -1136,15 +1143,34 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     }
 
     // Font requirements virtual module - provides detected font weights/styles from component analysis
-    nuxt.options.nitro.virtual['#og-image/font-requirements'] = () => {
-      return `export const fontRequirements = ${JSON.stringify({
+    nuxt.options.nitro.virtual['#og-image/font-requirements'] = async () => {
+      // In dev mode, component font analysis happens lazily via Vite plugin.
+      // Wait for any pending analysis to complete before reading state.
+      if (pendingFontRequirements.length > 0)
+        await Promise.all(pendingFontRequirements)
+      const baseExports = `export const fontRequirements = ${JSON.stringify({
         weights: fontRequirementsState.weights,
         styles: fontRequirementsState.styles,
         families: fontRequirementsState.families,
         hasDynamicBindings: fontRequirementsState.hasDynamicBindings,
       })}
-export const componentFontMap = ${JSON.stringify(fontRequirementsState.componentMap)}
 export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
+      // In dev mode, componentFontMap must be read from disk on each access because
+      // virtual modules are cached on first import (before Vite transforms any OG components).
+      // The onFontRequirements callback writes the map to a JSON file after each component analysis.
+      if (nuxt.options.dev) {
+        const mapPath = join(nuxt.options.buildDir, 'cache', 'og-image', 'component-font-map.json')
+        return `import { readFileSync } from 'node:fs'
+${baseExports}
+const _mapPath = ${JSON.stringify(mapPath)}
+export function getComponentFontMap() {
+  try { return JSON.parse(readFileSync(_mapPath, 'utf-8')) }
+  catch { return {} }
+}`
+      }
+      return `${baseExports}
+const _staticMap = ${JSON.stringify(fontRequirementsState.componentMap)}
+export function getComponentFontMap() { return _staticMap }`
     }
 
     // CSS theme vars virtual module - provides fonts, breakpoints, and colors from CSS provider

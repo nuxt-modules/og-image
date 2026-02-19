@@ -13,6 +13,10 @@ export default defineNuxtConfig({
     NuxtOgImage,
   ],
 
+  devServer: {
+    host: '::1',
+  },
+
   vite: {
     plugins: [tailwindcss()],
   },

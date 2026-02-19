@@ -1,4 +1,5 @@
-import type { OgImageRenderEventContext, Renderer } from '../../../types'
+import type { FontConfig, OgImageRenderEventContext, Renderer } from '../../../types'
+import resolvedFonts from '#og-image/fonts'
 import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
@@ -194,8 +195,9 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const { options } = event
 
   const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
+  const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
   const nodes = await createTakumiNodes(event)
-  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride })
+  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
   sanitizeTakumiStyles(nodes)
@@ -332,8 +334,20 @@ const TakumiRenderer: Renderer = {
   },
 
   async debug(e) {
-    const vnodes = await createTakumiNodes(e)
-    return { vnodes }
+    const [vnodes, fonts] = await Promise.all([
+      createTakumiNodes(e),
+      loadAllFonts(e.e, { supportsWoff2: true, component: e.options.component }),
+    ])
+    return {
+      vnodes,
+      fonts: fonts.map(f => ({
+        family: f.family,
+        weight: f.weight,
+        style: f.style,
+        src: f.src,
+        size: f.data ? (f.data as ArrayBuffer).byteLength : 0,
+      })),
+    }
   },
 }
 

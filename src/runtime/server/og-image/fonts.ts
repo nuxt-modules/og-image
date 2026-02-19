@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import type { FontConfig, RuntimeFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
-import { componentFontMap, fontRequirements } from '#og-image/font-requirements'
+import { fontRequirements, getComponentFontMap } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
@@ -60,10 +60,13 @@ function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof
   if (requirements.hasDynamicBindings)
     return [...allFonts]
 
-  // Group style-matched fonts by family
+  // Group style-matched fonts by family, filtering to required families when specified
   const byFamily = new Map<string, FontConfig[]>()
+  const requiredFamilies = requirements.families.length > 0 ? new Set(requirements.families) : null
   for (const f of allFonts) {
     if (!requirements.styles.includes(f.style as 'normal' | 'italic'))
+      continue
+    if (requiredFamilies && !requiredFamilies.has(f.family))
       continue
     const arr = byFamily.get(f.family) || []
     arr.push(f)
@@ -95,8 +98,21 @@ const _warnedFontKeys = new Set<string>()
 // array reference across requests lets satori skip re-parsing font binaries.
 const _fontArrayCache = new Map<string, RuntimeFontConfig[]>()
 
+export function loadAllFontsDebug(component?: string) {
+  const map = getComponentFontMap()
+  const componentReqs = component ? (map as Record<string, typeof fontRequirements>)[component] : null
+  return {
+    component,
+    componentReqs: componentReqs ? { families: componentReqs.families, weights: componentReqs.weights, hasDynamicBindings: componentReqs.hasDynamicBindings } : null,
+    globalReqs: { families: fontRequirements.families, weights: fontRequirements.weights },
+    componentFontMapKeys: Object.keys(map),
+    resolvedFontFamilies: [...new Set((resolvedFonts as FontConfig[]).map(f => f.family))],
+  }
+}
+
 export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<RuntimeFontConfig[]> {
-  const componentReqs = options.component ? (componentFontMap as Record<string, typeof fontRequirements>)[options.component] : null
+  const map = getComponentFontMap()
+  const componentReqs = options.component ? (map as Record<string, typeof fontRequirements>)[options.component] : null
   const usingGlobalFallback = !!(componentReqs && componentReqs.hasDynamicBindings)
   const reqs = (componentReqs && !componentReqs.hasDynamicBindings) ? componentReqs : fontRequirements
   const fonts = selectFontsForRequirements(resolvedFonts as FontConfig[], reqs)
@@ -105,8 +121,16 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   if (options.fontFamilyOverride) {
     const loadedFamilies = new Set(fonts.map(f => f.family))
     if (!loadedFamilies.has(options.fontFamilyOverride)) {
+      // Check unfiltered @nuxt/fonts first, then fall back to resolved fonts
+      // (which includes bundled Inter when no other fonts are configured)
       const overrideFonts = (availableFonts as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
-      fonts.push(...overrideFonts)
+      if (overrideFonts.length > 0) {
+        fonts.push(...overrideFonts)
+      }
+      else {
+        const resolvedOverride = (resolvedFonts as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
+        fonts.push(...resolvedOverride)
+      }
     }
   }
 
@@ -148,7 +172,7 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
 
   // Warn about weight substitutions (deduplicated)
   // Skip warnings for bundled community templates — users can't control their font usage
-  const isCommunity = options.component && (componentFontMap as Record<string, any>)[options.component]?.category === 'community'
+  const isCommunity = options.component && (map as Record<string, any>)[options.component]?.category === 'community'
   if (import.meta.dev && reqs.weights.length > 0 && !isCommunity) {
     const families = reqs.families.length > 0 ? reqs.families : [...new Set(loaded.map(f => f.family))]
     const component = options.component ? ` (${options.component})` : ''

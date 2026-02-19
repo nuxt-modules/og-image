@@ -175,14 +175,17 @@ function extractFontFamilyFromClass(cls: string, familyClasses: Set<string>, fam
 
 function extractFontFamilyFromStyle(style: string, familyNames: Set<string>): void {
   for (const match of style.matchAll(INLINE_FONT_FAMILY_REGEX)) {
-    for (const name of extractCustomFontFamilies(match[1]!))
-      familyNames.add(name)
+    // Only take the primary (first) font — rest are CSS fallbacks
+    const primary = extractCustomFontFamilies(match[1]!)[0]
+    if (primary)
+      familyNames.add(primary)
   }
 }
 
 function extractFontFamilyFromJsStyle(content: string, familyNames: Set<string>): void {
   for (const match of content.matchAll(/fontFamily:\s*['"]([^'"]+)['"]/g)) {
-    for (const name of extractCustomFontFamilies(match[1]!))
-      familyNames.add(name)
+    const primary = extractCustomFontFamilies(match[1]!)[0]
+    if (primary)
+      familyNames.add(primary)
   }
 }
