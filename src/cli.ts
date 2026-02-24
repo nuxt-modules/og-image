@@ -61,7 +61,11 @@ function getBaseName(filename: string): string {
 }
 
 function hasRendererSuffix(filename: string): boolean {
-  return /\.(?:satori|browser|takumi)\.vue$/.test(filename)
+  return /\.(?:satori|browser|takumi|chromium)\.vue$/.test(filename)
+}
+
+function hasChromiumSuffix(filename: string): boolean {
+  return /\.chromium\.vue$/.test(filename)
 }
 
 function listTemplates() {
@@ -213,7 +217,11 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
     const components = findOgImageComponents(dir)
     for (const filepath of components) {
       const filename = basename(filepath)
-      if (!hasRendererSuffix(filename)) {
+      if (hasChromiumSuffix(filename)) {
+        // .chromium.vue → .browser.vue
+        result.componentsToRename.push({ from: filepath, to: filepath.replace('.chromium.vue', '.browser.vue') })
+      }
+      else if (!hasRendererSuffix(filename)) {
         result.componentsToRename.push({ from: filepath, to: '' })
       }
     }
@@ -314,10 +322,11 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
         const remaining = inner
           .replace(/renderer\s*:\s*['"][^'"]+['"]\s*,?\s*/g, '')
           .replace(/,\s*$/, '')
+          .replace(/^\{\s*\}$/, '') // strip empty braces
           .trim()
         modified = true
         changeCount++
-        return remaining ? `defineOgImageScreenshot({ ${remaining} })` : `defineOgImageScreenshot()`
+        return remaining ? `defineOgImageScreenshot(${remaining})` : `defineOgImageScreenshot()`
       }
 
       if (componentMatch || rendererMatch) {
@@ -350,6 +359,21 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
       return match
     })
 
+    // Pattern 3: Import path migrations
+    if (content.includes('#nuxt-og-image-utils')) {
+      content = content.replace(/#nuxt-og-image-utils/g, '#og-image/shared')
+      modified = true
+      changeCount++
+    }
+    if (/import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"]#og-image\/shared['"]/.test(content)) {
+      content = content.replace(
+        /(import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"])#og-image\/shared(['"])/g,
+        '$1#og-image/app/utils$2',
+      )
+      modified = true
+      changeCount++
+    }
+
     if (modified) {
       changes.push({ file, count: changeCount })
       if (!dryRun) {
@@ -368,6 +392,8 @@ function migrateV6Components(
   dryRun: boolean,
 ): void {
   for (const item of componentsToRename) {
+    if (item.to)
+      continue // already set (e.g. .chromium.vue → .browser.vue)
     const filename = basename(item.from)
     const newName = filename.replace('.vue', `.${defaultRenderer}.vue`)
     item.to = join(dirname(item.from), newName)

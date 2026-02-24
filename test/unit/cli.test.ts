@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'pathe'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -124,6 +124,78 @@ describe('cli', () => {
 
       runCli('migrate v6 --yes')
       expect(existsSync(join(ogDir, 'Default.takumi.vue'))).toBe(true)
+    })
+
+    it('renames .chromium.vue to .browser.vue', () => {
+      const ogDir = join(tmpDir, 'components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Screenshot.chromium.vue'), '<template>test</template>')
+
+      runCli('migrate v6 --yes')
+      expect(existsSync(join(ogDir, 'Screenshot.browser.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Screenshot.chromium.vue'))).toBe(false)
+      // Should not create a double-suffix file
+      expect(existsSync(join(ogDir, 'Screenshot.chromium.takumi.vue'))).toBe(false)
+    })
+
+    it('migrates <OgImage /> to composable comment', () => {
+      const pageFile = join(tmpDir, 'page.vue')
+      writeFileSync(pageFile, `<template>\n  <OgImage title="Hello" />\n</template>`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(pageFile, 'utf-8')
+      expect(content).toContain('<!-- Migrated: use defineOgImage(')
+      expect(content).not.toContain('<OgImage')
+    })
+
+    it('migrates <OgImageScreenshot /> to composable comment', () => {
+      const pageFile = join(tmpDir, 'page.vue')
+      writeFileSync(pageFile, `<template>\n  <OgImageScreenshot />\n</template>`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(pageFile, 'utf-8')
+      expect(content).toContain('<!-- Migrated: use defineOgImageScreenshot()')
+      expect(content).not.toContain('<OgImageScreenshot')
+    })
+
+    it('migrates defineOgImageComponent to defineOgImage', () => {
+      const pageFile = join(tmpDir, 'page.vue')
+      writeFileSync(pageFile, `<script setup>\ndefineOgImageComponent('NuxtSeo', { title: 'Hello' })\n</script>`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(pageFile, 'utf-8')
+      expect(content).toContain('defineOgImage(')
+      expect(content).not.toContain('defineOgImageComponent')
+    })
+
+    it('migrates defineOgImage({ renderer: chromium }) to defineOgImageScreenshot', () => {
+      const pageFile = join(tmpDir, 'page.vue')
+      writeFileSync(pageFile, `<script setup>\ndefineOgImage({ renderer: 'chromium' })\n</script>`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(pageFile, 'utf-8')
+      expect(content).toContain('defineOgImageScreenshot()')
+      expect(content).not.toContain('chromium')
+    })
+
+    it('migrates #nuxt-og-image-utils import path', () => {
+      const utilFile = join(tmpDir, 'util.ts')
+      writeFileSync(utilFile, `import { something } from '#nuxt-og-image-utils'`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(utilFile, 'utf-8')
+      expect(content).toContain('#og-image/shared')
+      expect(content).not.toContain('#nuxt-og-image-utils')
+    })
+
+    it('migrates useOgImageRuntimeConfig import path', () => {
+      const utilFile = join(tmpDir, 'util.ts')
+      writeFileSync(utilFile, `import { useOgImageRuntimeConfig } from '#og-image/shared'`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(utilFile, 'utf-8')
+      expect(content).toContain(`from '#og-image/app/utils'`)
+      expect(content).not.toContain(`from '#og-image/shared'`)
     })
   })
 })
