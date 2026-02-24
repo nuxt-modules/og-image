@@ -28,7 +28,7 @@ catalog:
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.26
+  '@iconify-json/tabler': ^1.2.27
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.11.2
   '@nuxt/devtools': ^3.2.1
@@ -47,9 +47,9 @@ catalog:
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
-  '@tailwindcss/vite': ^4.2.0
-  '@takumi-rs/core': ^0.68.8
-  '@takumi-rs/wasm': ^0.68.8
+  '@tailwindcss/vite': ^4.2.1
+  '@takumi-rs/core': ^0.68.17
+  '@takumi-rs/wasm': ^0.68.17
   '@vitejs/plugin-vue': ^6.0.4
   '@vue/compiler-sfc': ^3.5.28
   '@vueuse/core': ^14.2.1
@@ -62,12 +62,12 @@ catalog:
   culori: ^4.0.2
   defu: ^6.1.4
   devalue: ^5.6.3
-  eslint: ^10.0.0
+  eslint: ^10.0.2
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
   globby: ^16.1.1
-  happy-dom: ^20.6.3
+  happy-dom: ^20.7.0
   jest-image-snapshot: ^6.5.1
   lightningcss: ^1.31.1
   magic-string: ^0.30.21
@@ -89,7 +89,7 @@ catalog:
   sirv: ^3.0.2
   std-env: ^3.10.0
   strip-literal: ^3.1.0
-  tailwindcss: ^4.2.0
+  tailwindcss: ^4.2.1
   tinyexec: ^1.0.2
   tinyglobby: ^0.2.15
   typescript: ^5.9.3
@@ -99,9 +99,9 @@ catalog:
   unplugin: ^3.0.0
   vitest: ^4.0.18
   vue: ^3.5.28
-  vue-router: ^5.0.2
-  vue-tsc: ^3.2.4
-  wrangler: ^4.66.0
+  vue-router: ^5.0.3
+  vue-tsc: ^3.2.5
+  wrangler: ^4.68.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
