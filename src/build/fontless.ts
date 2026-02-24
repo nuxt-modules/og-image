@@ -553,7 +553,7 @@ export async function resolveOgImageFonts(options: {
   const satoriFonts = fonts.filter(f => f.satoriSrc)
   if (satoriFonts.length === 0) {
     const variableFamilies = [...new Set(fonts.map(f => f.family))]
-    logger.warn(`All fonts are variable fonts (${variableFamilies.join(', ')}). Variable fonts are not supported by Satori renderer. Falling back to bundled Inter font. Consider using the 'takumi' renderer for variable font support.`)
+    logger.debug(`All fonts are variable fonts (${variableFamilies.join(', ')}). Variable fonts are not supported by Satori renderer. Will fall back to bundled Inter font at render time.`)
     return [...fonts, ...staticInterFonts]
   }
 

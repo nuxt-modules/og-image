@@ -170,6 +170,16 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
     return cachedArray
   _fontArrayCache.set(fingerprint, loaded)
 
+  // Warn when rendering with Satori and only variable fonts are available (deduplicated)
+  if (!options.supportsWoff2 && loaded.length === 0 && fonts.length > 0) {
+    const variableFamilies = [...new Set(fonts.map(f => f.family))]
+    const warnKey = `variable-fonts-${variableFamilies.join(',')}`
+    if (!_warnedFontKeys.has(warnKey)) {
+      _warnedFontKeys.add(warnKey)
+      logger.warn(`All fonts are variable fonts (${variableFamilies.join(', ')}). Variable fonts are not supported by Satori renderer. Falling back to bundled Inter font. Consider using the 'takumi' renderer for variable font support.`)
+    }
+  }
+
   // Warn about weight substitutions (deduplicated)
   // Skip warnings for bundled community templates — users can't control their font usage
   const isCommunity = options.component && (map as Record<string, any>)[options.component]?.category === 'community'
