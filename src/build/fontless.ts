@@ -55,6 +55,7 @@ function getFontlessContext(nuxt: Nuxt): FontlessContext | undefined {
 export async function initFontless(options: {
   nuxt: Nuxt
   logger?: ConsolaInstance
+  fontSubsets?: string[]
 }): Promise<void> {
   if (getFontlessContext(options.nuxt))
     return
@@ -104,7 +105,7 @@ export async function initFontless(options: {
       defaults: {
         weights: [400, 700],
         styles: ['normal', 'italic'],
-        subsets: ['latin'],
+        subsets: options.fontSubsets || ['latin'],
         // Satori can't use WOFF2 — request WOFF (static) format from providers
         formats: ['woff'],
       },
@@ -112,7 +113,7 @@ export async function initFontless(options: {
     providers,
   })
 
-  options.logger?.debug(`fontless initialized with formats: ['woff'], priority: ${JSON.stringify(nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'])}`)
+  options.logger?.debug(`fontless initialized with formats: ['woff'], subsets: ${JSON.stringify(options.fontSubsets || ['latin'])}, priority: ${JSON.stringify(nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'])}`)
 
   ;(options.nuxt as any)._ogImageFontless = { resolver, renderedFontURLs } satisfies FontlessContext
 }
@@ -179,6 +180,7 @@ async function downloadStaticFonts(options: {
   families: { family: string, weights: number[], styles: Array<'normal' | 'italic'> }[]
   nuxt: Nuxt
   logger: ConsolaInstance
+  fontSubsets?: string[]
 }): Promise<DownloadedFont[]> {
   if (options.families.length === 0)
     return []
@@ -186,7 +188,7 @@ async function downloadStaticFonts(options: {
   const ttfDir = join(options.nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
   fs.mkdirSync(ttfDir, { recursive: true })
 
-  await initFontless({ nuxt: options.nuxt, logger: options.logger })
+  await initFontless({ nuxt: options.nuxt, logger: options.logger, fontSubsets: options.fontSubsets })
   const fontlessCtx = getFontlessContext(options.nuxt)
   if (!fontlessCtx) {
     options.logger.warn('fontless not initialized, cannot resolve static font fallbacks')
@@ -332,7 +334,7 @@ async function resolveAndDownloadFamily(options: {
 export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<void> {
   const { nuxt, logger, fontRequirements, convertedWoff2Files, fontSubsets } = options
 
-  const parsedFonts = await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets })
+  const parsedFonts = await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
 
   // Filter to WOFF2 fonts that need processing (no WOFF/TTF alternative available)
   const hasNonWoff2 = new Set(
@@ -379,6 +381,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
       families,
       nuxt,
       logger,
+      fontSubsets,
     })
 
     for (const font of downloaded) {
@@ -412,11 +415,12 @@ export async function resolveMissingFontFamilies(options: {
   styles: Array<'normal' | 'italic'>
   nuxt: Nuxt
   logger: ConsolaInstance
+  fontSubsets?: string[]
 }): Promise<ParsedFont[]> {
-  const { missingFamilies, weights, styles, nuxt, logger } = options
+  const { missingFamilies, weights, styles, nuxt, logger, fontSubsets } = options
 
   const families = missingFamilies.map(family => ({ family, weights, styles }))
-  const downloaded = await downloadStaticFonts({ families, nuxt, logger })
+  const downloaded = await downloadStaticFonts({ families, nuxt, logger, fontSubsets })
 
   const results = downloaded.map(f => ({
     family: f.family,
@@ -458,7 +462,7 @@ export async function resolveOgImageFonts(options: {
 
   // 1. Extract fonts from @nuxt/fonts global CSS (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
-    ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets })
+    ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
     : []
 
   // 1b. Extract manual @font-face declarations from app CSS files (e.g. main.css)
@@ -498,6 +502,7 @@ export async function resolveOgImageFonts(options: {
         styles: fontRequirements.styles,
         nuxt,
         logger,
+        fontSubsets,
       }).catch((err) => {
         logger.debug('Fontless resolution failed:', err)
         return []
@@ -513,7 +518,7 @@ export async function resolveOgImageFonts(options: {
   // not the actual @nuxt/fonts families (e.g. Inter).
   const nuxtFontFamilies = new Set(
     hasNuxtFonts
-      ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets })).map(f => f.family)
+      ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files })).map(f => f.family)
       : [],
   )
   const fonts = !fontRequirements.hasDynamicBindings
