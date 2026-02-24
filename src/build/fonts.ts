@@ -191,7 +191,6 @@ export async function parseFontsFromTemplate(
   nuxt: Nuxt,
   options: {
     convertedWoff2Files: Map<string, string>
-    fontSubsets?: string[]
   },
 ): Promise<ParsedFont[]> {
   // Cache on nuxt instance keyed by convertedWoff2Files state
@@ -207,10 +206,12 @@ export async function parseFontsFromTemplate(
     return []
   }
   const contents = await nuxtFontsTemplate.getContents({} as any)
-  const configuredSubsets = options.fontSubsets || ['latin']
 
-  // Parse @font-face rules with subset filtering (handles Google Fonts /* latin */ comments)
-  const allFonts = await extractFontFacesWithSubsets(contents, configuredSubsets)
+  // Include all @nuxt/fonts subsets — these are user-configured fonts and shouldn't be
+  // filtered. Non-Latin subsets (devanagari, cyrillic, etc.) need to be available for
+  // renderers like Takumi that support them natively. The fontSubsets config only controls
+  // fontless downloads (Satori fallback path) to limit download size.
+  const allFonts = await extractFontFacesWithSubsets(contents)
 
   // Dedupe: for each (family, weight, style, unicodeRange), prefer WOFF over WOFF2
   const fontMap = new Map<string, typeof allFonts[0]>()

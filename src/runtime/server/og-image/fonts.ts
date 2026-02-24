@@ -6,6 +6,9 @@ import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontCache } from './cache/lru'
+import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
+
+export { codepointsIntersectRanges, extractCodepointsFromTakumiNodes, extractCodepointsFromVNodes, parseUnicodeRange } from './unicode-range'
 
 export interface LoadFontsOptions {
   /**
@@ -18,6 +21,8 @@ export interface LoadFontsOptions {
   component?: string
   /** When set, ensures this font family is included even if not in requirements */
   fontFamilyOverride?: string
+  /** Codepoints present in the template — fonts whose unicodeRange doesn't intersect are skipped */
+  codepoints?: Set<number>
 }
 
 async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<BufferSource | null> {
@@ -131,6 +136,20 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
         const resolvedOverride = (resolvedFonts as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
         fonts.push(...resolvedOverride)
       }
+    }
+  }
+
+  // Filter out font subsets whose unicodeRange doesn't intersect the template's codepoints
+  if (options.codepoints && options.codepoints.size > 0) {
+    for (let i = fonts.length - 1; i >= 0; i--) {
+      const f = fonts[i]!
+      if (!f.unicodeRange)
+        continue
+      const ranges = parseUnicodeRange(f.unicodeRange)
+      if (!ranges)
+        continue
+      if (!codepointsIntersectRanges(options.codepoints, ranges))
+        fonts.splice(i, 1)
     }
   }
 

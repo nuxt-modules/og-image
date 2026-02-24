@@ -170,13 +170,14 @@ export interface ModuleOptions {
    */
   cacheQueryParams?: boolean
   /**
-   * Font subsets to include for OG image rendering.
+   * Font subsets to download when resolving missing font families via fontless.
    *
-   * By default, unicode-range from @font-face declarations is used automatically.
-   * Set this to override subset filtering if fonts aren't loading correctly.
+   * Fonts from @nuxt/fonts are always included with all their subsets (devanagari,
+   * cyrillic, etc.). This option only controls which subsets fontless downloads when
+   * supplementing missing families for the Satori renderer.
    *
    * @default ['latin']
-   * @example ['latin', 'latin-ext', 'cyrillic']
+   * @example ['latin', 'latin-ext', 'devanagari']
    */
   fontSubsets?: string[]
   /**
@@ -1137,7 +1138,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
       const fonts = hasNuxtFonts
-        ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, fontSubsets: config.fontSubsets })
+        ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
         : []
       return `export default ${JSON.stringify(fonts)}`
     }

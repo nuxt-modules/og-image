@@ -6,7 +6,7 @@ import compatibility from '#og-image/compatibility'
 import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { loadAllFonts, loadAllFontsDebug } from '../fonts'
+import { extractCodepointsFromVNodes, loadAllFonts, loadAllFontsDebug } from '../fonts'
 import { useResvg, useSatori, useSharp } from './instances'
 import { createVNodes } from './vnodes'
 
@@ -37,11 +37,12 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
   // Always include the default font (first resolved, e.g. Lobster) so the wrapper div renders correctly
   const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
-  const [satori, vnodes, fonts] = await Promise.all([
+  const [satori, vnodes] = await Promise.all([
     useSatori(),
     createVNodes(event),
-    loadAllFonts(event.e, { supportsWoff2: false, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont }),
   ])
+  const codepoints = extractCodepointsFromVNodes(vnodes)
+  const fonts = await loadAllFonts(event.e, { supportsWoff2: false, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
   // Remap to satori's font format (requires `name` instead of `family`).

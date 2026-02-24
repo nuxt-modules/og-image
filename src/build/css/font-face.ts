@@ -153,13 +153,10 @@ export async function extractFontFacesSimple(css: string): Promise<Array<{
 }
 
 /**
- * Extract @font-face rules with Google Fonts subset comments (e.g. latin, cyrillic-ext).
- * Filters by allowed subsets; fonts without subset comments are always included.
+ * Extract @font-face rules with Google Fonts subset comments (e.g. latin, devanagari).
+ * Preserves the subset label on each result for debugging.
  */
-export async function extractFontFacesWithSubsets(
-  css: string,
-  allowedSubsets: string[] = ['latin'],
-): Promise<Array<{
+export async function extractFontFacesWithSubsets(css: string): Promise<Array<{
   family: string
   src: string
   weight: number
@@ -169,14 +166,6 @@ export async function extractFontFacesWithSubsets(
   subset?: string
 }>> {
   const fontFaceRe = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?(@font-face\s*\{[^}]+\})/g
-  const chunks: Array<{ subset?: string, css: string }> = []
-
-  for (const match of css.matchAll(fontFaceRe)) {
-    const subset = match[1]
-    const fontFaceCss = match[2]!
-    chunks.push({ subset, css: fontFaceCss })
-  }
-
   const results: Array<{
     family: string
     src: string
@@ -187,14 +176,11 @@ export async function extractFontFacesWithSubsets(
     subset?: string
   }> = []
 
-  for (const chunk of chunks) {
-    if (chunk.subset && !allowedSubsets.includes(chunk.subset))
-      continue
-
-    const fonts = await extractFontFacesSimple(chunk.css)
-    for (const font of fonts) {
-      results.push({ ...font, subset: chunk.subset })
-    }
+  for (const match of css.matchAll(fontFaceRe)) {
+    const subset = match[1]
+    const fonts = await extractFontFacesSimple(match[2]!)
+    for (const font of fonts)
+      results.push({ ...font, subset })
   }
 
   return results

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
+import { extractFontFacesWithSubsets } from '../../src/build/css/font-face'
 import { fontKey, getStaticInterFonts, matchesFontRequirements, resolveFontFamilies } from '../../src/build/fonts'
+import { codepointsIntersectRanges, extractCodepointsFromTakumiNodes, extractCodepointsFromVNodes, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
 
 describe('extractCustomFontFamilies', () => {
   it('extracts unquoted family names', () => {
@@ -175,5 +177,163 @@ describe('getStaticInterFonts', () => {
     expect(fonts[0].satoriSrc).toBeDefined()
     expect(fonts[1].weight).toBe(700)
     expect(fonts[1].satoriSrc).toBeDefined()
+  })
+})
+
+describe('extractFontFacesWithSubsets', () => {
+  const multiSubsetCss = `
+/* devanagari */
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/_fonts/noto-sans-devanagari-400.woff2) format('woff2');
+  unicode-range: U+0900-097F;
+}
+/* latin */
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/_fonts/noto-sans-latin-400.woff2) format('woff2');
+  unicode-range: U+0000-00FF;
+}
+`
+
+  it('includes all subsets including non-latin', async () => {
+    const fonts = await extractFontFacesWithSubsets(multiSubsetCss)
+    expect(fonts).toHaveLength(2)
+    expect(fonts.map(f => f.subset)).toContain('devanagari')
+    expect(fonts.map(f => f.subset)).toContain('latin')
+  })
+
+  it('includes fonts without subset comments', async () => {
+    const cssNoComment = `
+@font-face {
+  font-family: 'Custom';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/custom.woff2) format('woff2');
+}
+`
+    const fonts = await extractFontFacesWithSubsets(cssNoComment)
+    expect(fonts).toHaveLength(1)
+    expect(fonts[0].subset).toBeUndefined()
+  })
+})
+
+describe('parseUnicodeRange', () => {
+  it('parses single codepoint', () => {
+    expect(parseUnicodeRange('U+0041')).toEqual([[0x41, 0x41]])
+  })
+
+  it('parses range', () => {
+    expect(parseUnicodeRange('U+0900-097F')).toEqual([[0x0900, 0x097F]])
+  })
+
+  it('parses multiple comma-separated ranges', () => {
+    expect(parseUnicodeRange('U+0900-097F, U+0980-09FF')).toEqual([
+      [0x0900, 0x097F],
+      [0x0980, 0x09FF],
+    ])
+  })
+
+  it('handles lowercase hex', () => {
+    expect(parseUnicodeRange('U+0000-00ff')).toEqual([[0, 0xFF]])
+  })
+
+  it('returns null for invalid input', () => {
+    expect(parseUnicodeRange('invalid')).toBeNull()
+    expect(parseUnicodeRange('')).toBeNull()
+  })
+})
+
+describe('codepointsIntersectRanges', () => {
+  it('returns true when codepoint falls in range', () => {
+    const codepoints = new Set([0x41]) // 'A'
+    expect(codepointsIntersectRanges(codepoints, [[0x00, 0xFF]])).toBe(true)
+  })
+
+  it('returns false when no codepoint in range', () => {
+    const codepoints = new Set([0x41]) // 'A' — latin
+    expect(codepointsIntersectRanges(codepoints, [[0x0900, 0x097F]])).toBe(false) // devanagari
+  })
+
+  it('returns true for exact boundary match', () => {
+    const codepoints = new Set([0x0900])
+    expect(codepointsIntersectRanges(codepoints, [[0x0900, 0x097F]])).toBe(true)
+  })
+
+  it('returns false for empty codepoints', () => {
+    expect(codepointsIntersectRanges(new Set(), [[0x00, 0xFF]])).toBe(false)
+  })
+})
+
+describe('extractCodepointsFromVNodes', () => {
+  it('extracts from string children', () => {
+    const node = { type: 'div', props: { children: 'AB' } }
+    const cp = extractCodepointsFromVNodes(node)
+    expect(cp.has(0x41)).toBe(true) // A
+    expect(cp.has(0x42)).toBe(true) // B
+  })
+
+  it('extracts from nested VNode array children', () => {
+    const node = {
+      type: 'div',
+      props: {
+        children: [
+          'Hello',
+          { type: 'span', props: { children: 'World' } },
+        ],
+      },
+    }
+    const cp = extractCodepointsFromVNodes(node)
+    expect(cp.has('H'.codePointAt(0)!)).toBe(true)
+    expect(cp.has('W'.codePointAt(0)!)).toBe(true)
+  })
+
+  it('handles null children in array', () => {
+    const node = { type: 'div', props: { children: [null, 'A'] } }
+    const cp = extractCodepointsFromVNodes(node)
+    expect(cp.has(0x41)).toBe(true)
+  })
+
+  it('handles node with no children', () => {
+    const node = { type: 'div', props: {} }
+    const cp = extractCodepointsFromVNodes(node)
+    expect(cp.size).toBe(0)
+  })
+
+  it('extracts surrogate pair codepoints', () => {
+    const node = { type: 'div', props: { children: '\u{1F600}' } } // 😀
+    const cp = extractCodepointsFromVNodes(node)
+    expect(cp.has(0x1F600)).toBe(true)
+  })
+})
+
+describe('extractCodepointsFromTakumiNodes', () => {
+  it('extracts from text field', () => {
+    const node = { text: 'AB' }
+    const cp = extractCodepointsFromTakumiNodes(node)
+    expect(cp.has(0x41)).toBe(true)
+    expect(cp.has(0x42)).toBe(true)
+  })
+
+  it('extracts from nested children', () => {
+    const node = {
+      children: [
+        { text: 'Hello' },
+        { children: [{ text: 'World' }] },
+      ],
+    }
+    const cp = extractCodepointsFromTakumiNodes(node)
+    expect(cp.has('H'.codePointAt(0)!)).toBe(true)
+    expect(cp.has('W'.codePointAt(0)!)).toBe(true)
+  })
+
+  it('handles node with no text or children', () => {
+    const node = {}
+    const cp = extractCodepointsFromTakumiNodes(node)
+    expect(cp.size).toBe(0)
   })
 })

@@ -3,7 +3,7 @@ import resolvedFonts from '#og-image/fonts'
 import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
-import { loadAllFonts } from '../fonts'
+import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
 import { resolveColorMix } from '../utils/css'
 import { linearGradientToSvg, radialGradientToSvg } from '../utils/gradient-svg'
 import { detectImageExt } from '../utils/image-detector'
@@ -197,7 +197,8 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
   const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
   const nodes = await createTakumiNodes(event)
-  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont })
+  const codepoints = extractCodepointsFromTakumiNodes(nodes)
+  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
   sanitizeTakumiStyles(nodes)
