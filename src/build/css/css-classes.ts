@@ -120,6 +120,16 @@ export async function extractFontRequirementsFromVue(code: string): Promise<{
     }
   })
 
+  // Also scan <style> blocks for font-family/font-weight declarations.
+  // Template AST walking only catches inline style="" attributes, but OG image
+  // components commonly declare font families in <style scoped> blocks.
+  for (const style of descriptor.styles) {
+    if (style.content) {
+      extractFontWeightFromStyle(style.content, weights, styles)
+      extractFontFamilyFromStyle(style.content, familyNames)
+    }
+  }
+
   return { weights, styles, familyClasses, familyNames, hasDynamicBindings }
 }
 
@@ -175,10 +185,10 @@ function extractFontFamilyFromClass(cls: string, familyClasses: Set<string>, fam
 
 function extractFontFamilyFromStyle(style: string, familyNames: Set<string>): void {
   for (const match of style.matchAll(INLINE_FONT_FAMILY_REGEX)) {
-    // Only take the primary (first) font — rest are CSS fallbacks
-    const primary = extractCustomFontFamilies(match[1]!)[0]
-    if (primary)
-      familyNames.add(primary)
+    // Extract all custom font families — secondary families may provide
+    // glyphs for scripts the primary font doesn't cover (e.g. Devanagari)
+    for (const name of extractCustomFontFamilies(match[1]!))
+      familyNames.add(name)
   }
 }
 

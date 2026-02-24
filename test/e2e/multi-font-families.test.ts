@@ -94,6 +94,26 @@ describe('multi-font-families', () => {
     expect(serifBold.byteLength).toBeGreaterThan(1000)
   })
 
+  it('renders Devanagari text with takumi font fallback', async () => {
+    const html = await $fetch('/devanagari') as string
+    expect(html).toContain('og:image')
+    const basePath = extractOgImageUrl(html)
+    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-devanagari-takumi',
+    })
+  })
+
+  it('renders Devanagari text with satori font fallback', async () => {
+    const html = await $fetch('/devanagari-satori') as string
+    expect(html).toContain('og:image')
+    const basePath = extractOgImageUrl(html)
+    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(png)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-devanagari-satori',
+    })
+  })
+
   it('renders takumi variable font with bold weight', async () => {
     const html = await $fetch('/takumi-variable-bold') as string
     expect(html).toContain('og:image')

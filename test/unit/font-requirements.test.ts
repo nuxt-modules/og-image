@@ -169,6 +169,51 @@ describe('font-requirements', () => {
       expect(result.familyNames).not.toContain('sans-serif')
     })
 
+    it('should extract all custom families from font-family (not just primary)', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
+
+      const result = await extractFontRequirementsFromVue(`
+<template>
+  <div style="font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif">Multi-script text</div>
+</template>
+`)
+
+      expect(result.familyNames).toContain('Poppins')
+      expect(result.familyNames).toContain('Noto Sans Devanagari')
+      // sans-serif is generic, should be excluded
+      expect(result.familyNames).not.toContain('sans-serif')
+    })
+
+    it('should extract font-family from <style> blocks', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
+
+      const result = await extractFontRequirementsFromVue(`
+<template>
+  <div class="title">Styled text</div>
+</template>
+<style scoped>
+.title { font-family: 'Noto Sans Devanagari', sans-serif; }
+</style>
+`)
+
+      expect(result.familyNames).toContain('Noto Sans Devanagari')
+    })
+
+    it('should extract font-weight from <style> blocks', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
+
+      const result = await extractFontRequirementsFromVue(`
+<template>
+  <div class="heading">Bold text</div>
+</template>
+<style scoped>
+.heading { font-weight: 700; }
+</style>
+`)
+
+      expect(result.weights).toContain(700)
+    })
+
     it('should handle arbitrary font-family values like font-[Inter]', async () => {
       const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 

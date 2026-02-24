@@ -64,6 +64,19 @@ function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>
   if (node.style?.fontFamily) {
     const families = node.style.fontFamily.split(',').map((f: string) => f.trim().replace(/['"]/g, ''))
     const expanded = families.flatMap((f: string) => familySubsetNames.get(f) || [f])
+    // Append all other loaded font subsets as fallback for missing glyphs.
+    // Without this, an element styled with e.g. font-family: 'Poppins' would
+    // have no fallback when Poppins lacks glyphs (e.g. Devanagari script) —
+    // the renderer needs other loaded fonts in the font stack to fall back to.
+    const expandedSet = new Set(expanded)
+    for (const subsets of familySubsetNames.values()) {
+      for (const name of subsets) {
+        if (!expandedSet.has(name)) {
+          expanded.push(name)
+          expandedSet.add(name)
+        }
+      }
+    }
     node.style.fontFamily = expanded.join(', ')
   }
   if (node.children) {

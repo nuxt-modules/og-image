@@ -30,6 +30,8 @@ export default defineNuxtConfig({
       { name: 'Nunito Sans', global: true },
       // Local font via @nuxt/fonts — provider: 'none' skips provider resolution, uses src directly
       { name: 'LocalSerif', src: '/fonts/LocalSerif-Regular.ttf', provider: 'none', global: true },
+      // Noto Sans Devanagari — tests non-Latin script rendering and font fallback
+      { name: 'Noto Sans Devanagari', weights: [400, 700], global: true },
     ],
   },
 
