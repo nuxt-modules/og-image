@@ -55,12 +55,12 @@ describe('resolveOgImageFonts', () => {
     expect(fonts[0].family).toBe('Inter')
   })
 
-  it('warns and appends Inter when all fonts are variable (no satoriSrc)', async () => {
+  it('logs debug and appends Inter when all fonts are variable (no satoriSrc)', async () => {
     const variableFont = { family: 'Inter', src: '/inter.woff2', weight: 400, style: 'normal' }
     vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([variableFont])
     const opts = createOpts({ hasSatoriRenderer: true })
     const fonts = await resolveOgImageFonts(opts)
-    expect(opts.logger.warn).toHaveBeenCalled()
+    expect(opts.logger.debug).toHaveBeenCalled()
     expect(fonts.some((f: any) => f.satoriSrc)).toBe(true)
   })
 

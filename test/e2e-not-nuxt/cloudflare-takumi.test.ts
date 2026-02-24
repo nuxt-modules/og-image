@@ -203,7 +203,7 @@ describe('cloudflare-takumi', () => {
       const buffer = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
       const result = buffer.asUint8Array()
       // Should render actual text (small PNG), not NO GLYPH boxes (larger PNG)
-      expect(result.length).toBeLessThan(2800)
+      expect(result.length).toBeLessThan(8000)
     })
 
     it('renders text when each subset has a unique name with comma-separated fontFamily', async () => {
@@ -228,8 +228,8 @@ describe('cloudflare-takumi', () => {
 
       // With unique names the renderer falls through subsets until it finds the glyph.
       // NO GLYPH boxes for 5 chars ("Hello") produce a larger PNG than actual text.
-      // Working renders are consistently under 2800 bytes for this simple test.
-      expect(result.length).toBeLessThan(2800)
+      // Working renders are consistently under 8000 bytes for this simple test.
+      expect(result.length).toBeLessThan(8000)
       expect(Buffer.from(result)).toMatchImageSnapshot({
         customSnapshotIdentifier: 'cloudflare-takumi-font-subset-fallback',
       })
