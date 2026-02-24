@@ -155,6 +155,9 @@ export interface GetOgImagePathResult {
   hash?: string
 }
 
+/**
+ * @deprecated Use the return value of `defineOgImage()` instead, which now returns an array of generated paths.
+ */
 export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>): GetOgImagePathResult {
   const runtimeConfig = useRuntimeConfig()
   const baseURL = runtimeConfig.app.baseURL

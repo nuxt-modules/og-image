@@ -775,6 +775,11 @@ export default defineNuxtModule<ModuleOptions>({
         }
       })
 
+    addImports({
+      name: 'getOgImagePath',
+      from: resolve('./runtime/app/utils'),
+    })
+
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
     addPlugin({ mode: 'server', src: resolve(`${basePluginPath}/route-rule-og-image.server`) })
