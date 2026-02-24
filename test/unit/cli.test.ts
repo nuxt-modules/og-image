@@ -69,7 +69,7 @@ describe('cli', () => {
   })
 
   describe('migrate v6', { timeout: 30_000 }, () => {
-    it('renames components to .satori.vue by default', () => {
+    it('renames components to .takumi.vue by default', () => {
       const ogDir = join(tmpDir, 'components/OgImage')
       mkdirSync(ogDir, { recursive: true })
       writeFileSync(join(ogDir, 'Default.vue'), '<template>test</template>')
@@ -77,8 +77,8 @@ describe('cli', () => {
 
       const output = runCli('migrate v6 --yes')
       expect(output).toContain('Migration complete')
-      expect(existsSync(join(ogDir, 'Default.satori.vue'))).toBe(true)
-      expect(existsSync(join(ogDir, 'Blog.satori.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Default.takumi.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Blog.takumi.vue'))).toBe(true)
       expect(existsSync(join(ogDir, 'Default.vue'))).toBe(false)
     })
 
@@ -98,10 +98,10 @@ describe('cli', () => {
 
       const output = runCli('migrate v6 --dry-run --yes')
       expect(output).toContain('Default.vue')
-      expect(output).toContain('Default.satori.vue')
+      expect(output).toContain('Default.takumi.vue')
       expect(output).toContain('Dry run')
       expect(existsSync(join(ogDir, 'Default.vue'))).toBe(true)
-      expect(existsSync(join(ogDir, 'Default.satori.vue'))).toBe(false)
+      expect(existsSync(join(ogDir, 'Default.takumi.vue'))).toBe(false)
     })
 
     it('skips component rename when already have suffix', () => {
@@ -123,7 +123,7 @@ describe('cli', () => {
       writeFileSync(join(ogDir, 'Default.vue'), '<template>test</template>')
 
       runCli('migrate v6 --yes')
-      expect(existsSync(join(ogDir, 'Default.satori.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Default.takumi.vue'))).toBe(true)
     })
   })
 })

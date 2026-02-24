@@ -16,19 +16,19 @@ const defaultComponentDirs = ['OgImage', 'OgImageCommunity', 'og-image', 'OgImag
 // Renderer definitions with descriptions
 const RENDERERS = [
   {
-    name: 'satori',
-    label: 'Satori',
-    description: 'SVG-based renderer - fast, works everywhere (recommended)',
+    name: 'takumi',
+    label: 'Takumi (Recommended)',
+    description: '2-10x faster, comprehensive CSS support',
   },
   {
-    name: 'takumi',
-    label: 'Takumi',
-    description: 'Rust-based high-performance renderer',
+    name: 'satori',
+    label: 'Satori',
+    description: 'SVG-based renderer - works without extra dependencies',
   },
   {
     name: 'browser',
     label: 'Browser',
-    description: 'Browser screenshot renderer - pixel-perfect but slower',
+    description: 'Full CSS via screenshots - prerender only',
   },
 ] as const
 
@@ -497,8 +497,8 @@ async function runMigrate(args: string[]): Promise<void> {
   let selectedRenderers: RendererName[]
 
   if (skipConfirm) {
-    // Use --renderer flag if provided, otherwise default to satori
-    selectedRenderers = cliRenderer ? [cliRenderer as RendererName] : ['satori']
+    // Use --renderer flag if provided, otherwise default to takumi
+    selectedRenderers = cliRenderer ? [cliRenderer as RendererName] : ['takumi']
   }
   else {
     // Interactive mode
@@ -520,7 +520,7 @@ async function runMigrate(args: string[]): Promise<void> {
         label: r.label,
         hint: r.description,
       })),
-      initialValues: ['satori'],
+      initialValues: ['takumi'],
       required: true,
     })
 
@@ -573,7 +573,7 @@ async function runMigrate(args: string[]): Promise<void> {
   // Rename components
   if (migrationCheck.needsComponentRename) {
     console.log('\nRenaming components...')
-    migrateV6Components(migrationCheck.componentsToRename, selectedRenderers[0] || 'satori', dryRun)
+    migrateV6Components(migrationCheck.componentsToRename, selectedRenderers[0] || 'takumi', dryRun)
   }
 
   // Migrate API calls
