@@ -50,6 +50,20 @@ describe('tailwind-nuxt-ui', () => {
     expect(htmlPreview).toContain('Nuxt UI Colors')
     // Verify colors are resolved to inline styles with hex values (TW4 transform + oklch conversion)
     expect(htmlPreview).toMatch(/style="[^"]*background-color:\s*#/)
+
+    // Verify user's app.config.ts override (primary: 'indigo') was applied, not the default green.
+    // Extract all background-color hex values from the preview.
+    const bgColors = [...htmlPreview.matchAll(/background-color:\s*#([0-9a-f]{6})/gi)].map(m => m[1]!)
+    expect(bgColors.length).toBeGreaterThan(0)
+    // Indigo has a dominant blue channel (e.g. #6366f1), green has a dominant green channel (e.g. #22c55e).
+    // At least one bg-primary element should resolve to a blue-dominant color (indigo).
+    const hasIndigo = bgColors.some((hex) => {
+      const r = Number.parseInt(hex.slice(0, 2), 16)
+      const g = Number.parseInt(hex.slice(2, 4), 16)
+      const b = Number.parseInt(hex.slice(4, 6), 16)
+      return b > r && b > g // blue-dominant = indigo family
+    })
+    expect(hasIndigo, `expected indigo (blue-dominant) bg-primary, got hex colors: ${bgColors.map(h => `#${h}`).join(', ')}`).toBe(true)
   })
 
   it('extracts expected colors from og image', async () => {

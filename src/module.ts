@@ -443,34 +443,33 @@ export default defineNuxtModule<ModuleOptions>({
       fontRequirementsState.scanned = true
     }
 
-    // Load Nuxt UI colors from .nuxt/app.config.mjs
+    // Resolve Nuxt UI colors by merging module defaults with user app.config overrides.
+    // nuxt.options.appConfig only has module defaults at setup time — user's app.config.ts
+    // values are only merged at runtime. We use the app:resolve hook to get user config paths
+    // and import them directly, avoiding fragile regex parsing of generated files.
     let cachedNuxtUiColors: Record<string, string> | undefined
+    nuxt.hook('app:resolve', async (app) => {
+      if (!hasNuxtModule('@nuxt/ui'))
+        return
+      // Module defaults already set by @nuxt/ui setup()
+      let colors = (nuxt.options.appConfig.ui as any)?.colors as Record<string, string> | undefined
+      // Merge user app.config overrides (user values win via defu)
+      for (const configPath of app.configs) {
+        const hadShim = 'defineAppConfig' in globalThis
+        if (!hadShim)
+          (globalThis as any).defineAppConfig = (config: any) => config
+        const cfg = await import(configPath).then(m => m.default || m).catch(() => ({}))
+        if (!hadShim)
+          delete (globalThis as any).defineAppConfig
+        if (cfg?.ui?.colors)
+          colors = defu(cfg.ui.colors, colors)
+      }
+      cachedNuxtUiColors = colors
+      logger.debug(`Nuxt UI colors: ${JSON.stringify(cachedNuxtUiColors)}`)
+    })
     async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
-      if (cachedNuxtUiColors)
-        return cachedNuxtUiColors
       if (!hasNuxtModule('@nuxt/ui'))
         return undefined
-      const appConfigPath = join(nuxt.options.buildDir, 'app.config.mjs')
-      if (!existsSync(appConfigPath)) {
-        return { ...(nuxt.options.appConfig.ui as any)?.colors } as Record<string, string> | undefined
-      }
-      const rawContent = await readFile(appConfigPath, 'utf-8')
-      // Parse inlineConfig JSON from generated file (avoids needing defu/jiti resolution from buildDir)
-      const inlineMatch = rawContent.match(/const\s+inlineConfig\s*=\s*(\{[\s\S]*?\n\})/)
-      let inlineConfig: { ui?: { colors?: Record<string, string> } } = {}
-      if (inlineMatch?.[1]) {
-        inlineConfig = JSON.parse(inlineMatch[1])
-      }
-      // Import user's app.config separately (absolute path, no defu needed)
-      // eslint-disable-next-line regexp/no-super-linear-backtracking
-      const userConfigMatch = rawContent.match(/import\s+\w+\s+from\s+"([^"]+)"(?:\s*\n)+export default/)
-      let userConfig: { ui?: { colors?: Record<string, string> } } = {}
-      if (userConfigMatch?.[1]) {
-        userConfig = await import(userConfigMatch[1]).then(m => m.default || m).catch(() => ({}))
-      }
-      const mergedAppConfig = defu(userConfig, inlineConfig)
-      cachedNuxtUiColors = defu(mergedAppConfig?.ui?.colors, (nuxt.options.appConfig.ui as any)?.colors)
-      logger.debug(`Nuxt UI colors: ${JSON.stringify(cachedNuxtUiColors)}`)
       return cachedNuxtUiColors
     }
 
