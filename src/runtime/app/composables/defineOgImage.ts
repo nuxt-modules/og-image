@@ -11,14 +11,14 @@ type OgImageComponentOptions<T extends keyof OgImageComponents> = OgImageOptions
  *
  * @param component - The component name (must match an OgImage component)
  * @param propsOrOptions - Either component props, or an array of options for multiple images
- * @param options - Additional OG image options (width, height, etc.)
+ * @param options - Additional OG image options (width, height, etc.), or an array of options for multiple images sharing the same props
  */
 export function defineOgImage<T extends keyof OgImageComponents>(
   component: T,
   propsOrOptions: ReactiveComponentProps<OgImageComponents[T]> | OgImageComponentOptions<T>[] = {},
-  options: OgImageOptions = {},
+  options: OgImageOptions | OgImageComponentOptions<T>[] = {},
 ): string[] {
-  // Handle array of options
+  // Handle array of options (no shared props)
   if (Array.isArray(propsOrOptions)) {
     return _defineOgImageRaw(propsOrOptions.map(opt => ({
       ...opt,
@@ -26,12 +26,31 @@ export function defineOgImage<T extends keyof OgImageComponents>(
     })))
   }
 
+  const sharedProps = propsOrOptions && Object.keys(propsOrOptions).length > 0
+    ? propsOrOptions
+    : undefined
+
+  // Handle shared props + array of variants
+  if (Array.isArray(options)) {
+    return _defineOgImageRaw(options.map((opt) => {
+      const input: OgImageOptions = {
+        ...opt,
+        component: component as string,
+      }
+      if (sharedProps) {
+        // Per-variant props override shared props
+        input.props = opt.props ? { ...sharedProps, ...opt.props } : { ...sharedProps }
+      }
+      return input
+    }))
+  }
+
   // Single image
   const input: OgImageOptions = {
     ...options,
     component: component as string,
   }
-  if (propsOrOptions && Object.keys(propsOrOptions).length > 0)
-    input.props = propsOrOptions
+  if (sharedProps)
+    input.props = sharedProps
   return _defineOgImageRaw(input)
 }
