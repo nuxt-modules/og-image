@@ -1,4 +1,46 @@
 /**
+ * Split a CSS style string into individual declarations, respecting
+ * parentheses (e.g. `url(...)`) and quoted strings so that semicolons
+ * inside data URIs like `url("data:image/svg+xml;utf8,...")` are not
+ * treated as declaration separators.
+ */
+export function splitCssDeclarations(style: string): string[] {
+  const declarations: string[] = []
+  let current = ''
+  let parenDepth = 0
+  let inSingleQuote = false
+  let inDoubleQuote = false
+
+  for (let i = 0; i < style.length; i++) {
+    const char = style[i]!
+    if (char === '\'' && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote
+    }
+    else if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote
+    }
+    else if (!inSingleQuote && !inDoubleQuote) {
+      if (char === '(') {
+        parenDepth++
+      }
+      else if (char === ')') {
+        parenDepth = Math.max(0, parenDepth - 1)
+      }
+      else if (char === ';' && parenDepth === 0) {
+        if (current.trim())
+          declarations.push(current)
+        current = ''
+        continue
+      }
+    }
+    current += char
+  }
+  if (current.trim())
+    declarations.push(current)
+  return declarations
+}
+
+/**
  * Convert container query / dynamic viewport units to pixels.
  * In OG image context, the "container" is the image itself (default 1200x630).
  */
