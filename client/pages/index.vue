@@ -100,6 +100,8 @@ interface FontFileEntry {
   src: string
   label: string
   loaded: boolean
+  subsetCount: number
+  subsets: string[]
 }
 
 const fontFiles = computed<FontFileEntry[]>(() => {
@@ -107,16 +109,27 @@ const fontFiles = computed<FontFileEntry[]>(() => {
   const resolved = globalDebug.value?.resolvedFonts || []
   if (!available.length && !resolved.length)
     return []
+  const source = available.length ? available : resolved
   // Build set of resolved keys for loaded check
   const resolvedKeys = new Set(resolved.map((f: any) => `${f.family}-${f.weight}-${f.style}`))
+  // Count subsets per family+weight+style and collect subset names
+  const subsetMap = new Map<string, string[]>()
+  for (const f of source) {
+    const key = `${f.family}-${f.weight}-${f.style}`
+    const subs = subsetMap.get(key) || []
+    if (f.subset)
+      subs.push(f.subset)
+    subsetMap.set(key, subs)
+  }
   // Dedupe by family+weight+style (multiple unicode-range subsets)
   const seen = new Set<string>()
   const entries: FontFileEntry[] = []
-  for (const f of available.length ? available : resolved) {
+  for (const f of source) {
     const key = `${f.family}-${f.weight}-${f.style}`
     if (seen.has(key))
       continue
     seen.add(key)
+    const subs = subsetMap.get(key) || []
     entries.push({
       key,
       family: f.family,
@@ -125,12 +138,32 @@ const fontFiles = computed<FontFileEntry[]>(() => {
       src: f.src,
       label: `${f.family} ${f.weight}${f.style === 'italic' ? 'i' : ''}`,
       loaded: resolvedKeys.has(key),
+      subsetCount: Math.max(subs.length, 1),
+      subsets: subs,
     })
   }
   // Sort: by family, then weight, then style
   entries.sort((a, b) => a.family.localeCompare(b.family) || a.weight - b.weight || a.style.localeCompare(b.style))
   return entries
 })
+
+/** Total byte size of all resolved font files per family */
+const fontFamilySizes = computed(() => {
+  const resolved = globalDebug.value?.resolvedFonts || []
+  const sizes = new Map<string, number>()
+  for (const f of resolved) {
+    if (f.size)
+      sizes.set(f.family, (sizes.get(f.family) || 0) + f.size)
+  }
+  return sizes
+})
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024)
+    return `${bytes} B`
+  const kb = bytes / 1024
+  return kb < 1000 ? `${kb.toFixed(1)} kB` : `${(kb / 1024).toFixed(1)} MB`
+}
 
 const fontFamilyNames = computed(() => [...new Set(fontFiles.value.map(f => f.family))])
 const resolvedFamilyNames = computed(() => [...new Set(fontFiles.value.filter(f => f.loaded).map(f => f.family))])
@@ -815,7 +848,10 @@ function resetAll() {
                     @click="applyFontOverride(family)"
                   >
                     <span class="fonts-family-name" :style="{ fontFamily: `'ogp-${family}', sans-serif` }">{{ family }}</span>
-                    <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
+                    <span class="fonts-family-meta">
+                      <span v-if="fontFamilySizes.get(family)" class="fonts-family-size">{{ formatBytes(fontFamilySizes.get(family)!) }}</span>
+                      <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
+                    </span>
                   </button>
                   <div class="fonts-variants">
                     <div
@@ -826,6 +862,10 @@ function resetAll() {
                     >
                       <span class="fonts-variant-dot" />
                       <span class="fonts-variant-label">{{ f.weight }}{{ f.style === 'italic' ? 'i' : '' }}</span>
+                      <span v-if="f.subsetCount > 1" class="fonts-variant-count">&times;{{ f.subsetCount }}</span>
+                      <template v-if="f.subsets.length">
+                        <span v-for="s in f.subsets" :key="s" class="fonts-subset-chip">{{ s }}</span>
+                      </template>
                     </div>
                   </div>
                 </template>
@@ -1270,6 +1310,20 @@ function resetAll() {
   color: var(--seo-green);
 }
 
+.fonts-family-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.fonts-family-size {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--color-text-subtle);
+  letter-spacing: 0.01em;
+}
+
 .fonts-family-check {
   width: 0.875rem;
   height: 0.875rem;
@@ -1287,8 +1341,9 @@ function resetAll() {
 
 .fonts-variant {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .fonts-variant-dot {
@@ -1297,6 +1352,7 @@ function resetAll() {
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--color-border);
+  align-self: center;
 }
 
 .fonts-variant.loaded .fonts-variant-dot {
@@ -1311,6 +1367,28 @@ function resetAll() {
 }
 
 .fonts-variant.loaded .fonts-variant-label {
+  color: var(--color-text-muted);
+}
+
+.fonts-variant-count {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--color-text-subtle);
+  opacity: 0.7;
+}
+
+.fonts-subset-chip {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  line-height: 1;
+  padding: 0.0625rem 0.1875rem;
+  border-radius: 2px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-subtle);
+}
+
+.fonts-variant.loaded .fonts-subset-chip {
   color: var(--color-text-muted);
 }
 

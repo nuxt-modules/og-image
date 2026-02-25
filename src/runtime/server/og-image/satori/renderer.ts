@@ -138,13 +138,9 @@ const SatoriRenderer: Renderer = {
       warnings: svgResult.warnings,
       fontDebug: {
         ...loadAllFontsDebug(e.options.component),
-        fonts: svgResult.fonts.map(f => ({
-          family: f.family,
-          weight: f.weight,
-          style: f.style,
-          src: f.src,
-          satoriSrc: f.satoriSrc,
-          size: f.data ? (f.data as ArrayBuffer).byteLength : 0,
+        fonts: svgResult.fonts.map(({ data: _, ...f }) => ({
+          ...f,
+          size: _.byteLength,
         })),
       },
     }

@@ -357,12 +357,9 @@ const TakumiRenderer: Renderer = {
     ])
     return {
       vnodes,
-      fonts: fonts.map(f => ({
-        family: f.family,
-        weight: f.weight,
-        style: f.style,
-        src: f.src,
-        size: f.data ? (f.data as ArrayBuffer).byteLength : 0,
+      fonts: fonts.map(({ data: _, ...f }) => ({
+        ...f,
+        size: _.byteLength,
       })),
     }
   },
