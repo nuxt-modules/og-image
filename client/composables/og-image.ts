@@ -138,6 +138,11 @@ export function useOgImage() {
     })
   })
 
+  // Multi-image keys
+  const allImageKeys = computed(() => {
+    return debug.value?.extract?.socialPreview?.images?.map((i: DevToolsMetaDataExtraction) => i.key) || []
+  })
+
   // Auto-resolve a square/smaller image for WhatsApp inline preview
   const whatsappInlineSrc = computed(() => {
     const keys = allImageKeys.value
