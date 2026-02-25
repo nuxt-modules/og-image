@@ -17,7 +17,7 @@ import { join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseFontsFromTemplate, SATORI_FONTS_PREFIX } from './fonts'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseFontsFromTemplate, SATORI_FONTS_PREFIX } from './fonts'
 
 // ============================================================================
 // Types
@@ -449,6 +449,7 @@ export async function resolveOgImageFonts(options: {
   nuxt: Nuxt
   hasNuxtFonts: boolean
   hasSatoriRenderer: boolean
+  hasTakumiRenderer: boolean
   convertedWoff2Files: Map<string, string>
   fontSubsets?: string[]
   fontRequirements: FontRequirementsState
@@ -457,13 +458,18 @@ export async function resolveOgImageFonts(options: {
   /** Absolute path to bundled _og-fonts directory for direct filesystem reads during prerender */
   ogFontsDir?: string
 }): Promise<ParsedFont[]> {
-  const { nuxt, hasNuxtFonts, hasSatoriRenderer, convertedWoff2Files, fontSubsets, fontRequirements, tw4FontVars, logger, ogFontsDir } = options
+  const { nuxt, hasNuxtFonts, hasSatoriRenderer, hasTakumiRenderer, convertedWoff2Files, fontSubsets, fontRequirements, tw4FontVars, logger, ogFontsDir } = options
   const staticInterFonts = getStaticInterFonts(ogFontsDir)
 
   // 1. Extract fonts from @nuxt/fonts global CSS (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
     ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
     : []
+
+  // Auto-detect subsets from @nuxt/fonts CSS comments (e.g. devanagari, cyrillic)
+  // so fontless downloads include non-Latin fonts instead of defaulting to latin-only
+  const detectedSubsets = extractSubsetNames(allFonts)
+  const effectiveSubsets = detectedSubsets.length > 0 ? detectedSubsets : (fontSubsets || ['latin'])
 
   // 1b. Extract manual @font-face declarations from app CSS files (e.g. main.css)
   const appCssFonts = await parseAppCssFontFaces(nuxt).catch(() => [])
@@ -478,11 +484,11 @@ export async function resolveOgImageFonts(options: {
     logger.debug(`Parsed ${appCssFonts.length} fonts from app CSS @font-face declarations`)
   }
 
-  // 2. Satori-only: resolve missing font families via fontless
-  // Takumi/browser can use WOFF2 and variable fonts directly
+  // 2. Satori/Takumi: resolve missing font families via fontless
+  // Takumi needs static fonts to work around WOFF2 subset decompression bugs
   // Skip when @nuxt/fonts is not installed — fontless can't resolve system/fallback fonts
   // from TW4 font stacks (e.g. Menlo, Apple Color Emoji), just use bundled Inter instead
-  if (hasSatoriRenderer && hasNuxtFonts) {
+  if ((hasSatoriRenderer || hasTakumiRenderer) && hasNuxtFonts) {
     const coveredFamilies = new Set(allFonts.map(f => f.family))
     let missingFamilies: string[] = []
 
@@ -502,7 +508,7 @@ export async function resolveOgImageFonts(options: {
         styles: fontRequirements.styles,
         nuxt,
         logger,
-        fontSubsets,
+        fontSubsets: effectiveSubsets,
       }).catch((err) => {
         logger.debug('Fontless resolution failed:', err)
         return []
@@ -541,8 +547,8 @@ export async function resolveOgImageFonts(options: {
     .join('\n')
   logger.debug(`Resolved ${fonts.length} fonts (from ${allFonts.length} total)\n${familyBreakdown}`)
 
-  // 4. Non-satori renderers: return whatever we have (they handle WOFF2/variable natively)
-  if (!hasSatoriRenderer) {
+  // 4. Non-satori/non-takumi renderers: return whatever we have (browser handles WOFF2/variable natively)
+  if (!hasSatoriRenderer && !hasTakumiRenderer) {
     if (fonts.length === 0 && !hasNuxtFonts)
       return staticInterFonts
     return fonts

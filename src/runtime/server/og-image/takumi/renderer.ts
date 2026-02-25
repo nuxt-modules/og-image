@@ -3,6 +3,7 @@ import resolvedFonts from '#og-image/fonts'
 import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
+import { logger } from '../../../logger'
 import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
 import { resolveColorMix } from '../utils/css'
 import { linearGradientToSvg, radialGradientToSvg } from '../utils/gradient-svg'
@@ -55,7 +56,9 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
         state.familySubsetNames.set(font.family, [])
       state.familySubsetNames.get(font.family)!.push(subsetName)
     }
-    catch {}
+    catch (err) {
+      logger.warn(`Failed to load font "${font.family}" (weight: ${font.weight}) into takumi renderer: ${(err as Error).message}`)
+    }
     state.loadedFontKeys.add(uniqueKey)
   }
 }
@@ -211,7 +214,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
   const nodes = await createTakumiNodes(event)
   const codepoints = extractCodepointsFromTakumiNodes(nodes)
-  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
+  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
   sanitizeTakumiStyles(nodes)
@@ -350,7 +353,7 @@ const TakumiRenderer: Renderer = {
   async debug(e) {
     const [vnodes, fonts] = await Promise.all([
       createTakumiNodes(e),
-      loadAllFonts(e.e, { supportsWoff2: true, component: e.options.component }),
+      loadAllFonts(e.e, { supportsWoff2: true, preferStatic: true, component: e.options.component }),
     ])
     return {
       vnodes,

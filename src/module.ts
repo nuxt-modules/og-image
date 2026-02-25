@@ -1096,9 +1096,10 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // Used to set satoriSrc on @nuxt/fonts entries, bypassing variable font WOFF files
     const convertedWoff2Files = new Map<string, string>()
 
-    // Whether satori is a detected renderer — gates WOFF2 conversion and fontless logic
-    // Takumi and browser renderers handle WOFF2 and variable fonts natively
+    // Whether satori/takumi are detected renderers — gates WOFF2 conversion and fontless logic
+    // Browser renderer handles WOFF2 and variable fonts natively
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
+    const hasTakumiRenderer = () => ogImageComponentCtx.detectedRenderers.has('takumi')
 
     // Hoisted from `if (hasNuxtFonts)` so the virtual module factory can access them
     let fontContext: { renderedFontURLs: Map<string, string> } | null = null
@@ -1115,7 +1116,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       }
       // Dev mode: convertWoff2ToTtf() may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
-      if (!fontProcessingDone && convertedWoff2Files.size === 0 && hasSatoriRenderer() && hasNuxtFonts) {
+      if (!fontProcessingDone && convertedWoff2Files.size === 0 && (hasSatoriRenderer() || hasTakumiRenderer()) && hasNuxtFonts) {
         if (pendingFontRequirements.length > 0)
           await Promise.all(pendingFontRequirements)
         await convertWoff2ToTtf({
@@ -1130,6 +1131,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         nuxt,
         hasNuxtFonts,
         hasSatoriRenderer: hasSatoriRenderer(),
+        hasTakumiRenderer: hasTakumiRenderer(),
         convertedWoff2Files,
         fontSubsets: config.fontSubsets,
         fontRequirements: fontRequirementsState,
@@ -1192,8 +1194,8 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
 export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     }
 
-    // @nuxt/fonts + satori font processing — convert WOFF2 to static TTF via fontless
-    // Only needed when satori is detected; takumi/browser handle WOFF2 natively
+    // @nuxt/fonts + satori/takumi font processing — convert WOFF2 to static TTF via fontless
+    // Needed for satori (can't use WOFF2) and takumi (WOFF2 subset decompression bugs)
     if (hasNuxtFonts) {
       // Hook into @nuxt/fonts to persist font URL mapping for prerender
       nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
@@ -1203,7 +1205,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt.hook('vite:compiled', async () => {
         // Always persist font URL mapping (needed by all renderers for prerender/dev font resolution)
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
-        if (fontProcessingDone || !hasSatoriRenderer())
+        if (fontProcessingDone || (!hasSatoriRenderer() && !hasTakumiRenderer()))
           return
         // Skip until font requirements are populated (OG components are server-side,
         // so onFontRequirements runs during the server Vite build, not the client build)
@@ -1223,7 +1225,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
 
       // Copy converted TTFs to output after Nitro copies publicAssets
       nuxt.hook('nitro:build:public-assets' as any, (nitro: any) => {
-        if (!hasSatoriRenderer())
+        if (!hasSatoriRenderer() && !hasTakumiRenderer())
           return
         copyTtfFontsToOutput({
           buildDir: nuxt.options.buildDir,

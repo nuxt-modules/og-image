@@ -23,6 +23,8 @@ export interface ParsedFont {
   style: string
   satoriSrc?: string
   unicodeRange?: string
+  /** Subset name from @nuxt/fonts CSS comment (e.g. 'latin', 'devanagari') */
+  subset?: string
   /** Absolute filesystem path for direct file reads (e.g. bundled fallback fonts). */
   absolutePath?: string
 }
@@ -56,6 +58,16 @@ export interface FontRequirementsState {
 /** Dedup key for a font face: family + weight + style + unicode range. */
 export function fontKey(f: { family: string, weight: number, style: string, unicodeRange?: string }): string {
   return `${f.family}-${f.weight}-${f.style}-${f.unicodeRange || 'default'}`
+}
+
+/** Collect unique non-null subset names from parsed fonts. */
+export function extractSubsetNames(fonts: ParsedFont[]): string[] {
+  const subsets = new Set<string>()
+  for (const f of fonts) {
+    if (f.subset)
+      subsets.add(f.subset)
+  }
+  return [...subsets]
 }
 
 /** Check if a font matches the detected weight/style/family requirements. */
@@ -271,6 +283,7 @@ export async function parseFontsFromTemplate(
       style: font.style,
       satoriSrc,
       unicodeRange: font.unicodeRange || defaultUnicodeRange,
+      subset: font.subset,
     }
   })
 
