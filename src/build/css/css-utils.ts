@@ -688,14 +688,21 @@ export const GENERIC_FONT_FAMILIES = new Set([
   'unset',
   'revert',
   'revert-layer',
+  // vendor-prefixed system font aliases (not real downloadable fonts)
+  '-apple-system',
+  'blinkmacsystemfont',
 ])
+
+function isSystemFont(name: string): boolean {
+  return name.startsWith('-') || name.startsWith('var(')
+}
 
 export function extractCustomFontFamilies(cssValue: string): string[] {
   return cssValue
     .replace(/\s*!important\s*$/, '')
     .split(',')
     .map(p => p.trim().replace(/^['"]|['"]$/g, ''))
-    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !/^\d+$/.test(name) && !name.startsWith('var('))
+    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !/^\d+$/.test(name) && !isSystemFont(name))
 }
 
 // ============================================================================

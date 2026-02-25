@@ -28,6 +28,13 @@ describe('extractCustomFontFamilies', () => {
     expect(extractCustomFontFamilies('system-ui')).toEqual([])
   })
 
+  it('filters vendor-prefixed system fonts', () => {
+    expect(extractCustomFontFamilies('-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'))
+      .toEqual(['Segoe UI', 'Roboto'])
+    expect(extractCustomFontFamilies('-apple-system')).toEqual([])
+    expect(extractCustomFontFamilies('BlinkMacSystemFont')).toEqual([])
+  })
+
   it('filters CSS keywords', () => {
     expect(extractCustomFontFamilies('inherit')).toEqual([])
     expect(extractCustomFontFamilies('initial')).toEqual([])
