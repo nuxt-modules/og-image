@@ -23,7 +23,8 @@ defineProps<{
 
 <style>
 .linkedin-card {
-  max-width: 500px;
+  width: 100%;
+  max-width: 552px;
   margin: 0 auto;
   border-radius: 8px;
   overflow: hidden;

@@ -19,6 +19,7 @@ const {
   socialPreview,
   imageColorMode,
   src,
+  whatsappInlineSrc,
   socialPreviewTitle,
   socialPreviewDescription,
   socialSiteUrl,
@@ -71,6 +72,95 @@ const socialItems = [
   { label: 'WhatsApp', icon: 'simple-icons:whatsapp', value: 'whatsapp', iconScale: 0.92 },
   { label: 'Bluesky', icon: 'simple-icons:bluesky', value: 'bluesky', iconScale: 0.92 },
 ]
+
+// Size variants per social platform — different display contexts show the card at different widths
+interface SizeVariant { label: string, width: number }
+const socialSizeVariants: Record<string, SizeVariant[]> = {
+  twitter: [
+    { label: 'Feed', width: 504 },
+    { label: 'Detail', width: 600 },
+    { label: 'Mobile', width: 335 },
+  ],
+  facebook: [
+    { label: 'Feed', width: 500 },
+    { label: 'Mobile', width: 320 },
+  ],
+  linkedin: [
+    { label: 'Feed', width: 552 },
+    { label: 'Mobile', width: 335 },
+  ],
+  discord: [
+    { label: 'Embed', width: 432 },
+    { label: 'Mobile', width: 300 },
+  ],
+  slack: [
+    { label: 'Desktop', width: 500 },
+    { label: 'Compact', width: 360 },
+  ],
+  whatsapp: [
+    { label: 'Default', width: 600 },
+    { label: 'Squared', width: 600 },
+  ],
+  bluesky: [
+    { label: 'Post', width: 513 },
+    { label: 'With link', width: 487 },
+    { label: 'Mobile', width: 335 },
+  ],
+}
+
+const activeSizeVariant = ref<Record<string, number>>({})
+
+const currentSizeVariants = computed(() => socialSizeVariants[socialPreview.value] || [])
+const currentSizeWidth = computed(() => {
+  const variants = currentSizeVariants.value
+  if (!variants.length)
+    return undefined
+  const idx = activeSizeVariant.value[socialPreview.value] ?? 0
+  return variants[idx]?.width
+})
+
+// Raw preview draggable resize
+const rawResizeWidth = ref<number | null>(null)
+const isRawDragging = ref(false)
+const rawPreviewRef = ref<HTMLElement | null>(null)
+
+const isRawMode = computed(() => !socialPreview.value)
+
+const previewMaxWidth = computed(() => {
+  if (isRawMode.value && rawResizeWidth.value)
+    return `${rawResizeWidth.value}px`
+  if (currentSizeWidth.value)
+    return `${currentSizeWidth.value}px`
+  return undefined
+})
+
+const whatsappSquared = computed(() => {
+  const idx = activeSizeVariant.value.whatsapp ?? 0
+  return socialPreview.value === 'whatsapp' && idx === 1
+})
+
+function onRawHandlePointerDown(e: PointerEvent) {
+  e.preventDefault()
+  const el = rawPreviewRef.value
+  if (!el)
+    return
+  isRawDragging.value = true
+  const startX = e.clientX
+  const startWidth = el.getBoundingClientRect().width
+
+  function onMove(ev: PointerEvent) {
+    // Handle is centered, so distance from center = half the width change
+    const dx = ev.clientX - startX
+    rawResizeWidth.value = Math.max(200, Math.round(startWidth + dx * 2))
+  }
+  function onUp() {
+    isRawDragging.value = false
+    document.removeEventListener('pointermove', onMove)
+    document.removeEventListener('pointerup', onUp)
+  }
+  document.addEventListener('pointermove', onMove)
+  document.addEventListener('pointerup', onUp)
+}
 
 const protoTab = ref('meta-tags')
 const protoTabs = computed(() => {
@@ -459,9 +549,26 @@ function resetAll() {
         </UTabs>
       </div>
 
+      <!-- Size variant toggles -->
+      <div v-if="currentSizeVariants.length" class="size-variant-bar">
+        <span class="size-variant-label">Width</span>
+        <div class="size-variant-group">
+          <button
+            v-for="(variant, idx) in currentSizeVariants"
+            :key="variant.label"
+            class="size-variant-btn"
+            :class="{ active: (activeSizeVariant[socialPreview] ?? 0) === idx }"
+            @click="activeSizeVariant[socialPreview] = idx"
+          >
+            <span class="size-variant-name">{{ variant.label }}</span>
+            <span class="size-variant-px">{{ variant.width }}px</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Preview area -->
       <div class="preview-area panel-grids" :class="{ 'preview-area--panel-open': sidePanelOpen && !isPageScreenshot }">
-        <div class="preview-content">
+        <div ref="rawPreviewRef" class="preview-content" :class="{ 'preview-content--no-transition': isRawDragging }" :style="previewMaxWidth ? { maxWidth: previewMaxWidth } : undefined">
           <!-- Twitter/X preview -->
           <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="effectiveTitle" :aspect-ratio="aspectRatio">
             <template #domain>
@@ -593,7 +700,7 @@ function resetAll() {
           </SlackCardRenderer>
 
           <!-- WhatsApp preview -->
-          <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'">
+          <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'" :squared="whatsappSquared">
             <template #siteName>
               {{ effectiveSiteName }}
             </template>
@@ -605,6 +712,12 @@ function resetAll() {
             </template>
             <template #url>
               {{ effectiveSiteUrl }}
+            </template>
+            <template v-if="whatsappInlineSrc !== src" #inlineImage>
+              <img
+                :src="whatsappInlineSrc"
+                alt=""
+              >
             </template>
             <img
               v-if="imageFormat !== 'html'"
@@ -641,22 +754,36 @@ function resetAll() {
             />
           </BlueskyCardRenderer>
 
-          <!-- Raw preview -->
-          <div v-else class="raw-preview">
-            <ImageLoader
-              v-if="imageFormat !== 'html'"
-              :src="src"
-              :aspect-ratio="aspectRatio"
-              @load="generateLoadTime"
-              @refresh="refreshSources"
-            />
-            <IFrameLoader
-              v-else
-              :src="src"
-              :aspect-ratio="aspectRatio"
-              @load="generateLoadTime"
-              @refresh="refreshSources"
-            />
+          <!-- Raw preview with resize handle -->
+          <div v-else class="raw-preview-wrapper">
+            <div class="raw-preview" :class="{ 'raw-preview--dragging': isRawDragging }">
+              <ImageLoader
+                v-if="imageFormat !== 'html'"
+                :src="src"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
+              <IFrameLoader
+                v-else
+                :src="src"
+                :aspect-ratio="aspectRatio"
+                @load="generateLoadTime"
+                @refresh="refreshSources"
+              />
+            </div>
+            <!-- Drag handle — double-click resets -->
+            <div
+              class="raw-resize-handle"
+              @pointerdown="onRawHandlePointerDown"
+              @dblclick="rawResizeWidth = null"
+            >
+              <div class="raw-resize-grip" />
+            </div>
+            <!-- Width readout -->
+            <div v-if="rawResizeWidth" class="raw-resize-readout">
+              {{ rawResizeWidth }}px
+            </div>
           </div>
 
           <!-- Status line -->
@@ -1008,6 +1135,76 @@ function resetAll() {
   font-family: var(--font-mono, ui-monospace, monospace);
 }
 
+/* Size variant bar */
+.size-variant-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+}
+
+@media (min-width: 640px) {
+  .size-variant-bar {
+    padding: 0.375rem 1rem;
+  }
+}
+
+.size-variant-label {
+  font-size: 0.6875rem;
+  color: var(--color-text-subtle);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.size-variant-group {
+  display: flex;
+  gap: 1px;
+  background: var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.size-variant-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: none;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  white-space: nowrap;
+}
+
+.size-variant-btn:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+.size-variant-btn.active {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+.size-variant-name {
+  font-weight: 500;
+}
+
+.size-variant-px {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.625rem;
+  opacity: 0.6;
+}
+
+.size-variant-btn.active .size-variant-px {
+  opacity: 0.8;
+}
+
 /* Preview area */
 .preview-area {
   flex: 1;
@@ -1034,6 +1231,11 @@ function resetAll() {
   width: 100%;
   max-width: 42rem;
   margin: 0 auto;
+  transition: max-width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.preview-content--no-transition {
+  transition: none;
 }
 
 @media (max-height: 600px) {
@@ -1067,6 +1269,11 @@ function resetAll() {
   }
 }
 
+.raw-preview-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 .raw-preview {
   width: 100%;
   border-radius: var(--radius-lg);
@@ -1074,8 +1281,52 @@ function resetAll() {
   box-shadow: 0 4px 24px oklch(0% 0 0 / 0.08);
 }
 
+.raw-preview--dragging {
+  user-select: none;
+}
+
 .dark .raw-preview {
   box-shadow: 0 4px 24px oklch(0% 0 0 / 0.3);
+}
+
+/* Resize drag handle — right edge */
+.raw-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -14px;
+  width: 28px;
+  height: 100%;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.raw-resize-grip {
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  background: var(--color-border);
+  transition: background 150ms ease, height 150ms ease;
+}
+
+.raw-resize-handle:hover .raw-resize-grip,
+.raw-preview--dragging ~ .raw-resize-handle .raw-resize-grip {
+  background: var(--color-text-subtle);
+  height: 48px;
+}
+
+/* Width readout pill */
+.raw-resize-readout {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.625rem;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
 }
 
 /* Status line */

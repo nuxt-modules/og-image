@@ -107,6 +107,15 @@ export function useOgImage() {
   const socialPreview = useLocalStorage('nuxt-og-image:social-preview', 'twitter')
   const imageColorMode = ref<'dark' | 'light'>(colorMode.value)
 
+  function buildSrcForKey(key: string) {
+    const params = { key, _path: path.value, _query: query.value }
+    const encoded = encodeOgImageParams(params)
+    return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
+      timestamp: refreshTime.value,
+      colorMode: imageColorMode.value,
+    })
+  }
+
   const src = computed(() => {
     if (isCustomOgImage.value) {
       const url = toValue(currentOptions.value?.url) || ''
@@ -127,6 +136,17 @@ export function useOgImage() {
       timestamp: refreshTime.value, // Cache bust for devtools
       colorMode: imageColorMode.value, // Pass color mode to renderer
     })
+  })
+
+  // Auto-resolve a square/smaller image for WhatsApp inline preview
+  const whatsappInlineSrc = computed(() => {
+    const keys = allImageKeys.value
+    if (keys.length <= 1)
+      return src.value
+    const squareKey = keys.find((k: string) => k === 'whatsapp' || k === 'square')
+    if (squareKey)
+      return buildSrcForKey(squareKey)
+    return src.value
   })
 
   const socialPreviewTitle = computed(() => {
@@ -436,6 +456,7 @@ export function useOgImage() {
     socialPreview,
     imageColorMode,
     src,
+    whatsappInlineSrc,
     socialPreviewTitle,
     socialPreviewDescription,
     socialSiteUrl,

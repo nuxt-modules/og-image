@@ -39,7 +39,7 @@ const isSmallCard = computed(() => {
 
 <template>
   <div class="twitter-card">
-    <div class="w-[600px] mx-auto">
+    <div class="twitter-card-inner">
       <div
         class="card-container"
         :class="isSmallCard ? 'flex' : ''"
@@ -77,6 +77,12 @@ const isSmallCard = computed(() => {
   position: relative;
   display: flex;
   flex-direction: column;
+}
+
+.twitter-card-inner {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .twitter-card .card-container {

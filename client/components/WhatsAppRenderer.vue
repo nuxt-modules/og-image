@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   aspectRatio?: number
+  squared?: boolean
 }>()
 </script>
 
@@ -9,11 +10,14 @@ defineProps<{
     <!-- Inline style - appears when link is in message text -->
     <div class="whatsapp-section">
       <p class="whatsapp-label">
-        Inline (in message)
+        Inline (in message)<template v-if="squared">
+          — 2x
+        </template>
       </p>
-      <div class="whatsapp-inline-card">
+      <div class="whatsapp-inline-card" :class="{ 'whatsapp-inline-card--squared': squared }">
         <div class="whatsapp-inline-image">
-          <slot />
+          <slot v-if="!$slots.inlineImage" />
+          <slot v-else name="inlineImage" />
           <div class="whatsapp-image-overlay" />
         </div>
         <div class="whatsapp-inline-content">
@@ -86,7 +90,7 @@ defineProps<{
 /* Inline card - square thumbnail on left */
 .whatsapp-inline-card {
   display: flex;
-  max-width: 280px;
+  max-width: 360px;
   border-radius: 8px;
   overflow: hidden;
   background: #dcf8c6;
@@ -99,8 +103,8 @@ defineProps<{
 }
 
 .whatsapp-inline-image {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -119,13 +123,13 @@ defineProps<{
 }
 
 .whatsapp-inline-content {
-  padding: 8px;
+  padding: 10px;
   flex: 1;
   min-width: 0;
 }
 
 .whatsapp-title-inline {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: oklch(20% 0.02 285);
   display: -webkit-box;
@@ -139,13 +143,13 @@ defineProps<{
 }
 
 .whatsapp-description-inline {
-  font-size: 10px;
+  font-size: 11px;
   color: oklch(40% 0.03 285);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .dark .whatsapp-description-inline {
@@ -153,12 +157,12 @@ defineProps<{
 }
 
 .whatsapp-url-inline {
-  font-size: 10px;
+  font-size: 11px;
   color: oklch(50% 0.03 285);
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 2px;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -170,7 +174,7 @@ defineProps<{
 
 /* Full card - 2:1 image on top */
 .whatsapp-full-card {
-  width: 280px;
+  width: 360px;
   border-radius: 8px;
   overflow: hidden;
   background: #dcf8c6;
@@ -202,7 +206,7 @@ defineProps<{
 }
 
 .whatsapp-full-content {
-  padding: 12px;
+  padding: 14px;
   background: #dcf8c6;
 }
 
@@ -211,7 +215,7 @@ defineProps<{
 }
 
 .whatsapp-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: oklch(20% 0.02 285);
   display: -webkit-box;
@@ -225,7 +229,7 @@ defineProps<{
 }
 
 .whatsapp-description {
-  font-size: 12px;
+  font-size: 13px;
   color: oklch(40% 0.03 285);
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -239,7 +243,7 @@ defineProps<{
 }
 
 .whatsapp-url {
-  font-size: 12px;
+  font-size: 13px;
   color: oklch(50% 0.03 285);
   display: flex;
   align-items: center;
@@ -264,5 +268,29 @@ defineProps<{
 
 .dark .whatsapp-image-overlay {
   box-shadow: inset 0 0 0 1px oklch(100% 0 0 / 0.05);
+}
+
+/* Squared variant — 2x inline card */
+.whatsapp-inline-card--squared {
+  max-width: 560px;
+}
+
+.whatsapp-inline-card--squared .whatsapp-inline-image {
+  width: 128px;
+  height: 128px;
+}
+
+.whatsapp-inline-card--squared .whatsapp-title-inline {
+  font-size: 14px;
+  -webkit-line-clamp: 2;
+}
+
+.whatsapp-inline-card--squared .whatsapp-description-inline {
+  font-size: 12px;
+  -webkit-line-clamp: 3;
+}
+
+.whatsapp-inline-card--squared .whatsapp-url-inline {
+  font-size: 12px;
 }
 </style>

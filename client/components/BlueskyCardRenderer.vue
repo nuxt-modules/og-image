@@ -29,7 +29,8 @@
 
 <style>
 .bluesky-card {
-  width: 513px;
+  width: 100%;
+  max-width: 513px;
   margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
