@@ -17,6 +17,12 @@ export interface LoadFontsOptions {
    * otherwise they will be skipped.
    */
   supportsWoff2: boolean
+  /**
+   * Prefer static (satoriSrc) fonts over WOFF2 when available.
+   * Used by Takumi to avoid WOFF2 subset decompression bugs while still
+   * falling through to WOFF2 when no static alternative exists.
+   */
+  preferStatic?: boolean
   /** Component pascalName — filters fonts to only what this component needs */
   component?: string
   /** When set, ensures this font family is included even if not in requirements */
@@ -158,16 +164,16 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
       let src = f.src
       const isWoff2 = f.src.endsWith('.woff2')
 
-      if (!options.supportsWoff2 && isWoff2) {
-        // For renderers that don't support WOFF2 (like Satori),
-        // use converted TTF if available, otherwise skip this font
+      if (isWoff2 && (options.preferStatic || !options.supportsWoff2)) {
         if (f.satoriSrc) {
+          // Use static alternative (TTF/WOFF) downloaded by fontless
           src = f.satoriSrc
         }
-        else {
-          // No converted TTF available, skip WOFF2 font
+        else if (!options.supportsWoff2) {
+          // Satori: can't use WOFF2 at all, skip this font
           return null
         }
+        // Takumi (preferStatic + supportsWoff2): fall through to WOFF2 — better than nothing
       }
 
       const data = await loadFont(event, f, src)

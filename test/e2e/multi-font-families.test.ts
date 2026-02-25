@@ -94,6 +94,14 @@ describe('multi-font-families', () => {
     expect(serifBold.byteLength).toBeGreaterThan(1000)
   })
 
+  it('downloads static font files for Devanagari (non-Latin subset)', async () => {
+    // Verify fontless downloaded static WOFF for Noto Sans Devanagari under /_og-satori-fonts/
+    // This is the regression fix: Takumi's WOFF2 decompressor can't handle subsetted WOFF2
+    // files from Google Fonts CDN, so the fontless pipeline must provide static alternatives
+    const font400: ArrayBuffer = await $fetch('/_og-satori-fonts/Noto_Sans_Devanagari-400-normal.woff', { responseType: 'arrayBuffer' })
+    expect(font400.byteLength).toBeGreaterThan(1000)
+  })
+
   it('renders Devanagari text with takumi font fallback', async () => {
     const html = await $fetch('/devanagari') as string
     expect(html).toContain('og:image')
