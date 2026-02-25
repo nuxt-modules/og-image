@@ -10,7 +10,7 @@ import { ELEMENT_NODE, parse as parseHtml, renderSync, walkSync } from 'ultrahtm
 import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/core/transforms/emojis/emoji-utils'
-import { resolveColorMix } from '../runtime/server/og-image/utils/css'
+import { resolveColorMix, splitCssDeclarations } from '../runtime/server/og-image/utils/css'
 import { extractFontRequirementsFromVue } from './css/css-classes'
 import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
@@ -197,8 +197,9 @@ const SATORI_UNSUPPORTED_PATTERNS = [
   /^content-(?!center|start|end|between|around|evenly|stretch)/, // content-* except flex alignment
 ]
 
-// UnoCSS icon class pattern: i-{collection}-{name}
-const ICON_CLASS_RE = /^i-([a-z\d]+)-(.+)$/
+// UnoCSS icon class pattern: i-{collection}-{name} or i-{collection}:{name}
+// Supports both hyphen and colon separators (e.g. i-lucide-star, i-lucide:star, i-simple-icons:github)
+const ICON_CLASS_RE = /^i-([a-z\d]+(?:-[a-z\d]+)*)[-:](.+)$/
 
 function isIconClass(cls: string): boolean {
   return ICON_CLASS_RE.test(cls)
@@ -694,7 +695,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 // Merge into existing inline style (inline style takes precedence)
                 const existingStyle = el.attributes?.style || ''
                 const existingProps: Record<string, string> = {}
-                for (const decl of existingStyle.split(';')) {
+                for (const decl of splitCssDeclarations(existingStyle)) {
                   const [prop, ...valParts] = decl.split(':')
                   const value = valParts.join(':').trim()
                   if (prop?.trim() && value)

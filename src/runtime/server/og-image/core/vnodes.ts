@@ -5,6 +5,7 @@ import { querySelector } from 'ultrahtml/selector'
 import { decodeHtml, htmlDecodeQuotes } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
 import { logger } from '../../util/logger'
+import { splitCssDeclarations } from '../utils/css'
 import { walkTree } from './plugins'
 import encoding from './plugins/encoding'
 import imageSrc from './plugins/imageSrc'
@@ -77,7 +78,7 @@ export function parseStyleAttr(style: string | null | undefined): Record<string,
   const result: Record<string, any> = {}
   // Decode &amp; before splitting — the `;` in `&amp;` would otherwise act as
   // a CSS declaration separator and truncate values containing `&` (e.g. URLs).
-  for (const decl of style.replace(/&amp;/g, '&').split(';')) {
+  for (const decl of splitCssDeclarations(style.replace(/&amp;/g, '&'))) {
     const colonIdx = decl.indexOf(':')
     if (colonIdx === -1)
       continue
