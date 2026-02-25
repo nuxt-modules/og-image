@@ -443,18 +443,36 @@ export default defineNuxtModule<ModuleOptions>({
       fontRequirementsState.scanned = true
     }
 
-    // Resolve Nuxt UI colors by merging module defaults with user app.config overrides.
-    // nuxt.options.appConfig only has module defaults at setup time — user's app.config.ts
-    // values are only merged at runtime. We use the app:resolve hook to get user config paths
-    // and import them directly, avoiding fragile regex parsing of generated files.
+    // Load Nuxt UI colors by reading the resolved .nuxt/app.config.mjs (has module defaults
+    // after Nuxt UI's pick/resolution) and merging user app.config overrides on top.
+    // We stash user config paths from app:resolve so we can import them lazily without regex.
     let cachedNuxtUiColors: Record<string, string> | undefined
-    nuxt.hook('app:resolve', async (app) => {
+    let userConfigPaths: string[] = []
+    nuxt.hook('app:resolve', (app) => {
+      userConfigPaths = [...app.configs]
+    })
+    async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
+      if (cachedNuxtUiColors)
+        return cachedNuxtUiColors
       if (!hasNuxtModule('@nuxt/ui'))
-        return
-      // Module defaults already set by @nuxt/ui setup()
-      let colors = (nuxt.options.appConfig.ui as any)?.colors as Record<string, string> | undefined
-      // Merge user app.config overrides (user values win via defu)
-      for (const configPath of app.configs) {
+        return undefined
+      // Start with Nuxt UI's resolved defaults from .nuxt/app.config.mjs (inlineConfig).
+      // This has the fully resolved colors after Nuxt UI's pick() logic.
+      const appConfigPath = join(nuxt.options.buildDir, 'app.config.mjs')
+      let resolvedColors: Record<string, string> | undefined
+      if (existsSync(appConfigPath)) {
+        const rawContent = await readFile(appConfigPath, 'utf-8')
+        const inlineMatch = rawContent.match(/const\s+inlineConfig\s*=\s*(\{[\s\S]*?\n\})/)
+        if (inlineMatch?.[1]) {
+          const inlineConfig = JSON.parse(inlineMatch[1]) as { ui?: { colors?: Record<string, string> } }
+          resolvedColors = inlineConfig?.ui?.colors
+        }
+      }
+      // Fallback to nuxt.options.appConfig (module defaults set during setup)
+      if (!resolvedColors)
+        resolvedColors = { ...(nuxt.options.appConfig.ui as any)?.colors } as Record<string, string> | undefined
+      // Merge user app.config overrides on top (user values win via defu)
+      for (const configPath of userConfigPaths) {
         const hadShim = 'defineAppConfig' in globalThis
         if (!hadShim)
           (globalThis as any).defineAppConfig = (config: any) => config
@@ -462,14 +480,10 @@ export default defineNuxtModule<ModuleOptions>({
         if (!hadShim)
           delete (globalThis as any).defineAppConfig
         if (cfg?.ui?.colors)
-          colors = defu(cfg.ui.colors, colors)
+          resolvedColors = defu(cfg.ui.colors, resolvedColors)
       }
-      cachedNuxtUiColors = colors
+      cachedNuxtUiColors = resolvedColors
       logger.debug(`Nuxt UI colors: ${JSON.stringify(cachedNuxtUiColors)}`)
-    })
-    async function loadNuxtUiColors(): Promise<Record<string, string> | undefined> {
-      if (!hasNuxtModule('@nuxt/ui'))
-        return undefined
       return cachedNuxtUiColors
     }
 
