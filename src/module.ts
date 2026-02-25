@@ -1390,16 +1390,11 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
           const nitro = await useNitro
           await nitro.hooks.callHook('rollup:reload')
-          return
         }
 
-        // OG image component or nested component changed → Nitro rebuild for fresh SSR.
-        // ogImageTransformedFiles tracks all files processed via ?og-image imports.
-        if (event === 'change' && (isOgImageComponent || ogImageTransformedFiles.has(absolutePath))) {
-          logger.debug(`HMR: OG image component changed, reloading`)
-          const nitro = await useNitro
-          await nitro.hooks.callHook('rollup:reload')
-        }
+        // OG image component or nested component content changes are picked up by
+        // Nitro/Vite file watching automatically — no explicit rollup:reload needed
+        // since virtual templates (component-names.mjs) only change on add/remove.
       })
     }
     else if (isNuxtGenerate()) {
