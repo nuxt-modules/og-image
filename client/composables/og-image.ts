@@ -433,11 +433,6 @@ export function useOgImage() {
     refreshSources()
   }
 
-  // Multi-image keys
-  const allImageKeys = computed(() => {
-    return debug.value?.extract?.socialPreview?.images?.map((i: DevToolsMetaDataExtraction) => i.key) || []
-  })
-
   return {
     // Data
     globalDebug,
