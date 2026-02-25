@@ -7,14 +7,12 @@ defineProps<{
 
 <template>
   <div class="whatsapp-dual-preview">
-    <!-- Inline style - appears when link is in message text -->
-    <div class="whatsapp-section">
+    <!-- Inline style - only shown in Squared mode -->
+    <div v-if="squared" class="whatsapp-section">
       <p class="whatsapp-label">
-        Inline (in message)<template v-if="squared">
-          — 2x
-        </template>
+        Inline (in message) — 2x
       </p>
-      <div class="whatsapp-inline-card" :class="{ 'whatsapp-inline-card--squared': squared }">
+      <div class="whatsapp-inline-card whatsapp-inline-card--squared">
         <div class="whatsapp-inline-image">
           <slot v-if="!$slots.inlineImage" />
           <slot v-else name="inlineImage" />
@@ -36,7 +34,7 @@ defineProps<{
     </div>
 
     <!-- Full card style - appears when link is standalone -->
-    <div class="whatsapp-section">
+    <div v-if="!squared" class="whatsapp-section">
       <p class="whatsapp-label">
         Full card (standalone link)
       </p>

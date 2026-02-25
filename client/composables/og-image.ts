@@ -108,7 +108,12 @@ export function useOgImage() {
   const imageColorMode = ref<'dark' | 'light'>(colorMode.value)
 
   function buildSrcForKey(key: string) {
-    const params = { key, _path: path.value, _query: query.value }
+    const opts = debug.value?.extract?.options || []
+    const keyOpts = opts.find((o: OgImageOptions) => o.key === key)
+    const params = defu(
+      { key, _path: path.value, _query: query.value },
+      keyOpts || {},
+    )
     const encoded = encodeOgImageParams(params)
     return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
       timestamp: refreshTime.value,

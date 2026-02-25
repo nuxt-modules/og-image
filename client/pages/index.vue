@@ -549,21 +549,38 @@ function resetAll() {
         </UTabs>
       </div>
 
-      <!-- Size variant toggles -->
-      <div v-if="currentSizeVariants.length" class="size-variant-bar">
-        <span class="size-variant-label">Width</span>
-        <div class="size-variant-group">
-          <button
-            v-for="(variant, idx) in currentSizeVariants"
-            :key="variant.label"
-            class="size-variant-btn"
-            :class="{ active: (activeSizeVariant[socialPreview] ?? 0) === idx }"
-            @click="activeSizeVariant[socialPreview] = idx"
-          >
-            <span class="size-variant-name">{{ variant.label }}</span>
-            <span class="size-variant-px">{{ variant.width }}px</span>
-          </button>
-        </div>
+      <!-- Size variant toggles + image key selector -->
+      <div v-if="currentSizeVariants.length || allImageKeys.length > 1" class="size-variant-bar">
+        <template v-if="currentSizeVariants.length">
+          <span class="size-variant-label">Width</span>
+          <div class="size-variant-group">
+            <button
+              v-for="(variant, idx) in currentSizeVariants"
+              :key="variant.label"
+              class="size-variant-btn"
+              :class="{ active: (activeSizeVariant[socialPreview] ?? 0) === idx }"
+              @click="activeSizeVariant[socialPreview] = idx"
+            >
+              <span class="size-variant-name">{{ variant.label }}</span>
+              <span class="size-variant-px">{{ variant.width }}px</span>
+            </button>
+          </div>
+        </template>
+
+        <template v-if="allImageKeys.length > 1">
+          <span class="size-variant-label">Image</span>
+          <div class="size-variant-group">
+            <button
+              v-for="key in allImageKeys"
+              :key="key"
+              class="size-variant-btn"
+              :class="{ active: (ogImageKey || 'og') === key }"
+              @click="ogImageKey = key"
+            >
+              <span class="size-variant-name">{{ key }}</span>
+            </button>
+          </div>
+        </template>
       </div>
 
       <!-- Preview area -->
@@ -790,19 +807,6 @@ function resetAll() {
           <div v-if="description" class="status-line">
             {{ description }}
           </div>
-
-          <!-- Multi-image key selector -->
-          <UTabs
-            v-if="allImageKeys.length > 1"
-            :items="allImageKeys.map((key: string) => ({ label: key, value: key }))"
-            :model-value="ogImageKey || 'og'"
-            :content="false"
-            size="xs"
-            variant="pill"
-            color="neutral"
-            class="mt-3 justify-center"
-            @update:model-value="ogImageKey = $event as string"
-          />
         </div>
       </div>
 
