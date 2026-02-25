@@ -2,6 +2,7 @@ import type { CssProvider } from '../css-provider'
 import { readFile } from 'node:fs/promises'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
+import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
 import {
   extractClassStyles,
   extractCssVars,
@@ -485,44 +486,6 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
 }
 
 // ============================================================================
-// Arbitrary class rewriting (TW-specific)
-// ============================================================================
-
-// Map CSS property → TW utility prefix for arbitrary value rewriting
-const CSS_PROP_TO_TW_PREFIX: Record<string, string> = {
-  'background-color': 'bg',
-  'color': 'text',
-  'border-color': 'border',
-  'font-size': 'text',
-  'font-weight': 'font',
-  'line-height': 'leading',
-  'letter-spacing': 'tracking',
-  'opacity': 'opacity',
-  'width': 'w',
-  'height': 'h',
-  'max-width': 'max-w',
-  'max-height': 'max-h',
-  'min-width': 'min-w',
-  'min-height': 'min-h',
-  'border-radius': 'rounded',
-  'gap': 'gap',
-}
-
-/**
- * Convert a single-property resolved style back to a TW arbitrary value class.
- * Returns undefined for multi-property classes or unmapped properties.
- */
-function stylesToArbitraryClass(styles: Record<string, string>): string | undefined {
-  const entries = Object.entries(styles)
-  if (entries.length !== 1)
-    return undefined
-  const [prop, value] = entries[0]!
-  const prefix = CSS_PROP_TO_TW_PREFIX[prop]
-  if (!prefix)
-    return undefined
-  return `${prefix}-[${value}]`
-}
-
 // ============================================================================
 // CssProvider factory
 // ============================================================================
@@ -571,12 +534,7 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
         return {}
 
       // Extract base classes from prefixed variants (e.g., lg:bg-black → bg-black)
-      const baseClasses = new Set<string>()
-      for (const cls of classes) {
-        const m = cls.match(/^(?:sm|md|lg|xl|2xl|dark):(.+)/)
-        if (m?.[1])
-          baseClasses.add(m[1])
-      }
+      const baseClasses = extractVariantBaseClasses(classes)
       const classesToResolve = [...new Set([...classes, ...baseClasses])]
 
       const nuxtUiColors = await options.loadNuxtUiColors()
@@ -585,51 +543,11 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
         nuxtUiColors,
       }, context)
 
-      const resolved: Record<string, Record<string, string> | string> = {}
+      // Convert to Map for shared variant resolution
+      const resolvedMap = new Map(Object.entries(tw4Resolved))
 
-      // Collect CSS properties overridden by prefixed variants (dark:, sm:, etc.)
-      // Base classes that conflict must stay as classes for runtime resolution
-      const prefixOverrideProps = new Set<string>()
-      for (const cls of classes) {
-        const prefixMatch = cls.match(/^(?:sm|md|lg|xl|2xl|dark):(.+)/)
-        if (prefixMatch) {
-          const baseStyles = tw4Resolved[prefixMatch[1]!]
-          if (baseStyles) {
-            for (const prop of Object.keys(baseStyles))
-              prefixOverrideProps.add(prop)
-          }
-        }
-      }
-
-      for (const cls of classes) {
-        // Responsive/dark prefixed classes: resolve value but keep as class
-        const prefixMatch = cls.match(/^((?:sm|md|lg|xl|2xl|dark):)(.+)/)
-        if (prefixMatch) {
-          const [, prefix, baseClass] = prefixMatch
-          const baseStyles = tw4Resolved[baseClass!]
-          if (baseStyles) {
-            const arbitrary = stylesToArbitraryClass(baseStyles)
-            resolved[cls] = arbitrary ? `${prefix}${arbitrary}` : cls
-          }
-          continue
-        }
-
-        if (tw4Resolved[cls]) {
-          const styles = tw4Resolved[cls]
-          // If a prefixed variant overrides any of this class's properties,
-          // keep as class rewrite so runtime can resolve the conflict
-          const hasConflict = Object.keys(styles).some(prop => prefixOverrideProps.has(prop))
-          if (hasConflict) {
-            const arbitrary = stylesToArbitraryClass(styles)
-            resolved[cls] = arbitrary || cls
-          }
-          else {
-            resolved[cls] = styles
-          }
-        }
-        // Classes not in map will be kept in class attr for Satori's tw prop
-      }
-      return resolved
+      // Apply variant-prefix-aware resolution (shared with UnoCSS provider)
+      return resolveVariantPrefixes(classes, resolvedMap)
     },
 
     async extractMetadata() {

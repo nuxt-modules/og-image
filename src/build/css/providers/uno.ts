@@ -4,6 +4,7 @@ import type { ExtractedCssVars } from '../css-utils'
 import { readFile } from 'node:fs/promises'
 import { defu } from 'defu'
 import { logger } from '../../../runtime/logger'
+import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
 import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
 
 export interface UnoProviderOptions {
@@ -125,12 +126,17 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
   return {
     name: 'unocss',
 
-    async resolveClassesToStyles(classes: string[], context?: string, rootAttrs?: Record<string, string>): Promise<Record<string, Record<string, string>>> {
+    async resolveClassesToStyles(classes: string[], context?: string, rootAttrs?: Record<string, string>): Promise<Record<string, Record<string, string> | string>> {
       if (classes.length === 0)
         return {}
 
+      // Extract base classes from prefixed variants (e.g., md:bg-blue-500 → bg-blue-500)
+      // so UnoCSS generates their styles too (needed for arbitrary class rewrites)
+      const baseClasses = extractVariantBaseClasses(classes)
+      const classesToGenerate = [...new Set([...classes, ...baseClasses])]
+
       const gen = await getGenerator()
-      const { css } = await gen.generate(classes)
+      const { css } = await gen.generate(classesToGenerate)
 
       const simplifiedCss = await simplifyCss(css)
 
@@ -167,19 +173,23 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
       const perClassVars = extractPerClassVars(simplifiedCss)
 
       // Extract class styles, collecting additional vars
+      // Note: walkClassRules only matches top-level rules — @media-wrapped responsive
+      // classes (e.g., md:bg-blue-500) won't appear here, which is expected.
+      // We resolve their base classes instead and rewrite as prefixed arbitrary classes.
       const classMap = extractClassStyles(simplifiedCss, { collectVars: vars, merge: true })
 
-      const result: Record<string, Record<string, string>> = {}
-
+      // Resolve all base class styles (including those extracted from prefixed variants)
+      const resolvedBaseStyles = new Map<string, Record<string, string>>()
       for (const [className, rawStyles] of classMap) {
-        // Merge global vars with per-class overrides
         const classVars = perClassVars.get(className)
         const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
         const styles = await postProcessStyles(rawStyles, mergedVars, undefined, context)
         if (styles)
-          result[className] = styles
+          resolvedBaseStyles.set(className, styles)
       }
-      return result
+
+      // Apply variant-prefix-aware resolution (shared with TW4 provider)
+      return resolveVariantPrefixes(classes, resolvedBaseStyles)
     },
 
     async extractMetadata() {

@@ -483,6 +483,76 @@ describe('unoCSS preset-wind4 class resolution', () => {
       expect(shadow).toContain('15px')
     })
   })
+
+  // ==========================================================================
+  // Responsive prefix preservation
+  // ==========================================================================
+
+  describe('responsive prefixed classes are preserved, not inlined', () => {
+    // Use raw provider (not cast resolve) since responsive classes return strings
+    let rawResolve: (classes: string[]) => Promise<Record<string, Record<string, string> | string>>
+
+    beforeAll(async () => {
+      const presetWind4 = await import('@unocss/preset-wind4')
+      clearUnoCache()
+      setUnoRootDir('/tmp/og-image-uno-test-responsive')
+      setUnoConfig({ presets: [presetWind4.default()] })
+      const provider = createUnoProvider()
+      rawResolve = classes => provider.resolveClassesToStyles(classes)
+    })
+
+    afterAll(() => {
+      clearUnoCache()
+    })
+
+    it('md:bg-blue-500 is returned as a string class rewrite, not inline styles', async () => {
+      clearUnoCache()
+      const result = await rawResolve(['bg-red-500', 'md:bg-blue-500'])
+      // md:bg-blue-500 should be a string (class rewrite with prefix preserved)
+      expect(typeof result['md:bg-blue-500']).toBe('string')
+      expect(result['md:bg-blue-500'] as string).toMatch(/^md:bg-\[/)
+      // bg-red-500 should also be a string (conflicting base class stays as class rewrite)
+      expect(typeof result['bg-red-500']).toBe('string')
+      expect(result['bg-red-500'] as string).toMatch(/^bg-\[/)
+    })
+
+    it('all responsive prefixes are preserved (sm, md, lg, xl, 2xl)', async () => {
+      clearUnoCache()
+      const result = await rawResolve(['hidden', 'sm:flex', 'md:flex', 'lg:flex', 'xl:flex', '2xl:flex'])
+      for (const prefix of ['sm', 'md', 'lg', 'xl', '2xl']) {
+        const val = result[`${prefix}:flex`]
+        expect(val, `${prefix}:flex should be resolved`).toBeDefined()
+        expect(typeof val, `${prefix}:flex should be a string`).toBe('string')
+        expect(val as string).toMatch(new RegExp(`^${prefix}:`))
+      }
+    })
+
+    it('base class that conflicts with responsive variant stays as class rewrite', async () => {
+      clearUnoCache()
+      const result = await rawResolve(['text-black', 'lg:text-white'])
+      // Both should be string rewrites (not inlined), since they conflict
+      expect(typeof result['text-black']).toBe('string')
+      expect(typeof result['lg:text-white']).toBe('string')
+      expect(result['lg:text-white'] as string).toMatch(/^lg:text-\[/)
+    })
+
+    it('non-conflicting classes are still inlined as styles', async () => {
+      clearUnoCache()
+      const result = await rawResolve(['flex', 'md:bg-blue-500'])
+      // flex has no responsive conflict — should be inlined as styles
+      expect(typeof result.flex).toBe('object')
+      expect((result.flex as Record<string, string>).display).toBe('flex')
+    })
+
+    it('dark: prefixed classes are preserved as string rewrites', async () => {
+      clearUnoCache()
+      const result = await rawResolve(['bg-white', 'dark:bg-black'])
+      expect(typeof result['dark:bg-black']).toBe('string')
+      expect(result['dark:bg-black'] as string).toMatch(/^dark:bg-\[/)
+      // bg-white conflicts — should also be a string
+      expect(typeof result['bg-white']).toBe('string')
+    })
+  })
 })
 
 // ============================================================================
