@@ -1,3 +1,5 @@
+// Uses plain export (not defineAppConfig) because @nuxt/test-utils Nitro build
+// doesn't transform the defineAppConfig auto-import in server bundles.
 export default ({
   ui: {
     colors: {
