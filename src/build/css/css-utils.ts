@@ -691,6 +691,11 @@ export const GENERIC_FONT_FAMILIES = new Set([
   // vendor-prefixed system font aliases (not real downloadable fonts)
   '-apple-system',
   'blinkmacsystemfont',
+  // platform emoji/symbol fonts (not downloadable)
+  'apple color emoji',
+  'segoe ui emoji',
+  'segoe ui symbol',
+  'noto color emoji',
 ])
 
 function isSystemFont(name: string): boolean {
