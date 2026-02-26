@@ -85,6 +85,19 @@ describe('takumi renderer', () => {
     })
   }, 60000)
 
+  it.runIf(hasTakumi)('renders takumi image with text overflow ellipsis', async () => {
+    const html = await $fetch('/prefix/takumi/ellipsis') as string
+    const ogImageUrl = extractOgImageUrl(html)
+    expect(ogImageUrl).toBeTruthy()
+
+    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
+      responseType: 'arrayBuffer',
+    })
+    expect(Buffer.from(image)).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'takumi-ellipsis-rendering',
+    })
+  }, 60000)
+
   it.runIf(hasTakumi)('renders takumi image with complex images (GithubAvatars)', async () => {
     const html = await $fetch('/prefix/takumi/github-avatars') as string
     const ogImageUrl = extractOgImageUrl(html)

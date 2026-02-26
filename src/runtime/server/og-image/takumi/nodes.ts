@@ -27,6 +27,9 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
         .filter(([_, v]) => v !== undefined && v !== null && v !== '')
         .map(([k, v]) => [k, typeof v === 'string' ? resolveUnsupportedUnits(v, parentWidth, parentHeight) : v]),
     )
+    // Takumi expects lineClamp as a number, but HTML/CSS parsing yields a string
+    if (style.lineClamp != null)
+      style.lineClamp = Number(style.lineClamp)
     if (Object.keys(style).length === 0)
       style = undefined
   }
@@ -127,11 +130,19 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
     }
   }
 
-  // Single text child → container with text child
-  if (typeof children === 'string') {
+  // Pure text content → emit a text node with style applied directly.
+  // Takumi's fromJsx collapses text-only elements into text nodes; properties
+  // like lineClamp / textOverflow only work when set on the text node itself.
+  const textContent = typeof children === 'string'
+    ? children
+    : (Array.isArray(children) && children.length >= 1 && children.every(c => typeof c === 'string'))
+        ? (children as string[]).join('')
+        : undefined
+
+  if (textContent !== undefined) {
     return {
-      type: 'container',
-      children: [{ type: 'text', text: children }],
+      type: 'text',
+      text: textContent,
       width: resolvedWidth,
       height: resolvedHeight,
       tw: tw || cls || undefined,
@@ -141,18 +152,6 @@ async function vnodeToTakumiNode(vnode: VNode, parentWidth?: number, parentHeigh
 
   // Array children
   if (Array.isArray(children)) {
-    // If only one child and it's a string → container with text child
-    if (children.length === 1 && typeof children[0] === 'string') {
-      return {
-        type: 'container',
-        children: [{ type: 'text', text: children[0] }],
-        width: resolvedWidth,
-        height: resolvedHeight,
-        tw: tw || cls || undefined,
-        style,
-      }
-    }
-
     const takumiChildren: TakumiNode[] = []
     for (const child of children) {
       if (child && typeof child === 'object')
