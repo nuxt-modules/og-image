@@ -106,7 +106,7 @@ catalogs:
   devtools:
     '@iconify-json/simple-icons': ^1.2.71
     json-editor-vue: ^0.18.1
-    shiki: ^3.22.0
+    shiki: ^4.0.0
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
