@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { downlevelColor, resolveCssVars, stripAtSupports } from '../../src/build/css/css-utils'
+import { sanitizeTakumiStyles } from '../../src/runtime/server/og-image/takumi/sanitize'
 import { resolveColorMix } from '../../src/runtime/server/og-image/utils/css'
 import { linearGradientToSvg, radialGradientToSvg } from '../../src/runtime/server/og-image/utils/gradient-svg'
 
@@ -149,5 +150,48 @@ describe('radialGradientToSvg', () => {
 
   it('returns null for non-gradient', () => {
     expect(radialGradientToSvg('#fff')).toBeNull()
+  })
+})
+
+describe('sanitizeTakumiStyles', () => {
+  it('converts numeric vertical-align to middle', () => {
+    const node = { style: { verticalAlign: '-0.1em' } }
+    sanitizeTakumiStyles(node)
+    expect(node.style.verticalAlign).toBe('middle')
+  })
+
+  it('preserves keyword vertical-align values', () => {
+    for (const v of ['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super']) {
+      const node = { style: { verticalAlign: v } }
+      sanitizeTakumiStyles(node)
+      expect(node.style.verticalAlign).toBe(v)
+    }
+  })
+
+  it('sanitizes vertical-align in nested children', () => {
+    const node = {
+      style: {},
+      children: [{ style: { verticalAlign: '-0.1em' } }],
+    }
+    sanitizeTakumiStyles(node)
+    expect(node.children[0].style.verticalAlign).toBe('middle')
+  })
+
+  it('strips unresolved var() references', () => {
+    const node = { style: { color: 'var(--missing)' } }
+    sanitizeTakumiStyles(node)
+    expect(node.style.color).toBeUndefined()
+  })
+
+  it('resolves color-mix to rgba', () => {
+    const node = { style: { color: 'color-mix(in oklab, #00bcfe 50%, transparent)' } }
+    sanitizeTakumiStyles(node)
+    expect(node.style.color).toBe('rgba(0, 188, 254, 0.5)')
+  })
+
+  it('strips modern color functions', () => {
+    const node = { style: { color: 'oklch(0.7 0.1 200)' } }
+    sanitizeTakumiStyles(node)
+    expect(node.style.color).toBeUndefined()
   })
 })

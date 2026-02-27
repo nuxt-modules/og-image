@@ -5,11 +5,11 @@ import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
 import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
-import { resolveColorMix } from '../utils/css'
 import { linearGradientToSvg, radialGradientToSvg } from '../utils/gradient-svg'
 import { detectImageExt } from '../utils/image-detector'
 import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
+import { sanitizeTakumiStyles } from './sanitize'
 
 interface TakumiState {
   renderer: any
@@ -172,40 +172,6 @@ function rewriteResourceUrls(node: any, map: Map<string, string>) {
  * Resolves color-mix() to rgba, strips unresolved var() references,
  * and removes other CSS values the WASM renderer can't handle.
  */
-function sanitizeTakumiStyles(node: any) {
-  if (node.style) {
-    for (const prop of Object.keys(node.style)) {
-      const value = node.style[prop]
-      if (typeof value !== 'string')
-        continue
-      let v = value
-      // Resolve color-mix() to rgba
-      if (v.includes('color-mix('))
-        v = resolveColorMix(v)
-      // If color-mix() still present after resolution, strip the property
-      if (v.includes('color-mix(')) {
-        delete node.style[prop]
-        continue
-      }
-      // Strip properties with unresolved var() references
-      if (v.includes('var(')) {
-        delete node.style[prop]
-        continue
-      }
-      // Strip modern color functions the WASM renderer can't handle
-      if (/\b(?:lab|lch|oklab|oklch|color)\(/.test(v)) {
-        delete node.style[prop]
-        continue
-      }
-      if (v !== value)
-        node.style[prop] = v
-    }
-  }
-  if (node.children) {
-    for (const child of node.children)
-      sanitizeTakumiStyles(child)
-  }
-}
 
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options } = event
