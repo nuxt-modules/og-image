@@ -17,12 +17,11 @@ trustPolicyExclude:
 packages:
   - playground
   - client
-
 overrides:
   vite: npm:vite@8.0.0-beta.13
 
 catalog:
-  '@antfu/eslint-config': ^7.5.0
+  '@antfu/eslint-config': ^7.6.1
   '@clack/prompts': ^1.0.1
   '@iconify-json/carbon': ^1.2.18
   '@iconify-json/logos': ^1.2.10
@@ -31,9 +30,9 @@ catalog:
   '@iconify-json/tabler': ^1.2.27
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.11.2
-  '@nuxt/devtools': ^3.2.1
-  '@nuxt/devtools-kit': ^3.2.1
-  '@nuxt/devtools-ui-kit': ^3.2.1
+  '@nuxt/devtools': ^3.2.2
+  '@nuxt/devtools-kit': ^3.2.2
+  '@nuxt/devtools-ui-kit': ^3.2.2
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
@@ -48,8 +47,8 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.2.1
-  '@takumi-rs/core': ^0.68.17
-  '@takumi-rs/wasm': ^0.68.17
+  '@takumi-rs/core': ^0.69.2
+  '@takumi-rs/wasm': ^0.69.2
   '@vitejs/plugin-vue': ^6.0.4
   '@vue/compiler-sfc': ^3.5.29
   '@vueuse/core': ^14.2.1
@@ -101,7 +100,7 @@ catalog:
   vue: ^3.5.29
   vue-router: ^5.0.3
   vue-tsc: ^3.2.5
-  wrangler: ^4.68.0
+  wrangler: ^4.69.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
