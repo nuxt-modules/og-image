@@ -1,6 +1,6 @@
 import type { FontConfig, OgImageRenderEventContext, Renderer } from '../../../types'
-import { getNitroOrigin } from '#imports'
 import resolvedFonts from '#og-image/fonts'
+import { getNitroOrigin } from '#site-config/server/composables'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
