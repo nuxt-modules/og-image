@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { resolveUnsupportedUnits } from '../../src/runtime/server/og-image/utils/css'
 
 // Test style parsing logic in isolation (same logic used in takumi/nodes.ts)
 function parseStyleAttr(style: string | null): Record<string, any> | undefined {
@@ -97,71 +96,6 @@ describe('takumiNodes', () => {
     })
   })
 
-  describe('resolveUnsupportedUnits', () => {
-    it('converts cqw to pixels using container width', () => {
-      expect(resolveUnsupportedUnits('50cqw', 1200, 630)).toBe('600px')
-    })
-
-    it('converts cqh to pixels using container height', () => {
-      expect(resolveUnsupportedUnits('50cqh', 1200, 630)).toBe('315px')
-    })
-
-    it('uses default 1200x630 when no dimensions provided', () => {
-      expect(resolveUnsupportedUnits('100cqw')).toBe('1200px')
-      expect(resolveUnsupportedUnits('100cqh')).toBe('630px')
-    })
-
-    it('handles cqi (inline) as width-relative', () => {
-      expect(resolveUnsupportedUnits('50cqi', 800, 400)).toBe('400px')
-    })
-
-    it('handles cqb (block) as height-relative', () => {
-      expect(resolveUnsupportedUnits('50cqb', 800, 400)).toBe('200px')
-    })
-
-    it('handles cqmin using smaller dimension', () => {
-      expect(resolveUnsupportedUnits('100cqmin', 1200, 630)).toBe('630px')
-    })
-
-    it('handles cqmax using larger dimension', () => {
-      expect(resolveUnsupportedUnits('100cqmax', 1200, 630)).toBe('1200px')
-    })
-
-    it('converts dynamic viewport units (dvw, dvh)', () => {
-      expect(resolveUnsupportedUnits('50dvw', 1200, 630)).toBe('600px')
-      expect(resolveUnsupportedUnits('50dvh', 1200, 630)).toBe('315px')
-    })
-
-    it('converts small viewport units (svw, svh)', () => {
-      expect(resolveUnsupportedUnits('25svw', 1200, 630)).toBe('300px')
-      expect(resolveUnsupportedUnits('25svh', 1200, 630)).toBe('157.5px')
-    })
-
-    it('converts large viewport units (lvw, lvh)', () => {
-      expect(resolveUnsupportedUnits('10lvw', 1200, 630)).toBe('120px')
-      expect(resolveUnsupportedUnits('10lvh', 1200, 630)).toBe('63px')
-    })
-
-    it('handles negative values', () => {
-      expect(resolveUnsupportedUnits('-10cqw', 1200, 630)).toBe('-120px')
-    })
-
-    it('handles decimal values', () => {
-      expect(resolveUnsupportedUnits('33.33cqw', 1200, 630)).toBe('399.96px')
-    })
-
-    it('passes through regular CSS values unchanged', () => {
-      expect(resolveUnsupportedUnits('100px')).toBe('100px')
-      expect(resolveUnsupportedUnits('50%')).toBe('50%')
-      expect(resolveUnsupportedUnits('2rem')).toBe('2rem')
-      expect(resolveUnsupportedUnits('red')).toBe('red')
-    })
-
-    it('handles mixed values with unsupported units', () => {
-      expect(resolveUnsupportedUnits('calc(50cqw + 10px)', 1200, 630)).toBe('calc(600px + 10px)')
-    })
-  })
-
   describe('camelCase', () => {
     it('converts basic kebab case', () => {
       expect(camelCase('font-size')).toBe('fontSize')
@@ -201,13 +135,6 @@ describe('takumiNodes', () => {
       expect(parsed!.fontSize).toBe('96px')
       // No "font" shorthand key should appear
       expect(parsed!.font).toBeUndefined()
-    })
-
-    it('resolveUnsupportedUnits preserves rem values (takumi handles rem natively)', () => {
-      // Verify rem values pass through to takumi renderer
-      expect(resolveUnsupportedUnits('6rem')).toBe('6rem')
-      expect(resolveUnsupportedUnits('1rem')).toBe('1rem')
-      expect(resolveUnsupportedUnits('-.05em')).toBe('-.05em')
     })
   })
 })

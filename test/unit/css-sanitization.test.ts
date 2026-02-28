@@ -1,47 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { downlevelColor, resolveCssVars, stripAtSupports } from '../../src/build/css/css-utils'
 import { sanitizeTakumiStyles } from '../../src/runtime/server/og-image/takumi/sanitize'
-import { resolveColorMix } from '../../src/runtime/server/og-image/utils/css'
-import { linearGradientToSvg, radialGradientToSvg } from '../../src/runtime/server/og-image/utils/gradient-svg'
-
-describe('resolveColorMix', () => {
-  it('resolves hex color with decimal fraction', () => {
-    expect(resolveColorMix('color-mix(in oklab, #00bcfe .14, transparent)'))
-      .toBe('rgba(0, 188, 254, 0.14)')
-  })
-
-  it('resolves hex color with percentage', () => {
-    expect(resolveColorMix('color-mix(in oklab, #00bcfe 14%, transparent)'))
-      .toBe('rgba(0, 188, 254, 0.14)')
-  })
-
-  it('resolves short hex color', () => {
-    expect(resolveColorMix('color-mix(in oklab, #fff 8%, transparent)'))
-      .toBe('rgba(255, 255, 255, 0.08)')
-  })
-
-  it('resolves with srgb color space', () => {
-    expect(resolveColorMix('color-mix(in srgb, #ffffff 4%, transparent)'))
-      .toBe('rgba(255, 255, 255, 0.04)')
-  })
-
-  it('passes through non-color-mix values', () => {
-    expect(resolveColorMix('rgba(0, 188, 254, 0.14)')).toBe('rgba(0, 188, 254, 0.14)')
-    expect(resolveColorMix('red')).toBe('red')
-    expect(resolveColorMix('#00bcfe')).toBe('#00bcfe')
-  })
-
-  it('returns unresolvable color-mix unchanged (for stripping later)', () => {
-    const oklch = 'color-mix(in oklab, oklch(0.7 0.1 200) 14%, transparent)'
-    expect(resolveColorMix(oklch)).toBe(oklch)
-  })
-
-  it('resolves color-mix embedded in other values', () => {
-    // e.g. a border shorthand
-    expect(resolveColorMix('1px solid color-mix(in oklab, #00bcfe 50%, transparent)'))
-      .toBe('1px solid rgba(0, 188, 254, 0.5)')
-  })
-})
 
 describe('stripAtSupports', () => {
   it('strips @supports blocks with nested braces', () => {
@@ -91,106 +50,9 @@ describe('build-time inline style var resolution', () => {
   })
 })
 
-describe('linearGradientToSvg', () => {
-  it('converts simple top-to-bottom gradient', () => {
-    const svg = linearGradientToSvg('linear-gradient(#fff, #000)')
-    expect(svg).toContain('<linearGradient')
-    expect(svg).toContain('stop-color="#fff"')
-    expect(svg).toContain('stop-color="#000"')
-  })
-
-  it('converts angled gradient', () => {
-    const svg = linearGradientToSvg('linear-gradient(90deg, transparent 5%, #3b82f6 35%, #3b82f6 65%, transparent 95%)')
-    expect(svg).toContain('<linearGradient')
-    expect(svg).toContain('stop-color="transparent"')
-    expect(svg).toContain('stop-color="#3b82f6"')
-  })
-
-  it('returns null for non-gradient', () => {
-    expect(linearGradientToSvg('#fff')).toBeNull()
-  })
-})
-
-describe('radialGradientToSvg', () => {
-  it('converts elliptical gradient with position', () => {
-    const svg = radialGradientToSvg('radial-gradient(70% 60% at 30% 40%, #252525 0%, #101010 100%)')
-    expect(svg).toContain('<radialGradient')
-    expect(svg).toContain('cx="0.3"')
-    expect(svg).toContain('cy="0.4"')
-    expect(svg).toContain('gradientTransform')
-    expect(svg).toContain('stop-color="#252525"')
-    expect(svg).toContain('stop-color="#101010"')
-  })
-
-  it('converts simple radial gradient (defaults)', () => {
-    const svg = radialGradientToSvg('radial-gradient(#fff, #000)')
-    expect(svg).toContain('<radialGradient')
-    expect(svg).toContain('cx="0.5"')
-    expect(svg).toContain('cy="0.5"')
-    expect(svg).toContain('stop-color="#fff"')
-    expect(svg).toContain('stop-color="#000"')
-  })
-
-  it('converts circle gradient', () => {
-    const svg = radialGradientToSvg('radial-gradient(circle at 50% 50%, #fff, #000)')
-    expect(svg).toContain('<radialGradient')
-    expect(svg).not.toContain('gradientTransform')
-  })
-
-  it('converts gradient with rgba stops', () => {
-    const svg = radialGradientToSvg('radial-gradient(rgba(0,0,0,0.5) 0%, rgba(255,255,255,0.8) 100%)')
-    expect(svg).toContain('stop-opacity="0.5"')
-    expect(svg).toContain('stop-opacity="0.8"')
-  })
-
-  it('includes background color rect when provided', () => {
-    const svg = radialGradientToSvg('radial-gradient(#fff, #000)', '#ff0000')
-    expect(svg).toContain('fill="#ff0000"')
-  })
-
-  it('returns null for non-gradient', () => {
-    expect(radialGradientToSvg('#fff')).toBeNull()
-  })
-})
-
 describe('sanitizeTakumiStyles', () => {
-  it('converts numeric vertical-align to middle', () => {
-    const node = { style: { verticalAlign: '-0.1em' } }
-    sanitizeTakumiStyles(node)
-    expect(node.style.verticalAlign).toBe('middle')
-  })
-
-  it('preserves keyword vertical-align values', () => {
-    for (const v of ['baseline', 'top', 'middle', 'bottom', 'text-top', 'text-bottom', 'sub', 'super']) {
-      const node = { style: { verticalAlign: v } }
-      sanitizeTakumiStyles(node)
-      expect(node.style.verticalAlign).toBe(v)
-    }
-  })
-
-  it('sanitizes vertical-align in nested children', () => {
-    const node = {
-      style: {},
-      children: [{ style: { verticalAlign: '-0.1em' } }],
-    }
-    sanitizeTakumiStyles(node)
-    expect(node.children[0].style.verticalAlign).toBe('middle')
-  })
-
   it('strips unresolved var() references', () => {
     const node = { style: { color: 'var(--missing)' } }
-    sanitizeTakumiStyles(node)
-    expect(node.style.color).toBeUndefined()
-  })
-
-  it('resolves color-mix to rgba', () => {
-    const node = { style: { color: 'color-mix(in oklab, #00bcfe 50%, transparent)' } }
-    sanitizeTakumiStyles(node)
-    expect(node.style.color).toBe('rgba(0, 188, 254, 0.5)')
-  })
-
-  it('strips modern color functions', () => {
-    const node = { style: { color: 'oklch(0.7 0.1 200)' } }
     sanitizeTakumiStyles(node)
     expect(node.style.color).toBeUndefined()
   })

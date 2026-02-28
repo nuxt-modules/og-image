@@ -40,32 +40,6 @@ export function splitCssDeclarations(style: string): string[] {
   return declarations
 }
 
-/**
- * Convert container query / dynamic viewport units to pixels.
- * In OG image context, the "container" is the image itself (default 1200x630).
- */
-const UNSUPPORTED_UNIT_RE = /(-?[\d.]+)(cqw|cqh|cqi|cqb|cqmin|cqmax|dvw|dvh|svw|svh|lvw|lvh)\b/g
-export function resolveUnsupportedUnits(val: string, containerWidth?: number, containerHeight?: number): string {
-  if (!UNSUPPORTED_UNIT_RE.test(val))
-    return val
-  return val.replace(UNSUPPORTED_UNIT_RE, (_, num, unit) => {
-    const n = Number.parseFloat(num)
-    if (Number.isNaN(n))
-      return '0px'
-    const w = containerWidth || 1200
-    const h = containerHeight || 630
-    const widthUnits = new Set(['cqw', 'cqi', 'dvw', 'svw', 'lvw'])
-    const heightUnits = new Set(['cqh', 'cqb', 'dvh', 'svh', 'lvh'])
-    if (widthUnits.has(unit))
-      return `${(n / 100) * w}px`
-    if (heightUnits.has(unit))
-      return `${(n / 100) * h}px`
-    // cqmin/cqmax
-    const ref = unit === 'cqmin' ? Math.min(w, h) : Math.max(w, h)
-    return `${(n / 100) * ref}px`
-  })
-}
-
 export const GRADIENT_COLOR_SPACE_RE = /\s+in\s+(?:oklab|oklch|srgb(?:-linear)?|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz(?:-d(?:50|65))?|hsl|hwb|lab|lch)/g
 
 /**

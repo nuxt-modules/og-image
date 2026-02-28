@@ -1,11 +1,10 @@
 import type { FontConfig, OgImageRenderEventContext, Renderer } from '../../../types'
+import { getNitroOrigin } from '#imports'
 import resolvedFonts from '#og-image/fonts'
-import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
 import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
-import { linearGradientToSvg, radialGradientToSvg } from '../utils/gradient-svg'
 import { detectImageExt } from '../utils/image-detector'
 import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -167,12 +166,6 @@ function rewriteResourceUrls(node: any, map: Map<string, string>) {
   walk(node)
 }
 
-/**
- * Sanitize node styles for the takumi WASM renderer.
- * Resolves color-mix() to rgba, strips unresolved var() references,
- * and removes other CSS values the WASM renderer can't handle.
- */
-
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options } = event
 
@@ -192,11 +185,6 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   if (fontFamilyOverride && state.familySubsetNames.has(fontFamilyOverride)) {
     nodes.style.fontFamily = fontFamilyOverride
   }
-  else if (!nodes.style.fontFamily) {
-    const allSubsetNames = [...state.familySubsetNames.values()].flat()
-    if (allSubsetNames.length)
-      nodes.style.fontFamily = allSubsetNames.join(', ')
-  }
 
   rewriteFontFamilies(nodes, state.familySubsetNames)
 
@@ -204,24 +192,8 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const resourceUrls = extractResourceUrls(nodes)
   const { dataUris, bgUrls } = extractInlineResources(nodes)
 
-  const gradients: { node: any, value: string, prop: string }[] = []
-  const walkG = (n: any) => {
-    for (const prop of ['backgroundImage', 'background'] as const) {
-      const v = n.style?.[prop]
-      if (v?.includes('linear-gradient') || v?.includes('radial-gradient')) {
-        gradients.push({ node: n, value: v, prop })
-        break
-      }
-    }
-    if (n.children) {
-      for (const child of n.children)
-        walkG(child)
-    }
-  }
-  walkG(nodes)
-
   const allUrls = new Set([...resourceUrls, ...bgUrls])
-  const origin = useNitroOrigin(event.e)
+  const origin = getNitroOrigin(event.e)
   const baseURL = event.runtimeConfig.app.baseURL
 
   const resourceMap = new Map<string, Uint8Array>()
@@ -266,26 +238,6 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
       resourceRewriteMap.set(originalSrc.split('?')[0]!, virtualUrl)
   }
 
-  for (const gradient of gradients) {
-    const svg = gradient.value.includes('radial-gradient')
-      ? radialGradientToSvg(gradient.value, gradient.node.style?.backgroundColor)
-      : linearGradientToSvg(gradient.value, gradient.node.style?.backgroundColor)
-    if (svg) {
-      const data = new Uint8Array(Buffer.from(svg))
-      const virtualUrl = `virtual:gradient-${fetchedResources.length}.svg`
-      fetchedResources.push({ src: virtualUrl, data })
-      gradient.node.style.backgroundImage = `url(${virtualUrl})`
-      if (gradient.prop === 'background')
-        delete gradient.node.style.background
-      if (!gradient.node.style.backgroundSize)
-        gradient.node.style.backgroundSize = 'cover'
-    }
-    else {
-      // Conversion failed — remove to prevent WASM crash
-      delete gradient.node.style[gradient.prop]
-    }
-  }
-
   rewriteResourceUrls(nodes, resourceRewriteMap)
 
   const dpr = options.takumi?.devicePixelRatio ?? 2
@@ -298,8 +250,17 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   })
 
   const result = await state.renderer.render(nodes, renderOptions)
-  // @takumi-rs/wasm returns WasmBuffer (zero-copy), @takumi-rs/core returns Buffer
-  return 'asUint8Array' in result ? result.asUint8Array() : result
+
+  // @takumi-rs/wasm path
+  if ('asUint8Array' in result) {
+    const buffer = result.asUint8Array().slice()
+
+    result.free()
+
+    return buffer
+  }
+
+  return result
 }
 
 const TakumiRenderer: Renderer = {
