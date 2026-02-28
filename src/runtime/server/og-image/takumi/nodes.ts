@@ -18,7 +18,7 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
 }
 
 async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
-  let { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
+  const { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
 
   // SVG elements → convert to SVG to string
   if (vnode.type === 'svg') {

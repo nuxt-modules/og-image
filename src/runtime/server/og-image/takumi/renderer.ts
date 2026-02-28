@@ -1,6 +1,6 @@
 import type { FontConfig, OgImageRenderEventContext, Renderer } from '../../../types'
+import { getNitroOrigin } from '#imports'
 import resolvedFonts from '#og-image/fonts'
-import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
@@ -193,7 +193,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const { dataUris, bgUrls } = extractInlineResources(nodes)
 
   const allUrls = new Set([...resourceUrls, ...bgUrls])
-  const origin = useNitroOrigin(event.e)
+  const origin = getNitroOrigin(event.e)
   const baseURL = event.runtimeConfig.app.baseURL
 
   const resourceMap = new Map<string, Uint8Array>()
@@ -253,14 +253,14 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   // @takumi-rs/wasm path
   if ('asUint8Array' in result) {
-    const buffer = result.asUint8Array().slice();
+    const buffer = result.asUint8Array().slice()
 
-    result.free();
+    result.free()
 
-    return buffer;
+    return buffer
   }
 
-  return result;
+  return result
 }
 
 const TakumiRenderer: Renderer = {
