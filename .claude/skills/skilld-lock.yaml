@@ -48,3 +48,10 @@ skills:
     source: "https://github.com/vitest-dev/vitest/tree/v4.0.18/docs"
     syncedAt: 2026-02-18
     generator: skilld
+  shiki-skilld:
+    packageName: shiki
+    version: 4.0.0
+    repo: shikijs/shiki
+    source: "https://github.com/shikijs/shiki/tree/v4.0.0/docs"
+    syncedAt: 2026-02-28
+    generator: skilld

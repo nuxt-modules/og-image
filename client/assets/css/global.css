@@ -225,6 +225,12 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent !important;
 }
 
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+}
+
 .code-block-lines .shiki code .line::before {
   display: none;
 }

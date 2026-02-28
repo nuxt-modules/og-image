@@ -81,6 +81,12 @@ catalogs:
     '@resvg/resvg-wasm':
       specifier: ^2.6.2
       version: 2.6.2
+    '@shikijs/langs':
+      specifier: ^4.0.0
+      version: 4.0.0
+    '@shikijs/themes':
+      specifier: ^4.0.0
+      version: 4.0.0
     '@tailwindcss/vite':
       specifier: ^4.2.1
       version: 4.2.1
@@ -427,6 +433,12 @@ importers:
       '@resvg/resvg-wasm':
         specifier: 'catalog:'
         version: 2.6.2
+      '@shikijs/langs':
+        specifier: 'catalog:'
+        version: 4.0.0
+      '@shikijs/themes':
+        specifier: 'catalog:'
+        version: 4.0.0
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.2.1(vite@8.0.0-beta.13(@types/node@25.3.2)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))

@@ -46,6 +46,8 @@ catalog:
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
+  '@shikijs/langs': ^4.0.0
+  '@shikijs/themes': ^4.0.0
   '@tailwindcss/vite': ^4.2.1
   '@takumi-rs/core': ^0.69.5
   '@takumi-rs/wasm': ^0.69.5

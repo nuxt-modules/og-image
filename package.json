@@ -167,6 +167,8 @@
     "@nuxtjs/tailwindcss": "catalog:",
     "@resvg/resvg-js": "catalog:",
     "@resvg/resvg-wasm": "catalog:",
+    "@shikijs/langs": "catalog:",
+    "@shikijs/themes": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@takumi-rs/core": "catalog:",
     "@takumi-rs/wasm": "catalog:",

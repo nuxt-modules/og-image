@@ -3,7 +3,6 @@ import type { Ref } from 'vue'
 import { createHighlighterCore } from 'shiki/core'
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 import { computed, ref, toValue } from 'vue'
-import { devtools } from './rpc'
 
 export const shiki = ref<HighlighterCore>()
 
@@ -26,10 +25,9 @@ export async function loadShiki() {
 
 export function renderCodeHighlight(code: Ref<string> | string, lang: 'json' | 'xml' | 'js') {
   return computed(() => {
-    const colorMode = devtools.value?.colorMode || 'light'
     return shiki.value!.codeToHtml(toValue(code) || '', {
       lang,
-      theme: colorMode === 'dark' ? 'vitesse-dark' : 'vitesse-light',
+      themes: { light: 'vitesse-light', dark: 'vitesse-dark' },
     }) || ''
   })
 }
