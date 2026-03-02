@@ -7,11 +7,17 @@ const sharpInstance: { instance?: typeof _sharp } = { instance: undefined }
 const resvgInstance: { instance?: { initWasmPromise: Promise<void>, Resvg: any } } = { instance: undefined }
 const satoriInstance: { instance?: { initWasmPromise: Promise<void>, satori: typeof _satori } } = { instance: undefined }
 
+// Singleton promises to prevent race conditions on concurrent first calls
+let resvgImportPromise: Promise<void> | undefined
+let satoriImportPromise: Promise<void> | undefined
+
 export async function useResvg() {
-  if (!resvgInstance.instance) {
-    const m = await import('#og-image/bindings/resvg')
-    resvgInstance.instance = m.default
+  if (!resvgImportPromise) {
+    resvgImportPromise = import('#og-image/bindings/resvg').then((m) => {
+      resvgInstance.instance = m.default
+    })
   }
+  await resvgImportPromise
   await resvgInstance.instance!.initWasmPromise
   const Resvg = resvgInstance.instance!.Resvg
   if (!Resvg)
@@ -20,12 +26,17 @@ export async function useResvg() {
 }
 
 export async function useSatori() {
-  if (!satoriInstance.instance) {
-    const m = await import('#og-image/bindings/satori')
-    satoriInstance.instance = m.default
+  if (!satoriImportPromise) {
+    satoriImportPromise = import('#og-image/bindings/satori').then((m) => {
+      satoriInstance.instance = m.default
+    })
   }
+  await satoriImportPromise
   await satoriInstance.instance!.initWasmPromise
-  return satoriInstance.instance!.satori
+  const { satori } = satoriInstance.instance!
+  if (!satori)
+    throw new Error('[Nuxt OG Image] satori is undefined after WASM initialization — the satori binding may have failed to load.')
+  return satori
 }
 
 export async function useSharp() {

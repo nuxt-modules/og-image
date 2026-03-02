@@ -79,8 +79,10 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           }
         }
       }
-      const resvgHash = await resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm')
-      const yogaHash = await resolveFilePathSha1('satori/yoga.wasm')
+      const [resvgHash, yogaHash] = await Promise.all([
+        resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm'),
+        resolveFilePathSha1('satori/yoga.wasm'),
+      ])
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
           continue
@@ -211,16 +213,22 @@ function patchWebAssemblyInstantiate(code: string): string {
 
   // Apply in reverse so earlier offsets stay valid
   for (const r of replacements.sort((a, b) => b.start - a.start)) {
-    // Parenthesize arg1 to prevent ternary expressions from merging with instanceof
-    const a1 = `(${r.arg1})`
+    // Use a temp variable to avoid evaluating arg1 multiple times
+    // (arg1 could be a function call or property access from Emscripten glue)
+    const tmp = `_wasm${r.start}`
     const patch = r.isAwait
-      ? `(${a1} instanceof WebAssembly.Module`
-      + `?{instance:new WebAssembly.Instance(${a1},${r.arg2}),module:${a1}}`
-      + `:await WebAssembly.instantiate(${r.arg1},${r.arg2}))`
-      : `(${a1} instanceof WebAssembly.Module`
-        + `?Promise.resolve({instance:new WebAssembly.Instance(${a1},${r.arg2}),module:${a1}})`
-        + `:WebAssembly.instantiate(${r.arg1},${r.arg2}))`
+      ? `(((${tmp}=${r.arg1}),${tmp}) instanceof WebAssembly.Module`
+      + `?{instance:new WebAssembly.Instance(${tmp},${r.arg2}),module:${tmp}}`
+      + `:await WebAssembly.instantiate(${tmp},${r.arg2}))`
+      : `(((${tmp}=${r.arg1}),${tmp}) instanceof WebAssembly.Module`
+        + `?Promise.resolve({instance:new WebAssembly.Instance(${tmp},${r.arg2}),module:${tmp}})`
+        + `:WebAssembly.instantiate(${tmp},${r.arg2}))`
     code = code.slice(0, r.start) + patch + code.slice(r.end)
+  }
+  // Declare temp variables at the top of the module (after any "use strict")
+  if (replacements.length > 0) {
+    const vars = replacements.map(r => `_wasm${r.start}`).join(',')
+    code = `var ${vars};${code}`
   }
   return code
 }
