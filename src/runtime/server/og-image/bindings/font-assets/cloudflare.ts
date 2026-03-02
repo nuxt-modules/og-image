@@ -1,8 +1,6 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { useRuntimeConfig } from 'nitropack/runtime'
-import { $fetch } from 'ofetch'
 import { withBase } from 'ufo'
 
 export async function resolve(event: H3Event, font: FontConfig) {
@@ -21,17 +19,13 @@ export async function resolve(event: H3Event, font: FontConfig) {
     }
   }
 
-  // Fallback: use event.$fetch for in-process resolution when available,
-  // otherwise fall back to $fetch with origin (for presets without ASSETS binding)
+  // Fallback: use event.$fetch for in-process resolution — avoids external HTTP
+  // round-trips which cause self-referencing subrequest failures on CF Workers
   const internalFetch = (event as any).$fetch as ((path: string, opts: { responseType: string }) => Promise<ArrayBuffer>) | undefined
   if (typeof internalFetch === 'function') {
     const arrayBuffer = await internalFetch(fullPath, { responseType: 'arrayBuffer' })
     return Buffer.from(arrayBuffer)
   }
-  const origin = getNitroOrigin(event)
-  const arrayBuffer = await $fetch(fullPath, {
-    responseType: 'arrayBuffer',
-    baseURL: origin,
-  }) as ArrayBuffer
-  return Buffer.from(arrayBuffer)
+
+  throw new Error(`[Nuxt OG Image] Cannot resolve font "${font.family}" on Cloudflare Workers: no ASSETS binding or event.$fetch available. Ensure static assets are configured.`)
 }
