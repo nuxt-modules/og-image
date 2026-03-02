@@ -8,13 +8,22 @@ const resvgInstance: { instance?: { initWasmPromise: Promise<void>, Resvg: any }
 const satoriInstance: { instance?: { initWasmPromise: Promise<void>, satori: typeof _satori } } = { instance: undefined }
 
 export async function useResvg() {
-  resvgInstance.instance = resvgInstance.instance || await import('#og-image/bindings/resvg').then(m => m.default)
+  if (!resvgInstance.instance) {
+    const m = await import('#og-image/bindings/resvg')
+    resvgInstance.instance = m.default
+  }
   await resvgInstance.instance!.initWasmPromise
-  return resvgInstance.instance!.Resvg
+  const Resvg = resvgInstance.instance!.Resvg
+  if (!Resvg)
+    throw new Error('[Nuxt OG Image] Resvg class is undefined after WASM initialization — the @resvg/resvg-wasm binding may have failed to load.')
+  return Resvg
 }
 
 export async function useSatori() {
-  satoriInstance.instance = satoriInstance.instance || await import('#og-image/bindings/satori').then(m => m.default)
+  if (!satoriInstance.instance) {
+    const m = await import('#og-image/bindings/satori')
+    satoriInstance.instance = m.default
+  }
   await satoriInstance.instance!.initWasmPromise
   return satoriInstance.instance!.satori
 }

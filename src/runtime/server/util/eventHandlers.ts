@@ -102,6 +102,8 @@ export async function imageEventHandler(e: H3Event) {
   if (!image) {
     image = await renderer.createImage(ctx).catch((err: any) => {
       logger.error(`renderer.createImage error for ${e.path}:`, err?.message || err)
+      if (err?.stack)
+        logger.error(err.stack)
       throw err
     })
     if (image instanceof H3Error)
