@@ -46,8 +46,8 @@ catalog:
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
-  '@shikijs/langs': ^4.0.0
-  '@shikijs/themes': ^4.0.0
+  '@shikijs/langs': ^4.0.1
+  '@shikijs/themes': ^4.0.1
   '@tailwindcss/vite': ^4.2.1
   '@takumi-rs/core': ^0.70.1
   '@takumi-rs/wasm': ^0.70.1
@@ -106,9 +106,9 @@ catalog:
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
-    '@iconify-json/simple-icons': ^1.2.71
+    '@iconify-json/simple-icons': ^1.2.72
     json-editor-vue: ^0.18.1
-    shiki: ^4.0.0
+    shiki: ^4.0.1
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
