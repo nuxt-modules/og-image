@@ -53,7 +53,8 @@ const cloudflare: RuntimeCompatibilitySchema = {
   emoji: 'fetch', // edge size limits - use API instead of bundling 24MB icons
   wasm: {
     esmImport: true,
-    lazy: true,
+    // Do NOT set lazy here — Nitro's cloudflare preset uses lazy: false because
+    // CF Workers require WASM modules to be imported eagerly via top-level await
   },
 }
 const awsLambda: RuntimeCompatibilitySchema = {
@@ -180,13 +181,25 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')
       binding = compatibility[key]
+    // Mock renderer bindings when the renderer isn't detected — avoids bundling
+    // large WASM files (e.g. takumi 3.4MB) for renderers that aren't used
+    const isRendererBinding = key === 'browser' || key === 'satori' || key === 'takumi'
+    if (isRendererBinding && !detectedRenderers.has(key as RendererType)) {
+      binding = false
+    }
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {
       [`#og-image/bindings/${key}`]: binding === false ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
     }
   }
+  // Resolve satori's bundled yoga.wasm (yoga-layout, not yoga-wasm-web)
+  // satori 0.16+ ships its own yoga.wasm that matches its bundled Emscripten glue
+  const satoriPkgDir = await resolve.resolvePath('satori/package.json').then(p => p.replace('/package.json', ''))
+  const yogaWasmPath = `${satoriPkgDir}/yoga.wasm`
+
   nitroConfig.alias = defu(
+    { '#og-image/yoga-wasm': `${yogaWasmPath}?module` },
     await applyBinding('browser'),
     await applyBinding('satori'),
     await applyBinding('takumi'),
@@ -200,6 +213,9 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     nitroConfig.experimental.wasm = true
   }
   nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
+  // og-image's wasm config takes priority, Nitro's fills gaps.
+  // This works because we deliberately omit `lazy` from presets like cloudflare
+  // so Nitro's `lazy: false` (required for CF Workers) fills in automatically.
   nitroConfig.wasm = defu(compatibility.wasm, nitroConfig.wasm)
 
   nitroConfig.virtual!['#og-image/compatibility'] = () => `export default ${JSON.stringify(resolvedCompatibility)}`

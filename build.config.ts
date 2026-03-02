@@ -42,5 +42,8 @@ export default defineBuildConfig({
     'quansync/macro',
     // lightningcss for CSS processing
     'lightningcss',
+    // oxc for AST-based post-compilation patching
+    'oxc-walker',
+    'oxc-parser',
   ],
 })

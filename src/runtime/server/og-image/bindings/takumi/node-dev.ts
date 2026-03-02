@@ -60,19 +60,13 @@ function killWorker() {
   }
 }
 
-// Use Symbol.for to prevent duplicate signal handlers on HMR re-imports
-const signalKey = Symbol.for('og-image:takumi-worker-signals')
+// Clean up worker on process exit — avoid SIGINT/SIGTERM signal handlers because
+// they keep the event loop alive and prevent exit after prerendering completes.
+// Use Symbol.for guard to prevent duplicate listeners on HMR re-imports.
+const signalKey = Symbol.for('og-image:takumi-worker-cleanup')
 if (!(globalThis as any)[signalKey]) {
   (globalThis as any)[signalKey] = true
   process.on('exit', killWorker)
-  process.once('SIGINT', () => {
-    killWorker()
-    process.exit(130)
-  })
-  process.once('SIGTERM', () => {
-    killWorker()
-    process.exit(143)
-  })
 }
 
 function createWorker() {
@@ -109,6 +103,9 @@ function createWorker() {
     }
     worker = null
   })
+  // Allow process to exit even if the worker is still alive (e.g. after prerendering).
+  // Must be called AFTER adding event listeners — listeners internally ref() the port.
+  w.unref()
   return w
 }
 

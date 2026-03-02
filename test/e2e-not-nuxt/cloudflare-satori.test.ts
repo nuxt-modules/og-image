@@ -128,7 +128,7 @@ describe('cloudflare-satori', () => {
       stopWrangler()
     })
 
-    it('serves og images dynamically via wrangler', async () => {
+    it('serves prerendered og images via wrangler', async () => {
       const html = await $fetch<string>(serverUrl)
       const ogImageMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
         || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
@@ -143,6 +143,22 @@ describe('cloudflare-satori', () => {
       expect(Buffer.from(image)).toMatchImageSnapshot({
         customSnapshotIdentifier: 'cloudflare-satori-wrangler-runtime',
       })
+    }, 30000)
+
+    it('generates og images dynamically at runtime via wrangler', async () => {
+      // Test the dynamic route directly — this exercises the full WASM pipeline
+      // (satori yoga init + resvg SVG→PNG) at runtime, not prerendered
+      const image = await $fetch(`${serverUrl}/_og/d/image?path=/`, {
+        responseType: 'arrayBuffer' as const,
+      })
+
+      const buf = Buffer.from(image)
+      // Verify it's a valid PNG (magic bytes)
+      expect(buf[0]).toBe(0x89)
+      expect(buf[1]).toBe(0x50) // P
+      expect(buf[2]).toBe(0x4E) // N
+      expect(buf[3]).toBe(0x47) // G
+      expect(buf.length).toBeGreaterThan(1000)
     }, 30000)
   })
 
