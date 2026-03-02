@@ -70,8 +70,8 @@
   "peerDependencies": {
     "@resvg/resvg-js": "^2.6.0",
     "@resvg/resvg-wasm": "^2.6.0",
-    "@takumi-rs/core": "^0.69.5",
-    "@takumi-rs/wasm": "^0.69.5",
+    "@takumi-rs/core": "^0.70.1",
+    "@takumi-rs/wasm": "^0.70.1",
     "@unhead/vue": "^2.0.5",
     "fontless": "^0.2.0",
     "playwright-core": "^1.50.0",

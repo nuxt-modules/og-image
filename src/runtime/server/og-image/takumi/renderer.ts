@@ -5,7 +5,6 @@ import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
 import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
-import { detectImageExt } from '../utils/image-detector'
 import { useExtractResourceUrls, useTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 import { sanitizeTakumiStyles } from './sanitize'
@@ -87,85 +86,6 @@ function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>
   }
 }
 
-function extractInlineResources(node: any): { dataUris: { src: string, data: Uint8Array }[], bgUrls: string[] } {
-  const dataUris: { src: string, data: Uint8Array }[] = []
-  const bgUrls: string[] = []
-  const walk = (n: any) => {
-    if (n.src?.startsWith('data:')) {
-      const commaIdx = n.src.indexOf(',')
-      if (commaIdx !== -1) {
-        const meta = n.src.slice(0, commaIdx)
-        const dataStr = n.src.slice(commaIdx + 1)
-        try {
-          const isBase64 = meta.includes('base64')
-          const data = isBase64
-            ? Buffer.from(dataStr, 'base64')
-            : Buffer.from(decodeURIComponent(dataStr))
-          dataUris.push({ src: n.src, data: new Uint8Array(data) })
-        }
-        catch {}
-      }
-    }
-    if (n.style?.backgroundImage) {
-      let bg = n.style.backgroundImage
-      const matches = [...bg.matchAll(/url\(['"]?([^'")\s]+)['"]?\)/g)]
-      for (const match of matches) {
-        const fullMatch = match[0]
-        const src = match[1]
-        bg = bg.replace(fullMatch, `url(${src})`)
-        if (src.startsWith('data:')) {
-          const commaIdx = src.indexOf(',')
-          if (commaIdx !== -1) {
-            const meta = src.slice(0, commaIdx)
-            const dataStr = src.slice(commaIdx + 1)
-            try {
-              const isBase64 = meta.includes('base64')
-              const data = isBase64
-                ? Buffer.from(dataStr, 'base64')
-                : Buffer.from(decodeURIComponent(dataStr))
-              dataUris.push({ src, data: new Uint8Array(data) })
-            }
-            catch {}
-          }
-        }
-        else {
-          bgUrls.push(src)
-        }
-      }
-      n.style.backgroundImage = bg
-    }
-    if (n.children) {
-      for (const child of n.children)
-        walk(child)
-    }
-  }
-  walk(node)
-  return { dataUris, bgUrls }
-}
-
-function rewriteResourceUrls(node: any, map: Map<string, string>) {
-  const walk = (n: any) => {
-    if (n.src && map.has(n.src)) {
-      n.src = map.get(n.src)
-    }
-    if (n.style?.backgroundImage) {
-      let bg = n.style.backgroundImage
-      const sortedKeys = [...map.keys()].sort((a, b) => b.length - a.length)
-      for (const oldUrl of sortedKeys) {
-        const newUrl = map.get(oldUrl)!
-        const escapedUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        bg = bg.replace(new RegExp(escapedUrl, 'g'), newUrl)
-      }
-      n.style.backgroundImage = bg
-    }
-    if (n.children) {
-      for (const child of n.children)
-        walk(child)
-    }
-  }
-  walk(node)
-}
-
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options } = event
 
@@ -190,15 +110,11 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const extractResourceUrls = await useExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
-  const { dataUris, bgUrls } = extractInlineResources(nodes)
 
-  const allUrls = new Set([...resourceUrls, ...bgUrls])
   const origin = getNitroOrigin(event.e)
   const baseURL = event.runtimeConfig.app.baseURL
 
-  const resourceMap = new Map<string, Uint8Array>()
-
-  await Promise.all([...allUrls].map(async (src) => {
+  const fetchedResources = await Promise.all(resourceUrls.map(async (src) => {
     const urlsToTry = [src]
     if (src.startsWith('/')) {
       urlsToTry.push(withBase(src, origin))
@@ -207,38 +123,18 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
       }
     }
 
+    const enteries = []
+
     for (const url of urlsToTry) {
       const data = await $fetch(url, { responseType: 'arrayBuffer' }).catch(() => null)
       if (data) {
-        resourceMap.set(src, new Uint8Array(data as ArrayBuffer))
+        enteries.push({ src, data: new Uint8Array(data as ArrayBuffer) })
         break
       }
     }
+
+    return enteries
   }))
-
-  dataUris.forEach(uri => resourceMap.set(uri.src, uri.data))
-
-  const fetchedResources: { src: string, data: Uint8Array }[] = []
-  const resourceRewriteMap = new Map<string, string>()
-
-  let resourceIdx = 0
-  for (let [originalSrc, data] of resourceMap.entries()) {
-    const ext = detectImageExt(data, originalSrc)
-    // Strip <text>/<tspan> from SVG resources — takumi WASM hangs on them
-    if (ext === 'svg') {
-      const svg = Buffer.from(data).toString('utf-8')
-      const stripped = svg.replace(/<text[\s\S]*?<\/text>/gi, '')
-      if (stripped !== svg)
-        data = new Uint8Array(Buffer.from(stripped))
-    }
-    const virtualUrl = `virtual:asset-${resourceIdx++}.${ext}`
-    fetchedResources.push({ src: virtualUrl, data })
-    resourceRewriteMap.set(originalSrc, virtualUrl)
-    if (originalSrc.includes('?'))
-      resourceRewriteMap.set(originalSrc.split('?')[0]!, virtualUrl)
-  }
-
-  rewriteResourceUrls(nodes, resourceRewriteMap)
 
   const dpr = options.takumi?.devicePixelRatio ?? 2
   const renderOptions = defu(options.takumi, {
@@ -249,18 +145,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     devicePixelRatio: dpr,
   })
 
-  const result = await state.renderer.render(nodes, renderOptions)
-
-  // @takumi-rs/wasm path
-  if ('asUint8Array' in result) {
-    const buffer = result.asUint8Array().slice()
-
-    result.free()
-
-    return buffer
-  }
-
-  return result
+  return await state.renderer.render(nodes, renderOptions)
 }
 
 const TakumiRenderer: Renderer = {
