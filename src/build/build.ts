@@ -170,11 +170,14 @@ function patchWebAssemblyInstantiate(code: string): string {
         callee.type !== 'MemberExpression'
         || callee.object.type !== 'Identifier'
         || callee.object.name !== 'WebAssembly'
-        || callee.property.name !== 'instantiate'
+        || !('name' in callee.property) || callee.property.name !== 'instantiate'
       ) {
         return
       }
-      const [a1, a2] = arg.arguments
+      const a1 = arg.arguments[0]
+      const a2 = arg.arguments[1]
+      if (!a1 || !a2)
+        return
       capturedCallStarts.add(arg.start)
       replacements.push({
         start: node.start,
@@ -193,14 +196,17 @@ function patchWebAssemblyInstantiate(code: string): string {
         callee.type !== 'MemberExpression'
         || callee.object.type !== 'Identifier'
         || callee.object.name !== 'WebAssembly'
-        || callee.property.name !== 'instantiate'
+        || !('name' in callee.property) || callee.property.name !== 'instantiate'
       ) {
         return
       }
       // Skip if already captured as part of an AwaitExpression
       if (capturedCallStarts.has(node.start))
         return
-      const [a1, a2] = node.arguments
+      const a1 = node.arguments[0]
+      const a2 = node.arguments[1]
+      if (!a1 || !a2)
+        return
       replacements.push({
         start: node.start,
         end: node.end,
