@@ -79,6 +79,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'nitro-dev': NodeDevRuntime,
   'nitro-prerender': NodePrerenderRuntime,
   'node-server': NodeRuntime,
+  'bun': NodeRuntime,
   'stackblitz': WebContainer,
   'codesandbox': WebContainer,
   'aws-lambda': awsLambda,
