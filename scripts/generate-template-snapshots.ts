@@ -122,7 +122,7 @@ const baseUrl = process.argv[2] || 'http://localhost:3000'
 const outputDir = join(__dirname, '../docs/public/templates')
 
 const dimensions = [
-  { prefix: '', width: 1200, height: 630, label: 'OG' },
+  { prefix: '', width: 1200, height: 600, label: 'OG' },
   { prefix: 'square-', width: 800, height: 800, label: 'Square' },
 ]
 

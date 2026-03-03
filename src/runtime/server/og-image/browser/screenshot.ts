@@ -112,7 +112,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     await setViewport(
       page,
       toValue(options.width) || 1200,
-      toValue(options.height) || 630,
+      toValue(options.height) || 600,
     )
 
     if (options.html) {

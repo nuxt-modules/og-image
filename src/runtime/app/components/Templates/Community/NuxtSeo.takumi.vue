@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<{
   colorMode: 'light',
   title: 'title',
   width: 1200,
-  height: 630,
+  height: 600,
 })
 
 const themeColor = computed(() => props.isPro ? '124, 58, 237' : '34, 197, 94')
