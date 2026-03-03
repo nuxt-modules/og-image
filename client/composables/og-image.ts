@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions, RendererType } from '../../src/runtime/types'
+import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions, OgImageOptionsInternal, RendererType } from '../../src/runtime/types'
 import { computed, inject, toValue, watch } from '#imports'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
@@ -390,9 +390,9 @@ export function useOgImage() {
     return activeComponentName.value === 'PageScreenshot'
   })
 
-  function patchOptions(opts: OgImageOptions & { options?: unknown }) {
+  function patchOptions(opts: OgImageOptionsInternal & { options?: unknown }) {
     delete opts.options
-    optionsOverrides.value = defu(opts, optionsOverrides.value) as OgImageOptions
+    optionsOverrides.value = defu(opts, optionsOverrides.value) as OgImageOptionsInternal
     hasMadeChanges.value = true
     refreshSources()
   }

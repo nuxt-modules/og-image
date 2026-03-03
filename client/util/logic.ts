@@ -1,4 +1,4 @@
-import type { OgImageOptions } from '../../src/runtime/types'
+import type { OgImageOptionsInternal } from '../../src/runtime/types'
 import { useDebounceFn } from '@vueuse/core'
 import { withBase } from 'ufo'
 import { computed, ref } from 'vue'
@@ -13,10 +13,10 @@ export const path = ref('/')
 export const query = ref()
 export const base = ref('/')
 
-export const options = ref<OgImageOptions>({})
+export const options = ref<OgImageOptionsInternal>({})
 
 // prop editing
-export const optionsOverrides = ref<OgImageOptions>({})
+export const optionsOverrides = ref<OgImageOptionsInternal>({})
 export const hasMadeChanges = ref(false)
 export const propEditor = ref({})
 
