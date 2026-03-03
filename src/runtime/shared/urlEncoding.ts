@@ -1,7 +1,7 @@
 /**
  * URL encoding for OG image options (Cloudinary/IPX style)
  *
- * Format: /_og/s/w_1200,h_630,c_NuxtSeo,title_Hello+World.png
+ * Format: /_og/s/w_1200,h_600,c_NuxtSeo,title_Hello+World.png
  *
  * When the encoded path exceeds MAX_PATH_LENGTH (200 chars), falls back to hash mode:
  * Format: /_og/s/o_<hash>.png
@@ -316,9 +316,11 @@ export function buildOgImageUrl(
   const encoded = encodeOgImageParams(options, defaults)
   const prefix = isStatic ? '/_og/s' : '/_og/d'
 
-  // Check if encoded path is too long for filesystem (only applies to static/prerendered)
+  // Check if encoded path is too long or contains percent-encoded chars (only applies to static/prerendered)
   // Hash mode requires prerender options cache, so it can't work at runtime
-  if (isStatic && encoded.length > MAX_PATH_LENGTH) {
+  // Percent-encoded chars (%23=#, %3F=?, %2C=, etc.) get decoded by prerender crawlers,
+  // proxies, and CDNs in unpredictable ways — hash mode avoids this entirely
+  if (isStatic && (encoded.length > MAX_PATH_LENGTH || encoded.includes('%'))) {
     // Use hash mode - short deterministic path
     const hash = hashOgImageOptions(options)
     return {
@@ -334,8 +336,8 @@ export function buildOgImageUrl(
 
 /**
  * Parse OG image URL back into options
- * @example parseOgImageUrl("/_og/s/w_1200,h_630.png")
- * // Returns: { options: { width: 1200, height: 630 }, extension: 'png', isStatic: true, hash: undefined }
+ * @example parseOgImageUrl("/_og/s/w_1200,h_600.png")
+ * // Returns: { options: { width: 1200, height: 600 }, extension: 'png', isStatic: true, hash: undefined }
  * @example parseOgImageUrl("/_og/s/o_abc123.png")
  * // Returns: { options: {}, extension: 'png', isStatic: true, hash: 'abc123' }
  */
