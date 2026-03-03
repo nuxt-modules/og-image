@@ -1,6 +1,6 @@
 import type { ActiveHeadEntry, Head } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
-import type { OgImageOptions, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
+import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
@@ -9,7 +9,7 @@ import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
-type OgImagePayload = [string, OgImageOptions, Required<Head>['meta']]
+type OgImagePayload = [string, OgImageOptionsInternal, Required<Head>['meta']]
 
 declare module 'nuxt/app' {
   interface NuxtSSRContext {
@@ -77,7 +77,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             const payload = resolveUnrefHeadInput(options) as any
             if (payload.props && typeof payload.props.title === 'undefined')
               payload.props.title = '%s'
-            payload.component = resolveComponentName(options.component, defaults.component || '')
+            payload.component = resolveComponentName(options.component)
             payload.key = key
             delete payload.url
             if (payload._query && Object.keys(payload._query).length === 0) {
@@ -107,8 +107,8 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   ssrContext._ogImagePayloads = payloads
 }
 
-export function resolveComponentName(component: OgImageOptions['component'], fallback: string): OgImageOptions['component'] {
-  component = component || fallback || componentNames?.[0]?.pascalName
+export function resolveComponentName(component: OgImageOptionsInternal['component']): OgImageOptionsInternal['component'] {
+  component = component || componentNames?.[0]?.pascalName
   // try and fix component name if we're using a shorthand (i.e Banner instead of OgImageBanner)
   if (component && componentNames) {
     const originalName = component

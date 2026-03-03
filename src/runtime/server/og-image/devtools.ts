@@ -1,5 +1,5 @@
 import type { H3Error, H3Event } from 'h3'
-import type { DevToolsMetaDataExtraction, OgImageOptions } from '../../types'
+import type { DevToolsMetaDataExtraction, OgImageOptionsInternal } from '../../types'
 import { htmlPayloadCache } from '#og-image-cache'
 import { parse } from 'devalue'
 import { createError } from 'h3'
@@ -7,7 +7,7 @@ import { extractSocialPreviewTags } from '../../pure'
 import { logger } from '../util/logger'
 
 export interface DevToolsExtractPayload {
-  options: OgImageOptions[]
+  options: OgImageOptionsInternal[]
   socialPreview: {
     root: Record<string, string>
     images: DevToolsMetaDataExtraction[]
@@ -16,11 +16,11 @@ export interface DevToolsExtractPayload {
 
 const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
 
-function extractOptionsFromHtml(html: string): OgImageOptions[] {
+function extractOptionsFromHtml(html: string): OgImageOptionsInternal[] {
   const match = String(html).match(PAYLOAD_REGEX)
   if (!match?.[1])
     return []
-  return parse(match[1]) as OgImageOptions[]
+  return parse(match[1]) as OgImageOptionsInternal[]
 }
 
 async function doFetchWithErrorHandling(fetch: any, path: string) {

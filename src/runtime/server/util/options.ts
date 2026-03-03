@@ -1,9 +1,9 @@
-import type { DefineOgImageInput, OgImageComponent, OgImageOptions, OgImagePrebuilt, RendererType } from '../../types'
+import type { DefineOgImageInput, OgImageComponent, OgImageOptionsInternal, OgImagePrebuilt, RendererType } from '../../types'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { createError } from 'h3'
 
 export interface NormalisedOptions {
-  options: OgImageOptions | OgImagePrebuilt
+  options: OgImageOptionsInternal | OgImagePrebuilt
   renderer: RendererType
   component?: OgImageComponent
 }
@@ -141,7 +141,7 @@ function resolveComponent(name: string): { component: OgImageComponent, renderer
 }
 
 export function normaliseOptions(_options: DefineOgImageInput): NormalisedOptions {
-  const options = { ..._options } as OgImageOptions
+  const options = { ..._options } as OgImageOptionsInternal
 
   // Special case: PageScreenshot is a virtual component for page screenshots
   // It always uses browser renderer and doesn't need a real component
@@ -180,14 +180,19 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
   // check if using a community template - auto-ejected in dev, error in prod
   if (resolved.category === 'community') {
     if (!import.meta.dev) {
-      const requestedName = (_options as OgImageOptions).component || '(default)'
-      const appNames = componentNames.filter((c: OgImageComponent) => c.category !== 'community').map((c: OgImageComponent) => c.pascalName)
-      throw createError({
-        statusCode: 500,
-        message: `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image eject ${resolved.pascalName}${
-          requestedName !== '(default)' ? `\n  Requested component: "${requestedName}"` : ''
-        }${appNames.length ? `\n  Available app components: ${appNames.join(', ')}` : '\n  No app components found — create one in components/OgImage/'}`,
-      })
+      // In production, fall back to an app component if available
+      const appComponent = componentNames.find((c: OgImageComponent) => c.category !== 'community')
+      if (appComponent) {
+        resolved = appComponent
+        renderer = resolved.renderer
+        options.component = resolved.pascalName
+      }
+      else {
+        throw createError({
+          statusCode: 500,
+          message: `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image eject ${resolved.pascalName}\n  No app components found — create one in components/OgImage/`,
+        })
+      }
     }
   }
 

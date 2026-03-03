@@ -1,6 +1,6 @@
 import type { H3Error, H3Event } from 'h3'
 import type {
-  OgImageOptions,
+  OgImageOptionsInternal,
   OgImageRenderEventContext,
   RouteRulesOgImage,
 } from '../../types'
@@ -125,7 +125,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const routeRuleMatcher = createNitroRouteRuleMatcher()
   const routeRules = routeRuleMatcher(basePath)
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
-  const options: OgImageOptions = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptions
+  const options = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptionsInternal
 
   if (!options) {
     return createError({

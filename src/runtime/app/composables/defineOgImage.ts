@@ -1,5 +1,5 @@
 import type { OgImageComponents } from '#og-image/components'
-import type { OgImageOptions, ReactiveComponentProps } from '../../types'
+import type { OgImageOptions, OgImageOptionsInternal, ReactiveComponentProps } from '../../types'
 import { _defineOgImageRaw } from './_defineOgImageRaw'
 
 type OgImageComponentOptions<T extends keyof OgImageComponents> = OgImageOptions & {
@@ -33,7 +33,7 @@ export function defineOgImage<T extends keyof OgImageComponents>(
   // Handle shared props + array of variants
   if (Array.isArray(options)) {
     return _defineOgImageRaw(options.map((opt) => {
-      const input: OgImageOptions = {
+      const input: OgImageOptionsInternal = {
         ...opt,
         component: component as string,
       }
@@ -46,7 +46,7 @@ export function defineOgImage<T extends keyof OgImageComponents>(
   }
 
   // Single image
-  const input: OgImageOptions = {
+  const input: OgImageOptionsInternal = {
     ...options,
     component: component as string,
   }

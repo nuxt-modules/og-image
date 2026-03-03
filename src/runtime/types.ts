@@ -18,7 +18,7 @@ export interface OgImageRenderEventContext {
   key: string
   basePath: string
   renderer: Renderer
-  options: OgImageOptions
+  options: OgImageOptionsInternal
   isDevToolsContextRequest: boolean
   publicStoragePath: string
   runtimeConfig: OgImageRuntimeConfig
@@ -37,7 +37,7 @@ export interface OgImageRuntimeConfig {
 
   publicStoragePath: string
 
-  defaults: OgImageOptions
+  defaults: Omit<OgImageOptions, 'component' | 'renderer' | 'props' | 'url' | 'html' | 'key' | 'cacheKey' | '_query' | '_hash' | 'socialPreview'>
   debug: boolean
   baseCacheKey: string
   hasNuxtIcon: boolean
@@ -103,7 +103,7 @@ export interface ScreenshotOptions {
   /**
    * The height of the screenshot.
    *
-   * @default 630
+   * @default 600
    */
   height: number
   /**
@@ -115,7 +115,7 @@ export interface ScreenshotOptions {
 export interface OgImagePrebuilt extends OgImageOptions {
 }
 
-export type DefineOgImageInput = OgImageOptions | OgImagePrebuilt | false
+export type DefineOgImageInput = OgImageOptionsInternal | OgImagePrebuilt | false
 
 export interface OgImageOptions {
   /**
@@ -127,7 +127,7 @@ export interface OgImageOptions {
   /**
    * The height of the screenshot.
    *
-   * @default 630
+   * @default 600
    */
   height?: number | (() => number) | Ref<number>
   /**
@@ -141,19 +141,9 @@ export interface OgImageOptions {
    */
   url?: string | (() => string) | Ref<string>
   /**
-   * The name of the component to render.
-   */
-  component?: string
-  /**
    * Props to pass to the component.
    */
   props?: Record<string, any>
-  /**
-   * Override renderer. Only used internally for screenshots.
-   * For normal usage, renderer is determined by component filename suffix.
-   * @internal
-   */
-  renderer?: RendererType
   extension?: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html'
   emojis?: IconifyEmojiIconSets | false
   /**
@@ -198,6 +188,17 @@ export interface OgImageOptions {
    * When set, this key is used directly for caching instead of the auto-generated key.
    */
   cacheKey?: string
+}
+
+/**
+ * Internal options type used throughout the rendering pipeline.
+ * Extends OgImageOptions with fields set by defineOgImage() and the module internals.
+ */
+export interface OgImageOptionsInternal extends OgImageOptions {
+  /** Set by defineOgImage() — the resolved component PascalName */
+  component?: string
+  /** Determined by component filename suffix (.satori.vue, .takumi.vue, .browser.vue) */
+  renderer?: RendererType
 }
 
 export interface FontConfig {

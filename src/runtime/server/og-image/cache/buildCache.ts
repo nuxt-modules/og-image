@@ -30,7 +30,7 @@ export function generateBuildCacheKey(
   extension: string,
 ): string {
   const { version } = useOgImageRuntimeConfig()
-  const componentHash = getComponentHash(options.component || 'NuxtSeo')
+  const componentHash = getComponentHash(options.component || 'default')
   const hash = hashOgImageOptions(options, componentHash, version)
   return `${hash}.${extension}`
 }

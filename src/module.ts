@@ -71,9 +71,9 @@ export interface ModuleOptions {
    *
    * You can use this to change the default template, image sizing and more.
    *
-   * @default { component: 'NuxtSeo', width: 1200, height: 630, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
+   * @default { width: 1200, height: 600, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
    */
-  defaults: OgImageOptions
+  defaults: Omit<OgImageOptions, 'component' | 'renderer' | 'props' | 'url' | 'html' | 'key' | 'cacheKey' | '_query' | '_hash' | 'socialPreview'>
   /**
    * Options to pass to satori.
    *
@@ -224,7 +224,6 @@ export default defineNuxtModule<ModuleOptions>({
       enabled: true,
       defaults: {
         emojis: 'noto',
-        component: 'NuxtSeo',
         extension: 'png',
         width: 1200,
         height: 600,
@@ -866,7 +865,7 @@ export default defineNuxtModule<ModuleOptions>({
     // No user components — auto-detect from installed deps, prompt only if none installed
     if (!nuxt.options._prepare && !hasUserComponents) {
       const installedProviders = await getInstalledProviders()
-      const preferred = installedProviders.find(p => p.provider === 'satori') || installedProviders[0]
+      const preferred = installedProviders.find(p => p.provider === 'takumi') || installedProviders[0]
       if (preferred) {
         ogImageComponentCtx.detectedRenderers.add(preferred.provider)
         logger.debug(`Using ${preferred.provider} renderer`)
@@ -877,7 +876,7 @@ export default defineNuxtModule<ModuleOptions>({
         logger.debug(`Using ${renderer} renderer`)
       }
       else {
-        ogImageComponentCtx.detectedRenderers.add(config.defaults.renderer || 'satori')
+        ogImageComponentCtx.detectedRenderers.add('takumi')
       }
     }
 

@@ -1,5 +1,5 @@
 import type { ResolvableMeta } from '@unhead/vue'
-import type { OgImageOptions, OgImagePrebuilt } from './types'
+import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt } from './types'
 import { defu } from 'defu'
 import { toValue } from 'vue'
 
@@ -50,14 +50,14 @@ export function isInternalRoute(path: string) {
 }
 
 function filterIsOgImageOption(key: string) {
-  const keys: (keyof OgImageOptions)[] = [
+  const keys: (keyof OgImageOptionsInternal)[] = [
     'url',
     'extension',
     'width',
     'height',
     'alt',
     'props',
-    'renderer', // internal use only (screenshots)
+    'renderer',
     'html',
     'component',
     'emojis',
@@ -71,7 +71,7 @@ function filterIsOgImageOption(key: string) {
     'cacheMaxAgeSeconds',
     'key',
   ]
-  return keys.includes(key as keyof OgImageOptions)
+  return keys.includes(key as keyof OgImageOptionsInternal)
 }
 
 export function separateProps(options: OgImageOptions | undefined, ignoreKeys: string[] = []): OgImageOptions {
