@@ -172,9 +172,8 @@ function getMimeType(ext: string): string {
   return mimeTypes[ext] || 'application/octet-stream'
 }
 
-// Satori unsupported utility patterns - filtered at build time
-// Reference: https://github.com/vercel/satori#css
-const SATORI_UNSUPPORTED_PATTERNS = [
+// Unsupported utility patterns for OG image renderers - filtered at build time
+const UNSUPPORTED_CLASS_PATTERNS = [
   /^z-/, // z-index not supported by Satori
   /^ring(-|$)/, // Ring utilities - not supported
   /^divide(-|$)/, // Divide utilities - not supported
@@ -211,8 +210,8 @@ function isIconClass(cls: string): boolean {
   return ICON_CLASS_RE.test(cls)
 }
 
-function isSatoriUnsupported(cls: string): boolean {
-  return SATORI_UNSUPPORTED_PATTERNS.some(p => p.test(cls))
+function isUnsupportedClass(cls: string): boolean {
+  return UNSUPPORTED_CLASS_PATTERNS.some(p => p.test(cls))
 }
 
 export interface AssetTransformOptions {
@@ -507,12 +506,12 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           const result = await transformVueTemplate(fullCode, {
             resolveStyles: async (classes) => {
               // Filter unsupported classes and icon classes (handled via SVG replacement)
-              const supported = classes.filter(cls => !isSatoriUnsupported(cls) && !isIconClass(cls))
-              const unsupported = classes.filter(cls => isSatoriUnsupported(cls))
+              const supported = classes.filter(cls => !isUnsupportedClass(cls) && !isIconClass(cls))
+              const unsupported = classes.filter(cls => isUnsupportedClass(cls))
 
               if (unsupported.length > 0) {
                 const componentName = id.split('/').pop()
-                logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported Satori classes: ${unsupported.join(', ')}`)
+                logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported classes: ${unsupported.join(', ')}`)
               }
 
               const componentName = id.split('/').pop()?.replace(/\.\w+$/, '')
