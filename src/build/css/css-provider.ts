@@ -176,7 +176,7 @@ export function detectCssProvider(nuxt: Nuxt): 'tailwind' | 'unocss' | null {
     return 'unocss'
 
   // Check for tailwindcss package
-  if (resolveModulePath('tailwindcss', { from: nuxt.options.rootDir }))
+  if (resolveModulePath('tailwindcss', { from: nuxt.options.rootDir, try: true }))
     return 'tailwind'
 
   return null
