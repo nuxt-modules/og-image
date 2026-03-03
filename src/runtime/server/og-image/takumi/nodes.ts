@@ -6,10 +6,10 @@ export interface TakumiNode {
   children?: TakumiNode[]
   text?: string
   src?: string
-  width?: number
-  height?: number
   style?: Record<string, any>
   tw?: string
+  /** Any extra HTML attributes (width, height, alt, etc.) are spread as top-level props */
+  [key: string]: any
 }
 
 export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<TakumiNode> {
@@ -17,27 +17,47 @@ export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise
   return await vnodeToTakumiNode(vnodeTree)
 }
 
+// Attributes that are meaningful to Takumi's layout engine (must be numeric)
+function pickDimensions(props: Record<string, any>): Record<string, number> | undefined {
+  let out: Record<string, number> | undefined
+  for (const key of ['width', 'height'] as const) {
+    const v = props[key]
+    if (v == null)
+      continue
+    const n = Number(v)
+    if (!Number.isNaN(n)) {
+      out ??= {}
+      out[key] = n
+    }
+  }
+  return out
+}
+
 async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
-  const { style, children, class: cls, tw, src, width, height, ...rest } = vnode.props
+  const { style, children, class: cls, tw, src, ...rest } = vnode.props
+  const attrs = pickDimensions(rest)
+
+  const base: TakumiNode = {
+    type: 'container',
+    tw: tw || cls || undefined,
+    style,
+    ...attrs,
+  }
 
   // SVG elements → convert to SVG to string
   if (vnode.type === 'svg') {
-    const src = vnodeToHtmlString(vnode)
-
     return {
+      ...base,
       type: 'image',
-      src,
-      tw: tw || cls || undefined,
-      style,
+      src: vnodeToHtmlString(vnode),
     }
   }
 
   if (vnode.type === 'img') {
     return {
+      ...base,
       type: 'image',
       src: src || rest.href || '',
-      tw: tw || cls || undefined,
-      style,
     }
   }
 
@@ -52,10 +72,9 @@ async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
 
   if (textContent !== undefined) {
     return {
+      ...base,
       type: 'text',
       text: textContent,
-      tw: tw || cls || undefined,
-      style,
     }
   }
 
@@ -70,19 +89,13 @@ async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
     }
 
     return {
-      type: 'container',
+      ...base,
       children: takumiChildren.length ? takumiChildren : undefined,
-      tw: tw || cls || undefined,
-      style,
     }
   }
 
   // No children
-  return {
-    type: 'container',
-    tw: tw || cls || undefined,
-    style,
-  }
+  return base
 }
 
 function vnodeToHtmlString(vnode: VNode): string {

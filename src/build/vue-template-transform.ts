@@ -21,6 +21,8 @@ interface StyleCollector {
   styleLoc?: { start: number, end: number }
   elementLoc: { start: number, end: number }
   hasDynamicStyle?: boolean // :style binding detected
+  /** HTML width/height attrs to fold into CSS style (for <img> elements) */
+  dimensionAttrs?: Array<{ name: string, value: string }>
 }
 
 const ELEMENT_NODE = 1
@@ -83,10 +85,16 @@ export async function transformVueTemplate(
       if (prop.type === DIRECTIVE_NODE && prop.name === 'bind' && (prop as any).arg?.content === 'style') {
         collector.hasDynamicStyle = true
       }
+      // Collect width/height HTML attrs on <img> to fold into CSS
+      if (prop.type === ATTRIBUTE_NODE && (prop.name === 'width' || prop.name === 'height') && prop.value && el.tag === 'img') {
+        if (!collector.dimensionAttrs)
+          collector.dimensionAttrs = []
+        collector.dimensionAttrs.push({ name: prop.name, value: prop.value.content })
+      }
       // TODO: Handle dynamic :class bindings (type 7)
     }
 
-    if (collector.classes.length > 0 || collector.existingStyle) {
+    if (collector.classes.length > 0 || collector.existingStyle || collector.dimensionAttrs?.length) {
       if (collector.existingStyle && !collector.styleLoc) {
         logger.warn(`[vue-template-transform] BUG: existingStyle found but styleLoc is undefined!`)
       }
@@ -108,6 +116,13 @@ export async function transformVueTemplate(
     const styleProps: Record<string, string> = {}
     const unresolvedClasses: string[] = []
     let hasClassRewrites = false
+
+    // Fold HTML width/height attrs into CSS (lowest priority)
+    if (collector.dimensionAttrs) {
+      for (const attr of collector.dimensionAttrs) {
+        styleProps[attr.name] = /^\d+(?:\.\d+)?$/.test(attr.value) ? `${attr.value}px` : attr.value
+      }
+    }
 
     for (const cls of collector.classes) {
       const resolved = styleMap[cls]
@@ -155,7 +170,7 @@ export async function transformVueTemplate(
     const resolvedSome = collector.classes.length > 0 && (unresolvedClasses.length < collector.classes.length || hasClassRewrites)
     const styleChanged = collector.existingStyle && styleStr !== collector.existingStyle
 
-    if (!resolvedSome && !styleChanged)
+    if (!resolvedSome && !styleChanged && !collector.dimensionAttrs?.length)
       continue
 
     hasChanges = true
