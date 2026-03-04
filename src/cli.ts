@@ -5,6 +5,7 @@ import * as p from '@clack/prompts'
 import { loadNuxtConfig } from '@nuxt/kit'
 import { addDependency, detectPackageManager } from 'nypm'
 import { basename, dirname, join, relative, resolve } from 'pathe'
+import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -150,10 +151,12 @@ function globFiles(dir: string, pattern: RegExp, exclude: RegExp[] = []): string
   return results
 }
 
-// Check if nuxt config has fonts config (deprecated ogImage.fonts)
+// Check if nuxt config has deprecated options
 async function checkNuxtConfig(rootDir: string): Promise<{
   hasDeprecatedFonts: boolean
   hasNuxtFonts: boolean
+  hasDefaultsComponent: boolean
+  defaultComponentName: string | null
   nitroPreset: string | null
 }> {
   // Check package.json for @nuxt/fonts
@@ -166,9 +169,12 @@ async function checkNuxtConfig(rootDir: string): Promise<{
 
   const config = await loadNuxtConfig({ cwd: rootDir }).catch(() => null)
   if (!config)
-    return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, nitroPreset: null }
+    return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, hasDefaultsComponent: false, defaultComponentName: null, nitroPreset: null }
 
-  const hasDeprecatedFonts = !!(config.ogImage as any)?.fonts
+  const ogImageConfig = config.ogImage as any
+  const hasDeprecatedFonts = !!ogImageConfig?.fonts
+  const hasDefaultsComponent = !!ogImageConfig?.defaults?.component
+  const defaultComponentName = hasDefaultsComponent ? String(ogImageConfig.defaults.component) : null
   const modules = config.modules || []
   // @ts-expect-error untyped
   const hasNuxtFontsInConfig = modules.some((m: string | string[]) =>
@@ -180,6 +186,8 @@ async function checkNuxtConfig(rootDir: string): Promise<{
   return {
     hasDeprecatedFonts,
     hasNuxtFonts: hasNuxtFontsInPkg || hasNuxtFontsInConfig,
+    hasDefaultsComponent,
+    defaultComponentName,
     nitroPreset,
   }
 }
@@ -189,6 +197,8 @@ interface MigrationCheck {
   needsComponentRename: boolean
   needsFontsMigration: boolean
   needsNuxtFonts: boolean
+  needsDefaultsComponentMigration: boolean
+  defaultComponentName: string | null
   componentsToRename: Array<{ from: string, to: string }>
 }
 
@@ -197,6 +207,8 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
     needsComponentRename: false,
     needsFontsMigration: false,
     needsNuxtFonts: false,
+    needsDefaultsComponentMigration: false,
+    defaultComponentName: null,
     componentsToRename: [],
   }
 
@@ -228,10 +240,12 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   }
   result.needsComponentRename = result.componentsToRename.length > 0
 
-  // Check fonts config
+  // Check config
   const configCheck = await checkNuxtConfig(rootDir)
   result.needsFontsMigration = configCheck.hasDeprecatedFonts
   result.needsNuxtFonts = !configCheck.hasNuxtFonts
+  result.needsDefaultsComponentMigration = configCheck.hasDefaultsComponent
+  result.defaultComponentName = configCheck.defaultComponentName
 
   return result
 }
@@ -489,11 +503,12 @@ async function runMigrate(args: string[]): Promise<void> {
   // Check what needs migration
   const migrationCheck = await checkMigrationNeeded(cwd)
 
-  // When components all have suffixes and there's no fonts migration needed
+  // When nothing needs migration
   const noComponentWork = !migrationCheck.needsComponentRename
   const noFontsWork = !migrationCheck.needsFontsMigration && !migrationCheck.needsNuxtFonts
+  const noDefaultsWork = !migrationCheck.needsDefaultsComponentMigration
 
-  if (noComponentWork && noFontsWork) {
+  if (noComponentWork && noFontsWork && noDefaultsWork) {
     console.log('✓ All OG Image components already have renderer suffixes.')
     p.outro('Done')
     return
@@ -503,6 +518,9 @@ async function runMigrate(args: string[]): Promise<void> {
   const tasks: string[] = []
   if (migrationCheck.needsComponentRename) {
     tasks.push(`Rename ${migrationCheck.componentsToRename.length} component(s) to include renderer suffix`)
+  }
+  if (migrationCheck.needsDefaultsComponentMigration) {
+    tasks.push(`Remove deprecated defaults.component: '${migrationCheck.defaultComponentName}'`)
   }
   if (migrationCheck.needsFontsMigration) {
     tasks.push('Migrate ogImage.fonts to @nuxt/fonts config')
@@ -615,15 +633,59 @@ async function runMigrate(args: string[]): Promise<void> {
     console.log('  No API changes needed')
   }
 
-  // Handle fonts (only in interactive mode)
-  if (migrationCheck.needsNuxtFonts && !dryRun && !skipConfirm) {
-    const addFonts = await p.confirm({
-      message: '@nuxt/fonts is recommended for custom fonts. Add it?',
-      initialValue: true,
-    })
+  // Migrate defaults.component
+  if (migrationCheck.needsDefaultsComponentMigration) {
+    if (dryRun) {
+      p.log.info(`Would remove defaults.component: '${migrationCheck.defaultComponentName}'`)
+    }
+    else {
+      const result = await migrateDefaultsComponent(cwd).catch((err) => {
+        p.log.warn(`Failed to migrate defaults.component: ${err.message}`)
+        return { migrated: false, componentName: null, message: err.message }
+      })
+      if (result.migrated) {
+        p.log.success(`Removed defaults.component: '${result.componentName}'`)
+        p.log.info(`  To use '${result.componentName}' as default, rename it to OgImage/Default.{renderer}.vue`)
+      }
+    }
+  }
 
-    if (!p.isCancel(addFonts) && addFonts) {
+  // Migrate fonts config
+  if (migrationCheck.needsFontsMigration) {
+    if (dryRun) {
+      p.log.info('Would migrate ogImage.fonts to @nuxt/fonts config')
+    }
+    else {
+      const result = await migrateFontsConfig(cwd).catch((err) => {
+        p.log.warn(`Failed to migrate fonts config: ${err.message}`)
+        return { migrated: false, message: err.message }
+      })
+      if (result.migrated) {
+        p.log.success(result.message)
+      }
+      else {
+        p.log.warn(`Fonts migration: ${result.message}`)
+      }
+    }
+  }
+
+  // Offer @nuxt/fonts installation
+  if (migrationCheck.needsNuxtFonts && !dryRun) {
+    if (skipConfirm) {
       await installNuxtFonts()
+    }
+    else {
+      const addFonts = await p.confirm({
+        message: '@nuxt/fonts is recommended for font management. Install it?',
+        initialValue: true,
+      })
+
+      if (!p.isCancel(addFonts) && addFonts) {
+        await installNuxtFonts()
+      }
+      else {
+        p.log.info('Skipped @nuxt/fonts installation. Add manually: npx nuxi module add @nuxt/fonts')
+      }
     }
   }
 

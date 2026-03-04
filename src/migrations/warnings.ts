@@ -39,6 +39,7 @@ export const REMOVED_CONFIG: Record<string, string> = {
   'chromium-node': 'compatibility.runtime.browser: \'playwright\'',
   'componentOptions': 'Removed (<OgImage> component removed, use defineOgImage())',
   'defaults.renderer': 'Removed (renderer determined by component filename suffix)',
+  'defaults.component': 'Removed (rename component to OgImage/Default.{renderer}.vue)',
 }
 
 // Deprecated composables

@@ -153,6 +153,46 @@ export async function migrateFontsConfig(rootDir: string): Promise<{ migrated: b
   }
 }
 
+export async function migrateDefaultsComponent(rootDir: string): Promise<{ migrated: boolean, componentName: string | null, message: string }> {
+  const configPaths = [
+    'nuxt.config.ts',
+    'nuxt.config.js',
+    'nuxt.config.mjs',
+  ]
+
+  let configPath: string | undefined
+  for (const cp of configPaths) {
+    const fullPath = join(rootDir, cp)
+    if (existsSync(fullPath)) {
+      configPath = fullPath
+      break
+    }
+  }
+
+  if (!configPath)
+    return { migrated: false, componentName: null, message: 'No nuxt.config found' }
+
+  const mod = await loadFile(configPath)
+  const config = mod.exports.default
+
+  if (!config?.ogImage?.defaults?.component)
+    return { migrated: false, componentName: null, message: 'No defaults.component found' }
+
+  const componentName = String(config.ogImage.defaults.component)
+  delete config.ogImage.defaults.component
+
+  // Clean up empty defaults
+  if (config.ogImage.defaults && Object.keys(config.ogImage.defaults).length === 0)
+    delete config.ogImage.defaults
+
+  // Clean up empty ogImage
+  if (config.ogImage && Object.keys(config.ogImage).length === 0)
+    delete config.ogImage
+
+  await writeFile(mod, configPath)
+  return { migrated: true, componentName, message: `Removed defaults.component: '${componentName}'` }
+}
+
 export async function promptFontsMigration(rootDir: string): Promise<void> {
   logger.info('')
   logger.info('Detected deprecated ogImage.fonts configuration.')

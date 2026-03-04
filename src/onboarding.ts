@@ -260,6 +260,12 @@ export async function onUpgrade(
       }
     }
 
+    // check nested deprecated options
+    const defaults = ogImageConfig.defaults as Record<string, unknown> | undefined
+    if (defaults?.component) {
+      issues.push(`Config \`defaults.component\` is deprecated: Removed — rename component to OgImage/Default.{renderer}.vue`)
+    }
+
     // offer migration for fonts config
     if ('fonts' in ogImageConfig && !nuxt.options._prepare && !isCI) {
       await promptFontsMigration(nuxt.options.rootDir)
