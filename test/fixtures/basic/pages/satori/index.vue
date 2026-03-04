@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-defineOgImage('NuxtSeo', {
+defineOgImage('NuxtSeo.satori', {
   title: 'Hello World',
 })
 </script>

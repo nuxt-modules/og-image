@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 // Multiple OG images using array syntax
-defineOgImage('NuxtSeo', [
+defineOgImage('NuxtSeo.satori', [
   // Twitter: 2:1 ratio (1200x600)
   {
     key: 'twitter',

@@ -123,20 +123,34 @@ export default defineTransformer([
       // same as the above, need to swap out relative background images for absolute
       const backgroundImage = node.props.style!.backgroundImage!
       const src = backgroundImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '')
+      if (src.startsWith('data:'))
+        return
       const isRelative = src?.startsWith('/')
+      let imageBuffer: BufferSource | undefined
       if (isRelative) {
         if (import.meta.prerender || import.meta.dev) {
           const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')
-          const imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
-          if (imageBuffer) {
-            const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-            const base64 = toBase64Image(buffer)
-            node.props.style!.backgroundImage = `url(${base64})`
+          imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
+        }
+        if (!imageBuffer) {
+          imageBuffer = (await e.$fetch(src, { responseType: 'arrayBuffer' })
+            .catch(() => {})) as BufferSource | undefined
+          if (!imageBuffer && !import.meta.prerender) {
+            imageBuffer = (await e.$fetch(src, {
+              baseURL: useNitroOrigin(e),
+              responseType: 'arrayBuffer',
+            }).catch(() => {})) as BufferSource | undefined
           }
         }
-        else {
-          node.props.style!.backgroundImage = `url(${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()})`
-        }
+      }
+      else {
+        imageBuffer = (await $fetch(decodeHtml(src), {
+          responseType: 'arrayBuffer',
+        }).catch(() => {})) as BufferSource | undefined
+      }
+      if (imageBuffer) {
+        const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+        node.props.style!.backgroundImage = `url(${toBase64Image(buffer)})`
       }
     },
   },

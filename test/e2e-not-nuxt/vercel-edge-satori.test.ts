@@ -115,7 +115,14 @@ describe('vercel-edge-satori', () => {
     })
 
     it('serves og images dynamically from vercel edge', async () => {
-      const html = await $fetch<string>(deploymentUrl)
+      // Retry fetch — Vercel deployments may take a moment to propagate
+      let html = ''
+      for (let attempt = 0; attempt < 3; attempt++) {
+        html = await $fetch<string>(deploymentUrl)
+        if (html.includes('og:image'))
+          break
+        await new Promise(r => setTimeout(r, 5000))
+      }
       const ogImageMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
         || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
 

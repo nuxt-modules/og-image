@@ -2,7 +2,7 @@
 // nothing to see here, defined in global route rules
 import { defineRouteRules } from '#imports'
 
-defineOgImage('NuxtSeo', {
+defineOgImage('NuxtSeo.satori', {
   theme: '#c3f2b4',
 })
 

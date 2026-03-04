@@ -59,7 +59,7 @@ describe('zeroRuntime', () => {
     })
     // check the og:image tag src
     const ogImage = /<meta property="og:image" content="(.+?)">/.exec(indexHtml)
-    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/c_NuxtSeo,title_Hello+World.png"`)
+    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/c_NuxtSeo.satori,title_Hello+World.png"`)
   }, 120000)
 
   it('local fonts in config', async () => {

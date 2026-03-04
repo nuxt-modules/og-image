@@ -4,7 +4,7 @@ import { computed, defineOgImage, ref } from '#imports'
 const title = ref('Hello World')
 const description = computed(() => `Description: ${title.value}`)
 
-defineOgImage('NuxtSeo', {
+defineOgImage('NuxtSeo.satori', {
   title,
   description,
 })

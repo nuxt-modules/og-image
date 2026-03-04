@@ -114,7 +114,8 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const origin = getNitroOrigin(event.e)
   const baseURL = event.runtimeConfig.app.baseURL
 
-  const fetchedResources = await Promise.all(resourceUrls.map(async (src) => {
+  const fetchedResources: Array<{ src: string, data: Uint8Array }> = []
+  await Promise.all(resourceUrls.map(async (src) => {
     const urlsToTry = [src]
     if (src.startsWith('/')) {
       urlsToTry.push(withBase(src, origin))
@@ -123,17 +124,13 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
       }
     }
 
-    const enteries = []
-
     for (const url of urlsToTry) {
       const data = await $fetch(url, { responseType: 'arrayBuffer' }).catch(() => null)
       if (data) {
-        enteries.push({ src, data: new Uint8Array(data as ArrayBuffer) })
+        fetchedResources.push({ src, data: new Uint8Array(data as ArrayBuffer) })
         break
       }
     }
-
-    return enteries
   }))
 
   // Default to 1x DPR for consistent output with satori (1200x600).

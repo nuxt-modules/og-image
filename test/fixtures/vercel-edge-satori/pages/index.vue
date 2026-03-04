@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-defineOgImage('NuxtSeo', {
+defineOgImage('NuxtSeo.satori', {
   title: 'Vercel Edge Satori Test',
 })
 </script>

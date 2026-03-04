@@ -18,6 +18,7 @@ export default defineNuxtConfig({
   routeRules: {
     '/satori/route-rules/**': {
       ogImage: {
+        component: 'NuxtSeo.satori',
         props: {
           title: 'Hello from route rules',
         },

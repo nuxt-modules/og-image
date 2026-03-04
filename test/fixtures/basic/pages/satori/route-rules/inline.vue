@@ -3,6 +3,7 @@ import { defineRouteRules } from '#imports'
 
 defineRouteRules({
   ogImage: {
+    component: 'NuxtSeo.satori',
     description: 'This is coming from inline route rules',
     colorMode: 'dark',
   },
