@@ -27,7 +27,7 @@ catalog:
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.28
+  '@iconify-json/tabler': ^1.2.29
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.12.0
   '@nuxt/devtools': ^3.2.2
@@ -49,8 +49,8 @@ catalog:
   '@shikijs/langs': ^4.0.1
   '@shikijs/themes': ^4.0.1
   '@tailwindcss/vite': ^4.2.1
-  '@takumi-rs/core': ^0.70.3
-  '@takumi-rs/wasm': ^0.70.3
+  '@takumi-rs/core': ^0.70.4
+  '@takumi-rs/wasm': ^0.70.4
   '@vitejs/plugin-vue': ^6.0.4
   '@vue/compiler-sfc': ^3.5.29
   '@vueuse/core': ^14.2.1

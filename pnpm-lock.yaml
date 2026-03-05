@@ -25,8 +25,8 @@ catalogs:
       specifier: ^1.2.10
       version: 1.2.10
     '@iconify-json/tabler':
-      specifier: ^1.2.28
-      version: 1.2.28
+      specifier: ^1.2.29
+      version: 1.2.29
     '@img/sharp-linux-x64':
       specifier: ^0.34.5
       version: 0.34.5
@@ -91,11 +91,11 @@ catalogs:
       specifier: ^4.2.1
       version: 4.2.1
     '@takumi-rs/core':
-      specifier: ^0.70.3
-      version: 0.70.3
+      specifier: ^0.70.4
+      version: 0.70.4
     '@takumi-rs/wasm':
-      specifier: ^0.70.3
-      version: 0.70.3
+      specifier: ^0.70.4
+      version: 0.70.4
     '@vitejs/plugin-vue':
       specifier: ^6.0.4
       version: 6.0.4
@@ -384,7 +384,7 @@ importers:
         version: 1.2.10
       '@iconify-json/tabler':
         specifier: 'catalog:'
-        version: 1.2.28
+        version: 1.2.29
       '@img/sharp-linux-x64':
         specifier: 'catalog:'
         version: 0.34.5
@@ -444,10 +444,10 @@ importers:
         version: 4.2.1(vite@8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
       '@takumi-rs/core':
         specifier: 'catalog:'
-        version: 0.70.3
+        version: 0.70.4
       '@takumi-rs/wasm':
         specifier: 'catalog:'
-        version: 0.70.3
+        version: 0.70.4
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
         version: 6.0.4(vite@8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.29(typescript@5.9.3))
@@ -1336,8 +1336,8 @@ packages:
   '@iconify-json/simple-icons@1.2.72':
     resolution: {integrity: sha512-wkcixntHvaCoqPqerGrNFcHQ3Yx1ux4ZkhscCDK0DEHpP62XCH+cxq1HTsRjbUiQl/M9K8bj03HF6Wgn5iE2rQ==}
 
-  '@iconify-json/tabler@1.2.28':
-    resolution: {integrity: sha512-HKF7K9Ba67GdB2b2tYWF1DS2Ydpxmo1Fsda7bQRwKUPYOiYM99F7rgJp6BN7TFQiRmCaxilfro6FQeCMSjuV1g==}
+  '@iconify-json/tabler@1.2.29':
+    resolution: {integrity: sha512-PgozNurmUn6zFc8jV091sUZ8kMjLBJTUBXYpnQtZ6mhHmVW+ML6LZoHDw+TZM274IYMu0/85ikExPg+5a9cl3A==}
 
   '@iconify/collections@1.0.651':
     resolution: {integrity: sha512-ALGlYxNVOIylxNHjFaylqPTzgNaMHeoFA8ao/piPHjYGD526xEp847F7KePy9jvOLChy2bzQVwAV9Em3HiicjQ==}
@@ -3373,64 +3373,64 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@takumi-rs/core-darwin-arm64@0.70.3':
-    resolution: {integrity: sha512-mpxQWsMYvzFSb9HroCexT7rTE6yzFAMfBYwu48md/SQOlnha3ZoIDPd4e+ax6o72ew9eRH2k9Xggo1EfgKGnVA==}
+  '@takumi-rs/core-darwin-arm64@0.70.4':
+    resolution: {integrity: sha512-rl/iZMZTL4oCV4/AYUWapfGd+/UNENMt5BOtXrIwxwsVswS5LgZVDxqD0/ngApCxhvcK0oHCDBQWUqRAzO17TA==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [darwin]
 
-  '@takumi-rs/core-darwin-x64@0.70.3':
-    resolution: {integrity: sha512-9pWo5ozqlGLrFWmmFuXKOESmSOvn2+bIoZAHHaO/04YzKg2L1sBZMjh+XG6Cv4PyTFrWa131L4VW+DnJPpcWbQ==}
+  '@takumi-rs/core-darwin-x64@0.70.4':
+    resolution: {integrity: sha512-d7PUmO9X0LWDtCqvHBA7xWEDcb97oW17FnCxQzP45fXNJ3kiDeHR7MKEgLA/iFWVuCiqwtoo/4IkJplS47VlZA==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [darwin]
 
-  '@takumi-rs/core-linux-arm64-gnu@0.70.3':
-    resolution: {integrity: sha512-Ita6jJ2tKQ/mIZ1FL/lzw4ETC17MdF++LL3+NcMCEtczQrTvD4/QtyRoenzOIrVTcm1jBupMMY+gQQyarjiwOA==}
+  '@takumi-rs/core-linux-arm64-gnu@0.70.4':
+    resolution: {integrity: sha512-a80EcGlsLggK9H/XsD+TGIIcSA/mGn/EP/k7XcVjV+R80cjr60NrDSTwtqKfsC9bg5AQG2wcGjoh5j18TYRrxQ==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@takumi-rs/core-linux-arm64-musl@0.70.3':
-    resolution: {integrity: sha512-PUvDCEAxgZIYjyjy4m6s5yjN79wL92w3GSUb/kMekTPiohJycH5/0ITB1QZwzQVf9GF12GbElRHl4Q+dz5spfQ==}
+  '@takumi-rs/core-linux-arm64-musl@0.70.4':
+    resolution: {integrity: sha512-8EXmcU9H3I9eydxhK8ZxtmyZa6lWaKuxz223kxBqUTQ7Zg9H7yBcGG5JKxQGt/QS0olANjSfXv1f28dYJF9pAw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@takumi-rs/core-linux-x64-gnu@0.70.3':
-    resolution: {integrity: sha512-Ou+/8fIUzBjG17Tj/Bphu0f/BnGp4XhxhOb5XSmZgXsgStFbBfmSYifzFALbZLKUTOoydiyGevS4NANWH9aUJA==}
+  '@takumi-rs/core-linux-x64-gnu@0.70.4':
+    resolution: {integrity: sha512-A32LzsEyXwdaLUCfxLK73F5OUYHbbAbDel1ACzkdsmE7clOQFKuP6pW3lXI9OuTUl5r7cpBAhcK2ObzqrTdoIA==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@takumi-rs/core-linux-x64-musl@0.70.3':
-    resolution: {integrity: sha512-2CrPxUasnWDkbz/vUROxxdRPgJXRxkMRMOJu8akDEZzlMnUOhQVpr6WIYavmxipxR74XfxHktokE26IRrRk7nw==}
+  '@takumi-rs/core-linux-x64-musl@0.70.4':
+    resolution: {integrity: sha512-OLrZXkz9/H37vuHihmQlrJBgsNd0vXbGMFc+Vec+mZoIB3oF9WShI9nyAULUldF+vM6Z+OrXm23dGB/DOoDykg==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@takumi-rs/core-win32-arm64-msvc@0.70.3':
-    resolution: {integrity: sha512-do+Buo9vEnskTIvSH1wbi2WwaQTf2oW9Zc8hoQHWESt7XLqWyymVV4ufsJ8sbkgJn2+pa13ZBtkpVO+iA17axw==}
+  '@takumi-rs/core-win32-arm64-msvc@0.70.4':
+    resolution: {integrity: sha512-Bgc0VGbg+V0B7RNo08A9sikFfbD7bwPiLKoWlGeSr4Vr/95u/UyF+l/mozN75PRWAGPdNE2v2h6IzV1FEMXK7w==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [win32]
 
-  '@takumi-rs/core-win32-x64-msvc@0.70.3':
-    resolution: {integrity: sha512-ern1CqVFdckFXsQQCLTtvel0ETUJKfI3zJTT6NHFdwPeR6Hj9e6a5NeHRsLbLzx34irPD0Ve2VlFNuVn/KXmBQ==}
+  '@takumi-rs/core-win32-x64-msvc@0.70.4':
+    resolution: {integrity: sha512-Iah4b4XLbiehplyITYJ5oaikefVp16rpvpWiwgmItT82oUZfnomQKj1x1ojjAKgRCZ/5M2DV4+4cf/KFFosrew==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [win32]
 
-  '@takumi-rs/core@0.70.3':
-    resolution: {integrity: sha512-hQKwwfD1Jn8FRkTHIzkpTgVoClPcEC+HuffXIHlmEK/7XGP46/MzM4m4kcfkvMDODinRlEsDJpI8mfRncNA5dg==}
+  '@takumi-rs/core@0.70.4':
+    resolution: {integrity: sha512-wedpLgaeuJWZfahBOGdo8RV0MtKc8WFaD2YbozlnRcw0ehooI2xupuFlhWpKyKkFjb/REIqnEJRiiTkMqGG3/Q==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
 
-  '@takumi-rs/wasm@0.70.3':
-    resolution: {integrity: sha512-ZLggdqwyGSVp9VVaZy8wSSXuFfFZE/wd18uHj4Ux6fo7qekmN37L9iBSKhTlTwfwW/nLCE6iU/bnxD8VfdbxWw==}
+  '@takumi-rs/wasm@0.70.4':
+    resolution: {integrity: sha512-gl5JQv1MCgKkndxqZf7H/SBvuezZCg4n74CXBVcjP2eXC+ZGtStM4J6KMQYdP8mCF3Y9cD2Fdfezyx9KfJsOOg==}
 
   '@tanstack/table-core@8.21.3':
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
@@ -10412,7 +10412,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify-json/tabler@1.2.28':
+  '@iconify-json/tabler@1.2.29':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -10864,7 +10864,7 @@ snapshots:
       '@iconify-json/carbon': 1.2.18
       '@iconify-json/logos': 1.2.10
       '@iconify-json/ri': 1.2.10
-      '@iconify-json/tabler': 1.2.28
+      '@iconify-json/tabler': 1.2.29
       '@nuxt/devtools': 3.2.1(vite@8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.29(typescript@5.9.3))
       '@nuxt/devtools-kit': 3.2.1(magicast@0.5.2)(vite@8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
       '@nuxt/kit': 4.3.1(magicast@0.5.2)
@@ -10909,7 +10909,7 @@ snapshots:
       '@iconify-json/carbon': 1.2.19
       '@iconify-json/logos': 1.2.10
       '@iconify-json/ri': 1.2.10
-      '@iconify-json/tabler': 1.2.28
+      '@iconify-json/tabler': 1.2.29
       '@nuxt/devtools': 3.2.2(vite@8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.29(typescript@5.9.3))
       '@nuxt/devtools-kit': 3.2.2(magicast@0.5.2)(vite@8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2))
       '@nuxt/kit': 4.3.1(magicast@0.5.2)
@@ -12647,42 +12647,42 @@ snapshots:
       tailwindcss: 4.2.1
       vite: 8.0.0-beta.13(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.3)(terser@5.46.0)(yaml@2.8.2)
 
-  '@takumi-rs/core-darwin-arm64@0.70.3':
+  '@takumi-rs/core-darwin-arm64@0.70.4':
     optional: true
 
-  '@takumi-rs/core-darwin-x64@0.70.3':
+  '@takumi-rs/core-darwin-x64@0.70.4':
     optional: true
 
-  '@takumi-rs/core-linux-arm64-gnu@0.70.3':
+  '@takumi-rs/core-linux-arm64-gnu@0.70.4':
     optional: true
 
-  '@takumi-rs/core-linux-arm64-musl@0.70.3':
+  '@takumi-rs/core-linux-arm64-musl@0.70.4':
     optional: true
 
-  '@takumi-rs/core-linux-x64-gnu@0.70.3':
+  '@takumi-rs/core-linux-x64-gnu@0.70.4':
     optional: true
 
-  '@takumi-rs/core-linux-x64-musl@0.70.3':
+  '@takumi-rs/core-linux-x64-musl@0.70.4':
     optional: true
 
-  '@takumi-rs/core-win32-arm64-msvc@0.70.3':
+  '@takumi-rs/core-win32-arm64-msvc@0.70.4':
     optional: true
 
-  '@takumi-rs/core-win32-x64-msvc@0.70.3':
+  '@takumi-rs/core-win32-x64-msvc@0.70.4':
     optional: true
 
-  '@takumi-rs/core@0.70.3':
+  '@takumi-rs/core@0.70.4':
     optionalDependencies:
-      '@takumi-rs/core-darwin-arm64': 0.70.3
-      '@takumi-rs/core-darwin-x64': 0.70.3
-      '@takumi-rs/core-linux-arm64-gnu': 0.70.3
-      '@takumi-rs/core-linux-arm64-musl': 0.70.3
-      '@takumi-rs/core-linux-x64-gnu': 0.70.3
-      '@takumi-rs/core-linux-x64-musl': 0.70.3
-      '@takumi-rs/core-win32-arm64-msvc': 0.70.3
-      '@takumi-rs/core-win32-x64-msvc': 0.70.3
+      '@takumi-rs/core-darwin-arm64': 0.70.4
+      '@takumi-rs/core-darwin-x64': 0.70.4
+      '@takumi-rs/core-linux-arm64-gnu': 0.70.4
+      '@takumi-rs/core-linux-arm64-musl': 0.70.4
+      '@takumi-rs/core-linux-x64-gnu': 0.70.4
+      '@takumi-rs/core-linux-x64-musl': 0.70.4
+      '@takumi-rs/core-win32-arm64-msvc': 0.70.4
+      '@takumi-rs/core-win32-x64-msvc': 0.70.4
 
-  '@takumi-rs/wasm@0.70.3': {}
+  '@takumi-rs/wasm@0.70.4': {}
 
   '@tanstack/table-core@8.21.3': {}
 
