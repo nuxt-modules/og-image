@@ -57,7 +57,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Parse encoded params from URL path (Cloudinary-style)
   // URL format: /_og/d/w_1200,title_Hello.png
   // Hash mode: /_og/d/o_<hash>.png (for long URLs)
-  const encodedSegment = (path.split('/').pop() as string).replace(`.${extension}`, '')
+  const encodedSegment = (path.split('/').pop() as string).replace(new RegExp(`\\.${extension}$`), '')
 
   // Check for hash mode (o_<hash>)
   const hashMatch = encodedSegment.match(/^o_([a-z0-9]+)$/i)
