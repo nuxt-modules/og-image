@@ -6,6 +6,7 @@ import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { env, provider } from 'std-env'
 import { logger } from './runtime/logger'
+import { RE_LEGACY_SUFFIX } from './util'
 
 const autodetectableProviders = {
   azure_static: 'azure',
@@ -144,7 +145,7 @@ export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
 
 export function getPresetNitroPresetCompatibility(target: string) {
   // Strip -legacy suffix as it doesn't affect compatibility
-  const normalizedTarget = target.replace(/-legacy$/, '')
+  const normalizedTarget = target.replace(RE_LEGACY_SUFFIX, '')
   let compatibility: RuntimeCompatibilitySchema = RuntimeCompatibility[normalizedTarget as keyof typeof RuntimeCompatibility]!
   if (!compatibility) {
     logger.warn(`Unknown Nitro preset "${target}" — falling back to node-server compatibility. Set ogImage.compatibility.runtime to override.`)

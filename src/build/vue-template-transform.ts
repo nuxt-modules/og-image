@@ -2,6 +2,7 @@ import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { logger } from '../runtime/logger'
+import { RE_WHITESPACE } from '../util'
 import { evaluateCalc, walkTemplateAst } from './css/css-utils'
 
 export interface ClassToStyleOptions {
@@ -29,9 +30,12 @@ const ELEMENT_NODE = 1
 const ATTRIBUTE_NODE = 6
 const DIRECTIVE_NODE = 7
 
+const RE_PURE_NUMBER = /^\d+(?:\.\d+)?$/
+const RE_DOUBLE_QUOTE = /"/g
+
 // Escape quotes for HTML attribute values
 function escapeAttrValue(value: string): string {
-  return value.replace(/"/g, '&quot;')
+  return value.replace(RE_DOUBLE_QUOTE, '&quot;')
 }
 
 /**
@@ -62,7 +66,7 @@ export async function transformVueTemplate(
     for (const prop of el.props) {
       // Static class attribute (type 6)
       if (prop.type === ATTRIBUTE_NODE && prop.name === 'class' && prop.value) {
-        collector.classes = prop.value.content.split(/\s+/).filter(Boolean)
+        collector.classes = prop.value.content.split(RE_WHITESPACE).filter(Boolean)
         collector.classLoc = {
           start: prop.loc.start.offset,
           end: prop.loc.end.offset,
@@ -120,7 +124,7 @@ export async function transformVueTemplate(
     // Fold HTML width/height attrs into CSS (lowest priority)
     if (collector.dimensionAttrs) {
       for (const attr of collector.dimensionAttrs) {
-        styleProps[attr.name] = /^\d+(?:\.\d+)?$/.test(attr.value) ? `${attr.value}px` : attr.value
+        styleProps[attr.name] = RE_PURE_NUMBER.test(attr.value) ? `${attr.value}px` : attr.value
       }
     }
 

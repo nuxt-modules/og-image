@@ -21,7 +21,9 @@ import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { useOgImageRuntimeConfig } from '../utils'
-import { useBrowserRenderer, useSatoriRenderer, useTakumiRenderer } from './instances'
+import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './instances'
+
+const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
 
 export function resolvePathCacheKey(e: H3Event, path: string, includeQuery = false) {
   const siteConfig = getSiteConfig(e, {
@@ -60,7 +62,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const encodedSegment = (path.split('/').pop() as string).replace(new RegExp(`\\.${extension}$`), '')
 
   // Check for hash mode (o_<hash>)
-  const hashMatch = encodedSegment.match(/^o_([a-z0-9]+)$/i)
+  const hashMatch = encodedSegment.match(RE_HASH_MODE)
   let urlOptions: Record<string, any> = {}
 
   if (hashMatch) {
@@ -150,13 +152,13 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (rendererType) {
     case 'satori':
-      renderer = await useSatoriRenderer()
+      renderer = await getSatoriRenderer()
       break
     case 'browser':
-      renderer = await useBrowserRenderer()
+      renderer = await getBrowserRenderer()
       break
     case 'takumi':
-      renderer = await useTakumiRenderer()
+      renderer = await getTakumiRenderer()
       break
   }
   if (!renderer || renderer.__mock__) {

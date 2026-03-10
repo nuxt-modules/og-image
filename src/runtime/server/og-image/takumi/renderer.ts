@@ -5,9 +5,11 @@ import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
 import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
-import { useExtractResourceUrls, useTakumi } from './instances'
+import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 import { sanitizeTakumiStyles } from './sanitize'
+
+const RE_QUOTES = /['"]/g
 
 interface TakumiState {
   renderer: any
@@ -16,11 +18,11 @@ interface TakumiState {
   subsetCounter: number
 }
 
-async function useTakumiState(event: OgImageRenderEventContext): Promise<TakumiState> {
+async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiState> {
   const nitro = event._nitro as any
   if (nitro._takumiState)
     return nitro._takumiState
-  const Renderer = await useTakumi()
+  const Renderer = await getTakumi()
   nitro._takumiState = {
     renderer: new Renderer(),
     loadedFontKeys: new Set(),
@@ -63,7 +65,7 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
 
 function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>) {
   if (node.style?.fontFamily) {
-    const families = node.style.fontFamily.split(',').map((f: string) => f.trim().replace(/['"]/g, ''))
+    const families = node.style.fontFamily.split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
     const expanded = families.flatMap((f: string) => familySubsetNames.get(f) || [f])
     // Append all other loaded font subsets as fallback for missing glyphs.
     // Without this, an element styled with e.g. font-family: 'Poppins' would
@@ -98,7 +100,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
   sanitizeTakumiStyles(nodes)
 
-  const state = await useTakumiState(event)
+  const state = await getTakumiState(event)
   await loadFontsIntoRenderer(state, fonts)
 
   nodes.style = nodes.style || {}
@@ -108,7 +110,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   rewriteFontFamilies(nodes, state.familySubsetNames)
 
-  const extractResourceUrls = await useExtractResourceUrls()
+  const extractResourceUrls = await getExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
 
   const origin = getNitroOrigin(event.e)

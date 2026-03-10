@@ -115,7 +115,7 @@ const rendererConfigs = computed<RendererConfig[]>(() => {
 })
 
 const sortedRendererConfigs = computed(() => {
-  return [...rendererConfigs.value].sort((a, b) => {
+  return rendererConfigs.value.toSorted((a, b) => {
     const aActive = renderer.value === a.name ? -1 : 0
     const bActive = renderer.value === b.name ? -1 : 0
     if (aActive !== bActive)

@@ -7,11 +7,15 @@ import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { extractCodepointsFromVNodes, loadAllFonts, loadAllFontsDebug } from '../fonts'
-import { useResvg, useSatori, useSharp } from './instances'
+import { getResvg, getSatori, getSharp } from './instances'
 import { createVNodes } from './vnodes'
 
 // Stable font array cache — satori uses a WeakMap keyed by array identity
 const _satoriFontCache = new WeakMap<RuntimeFontConfig[], Array<RuntimeFontConfig & { name: string }>>()
+
+const RE_SATORI_WARN_PREFIX = /^\s*WARN\s*/
+const RE_FONT_QUOTES = /^['"]|['"]$/g
+const RE_ALPHA_CHAR = /[a-z]/i
 
 // Capture Satori warnings during render
 function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warnings: string[] }> {
@@ -21,7 +25,7 @@ function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warni
     const msg = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')
     // Only capture Satori-related warnings (they start with WARN or contain CSS property names)
     if (msg.includes('WARN') || msg.includes('not supported') || msg.includes('Expected style'))
-      warnings.push(msg.replace(/^\s*WARN\s*/, ''))
+      warnings.push(msg.replace(RE_SATORI_WARN_PREFIX, ''))
     originalWarn.apply(console, args)
   }
   return fn()
@@ -38,7 +42,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   // Always include the default font (first resolved, e.g. Lobster) so the wrapper div renders correctly
   const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
   const [satori, vnodes] = await Promise.all([
-    useSatori(),
+    getSatori(),
     createVNodes(event),
   ])
   const codepoints = extractCodepointsFromVNodes(vnodes)
@@ -55,7 +59,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const loadedFamilies = new Set(satoriFonts.map(f => f.name))
   const defaultFamily = satoriFonts[0]?.name
   function resolveAvailableFamily(cssValue: string): string | undefined {
-    const families = cssValue.split(',').map(f => f.trim().replace(/^['"]|['"]$/g, ''))
+    const families = cssValue.split(',').map(f => f.trim().replace(RE_FONT_QUOTES, ''))
     const available = families.filter(f => loadedFamilies.has(f))
     if (available.length > 0)
       return available.join(', ')
@@ -63,7 +67,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   }
   const fontFamily: Record<string, string> = {}
   for (const [key, val] of Object.entries(tw4FontVars)) {
-    if (!key.startsWith('font-') || !val || !/[a-z]/i.test(val))
+    if (!key.startsWith('font-') || !val || !RE_ALPHA_CHAR.test(val))
       continue
     const slot = key.slice(5) // 'font-sans' → 'sans', 'font-display' → 'display'
     const resolved = resolveAvailableFamily(val)
@@ -90,7 +94,7 @@ async function createPng(event: OgImageRenderEventContext) {
   if (!svg)
     throw new Error('Failed to create SVG')
   const options = defu(event.options.resvg, resvgOptions)
-  const Resvg = await useResvg()
+  const Resvg = await getResvg()
   const resvg = new Resvg(svg, options)
   const pngData = resvg.render()
   const png = pngData.asPng()
@@ -112,7 +116,7 @@ async function createJpeg(event: OgImageRenderEventContext) {
     throw new Error('Failed to create SVG for JPEG rendering.')
   }
   const svgBuffer = Buffer.from(svg)
-  const sharp = await useSharp().catch(() => {
+  const sharp = await getSharp().catch(() => {
     throw new Error('Sharp dependency could not be loaded. Please check you have it installed and are using a compatible runtime.')
   })
   const options = defu(event.options.sharp, sharpOptions)

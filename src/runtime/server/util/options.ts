@@ -10,6 +10,10 @@ export interface NormalisedOptions {
 
 const RENDERER_SUFFIXES = ['satori', 'browser', 'takumi'] as const
 
+const RE_RENDERER_SUFFIX_DOT = /\.?(satori|browser|takumi)$/i
+const RE_RENDERER_SUFFIX_PASCAL = /(Satori|Browser|Takumi)$/
+const RE_OG_IMAGE_PREFIX = /^OgImage/
+
 /**
  * Parse a user-provided component name into base name + renderer.
  * Supports: 'Banner.satori', 'BannerSatori', 'Banner'
@@ -32,8 +36,8 @@ function parseInputName(name: string): { baseName: string, renderer: RendererTyp
  */
 function stripRenderer(name: string): string {
   return name
-    .replace(/\.?(satori|browser|takumi)$/i, '')
-    .replace(/(Satori|Browser|Takumi)$/, '')
+    .replace(RE_RENDERER_SUFFIX_DOT, '')
+    .replace(RE_RENDERER_SUFFIX_PASCAL, '')
 }
 
 /**
@@ -95,7 +99,7 @@ function resolveComponent(name: string): { component: OgImageComponent, renderer
   const { baseName, renderer } = parseInputName(name)
 
   // Also strip OgImage prefix from baseName for matching (handles OgImageCustomFonts → CustomFonts)
-  const strippedBaseName = baseName.replace(/^OgImage/, '')
+  const strippedBaseName = baseName.replace(RE_OG_IMAGE_PREFIX, '')
 
   // find all components whose base name matches (supports shorthand like 'Banner' matching 'OgImageBannerSatori')
   const matches = componentNames.filter((c: OgImageComponent) => {

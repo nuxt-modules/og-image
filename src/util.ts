@@ -26,6 +26,12 @@ export async function hasResolvableDependency(dep: string) {
 
 const VALID_RENDERER_SUFFIXES = ['satori', 'browser', 'takumi'] as const
 
+export const RE_RENDERER_SUFFIX_CI = /\.?(satori|browser|takumi)$/i
+export const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
+export const RE_OG_IMAGE_PREFIX = /^OgImage/
+export const RE_LEGACY_SUFFIX = /-legacy$/
+export const RE_WHITESPACE = /\s+/
+
 export function getRendererFromFilename(filepath: string): 'satori' | 'browser' | 'takumi' | null {
   const filename = basename(filepath).replace('.vue', '')
   for (const suffix of VALID_RENDERER_SUFFIXES) {
@@ -67,8 +73,8 @@ const OGIMAGE_PREFIXES = [
  */
 export function getRegisteredBaseNames(registeredPascalName: string): string[] {
   const stripped = registeredPascalName
-    .replace(/\.?(satori|browser|takumi)$/i, '')
-    .replace(/(Satori|Browser|Takumi)$/, '')
+    .replace(RE_RENDERER_SUFFIX_CI, '')
+    .replace(RE_RENDERER_SUFFIX, '')
 
   const names: string[] = []
   for (const { prefix, overlapWord } of OGIMAGE_PREFIXES) {
@@ -101,7 +107,7 @@ export function getRegisteredBaseNames(registeredPascalName: string): string[] {
 export function matchesComponentName(registeredPascalName: string, inputName: string): boolean {
   const baseNames = getRegisteredBaseNames(registeredPascalName)
   const { baseName } = parseComponentName(inputName)
-  const strippedBaseName = baseName.replace(/^OgImage/, '')
+  const strippedBaseName = baseName.replace(RE_OG_IMAGE_PREFIX, '')
   return baseNames.some(cBase =>
     cBase === baseName
     || cBase === strippedBaseName

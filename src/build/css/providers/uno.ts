@@ -7,6 +7,13 @@ import { logger } from '../../../runtime/logger'
 import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
 import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
 
+const RE_SVG_DATA_URL = /url\("data:image\/svg\+xml[;,]([^"]+)"\)/
+const RE_UTF8_PREFIX = /^utf8,/
+const RE_VIEWBOX = /viewBox=['"](\d+)\s+(\d+)\s+(\d+)\s+(\d+)['"]/
+const RE_WIDTH_ATTR = /\bwidth=['"](\d+)['"]/
+const RE_HEIGHT_ATTR = /\bheight=['"](\d+)['"]/
+const RE_SVG_BODY = /<svg[^>]*>([\s\S]*)<\/svg>/
+
 export interface UnoProviderOptions {
   resolveCssPath?: () => Promise<string | undefined>
 }
@@ -252,7 +259,7 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
         return null
 
       // Extract SVG from data URL in the generated CSS (--un-icon or mask-image)
-      const urlMatch = css.match(/url\("data:image\/svg\+xml[;,]([^"]+)"\)/)
+      const urlMatch = css.match(RE_SVG_DATA_URL)
       if (!urlMatch?.[1])
         return null
 
@@ -262,20 +269,20 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
       }
       else {
         // Percent-encoded (default for presetIcons), may have utf8, prefix
-        const raw = urlMatch[1].replace(/^utf8,/, '')
+        const raw = urlMatch[1].replace(RE_UTF8_PREFIX, '')
         svgContent = decodeURIComponent(raw)
       }
 
       // Handle both single and double quotes in SVG attributes
-      const viewBoxMatch = svgContent.match(/viewBox=['"](\d+)\s+(\d+)\s+(\d+)\s+(\d+)['"]/)
-      const widthAttr = svgContent.match(/\bwidth=['"](\d+)['"]/)
-      const heightAttr = svgContent.match(/\bheight=['"](\d+)['"]/)
+      const viewBoxMatch = svgContent.match(RE_VIEWBOX)
+      const widthAttr = svgContent.match(RE_WIDTH_ATTR)
+      const heightAttr = svgContent.match(RE_HEIGHT_ATTR)
 
       const width = viewBoxMatch?.[3] ? Number.parseInt(viewBoxMatch[3]) : (widthAttr?.[1] ? Number.parseInt(widthAttr[1]) : 24)
       const height = viewBoxMatch?.[4] ? Number.parseInt(viewBoxMatch[4]) : (heightAttr?.[1] ? Number.parseInt(heightAttr[1]) : 24)
 
       // Extract inner body
-      const bodyMatch = svgContent.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
+      const bodyMatch = svgContent.match(RE_SVG_BODY)
       if (!bodyMatch?.[1])
         return null
 

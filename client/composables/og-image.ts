@@ -12,6 +12,10 @@ import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey }
 import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
 import { CreateOgImageDialogPromise } from './templates'
 
+const RE_SUFFIX_SATORI = /Satori$/
+const RE_SUFFIX_BROWSER = /Browser$/
+const RE_SUFFIX_TAKUMI = /Takumi$/
+
 export function useOgImage() {
   const globalDebug = inject(GlobalDebugKey, ref(null) as Ref<any>)
 
@@ -293,12 +297,12 @@ export function useOgImage() {
     // Normalize dot-notation to PascalCase first (NuxtSeo.takumi → NuxtSeoTakumi)
     const normalized = activeComponentName.value.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
     const currentBase = normalized
-      .replace(/Satori$/, '')
-      .replace(/Browser$/, '')
-      .replace(/Takumi$/, '')
+      .replace(RE_SUFFIX_SATORI, '')
+      .replace(RE_SUFFIX_BROWSER, '')
+      .replace(RE_SUFFIX_TAKUMI, '')
     return allComponents.value.find(c =>
       c.renderer === targetRenderer
-      && (c.pascalName.replace(/Satori$/, '').replace(/Browser$/, '').replace(/Takumi$/, '') === currentBase),
+      && (c.pascalName.replace(RE_SUFFIX_SATORI, '').replace(RE_SUFFIX_BROWSER, '').replace(RE_SUFFIX_TAKUMI, '') === currentBase),
     )
   }
 

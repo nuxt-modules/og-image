@@ -7,7 +7,7 @@
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
 
-Nuxt OG Image allows you to easily generate OG Images using either Vue components or just screenshots of your pages.
+Nuxt OG Image allows you to easily generate OG Images using either Vue components or screenshots of your pages.
 
 OG Images are known to improve click-through rates on social media.
 
@@ -28,9 +28,9 @@ need this module.
 
 - ✨ Create an `og:image` using the built-in templates or make your own with Vue components
 - 🎨 Design and test your `og:image` in the Nuxt DevTools OG Image Playground with full HMR
-- ▲ Render using [Satori](https://github.com/vercel/satori) or [Takumi](https://github.com/kane50613/takumi): Tailwind / UnoCSS with your theme, Google fonts, 6 emoji families and more!
+- ▲ Render using [Satori](https://github.com/vercel/satori) or [Takumi](https://github.com/kane50613/takumi): Tailwind / [UnoCSS](https://unocss.dev) with your theme, Google fonts, 6 emoji families and more.
 - 🤖 Or prerender using the Browser: Supporting painless, complex templates
-- 📸 Feeling lazy? Just generate screenshots for every page: hide elements, wait for animations, and more
+- 📸 Feeling lazy? Generate screenshots for every page: hide elements, wait for animations, and more
 - ⚙️ Works on the edge: Vercel Edge, Netlify Edge and Cloudflare Workers
 
 ## Installation

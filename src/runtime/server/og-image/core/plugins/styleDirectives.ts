@@ -19,6 +19,15 @@ const DARK_MODE_PREFIX_RE = /^dark:(.+)$/
 const GAP_CLASS_RE = /^gap(?:-(x|y))?-(\d+(?:\.\d+)?)$/
 const GAP_ARBITRARY_RE = /^gap(?:-(x|y))?-\[(.+)\]$/
 
+const TEXT_SIZE_RE = /^(?:xs|sm|base|lg|xl|\d+xl)$/
+const BORDER_WIDTH_RE = /^\d+$/
+const BORDER_SIDE_RE = /^[trblxy](?:-\d+)?$/
+const RING_WIDTH_RE = /^\d+$/
+const DIVIDE_SIDE_RE = /^[xy](?:-\d+)?$/
+const DIVIDE_NUMERIC_RE = /^\d+$/
+const OUTLINE_NUMERIC_RE = /^\d+$/
+const OUTLINE_STYLE_RE = /^(?:none|dashed|dotted|double)$/
+
 // Resolve gap class to inline style (Satori wants literal values)
 function resolveGapToStyle(cls: string, style: Record<string, any>): boolean {
   const match = cls.match(GAP_CLASS_RE)
@@ -63,11 +72,11 @@ const DISPLAY_CLASSES = new Set([
 
 // Groups of utilities that conflict with each other
 const OVERLOADED_GROUPS: [string, (value: string) => string][] = [
-  ['text-', v => /^(?:xs|sm|base|lg|xl|\d+xl)$/.test(v) ? 'text-size' : 'text-color'],
-  ['border-', v => /^\d+$/.test(v) || /^[trblxy](?:-\d+)?$/.test(v) ? 'border-width' : 'border-color'],
-  ['ring-', v => /^\d+$/.test(v) ? 'ring-width' : 'ring-color'],
-  ['divide-', v => /^[xy](?:-\d+)?$/.test(v) || /^\d+$/.test(v) || v === 'reverse' ? 'divide-width' : 'divide-color'],
-  ['outline-', v => /^\d+$/.test(v) || /^(?:none|dashed|dotted|double)$/.test(v) ? 'outline-style' : 'outline-color'],
+  ['text-', v => TEXT_SIZE_RE.test(v) ? 'text-size' : 'text-color'],
+  ['border-', v => BORDER_WIDTH_RE.test(v) || BORDER_SIDE_RE.test(v) ? 'border-width' : 'border-color'],
+  ['ring-', v => RING_WIDTH_RE.test(v) ? 'ring-width' : 'ring-color'],
+  ['divide-', v => DIVIDE_SIDE_RE.test(v) || DIVIDE_NUMERIC_RE.test(v) || v === 'reverse' ? 'divide-width' : 'divide-color'],
+  ['outline-', v => OUTLINE_NUMERIC_RE.test(v) || OUTLINE_STYLE_RE.test(v) ? 'outline-style' : 'outline-color'],
 ]
 
 /**

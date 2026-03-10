@@ -6,6 +6,8 @@ import { toValue } from 'vue'
 export { extractSocialPreviewTags, toBase64Image } from './pure'
 export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, hashOgImageOptions, parseOgImageUrl } from './shared/urlEncoding'
 
+const RE_KEBAB_CASE = /-([a-z])/g
+
 export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
   const key = resolvedOptions.key || 'og'
   const isTwitterOnly = key === 'twitter'
@@ -85,7 +87,7 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
   Object.entries(_props)
     .forEach(([key, val]) => {
       // with a simple kebab case conversion
-      props[key.replace(/-([a-z])/g, g => String(g[1]).toUpperCase())] = val
+      props[key.replace(RE_KEBAB_CASE, g => String(g[1]).toUpperCase())] = val
     })
   const result: Record<string, any> = Object.fromEntries(
     Object.entries({ ...options })

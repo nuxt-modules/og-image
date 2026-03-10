@@ -46,7 +46,7 @@ import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOV
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy } from './util'
+import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
 
 export type {
@@ -56,6 +56,10 @@ export type {
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 export type { OgImageRenderEventContext, VNode } from './runtime/types'
+
+const RE_INLINE_CONFIG = /const\s+inlineConfig\s*=\s*(\{[\s\S]*?\n\})/
+const RE_PASCAL_TO_KEBAB = /([a-z])([A-Z])/g
+const RE_TILDE_PREFIX = /^~\//
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
 
@@ -328,7 +332,7 @@ export default defineNuxtModule<ModuleOptions>({
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
     // Cloudflare Workers-specific checks
-    const normalizedPreset = preset.replace(/-legacy$/, '')
+    const normalizedPreset = preset.replace(RE_LEGACY_SUFFIX, '')
     const isCloudflareWorkers = ['cloudflare', 'cloudflare-module', 'cloudflare-durable'].includes(normalizedPreset)
     if (isCloudflareWorkers) {
       // Check for legacy Workers Sites at nitro init (when the actual preset is determined)
@@ -445,7 +449,7 @@ export default defineNuxtModule<ModuleOptions>({
         if (entry.hasDynamicBindings)
           hasDynamic = true
       }
-      fontRequirementsState.weights = [...allWeights].sort((a, b) => a - b)
+      fontRequirementsState.weights = [...allWeights].toSorted((a, b) => a - b)
       fontRequirementsState.styles = [...allStyles] as Array<'normal' | 'italic'>
       fontRequirementsState.families = [...allFamilies]
       fontRequirementsState.hasDynamicBindings = hasDynamic
@@ -471,7 +475,7 @@ export default defineNuxtModule<ModuleOptions>({
       let resolvedColors: Record<string, string> | undefined
       if (existsSync(appConfigPath)) {
         const rawContent = await readFile(appConfigPath, 'utf-8')
-        const inlineMatch = rawContent.match(/const\s+inlineConfig\s*=\s*(\{[\s\S]*?\n\})/)
+        const inlineMatch = rawContent.match(RE_INLINE_CONFIG)
         if (inlineMatch?.[1]) {
           const inlineConfig = JSON.parse(inlineMatch[1]) as { ui?: { colors?: Record<string, string> } }
           resolvedColors = inlineConfig?.ui?.colors
@@ -935,8 +939,7 @@ export default defineNuxtModule<ModuleOptions>({
         if (missing.length === 0)
           communityRenderers.add(renderer)
       }
-      const rendererPatterns = [...communityRenderers]
-        .map(r => `**/*.${r}.vue`)
+      const rendererPatterns = Array.from(communityRenderers, r => `**/*.${r}.vue`)
       if (rendererPatterns.length > 0) {
         addComponentsDir({
           path: resolve('./runtime/app/components/Templates/Community'),
@@ -1030,7 +1033,7 @@ export default defineNuxtModule<ModuleOptions>({
               ogImageComponentCtx.components.push({
                 hash: '',
                 pascalName,
-                kebabName: pascalName.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+                kebabName: pascalName.replace(RE_PASCAL_TO_KEBAB, '$1-$2').toLowerCase(),
                 path: filePath,
                 category: 'community',
                 renderer,
@@ -1103,7 +1106,7 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
       // Use dev-prerender binding which handles dev/prerender/runtime for node
       // Use cloudflare binding for cloudflare presets at runtime
-      const normalizedPreset = preset.replace(/-legacy$/, '')
+      const normalizedPreset = preset.replace(RE_LEGACY_SUFFIX, '')
       const isCloudflare = normalizedPreset === 'cloudflare' || normalizedPreset.startsWith('cloudflare-')
       if (isCloudflare) {
         const devBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')
@@ -1383,7 +1386,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
         // CSS file change → mark dirty, flushed lazily on next OG image render
         if (absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
           const src = typeof entry === 'string' ? entry : (entry as any)?.src
-          return src && absolutePath.endsWith(src.replace(/^~\//, ''))
+          return src && absolutePath.endsWith(src.replace(RE_TILDE_PREFIX, ''))
         })) {
           _cssDirty = true
           return

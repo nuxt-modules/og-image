@@ -1,11 +1,13 @@
 import type { VNode } from '../../types'
 
+const RE_UNICODE_RANGE_PART = /^U\+([0-9A-Fa-f]+)(?:-([0-9A-Fa-f]+))?$/
+
 /** Parse a CSS unicode-range string (e.g. "U+0900-097F, U+0980-09FF") into codepoint ranges */
 export function parseUnicodeRange(range: string): [number, number][] | null {
   const parts = range.split(',').map(s => s.trim()).filter(Boolean)
   const result: [number, number][] = []
   for (const part of parts) {
-    const match = part.match(/^U\+([0-9A-Fa-f]+)(?:-([0-9A-Fa-f]+))?$/)
+    const match = part.match(RE_UNICODE_RANGE_PART)
     if (!match)
       return null
     const start = Number.parseInt(match[1]!, 16)

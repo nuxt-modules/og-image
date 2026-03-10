@@ -13,9 +13,9 @@ const {
   patchOptions,
 } = useOgImage()
 
-function selectTemplate(componentName: string) {
+async function selectTemplate(componentName: string) {
   patchOptions({ component: componentName })
-  navigateTo('/')
+  await navigateTo('/')
 }
 </script>
 

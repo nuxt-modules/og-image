@@ -1,8 +1,39 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
 import { logger } from '../../runtime/logger'
 import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css'
+import { RE_WHITESPACE } from '../../util'
 
 const _warnedVars = new Set<string>()
+
+// ============================================================================
+// Module-scope regex constants
+// ============================================================================
+
+const RE_CSS_DECL = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
+const RE_CSS_TOGGLE = /(--[\w-]+)\s*:\s+;/g
+const RE_CSS_CLASS_RULE = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
+const RE_ROOT_HOST_BLOCK = /:(?:root|host)[^\s{]*\s*\{([^}]+)\}/g
+const RE_UNIVERSAL_BLOCK = /\*[^{]*\{([^}]+)\}/g
+const RE_PROPERTY_AT_RULE = /@property\s+(--[\w-]+)\s*\{([^}]+)\}/g
+const RE_INITIAL_VALUE = /initial-value\s*:\s*([^\s;][^;]*);?/
+const RE_CSS_ESCAPE_HEX = /\\([0-9a-f]{1,6})\s?/gi
+const RE_CSS_ESCAPE_CHAR = /\\(.)/g
+const RE_CSS_ESCAPE_HEX_STRIP = /\\[0-9a-f]{1,6}\s?/gi
+const RE_CSS_ESCAPE_DOT = /\\./g
+const RE_COMBINATOR_OR_SPACE = /[\s>+~]/
+const RE_PSEUDO_CLASS = /:[a-z]/i
+const RE_CAMEL_CASE = /-([a-z])/g
+const RE_ONLY_DIGITS = /^\d+$/
+const RE_IMPORTANT = /\s*!important\s*$/
+const RE_QUOTES = /^['"]|['"]$/g
+const RE_WIDTH_VALUE = /width:([^;}]+)/
+const RE_CALC_VAR_MULTIPLY = /calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/
+const RE_NUMERIC_WITH_UNIT = /([\d.]+)(rem|px|em|%)/
+const RE_EXTREME_VALUE = /^(-?[\d.]+e\+?\d+)(px|rem|em|%)$/
+const RE_CSS_KEYWORD = /^(?:initial|inherit|unset|revert|revert-layer)$/
+const RE_UNRESOLVED_VAR = /var\((--[\w-]+)/g
+const RE_INVALID_CALC = /calc\(\s*[*/]/
+const RE_COLOR_PROP = /color|fill|stroke|outline|border|background|caret|accent/
 
 // ============================================================================
 // Lightning CSS lazy loading
@@ -68,9 +99,8 @@ export async function transformWithLightningCss(
  * progressive-enhancement fallbacks — keep the first (legacy) value.
  */
 function extractDeclarations(body: string, onDeclaration: (prop: string, value: string) => void) {
-  const declRe = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
   const seen = new Set<string>()
-  for (const match of body.matchAll(declRe)) {
+  for (const match of body.matchAll(RE_CSS_DECL)) {
     if (match[1] && match[2] && !seen.has(match[1])) {
       seen.add(match[1])
       onDeclaration(match[1], match[2].trim())
@@ -78,8 +108,7 @@ function extractDeclarations(body: string, onDeclaration: (prop: string, value: 
   }
   // CSS space toggle pattern: --custom-prop: ; (value is a single space)
   // Used by UnoCSS/Tailwind for conditional shadow-inset, ring-inset, etc.
-  const toggleRe = /(--[\w-]+)\s*:\s+;/g
-  for (const match of body.matchAll(toggleRe)) {
+  for (const match of body.matchAll(RE_CSS_TOGGLE)) {
     if (match[1] && !seen.has(match[1])) {
       seen.add(match[1])
       onDeclaration(match[1], ' ')
@@ -101,8 +130,7 @@ function walkBlockRules(css: string, selectorRe: RegExp, onBlock: (body: string)
  * Iterate over simple class rules in a CSS string.
  */
 function walkClassRules(css: string, onRule: (className: string, body: string) => void) {
-  const ruleRe = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
-  for (const match of css.matchAll(ruleRe)) {
+  for (const match of css.matchAll(RE_CSS_CLASS_RULE)) {
     const rawSelector = match[1]!
     if (isSimpleClassSelector(rawSelector))
       onRule(decodeCssClassName(rawSelector), match[2]!)
@@ -151,7 +179,7 @@ export function stripAtSupports(css: string): string {
 export function extractCssVars(css: string): Map<string, string> {
   const vars = new Map<string, string>()
   // Match :root or :host with any compound selectors (e.g. :root[data-theme='dark'], :root:not(...))
-  walkBlockRules(css, /:(?:root|host)[^\s{]*\s*\{([^}]+)\}/g, (body) => {
+  walkBlockRules(css, RE_ROOT_HOST_BLOCK, (body) => {
     extractDeclarations(body, (prop, value) => {
       if (prop.startsWith('--'))
         vars.set(prop, value)
@@ -162,7 +190,7 @@ export function extractCssVars(css: string): Map<string, string> {
 
 export function extractUniversalVars(css: string): Map<string, string> {
   const vars = new Map<string, string>()
-  walkBlockRules(css, /\*[^{]*\{([^}]+)\}/g, (body) => {
+  walkBlockRules(css, RE_UNIVERSAL_BLOCK, (body) => {
     extractDeclarations(body, (prop, value) => {
       if (prop.startsWith('--'))
         vars.set(prop, value)
@@ -173,9 +201,8 @@ export function extractUniversalVars(css: string): Map<string, string> {
 
 export function extractPropertyInitialValues(css: string): Map<string, string> {
   const vars = new Map<string, string>()
-  const propertyRe = /@property\s+(--[\w-]+)\s*\{([^}]+)\}/g
-  for (const match of css.matchAll(propertyRe)) {
-    const initialMatch = match[2]!.match(/initial-value\s*:\s*([^\s;][^;]*);?/)
+  for (const match of css.matchAll(RE_PROPERTY_AT_RULE)) {
+    const initialMatch = match[2]!.match(RE_INITIAL_VALUE)
     if (initialMatch?.[1])
       vars.set(match[1]!, initialMatch[1].trim())
   }
@@ -342,7 +369,7 @@ export interface ExtractedCssVars {
 export function resolveExtractedVars(extracted: ExtractedCssVars, rootAttrs: Record<string, string>): Map<string, string> {
   const vars = new Map(extracted.rootVars)
   // Sort by specificity: fewer reqs first so more-specific rules overlay later
-  const sorted = [...extracted.qualifiedRules].sort((a, b) => a.reqs.length - b.reqs.length)
+  const sorted = extracted.qualifiedRules.toSorted((a, b) => a.reqs.length - b.reqs.length)
   for (const rule of sorted) {
     const matches = rule.reqs.every((req) => {
       const actual = rootAttrs[req.name]
@@ -620,14 +647,14 @@ function resolveInnermostVar(css: string, vars: Map<string, string>): string {
 
 export function decodeCssClassName(selector: string): string {
   let className = selector.startsWith('.') ? selector.slice(1) : selector
-  className = className.replace(/\\([0-9a-f]{1,6})\s?/gi, (_, hex) =>
+  className = className.replace(RE_CSS_ESCAPE_HEX, (_, hex) =>
     String.fromCodePoint(Number.parseInt(hex, 16)))
-  return className.replace(/\\(.)/g, '$1')
+  return className.replace(RE_CSS_ESCAPE_CHAR, '$1')
 }
 
 export function isSimpleClassSelector(selector: string): boolean {
-  const withoutEscapes = selector.replace(/\\[0-9a-f]{1,6}\s?/gi, '_').replace(/\\./g, '_')
-  return !/[\s>+~]/.test(withoutEscapes) && !/:[a-z]/i.test(withoutEscapes)
+  const withoutEscapes = selector.replace(RE_CSS_ESCAPE_HEX_STRIP, '_').replace(RE_CSS_ESCAPE_DOT, '_')
+  return !RE_COMBINATOR_OR_SPACE.test(withoutEscapes) && !RE_PSEUDO_CLASS.test(withoutEscapes)
 }
 
 export interface ExtractClassStylesOptions {
@@ -656,7 +683,7 @@ export function extractClassStyles(
       else if (skipPrefixes.some(p => prop.startsWith(p))) {
         return
       }
-      const finalProp = camelCase ? prop.replace(/-([a-z])/g, (_, l) => l.toUpperCase()) : prop
+      const finalProp = camelCase ? prop.replace(RE_CAMEL_CASE, (_, l) => l.toUpperCase()) : prop
       styles[finalProp] = value
     })
     if (Object.keys(styles).length)
@@ -704,10 +731,10 @@ function isSystemFont(name: string): boolean {
 
 export function extractCustomFontFamilies(cssValue: string): string[] {
   return cssValue
-    .replace(/\s*!important\s*$/, '')
+    .replace(RE_IMPORTANT, '')
     .split(',')
-    .map(p => p.trim().replace(/^['"]|['"]$/g, ''))
-    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !/^\d+$/.test(name) && !isSystemFont(name))
+    .map(p => p.trim().replace(RE_QUOTES, ''))
+    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !RE_ONLY_DIGITS.test(name) && !isSystemFont(name))
 }
 
 // ============================================================================
@@ -721,7 +748,7 @@ export async function evaluateCalc(value: string): Promise<string> {
   if (!value.includes('calc('))
     return value
   const result = await simplifyCss(`.x{width:${value}}`)
-  return result.match(/width:([^;}]+)/)?.[1]?.trim() ?? value
+  return result.match(RE_WIDTH_VALUE)?.[1]?.trim() ?? value
 }
 
 // ============================================================================
@@ -736,11 +763,11 @@ export async function resolveVarsDeep(value: string, vars: Map<string, string>, 
   if (depth > 10 || !value.includes('var('))
     return evaluateCalc(value)
 
-  const calcMatch = value.match(/calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/)
+  const calcMatch = value.match(RE_CALC_VAR_MULTIPLY)
   if (calcMatch?.[1] && calcMatch?.[2]) {
     const varValue = vars.get(calcMatch[1])
     if (varValue) {
-      const numMatch = varValue.match(/([\d.]+)(rem|px|em|%)/)
+      const numMatch = varValue.match(RE_NUMERIC_WITH_UNIT)
       if (numMatch?.[1] && numMatch?.[2]) {
         const computed = Number.parseFloat(numMatch[1]) * Number.parseFloat(calcMatch[2])
         return `${computed}${numMatch[2]}`
@@ -768,7 +795,7 @@ export async function downlevelColor(prop: string, value: string): Promise<strin
     const result = await transformWithLightningCss(`.x{${prop}:${value}}`, { minify: true })
     const output = result.code.toString()
     // Extract the first value (fallback) from minified output .x{prop:val1;prop:val2}
-    const match = output.match(new RegExp(`[{;]${prop}:(.*?)[;}]`))
+    const match = output.match(new RegExp(`[{;]${prop}:(.*?)[;}]`)) // dynamic prop name, must stay dynamic
     return match?.[1]?.trim() ?? value
   }
   catch {
@@ -782,7 +809,7 @@ export async function downlevelColor(prop: string, value: string): Promise<strin
 export function convertIndividualTransforms(styles: Record<string, string>): void {
   const parts: string[] = []
   if (styles.translate) {
-    const vals = styles.translate.trim().split(/\s+/)
+    const vals = styles.translate.trim().split(RE_WHITESPACE)
     parts.push(vals.length === 2 ? `translate(${vals[0]}, ${vals[1]})` : `translateX(${vals[0]})`)
     delete styles.translate
   }
@@ -791,7 +818,7 @@ export function convertIndividualTransforms(styles: Record<string, string>): voi
     delete styles.rotate
   }
   if (styles.scale) {
-    const vals = styles.scale.trim().split(/\s+/).filter(Boolean)
+    const vals = styles.scale.trim().split(RE_WHITESPACE).filter(Boolean)
     parts.push(`scale(${vals.join(', ')})`)
     delete styles.scale
   }
@@ -830,7 +857,7 @@ function clampExtremeValues(styles: Record<string, string>): void {
   for (const [prop, value] of Object.entries(styles)) {
     if (!value.includes('e+') && !value.includes('e38'))
       continue
-    const match = value.match(/^(-?[\d.]+e\+?\d+)(px|rem|em|%)$/)
+    const match = value.match(RE_EXTREME_VALUE)
     if (match?.[1] && match?.[2]) {
       const num = Number.parseFloat(match[1])
       if (Math.abs(num) > 9999)
@@ -859,10 +886,10 @@ export async function postProcessStyles(
   for (const [prop, rawValue] of Object.entries(rawStyles)) {
     let value = await resolve(rawValue, vars)
 
-    if (value.includes('var(') || /^(?:initial|inherit|unset|revert|revert-layer)$/.test(value)) {
+    if (value.includes('var(') || RE_CSS_KEYWORD.test(value)) {
       // Warn about unresolved CSS variables
       if (value.includes('var(')) {
-        const unresolvedVars = [...value.matchAll(/var\((--[\w-]+)/g)].map(m => m[1])
+        const unresolvedVars = Array.from(value.matchAll(RE_UNRESOLVED_VAR), m => m[1])
         for (const name of unresolvedVars) {
           const key = `${context || ''}:${name}`
           if (!_warnedVars.has(key)) {
@@ -873,7 +900,7 @@ export async function postProcessStyles(
       }
       continue
     }
-    if (/calc\(\s*[*/]/.test(value))
+    if (RE_INVALID_CALC.test(value))
       continue
 
     if (value.includes(',')) {
@@ -897,7 +924,7 @@ export async function postProcessStyles(
     }
 
     // Downlevel modern colors (Lightning CSS handles standard color-mix with %)
-    if (/color|fill|stroke|outline|border|background|caret|accent/.test(prop)) {
+    if (RE_COLOR_PROP.test(prop)) {
       value = await downlevelColor(prop, value)
       // Fallback: resolve color-mix() with non-standard fraction syntax (.14 instead of 14%)
       // that Lightning CSS passes through unchanged

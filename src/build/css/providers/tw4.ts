@@ -14,6 +14,12 @@ import {
   simplifyCss,
 } from '../css-utils'
 
+const RE_GRADIENT_STOP_PREFIX = /^(from|via|to)-/
+const RE_COLOR_SHADE = /^(.+)-(\d+)$/
+const RE_CSS_COLOR_VALUE = /color:([^;}]+)/
+const RE_TO_DIRECTION = /^to-(?:[tblr]|tl|tr|bl|br)$/
+const RE_FONT_VAR = /--font-([\w-]+)\s*:/g
+
 // Lazy-loaded heavy dependencies
 let compile: typeof import('tailwindcss').compile
 let twColors: Record<string, Record<number, string>>
@@ -297,9 +303,9 @@ const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
 }
 
 async function resolveGradientColor(cls: string, vars: Map<string, string>): Promise<string | null> {
-  const colorName = cls.replace(/^(from|via|to)-/, '')
+  const colorName = cls.replace(RE_GRADIENT_STOP_PREFIX, '')
 
-  const shadeMatch = colorName.match(/^(.+)-(\d+)$/)
+  const shadeMatch = colorName.match(RE_COLOR_SHADE)
   if (shadeMatch?.[1] && shadeMatch?.[2]) {
     const varName = `--color-${shadeMatch[1]}-${shadeMatch[2]}`
     const value = vars.get(varName)
@@ -307,7 +313,7 @@ async function resolveGradientColor(cls: string, vars: Map<string, string>): Pro
       const resolved = await resolveVarsDeep(value, vars)
       if (!resolved.includes('var(')) {
         const simplified = await simplifyCss(`.x{color:${resolved}}`)
-        return simplified.match(/color:([^;}]+)/)?.[1]?.trim() ?? resolved
+        return simplified.match(RE_CSS_COLOR_VALUE)?.[1]?.trim() ?? resolved
       }
     }
   }
@@ -318,7 +324,7 @@ async function resolveGradientColor(cls: string, vars: Map<string, string>): Pro
     const resolved = await resolveVarsDeep(value, vars)
     if (!resolved.includes('var(')) {
       const simplified = await simplifyCss(`.x{color:${resolved}}`)
-      return simplified.match(/color:([^;}]+)/)?.[1]?.trim() ?? resolved
+      return simplified.match(RE_CSS_COLOR_VALUE)?.[1]?.trim() ?? resolved
     }
   }
 
@@ -333,7 +339,7 @@ async function buildGradient(
   const radialShape = classes.find(c => RADIAL_GRADIENT_SHAPES[c])
   const fromClass = classes.find(c => c.startsWith('from-'))
   const viaClass = classes.find(c => c.startsWith('via-'))
-  const toClass = classes.find(c => c.startsWith('to-') && !/^to-(?:[tblr]|tl|tr|bl|br)$/.test(c))
+  const toClass = classes.find(c => c.startsWith('to-') && !RE_TO_DIRECTION.test(c))
 
   if (!linearDir && !radialShape)
     return null
@@ -441,7 +447,7 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
   // Extract --font-* names from the raw CSS and pass corresponding
   // font-* class candidates so the compiler emits them.
   const userCss = await readFile(options.cssPath, 'utf-8')
-  const fontCandidates = [...userCss.matchAll(/--font-([\w-]+)\s*:/g)].map(m => `font-${m[1]}`)
+  const fontCandidates = Array.from(userCss.matchAll(RE_FONT_VAR), m => `font-${m[1]}`)
   const themeCss = compiler.build(fontCandidates)
   await parseCssOutput(themeCss, vars)
 
@@ -462,10 +468,10 @@ export async function extractTw4Metadata(options: Tw4ResolverOptions): Promise<T
     }
     else if (name.startsWith('--color-') && !resolvedValue.includes('var(')) {
       const colorPath = name.slice(8)
-      const shadeMatch = colorPath.match(/^(.+)-(\d+)$/)
+      const shadeMatch = colorPath.match(RE_COLOR_SHADE)
 
       const simplified = await simplifyCss(`.x{color:${resolvedValue}}`)
-      const hexValue = simplified.match(/color:([^;}]+)/)?.[1]?.trim() ?? resolvedValue
+      const hexValue = simplified.match(RE_CSS_COLOR_VALUE)?.[1]?.trim() ?? resolvedValue
 
       if (shadeMatch) {
         const [, colorName, shade] = shadeMatch

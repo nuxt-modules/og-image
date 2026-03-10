@@ -1,4 +1,5 @@
 import type { ElementNode } from '@vue/compiler-core'
+import { RE_WHITESPACE } from '../../util'
 import { extractCustomFontFamilies, walkTemplateAst } from './css-utils'
 
 // Lazy-loaded to reduce startup memory
@@ -28,6 +29,16 @@ const INLINE_FONT_WEIGHT_REGEX = /font-weight:\s*(\d+)/g
 
 // Regex for inline font-family in style attributes
 const INLINE_FONT_FAMILY_REGEX = /font-family:\s*([^;]+)/gi
+
+const RE_DYNAMIC_FONT_PROP = /\bfont(?:Weight|Family|-weight|-family)\b/i
+const RE_QUOTED_CLASS_TOKEN = /['"`]([\w:.\-[\]'"]+)['"`]/g
+const RE_FONT_WEIGHT_OR_FAMILY = /font-?(?:weight|family)/i
+const RE_TW_VARIANT_PREFIX = /^(?:sm:|md:|lg:|xl:|2xl:|dark:|hover:|focus:|active:)+/
+const RE_ARBITRARY_FONT_WEIGHT = /^font-\[(\d+)\]$/
+const RE_FONT_STYLE_ITALIC = /font-style:\s*italic/i
+const RE_ARBITRARY_VALUE = /^\[['"]?(.+?)['"]?\]$/
+const RE_DIGITS_ONLY = /^\d+$/
+const RE_JS_FONT_FAMILY = /fontFamily:\s*['"]([^'"]+)['"]/g
 
 // font-* classes that are NOT font-family classes
 const FONT_NON_FAMILY_CLASSES = new Set([
@@ -79,7 +90,7 @@ export async function extractFontRequirementsFromVue(code: string): Promise<{
     for (const prop of el.props) {
       // Static class="..."
       if (prop.type === ATTRIBUTE_NODE && prop.name === 'class' && prop.value) {
-        for (const cls of prop.value.content.split(/\s+/)) {
+        for (const cls of prop.value.content.split(RE_WHITESPACE)) {
           extractFontWeightFromClass(cls, weights, styles)
           extractFontFamilyFromClass(cls, familyClasses, familyNames)
         }
@@ -98,10 +109,10 @@ export async function extractFontRequirementsFromVue(code: string): Promise<{
 
         if (argContent === 'class' && expr?.type === 4) {
           const content = (expr as any).content as string
-          if (content.includes('props.') || content.includes('$props') || /\bfont(?:Weight|Family|-weight|-family)\b/i.test(content)) {
+          if (content.includes('props.') || content.includes('$props') || RE_DYNAMIC_FONT_PROP.test(content)) {
             hasDynamicBindings = true
           }
-          for (const match of content.matchAll(/['"`]([\w:.\-[\]'"]+)['"`]/g)) {
+          for (const match of content.matchAll(RE_QUOTED_CLASS_TOKEN)) {
             extractFontWeightFromClass(match[1]!, weights, styles)
             extractFontFamilyFromClass(match[1]!, familyClasses, familyNames)
           }
@@ -109,7 +120,7 @@ export async function extractFontRequirementsFromVue(code: string): Promise<{
 
         if (argContent === 'style' && expr?.type === 4) {
           const content = (expr as any).content as string
-          if (/font-?(?:weight|family)/i.test(content) && (content.includes('props.') || content.includes('$props') || content.includes('?'))) {
+          if (RE_FONT_WEIGHT_OR_FAMILY.test(content) && (content.includes('props.') || content.includes('$props') || content.includes('?'))) {
             hasDynamicBindings = true
           }
           extractFontWeightFromStyle(content, weights, styles)
@@ -134,14 +145,14 @@ export async function extractFontRequirementsFromVue(code: string): Promise<{
 }
 
 function extractFontWeightFromClass(cls: string, weights: Set<number>, styles: Set<'normal' | 'italic'>): void {
-  const baseClass = cls.replace(/^(?:sm:|md:|lg:|xl:|2xl:|dark:|hover:|focus:|active:)+/, '')
+  const baseClass = cls.replace(RE_TW_VARIANT_PREFIX, '')
   const weight = FONT_WEIGHT_CLASSES[baseClass]
   if (weight !== undefined) {
     weights.add(weight)
     return
   }
   // Tailwind arbitrary weight: font-[700], font-[800]
-  const arbitraryWeight = baseClass.match(/^font-\[(\d+)\]$/)
+  const arbitraryWeight = baseClass.match(RE_ARBITRARY_FONT_WEIGHT)
   if (arbitraryWeight) {
     const w = Number.parseInt(arbitraryWeight[1]!, 10)
     if (w >= 100 && w <= 900)
@@ -158,12 +169,12 @@ function extractFontWeightFromStyle(style: string, weights: Set<number>, styles:
     if (weight >= 100 && weight <= 900)
       weights.add(weight)
   }
-  if (/font-style:\s*italic/i.test(style))
+  if (RE_FONT_STYLE_ITALIC.test(style))
     styles.add('italic')
 }
 
 function extractFontFamilyFromClass(cls: string, familyClasses: Set<string>, familyNames: Set<string>): void {
-  const baseClass = cls.replace(/^(?:sm:|md:|lg:|xl:|2xl:|dark:|hover:|focus:|active:)+/, '')
+  const baseClass = cls.replace(RE_TW_VARIANT_PREFIX, '')
   if (!baseClass.startsWith('font-'))
     return
   if (FONT_NON_FAMILY_CLASSES.has(baseClass))
@@ -171,11 +182,11 @@ function extractFontFamilyFromClass(cls: string, familyClasses: Set<string>, fam
   const suffix = baseClass.slice(5)
   if (!suffix)
     return
-  const arbitraryMatch = suffix.match(/^\[['"]?(.+?)['"]?\]$/)
+  const arbitraryMatch = suffix.match(RE_ARBITRARY_VALUE)
   if (arbitraryMatch) {
     const value = arbitraryMatch[1]!
     // Skip numeric values — those are font-weight (e.g. font-[700]), not font-family
-    if (/^\d+$/.test(value))
+    if (RE_DIGITS_ONLY.test(value))
       return
     familyNames.add(value)
     return
@@ -193,7 +204,7 @@ function extractFontFamilyFromStyle(style: string, familyNames: Set<string>): vo
 }
 
 function extractFontFamilyFromJsStyle(content: string, familyNames: Set<string>): void {
-  for (const match of content.matchAll(/fontFamily:\s*['"]([^'"]+)['"]/g)) {
+  for (const match of content.matchAll(RE_JS_FONT_FAMILY)) {
     const primary = extractCustomFontFamilies(match[1]!)[0]
     if (primary)
       familyNames.add(primary)

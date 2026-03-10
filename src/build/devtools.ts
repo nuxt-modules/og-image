@@ -8,9 +8,12 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { addCustomTab, extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
 import { isAbsolute, join, relative, resolve as resolvePath } from 'pathe'
+import { RE_RENDERER_SUFFIX } from '../util'
 
 const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030
+
+const RE_TILDE_SLASH = /^~\//
 
 export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt()) {
   const clientPath = resolve('./client')
@@ -59,9 +62,9 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
           dotNotationName = `${nameWithoutExt}.vue`
         }
         else {
-          const rendererMatch = nameWithoutExt.match(/(Satori|Browser|Takumi)$/)
+          const rendererMatch = nameWithoutExt.match(RE_RENDERER_SUFFIX)
           const renderer = rendererMatch?.[1]?.toLowerCase() || 'satori'
-          const baseName = nameWithoutExt.replace(/(Satori|Browser|Takumi)$/, '')
+          const baseName = nameWithoutExt.replace(RE_RENDERER_SUFFIX, '')
           dotNotationName = `${baseName}.${renderer}.vue`
         }
         const dir = join(nuxt.options.srcDir, 'components', dirName || '')
@@ -90,7 +93,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       // CSS file or framework config change → debounced refresh so devtools re-renders with fresh styles
       const isCssChange = absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
         const src = typeof entry === 'string' ? entry : (entry as any)?.src
-        return src && absolutePath.endsWith(src.replace(/^~\//, ''))
+        return src && absolutePath.endsWith(src.replace(RE_TILDE_SLASH, ''))
       })
       if (isCssChange || normalizedPath.includes('uno.config')) {
         clearTimeout(cssRefreshTimer)

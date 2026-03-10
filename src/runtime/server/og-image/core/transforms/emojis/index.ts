@@ -3,6 +3,10 @@ import type { OgImageRenderEventContext } from '../../../../../types'
 import { getEmojiSvg } from '#og-image/emoji-transform'
 import { RE_MATCH_EMOJIS } from './emoji-utils'
 
+const RE_SVG_ID_ATTR = /\bid="([^"]+)"/g
+const RE_HTML_TEXT_CONTENT = />([^<]*)</g
+const RE_REGEX_SPECIAL_CHARS = /[.*+?^${}()|[\]\\]/g
+
 let emojiCounter = 0
 
 /**
@@ -41,7 +45,7 @@ function makeIdsUnique(svg: string): string {
   const prefix = `e${emojiCounter++}_`
   // Find all id="..." and replace with unique prefixed versions
   const ids = new Set<string>()
-  svg.replace(/\bid="([^"]+)"/g, (_, id) => {
+  svg.replace(RE_SVG_ID_ATTR, (_, id) => {
     ids.add(id)
     return ''
   })
@@ -88,7 +92,7 @@ export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIs
   // Replace emojis only in text content (between > and <), not in attributes
   // This is important to avoid breaking alt attributes or other attribute values
   let html = island.html
-  html = html.replace(/>([^<]*)</g, (fullMatch, textContent) => {
+  html = html.replace(RE_HTML_TEXT_CONTENT, (fullMatch, textContent) => {
     if (!textContent)
       return fullMatch
 
@@ -96,7 +100,7 @@ export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIs
     for (const [emoji, svg] of emojiToSvg) {
       if (svg) {
         // Escape special regex characters in the emoji
-        const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const escaped = emoji.replace(RE_REGEX_SPECIAL_CHARS, '\\$&')
         newTextContent = newTextContent.replace(new RegExp(escaped, 'g'), svg)
       }
     }

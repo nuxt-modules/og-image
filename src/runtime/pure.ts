@@ -1,17 +1,22 @@
 import type { DevToolsMetaDataExtraction } from './types'
 
+const RE_SOCIAL_META_TAG = /<meta[^>]+(property|name)="(twitter|og):([^"]+)"[^>]*>/g
+const RE_SOCIAL_META_KEY = /(property|name)="(twitter|og):([^"]+)"/
+const RE_META_CONTENT = /content="([^"]+)"/
+const RE_OG_KEY_PARAM = /[,/]k_([^,./]+)/
+
 export function extractSocialPreviewTags(html: string): [Record<string, string>, DevToolsMetaDataExtraction[]] {
   // we need to extract the social media tag data for description and title, allow property to be before and after
   const data: Partial<DevToolsMetaDataExtraction>[] = []
   const rootData: Record<string, string> = {}
   // support both property and name
-  const socialMetaTags = html.match(/<meta[^>]+(property|name)="(twitter|og):([^"]+)"[^>]*>/g) || []
+  const socialMetaTags = html.match(RE_SOCIAL_META_TAG) || []
   // <meta property="og:title" content="Home & //<&quot;With Encoding&quot;>\\"
   // we need to group the tags into the array, we add a new array entry when a new url is found
   let currentArrayIdx = -1
   socialMetaTags.forEach((tag) => {
-    const [, , type, key] = tag.match(/(property|name)="(twitter|og):([^"]+)"/) as any as [undefined, undefined, 'twitter' | 'og', string]
-    const value = tag.match(/content="([^"]+)"/)?.[1]
+    const [, , type, key] = tag.match(RE_SOCIAL_META_KEY) as any as [undefined, undefined, 'twitter' | 'og', string]
+    const value = tag.match(RE_META_CONTENT)?.[1]
     if (!value) {
       return
     }
@@ -36,7 +41,7 @@ export function extractSocialPreviewTags(html: string): [Record<string, string>,
     if (preview.og?.image && preview.og?.image.includes('/_og/')) {
       const url = withoutQuery(preview.og.image)!
       // Extract key from encoded params (k_<value>)
-      const keyMatch = url.match(/[,/]k_([^,./]+)/)
+      const keyMatch = url.match(RE_OG_KEY_PARAM)
       preview.key = keyMatch?.[1] || 'og'
     }
   })

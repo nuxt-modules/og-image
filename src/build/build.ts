@@ -9,6 +9,10 @@ import { resolvePath, useNuxt } from '@nuxt/kit'
 import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { RE_LEGACY_SUFFIX } from '../util'
+
+const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g
+const RE_WASM_IMPORT = /import\("(\.\/wasm\/[^"]+\.wasm)"\)/g
 
 // we need all of the runtime dependencies when using build
 export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {
@@ -44,7 +48,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed
     const target = resolveNitroPreset(nitro.options)
-    const normalizedTarget = target.replace(/-legacy$/, '')
+    const normalizedTarget = target.replace(RE_LEGACY_SUFFIX, '')
     const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-pages-static', 'cloudflare-module', 'cloudflare-durable', 'vercel-edge', 'netlify-edge'].includes(normalizedTarget)
     const isCloudflarePreset = normalizedTarget.startsWith('cloudflare')
     const isCloudflarePagesOrModule = ['cloudflare-pages', 'cloudflare-pages-static', 'cloudflare-module', 'cloudflare-durable'].includes(normalizedTarget)
@@ -102,7 +106,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
             )
             // Also handle minified output (ternary: Reflect.has(E,$)?Reflect.get(E,$,ne):Reflect.get(be,$,ne))
             .replace(
-              /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g,
+              RE_REFLECT_HAS_MINIFIED,
               'Reflect.has($1,$2)?Reflect.get($1,$2,$3):Reflect.get($4,$2,$4)',
             )
         }
@@ -118,7 +122,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           // Nitro's WASM plugin may have already resolved the paths (hashed filenames, moved to wasm/).
           // For vercel-edge, append ?module to any .wasm imports that nitro already resolved.
           if (postfix) {
-            contents = contents.replaceAll(/import\("(\.\/wasm\/[^"]+\.wasm)"\)/g, `import("$1${postfix}")`)
+            contents = contents.replaceAll(RE_WASM_IMPORT, `import("$1${postfix}")`)
           }
         }
         // HACK: Cloudflare Workers block WebAssembly.instantiate() at runtime entirely

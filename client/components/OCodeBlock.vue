@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { renderCodeHighlight } from '../composables/shiki'
+import { useRenderCodeHighlight } from '../composables/shiki'
 
 const props = withDefaults(
   defineProps<{
@@ -14,7 +14,7 @@ const props = withDefaults(
   },
 )
 const rendered = computed(() => {
-  const code = renderCodeHighlight(props.code, props.lang)
+  const code = useRenderCodeHighlight(props.code, props.lang)
   return props.transformRendered ? props.transformRendered(code.value || '') : code.value
 })
 </script>

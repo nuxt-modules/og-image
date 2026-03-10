@@ -53,7 +53,7 @@ describe('tailwind-nuxt-ui', () => {
 
     // Verify user's app.config.ts override (primary: 'indigo') was applied, not the default green.
     // Extract all background-color hex values from the preview.
-    const bgColors = [...htmlPreview.matchAll(/background-color:\s*#([0-9a-f]{6})/gi)].map(m => m[1]!)
+    const bgColors = Array.from(htmlPreview.matchAll(/background-color:\s*#([0-9a-f]{6})/gi), m => m[1]!)
     expect(bgColors.length).toBeGreaterThan(0)
     // Indigo has a dominant blue channel (e.g. #6366f1), green has a dominant green channel (e.g. #22c55e).
     // At least one bg-primary element should resolve to a blue-dominant color (indigo).

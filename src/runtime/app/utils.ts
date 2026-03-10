@@ -9,6 +9,8 @@ import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
+const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
+
 type OgImagePayload = [string, OgImageOptionsInternal, Required<Head>['meta']]
 
 declare module 'nuxt/app' {
@@ -115,13 +117,13 @@ export function resolveComponentName(component: OgImageOptionsInternal['componen
     // Normalize dot-notation to PascalCase (Default.takumi → DefaultTakumi)
     const normalizedName = originalName.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
     // Strip renderer suffix to get the base input name (DefaultTakumi → Default)
-    const inputBase = normalizedName.replace(/(Satori|Browser|Takumi)$/, '')
+    const inputBase = normalizedName.replace(RE_RENDERER_SUFFIX, '')
     for (const component of componentNames) {
       // Exact match with normalized name
       if (component.pascalName === normalizedName)
         return component.pascalName
       // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
-      const basePascalName = component.pascalName.replace(/(Satori|Browser|Takumi)$/, '')
+      const basePascalName = component.pascalName.replace(RE_RENDERER_SUFFIX, '')
       if (basePascalName === originalName || basePascalName === inputBase)
         return component.pascalName
       // Strip directory prefix and check all possible base names

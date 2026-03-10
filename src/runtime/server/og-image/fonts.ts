@@ -82,7 +82,7 @@ function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof
 
   const selected: FontConfig[] = []
   for (const [, familyFonts] of byFamily) {
-    const availableWeights = [...new Set(familyFonts.map(f => f.weight))].sort((a, b) => a - b)
+    const availableWeights = [...new Set(familyFonts.map(f => f.weight))].toSorted((a, b) => a - b)
     if (availableWeights.length === 0)
       continue
     const selectedWeights = new Set<number>()
@@ -218,7 +218,7 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
     const component = options.component ? ` (${options.component})` : ''
     const fallbackNote = usingGlobalFallback ? ' Note: using global font requirements because this component has dynamic font bindings.' : ''
     for (const family of families) {
-      const loadedWeights = [...new Set(loaded.filter(f => f.family === family).map(f => f.weight))].sort((a, b) => a - b)
+      const loadedWeights = [...new Set(loaded.filter(f => f.family === family).map(f => f.weight))].toSorted((a, b) => a - b)
       if (loadedWeights.length === 0)
         continue
       for (const reqWeight of reqs.weights) {

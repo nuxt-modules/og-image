@@ -16,6 +16,8 @@ const props = withDefaults(defineProps<{
   title: 'title',
 })
 
+const RE_HEX_PAIRS = /.{1,2}/g
+
 const HexRegex = /^#(?:[0-9a-f]{3}){1,2}$/i
 
 const themeHex = computed(() => {
@@ -50,7 +52,7 @@ const themeRgb = computed(() => {
   // we want to convert it so it's just `<red>, <green>, <blue>` (255, 255, 255)
   return themeHex.value
     .replace('#', '')
-    .match(/.{1,2}/g)
+    .match(RE_HEX_PAIRS)
     ?.map(v => Number.parseInt(v, 16))
     .join(', ')
 })

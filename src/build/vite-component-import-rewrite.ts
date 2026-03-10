@@ -201,6 +201,9 @@ export interface ComponentImportRewriteOptions {
 // Maximum depth for cascading import rewrites (prevents infinite loops)
 const MAX_IMPORT_REWRITE_DEPTH = 5
 
+const RE_OG_IMAGE_QUERY = /\?og-image(?:-depth=(\d+))?$/
+const RE_VUE_IMPORT = /import\s+(\w+)\s+from\s+(['"])(.+?\.vue)\2/g
+
 /**
  * Injects explicit imports with ?og-image for nested components used in OG templates.
  * Runs with enforce: 'pre' so the explicit import overrides Nuxt's auto-import.
@@ -213,7 +216,7 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
 
     transformInclude(id) {
       // Allow cascading through ?og-image files up to a depth limit
-      const depthMatch = id.match(/\?og-image(?:-depth=(\d+))?$/)
+      const depthMatch = id.match(RE_OG_IMAGE_QUERY)
       if (depthMatch) {
         const depth = depthMatch[1] ? Number.parseInt(depthMatch[1]) : 0
         return depth < MAX_IMPORT_REWRITE_DEPTH
@@ -225,7 +228,7 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
 
     transform(code, rawId) {
       // Parse current depth from ?og-image-depth=N
-      const depthMatch = rawId.match(/\?og-image(?:-depth=(\d+))?$/)
+      const depthMatch = rawId.match(RE_OG_IMAGE_QUERY)
       const currentDepth = depthMatch?.[1] ? Number.parseInt(depthMatch[1]) : 0
       const nextQuery = `?og-image-depth=${currentDepth + 1}`
       const { descriptor } = parseSfc(code)
@@ -274,7 +277,7 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
         const scriptStart = scriptBlock.loc.start.offset
         const scriptContent = scriptBlock.content
         // Match: import Foo from './path.vue' or "path.vue"
-        for (const m of scriptContent.matchAll(/import\s+(\w+)\s+from\s+(['"])(.+?\.vue)\2/g)) {
+        for (const m of scriptContent.matchAll(RE_VUE_IMPORT)) {
           const importName = m[1]
           if (newImports.some(i => i.name === importName)) {
             const source = m[3]!

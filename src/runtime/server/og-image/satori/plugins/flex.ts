@@ -1,6 +1,8 @@
 import type { VNode } from '../../../../types'
 import { defineTransformer } from '../../core/plugins'
 
+const RE_FLEX_CLASS = /\bflex\b/
+
 const INLINE_ELEMENTS = [
   'span',
   'a',
@@ -44,7 +46,7 @@ export default defineTransformer({
       // If class contains `flex`, user explicitly wants flex (default = row).
       // Satori's tw prop handles flex-col/flex-row from the class.
       // Only auto-column for bare divs without any flex class.
-      if (!node.props.style.flexDirection && !/\bflex\b/.test(node.props?.class || '')) {
+      if (!node.props.style.flexDirection && !RE_FLEX_CLASS.test(node.props?.class || '')) {
         node.props.style.flexDirection = 'column'
       }
       return

@@ -3,6 +3,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'pathe'
 import { logger } from './logger'
 
+const RE_OG_IMAGE_PREFIX = /^OgImage/
+const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
+
 const ejectedTemplates = new Set<string>()
 
 export function autoEjectCommunityTemplate(
@@ -30,8 +33,8 @@ export function autoEjectCommunityTemplate(
 
   // determine filename from pascalName (e.g., OgImageNuxtSeoSatori -> NuxtSeo.satori.vue)
   const baseName = component.pascalName
-    .replace(/^OgImage/, '')
-    .replace(/(Satori|Browser|Takumi)$/, '')
+    .replace(RE_OG_IMAGE_PREFIX, '')
+    .replace(RE_RENDERER_SUFFIX, '')
   const filename = `${baseName}.${component.renderer}.vue`
 
   const outputDir = join(srcDir, 'components', 'OgImage')

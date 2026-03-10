@@ -1,6 +1,12 @@
 import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { createVNodes, SVG_CAMEL_ATTR_VALUES } from '../core/vnodes'
 
+const RE_UPPERCASE = /[A-Z]/g
+const RE_DQUOTE = /"/g
+const RE_AMP = /&/g
+const RE_LT = /</g
+const RE_GT = />/g
+
 export interface TakumiNode {
   type: 'container' | 'image' | 'text'
   children?: TakumiNode[]
@@ -102,7 +108,7 @@ function vnodeToHtmlString(vnode: VNode): string {
   const { style, children, ...attrs } = vnode.props
   const attrParts: string[] = []
 
-  const kebabCase = (str: string) => str.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)
+  const kebabCase = (str: string) => str.replace(RE_UPPERCASE, m => `-${m.toLowerCase()}`)
 
   if (vnode.type === 'svg') {
     if (!attrs.xmlns)
@@ -133,10 +139,10 @@ function vnodeToHtmlString(vnode: VNode): string {
       .map(([k, v]) => `${kebabCase(k)}:${resolveValue(v)}`)
       .join(';')
     if (styleStr)
-      attrParts.push(`style="${styleStr.replace(/"/g, '&quot;')}"`)
+      attrParts.push(`style="${styleStr.replace(RE_DQUOTE, '&quot;')}"`)
   }
   else if (typeof style === 'string') {
-    attrParts.push(`style="${(style as string).replace(/"/g, '&quot;')}"`)
+    attrParts.push(`style="${(style as string).replace(RE_DQUOTE, '&quot;')}"`)
   }
 
   for (const [key, val] of Object.entries(attrs)) {
@@ -144,7 +150,7 @@ function vnodeToHtmlString(vnode: VNode): string {
       continue
     // SVG attributes like viewBox, preserveAspectRatio must preserve their casing
     const finalKey = SVG_CAMEL_ATTR_VALUES.has(key) ? key : kebabCase(key)
-    attrParts.push(`${finalKey}="${String(resolveValue(val)).replace(/"/g, '&quot;')}"`)
+    attrParts.push(`${finalKey}="${String(resolveValue(val)).replace(RE_DQUOTE, '&quot;')}"`)
   }
 
   const open = attrParts.length ? `<${vnode.type} ${attrParts.join(' ')}>` : `<${vnode.type}>`
@@ -152,12 +158,12 @@ function vnodeToHtmlString(vnode: VNode): string {
   const inner = Array.isArray(children)
     ? (children as (VNode | string)[]).map((c) => {
         if (typeof c === 'string')
-          return c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          return c.replace(RE_AMP, '&amp;').replace(RE_LT, '&lt;').replace(RE_GT, '&gt;')
         if (c && typeof c === 'object')
           return vnodeToHtmlString(c)
         return ''
       }).join('')
-    : (typeof children === 'string' ? children.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '')
+    : (typeof children === 'string' ? children.replace(RE_AMP, '&amp;').replace(RE_LT, '&lt;').replace(RE_GT, '&gt;') : '')
 
   return `${open}${inner}</${vnode.type}>`
 }

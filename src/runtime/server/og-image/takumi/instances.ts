@@ -6,10 +6,10 @@ async function ensureInstance() {
   return takumiInstance.instance!
 }
 
-export async function useTakumi() {
+export async function getTakumi() {
   return (await ensureInstance()).Renderer
 }
 
-export async function useExtractResourceUrls() {
+export async function getExtractResourceUrls() {
   return (await ensureInstance()).extractResourceUrls
 }

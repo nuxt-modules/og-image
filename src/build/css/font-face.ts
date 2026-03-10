@@ -1,5 +1,7 @@
 import { loadLightningCss } from './css-utils'
 
+const RE_FONT_FACE_WITH_SUBSET = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?(@font-face\s*\{[^}]+\})/g
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -165,7 +167,7 @@ export async function extractFontFacesWithSubsets(css: string): Promise<Array<{
   isWoff2: boolean
   subset?: string
 }>> {
-  const fontFaceRe = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?(@font-face\s*\{[^}]+\})/g
+  const fontFaceRe = RE_FONT_FACE_WITH_SUBSET
   const results: Array<{
     family: string
     src: string

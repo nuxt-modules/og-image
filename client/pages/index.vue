@@ -7,6 +7,9 @@ import { useOgImage } from '../composables/og-image'
 import { RendererSelectDialogPromise } from '../composables/renderer-select'
 import { isConnectionFailed, isFallbackMode } from '../composables/rpc'
 
+const RE_SINGLE_QUOTE = /'/g
+const RE_VUE_FILENAME = /[^/]+\.vue$/
+
 const {
   globalDebug,
   isDebugLoading,
@@ -326,13 +329,13 @@ const hasMetaOverrides = computed(() => Object.values(metaOverrides).some(Boolea
 const seoMetaSnippet = computed(() => {
   const entries: string[] = []
   if (metaOverrides.ogTitle)
-    entries.push(`  ogTitle: '${metaOverrides.ogTitle.replace(/'/g, '\\\'')}'`)
+    entries.push(`  ogTitle: '${metaOverrides.ogTitle.replace(RE_SINGLE_QUOTE, '\\\'')}'`)
   if (metaOverrides.description)
-    entries.push(`  ogDescription: '${metaOverrides.description.replace(/'/g, '\\\'')}'`)
+    entries.push(`  ogDescription: '${metaOverrides.description.replace(RE_SINGLE_QUOTE, '\\\'')}'`)
   if (metaOverrides.siteName)
-    entries.push(`  ogSiteName: '${metaOverrides.siteName.replace(/'/g, '\\\'')}'`)
+    entries.push(`  ogSiteName: '${metaOverrides.siteName.replace(RE_SINGLE_QUOTE, '\\\'')}'`)
   if (metaOverrides.twitterTitle)
-    entries.push(`  twitterTitle: '${metaOverrides.twitterTitle.replace(/'/g, '\\\'')}'`)
+    entries.push(`  twitterTitle: '${metaOverrides.twitterTitle.replace(RE_SINGLE_QUOTE, '\\\'')}'`)
   if (!entries.length)
     return ''
   return `useSeoMeta({\n${entries.join(',\n')}\n})`
@@ -498,7 +501,7 @@ function resetAll() {
             :disabled="isOgImageTemplate"
             @click="openCurrentComponent"
           >
-            <span v-if="activeComponentRelativePath"><span class="text-[var(--color-text-muted)] hidden min-[850px]:inline">{{ activeComponentRelativePath.replace(/[^/]+\.vue$/, '') }}</span><span class="text-[var(--color-text)]">{{ activeComponentRelativePath.match(/[^/]+\.vue$/)?.[0] || activeComponentName }}</span></span>
+            <span v-if="activeComponentRelativePath"><span class="text-[var(--color-text-muted)] hidden min-[850px]:inline">{{ activeComponentRelativePath.replace(RE_VUE_FILENAME, '') }}</span><span class="text-[var(--color-text)]">{{ activeComponentRelativePath.match(RE_VUE_FILENAME)?.[0] || activeComponentName }}</span></span>
             <span v-else class="text-[var(--color-text)]">{{ activeComponentName }}</span>
           </UButton>
           <UButton

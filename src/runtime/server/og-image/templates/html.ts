@@ -6,6 +6,8 @@ import { createError } from 'h3'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../core/transforms/emojis'
 
+const RE_SCRIPT_TAG = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
+
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
   const fonts = resolvedFonts as FontConfig[]
@@ -95,7 +97,8 @@ ${fontFaces}`,
   })
 
   // need to remove ALL script tags from the html
-  html = html.replaceAll(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  RE_SCRIPT_TAG.lastIndex = 0
+  html = html.replaceAll(RE_SCRIPT_TAG, '')
 
   const headChunk = await renderSSRHead(head)
   return `<!DOCTYPE html>

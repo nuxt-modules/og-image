@@ -14,6 +14,8 @@ const props = defineProps<{
   height?: string
 }>()
 
+const RE_CLOSING_ANGLE = />/g
+
 function openComponent() {
   devtoolsClient.value?.devtools.rpc.openInEditor(props.component.path!)
 }
@@ -26,7 +28,7 @@ const creditName = computed(() => {
   return props.component.credits?.split('<')[0]?.trim()
 })
 const creditSite = computed(() => {
-  return props.component.credits?.split('<')[1]?.trim().replace(/>/g, '')
+  return props.component.credits?.split('<')[1]?.trim().replace(RE_CLOSING_ANGLE, '')
 })
 
 const loadStats = ref<{ timeTaken: string, sizeKb: string }>()

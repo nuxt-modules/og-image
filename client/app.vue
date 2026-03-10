@@ -4,6 +4,7 @@ import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch
 import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute } from '#imports'
 import defu from 'defu'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
+
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
 import RendererSelectModal from './components/RendererSelectModal.vue'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
@@ -12,6 +13,8 @@ import { appFetch, colorMode } from './composables/rpc'
 import { loadShiki } from './composables/shiki'
 import { globalRefreshTime, ogImageKey, options, optionsOverrides, path, query, refreshTime } from './util/logic'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
+
+const RE_IMAGE_EXT = /\.(png|jpeg|jpg|webp)$/
 
 useHead({
   title: 'Nuxt OG Image',
@@ -41,7 +44,7 @@ function getHostOgImageDebugUrl(): string | undefined {
     const content = meta?.getAttribute('content')
     if (!content?.includes('/_og/'))
       return
-    return new URL(content).pathname.replace(/\.(png|jpeg|jpg|webp)$/, '.json')
+    return new URL(content).pathname.replace(RE_IMAGE_EXT, '.json')
   }
   catch {}
 }

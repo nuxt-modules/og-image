@@ -16,8 +16,9 @@ const container = ref<HTMLElement>()
 
 const setSource = useDebounceFn(() => {
   const frame = iframe.value
-  if (!frame || !src.value)
+  if (!frame || !src.value || !import.meta.client)
     return
+  // eslint-disable-next-line harlanzw/nuxt-no-unsafe-date
   const now = Date.now()
   frame.src = ''
 
@@ -30,7 +31,8 @@ const setSource = useDebounceFn(() => {
   frame.style.opacity = '0'
   frame.onload = () => {
     frame.style.opacity = '1'
-    emit('load', { timeTaken: Date.now() - now })
+    if (import.meta.client)
+      emit('load', { timeTaken: Date.now() - now })
   }
   frame.src = withQuery(src.value, { scale })
 }, 200)

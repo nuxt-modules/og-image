@@ -16,8 +16,11 @@ import * as fs from 'node:fs'
 import { join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
+import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
+
+const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
 // ============================================================================
 // Types
@@ -156,7 +159,7 @@ function resolveWeightsFromFontEntry(fontWeight: unknown, requestedWeights: numb
     max = Number(fontWeight[1])
   }
   else if (typeof fontWeight === 'string') {
-    const parts = fontWeight.split(/\s+/).map(Number)
+    const parts = fontWeight.split(RE_WHITESPACE).map(Number)
     if (parts.length >= 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
       min = parts[0]!
       max = parts[1]!
@@ -309,7 +312,7 @@ async function resolveAndDownloadFamily(options: {
 
         const ext = isTtf ? 'ttf' : 'woff'
         for (const weight of resolvedWeights) {
-          const filename = `${family.replace(/[^a-z0-9]/gi, '_')}-${weight}-${style}.${ext}`
+          const filename = `${family.replace(RE_NON_ALPHANUMERIC, '_')}-${weight}-${style}.${ext}`
           const destPath = join(ttfDir, filename)
           if (!await downloadFontFile(url, destPath))
             continue
@@ -372,10 +375,10 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
     familyMap.set(font.family, existing)
   }
 
-  const families = Array.from(familyMap.entries()).map(([family, { weights, styles }]) => ({
+  const families = Array.from(familyMap.entries(), ([family, { weights, styles }]) => ({
     family,
-    weights: Array.from(weights),
-    styles: Array.from(styles),
+    weights: [...weights],
+    styles: [...styles],
   }))
 
   logger.debug(`Resolving static fonts for: ${families.map(f => f.family).join(', ')}`)
@@ -546,8 +549,7 @@ export async function resolveOgImageFonts(options: {
     weights.push(f.weight)
     fontsByFamily.set(f.family, weights)
   }
-  const familyBreakdown = [...fontsByFamily.entries()]
-    .map(([family, weights]) => `  ${family} → ${[...new Set(weights)].sort((a, b) => a - b).join(', ')}`)
+  const familyBreakdown = Array.from(fontsByFamily.entries(), ([family, weights]) => `  ${family} → ${[...new Set(weights)].toSorted((a, b) => a - b).join(', ')}`)
     .join('\n')
   logger.debug(`Resolved ${fonts.length} fonts (from ${allFonts.length} total)\n${familyBreakdown}`)
 

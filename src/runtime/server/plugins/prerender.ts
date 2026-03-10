@@ -9,6 +9,8 @@ import { resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 
 const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
+const RE_SCRIPT_OPTIONS = /<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/
+const RE_SCRIPT_OVERRIDES = /<script id="nuxt-og-image-overrides" type="application\/json">[\s\S]*?<\/script>/
 
 function getPayloadFromHtml(html: string): string | null {
   const match = String(html).match(PAYLOAD_REGEX)
@@ -52,8 +54,8 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
     const index = html.bodyAppend.findIndex((script: string) => script.includes('id="nuxt-og-image-options"'))
     if (index !== -1) {
       // we need to remove `<script id="nuxt-og-image-options" type="application/json">...anything...</script>`
-      html.bodyAppend[index] = String(html.bodyAppend[index]).replace(/<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/, '')
-      html.bodyAppend[index] = html.bodyAppend[index].replace(/<script id="nuxt-og-image-overrides" type="application\/json">[\s\S]*?<\/script>/, '')
+      html.bodyAppend[index] = String(html.bodyAppend[index]).replace(RE_SCRIPT_OPTIONS, '')
+      html.bodyAppend[index] = html.bodyAppend[index].replace(RE_SCRIPT_OVERRIDES, '')
     }
   })
 })

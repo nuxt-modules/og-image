@@ -12,8 +12,13 @@ import imageSrc from './plugins/imageSrc'
 import styleDirectives from './plugins/styleDirectives'
 import { applyEmojis } from './transforms/emojis'
 
+const RE_KEBAB_SEGMENT = /-([a-z])/g
+const RE_AMP_ENTITY = /&amp;/g
+const RE_CSS_QUOTES = /^['"](.+)['"]$/
+const RE_BODY_CONTENT = /<body>([\s\S]*)<\/body>/
+
 function camelCase(str: string): string {
-  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+  return str.replace(RE_KEBAB_SEGMENT, (_, c) => c.toUpperCase())
 }
 
 // SVG attributes that must preserve their camelCase form.
@@ -78,7 +83,7 @@ export function parseStyleAttr(style: string | null | undefined): Record<string,
   const result: Record<string, any> = {}
   // Decode &amp; before splitting — the `;` in `&amp;` would otherwise act as
   // a CSS declaration separator and truncate values containing `&` (e.g. URLs).
-  for (const decl of splitCssDeclarations(style.replace(/&amp;/g, '&'))) {
+  for (const decl of splitCssDeclarations(style.replace(RE_AMP_ENTITY, '&'))) {
     const colonIdx = decl.indexOf(':')
     if (colonIdx === -1)
       continue
@@ -88,7 +93,7 @@ export function parseStyleAttr(style: string | null | undefined): Record<string,
       // Strip CSS quotes from font-family — Satori matches font names as plain
       // strings (e.g. "JetBrains Mono"), not CSS-quoted values ("'JetBrains Mono'")
       result[camelCase(prop)] = prop === 'font-family'
-        ? val.replace(/^['"](.+)['"]$/, '$1')
+        ? val.replace(RE_CSS_QUOTES, '$1')
         : val
     }
   }
@@ -184,7 +189,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
     html = island.html
     if (html?.includes('<body>')) {
       // get inner contents of body
-      html = html.match(/<body>([\s\S]*)<\/body>/)?.[1] || ''
+      html = html.match(RE_BODY_CONTENT)?.[1] || ''
     }
   }
   const baseStyle = `position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;`

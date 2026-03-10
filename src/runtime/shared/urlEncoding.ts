@@ -14,6 +14,22 @@
 // Maximum path segment length (filesystem limit is 255, leave room for prefix/extension)
 const MAX_PATH_LENGTH = 200
 
+// Module-scope regex constants
+const RE_BASE64_PADDING = /=/g
+const RE_BASE64_PLUS = /\+/g
+const RE_BASE64_SLASH = /\//g
+const RE_BASE64_URL_DASH = /-/g
+const RE_BASE64_URL_TILDE = /~/g
+const RE_UNDERSCORE = /_/g
+const RE_DOUBLE_UNDERSCORE = /__/g
+const RE_PERCENT20 = /%20/g
+const RE_PLUS = /\+/g
+const RE_SINGLE_UNDERSCORE = /(?<!_)_(?!_)/
+const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
+const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
+const RE_FILE_EXTENSION = /\.\w+$/
+const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
+
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
   w: 'width',
@@ -74,13 +90,13 @@ function b64Encode(str: string): string {
   }
   // Make URL-safe: strip padding, replace + with - and / with ~
   // Using ~ instead of standard URL-safe _ to avoid conflict with param separator
-  return encoded.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '~')
+  return encoded.replace(RE_BASE64_PADDING, '').replace(RE_BASE64_PLUS, '-').replace(RE_BASE64_SLASH, '~')
 }
 
 function b64Decode(str: string): string {
   // Reverse URL-safe encoding before standard base64 decode
   // Also handles legacy standard base64 (no ~ or - chars to replace = no-op)
-  const standard = str.replace(/-/g, '+').replace(/~/g, '/')
+  const standard = str.replace(RE_BASE64_URL_DASH, '+').replace(RE_BASE64_URL_TILDE, '/')
   const padded = standard + '='.repeat((4 - (standard.length % 4)) % 4)
   if (typeof atob === 'function') {
     const binary = atob(padded)
@@ -197,8 +213,8 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     else {
       // Simple value - URL encode for special chars including emojis
       // First encode underscores, then use encodeURIComponent for unicode
-      const encoded = encodeURIComponent(String(value).replace(/_/g, '__'))
-        .replace(/%20/g, '+') // spaces as +
+      const encoded = encodeURIComponent(String(value).replace(RE_UNDERSCORE, '__'))
+        .replace(RE_PERCENT20, '+') // spaces as +
       parts.push(`${alias}_${encoded}`)
     }
   }
@@ -222,7 +238,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
 
   for (const part of parts) {
     // Find first underscore that's not escaped (not preceded by another underscore)
-    const idx = part.search(/(?<!_)_(?!_)/)
+    const idx = part.search(RE_SINGLE_UNDERSCORE)
     if (idx === -1)
       continue
 
@@ -254,7 +270,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else if (KNOWN_PARAMS.has(paramName)) {
       // Known OgImageOptions param - decode value
-      value = decodeURIComponent(value.replace(/\+/g, '%20')).replace(/__/g, '_')
+      value = decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
       // Try to parse as number or boolean
       if (value === 'true') {
         options[paramName] = true
@@ -269,7 +285,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else {
       // Unknown param - treat as component prop
-      value = decodeURIComponent(value.replace(/\+/g, '%20')).replace(/__/g, '_')
+      value = decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
       options.props = options.props || {}
       // Try to parse as number or boolean
       if (value === 'true') {
@@ -348,17 +364,17 @@ export function parseOgImageUrl(url: string): {
   hash?: string
 } {
   const isStatic = url.includes('/_og/s/')
-  const path = url.replace(/^\/_og\/[ds]\//, '')
+  const path = url.replace(RE_OG_PATH_PREFIX, '')
 
   // Extract extension
-  const extMatch = path.match(/\.(\w+)$/)
+  const extMatch = path.match(RE_FILE_EXTENSION_WITH_CAPTURE)
   const extension = extMatch?.[1] || 'png'
 
   // Get encoded params (without extension)
-  const encoded = path.replace(/\.\w+$/, '')
+  const encoded = path.replace(RE_FILE_EXTENSION, '')
 
   // Check for hash mode (o_<hash>)
-  const hashMatch = encoded.match(/^o_([a-z0-9]+)$/i)
+  const hashMatch = encoded.match(RE_HASH_SEGMENT)
   if (hashMatch) {
     return {
       options: {},

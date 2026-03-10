@@ -11,7 +11,7 @@ const satoriInstance: { instance?: { initWasmPromise: Promise<void>, satori: typ
 let resvgImportPromise: Promise<void> | undefined
 let satoriImportPromise: Promise<void> | undefined
 
-export async function useResvg() {
+export async function getResvg() {
   if (!resvgImportPromise) {
     resvgImportPromise = import('#og-image/bindings/resvg').then((m) => {
       resvgInstance.instance = m.default
@@ -25,7 +25,7 @@ export async function useResvg() {
   return Resvg
 }
 
-export async function useSatori() {
+export async function getSatori() {
   if (!satoriImportPromise) {
     satoriImportPromise = import('#og-image/bindings/satori').then((m) => {
       satoriInstance.instance = m.default
@@ -39,7 +39,7 @@ export async function useSatori() {
   return satori
 }
 
-export async function useSharp() {
+export async function getSharp() {
   sharpInstance.instance = sharpInstance.instance || await import('#og-image/bindings/sharp').then(m => m.default)
   return sharpInstance.instance!
 }

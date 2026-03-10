@@ -11,17 +11,42 @@ import { createUnplugin } from 'unplugin'
 import { logger } from '../runtime/logger'
 import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtime/server/og-image/core/transforms/emojis/emoji-utils'
 import { resolveColorMix, splitCssDeclarations } from '../runtime/server/og-image/utils/css'
+import { RE_WHITESPACE } from '../util'
 import { extractFontRequirementsFromVue } from './css/css-classes'
 import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
 
+// Module-scope regex constants
+const RE_SVG_ID_ATTR = /\bid="([^"]+)"/g
+const RE_SVG_VIEWBOX = /viewBox="([^"]*)"/
+const RE_SVG_BODY = /<svg[^>]*>([\s\S]*)<\/svg>/
+const RE_OG_IMAGE_QUERY = /\?og-image(?:-depth=\d+)?$/
+const RE_TEMPLATE_CONTENT = /<template>([\s\S]*?)<\/template>/
+const RE_TEXT_BETWEEN_TAGS = />([^<]*)</g
+const RE_SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g
+const RE_WRAPPER_DIV_START = /^<div>/
+const RE_WRAPPER_DIV_END = /<\/div>$/
+const RE_ICON_ELEMENT = /<(\w+)((?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*\s+class="([^"]*)"(?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*)\s*\/?>(?:\s*<\/\1>)?/g
+const RE_HTML_ATTR = /\b([a-z_:@][\w.:-]*)(?:="([^"]*)")?/gi
+const RE_ROOT_ELEMENT = /^\s*<(\w+)\s([^>]*)>/
+const RE_DATA_ATTR = /\bdata-([\w-]+)="([^"]*)"/g
+const RE_COLOR_ATTR_NAME = /^(?:color|fill|stroke|flood-color|lighting-color|stop-color)$/
+const RE_NON_STYLE_VAR_ATTR = /\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g
+const RE_QUOTED_ATTR = /^([a-z-]+)="(.*)"$/i
+const RE_COLOR_PROP_NAME = /color|fill|stroke|background|border|outline|shadow|accent|caret/
+const RE_STYLE_VAR_ATTR = /\bstyle="([^"]*var\(--[^"]+)"/g
+const RE_IMAGE_SRC = /(?<!:)src="((?:\/|~\/|@\/)[^"]+\.(png|jpg|jpeg|gif|webp|svg))"/g
+const RE_SCOPED_DATA_V = /\[data-v-([a-f0-9]+)\]/
+const RE_FILE_EXTENSION = /\.\w+$/
+
 // SVG utilities (shared across icons and emojis)
 function makeIdsUnique(svg: string): string {
   const prefix = `og${svgCounter++}_`
   const ids = new Set<string>()
-  svg.replace(/\bid="([^"]+)"/g, (_, id) => {
+  RE_SVG_ID_ATTR.lastIndex = 0
+  svg.replace(RE_SVG_ID_ATTR, (_, id) => {
     ids.add(id)
     return ''
   })
@@ -136,9 +161,9 @@ async function fetchEmojiSvg(emoji: string, emojiSet: string): Promise<string | 
       // Iconify API returns '404' text for missing icons
       if (svg && svg !== '404') {
         // Extract viewBox and body from fetched SVG, build our own wrapper
-        const viewBoxMatch = svg.match(/viewBox="([^"]*)"/)
+        const viewBoxMatch = svg.match(RE_SVG_VIEWBOX)
         const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 128 128'
-        const bodyMatch = svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/)
+        const bodyMatch = svg.match(RE_SVG_BODY)
         const body = bodyMatch ? bodyMatch[1] : ''
         let result = `<span style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="1em" height="1em">${body}</svg></span>`
         result = makeIdsUnique(result)
@@ -268,13 +293,13 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
     async transform(code, rawId) {
       // Strip ?og-image query param for path operations (nested component imports)
-      const id = rawId.replace(/\?og-image(?:-depth=\d+)?$/, '')
+      const id = rawId.replace(RE_OG_IMAGE_QUERY, '')
 
       // Track nested component files for HMR
       if (rawId.includes('?og-image'))
         options.onNestedTransform?.(id)
 
-      const templateMatch = code.match(/<template>([\s\S]*?)<\/template>/)
+      const templateMatch = code.match(RE_TEMPLATE_CONTENT)
       if (!templateMatch)
         return
 
@@ -302,7 +327,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
         // Resolve emoji SVGs in parallel (local first, fetch fallback)
         const emojiSvgMap = new Map<string, string>()
-        await Promise.all([...allEmojis].map(async (emoji) => {
+        await Promise.all(Array.from(allEmojis, async (emoji) => {
           let svg: string | null = null
           if (emojiIcons) {
             svg = buildEmojiSvg(emoji, emojiIcons, options.emojiSet!)
@@ -317,7 +342,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
         // Replace emojis with resolved SVGs
         if (emojiSvgMap.size > 0) {
-          template = template.replace(/>([^<]*)</g, (fullMatch, textContent) => {
+          RE_TEXT_BETWEEN_TAGS.lastIndex = 0
+          template = template.replace(RE_TEXT_BETWEEN_TAGS, (fullMatch, textContent) => {
             if (!textContent)
               return fullMatch
 
@@ -332,7 +358,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               const svg = emojiSvgMap.get(emoji)
               if (svg) {
                 hasChanges = true
-                const escaped = emoji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                const escaped = emoji.replace(RE_SPECIAL_REGEX_CHARS, '\\$&')
                 newTextContent = newTextContent.replace(new RegExp(escaped, 'g'), svg)
               }
             }
@@ -417,7 +443,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             // Render back to HTML, removing the wrapper div
             const rendered = renderSync(doc)
             // Remove wrapper div
-            template = rendered.replace(/^<div>/, '').replace(/<\/div>$/, '')
+            template = rendered.replace(RE_WRAPPER_DIV_START, '').replace(RE_WRAPPER_DIV_END, '')
           }
         }
       }
@@ -426,18 +452,18 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       // Uses targeted string replacement (not ultrahtml renderSync) to preserve Vue directives like v-if
       if (options.cssProvider?.resolveIcon) {
         // Match elements with icon classes — self-closing or empty paired tags only
-        const iconElRe = /<(\w+)((?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*\s+class="([^"]*)"(?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*)\s*\/?>(?:\s*<\/\1>)?/g
         const replacements: Array<{ from: string, to: string }> = []
 
+        RE_ICON_ELEMENT.lastIndex = 0
         let elMatch
         // eslint-disable-next-line no-cond-assign
-        while ((elMatch = iconElRe.exec(template)) !== null) {
+        while ((elMatch = RE_ICON_ELEMENT.exec(template)) !== null) {
           const [fullMatch, , attrsStr, classValue] = elMatch
           if (!classValue)
             continue
 
           // Check if class contains an icon pattern
-          const classes = classValue.split(/\s+/).filter(Boolean)
+          const classes = classValue.split(RE_WHITESPACE).filter(Boolean)
           let iconPrefix: string | undefined
           let iconName: string | undefined
           for (const cls of classes) {
@@ -459,10 +485,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           // and Vue dynamic bindings for style (:style/v-bind:style — the element is
           // replaced with a static SVG wrapper so dynamic bindings can't be evaluated)
           const attrs: Record<string, string> = {}
-          const attrRe = /\b([a-z_:@][\w.:-]*)(?:="([^"]*)")?/gi
+          RE_HTML_ATTR.lastIndex = 0
           let am
           // eslint-disable-next-line no-cond-assign
-          while ((am = attrRe.exec(attrsStr!)) !== null) {
+          while ((am = RE_HTML_ATTR.exec(attrsStr!)) !== null) {
             if (am[1] && am[1] !== 'class' && am[1] !== ':style' && am[1] !== 'v-bind:style')
               attrs[am[1]] = am[2] ?? ''
           }
@@ -484,10 +510,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
       // Extract data-* attrs from the template root element for CSS var resolution
       const rootAttrs: Record<string, string> = {}
-      const rootAttrMatch = template.match(/^\s*<(\w+)\s([^>]*)>/)
+      const rootAttrMatch = template.match(RE_ROOT_ELEMENT)
       if (rootAttrMatch?.[2]) {
-        const attrRe = /\bdata-([\w-]+)="([^"]*)"/g
-        for (const m of rootAttrMatch[2].matchAll(attrRe)) {
+        RE_DATA_ATTR.lastIndex = 0
+        for (const m of rootAttrMatch[2].matchAll(RE_DATA_ATTR)) {
           if (m[1] && m[2])
             rootAttrs[`data-${m[1]}`] = m[2]
         }
@@ -514,7 +540,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported classes: ${unsupported.join(', ')}`)
               }
 
-              const componentName = id.split('/').pop()?.replace(/\.\w+$/, '')
+              const componentName = id.split('/').pop()?.replace(RE_FILE_EXTENSION, '')
               return options.cssProvider!.resolveClassesToStyles(supported, componentName, rootAttrs)
             },
           })
@@ -539,9 +565,9 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         const vars = await options.cssProvider.getVars(rootAttrs)
         if (vars.size > 0) {
           // Non-style, non-class attributes (e.g., SVG fill="var(--bg)")
-          const COLOR_ATTRS = /^(?:color|fill|stroke|flood-color|lighting-color|stop-color)$/
           const replacements: Array<{ from: string, to: string }> = []
-          template.replace(/\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g, (match, attr, value) => {
+          RE_NON_STYLE_VAR_ATTR.lastIndex = 0
+          template.replace(RE_NON_STYLE_VAR_ATTR, (match, attr, value) => {
             const resolved = resolveCssVars(value, vars)
             if (resolved !== value) {
               replacements.push({ from: match, to: `${attr}="${resolved}"` })
@@ -550,8 +576,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           })
           // Downlevel modern colors (oklch, etc.) in color-related attributes
           for (const r of replacements) {
-            const attrMatch = r.to.match(/^([a-z-]+)="(.*)"$/i)
-            if (attrMatch?.[1] && attrMatch[2] !== undefined && COLOR_ATTRS.test(attrMatch[1])) {
+            const attrMatch = r.to.match(RE_QUOTED_ATTR)
+            if (attrMatch?.[1] && attrMatch[2] !== undefined && RE_COLOR_ATTR_NAME.test(attrMatch[1])) {
               const downleveled = await downlevelColor(attrMatch[1], attrMatch[2])
               r.to = `${attrMatch[1]}="${downleveled}"`
             }
@@ -560,9 +586,9 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           }
 
           // Inline style attributes: resolve var() and downlevel colors per-declaration
-          const COLOR_PROPS = /color|fill|stroke|background|border|outline|shadow|accent|caret/
           const styleReplacements: Array<{ from: string, to: string }> = []
-          template.replace(/\bstyle="([^"]*var\(--[^"]+)"/g, (match, styleValue) => {
+          RE_STYLE_VAR_ATTR.lastIndex = 0
+          template.replace(RE_STYLE_VAR_ATTR, (match, styleValue) => {
             const resolved = resolveCssVars(styleValue, vars)
             if (resolved !== styleValue)
               styleReplacements.push({ from: match, to: `style="${resolved}"` })
@@ -581,7 +607,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               }
               const prop = decl.slice(0, colonIdx).trim()
               let value = decl.slice(colonIdx + 1).trim()
-              if (COLOR_PROPS.test(prop) && !value.includes('var(')) {
+              if (RE_COLOR_PROP_NAME.test(prop) && !value.includes('var(')) {
                 value = await downlevelColor(prop, value)
                 if (value.includes('color-mix('))
                   value = resolveColorMix(value)
@@ -597,16 +623,16 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
 
       // Transform images: src="/path" or src="~/path" or src="@/path"
       if (!template.includes('data-no-inline')) {
-        const imgRegex = /(?<!:)src="((?:\/|~\/|@\/)[^"]+\.(png|jpg|jpeg|gif|webp|svg))"/g
-        if (imgRegex.test(template)) {
-          imgRegex.lastIndex = 0
+        RE_IMAGE_SRC.lastIndex = 0
+        if (RE_IMAGE_SRC.test(template)) {
+          RE_IMAGE_SRC.lastIndex = 0
 
           const componentDir = dirname(id)
           const replacements: Array<{ from: string, to: string }> = []
 
           let match
           // eslint-disable-next-line no-cond-assign
-          while ((match = imgRegex.exec(template)) !== null) {
+          while ((match = RE_IMAGE_SRC.exec(template)) !== null) {
             const [fullMatch, srcPath, ext] = match
             if (!srcPath || !ext)
               continue
@@ -662,7 +688,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             const rawCss = styleBlock.content
             // Strip scoped data-v attribute selectors so we can match by class name alone
             const scopeId = styleBlock.scoped
-              ? (rawCss.match(/\[data-v-([a-f0-9]+)\]/)?.[0] ?? null)
+              ? (rawCss.match(RE_SCOPED_DATA_V)?.[0] ?? null)
               : null
             const cleanCss = scopeId ? rawCss.replaceAll(scopeId, '') : rawCss
 
@@ -682,7 +708,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 if (!classAttr)
                   return
 
-                const elClasses = classAttr.split(/\s+/).filter(Boolean)
+                const elClasses = classAttr.split(RE_WHITESPACE).filter(Boolean)
                 const matchedStyles: Record<string, string> = {}
                 const consumedClasses = new Set<string>()
 
@@ -726,7 +752,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 }
               })
 
-              template = renderSync(doc).replace(/^<div>/, '').replace(/<\/div>$/, '')
+              template = renderSync(doc).replace(RE_WRAPPER_DIV_START, '').replace(RE_WRAPPER_DIV_END, '')
               hasChanges = true
             }
           }

@@ -8,6 +8,8 @@
 // Minimal subset (~100 common emojis), use Nuxt Icon for more
 import { EMOJI_CODEPOINT_TO_NAME } from './emoji-names-minimal'
 
+const RE_VARIATION_SELECTOR = /-fe0f$/i
+
 /**
  * Regular expression to match emoji sequences including multi-codepoint emojis.
  *
@@ -43,7 +45,7 @@ export const RE_MATCH_EMOJIS = /(?:\p{Extended_Pictographic}|[\d#*]\uFE0F\u20E3|
 export function getEmojiIconNames(codePoint: string, _emojiSet: string): string[] {
   // Strip variation selector (fe0f) for base lookup
   // e.g., "2764-fe0f" -> "2764" for ❤️
-  const baseCodePoint = codePoint.replace(/-fe0f$/i, '')
+  const baseCodePoint = codePoint.replace(RE_VARIATION_SELECTOR, '')
 
   // Check comprehensive mapping (try both full and base codepoint)
   const knownName = EMOJI_CODEPOINT_TO_NAME[codePoint] || EMOJI_CODEPOINT_TO_NAME[baseCodePoint]
@@ -62,7 +64,6 @@ export function getEmojiIconNames(codePoint: string, _emojiSet: string): string[
  * @returns Hex code point(s) joined by dash (e.g., "1f44b" or "1f468-200d-1f469-200d-1f467")
  */
 export function getEmojiCodePoint(emoji: string): string {
-  return [...emoji]
-    .map(char => char.codePointAt(0)!.toString(16))
+  return Array.from(emoji, char => char.codePointAt(0)!.toString(16))
     .join('-')
 }

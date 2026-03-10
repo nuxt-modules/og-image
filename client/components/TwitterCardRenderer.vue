@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const props = defineProps<{
   aspectRatio: number
@@ -7,7 +7,9 @@ const props = defineProps<{
   cardType?: 'summary' | 'summary_large_image'
 }>()
 
-const currTime = computed(() => {
+const currTime = ref('')
+
+onMounted(() => {
   const date = new Date()
   const options: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
@@ -19,7 +21,7 @@ const currTime = computed(() => {
   }
   const formatter = new Intl.DateTimeFormat('en-US', options)
   const parts = formatter.formatToParts(date)
-  return `${parts.find(part => part.type === 'hour')?.value}:${
+  currTime.value = `${parts.find(part => part.type === 'hour')?.value}:${
     parts.find(part => part.type === 'minute')?.value} ${
     parts.find(part => part.type === 'dayPeriod')?.value} · ${
     parts.find(part => part.type === 'month')?.value} ${

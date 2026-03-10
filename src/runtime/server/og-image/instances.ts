@@ -8,17 +8,17 @@ const satoriRendererInstance: { instance?: typeof SatoriRenderer } = { instance:
 const browserRendererInstance: { instance?: typeof BrowserRenderer } = { instance: undefined }
 const takumiRendererInstance: { instance?: typeof TakumiRenderer } = { instance: undefined }
 
-export async function useSatoriRenderer() {
+export async function getSatoriRenderer() {
   satoriRendererInstance.instance = satoriRendererInstance.instance || await import('#og-image/renderers/satori').then(m => m.default)
   return satoriRendererInstance.instance!
 }
 
-export async function useBrowserRenderer() {
+export async function getBrowserRenderer() {
   browserRendererInstance.instance = browserRendererInstance.instance || await import('#og-image/renderers/browser').then(m => m.default)
   return browserRendererInstance.instance!
 }
 
-export async function useTakumiRenderer() {
+export async function getTakumiRenderer() {
   takumiRendererInstance.instance = takumiRendererInstance.instance || await import('#og-image/renderers/takumi').then(m => m.default)
   return takumiRendererInstance.instance!
 }

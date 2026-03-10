@@ -22,6 +22,8 @@ export const isConnected = computed(() => connectionState.value === 'connected' 
 export const isConnectionFailed = computed(() => connectionState.value === 'failed')
 export const isFallbackMode = computed(() => connectionState.value === 'fallback')
 
+let connectionTimeout: any
+
 // Fallback fetch for localhost:3000
 async function tryFallbackConnection() {
   const fallbackUrl = 'http://localhost:3000'
@@ -38,17 +40,24 @@ async function tryFallbackConnection() {
 }
 
 // Set timeout for connection - if not connected within 2s, try fallback
-const connectionTimeout = setTimeout(async () => {
-  if (connectionState.value === 'connecting') {
-    const fallbackWorked = await tryFallbackConnection()
-    if (!fallbackWorked) {
-      connectionState.value = 'failed'
+onMounted(() => {
+  const timer = setTimeout(async () => {
+    if (connectionState.value === 'connecting') {
+      const fallbackWorked = await tryFallbackConnection()
+      if (!fallbackWorked) {
+        connectionState.value = 'failed'
+      }
     }
-  }
-}, 2000)
+  }, 2000)
+
+  onUnmounted(() => {
+    clearTimeout(timer)
+  })
+})
 
 onDevtoolsClientConnected(async (client) => {
-  clearTimeout(connectionTimeout)
+  if (connectionTimeout)
+    clearTimeout(connectionTimeout)
   connectionState.value = 'connected'
   // @ts-expect-error untyped
   appFetch.value = client.host.app.$fetch

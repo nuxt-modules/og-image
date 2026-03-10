@@ -14,6 +14,10 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'pathe'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 
+const RE_OG_IMAGE_META_CONTENT_FIRST = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/
+const RE_OG_IMAGE_META_PROPERTY_FIRST = /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/
+const RE_PATHNAME_EXT = /\.\w+$/
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 interface SatoriTemplateEntry {
@@ -142,8 +146,8 @@ async function extractOgImageUrl(pageUrl: string): Promise<string | null> {
   if (!response?.ok)
     return null
   const html = await response.text()
-  const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/)
-    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/)
+  const match = html.match(RE_OG_IMAGE_META_CONTENT_FIRST)
+    || html.match(RE_OG_IMAGE_META_PROPERTY_FIRST)
   return match?.[1] || null
 }
 
@@ -276,7 +280,7 @@ async function generateSnapshots() {
           const resolvedOgUrl = ogImageUrl.startsWith('http') ? ogImageUrl : `${baseUrl}${ogImageUrl}`
           const parsed = new URL(resolvedOgUrl)
           // Swap extension on pathname
-          parsed.pathname = parsed.pathname.replace(/\.\w+$/, `.${format.ext}`)
+          parsed.pathname = parsed.pathname.replace(RE_PATHNAME_EXT, `.${format.ext}`)
           parsed.searchParams.set('width', String(dim.width))
           parsed.searchParams.set('height', String(dim.height))
           if (mode.colorMode)

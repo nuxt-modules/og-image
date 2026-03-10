@@ -4,11 +4,13 @@ import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState 
 import { ref, toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
+const RE_COMMA = /,/g
+
 /**
  * Internal raw implementation for defining OG images.
  * Used by defineOgImage and defineOgImageScreenshot.
  */
-export function _defineOgImageRaw(_options: DefineOgImageInput | DefineOgImageInput[] = {}): string[] {
+export function defineOgImageRaw(_options: DefineOgImageInput | DefineOgImageInput[] = {}): string[] {
   const nuxtApp = useNuxtApp()
   const route = useRoute()
   const basePath = route.path || '/' // (pages may be disabled)'
@@ -37,20 +39,20 @@ export function _defineOgImageRaw(_options: DefineOgImageInput | DefineOgImageIn
   // Handle array of options
   if (Array.isArray(_options)) {
     for (const opt of _options) {
-      const path = processOgImageOptions(opt, nuxtApp, route, basePath)
+      const path = useProcessOgImageOptions(opt, nuxtApp, route, basePath)
       if (path)
         paths.push(path)
     }
     return paths
   }
 
-  const path = processOgImageOptions(_options, nuxtApp, route, basePath)
+  const path = useProcessOgImageOptions(_options, nuxtApp, route, basePath)
   if (path)
     paths.push(path)
   return paths
 }
 
-function processOgImageOptions(
+function useProcessOgImageOptions(
   _options: DefineOgImageInput,
   nuxtApp: ReturnType<typeof useNuxtApp>,
   route: ReturnType<typeof useRoute>,
@@ -109,7 +111,7 @@ function processOgImageOptions(
   const { path, hash } = getOgImagePath(basePath, validOptions)
   if (import.meta.prerender) {
     // Encode commas to prevent HTTP header splitting (commas separate header values)
-    const prerenderPath = (path.split('?')[0] || path).replace(/,/g, '%2C')
+    const prerenderPath = (path.split('?')[0] || path).replace(RE_COMMA, '%2C')
     appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', prerenderPath)
   }
   // Include hash in options if hash mode was used (for prerender cache lookup)

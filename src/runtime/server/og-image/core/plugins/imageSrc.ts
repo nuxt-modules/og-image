@@ -8,6 +8,9 @@ import { logger } from '../../../util/logger'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
+const RE_URL_LEADING = /^url\(['"]?/
+const RE_URL_TRAILING = /['"]?\)$/
+
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
   // try hydrating from storage
   // we need to read the file using unstorage
@@ -122,7 +125,7 @@ export default defineTransformer([
     transform: async (node: VNode, { e, publicStoragePath, runtimeConfig }: OgImageRenderEventContext) => {
       // same as the above, need to swap out relative background images for absolute
       const backgroundImage = node.props.style!.backgroundImage!
-      const src = backgroundImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '')
+      const src = backgroundImage.replace(RE_URL_LEADING, '').replace(RE_URL_TRAILING, '')
       if (src.startsWith('data:'))
         return
       const isRelative = src?.startsWith('/')

@@ -23,7 +23,7 @@ export async function loadShiki() {
   return shiki.value
 }
 
-export function renderCodeHighlight(code: Ref<string> | string, lang: 'json' | 'xml' | 'js') {
+export function useRenderCodeHighlight(code: Ref<string> | string, lang: 'json' | 'xml' | 'js') {
   return computed(() => {
     return shiki.value!.codeToHtml(toValue(code) || '', {
       lang,

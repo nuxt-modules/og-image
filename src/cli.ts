@@ -11,6 +11,38 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const communityDir = resolve(__dirname, 'runtime/app/components/Templates/Community')
 
+// Module-scope regex constants
+const RE_RENDERER_SUFFIX = /\.(satori|browser|takumi)\.vue$/
+const RE_ANY_RENDERER_SUFFIX = /\.(?:satori|browser|takumi|chromium)\.vue$/
+const RE_CHROMIUM_SUFFIX = /\.chromium\.vue$/
+const RE_ATTR = /:(\w+)="([^"]*)"|(\w+)="([^"]*)"|(\w+)/g
+const RE_EXCLUDE_NODE_MODULES = /node_modules/
+const RE_EXCLUDE_NUXT = /\.nuxt/
+const RE_EXCLUDE_OUTPUT = /\.output/
+const RE_EXCLUDE_DATA = /\.data/
+const RE_EXCLUDE_DIST = /dist/
+const RE_VUE_OR_SCRIPT = /\.(?:vue|ts|tsx|js|jsx)$/
+const RE_OG_IMAGE_SCREENSHOT_SELF_CLOSE = /<OgImageScreenshot([^>]*?)\/>/g
+const RE_OG_IMAGE_SCREENSHOT_OPEN_CLOSE = /<OgImageScreenshot([^>]*)>[\s\S]*?<\/OgImageScreenshot>/g
+const RE_OG_IMAGE_SELF_CLOSE = /<OgImage(?!Screenshot)([^>]*?)\/>/g
+const RE_OG_IMAGE_OPEN_CLOSE = /<OgImage(?!Screenshot)([^>]*)>[\s\S]*?<\/OgImage>/g
+const RE_DEFINE_OG_IMAGE_COMPONENT = /defineOgImageComponent\s*\(/
+const RE_DEFINE_OG_IMAGE_COMPONENT_GLOBAL = /defineOgImageComponent\s*\(/g
+const RE_DEFINE_OG_IMAGE_CALL = /defineOgImage\s*\(\s*(\{[\s\S]*?\})\s*\)/g
+const RE_COMPONENT_PROP = /component\s*:\s*['"]([^'"]+)['"]/
+const RE_RENDERER_PROP = /renderer\s*:\s*['"]([^'"]+)['"]/
+const RE_PROPS_PROP = /props\s*:\s*(\{[^}]*\})/
+const RE_RENDERER_PROP_GLOBAL = /renderer\s*:\s*['"][^'"]+['"]\s*,?\s*/g
+const RE_TRAILING_COMMA = /,\s*$/
+const RE_EMPTY_BRACES = /^\{\s*\}$/
+const RE_COMMA_NOT_IN_BRACES = /,(?![^{]*\})/
+const RE_LINE_COMPONENT = /^component\s*:/
+const RE_LINE_PROPS = /^props\s*:/
+const RE_LINE_RENDERER = /^renderer\s*:/
+const RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG = /import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"]#og-image\/shared['"]/
+const RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG_GLOBAL = /(import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"])#og-image\/shared(['"])/g
+const RE_NUXT_OG_IMAGE_UTILS_GLOBAL = /#nuxt-og-image-utils/g
+
 // Default component directories (must match module.ts)
 const defaultComponentDirs = ['OgImage', 'OgImageCommunity', 'og-image', 'OgImageTemplate']
 
@@ -58,15 +90,15 @@ function getRendererDeps(renderer: RendererName, isEdge: boolean): string[] {
 
 // Template files are named like "NuxtSeo.satori.vue"
 function getBaseName(filename: string): string {
-  return filename.replace(/\.(satori|browser|takumi)\.vue$/, '')
+  return filename.replace(RE_RENDERER_SUFFIX, '')
 }
 
 function hasRendererSuffix(filename: string): boolean {
-  return /\.(?:satori|browser|takumi|chromium)\.vue$/.test(filename)
+  return RE_ANY_RENDERER_SUFFIX.test(filename)
 }
 
 function hasChromiumSuffix(filename: string): boolean {
-  return /\.chromium\.vue$/.test(filename)
+  return RE_CHROMIUM_SUFFIX.test(filename)
 }
 
 function listTemplates() {
@@ -256,8 +288,7 @@ function attrsToProps(attrs: string): string {
     return ''
   const props: string[] = []
   // Match :prop="expr" or prop="value" or prop (boolean)
-  const attrRegex = /:(\w+)="([^"]*)"|(\w+)="([^"]*)"|(\w+)/g
-  for (const m of attrs.matchAll(attrRegex)) {
+  for (const m of attrs.matchAll(RE_ATTR)) {
     if (m[1]) // dynamic :prop="expr"
       props.push(`${m[1]}: ${m[2]}`)
     else if (m[3]) // static prop="value"
@@ -271,9 +302,9 @@ function attrsToProps(attrs: string): string {
 // Migrate defineOgImage API
 function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: string, count: number }> } {
   const cwd = process.cwd()
-  const excludePatterns = [/node_modules/, /\.nuxt/, /\.output/, /\.data/, /dist/]
+  const excludePatterns = [RE_EXCLUDE_NODE_MODULES, RE_EXCLUDE_NUXT, RE_EXCLUDE_OUTPUT, RE_EXCLUDE_DATA, RE_EXCLUDE_DIST]
 
-  const files = globFiles(cwd, /\.(?:vue|ts|tsx|js|jsx)$/, excludePatterns)
+  const files = globFiles(cwd, RE_VUE_OR_SCRIPT, excludePatterns)
   const changes: Array<{ file: string, count: number }> = []
 
   for (const file of files) {
@@ -283,7 +314,7 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
 
     // Pattern 0: <OgImageScreenshot /> and <OgImage /> component usage → composable
     // Handles self-closing and open/close tags, with or without props
-    content = content.replace(/<OgImageScreenshot([^>]*?)\/>/g, (_match, attrs: string) => {
+    content = content.replace(RE_OG_IMAGE_SCREENSHOT_SELF_CLOSE, (_match, attrs: string) => {
       modified = true
       changeCount++
       const propsStr = attrsToProps(attrs.trim())
@@ -291,7 +322,7 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
         ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
         : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
     })
-    content = content.replace(/<OgImageScreenshot([^>]*)>[\s\S]*?<\/OgImageScreenshot>/g, (_match, attrs: string) => {
+    content = content.replace(RE_OG_IMAGE_SCREENSHOT_OPEN_CLOSE, (_match, attrs: string) => {
       modified = true
       changeCount++
       const propsStr = attrsToProps(attrs.trim())
@@ -300,7 +331,7 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
         : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
     })
     // OgImage but not OgImageScreenshot (use word boundary via negative lookahead)
-    content = content.replace(/<OgImage(?!Screenshot)([^>]*?)\/>/g, (_match, attrs: string) => {
+    content = content.replace(RE_OG_IMAGE_SELF_CLOSE, (_match, attrs: string) => {
       modified = true
       changeCount++
       const propsStr = attrsToProps(attrs.trim())
@@ -308,7 +339,7 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
         ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
         : `<!-- Migrated: use defineOgImage() in <script setup> -->`
     })
-    content = content.replace(/<OgImage(?!Screenshot)([^>]*)>[\s\S]*?<\/OgImage>/g, (_match, attrs: string) => {
+    content = content.replace(RE_OG_IMAGE_OPEN_CLOSE, (_match, attrs: string) => {
       modified = true
       changeCount++
       const propsStr = attrsToProps(attrs.trim())
@@ -318,25 +349,23 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
     })
 
     // Pattern 1: defineOgImageComponent → defineOgImage
-    if (/defineOgImageComponent\s*\(/.test(content)) {
-      content = content.replace(/defineOgImageComponent\s*\(/g, 'defineOgImage(')
+    if (RE_DEFINE_OG_IMAGE_COMPONENT.test(content)) {
+      content = content.replace(RE_DEFINE_OG_IMAGE_COMPONENT_GLOBAL, 'defineOgImage(')
       modified = true
       changeCount++
     }
 
     // Pattern 2: defineOgImage({ ... }) object syntax
-    const defineOgImageRegex = /defineOgImage\s*\(\s*(\{[\s\S]*?\})\s*\)/g
-
-    content = content.replace(defineOgImageRegex, (match, inner) => {
-      const componentMatch = inner.match(/component\s*:\s*['"]([^'"]+)['"]/)
-      const rendererMatch = inner.match(/renderer\s*:\s*['"]([^'"]+)['"]/)
-      const propsMatch = inner.match(/props\s*:\s*(\{[^}]*\})/)
+    content = content.replace(RE_DEFINE_OG_IMAGE_CALL, (match, inner) => {
+      const componentMatch = inner.match(RE_COMPONENT_PROP)
+      const rendererMatch = inner.match(RE_RENDERER_PROP)
+      const propsMatch = inner.match(RE_PROPS_PROP)
 
       if (!componentMatch && rendererMatch && rendererMatch[1] === 'chromium') {
         const remaining = inner
-          .replace(/renderer\s*:\s*['"][^'"]+['"]\s*,?\s*/g, '')
-          .replace(/,\s*$/, '')
-          .replace(/^\{\s*\}$/, '') // strip empty braces
+          .replace(RE_RENDERER_PROP_GLOBAL, '')
+          .replace(RE_TRAILING_COMMA, '')
+          .replace(RE_EMPTY_BRACES, '') // strip empty braces
           .trim()
         modified = true
         changeCount++
@@ -348,15 +377,15 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
         const props = propsMatch ? propsMatch[1] : '{}'
 
         const otherOptions: string[] = []
-        const lines = inner.split(/,(?![^{]*\})/).map((s: string) => s.trim())
+        const lines = inner.split(RE_COMMA_NOT_IN_BRACES).map((s: string) => s.trim())
         for (const line of lines) {
           if (!line)
             continue
-          if (/^component\s*:/.test(line))
+          if (RE_LINE_COMPONENT.test(line))
             continue
-          if (/^props\s*:/.test(line))
+          if (RE_LINE_PROPS.test(line))
             continue
-          if (/^renderer\s*:/.test(line))
+          if (RE_LINE_RENDERER.test(line))
             continue
           otherOptions.push(line)
         }
@@ -375,13 +404,13 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
 
     // Pattern 3: Import path migrations
     if (content.includes('#nuxt-og-image-utils')) {
-      content = content.replace(/#nuxt-og-image-utils/g, '#og-image/shared')
+      content = content.replace(RE_NUXT_OG_IMAGE_UTILS_GLOBAL, '#og-image/shared')
       modified = true
       changeCount++
     }
-    if (/import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"]#og-image\/shared['"]/.test(content)) {
+    if (RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG.test(content)) {
       content = content.replace(
-        /(import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"])#og-image\/shared(['"])/g,
+        RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG_GLOBAL,
         '$1#og-image/app/utils$2',
       )
       modified = true

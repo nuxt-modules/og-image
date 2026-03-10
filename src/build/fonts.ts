@@ -12,6 +12,9 @@ import { join } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { extractFontFacesWithSubsets } from './css/font-face'
 
+const RE_FONT_FACE_BLOCK = /@font-face\s*\{[^}]+\}/g
+const RE_FONT_KEY = /^(.+)-(\d+)-(.+)$/
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -164,7 +167,7 @@ export async function parseAppCssFontFaces(nuxt: Nuxt): Promise<ParsedFont[]> {
       continue
 
     // Extract only @font-face blocks to avoid lightningcss errors on @import/@tailwind
-    const fontFaceBlocks = content.match(/@font-face\s*\{[^}]+\}/g)
+    const fontFaceBlocks = content.match(RE_FONT_FACE_BLOCK)
     if (!fontFaceBlocks)
       continue
 
@@ -208,7 +211,7 @@ export async function parseFontsFromTemplate(
   },
 ): Promise<ParsedFont[]> {
   // Cache on nuxt instance keyed by convertedWoff2Files state
-  const cacheKey = `${options.convertedWoff2Files.size}:${[...options.convertedWoff2Files.keys()].sort().join(',')}`
+  const cacheKey = `${options.convertedWoff2Files.size}:${[...options.convertedWoff2Files.keys()].toSorted().join(',')}`
   const cache: Map<string, ParsedFont[]> = (nuxt as any)._ogImageParsedFontsCache ||= new Map()
   const cached = cache.get(cacheKey)
   if (cached)
@@ -243,7 +246,7 @@ export async function parseFontsFromTemplate(
   // Build set of families that have fontless static alternatives — for these families,
   // only use fontless paths as satoriSrc (don't trust @nuxt/fonts WOFF files which may be variable)
   const fontlessFamilies = new Set(
-    Array.from(fontMap.values())
+    [...fontMap.values()]
       .filter(f => options.convertedWoff2Files.has(`${f.family}-${f.weight}-${f.style}`))
       .map(f => f.family),
   )
@@ -252,12 +255,12 @@ export async function parseFontsFromTemplate(
   // @nuxt/fonts may serve a variable font with a single weight (e.g. 400), but fontless
   // downloaded static alternatives for other weights (e.g. 700). Create font entries
   // for each downloaded weight so Satori can use them.
-  const expandedFonts = Array.from(fontMap.values())
+  const expandedFonts = [...fontMap.values()]
   const existingKeys = new Set(expandedFonts.map(f => `${f.family}-${f.weight}-${f.style}`))
   for (const [key] of options.convertedWoff2Files) {
     if (existingKeys.has(key))
       continue
-    const match = key.match(/^(.+)-(\d+)-(.+)$/)
+    const match = key.match(RE_FONT_KEY)
     if (!match)
       continue
     const [, family, weightStr, style] = match

@@ -48,10 +48,10 @@ function groupFontsByFamily(fonts: string[]): ParsedFont[] {
     }
   }
 
-  return Array.from(families.entries()).map(([name, { weights, styles }]) => ({
+  return Array.from(families.entries(), ([name, { weights, styles }]) => ({
     name,
-    weights: Array.from(weights).sort((a, b) => a - b),
-    styles: Array.from(styles),
+    weights: [...weights].toSorted((a, b) => a - b),
+    styles: [...styles],
   }))
 }
 
@@ -110,13 +110,13 @@ export async function migrateFontsConfig(rootDir: string): Promise<{ migrated: b
       for (const w of font.weights) {
         existingWeights.add(w)
       }
-      existing.weights = Array.from(existingWeights).sort((a, b) => a - b)
+      existing.weights = [...existingWeights].toSorted((a, b) => a - b)
 
       // Merge styles if not just 'normal'
       if (font.styles.includes('italic')) {
         const existingStyles = new Set(existing.styles || ['normal'])
         existingStyles.add('italic')
-        existing.styles = Array.from(existingStyles) as string[]
+        existing.styles = [...existingStyles] as string[]
       }
     }
     else {

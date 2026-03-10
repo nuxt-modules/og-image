@@ -1,6 +1,8 @@
 import type { VNode } from '../../../../types'
 import { defineTransformer } from '../../core/plugins'
 
+const RE_ICON_CLASSES = /icon|inline-style/g
+
 // copy classes to tw classes so they get processed
 export default defineTransformer([
   {
@@ -8,7 +10,7 @@ export default defineTransformer([
     transform(node: VNode) {
       node.props.tw = node.props.class
       // we should remove classes we know that satori will complain about such as `icon` and `inline-style`
-      node.props.tw = node.props.tw.replace(/icon|inline-style/g, '')
+      node.props.tw = node.props.tw.replace(RE_ICON_CLASSES, '')
     },
   },
   {
