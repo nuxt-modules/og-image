@@ -3,7 +3,7 @@ import type { BirpcReturn } from 'birpc'
 import type { $Fetch } from 'nitropack/types'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
 import { onDevtoolsClientConnected } from '@nuxt/devtools-kit/iframe-client'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
 import { base, globalRefreshTime, path, query, refreshSources } from '../util/logic'
 
 export const appFetch = ref<$Fetch>()
