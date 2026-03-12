@@ -118,12 +118,16 @@ export async function migrateFontsConfig(rootDir: string): Promise<{ migrated: b
         existingStyles.add('italic')
         existing.styles = [...existingStyles] as string[]
       }
+
+      // Ensure global: true for og-image compatibility
+      existing.global = true
     }
     else {
       // Add new family
-      const family: { name: string, weights: number[], styles?: string[] } = {
+      const family: { name: string, weights: number[], styles?: string[], global: boolean } = {
         name: font.name,
         weights: font.weights,
+        global: true,
       }
       if (font.styles.includes('italic')) {
         family.styles = font.styles
@@ -211,7 +215,7 @@ export async function promptFontsMigration(rootDir: string): Promise<void> {
   logger.info('  modules: [\'@nuxt/fonts\', \'nuxt-og-image\'],')
   logger.info('  fonts: {')
   logger.info('    families: [')
-  logger.info('      { name: \'Roboto\', weights: [400, 700] }')
+  logger.info('      { name: \'Roboto\', weights: [400, 700], global: true }')
   logger.info('    ]')
   logger.info('  }')
   logger.info('')

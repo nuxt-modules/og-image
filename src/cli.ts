@@ -43,6 +43,12 @@ const RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG = /import\s*\{[^}]*useOgImageRuntime
 const RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG_GLOBAL = /(import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"])#og-image\/shared(['"])/g
 const RE_NUXT_OG_IMAGE_UTILS_GLOBAL = /#nuxt-og-image-utils/g
 
+// Deprecated composables that map to defineOgImage()
+const RE_DEFINE_OG_IMAGE_STATIC = /defineOgImageStatic\s*\(/g
+const RE_DEFINE_OG_IMAGE_DYNAMIC = /defineOgImageDynamic\s*\(/g
+const RE_DEFINE_OG_IMAGE_CACHED = /defineOgImageCached\s*\(/g
+const RE_DEFINE_OG_IMAGE_WITHOUT_CACHE = /defineOgImageWithoutCache\s*\(/g
+
 // Default component directories (must match module.ts)
 const defaultComponentDirs = ['OgImage', 'OgImageCommunity', 'og-image', 'OgImageTemplate']
 
@@ -183,6 +189,107 @@ function globFiles(dir: string, pattern: RegExp, exclude: RegExp[] = []): string
   return results
 }
 
+// Community template names that must be ejected for production
+const COMMUNITY_TEMPLATES = ['NuxtSeo', 'Brutalist', 'SimpleBlog']
+const RE_COMMUNITY_TEMPLATE = /defineOgImage\w*\s*\(\s*['"](\w+)['"]/g
+
+// Detect community template usage in source files
+function detectCommunityTemplateUsage(rootDir: string): string[] {
+  const excludePatterns = [RE_EXCLUDE_NODE_MODULES, RE_EXCLUDE_NUXT, RE_EXCLUDE_OUTPUT, RE_EXCLUDE_DATA, RE_EXCLUDE_DIST]
+  const files = globFiles(rootDir, RE_VUE_OR_SCRIPT, excludePatterns)
+  const used = new Set<string>()
+
+  for (const file of files) {
+    const content = readFileSync(file, 'utf-8')
+    RE_COMMUNITY_TEMPLATE.lastIndex = 0
+    for (let m = RE_COMMUNITY_TEMPLATE.exec(content); m !== null; m = RE_COMMUNITY_TEMPLATE.exec(content)) {
+      // Match with or without renderer suffix (e.g. 'NuxtSeo' or 'NuxtSeo.takumi')
+      const baseName = m[1]?.split('.')[0]
+      if (baseName && COMMUNITY_TEMPLATES.includes(baseName)) {
+        used.add(baseName)
+      }
+    }
+  }
+
+  return [...used]
+}
+
+// Remove deprecated config keys from nuxt.config
+async function removeDeprecatedConfigKeys(rootDir: string, keys: Array<{ key: string, replacement: string }>): Promise<{ removed: string[], failed: string[] }> {
+  const configPaths = ['nuxt.config.ts', 'nuxt.config.js', 'nuxt.config.mjs']
+  let configPath: string | undefined
+  for (const cp of configPaths) {
+    const fullPath = join(rootDir, cp)
+    if (existsSync(fullPath)) {
+      configPath = fullPath
+      break
+    }
+  }
+  if (!configPath)
+    return { removed: [], failed: keys.map(k => k.key) }
+
+  const { loadFile, writeFile } = await import('magicast')
+  const mod = await loadFile(configPath)
+  const config = mod.exports.default
+  const ogImageConfig = config?.ogImage as any
+  if (!ogImageConfig)
+    return { removed: [], failed: keys.map(k => k.key) }
+
+  const removed: string[] = []
+  const failed: string[] = []
+  for (const { key } of keys) {
+    if (key.includes('.')) {
+      // Handle nested keys like 'defaults.renderer'
+      const parts = key.split('.')
+      let obj = ogImageConfig
+      for (let i = 0; i < parts.length - 1; i++) {
+        obj = obj?.[parts[i]!]
+      }
+      if (obj && parts.at(-1)! in obj) {
+        delete obj[parts.at(-1)!]
+        // Clean up empty parent
+        if (Object.keys(obj).length === 0) {
+          delete ogImageConfig[parts[0]!]
+        }
+        removed.push(key)
+      }
+      else {
+        failed.push(key)
+      }
+    }
+    else if (key in ogImageConfig) {
+      delete ogImageConfig[key]
+      removed.push(key)
+    }
+    else {
+      failed.push(key)
+    }
+  }
+
+  // Clean up empty ogImage
+  if (Object.keys(ogImageConfig).length === 0)
+    delete config.ogImage
+
+  await writeFile(mod, configPath)
+  return { removed, failed }
+}
+
+// Deprecated ogImage config keys and their replacements
+const DEPRECATED_CONFIG_KEYS: Record<string, string> = {
+  fonts: '@nuxt/fonts module (migrated automatically)',
+  strictNuxtContentPaths: 'Removed (no effect in Content v3)',
+  playground: 'Removed (use Nuxt DevTools)',
+  host: 'site.url or NUXT_SITE_URL',
+  siteUrl: 'site.url or NUXT_SITE_URL',
+  runtimeBrowser: 'compatibility.runtime.browser',
+  runtimeSatori: 'compatibility.runtime.satori',
+  cacheTtl: 'cacheMaxAgeSeconds',
+  cache: 'cacheMaxAgeSeconds',
+  cacheKey: 'Removed',
+  static: 'zeroRuntime',
+  componentOptions: 'Removed (use defineOgImage())',
+}
+
 // Check if nuxt config has deprecated options
 async function checkNuxtConfig(rootDir: string): Promise<{
   hasDeprecatedFonts: boolean
@@ -190,6 +297,7 @@ async function checkNuxtConfig(rootDir: string): Promise<{
   hasDefaultsComponent: boolean
   defaultComponentName: string | null
   nitroPreset: string | null
+  deprecatedConfigKeys: Array<{ key: string, replacement: string }>
 }> {
   // Check package.json for @nuxt/fonts
   let hasNuxtFontsInPkg = false
@@ -201,7 +309,7 @@ async function checkNuxtConfig(rootDir: string): Promise<{
 
   const config = await loadNuxtConfig({ cwd: rootDir }).catch(() => null)
   if (!config)
-    return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, hasDefaultsComponent: false, defaultComponentName: null, nitroPreset: null }
+    return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, hasDefaultsComponent: false, defaultComponentName: null, nitroPreset: null, deprecatedConfigKeys: [] }
 
   const ogImageConfig = config.ogImage as any
   const hasDeprecatedFonts = !!ogImageConfig?.fonts
@@ -215,12 +323,27 @@ async function checkNuxtConfig(rootDir: string): Promise<{
   )
   const nitroPreset = config.nitro?.preset || null
 
+  // Detect deprecated config keys
+  const deprecatedConfigKeys: Array<{ key: string, replacement: string }> = []
+  if (ogImageConfig) {
+    for (const [key, replacement] of Object.entries(DEPRECATED_CONFIG_KEYS)) {
+      if (key in ogImageConfig) {
+        deprecatedConfigKeys.push({ key, replacement })
+      }
+    }
+    // Check nested defaults.renderer
+    if (ogImageConfig.defaults?.renderer) {
+      deprecatedConfigKeys.push({ key: 'defaults.renderer', replacement: 'Removed (renderer determined by component filename suffix)' })
+    }
+  }
+
   return {
     hasDeprecatedFonts,
     hasNuxtFonts: hasNuxtFontsInPkg || hasNuxtFontsInConfig,
     hasDefaultsComponent,
     defaultComponentName,
     nitroPreset,
+    deprecatedConfigKeys,
   }
 }
 
@@ -232,6 +355,8 @@ interface MigrationCheck {
   needsDefaultsComponentMigration: boolean
   defaultComponentName: string | null
   componentsToRename: Array<{ from: string, to: string }>
+  deprecatedConfigKeys: Array<{ key: string, replacement: string }>
+  usedCommunityTemplates: string[]
 }
 
 async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
@@ -242,6 +367,8 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
     needsDefaultsComponentMigration: false,
     defaultComponentName: null,
     componentsToRename: [],
+    deprecatedConfigKeys: [],
+    usedCommunityTemplates: [],
   }
 
   // Check components
@@ -278,6 +405,11 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   result.needsNuxtFonts = !configCheck.hasNuxtFonts
   result.needsDefaultsComponentMigration = configCheck.hasDefaultsComponent
   result.defaultComponentName = configCheck.defaultComponentName
+  // Exclude 'fonts' from deprecated keys since it's handled by needsFontsMigration
+  result.deprecatedConfigKeys = configCheck.deprecatedConfigKeys.filter(k => k.key !== 'fonts')
+
+  // Detect community template usage in source files
+  result.usedCommunityTemplates = detectCommunityTemplateUsage(rootDir)
 
   return result
 }
@@ -353,6 +485,21 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
       content = content.replace(RE_DEFINE_OG_IMAGE_COMPONENT_GLOBAL, 'defineOgImage(')
       modified = true
       changeCount++
+    }
+
+    // Pattern 1b: deprecated composables → defineOgImage
+    for (const [re] of [
+      [RE_DEFINE_OG_IMAGE_STATIC],
+      [RE_DEFINE_OG_IMAGE_DYNAMIC],
+      [RE_DEFINE_OG_IMAGE_CACHED],
+      [RE_DEFINE_OG_IMAGE_WITHOUT_CACHE],
+    ] as const) {
+      if (re.test(content)) {
+        re.lastIndex = 0
+        content = content.replace(re, 'defineOgImage(')
+        modified = true
+        changeCount++
+      }
     }
 
     // Pattern 2: defineOgImage({ ... }) object syntax
@@ -536,8 +683,10 @@ async function runMigrate(args: string[]): Promise<void> {
   const noComponentWork = !migrationCheck.needsComponentRename
   const noFontsWork = !migrationCheck.needsFontsMigration && !migrationCheck.needsNuxtFonts
   const noDefaultsWork = !migrationCheck.needsDefaultsComponentMigration
+  const noConfigWork = migrationCheck.deprecatedConfigKeys.length === 0
+  const noCommunityWork = migrationCheck.usedCommunityTemplates.length === 0
 
-  if (noComponentWork && noFontsWork && noDefaultsWork) {
+  if (noComponentWork && noFontsWork && noDefaultsWork && noConfigWork && noCommunityWork) {
     console.log('✓ All OG Image components already have renderer suffixes.')
     p.outro('Done')
     return
@@ -551,12 +700,19 @@ async function runMigrate(args: string[]): Promise<void> {
   if (migrationCheck.needsDefaultsComponentMigration) {
     tasks.push(`Remove deprecated defaults.component: '${migrationCheck.defaultComponentName}'`)
   }
+  if (migrationCheck.deprecatedConfigKeys.length > 0) {
+    tasks.push(`Remove ${migrationCheck.deprecatedConfigKeys.length} deprecated config option(s): ${migrationCheck.deprecatedConfigKeys.map(k => k.key).join(', ')}`)
+  }
   if (migrationCheck.needsFontsMigration) {
     tasks.push('Migrate ogImage.fonts to @nuxt/fonts config')
   }
   if (migrationCheck.needsNuxtFonts) {
     tasks.push('Install @nuxt/fonts module')
   }
+  if (migrationCheck.usedCommunityTemplates.length > 0) {
+    tasks.push(`Eject community templates: ${migrationCheck.usedCommunityTemplates.join(', ')}`)
+  }
+  tasks.push('Migrate deprecated composables (defineOgImageStatic, etc.) to defineOgImage()')
   tasks.push('Migrate <OgImage> and <OgImageScreenshot> components to composables')
   tasks.push('Update defineOgImage() calls to new API')
 
@@ -694,6 +850,58 @@ async function runMigrate(args: string[]): Promise<void> {
       }
       else {
         p.log.warn(`Fonts migration: ${result.message}`)
+      }
+    }
+  }
+
+  // Remove deprecated config options
+  if (migrationCheck.deprecatedConfigKeys.length > 0) {
+    if (dryRun) {
+      p.log.info('Would remove deprecated config options:')
+      for (const { key, replacement } of migrationCheck.deprecatedConfigKeys) {
+        p.log.info(`  • ogImage.${key} → ${replacement}`)
+      }
+    }
+    else {
+      const result = await removeDeprecatedConfigKeys(cwd, migrationCheck.deprecatedConfigKeys).catch((err) => {
+        p.log.warn(`Failed to remove deprecated config: ${(err as Error).message}`)
+        return { removed: [] as string[], failed: migrationCheck.deprecatedConfigKeys.map(k => k.key) }
+      })
+      if (result.removed.length > 0) {
+        p.log.success(`Removed deprecated config: ${result.removed.map(k => `ogImage.${k}`).join(', ')}`)
+      }
+      for (const key of result.failed) {
+        const replacement = migrationCheck.deprecatedConfigKeys.find(k => k.key === key)?.replacement
+        if (replacement) {
+          p.log.warn(`  Could not remove ogImage.${key} — manually replace with: ${replacement}`)
+        }
+      }
+    }
+  }
+
+  // Warn about community templates that need ejection
+  if (migrationCheck.usedCommunityTemplates.length > 0) {
+    p.log.warn('Community templates detected that must be ejected for production:')
+    for (const name of migrationCheck.usedCommunityTemplates) {
+      p.log.warn(`  • ${name}`)
+    }
+    if (!dryRun) {
+      const shouldEject = skipConfirm || await p.confirm({
+        message: 'Eject community templates now?',
+        initialValue: true,
+      }).then(v => !p.isCancel(v) && v)
+
+      if (shouldEject) {
+        const targetDir = existsSync(join(cwd, 'app')) ? join(cwd, 'app') : cwd
+        for (const name of migrationCheck.usedCommunityTemplates) {
+          ejectTemplate(name, targetDir)
+        }
+      }
+      else {
+        p.log.info('Run manually before building for production:')
+        for (const name of migrationCheck.usedCommunityTemplates) {
+          p.log.info(`  npx nuxt-og-image eject ${name}`)
+        }
       }
     }
   }
