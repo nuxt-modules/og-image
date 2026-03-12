@@ -850,18 +850,18 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Pre-scan component directories to detect renderers early (before nitro hooks fire)
     // This ensures detectedRenderers is populated when nitro:init runs
+    // Only user-provided components drive renderer detection — community templates are
+    // module-managed fallbacks and should not influence which WASM bindings get bundled
     let hasUserComponents = false
     for (const resolvedPath of resolvedOgComponentPaths) {
-      // OgImageCommunity is module-managed (community templates), not user-provided
       const isUserDir = !resolvedPath.endsWith('/OgImageCommunity')
-      if (fs.existsSync(resolvedPath)) {
+      if (isUserDir && fs.existsSync(resolvedPath)) {
         const files = fs.readdirSync(resolvedPath).filter(f => f.endsWith('.vue'))
         for (const file of files) {
           const renderer = getRendererFromFilename(file)
           if (renderer) {
             ogImageComponentCtx.detectedRenderers.add(renderer)
-            if (isUserDir)
-              hasUserComponents = true
+            hasUserComponents = true
           }
         }
       }
