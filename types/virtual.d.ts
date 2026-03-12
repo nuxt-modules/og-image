@@ -26,13 +26,9 @@ declare module '#og-image/bindings/satori' {
   export default satori
 }
 
-declare module '#og-image/bindings/resvg' {
-  interface WasmResvg {
-    initWasmPromise: Promise<void>
-    Resvg: import('resvg').Resvg
-  }
-  const instance: WasmResvg
-  export default instance
+declare module '#og-image/bindings/svgToPng' {
+  const _default: { initWasmPromise: Promise<void>, svgToPng: (svg: string, width?: number, height?: number) => Promise<Buffer | Uint8Array> }
+  export default _default
 }
 declare module '#og-image/bindings/browser' {
   export const createBrowser: () => Promise<Browser | void>

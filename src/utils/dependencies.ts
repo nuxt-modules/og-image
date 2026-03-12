@@ -12,6 +12,8 @@ export interface ProviderDependency {
   name: string
   description: string
   optional?: boolean
+  /** Alternative packages that can satisfy this dependency */
+  alternatives?: string[]
 }
 
 export interface ProviderDefinition {
@@ -31,15 +33,15 @@ export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
     bindings: {
       'node': [
         { name: 'satori', description: 'HTML to SVG renderer' },
-        { name: '@resvg/resvg-js', description: 'SVG to PNG converter (native)' },
+        { name: '@napi-rs/image', description: 'SVG to PNG converter', alternatives: ['sharp'] },
       ],
       'wasm': [
         { name: 'satori', description: 'HTML to SVG renderer' },
-        { name: '@resvg/resvg-wasm', description: 'SVG to PNG converter (WASM)' },
+        { name: '@napi-rs/image', description: 'SVG to PNG converter' },
       ],
       'wasm-fs': [
         { name: 'satori', description: 'HTML to SVG renderer' },
-        { name: '@resvg/resvg-wasm', description: 'SVG to PNG converter (WASM)' },
+        { name: '@napi-rs/image', description: 'SVG to PNG converter' },
       ],
     },
   },
@@ -141,10 +143,10 @@ export function getRecommendedBindingFromPreset(provider: ProviderName): Binding
 export function getRecommendedBinding(provider: ProviderName, compatibility: RuntimeCompatibilitySchema): BindingVariant {
   // check provider-specific binding from compatibility
   if (provider === 'satori') {
-    const resvgBinding = compatibility.resvg
-    if (resvgBinding === 'wasm-fs')
+    const binding = compatibility.svgToPng
+    if (binding === 'wasm-fs')
       return 'wasm-fs'
-    if (resvgBinding === 'wasm')
+    if (binding === 'wasm')
       return 'wasm'
     return 'node'
   }
@@ -225,10 +227,9 @@ export async function validateProviderSetup(
 
   // provider-specific checks
   if (renderer === 'satori') {
-    const hasResvgNode = await hasResolvableDependency('@resvg/resvg-js')
-    const hasResvgWasm = await hasResolvableDependency('@resvg/resvg-wasm')
-    if (!hasResvgNode && !hasResvgWasm) {
-      issues.push('Satori requires either @resvg/resvg-js (node) or @resvg/resvg-wasm to render PNGs')
+    const hasNapiImage = await hasResolvableDependency('@napi-rs/image')
+    if (!hasNapiImage) {
+      issues.push('Satori requires @napi-rs/image to render PNGs')
     }
   }
 

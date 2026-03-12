@@ -22,7 +22,7 @@ expect.extend({ toMatchImageSnapshot })
 let hasSatoriDeps = false
 try {
   await import('satori')
-  await import('@resvg/resvg-wasm')
+  await import('@napi-rs/image')
   hasSatoriDeps = true
 }
 catch {
@@ -144,7 +144,7 @@ describe('vercel-edge-satori', () => {
     }, 60000)
   })
 
-  it.runIf(!canRunTests)('skips tests (missing satori, @resvg/resvg-wasm, or vercel CLI)', () => {
+  it.runIf(!canRunTests)('skips tests (missing satori, @napi-rs/image, or vercel CLI)', () => {
     expect(true).toBe(true)
   })
 

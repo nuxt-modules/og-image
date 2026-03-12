@@ -81,9 +81,7 @@ const EDGE_PRESETS = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 've
 function getRendererDeps(renderer: RendererName, isEdge: boolean): string[] {
   switch (renderer) {
     case 'satori':
-      return isEdge
-        ? ['satori', '@resvg/resvg-js', '@resvg/resvg-wasm']
-        : ['satori', '@resvg/resvg-js']
+      return ['satori', '@napi-rs/image']
     case 'takumi':
       return isEdge
         ? ['@takumi-rs/core', '@takumi-rs/wasm']
