@@ -26,7 +26,7 @@ const autodetectableStaticProviders = {
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
   browser: 'on-demand', // this gets changed build start
-  resvg: 'node',
+  svgToPng: 'node',
   satori: 'node',
   takumi: 'node',
   sharp: 'node', // will be disabled if they're missing the dependency
@@ -35,19 +35,19 @@ export const NodeRuntime: RuntimeCompatibilitySchema = {
 
 const NodeDevRuntime: RuntimeCompatibilitySchema = {
   ...NodeRuntime,
-  resvg: 'node-dev', // use worker to prevent crashes from killing process
+  svgToPng: 'node-dev', // use worker to prevent crashes from killing process
   takumi: 'node-dev', // use worker to prevent crashes from killing process
 }
 
 const NodePrerenderRuntime: RuntimeCompatibilitySchema = {
   ...NodeRuntime,
-  resvg: 'node-dev', // use worker to prevent crashes from killing prerender process
+  svgToPng: 'node-dev', // use worker to prevent crashes from killing prerender process
   takumi: 'node-dev', // use worker to prevent crashes from killing prerender process
 }
 
 const cloudflare: RuntimeCompatibilitySchema = {
   browser: 'cloudflare',
-  resvg: 'wasm',
+  svgToPng: 'wasm',
   satori: 'wasm',
   takumi: 'wasm',
   sharp: false,
@@ -60,7 +60,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
 }
 const awsLambda: RuntimeCompatibilitySchema = {
   browser: false,
-  resvg: 'node',
+  svgToPng: 'node',
   satori: 'node',
   takumi: 'node',
   sharp: false, // 0.33.x has issues
@@ -69,7 +69,7 @@ const awsLambda: RuntimeCompatibilitySchema = {
 
 export const WebContainer: RuntimeCompatibilitySchema = {
   browser: false,
-  resvg: 'wasm-fs',
+  svgToPng: 'wasm-fs',
   satori: 'wasm-fs',
   takumi: 'wasm',
   sharp: false,
@@ -87,7 +87,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'netlify': awsLambda,
   'netlify-edge': {
     browser: false,
-    resvg: 'wasm',
+    svgToPng: 'wasm',
     satori: 'node',
     takumi: 'wasm',
     sharp: false,
@@ -95,7 +95,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     wasm: {
       rollup: {
         targetEnv: 'auto-inline',
-        sync: ['@resvg/resvg-wasm/index_bg.wasm'],
+        sync: [],
       },
     },
   },
@@ -103,7 +103,7 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'vercel': awsLambda,
   'vercel-edge': {
     browser: false,
-    resvg: 'wasm',
+    svgToPng: 'wasm',
     satori: 'wasm',
     takumi: 'wasm',
     sharp: false,
@@ -205,7 +205,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     await applyBinding('browser'),
     await applyBinding('satori'),
     await applyBinding('takumi'),
-    await applyBinding('resvg'),
+    await applyBinding('svgToPng'),
     await applyBinding('sharp'),
     nitroConfig.alias || {},
   )

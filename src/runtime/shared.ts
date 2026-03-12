@@ -67,7 +67,6 @@ function filterIsOgImageOption(key: string) {
     '_hash',
     'fonts',
     'satori',
-    'resvg',
     'sharp',
     'screenshot',
     'cacheMaxAgeSeconds',

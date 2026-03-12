@@ -14,7 +14,7 @@ export function setupGenerateHandler(_options: ModuleOptions, resolve: Resolver,
       compatibility: {
         browser: false,
         satori: false,
-        resvg: false,
+        svgToPng: false,
         sharp: false,
       },
       resolve,

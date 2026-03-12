@@ -24,7 +24,7 @@ expect.extend({ toMatchImageSnapshot })
 let hasSatoriDeps = false
 try {
   await import('satori')
-  await import('@resvg/resvg-wasm')
+  await import('@napi-rs/image')
   hasSatoriDeps = true
 }
 catch {
@@ -162,7 +162,7 @@ describe('cloudflare-satori', () => {
     }, 30000)
   })
 
-  it.runIf(!canRunTests)('skips tests (missing satori, @resvg/resvg-wasm, or wrangler)', () => {
+  it.runIf(!canRunTests)('skips tests (missing satori, @napi-rs/image, or wrangler)', () => {
     expect(true).toBe(true)
   })
 

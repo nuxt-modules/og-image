@@ -83,10 +83,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           }
         }
       }
-      const [resvgHash, yogaHash] = await Promise.all([
-        resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm'),
-        resolveFilePathSha1('satori/yoga.wasm'),
-      ])
+      const yogaHash = await resolveFilePathSha1('satori/yoga.wasm')
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
           continue
@@ -115,7 +112,6 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           const wasmPath = isCloudflarePagesOrModule ? `../wasm/` : `./wasm/`
           // Try the original source import paths first (before nitro's WASM plugin resolves them)
           contents = contents
-            .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
             .replaceAll('"satori/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
             // Legacy: also handle yoga-wasm-web path in case it appears
             .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
@@ -127,10 +123,10 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         }
         // HACK: Cloudflare Workers block WebAssembly.instantiate() at runtime entirely
         // (see https://github.com/vercel/satori/issues/693). The Emscripten glue in satori
-        // and @resvg/resvg-wasm calls WebAssembly.instantiate(module, imports) even when
+        // calls WebAssembly.instantiate(module, imports) even when
         // given a pre-compiled WebAssembly.Module. CF requires using
         // new WebAssembly.Instance(module, imports) synchronously instead.
-        // TODO: remove once satori/resvg-wasm handles WebAssembly.Module natively
+        // TODO: remove once satori handles WebAssembly.Module natively
         if (isCloudflarePreset) {
           contents = patchWebAssemblyInstantiate(contents)
         }

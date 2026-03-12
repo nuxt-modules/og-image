@@ -1,4 +1,3 @@
-import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
 import type { H3Error, H3Event } from 'h3'
 import type { Hookable } from 'hookable'
@@ -32,7 +31,6 @@ export type EmojiStrategy = 'auto' | 'local' | 'fetch'
 export interface OgImageRuntimeConfig {
   version: string
   satoriOptions: SatoriOptions
-  resvgOptions: ResvgRenderOptions
   sharpOptions: SharpOptions
 
   publicStoragePath: string
@@ -151,7 +149,6 @@ export interface OgImageOptions {
    */
   html?: string
   // vendor config
-  resvg?: ResvgRenderOptions
   satori?: SatoriOptions
   screenshot?: Partial<ScreenshotOptions>
   sharp?: SharpOptions & JpegOptions
@@ -224,7 +221,7 @@ export interface RuntimeFontConfig extends FontConfig {
 
 export interface RuntimeCompatibilitySchema {
   browser: 'chrome-launcher' | 'on-demand' | 'playwright' | 'cloudflare' | false
-  resvg: 'node' | 'node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
+  svgToPng: 'node' | 'node-dev' | 'sharp-node' | 'sharp-node-dev' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   satori: 'node' | 'wasm' | 'wasm-fs' | 'wasm-edge' | false
   takumi: 'node' | 'node-dev' | 'wasm' | false
   sharp: 'node' | false
@@ -258,7 +255,7 @@ export type ReactiveComponentProps<T extends Component> = {
   [K in keyof ExtractComponentProps<T>]?: MaybeRefOrGetter<ExtractComponentProps<T>[K]>
 }
 
-export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'resvg' | 'sharp'>
+export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'sharp'>
 
 export interface VNode {
   type: string

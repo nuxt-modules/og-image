@@ -1,5 +1,4 @@
 import type { Nuxt } from '@nuxt/schema'
-import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type { CssProvider } from './build/css/css-provider'
@@ -84,12 +83,6 @@ export interface ModuleOptions {
    * @see https://github.com/vercel/satori/blob/main/src/satori.ts#L18
    */
   satoriOptions?: Partial<SatoriOptions>
-  /**
-   * Options to pass to resvg.
-   *
-   * @see https://github.com/yisibl/resvg-js/blob/main/wasm/index.d.ts#L39
-   */
-  resvgOptions?: Partial<ResvgRenderOptions>
   /**
    * Options to pass to sharp.
    *
@@ -907,19 +900,7 @@ export default defineNuxtModule<ModuleOptions>({
           else {
             logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
           }
-          // Set resvg WASM fallback compatibility when satori resolved to wasm binding
-          if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
-            logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
-            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-              dev: { resvg: 'wasm-fs' },
-              prerender: { resvg: 'wasm-fs' },
-            })
-            if (targetCompatibility.resvg === 'node') {
-              config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
-                runtime: { resvg: 'wasm' },
-              })
-            }
-          }
+          // @napi-rs/image handles native/wasm platform detection automatically
         }
       }
       else {
@@ -1332,7 +1313,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
         version,
         // binding options
         satoriOptions: config.satoriOptions || {},
-        resvgOptions: config.resvgOptions || {},
         sharpOptions: config.sharpOptions === true ? {} : (config.sharpOptions || {}),
         publicStoragePath: `root${publicDirAbs.replace(nuxt.options.rootDir, '').replaceAll('/', ':')}`,
 

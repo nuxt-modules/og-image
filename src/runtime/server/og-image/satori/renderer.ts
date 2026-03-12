@@ -7,7 +7,7 @@ import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { extractCodepointsFromVNodes, loadAllFonts, loadAllFontsDebug } from '../fonts'
-import { getResvg, getSatori, getSharp } from './instances'
+import { getSatori, getSharp, getSvgToPng } from './instances'
 import { createVNodes } from './vnodes'
 
 // Stable font array cache — satori uses a WeakMap keyed by array identity
@@ -89,21 +89,11 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
 }
 
 async function createPng(event: OgImageRenderEventContext) {
-  const { resvgOptions } = useOgImageRuntimeConfig()
   const { svg } = await createSvg(event)
   if (!svg)
     throw new Error('Failed to create SVG')
-  const options = defu(event.options.resvg, resvgOptions)
-  const Resvg = await getResvg()
-  const resvg = new Resvg(svg, options)
-  const pngData = resvg.render()
-  const png = pngData.asPng()
-  // Free WASM resources when using @resvg/resvg-wasm (no-op for native binding)
-  if (typeof (pngData as any).free === 'function')
-    (pngData as any).free()
-  if (typeof (resvg as any).free === 'function')
-    (resvg as any).free()
-  return png
+  const svgToPng = await getSvgToPng()
+  return svgToPng(svg, event.options.width as number, event.options.height as number)
 }
 
 async function createJpeg(event: OgImageRenderEventContext) {

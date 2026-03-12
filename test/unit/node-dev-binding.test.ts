@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import binding from '../../src/runtime/server/og-image/bindings/resvg/node-dev'
+import binding from '../../src/runtime/server/og-image/bindings/svgToPng/node-dev'
 
-const { Resvg } = binding
+const { svgToPng } = binding
 
 const simpleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
   <rect width="100" height="100" fill="red"/>
 </svg>`
 
-describe('node-dev resvg binding', () => {
+describe('node-dev image binding', () => {
   it('renders simple svg to png', async () => {
-    const resvg = new Resvg(simpleSvg)
-    const png = await resvg.render().asPng()
+    const png = await svgToPng(simpleSvg)
     expect(png).toBeInstanceOf(Buffer)
     expect(png.length).toBeGreaterThan(0)
     // PNG magic bytes
@@ -22,9 +21,9 @@ describe('node-dev resvg binding', () => {
 
   it('handles concurrent requests', async () => {
     const results = await Promise.all([
-      new Resvg(simpleSvg).render().asPng(),
-      new Resvg(simpleSvg).render().asPng(),
-      new Resvg(simpleSvg).render().asPng(),
+      svgToPng(simpleSvg),
+      svgToPng(simpleSvg),
+      svgToPng(simpleSvg),
     ])
     for (const png of results) {
       expect(png).toBeInstanceOf(Buffer)
@@ -34,8 +33,7 @@ describe('node-dev resvg binding', () => {
 
   it('rejects on invalid svg without crashing', async () => {
     const invalidSvg = `not valid svg`
-    const resvg = new Resvg(invalidSvg)
-    const error = await resvg.render().asPng().catch(e => e)
+    const error = await svgToPng(invalidSvg).catch(e => e)
     expect(error).toBeInstanceOf(Error)
   })
 })

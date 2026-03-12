@@ -11,7 +11,7 @@ let emojiCounter = 0
 
 /**
  * Wrap gradient and filter definitions in <defs> element for better SVG renderer compatibility.
- * Some renderers (like resvg used by satori) may not recognize gradients outside of defs.
+ * Some SVG renderers may not recognize gradients outside of defs.
  */
 function wrapDefsElements(svg: string): string {
   // Find all gradient and filter elements that aren't already in defs

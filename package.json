@@ -68,24 +68,20 @@
     "test:chrome": "HAS_CHROME=true vitest"
   },
   "peerDependencies": {
-    "@resvg/resvg-js": "^2.6.0",
-    "@resvg/resvg-wasm": "^2.6.0",
-    "@takumi-rs/core": "^0.70.1",
-    "@takumi-rs/wasm": "^0.70.1",
-    "@unhead/vue": "^2.0.5",
-    "fontless": "^0.2.0",
-    "playwright-core": "^1.50.0",
-    "satori": ">=0.19.2",
-    "sharp": "^0.34.0",
-    "tailwindcss": "^4.0.0",
-    "unifont": "^0.7.0",
-    "unstorage": "^1.15.0"
+    "@napi-rs/image": ">=1.12.0",
+    "@takumi-rs/core": ">=0.71.7",
+    "@takumi-rs/wasm": ">=0.71.7",
+    "@unhead/vue": ">=2.1.12",
+    "fontless": ">=0.2.1",
+    "playwright-core": ">=1.58.2",
+    "satori": ">=0.25.0",
+    "sharp": ">=0.34.5",
+    "tailwindcss": ">=4.2.1",
+    "unifont": ">=0.7.4",
+    "unstorage": ">=1.17.4"
   },
   "peerDependenciesMeta": {
-    "@resvg/resvg-js": {
-      "optional": true
-    },
-    "@resvg/resvg-wasm": {
+    "@napi-rs/image": {
       "optional": true
     },
     "@takumi-rs/core": {
@@ -152,6 +148,7 @@
     "@iconify-json/ri": "catalog:",
     "@iconify-json/tabler": "catalog:",
     "@img/sharp-linux-x64": "catalog:",
+    "@napi-rs/image": "catalog:",
     "@nuxt/content": "catalog:",
     "@nuxt/devtools": "catalog:",
     "@nuxt/devtools-ui-kit": "catalog:",
@@ -165,8 +162,6 @@
     "@nuxtjs/eslint-config-typescript": "catalog:",
     "@nuxtjs/i18n": "catalog:",
     "@nuxtjs/tailwindcss": "catalog:",
-    "@resvg/resvg-js": "catalog:",
-    "@resvg/resvg-wasm": "catalog:",
     "@shikijs/langs": "catalog:",
     "@shikijs/themes": "catalog:",
     "@tailwindcss/vite": "catalog:",

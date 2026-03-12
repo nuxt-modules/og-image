@@ -1,18 +1,16 @@
-import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import { Worker } from 'node:worker_threads'
 
 const workerCode = `
 const { createRequire } = require('node:module')
 const _require = createRequire(process.cwd() + '/')
 const { parentPort } = require('node:worker_threads')
-const { Resvg } = _require('@resvg/resvg-js')
+const { Transformer } = _require('@napi-rs/image')
 
-parentPort.on('message', ({ id, svg, options }) => {
+parentPort.on('message', async ({ id, svg, width, height }) => {
   try {
-    const resvg = new Resvg(svg, options)
-    const png = resvg.render().asPng()
-    // Always slice to create a standard ArrayBuffer — native addon buffers
-    // use external memory that can't be transferred via postMessage
+    const t = Transformer.fromSvg(svg)
+    if (width && height) t.crop(0, 0, width, height)
+    const png = await t.png()
     const ab = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength)
     parentPort.postMessage({ id, png: ab }, [ab])
   } catch (err) {
@@ -33,14 +31,14 @@ function killWorker() {
   for (const [id, p] of pending) {
     clearTimeout(p.timer)
     pending.delete(id)
-    p.reject(new Error('Resvg worker terminated'))
+    p.reject(new Error('Image worker terminated'))
   }
 }
 
 // Clean up worker on process exit — avoid SIGINT/SIGTERM signal handlers because
 // they keep the event loop alive and prevent exit after prerendering completes.
 // Use Symbol.for guard to prevent duplicate listeners on HMR re-imports.
-const signalKey = Symbol.for('og-image:resvg-worker-cleanup')
+const signalKey = Symbol.for('og-image:svg-to-png-worker-cleanup')
 if (!(globalThis as any)[signalKey]) {
   (globalThis as any)[signalKey] = true
   process.on('exit', killWorker)
@@ -72,7 +70,7 @@ function createWorker() {
       for (const [id, p] of pending) {
         clearTimeout(p.timer)
         pending.delete(id)
-        p.reject(new Error(`Resvg worker exited with code ${code}`))
+        p.reject(new Error(`Image worker exited with code ${code}`))
       }
     }
     worker = null
@@ -83,7 +81,7 @@ function createWorker() {
   return w
 }
 
-function renderPng(svg: string, options?: ResvgRenderOptions): Promise<Buffer> {
+function svgToPng(svg: string, width?: number, height?: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     if (!worker)
       worker = createWorker()
@@ -91,37 +89,15 @@ function renderPng(svg: string, options?: ResvgRenderOptions): Promise<Buffer> {
     const id = ++requestId
     const timer = setTimeout(() => {
       pending.delete(id)
-      reject(new Error('resvg worker timed out — killing worker'))
+      reject(new Error('Image worker timed out — killing worker'))
       killWorker()
     }, 30_000)
     pending.set(id, { resolve, reject, timer })
-    worker.postMessage({ id, svg, options })
+    worker.postMessage({ id, svg, width, height })
   })
-}
-
-// Proxy class matching Resvg interface but delegating to worker
-class ResvgWorkerProxy {
-  private svg: string
-  private options?: ResvgRenderOptions
-  private pngPromise: Promise<Buffer> | null = null
-
-  constructor(svg: string, options?: ResvgRenderOptions) {
-    this.svg = svg
-    this.options = options
-  }
-
-  render() {
-    // Start rendering lazily
-    if (!this.pngPromise)
-      this.pngPromise = renderPng(this.svg, this.options)
-
-    return {
-      asPng: () => this.pngPromise!,
-    }
-  }
 }
 
 export default {
   initWasmPromise: Promise.resolve(),
-  Resvg: ResvgWorkerProxy as unknown as typeof import('@resvg/resvg-wasm').Resvg,
+  svgToPng,
 }

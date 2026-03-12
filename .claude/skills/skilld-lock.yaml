@@ -55,3 +55,16 @@ skills:
     source: "https://github.com/shikijs/shiki/tree/v4.0.0/docs"
     syncedAt: 2026-02-28
     generator: skilld
+  satori-skilld:
+    packageName: satori
+    version: 0.25.0
+    repo: vercel/satori
+    source: "https://og-playground.vercel.app/**"
+    syncedAt: 2026-03-12
+    generator: skilld
+  napi-rs-image-skilld:
+    packageName: "@napi-rs/image"
+    version: 1.12.0
+    source: "file:///home/harlan/pkg/og-image/node_modules/@napi-rs/image/README.md"
+    syncedAt: 2026-03-12
+    generator: skilld

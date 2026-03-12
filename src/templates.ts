@@ -179,9 +179,8 @@ declare module '#og-image/bindings/satori' {
   export default _default
 }
 
-declare module '#og-image/bindings/resvg' {
-  import { Resvg } from '@resvg/resvg-js'
-  const _default: { initWasmPromise: Promise<void>, Resvg: typeof Resvg }
+declare module '#og-image/bindings/svgToPng' {
+  const _default: { initWasmPromise: Promise<void>, svgToPng: (svg: string, width?: number, height?: number) => Promise<Buffer | Uint8Array> }
   export default _default
 }
 
