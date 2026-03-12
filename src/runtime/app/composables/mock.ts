@@ -1,4 +1,5 @@
 import type { OgImageComponents } from '#og-image/components'
+import type { Ref } from 'vue'
 import type { OgImageOptions, OgImagePageScreenshotOptions, ReactiveComponentProps } from '../../types'
 import { useRuntimeConfig } from 'nuxt/app'
 import { logger } from '../../logger'
@@ -18,7 +19,7 @@ export function defineOgImageComponent<T extends keyof OgImageComponents>(_compo
   }
 }
 
-export function defineOgImageUrl(_url: string | (() => string), _options: OgImageOptions = {}) {
+export function defineOgImageUrl(_url: string | (() => string) | Ref<string>, _options: OgImageOptions = {}) {
   if (import.meta.dev) {
     logger.warn('`defineOgImageUrl()` is skipped as the OG Image module is not enabled.')
   }
