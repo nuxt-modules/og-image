@@ -14,7 +14,7 @@ interface NitroApp {
 
 export interface OgImageRenderEventContext {
   e: H3Event
-  extension: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html' | 'json'
+  extension: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html' | 'json'
   key: string
   basePath: string
   renderer: Renderer
@@ -144,7 +144,7 @@ export interface OgImageOptions {
    * Props to pass to the component.
    */
   props?: Record<string, any>
-  extension?: 'png' | 'jpeg' | 'jpg' | 'svg' | 'html'
+  extension?: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html'
   emojis?: IconifyEmojiIconSets | false
   /**
    * Provide a static HTML template to render the OG Image instead of a component.

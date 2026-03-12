@@ -151,7 +151,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
 const TakumiRenderer: Renderer = {
   name: 'takumi',
-  supportedFormats: ['png', 'jpeg', 'jpg', 'json'],
+  supportedFormats: ['png', 'jpeg', 'jpg', 'webp', 'json'],
 
   async createImage(e) {
     switch (e.extension) {
@@ -160,6 +160,8 @@ const TakumiRenderer: Renderer = {
       case 'jpeg':
       case 'jpg':
         return createImage(e, 'jpeg')
+      case 'webp':
+        return createImage(e, 'webp')
     }
   },
 

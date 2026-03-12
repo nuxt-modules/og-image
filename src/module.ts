@@ -75,7 +75,7 @@ export interface ModuleOptions {
    *
    * You can use this to change the default template, image sizing and more.
    *
-   * @default { width: 1200, height: 600, cache: true, cacheTtl: 24 * 60 * 60 * 1000 }
+   * @default { width: 1200, height: 600, extension: 'png', emojis: 'noto', cacheMaxAgeSeconds: 60 * 60 * 24 * 3 }
    */
   defaults: Omit<OgImageOptions, 'component' | 'renderer' | 'props' | 'url' | 'html' | 'key' | 'cacheKey' | '_query' | '_hash' | 'socialPreview'>
   /**
@@ -132,7 +132,7 @@ export interface ModuleOptions {
   /**
    * Extra component directories that should be used to resolve components.
    *
-   * @default ['OgImage', 'og-image', 'OgImageTemplate']
+   * @default ['OgImage', 'OgImageCommunity', 'og-image', 'OgImageTemplate']
    */
   componentDirs: string[]
   /**

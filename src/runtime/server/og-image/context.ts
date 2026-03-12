@@ -52,7 +52,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const path = resolvePathWithBase(parseURL(e.path).pathname)
 
   let extension = path.split('.').pop() as OgImageRenderEventContext['extension']
-  if (!extension || !path.includes('.') || extension.includes('/') || !['png', 'jpeg', 'jpg', 'svg', 'html', 'json'].includes(extension)) {
+  if (!extension || !path.includes('.') || extension.includes('/') || !['png', 'jpeg', 'jpg', 'webp', 'svg', 'html', 'json'].includes(extension)) {
     extension = 'png'
   }
 
