@@ -1,4 +1,4 @@
-<img src="https://github.com/nuxt-modules/og-image/assets/5326365/e337b490-dccb-4e58-972a-5e6e63f30986" alt="Nuxt OG Image DevTools Preview">
+<img src=".github/assets/og-image-preview.png" alt="Nuxt OG Image DevTools Preview">
 
 <h1>nuxt-og-image</h1>
 
