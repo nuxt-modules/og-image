@@ -18,6 +18,12 @@ export function defineOgImageComponent<T extends keyof OgImageComponents>(_compo
   }
 }
 
+export function defineOgImageUrl(_url: string | (() => string), _options: OgImageOptions = {}) {
+  if (import.meta.dev) {
+    logger.warn('`defineOgImageUrl()` is skipped as the OG Image module is not enabled.')
+  }
+}
+
 export function defineOgImageScreenshot(_options: OgImagePageScreenshotOptions = {}) {
   if (import.meta.dev) {
     if (useRuntimeConfig()['nuxt-og-image']) {
