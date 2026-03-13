@@ -51,7 +51,7 @@ catalog:
   '@tailwindcss/vite': ^4.2.1
   '@takumi-rs/core': ^0.71.7
   '@takumi-rs/wasm': ^0.71.7
-  '@vitejs/plugin-vue': ^6.0.4
+  '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.30
   '@vueuse/core': ^14.2.1
   '@vueuse/nuxt': ^14.2.1
@@ -69,7 +69,7 @@ catalog:
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
   globby: ^16.1.1
-  happy-dom: ^20.8.3
+  happy-dom: ^20.8.4
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.32.0
   magic-string: ^0.30.21
@@ -80,7 +80,7 @@ catalog:
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.117.0
+  oxc-parser: ^0.118.0
   oxc-walker: ^0.7.0
   pathe: ^2.0.3
   pkg-types: ^2.3.0
