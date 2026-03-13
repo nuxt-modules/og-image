@@ -23,10 +23,6 @@ const RE_EXCLUDE_OUTPUT = /\.output/
 const RE_EXCLUDE_DATA = /\.data/
 const RE_EXCLUDE_DIST = /dist/
 const RE_VUE_OR_SCRIPT = /\.(?:vue|ts|tsx|js|jsx)$/
-// Script block extraction for .vue files
-const RE_SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/g
-// Template block extraction for .vue files
-const RE_TEMPLATE_BLOCK = /<template\b[^>]*>([\s\S]*?)<\/template>/
 
 // Deprecated composable names that should be renamed to defineOgImage
 const DEPRECATED_COMPOSABLE_NAMES = new Set([
@@ -169,6 +165,40 @@ function collectScriptReplacements(code: string, filename: string): AstReplaceme
   })
 
   return replacements
+}
+
+interface SfcBlock {
+  content: string
+  offset: number
+}
+
+/**
+ * Parse a Vue SFC with ultrahtml to extract script and template blocks with their offsets.
+ */
+function parseSfcBlocks(code: string): { scripts: SfcBlock[], template: SfcBlock | null } {
+  const scripts: SfcBlock[] = []
+  let template: SfcBlock | null = null
+  const ast = parseHtml(code)
+
+  walkSync(ast, (node) => {
+    if (node.type !== ELEMENT_NODE || !('name' in node))
+      return
+    const el = node as { name: string, children: any[], loc: [{ start: number, end: number }, { start: number, end: number }] }
+    if (el.name === 'script' && el.children.length > 0) {
+      const child = el.children[0]
+      scripts.push({ content: child.value, offset: child.loc[0].start })
+    }
+    else if (el.name === 'template' && el.children.length > 0) {
+      // Template inner content spans from first child start to last child end
+      const firstChild = el.children[0]
+      const lastChild = el.children.at(-1)
+      const start = firstChild.loc[0].start
+      const end = lastChild.loc[1].end
+      template = { content: code.slice(start, end), offset: start }
+    }
+  })
+
+  return { scripts, template }
 }
 
 /**
@@ -623,18 +653,17 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
     let modified = false
     let changeCount = 0
 
-    // Template component migration via ultrahtml AST
-    // <OgImageScreenshot /> and <OgImage /> → comments
-    if (file.endsWith('.vue') && content.includes('OgImage')) {
-      const templateMatch = content.match(RE_TEMPLATE_BLOCK)
-      if (templateMatch) {
-        const templateContent = templateMatch[1]!
-        const templateOffset = templateMatch.index! + templateMatch[0].indexOf(templateContent)
-        const replacements = collectTemplateReplacements(templateContent)
+    if (file.endsWith('.vue')) {
+      // Parse SFC once with ultrahtml to extract all blocks
+      const { scripts, template } = parseSfcBlocks(content)
+
+      // Template component migration: <OgImage /> and <OgImageScreenshot /> → comments
+      if (template && content.includes('OgImage')) {
+        const replacements = collectTemplateReplacements(template.content)
         if (replacements.length > 0) {
           const adjusted = replacements.map(r => ({
-            start: r.start + templateOffset,
-            end: r.end + templateOffset,
+            start: r.start + template.offset,
+            end: r.end + template.offset,
             text: r.text,
           }))
           content = applyReplacements(content, adjusted)
@@ -642,44 +671,29 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
           changeCount += replacements.length
         }
       }
-    }
 
-    // AST-based JS/TS migrations (composable renames, object syntax, import paths)
-    const hasScriptPatterns = content.includes('defineOgImage')
-      || content.includes('#nuxt-og-image-utils')
-      || content.includes('useOgImageRuntimeConfig')
-
-    if (hasScriptPatterns) {
-      if (file.endsWith('.vue')) {
-        // Extract and transform each <script> block independently
-        RE_SCRIPT_BLOCK.lastIndex = 0
-        for (let m = RE_SCRIPT_BLOCK.exec(content); m; m = RE_SCRIPT_BLOCK.exec(content)) {
-          const scriptContent = m[1]!
-          const scriptOffset = m.index + m[0].indexOf(scriptContent)
-
-          const replacements = collectScriptReplacements(scriptContent, file)
-          if (replacements.length > 0) {
-            // Adjust positions to full-file offsets
-            const adjusted = replacements.map(r => ({
-              start: r.start + scriptOffset,
-              end: r.end + scriptOffset,
-              text: r.text,
-            }))
-            content = applyReplacements(content, adjusted)
-            modified = true
-            changeCount += replacements.length
-            // Reset regex since content changed
-            RE_SCRIPT_BLOCK.lastIndex = 0
-          }
+      // Script migrations: composable renames, object syntax, import paths
+      // Collect all replacements across all script blocks, then apply once
+      const allReplacements: AstReplacement[] = []
+      for (const script of scripts) {
+        const replacements = collectScriptReplacements(script.content, file)
+        for (const r of replacements) {
+          allReplacements.push({ start: r.start + script.offset, end: r.end + script.offset, text: r.text })
         }
       }
-      else {
-        const replacements = collectScriptReplacements(content, file)
-        if (replacements.length > 0) {
-          content = applyReplacements(content, replacements)
-          modified = true
-          changeCount += replacements.length
-        }
+      if (allReplacements.length > 0) {
+        content = applyReplacements(content, allReplacements)
+        modified = true
+        changeCount += allReplacements.length
+      }
+    }
+    else {
+      // Non-Vue file: parse as JS/TS directly
+      const replacements = collectScriptReplacements(content, file)
+      if (replacements.length > 0) {
+        content = applyReplacements(content, replacements)
+        modified = true
+        changeCount += replacements.length
       }
     }
 
