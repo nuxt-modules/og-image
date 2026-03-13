@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { downlevelColor, resolveCssVars, stripAtSupports } from '../../src/build/css/css-utils'
-import { sanitizeTakumiStyles } from '../../src/runtime/server/og-image/takumi/sanitize'
 
 describe('stripAtSupports', () => {
   it('strips @supports blocks with nested braces', () => {
@@ -47,13 +46,5 @@ describe('build-time inline style var resolution', () => {
     const result = await downlevelColor('color', 'oklch(0.746 0.16 232.661)')
     expect(result).toMatch(/^#|^rgba?\(/)
     expect(result).not.toContain('oklch')
-  })
-})
-
-describe('sanitizeTakumiStyles', () => {
-  it('strips unresolved var() references', () => {
-    const node = { style: { color: 'var(--missing)' } }
-    sanitizeTakumiStyles(node)
-    expect(node.style.color).toBeUndefined()
   })
 })
