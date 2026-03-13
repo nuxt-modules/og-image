@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import { loadNuxtConfig } from '@nuxt/kit'
 import { addDependency, detectPackageManager } from 'nypm'
+import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
+import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
 import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -15,39 +17,199 @@ const communityDir = resolve(__dirname, 'runtime/app/components/Templates/Commun
 const RE_RENDERER_SUFFIX = /\.(satori|browser|takumi)\.vue$/
 const RE_ANY_RENDERER_SUFFIX = /\.(?:satori|browser|takumi|chromium)\.vue$/
 const RE_CHROMIUM_SUFFIX = /\.chromium\.vue$/
-const RE_ATTR = /:(\w+)="([^"]*)"|(\w+)="([^"]*)"|(\w+)/g
 const RE_EXCLUDE_NODE_MODULES = /node_modules/
 const RE_EXCLUDE_NUXT = /\.nuxt/
 const RE_EXCLUDE_OUTPUT = /\.output/
 const RE_EXCLUDE_DATA = /\.data/
 const RE_EXCLUDE_DIST = /dist/
 const RE_VUE_OR_SCRIPT = /\.(?:vue|ts|tsx|js|jsx)$/
-const RE_OG_IMAGE_SCREENSHOT_SELF_CLOSE = /<OgImageScreenshot([^>]*?)\/>/g
-const RE_OG_IMAGE_SCREENSHOT_OPEN_CLOSE = /<OgImageScreenshot([^>]*)>[\s\S]*?<\/OgImageScreenshot>/g
-const RE_OG_IMAGE_SELF_CLOSE = /<OgImage(?!Screenshot)([^>]*?)\/>/g
-const RE_OG_IMAGE_OPEN_CLOSE = /<OgImage(?!Screenshot)([^>]*)>[\s\S]*?<\/OgImage>/g
-const RE_DEFINE_OG_IMAGE_COMPONENT = /defineOgImageComponent\s*\(/
-const RE_DEFINE_OG_IMAGE_COMPONENT_GLOBAL = /defineOgImageComponent\s*\(/g
-const RE_DEFINE_OG_IMAGE_CALL = /defineOgImage\s*\(\s*(\{[\s\S]*?\})\s*\)/g
-const RE_COMPONENT_PROP = /component\s*:\s*['"]([^'"]+)['"]/
-const RE_RENDERER_PROP = /renderer\s*:\s*['"]([^'"]+)['"]/
-const RE_PROPS_PROP = /props\s*:\s*(\{[^}]*\})/
-const RE_RENDERER_PROP_GLOBAL = /renderer\s*:\s*['"][^'"]+['"]\s*,?\s*/g
-const RE_TRAILING_COMMA = /,\s*$/
-const RE_EMPTY_BRACES = /^\{\s*\}$/
-const RE_COMMA_NOT_IN_BRACES = /,(?![^{]*\})/
-const RE_LINE_COMPONENT = /^component\s*:/
-const RE_LINE_PROPS = /^props\s*:/
-const RE_LINE_RENDERER = /^renderer\s*:/
-const RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG = /import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"]#og-image\/shared['"]/
-const RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG_GLOBAL = /(import\s*\{[^}]*useOgImageRuntimeConfig[^}]*\}\s*from\s*['"])#og-image\/shared(['"])/g
-const RE_NUXT_OG_IMAGE_UTILS_GLOBAL = /#nuxt-og-image-utils/g
 
-// Deprecated composables that map to defineOgImage()
-const RE_DEFINE_OG_IMAGE_STATIC = /defineOgImageStatic\s*\(/g
-const RE_DEFINE_OG_IMAGE_DYNAMIC = /defineOgImageDynamic\s*\(/g
-const RE_DEFINE_OG_IMAGE_CACHED = /defineOgImageCached\s*\(/g
-const RE_DEFINE_OG_IMAGE_WITHOUT_CACHE = /defineOgImageWithoutCache\s*\(/g
+// Deprecated composable names that should be renamed to defineOgImage
+const DEPRECATED_COMPOSABLE_NAMES = new Set([
+  'defineOgImageComponent',
+  'defineOgImageStatic',
+  'defineOgImageDynamic',
+  'defineOgImageCached',
+  'defineOgImageWithoutCache',
+])
+
+// All composable names that may need migration (including defineOgImage itself for object syntax)
+const ALL_OG_IMAGE_COMPOSABLES = new Set([
+  'defineOgImage',
+  ...DEPRECATED_COMPOSABLE_NAMES,
+])
+
+interface AstReplacement {
+  start: number
+  end: number
+  text: string
+}
+
+/**
+ * Use oxc-walker to collect AST-based replacements for JS/TS code.
+ * Handles: composable renames, object syntax migration, import path migration.
+ */
+function collectScriptReplacements(code: string, filename: string): AstReplacement[] {
+  const replacements: AstReplacement[] = []
+
+  parseAndWalk(code, filename, (node: any) => {
+    // Import path migrations
+    if (node.type === 'ImportDeclaration') {
+      const source = node.source
+      const sourceValue = source?.value
+      if (sourceValue === '#nuxt-og-image-utils') {
+        replacements.push({ start: source.start + 1, end: source.end - 1, text: '#og-image/shared' })
+      }
+      else if (sourceValue === '#og-image/shared') {
+        const specifiers = node.specifiers || []
+        const hasRuntimeConfig = specifiers.some((s: any) => {
+          const imported = s.imported || s.local
+          return imported?.name === 'useOgImageRuntimeConfig'
+        })
+        if (hasRuntimeConfig) {
+          replacements.push({ start: source.start + 1, end: source.end - 1, text: '#og-image/app/utils' })
+        }
+      }
+      return
+    }
+
+    // CallExpression: composable renames + object syntax migration
+    if (node.type !== 'CallExpression')
+      return
+
+    const callee = node.callee
+    const calleeName: string | undefined = callee?.name
+    if (!calleeName || !ALL_OG_IMAGE_COMPOSABLES.has(calleeName))
+      return
+
+    const args = node.arguments || []
+
+    // Single object argument → check for url / component / renderer patterns
+    if (args.length === 1 && args[0]?.type === 'ObjectExpression') {
+      const objArg = args[0]
+      const properties = (objArg.properties || []).filter((p: any) =>
+        p.type === 'ObjectProperty' || p.type === 'Property',
+      )
+
+      const findProp = (name: string) => properties.find((p: any) =>
+        p.key?.name === name,
+      )
+
+      const urlProp = findProp('url')
+      const componentProp = findProp('component')
+      const rendererProp = findProp('renderer')
+      const propsProp = findProp('props')
+
+      // { url: '...' } → useSeoMeta({ ogImage: url, ... })
+      if (urlProp) {
+        const urlValue = code.slice(urlProp.value.start, urlProp.value.end)
+        // Map known OG properties to useSeoMeta equivalents
+        const ogPropMap: Record<string, string> = {
+          width: 'ogImageWidth',
+          height: 'ogImageHeight',
+          alt: 'ogImageAlt',
+          type: 'ogImageType',
+        }
+        const seoMetaProps = [`ogImage: ${urlValue}`]
+        for (const prop of properties) {
+          if (prop === urlProp)
+            continue
+          const keyName = prop.key?.name as string
+          const mappedName = ogPropMap[keyName]
+          if (mappedName) {
+            seoMetaProps.push(`${mappedName}: ${code.slice(prop.value.start, prop.value.end)}`)
+          }
+        }
+        const text = `useSeoMeta({ ${seoMetaProps.join(', ')} })`
+        replacements.push({ start: node.start, end: node.end, text })
+        return
+      }
+
+      // { renderer: 'chromium' } (no component) → defineOgImageScreenshot()
+      if (!componentProp && rendererProp) {
+        const rendererValue = code.slice(rendererProp.value.start, rendererProp.value.end).trim()
+        if (rendererValue === '\'chromium\'' || rendererValue === '"chromium"') {
+          const otherProps = properties.filter((p: any) => p !== rendererProp)
+          const text = otherProps.length > 0
+            ? `defineOgImageScreenshot({ ${otherProps.map((p: any) => code.slice(p.start, p.end)).join(', ')} })`
+            : `defineOgImageScreenshot()`
+          replacements.push({ start: node.start, end: node.end, text })
+          return
+        }
+      }
+
+      // { component: 'Name', props: {...} } → defineOgImage('Name', props, { ...rest })
+      if (componentProp || rendererProp) {
+        const componentName = componentProp
+          ? code.slice(componentProp.value.start, componentProp.value.end)
+          : '\'NuxtSeo\''
+        const propsValue = propsProp
+          ? code.slice(propsProp.value.start, propsProp.value.end)
+          : '{}'
+        const otherProps = properties.filter((p: any) =>
+          p !== componentProp && p !== rendererProp && p !== propsProp,
+        )
+
+        const text = otherProps.length > 0
+          ? `defineOgImage(${componentName}, ${propsValue}, { ${otherProps.map((p: any) => code.slice(p.start, p.end)).join(', ')} })`
+          : `defineOgImage(${componentName}, ${propsValue})`
+        replacements.push({ start: node.start, end: node.end, text })
+        return
+      }
+    }
+
+    // Fallback: just rename deprecated composable → defineOgImage
+    if (DEPRECATED_COMPOSABLE_NAMES.has(calleeName)) {
+      replacements.push({ start: callee.start, end: callee.end, text: 'defineOgImage' })
+    }
+  })
+
+  return replacements
+}
+
+interface SfcBlock {
+  content: string
+  offset: number
+}
+
+/**
+ * Parse a Vue SFC with ultrahtml to extract script and template blocks with their offsets.
+ */
+function parseSfcBlocks(code: string): { scripts: SfcBlock[], template: SfcBlock | null } {
+  const scripts: SfcBlock[] = []
+  let template: SfcBlock | null = null
+  const ast = parseHtml(code)
+
+  walkSync(ast, (node) => {
+    if (node.type !== ELEMENT_NODE || !('name' in node))
+      return
+    const el = node as { name: string, children: any[], loc: [{ start: number, end: number }, { start: number, end: number }] }
+    // Use parent element loc: loc[0].end = end of open tag, loc[1].start = start of close tag
+    if (el.name === 'script' && el.loc) {
+      const start = el.loc[0].end
+      const end = el.loc[1].start
+      scripts.push({ content: code.slice(start, end), offset: start })
+    }
+    else if (el.name === 'template' && el.loc) {
+      const start = el.loc[0].end
+      const end = el.loc[1].start
+      template = { content: code.slice(start, end), offset: start }
+    }
+  })
+
+  return { scripts, template }
+}
+
+/**
+ * Apply collected replacements to source code (reverse order to preserve offsets).
+ */
+function applyReplacements(code: string, replacements: AstReplacement[]): string {
+  const sorted = replacements.toSorted((a, b) => b.start - a.start)
+  for (const r of sorted) {
+    code = code.slice(0, r.start) + r.text + code.slice(r.end)
+  }
+  return code
+}
 
 // Default component directories (must match module.ts)
 const defaultComponentDirs = ['OgImage', 'OgImageCommunity', 'og-image', 'OgImageTemplate']
@@ -414,21 +576,56 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   return result
 }
 
-// Convert Vue template attrs like `title="Hello" :width="1200"` to a JS object string
-function attrsToProps(attrs: string): string {
-  if (!attrs)
-    return ''
+/**
+ * Convert ultrahtml element attributes to a JS object string for migration comments.
+ */
+function attrsToProps(attributes: Record<string, string>): string {
   const props: string[] = []
-  // Match :prop="expr" or prop="value" or prop (boolean)
-  for (const m of attrs.matchAll(RE_ATTR)) {
-    if (m[1]) // dynamic :prop="expr"
-      props.push(`${m[1]}: ${m[2]}`)
-    else if (m[3]) // static prop="value"
-      props.push(`${m[3]}: '${m[4]}'`)
-    else if (m[5]) // boolean prop
-      props.push(`${m[5]}: true`)
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key.startsWith(':')) {
+      // dynamic :prop="expr"
+      props.push(`${key.slice(1)}: ${value}`)
+    }
+    else if (value === '') {
+      // boolean prop
+      props.push(`${key}: true`)
+    }
+    else {
+      // static prop="value"
+      props.push(`${key}: '${value}'`)
+    }
   }
   return props.length ? `{ ${props.join(', ')} }` : ''
+}
+
+/**
+ * Use ultrahtml to collect template-level replacements for <OgImage> and <OgImageScreenshot> components.
+ */
+function collectTemplateReplacements(templateHtml: string): AstReplacement[] {
+  const replacements: AstReplacement[] = []
+  const ast = parseHtml(templateHtml)
+
+  walkSync(ast, (node) => {
+    if (node.type !== ELEMENT_NODE || !('name' in node))
+      return
+    const el = node as { name: string, attributes: Record<string, string>, loc: [{ start: number, end: number }, { start: number, end: number }] }
+    if (el.name !== 'OgImage' && el.name !== 'OgImageScreenshot')
+      return
+
+    const isScreenshot = el.name === 'OgImageScreenshot'
+    const composable = isScreenshot ? 'defineOgImageScreenshot' : 'defineOgImage'
+    const propsStr = attrsToProps(el.attributes)
+
+    const start = el.loc[0].start
+    const end = el.loc[1].end
+    const text = propsStr
+      ? `<!-- Migrated: use ${composable}(${propsStr}) in <script setup> -->`
+      : `<!-- Migrated: use ${composable}() in <script setup> -->`
+
+    replacements.push({ start, end, text })
+  })
+
+  return replacements
 }
 
 // Migrate defineOgImage API
@@ -441,127 +638,62 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
 
   for (const file of files) {
     let content = readFileSync(file, 'utf-8')
+
+    // Fast-path: skip files without any relevant patterns
+    if (
+      !content.includes('defineOgImage')
+      && !content.includes('OgImage')
+      && !content.includes('#nuxt-og-image-utils')
+      && !content.includes('useOgImageRuntimeConfig')
+    ) {
+      continue
+    }
+
     let modified = false
     let changeCount = 0
 
-    // Pattern 0: <OgImageScreenshot /> and <OgImage /> component usage → composable
-    // Handles self-closing and open/close tags, with or without props
-    content = content.replace(RE_OG_IMAGE_SCREENSHOT_SELF_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
-    })
-    content = content.replace(RE_OG_IMAGE_SCREENSHOT_OPEN_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
-    })
-    // OgImage but not OgImageScreenshot (use word boundary via negative lookahead)
-    content = content.replace(RE_OG_IMAGE_SELF_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImage() in <script setup> -->`
-    })
-    content = content.replace(RE_OG_IMAGE_OPEN_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImage() in <script setup> -->`
-    })
+    if (file.endsWith('.vue')) {
+      // Parse SFC once with ultrahtml to extract all blocks
+      const { scripts, template } = parseSfcBlocks(content)
 
-    // Pattern 1: defineOgImageComponent → defineOgImage
-    if (RE_DEFINE_OG_IMAGE_COMPONENT.test(content)) {
-      content = content.replace(RE_DEFINE_OG_IMAGE_COMPONENT_GLOBAL, 'defineOgImage(')
-      modified = true
-      changeCount++
-    }
-
-    // Pattern 1b: deprecated composables → defineOgImage
-    for (const [re] of [
-      [RE_DEFINE_OG_IMAGE_STATIC],
-      [RE_DEFINE_OG_IMAGE_DYNAMIC],
-      [RE_DEFINE_OG_IMAGE_CACHED],
-      [RE_DEFINE_OG_IMAGE_WITHOUT_CACHE],
-    ] as const) {
-      if (re.test(content)) {
-        re.lastIndex = 0
-        content = content.replace(re, 'defineOgImage(')
-        modified = true
-        changeCount++
-      }
-    }
-
-    // Pattern 2: defineOgImage({ ... }) object syntax
-    content = content.replace(RE_DEFINE_OG_IMAGE_CALL, (match, inner) => {
-      const componentMatch = inner.match(RE_COMPONENT_PROP)
-      const rendererMatch = inner.match(RE_RENDERER_PROP)
-      const propsMatch = inner.match(RE_PROPS_PROP)
-
-      if (!componentMatch && rendererMatch && rendererMatch[1] === 'chromium') {
-        const remaining = inner
-          .replace(RE_RENDERER_PROP_GLOBAL, '')
-          .replace(RE_TRAILING_COMMA, '')
-          .replace(RE_EMPTY_BRACES, '') // strip empty braces
-          .trim()
-        modified = true
-        changeCount++
-        return remaining ? `defineOgImageScreenshot(${remaining})` : `defineOgImageScreenshot()`
-      }
-
-      if (componentMatch || rendererMatch) {
-        const componentName = componentMatch ? componentMatch[1] : 'NuxtSeo'
-        const props = propsMatch ? propsMatch[1] : '{}'
-
-        const otherOptions: string[] = []
-        const lines = inner.split(RE_COMMA_NOT_IN_BRACES).map((s: string) => s.trim())
-        for (const line of lines) {
-          if (!line)
-            continue
-          if (RE_LINE_COMPONENT.test(line))
-            continue
-          if (RE_LINE_PROPS.test(line))
-            continue
-          if (RE_LINE_RENDERER.test(line))
-            continue
-          otherOptions.push(line)
+      // Template component migration: <OgImage /> and <OgImageScreenshot /> → comments
+      if (template && content.includes('OgImage')) {
+        const replacements = collectTemplateReplacements(template.content)
+        if (replacements.length > 0) {
+          const adjusted = replacements.map(r => ({
+            start: r.start + template.offset,
+            end: r.end + template.offset,
+            text: r.text,
+          }))
+          content = applyReplacements(content, adjusted)
+          modified = true
+          changeCount += replacements.length
         }
-
-        modified = true
-        changeCount++
-
-        if (otherOptions.length > 0) {
-          return `defineOgImage('${componentName}', ${props}, { ${otherOptions.join(', ')} })`
-        }
-        return `defineOgImage('${componentName}', ${props})`
       }
 
-      return match
-    })
-
-    // Pattern 3: Import path migrations
-    if (content.includes('#nuxt-og-image-utils')) {
-      content = content.replace(RE_NUXT_OG_IMAGE_UTILS_GLOBAL, '#og-image/shared')
-      modified = true
-      changeCount++
+      // Script migrations: composable renames, object syntax, import paths
+      // Collect all replacements across all script blocks, then apply once
+      const allReplacements: AstReplacement[] = []
+      for (const script of scripts) {
+        const replacements = collectScriptReplacements(script.content, file)
+        for (const r of replacements) {
+          allReplacements.push({ start: r.start + script.offset, end: r.end + script.offset, text: r.text })
+        }
+      }
+      if (allReplacements.length > 0) {
+        content = applyReplacements(content, allReplacements)
+        modified = true
+        changeCount += allReplacements.length
+      }
     }
-    if (RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG.test(content)) {
-      content = content.replace(
-        RE_IMPORT_USE_OG_IMAGE_RUNTIME_CONFIG_GLOBAL,
-        '$1#og-image/app/utils$2',
-      )
-      modified = true
-      changeCount++
+    else {
+      // Non-Vue file: parse as JS/TS directly
+      const replacements = collectScriptReplacements(content, file)
+      if (replacements.length > 0) {
+        content = applyReplacements(content, replacements)
+        modified = true
+        changeCount += replacements.length
+      }
     }
 
     if (modified) {
@@ -714,6 +846,7 @@ async function runMigrate(args: string[]): Promise<void> {
   }
   tasks.push('Migrate deprecated composables (defineOgImageStatic, etc.) to defineOgImage()')
   tasks.push('Migrate <OgImage> and <OgImageScreenshot> components to composables')
+  tasks.push('Migrate defineOgImage({ url }) to useSeoMeta({ ogImage })')
   tasks.push('Update defineOgImage() calls to new API')
 
   p.note(tasks.map(t => `• ${t}`).join('\n'), 'Migration tasks')
