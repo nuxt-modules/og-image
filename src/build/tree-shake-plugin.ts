@@ -53,7 +53,6 @@ export const TreeShakeComposablesPlugin = createUnplugin(() => {
     'defineOgImage',
     'defineOgImageComponent',
     'defineOgImageScreenshot',
-    'defineOgImageUrl',
   ]
 
   const regexp = `(^\\s*)(${composableNames.join('|')})(?=\\((?!\\) \\{))`

@@ -80,6 +80,8 @@ catalog:
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
+  oxc-parser: ^0.117.0
+  oxc-walker: ^0.7.0
   pathe: ^2.0.3
   pkg-types: ^2.3.0
   playwright: ^1.58.2
