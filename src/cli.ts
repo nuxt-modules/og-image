@@ -184,16 +184,15 @@ function parseSfcBlocks(code: string): { scripts: SfcBlock[], template: SfcBlock
     if (node.type !== ELEMENT_NODE || !('name' in node))
       return
     const el = node as { name: string, children: any[], loc: [{ start: number, end: number }, { start: number, end: number }] }
-    if (el.name === 'script' && el.children.length > 0) {
-      const child = el.children[0]
-      scripts.push({ content: child.value, offset: child.loc[0].start })
+    // Use parent element loc: loc[0].end = end of open tag, loc[1].start = start of close tag
+    if (el.name === 'script' && el.loc) {
+      const start = el.loc[0].end
+      const end = el.loc[1].start
+      scripts.push({ content: code.slice(start, end), offset: start })
     }
-    else if (el.name === 'template' && el.children.length > 0) {
-      // Template inner content spans from first child start to last child end
-      const firstChild = el.children[0]
-      const lastChild = el.children.at(-1)
-      const start = firstChild.loc[0].start
-      const end = lastChild.loc[1].end
+    else if (el.name === 'template' && el.loc) {
+      const start = el.loc[0].end
+      const end = el.loc[1].start
       template = { content: code.slice(start, end), offset: start }
     }
   })
