@@ -6,6 +6,7 @@ import { loadNuxtConfig } from '@nuxt/kit'
 import { addDependency, detectPackageManager } from 'nypm'
 import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
+import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
 import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -16,19 +17,16 @@ const communityDir = resolve(__dirname, 'runtime/app/components/Templates/Commun
 const RE_RENDERER_SUFFIX = /\.(satori|browser|takumi)\.vue$/
 const RE_ANY_RENDERER_SUFFIX = /\.(?:satori|browser|takumi|chromium)\.vue$/
 const RE_CHROMIUM_SUFFIX = /\.chromium\.vue$/
-const RE_ATTR = /:(\w+)="([^"]*)"|(\w+)="([^"]*)"|(\w+)/g
 const RE_EXCLUDE_NODE_MODULES = /node_modules/
 const RE_EXCLUDE_NUXT = /\.nuxt/
 const RE_EXCLUDE_OUTPUT = /\.output/
 const RE_EXCLUDE_DATA = /\.data/
 const RE_EXCLUDE_DIST = /dist/
 const RE_VUE_OR_SCRIPT = /\.(?:vue|ts|tsx|js|jsx)$/
-const RE_OG_IMAGE_SCREENSHOT_SELF_CLOSE = /<OgImageScreenshot([^>]*?)\/>/g
-const RE_OG_IMAGE_SCREENSHOT_OPEN_CLOSE = /<OgImageScreenshot([^>]*)>[\s\S]*?<\/OgImageScreenshot>/g
-const RE_OG_IMAGE_SELF_CLOSE = /<OgImage(?!Screenshot)([^>]*?)\/>/g
-const RE_OG_IMAGE_OPEN_CLOSE = /<OgImage(?!Screenshot)([^>]*)>[\s\S]*?<\/OgImage>/g
 // Script block extraction for .vue files
 const RE_SCRIPT_BLOCK = /<script\b[^>]*>([\s\S]*?)<\/script>/g
+// Template block extraction for .vue files
+const RE_TEMPLATE_BLOCK = /<template\b[^>]*>([\s\S]*?)<\/template>/
 
 // Deprecated composable names that should be renamed to defineOgImage
 const DEPRECATED_COMPOSABLE_NAMES = new Set([
@@ -549,21 +547,56 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   return result
 }
 
-// Convert Vue template attrs like `title="Hello" :width="1200"` to a JS object string
-function attrsToProps(attrs: string): string {
-  if (!attrs)
-    return ''
+/**
+ * Convert ultrahtml element attributes to a JS object string for migration comments.
+ */
+function attrsToProps(attributes: Record<string, string>): string {
   const props: string[] = []
-  // Match :prop="expr" or prop="value" or prop (boolean)
-  for (const m of attrs.matchAll(RE_ATTR)) {
-    if (m[1]) // dynamic :prop="expr"
-      props.push(`${m[1]}: ${m[2]}`)
-    else if (m[3]) // static prop="value"
-      props.push(`${m[3]}: '${m[4]}'`)
-    else if (m[5]) // boolean prop
-      props.push(`${m[5]}: true`)
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key.startsWith(':')) {
+      // dynamic :prop="expr"
+      props.push(`${key.slice(1)}: ${value}`)
+    }
+    else if (value === '') {
+      // boolean prop
+      props.push(`${key}: true`)
+    }
+    else {
+      // static prop="value"
+      props.push(`${key}: '${value}'`)
+    }
   }
   return props.length ? `{ ${props.join(', ')} }` : ''
+}
+
+/**
+ * Use ultrahtml to collect template-level replacements for <OgImage> and <OgImageScreenshot> components.
+ */
+function collectTemplateReplacements(templateHtml: string): AstReplacement[] {
+  const replacements: AstReplacement[] = []
+  const ast = parseHtml(templateHtml)
+
+  walkSync(ast, (node) => {
+    if (node.type !== ELEMENT_NODE || !('name' in node))
+      return
+    const el = node as { name: string, attributes: Record<string, string>, loc: [{ start: number, end: number }, { start: number, end: number }] }
+    if (el.name !== 'OgImage' && el.name !== 'OgImageScreenshot')
+      return
+
+    const isScreenshot = el.name === 'OgImageScreenshot'
+    const composable = isScreenshot ? 'defineOgImageScreenshot' : 'defineOgImage'
+    const propsStr = attrsToProps(el.attributes)
+
+    const start = el.loc[0].start
+    const end = el.loc[1].end
+    const text = propsStr
+      ? `<!-- Migrated: use ${composable}(${propsStr}) in <script setup> -->`
+      : `<!-- Migrated: use ${composable}() in <script setup> -->`
+
+    replacements.push({ start, end, text })
+  })
+
+  return replacements
 }
 
 // Migrate defineOgImage API
@@ -590,40 +623,26 @@ function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: stri
     let modified = false
     let changeCount = 0
 
-    // Template component migration (HTML — regex is appropriate here)
+    // Template component migration via ultrahtml AST
     // <OgImageScreenshot /> and <OgImage /> → comments
-    content = content.replace(RE_OG_IMAGE_SCREENSHOT_SELF_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
-    })
-    content = content.replace(RE_OG_IMAGE_SCREENSHOT_OPEN_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImageScreenshot(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImageScreenshot() in <script setup> -->`
-    })
-    content = content.replace(RE_OG_IMAGE_SELF_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImage() in <script setup> -->`
-    })
-    content = content.replace(RE_OG_IMAGE_OPEN_CLOSE, (_match, attrs: string) => {
-      modified = true
-      changeCount++
-      const propsStr = attrsToProps(attrs.trim())
-      return propsStr
-        ? `<!-- Migrated: use defineOgImage(${propsStr}) in <script setup> -->`
-        : `<!-- Migrated: use defineOgImage() in <script setup> -->`
-    })
+    if (file.endsWith('.vue') && content.includes('OgImage')) {
+      const templateMatch = content.match(RE_TEMPLATE_BLOCK)
+      if (templateMatch) {
+        const templateContent = templateMatch[1]!
+        const templateOffset = templateMatch.index! + templateMatch[0].indexOf(templateContent)
+        const replacements = collectTemplateReplacements(templateContent)
+        if (replacements.length > 0) {
+          const adjusted = replacements.map(r => ({
+            start: r.start + templateOffset,
+            end: r.end + templateOffset,
+            text: r.text,
+          }))
+          content = applyReplacements(content, adjusted)
+          modified = true
+          changeCount += replacements.length
+        }
+      }
+    }
 
     // AST-based JS/TS migrations (composable renames, object syntax, import paths)
     const hasScriptPatterns = content.includes('defineOgImage')
