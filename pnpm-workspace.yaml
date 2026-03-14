@@ -49,8 +49,8 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.1
-  '@takumi-rs/core': ^0.71.7
-  '@takumi-rs/wasm': ^0.71.7
+  '@takumi-rs/core': ^0.72.0
+  '@takumi-rs/wasm': ^0.72.0
   '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.30
   '@vueuse/core': ^14.2.1

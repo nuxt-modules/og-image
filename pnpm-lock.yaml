@@ -91,11 +91,11 @@ catalogs:
       specifier: ^4.2.1
       version: 4.2.1
     '@takumi-rs/core':
-      specifier: ^0.71.7
-      version: 0.71.7
+      specifier: ^0.72.0
+      version: 0.72.0
     '@takumi-rs/wasm':
-      specifier: ^0.71.7
-      version: 0.71.7
+      specifier: ^0.72.0
+      version: 0.72.0
     '@vitejs/plugin-vue':
       specifier: ^6.0.5
       version: 6.0.5
@@ -459,10 +459,10 @@ importers:
         version: 4.2.1(vite@8.0.0-beta.13(@types/node@25.4.0)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.98.0)(terser@5.46.0)(yaml@2.8.2))
       '@takumi-rs/core':
         specifier: 'catalog:'
-        version: 0.71.7
+        version: 0.72.0
       '@takumi-rs/wasm':
         specifier: 'catalog:'
-        version: 0.71.7
+        version: 0.72.0
       '@vitejs/plugin-vue':
         specifier: 'catalog:'
         version: 6.0.5(vite@8.0.0-beta.13(@types/node@25.4.0)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.98.0)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.30(typescript@5.9.3))
@@ -3533,64 +3533,64 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@takumi-rs/core-darwin-arm64@0.71.7':
-    resolution: {integrity: sha512-mcW/ikpqj4QToZfvC6JY1nxnCpnvioOUm9QsXiGnjmr7z/zei1Xf4GKl67P/3dEXU6bi7gqsmEf+XOc66E6taQ==}
+  '@takumi-rs/core-darwin-arm64@0.72.0':
+    resolution: {integrity: sha512-JsczMm6q7P/WHs1SsBaNndUo/A8ZmZEzDAvdedmL3BnfCzZVdKhdrxWKUd5Gw6Sb/ybHhQq87u8j/PgKQBSZRw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [darwin]
 
-  '@takumi-rs/core-darwin-x64@0.71.7':
-    resolution: {integrity: sha512-xvhulaXxTWxpMsj7Fqm88KpltQstz6cR2gW1CijdPQd/DEi+k5xso3AM/kH/E80qxCXYItbyyZlLlG7gog9mzg==}
+  '@takumi-rs/core-darwin-x64@0.72.0':
+    resolution: {integrity: sha512-AxoU+Zn5FRxRO6vOJlRnX7Ba2OPwBxV0BrKBQE2mVDotWy54smjhIktc19g7ZVlqrqzabFQcqODdN+P+jtcPJA==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [darwin]
 
-  '@takumi-rs/core-linux-arm64-gnu@0.71.7':
-    resolution: {integrity: sha512-H3JBWt0DlfCMinAMvQyaG3cUF1hI6/f+tSzgXSezg/J8f+vYJaOBOBAE8YXLtBb/+VZe5RzyvMgNsT1+6LNrMw==}
+  '@takumi-rs/core-linux-arm64-gnu@0.72.0':
+    resolution: {integrity: sha512-TcWcvP1lS/CeR2FOF0ekYD7mDIaNpNlP8wiah/n0n8fL6/YgfptSsdEhlbvA5mzbOPOXGrjPaBd02f6RDxjVdw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@takumi-rs/core-linux-arm64-musl@0.71.7':
-    resolution: {integrity: sha512-QkFSh0qabNioGGvZYmXqkTCeuyUAlfkhClo7sl6jfnU2wodG2f0sIcvVLPLshRQBUbY6Rf8ktjp75TVQZFw1HQ==}
+  '@takumi-rs/core-linux-arm64-musl@0.72.0':
+    resolution: {integrity: sha512-2aMouePLXAWaS/BRVDMkySBnTnUJr7C/8NsfmwiUb//TkCamK+Bm+5MwK76moUxoNC4RpbAlex95mi6rjyGlfw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@takumi-rs/core-linux-x64-gnu@0.71.7':
-    resolution: {integrity: sha512-CNSR1x2OPjlnpqY6nksTsp0bTp+41IbXE85TwippLST5NrRokL9xKJ6EM+AFaSfLH/0gy+XMgtOQoD1C+TFDUA==}
+  '@takumi-rs/core-linux-x64-gnu@0.72.0':
+    resolution: {integrity: sha512-pnT0HC2MQIRyhPrLsG3gm9VGdyJUmPTvyoDxV7LqK5GsAqKvI0/nuLfgrzK0HoJCXB9SBQCxZbWuN1B0b+iUyg==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@takumi-rs/core-linux-x64-musl@0.71.7':
-    resolution: {integrity: sha512-xDtS7YuFkr6UtaJ812cxbkx8d0ShzxavQwz59YSTCB1Q0aiW9fnAu7WZeP9rrPRctn3y5sp3DUVyzONvwfCa1w==}
+  '@takumi-rs/core-linux-x64-musl@0.72.0':
+    resolution: {integrity: sha512-t0HaoFHJkvxhrtCZnaXj0DK3srmWrvk9yUp+QtoZ4c9SAImLss1Dj0bFxdFfqEhCTAvQQme4iRRVo9y0VYu4xw==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@takumi-rs/core-win32-arm64-msvc@0.71.7':
-    resolution: {integrity: sha512-2AhdKHby2Hor+d3yrhiZNpght7YXItWN1WXNiK/m/uqKKlmrq7oqgUmdn0/5ks5cZ/JaLjfsLFlgIB2uPReFYA==}
+  '@takumi-rs/core-win32-arm64-msvc@0.72.0':
+    resolution: {integrity: sha512-7hnixrx7TRv+zKJwFXlhkxrpqPMtWzXJww0g3pL253t+EVkzuGwHeH0HSPhDwU00/gDbgOOCjm/A3zBmLY1xzA==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [arm64]
     os: [win32]
 
-  '@takumi-rs/core-win32-x64-msvc@0.71.7':
-    resolution: {integrity: sha512-jZLSrrCv118zP1yAXURjHdHtpWswEiml3mwbJ+ypHKPaLppstpPtQVwRyOUe2GBC/OIGjz1lLl8dEKucJ+P67Q==}
+  '@takumi-rs/core-win32-x64-msvc@0.72.0':
+    resolution: {integrity: sha512-ifpgBuXbqpg2nOJIoe+/72WFH/DHS5+h3g78xdhi36smQ62fJSDrFnt126Efwv4rnOo8SoNjo+37j0CHNtMhlg==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
     cpu: [x64]
     os: [win32]
 
-  '@takumi-rs/core@0.71.7':
-    resolution: {integrity: sha512-5wWs4GNMOcHsJQ6dhpAe0Fk/2mUy40AL2cETSqrt/H21xsGGSsCacGpPpPoIqK4DwdoJyFxoxLwhDGId8WrzOA==}
+  '@takumi-rs/core@0.72.0':
+    resolution: {integrity: sha512-hVOt70hU/lT9r1u2KpehDVI23aXbo07oKNP0dhlUFwvnvxjEWPCs9vMZjnaLpFLU7JI/gm7lhOWOa/qi1RWY+Q==}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
 
-  '@takumi-rs/wasm@0.71.7':
-    resolution: {integrity: sha512-yoau96mSOvG4kSSdypWfpvAacjK4r5tHlg90kOkAcXDp/UFe3npEwNsGe5DzHdKqTpHWsr2tzmEdhjnZW4v2VQ==}
+  '@takumi-rs/wasm@0.72.0':
+    resolution: {integrity: sha512-5IoekEovpjzpoHd5LM4hRLRgRwW8RdFdF9TR2kmysB1rJF34z0ynIC/Fr0yhraxvFIP0fCzdinz14YzyTq6nuQ==}
 
   '@tanstack/table-core@8.21.3':
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
@@ -9753,7 +9753,7 @@ snapshots:
       '@eslint-community/eslint-plugin-eslint-comments': 4.7.1(eslint@10.0.3(jiti@2.6.1))
       '@eslint/markdown': 7.5.1
       '@stylistic/eslint-plugin': 5.10.0(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/eslint-plugin': 8.57.0(@typescript-eslint/parser@8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@typescript-eslint/eslint-plugin': 8.57.0(@typescript-eslint/parser@6.21.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
       '@typescript-eslint/parser': 8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
       '@vitest/eslint-plugin': 1.6.10(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)(vitest@4.1.0(@types/node@25.4.0)(happy-dom@20.8.4)(vite@8.0.0-beta.13(@types/node@25.4.0)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.98.0)(terser@5.46.0)(yaml@2.8.2)))
       ansis: 4.2.0
@@ -12580,42 +12580,42 @@ snapshots:
       tailwindcss: 4.2.1
       vite: 8.0.0-beta.13(@types/node@25.4.0)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.98.0)(terser@5.46.0)(yaml@2.8.2)
 
-  '@takumi-rs/core-darwin-arm64@0.71.7':
+  '@takumi-rs/core-darwin-arm64@0.72.0':
     optional: true
 
-  '@takumi-rs/core-darwin-x64@0.71.7':
+  '@takumi-rs/core-darwin-x64@0.72.0':
     optional: true
 
-  '@takumi-rs/core-linux-arm64-gnu@0.71.7':
+  '@takumi-rs/core-linux-arm64-gnu@0.72.0':
     optional: true
 
-  '@takumi-rs/core-linux-arm64-musl@0.71.7':
+  '@takumi-rs/core-linux-arm64-musl@0.72.0':
     optional: true
 
-  '@takumi-rs/core-linux-x64-gnu@0.71.7':
+  '@takumi-rs/core-linux-x64-gnu@0.72.0':
     optional: true
 
-  '@takumi-rs/core-linux-x64-musl@0.71.7':
+  '@takumi-rs/core-linux-x64-musl@0.72.0':
     optional: true
 
-  '@takumi-rs/core-win32-arm64-msvc@0.71.7':
+  '@takumi-rs/core-win32-arm64-msvc@0.72.0':
     optional: true
 
-  '@takumi-rs/core-win32-x64-msvc@0.71.7':
+  '@takumi-rs/core-win32-x64-msvc@0.72.0':
     optional: true
 
-  '@takumi-rs/core@0.71.7':
+  '@takumi-rs/core@0.72.0':
     optionalDependencies:
-      '@takumi-rs/core-darwin-arm64': 0.71.7
-      '@takumi-rs/core-darwin-x64': 0.71.7
-      '@takumi-rs/core-linux-arm64-gnu': 0.71.7
-      '@takumi-rs/core-linux-arm64-musl': 0.71.7
-      '@takumi-rs/core-linux-x64-gnu': 0.71.7
-      '@takumi-rs/core-linux-x64-musl': 0.71.7
-      '@takumi-rs/core-win32-arm64-msvc': 0.71.7
-      '@takumi-rs/core-win32-x64-msvc': 0.71.7
+      '@takumi-rs/core-darwin-arm64': 0.72.0
+      '@takumi-rs/core-darwin-x64': 0.72.0
+      '@takumi-rs/core-linux-arm64-gnu': 0.72.0
+      '@takumi-rs/core-linux-arm64-musl': 0.72.0
+      '@takumi-rs/core-linux-x64-gnu': 0.72.0
+      '@takumi-rs/core-linux-x64-musl': 0.72.0
+      '@takumi-rs/core-win32-arm64-msvc': 0.72.0
+      '@takumi-rs/core-win32-x64-msvc': 0.72.0
 
-  '@takumi-rs/wasm@0.71.7': {}
+  '@takumi-rs/wasm@0.72.0': {}
 
   '@tanstack/table-core@8.21.3': {}
 
@@ -12966,10 +12966,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/eslint-plugin@8.57.0(@typescript-eslint/parser@8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@typescript-eslint/eslint-plugin@8.57.0(@typescript-eslint/parser@6.21.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@typescript-eslint/parser': 6.21.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
       '@typescript-eslint/scope-manager': 8.57.0
       '@typescript-eslint/type-utils': 8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
       '@typescript-eslint/utils': 8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
@@ -15147,7 +15147,7 @@ snapshots:
     dependencies:
       eslint: 10.0.3(jiti@2.6.1)
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 8.57.0(@typescript-eslint/parser@8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@typescript-eslint/eslint-plugin': 8.57.0(@typescript-eslint/parser@6.21.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
 
   eslint-plugin-vue@10.8.0(@stylistic/eslint-plugin@5.10.0(eslint@10.0.3(jiti@2.6.1)))(@typescript-eslint/parser@8.57.0(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1))(vue-eslint-parser@10.4.0(eslint@10.0.3(jiti@2.6.1))):
     dependencies:

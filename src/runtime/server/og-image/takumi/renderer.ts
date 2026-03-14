@@ -7,7 +7,6 @@ import { logger } from '../../../logger'
 import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
-import { sanitizeTakumiStyles } from './sanitize'
 
 const RE_QUOTES = /['"]/g
 
@@ -98,7 +97,6 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const fonts = await loadAllFonts(event.e, { supportsWoff2: true, preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
-  sanitizeTakumiStyles(nodes)
 
   const state = await getTakumiState(event)
   await loadFontsIntoRenderer(state, fonts)
