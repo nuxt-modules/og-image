@@ -1,22 +1,15 @@
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
-import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/vercel-edge-satori')
 
-const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  customDiffConfig: {
-    threshold: 0.1,
-  },
-  failureThresholdType: 'percent',
-  failureThreshold: 0.1,
-})
-expect.extend({ toMatchImageSnapshot })
+setupImageSnapshots(SNAPSHOT_STRICT)
 
 // Check if satori deps are available
 let hasSatoriDeps = false
@@ -61,7 +54,6 @@ async function deployToVercel(): Promise<string> {
       cwd: fixtureDir,
     },
   })
-  // vercel deploy returns the deployment URL as the last line
   const url = stdout.trim().split('\n').pop()!
   return url
 }

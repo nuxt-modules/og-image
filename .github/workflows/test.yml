@@ -14,8 +14,8 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  lint-typecheck:
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
 
@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version-file: package.json
+          cache: pnpm
 
       - run: pnpm i
 
@@ -38,5 +39,43 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Test
-        run: pnpm run test
+  unit:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - run: pnpm i
+
+      - name: Unit tests
+        run: pnpm vitest --project unit
+
+  e2e:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - run: pnpm i
+
+      - name: Prepare fixtures
+        run: pnpm prepare:fixtures
+
+      - name: E2E tests
+        run: pnpm vitest --project e2e

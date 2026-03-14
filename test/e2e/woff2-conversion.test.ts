@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
-import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
+import { setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
+import { fetchOgImage, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -13,25 +13,7 @@ await setup({
   build: true,
 })
 
-const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  failureThresholdType: 'percent',
-  failureThreshold: 1,
-})
-expect.extend({ toMatchImageSnapshot })
-
-function extractOgImageUrl(html: string): string | null {
-  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  if (!match?.[1])
-    return null
-  try {
-    const url = new URL(match[1])
-    return url.pathname
-  }
-  catch {
-    return match[1]
-  }
-}
+setupImageSnapshots(SNAPSHOT_LOOSE)
 
 function findFontsCacheDir(baseDir: string): string | null {
   const cacheDir = join(baseDir, 'cache', 'fonts')
@@ -81,13 +63,7 @@ describe('woff2 to ttf conversion', () => {
   })
 
   it('renders OG image with fonts (WOFF or converted TTF)', async () => {
-    const html = await $fetch('/') as string
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot()
+    const image = await fetchOgImage('/')
+    expect(image).toMatchImageSnapshot()
   })
 })

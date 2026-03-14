@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { setup } from '@nuxt/test-utils/e2e'
 import { afterAll, describe, expect, it } from 'vitest'
+import { fetchOgHtml, waitFor } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -12,39 +13,6 @@ const componentFile = join(fixtureRoot, 'components/OgImage/CustomClasses.satori
 
 let originalCss: string | undefined
 let originalComponent: string | undefined
-
-function extractOgImageUrl(html: string): string | null {
-  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  if (!match?.[1])
-    return null
-  try {
-    return new URL(match[1]).pathname
-  }
-  catch {
-    return match[1]
-  }
-}
-
-async function fetchOgHtml(): Promise<string | null> {
-  const html = await $fetch('/').catch(() => '') as string
-  if (!html)
-    return null
-  const ogUrl = extractOgImageUrl(html)
-  if (!ogUrl)
-    return null
-  return await $fetch(ogUrl.replace(/\.png$/, '.html')).catch(() => '') as string
-}
-
-async function waitFor(fn: () => Promise<boolean>, { timeout = 15000, interval = 500 } = {}): Promise<void> {
-  const start = Date.now()
-  while (Date.now() - start < timeout) {
-    if (await fn())
-      return
-    await new Promise(r => setTimeout(r, interval))
-  }
-  throw new Error(`waitFor timed out after ${timeout}ms`)
-}
 
 describe.skipIf(!import.meta.env?.TEST_DEV)('hmr css', async () => {
   await setup({
@@ -60,7 +28,7 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('hmr css', async () => {
   })
 
   it('initial render has green bg from @theme vars', async () => {
-    const preview = await fetchOgHtml()
+    const preview = await fetchOgHtml('/')
     expect(preview).toBeTruthy()
     expect(preview).toContain('Hello World')
     // bg-primary-500 (#22c55e) should be resolved to inline style
@@ -87,13 +55,13 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('hmr css', async () => {
     writeFileSync(componentFile, `${originalComponent}<!-- hmr -->`, 'utf-8')
 
     await waitFor(async () => {
-      const preview = await fetchOgHtml()
+      const preview = await fetchOgHtml('/')
       if (!preview)
         return false
       return preview.includes('#ef4444')
     }, { timeout: 20000 })
 
-    const preview = await fetchOgHtml()
+    const preview = await fetchOgHtml('/')
     expect(preview).toMatch(/background-color:\s*#ef4444/)
     expect(preview).not.toMatch(/background-color:\s*#22c55e/)
   }, 30000)

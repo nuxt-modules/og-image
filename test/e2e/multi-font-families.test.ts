@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { describe, expect, it } from 'vitest'
+import { fetchOgImages, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -11,124 +11,61 @@ await setup({
   build: true,
 })
 
-const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  failureThresholdType: 'percent',
-  failureThreshold: 1,
-})
-expect.extend({ toMatchImageSnapshot })
-
-function extractOgImageUrl(html: string): string {
-  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  const url = new URL(match![1]!)
-  return url.pathname
-}
+setupImageSnapshots(SNAPSHOT_LOOSE)
 
 describe('multi-font-families', () => {
-  it('renders Lobster card (font-display, cursive)', async () => {
-    const html = await $fetch('/') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-lobster',
-    })
-  })
+  it('renders all font family cards', async () => {
+    const images = await fetchOgImages(
+      '/',
+      '/playfair',
+      '/roboto',
+      '/variable-bold',
+      '/local-font',
+      '/devanagari',
+      '/devanagari-satori',
+      '/takumi-variable-bold',
+    )
 
-  it('renders Playfair Display card (font-serif)', async () => {
-    const html = await $fetch('/playfair') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-playfair',
-    })
-  })
+    const snapshotIds: Record<string, string> = {
+      '/': 'multi-font-lobster',
+      '/playfair': 'multi-font-playfair',
+      '/roboto': 'multi-font-jetbrains',
+      '/variable-bold': 'multi-font-variable-bold',
+      '/local-font': 'multi-font-local',
+      '/devanagari': 'multi-font-devanagari-takumi',
+      '/devanagari-satori': 'multi-font-devanagari-satori',
+      '/takumi-variable-bold': 'multi-font-takumi-variable-bold',
+    }
 
-  it('renders JetBrains Mono card (font-mono)', async () => {
-    const html = await $fetch('/roboto') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-jetbrains',
-    })
-  })
-
-  it('renders variable font with bold weight', async () => {
-    const html = await $fetch('/variable-bold') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-variable-bold',
-    })
+    for (const [path, id] of Object.entries(snapshotIds)) {
+      expect(images.get(path)).toMatchImageSnapshot({
+        customSnapshotIdentifier: id,
+      })
+    }
   })
 
   it('downloads static font files for variable font weights', async () => {
-    // Verify fontless downloaded static WOFF files under /_og-static-fonts/ (not /_fonts/)
-    const font400: ArrayBuffer = await $fetch('/_og-static-fonts/Nunito_Sans-400-normal.woff', { responseType: 'arrayBuffer' })
+    const [font400, font700] = await Promise.all([
+      $fetch('/_og-static-fonts/Nunito_Sans-400-normal.woff', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
+      $fetch('/_og-static-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
+    ])
     expect(font400.byteLength).toBeGreaterThan(1000)
-    const font700: ArrayBuffer = await $fetch('/_og-static-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' })
     expect(font700.byteLength).toBeGreaterThan(1000)
   })
 
-  it('renders local font card', async () => {
-    const html = await $fetch('/local-font') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-local',
-    })
-  })
-
   it('serves local font files from public directory', async () => {
-    // LocalSans (Inter TTF) — loaded via manual @font-face in main.css
-    const sansRegular: ArrayBuffer = await $fetch('/fonts/LocalSans-Regular.ttf', { responseType: 'arrayBuffer' })
+    const [sansRegular, serifRegular, serifBold] = await Promise.all([
+      $fetch('/fonts/LocalSans-Regular.ttf', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
+      $fetch('/fonts/LocalSerif-Regular.ttf', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
+      $fetch('/fonts/LocalSerif-Bold.ttf', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
+    ])
     expect(sansRegular.byteLength).toBeGreaterThan(1000)
-    // LocalSerif (Merriweather TTF) — loaded via @nuxt/fonts provider: 'none'
-    const serifRegular: ArrayBuffer = await $fetch('/fonts/LocalSerif-Regular.ttf', { responseType: 'arrayBuffer' })
     expect(serifRegular.byteLength).toBeGreaterThan(1000)
-    const serifBold: ArrayBuffer = await $fetch('/fonts/LocalSerif-Bold.ttf', { responseType: 'arrayBuffer' })
     expect(serifBold.byteLength).toBeGreaterThan(1000)
   })
 
   it('downloads static font files for Devanagari (non-Latin subset)', async () => {
-    // Verify fontless downloaded static WOFF for Noto Sans Devanagari under /_og-static-fonts/
-    // This is the regression fix: Takumi's WOFF2 decompressor can't handle subsetted WOFF2
-    // files from Google Fonts CDN, so the fontless pipeline must provide static alternatives
     const font400: ArrayBuffer = await $fetch('/_og-static-fonts/Noto_Sans_Devanagari-400-normal.woff', { responseType: 'arrayBuffer' })
     expect(font400.byteLength).toBeGreaterThan(1000)
-  })
-
-  it('renders Devanagari text with takumi font fallback', async () => {
-    const html = await $fetch('/devanagari') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-devanagari-takumi',
-    })
-  })
-
-  it('renders Devanagari text with satori font fallback', async () => {
-    const html = await $fetch('/devanagari-satori') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-devanagari-satori',
-    })
-  })
-
-  it('renders takumi variable font with bold weight', async () => {
-    const html = await $fetch('/takumi-variable-bold') as string
-    expect(html).toContain('og:image')
-    const basePath = extractOgImageUrl(html)
-    const png: ArrayBuffer = await $fetch(basePath, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(png)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'multi-font-takumi-variable-bold',
-    })
   })
 }, 60000)

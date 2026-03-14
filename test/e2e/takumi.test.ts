@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { describe, expect, it } from 'vitest'
+import { extractOgImageUrl, fetchOgImage, fetchOgImages, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -26,89 +26,14 @@ await setup({
   },
 })
 
-const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  failureThresholdType: 'percent',
-  failureThreshold: 1,
-})
-expect.extend({ toMatchImageSnapshot })
+setupImageSnapshots(SNAPSHOT_LOOSE)
 
-function extractOgImageUrl(html: string): string | null {
-  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  if (!match?.[1])
-    return null
-  try {
-    const url = new URL(match[1])
-    return url.pathname
-  }
-  catch {
-    return match[1]
-  }
-}
+// ── Takumi-only features ────────────────────────────────────────────────
 
 describe('takumi renderer', () => {
   it.runIf(hasTakumi)('renders basic takumi image', async () => {
-    const html = await $fetch('/prefix/takumi') as string
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot()
-  }, 60000)
-
-  it.runIf(hasTakumi)('renders takumi image with <img> and background-image', async () => {
-    const html = await $fetch('/prefix/takumi/image') as string
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'takumi-image-rendering',
-    })
-  }, 60000)
-
-  it.runIf(hasTakumi)('renders takumi image with calc() expressions', async () => {
-    const html = await $fetch('/prefix/takumi/calc') as string
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    // Should render calc(), <style>, and <style scoped> blocks correctly
-    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'takumi-calc-rendering',
-    })
-  }, 60000)
-
-  it.runIf(hasTakumi)('renders takumi image with text overflow ellipsis', async () => {
-    const html = await $fetch('/prefix/takumi/ellipsis') as string
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'takumi-ellipsis-rendering',
-    })
-  }, 60000)
-
-  it.runIf(hasTakumi)('renders takumi image with complex images (GithubAvatars)', async () => {
-    const html = await $fetch('/prefix/takumi/github-avatars') as string
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    const image: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot({
-      customSnapshotIdentifier: 'takumi-github-avatars-rendering',
-    })
+    const image = await fetchOgImage('/prefix/takumi')
+    expect(image).toMatchImageSnapshot()
   }, 60000)
 
   it.runIf(!hasTakumi)('skips takumi tests when @takumi-rs/core not installed', () => {
@@ -116,33 +41,20 @@ describe('takumi renderer', () => {
   })
 })
 
+// ── Renderer comparison: same component, satori vs takumi ───────────────
+
 describe('renderer comparison', () => {
-  it('simple component - satori vs takumi', async () => {
-    // Render with satori
-    const satoriHtml = await $fetch('/prefix/comparison/satori') as string
-    const satoriUrl = extractOgImageUrl(satoriHtml)
-    expect(satoriUrl).toBeTruthy()
-    const satoriImage: ArrayBuffer = await $fetch(satoriUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
+  it('simple component', async () => {
+    const images = await fetchOgImages('/prefix/comparison/satori', '/prefix/comparison/takumi')
+    expect(images.get('/prefix/comparison/satori')).toMatchImageSnapshot({
       customSnapshotIdentifier: 'comparison-simple-satori',
     })
-
-    // Render with takumi
-    const takumiHtml = await $fetch('/prefix/comparison/takumi') as string
-    const takumiUrl = extractOgImageUrl(takumiHtml)
-    expect(takumiUrl).toBeTruthy()
-    const takumiImage: ArrayBuffer = await $fetch(takumiUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
+    expect(images.get('/prefix/comparison/takumi')).toMatchImageSnapshot({
       customSnapshotIdentifier: 'comparison-simple-takumi',
     })
   }, 60000)
 
-  it('complex component - satori vs takumi', async () => {
-    // Render with satori
+  it('complex component (gradients, rounded corners, opacity)', async () => {
     const satoriHtml = await $fetch('/prefix/comparison/complex-satori') as string
     const satoriUrl = extractOgImageUrl(satoriHtml)
     expect(satoriUrl).toBeTruthy()
@@ -155,40 +67,70 @@ describe('renderer comparison', () => {
       failureThresholdType: 'percent',
     })
 
-    // Render with takumi
-    const takumiHtml = await $fetch('/prefix/comparison/complex-takumi') as string
-    const takumiUrl = extractOgImageUrl(takumiHtml)
-    expect(takumiUrl).toBeTruthy()
-    const takumiImage: ArrayBuffer = await $fetch(takumiUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
+    const takumiImage = await fetchOgImage('/prefix/comparison/complex-takumi')
+    expect(takumiImage).toMatchImageSnapshot({
       customSnapshotIdentifier: 'comparison-complex-takumi',
     })
   }, 60000)
 
   // Skip NuxtSeo - uses hash-based URLs only supported during prerendering
-  it.skip('nuxtseo template - satori vs takumi', async () => {
-    // Render with satori
-    const satoriHtml = await $fetch('/prefix/comparison/nuxtseo-satori') as string
-    const satoriUrl = extractOgImageUrl(satoriHtml)
-    expect(satoriUrl).toBeTruthy()
-    const satoriImage: ArrayBuffer = await $fetch(satoriUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(satoriImage)).toMatchImageSnapshot({
+  it.skip('nuxtseo template', async () => {
+    const images = await fetchOgImages('/prefix/comparison/nuxtseo-satori', '/prefix/comparison/nuxtseo-takumi')
+    expect(images.get('/prefix/comparison/nuxtseo-satori')).toMatchImageSnapshot({
       customSnapshotIdentifier: 'comparison-nuxtseo-satori',
     })
-
-    // Render with takumi
-    const takumiHtml = await $fetch('/prefix/comparison/nuxtseo-takumi') as string
-    const takumiUrl = extractOgImageUrl(takumiHtml)
-    expect(takumiUrl).toBeTruthy()
-    const takumiImage: ArrayBuffer = await $fetch(takumiUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(takumiImage)).toMatchImageSnapshot({
+    expect(images.get('/prefix/comparison/nuxtseo-takumi')).toMatchImageSnapshot({
       customSnapshotIdentifier: 'comparison-nuxtseo-takumi',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('calc() expressions — satori vs takumi', async () => {
+    const images = await fetchOgImages('/prefix/satori/calc', '/prefix/takumi/calc')
+    expect(images.get('/prefix/satori/calc')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-calc-satori',
+    })
+    expect(images.get('/prefix/takumi/calc')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-calc-takumi',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('text overflow ellipsis — satori vs takumi', async () => {
+    const images = await fetchOgImages('/prefix/satori/ellipsis', '/prefix/takumi/ellipsis')
+    expect(images.get('/prefix/satori/ellipsis')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-ellipsis-satori',
+    })
+    expect(images.get('/prefix/takumi/ellipsis')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-ellipsis-takumi',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('image rendering (<img>, bg-image, svg) — satori vs takumi', async () => {
+    const images = await fetchOgImages('/prefix/satori/image-test', '/prefix/takumi/image')
+    expect(images.get('/prefix/satori/image-test')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-image-satori',
+    })
+    expect(images.get('/prefix/takumi/image')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-image-takumi',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('cSS var() references — satori vs takumi', async () => {
+    const images = await fetchOgImages('/prefix/satori/css-vars', '/prefix/takumi/css-vars')
+    expect(images.get('/prefix/satori/css-vars')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-css-vars-satori',
+    })
+    expect(images.get('/prefix/takumi/css-vars')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-css-vars-takumi',
+    })
+  }, 60000)
+
+  it.runIf(hasTakumi)('github avatars (complex images) — satori vs takumi', async () => {
+    const images = await fetchOgImages('/prefix/satori/image', '/prefix/takumi/github-avatars')
+    expect(images.get('/prefix/satori/image')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-github-avatars-satori',
+    })
+    expect(images.get('/prefix/takumi/github-avatars')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'comparison-github-avatars-takumi',
     })
   }, 60000)
 })

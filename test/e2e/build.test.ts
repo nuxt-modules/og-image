@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import { toMatchImageSnapshot } from 'jest-image-snapshot'
+import { setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
+import { fetchOgImages, setupImageSnapshots, SNAPSHOT_DEFAULT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -11,90 +11,33 @@ await setup({
   build: true,
 })
 
-expect.extend({ toMatchImageSnapshot })
-
-const snapshotOptions = {
-  failureThresholdType: 'percent' as const,
-  failureThreshold: 0.5,
-}
-
-// Helper to extract og:image URL path from HTML (handles both absolute and relative URLs)
-function extractOgImageUrl(html: string): string | null {
-  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  if (!match?.[1])
-    return null
-  // Extract just the path from absolute URL (e.g., https://nuxtseo.com/_og/d/... -> /_og/d/...)
-  try {
-    const url = new URL(match[1])
-    return url.pathname
-  }
-  catch {
-    return match[1] // Already a relative path
-  }
-}
+setupImageSnapshots(SNAPSHOT_DEFAULT)
 
 describe('build', () => {
   it.runIf(process.env.HAS_CHROME)('browser tests', async () => {
-    const html = await $fetch('/browser')
-    const ogImageUrl = extractOgImageUrl(html)
-    expect(ogImageUrl).toBeTruthy()
-
-    const browser: ArrayBuffer = await $fetch(ogImageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(browser)).toMatchImageSnapshot(snapshotOptions)
+    const images = await fetchOgImages('/browser')
+    expect(images.get('/browser')).toMatchImageSnapshot()
   })
 
   it('static images', async () => {
-    const customFontHtml = await $fetch('/satori/custom-font')
-    const customFontUrl = extractOgImageUrl(customFontHtml)
-    expect(customFontUrl).toBeTruthy()
-    const customFont: ArrayBuffer = await $fetch(customFontUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(customFont)).toMatchImageSnapshot(snapshotOptions)
-
-    const imageHtml = await $fetch('/satori/image')
-    const imageUrl = extractOgImageUrl(imageHtml)
-    expect(imageUrl).toBeTruthy()
-    const image: ArrayBuffer = await $fetch(imageUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(image)).toMatchImageSnapshot(snapshotOptions)
-
-    const defaultsHtml = await $fetch('/satori')
-    const defaultsUrl = extractOgImageUrl(defaultsHtml)
-    expect(defaultsUrl).toBeTruthy()
-    const defaults: ArrayBuffer = await $fetch(defaultsUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(defaults)).toMatchImageSnapshot(snapshotOptions)
+    const images = await fetchOgImages(
+      '/satori/custom-font',
+      '/satori/image',
+      '/satori',
+    )
+    expect(images.get('/satori/custom-font')).toMatchImageSnapshot()
+    expect(images.get('/satori/image')).toMatchImageSnapshot()
+    expect(images.get('/satori')).toMatchImageSnapshot()
   }, 60000)
 
   it('dynamic images', async () => {
-    const inlineHtml = await $fetch('/satori/route-rules/inline')
-    const inlineUrl = extractOgImageUrl(inlineHtml)
-    expect(inlineUrl).toBeTruthy()
-    const inlineRouteRules: ArrayBuffer = await $fetch(inlineUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(inlineRouteRules)).toMatchImageSnapshot(snapshotOptions)
-
-    const configHtml = await $fetch('/satori/route-rules/config')
-    const configUrl = extractOgImageUrl(configHtml)
-    expect(configUrl).toBeTruthy()
-    const overrideRouteRules: ArrayBuffer = await $fetch(configUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(overrideRouteRules)).toMatchImageSnapshot(snapshotOptions)
-
-    const globalHtml = await $fetch('/satori/route-rules')
-    const globalUrl = extractOgImageUrl(globalHtml)
-    expect(globalUrl).toBeTruthy()
-    const globalRouteRules: ArrayBuffer = await $fetch(globalUrl!, {
-      responseType: 'arrayBuffer',
-    })
-    expect(Buffer.from(globalRouteRules)).toMatchImageSnapshot(snapshotOptions)
+    const images = await fetchOgImages(
+      '/satori/route-rules/inline',
+      '/satori/route-rules/config',
+      '/satori/route-rules',
+    )
+    expect(images.get('/satori/route-rules/inline')).toMatchImageSnapshot()
+    expect(images.get('/satori/route-rules/config')).toMatchImageSnapshot()
+    expect(images.get('/satori/route-rules')).toMatchImageSnapshot()
   })
 })

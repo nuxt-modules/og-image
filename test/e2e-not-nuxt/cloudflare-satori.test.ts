@@ -3,22 +3,15 @@ import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
-import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { extractOgImageUrl, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/cloudflare-satori')
 
-const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  customDiffConfig: {
-    threshold: 0.1,
-  },
-  failureThresholdType: 'percent',
-  failureThreshold: 0.1,
-})
-expect.extend({ toMatchImageSnapshot })
+setupImageSnapshots(SNAPSHOT_STRICT)
 
 // Check if satori deps are available
 let hasSatoriDeps = false
@@ -130,12 +123,9 @@ describe('cloudflare-satori', () => {
 
     it('serves prerendered og images via wrangler', async () => {
       const html = await $fetch<string>(serverUrl)
-      const ogImageMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-        || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+      const ogImagePath = extractOgImageUrl(html)
+      expect(ogImagePath).toBeTruthy()
 
-      expect(ogImageMatch?.[1]).toBeTruthy()
-
-      const ogImagePath = new URL(ogImageMatch![1]!).pathname
       const image = await $fetch(`${serverUrl}${ogImagePath}`, {
         responseType: 'arrayBuffer' as const,
       })
@@ -146,14 +136,11 @@ describe('cloudflare-satori', () => {
     }, 30000)
 
     it('generates og images dynamically at runtime via wrangler', async () => {
-      // Test the dynamic route directly — this exercises the full WASM pipeline
-      // (satori yoga init + resvg SVG→PNG) at runtime, not prerendered
       const image = await $fetch(`${serverUrl}/_og/d/image?path=/`, {
         responseType: 'arrayBuffer' as const,
       })
 
       const buf = Buffer.from(image)
-      // Verify it's a valid PNG (magic bytes)
       expect(buf[0]).toBe(0x89)
       expect(buf[1]).toBe(0x50) // P
       expect(buf[2]).toBe(0x4E) // N

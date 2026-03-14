@@ -3,23 +3,16 @@ import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
-import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { $fetch } from 'ofetch'
 import { join } from 'pathe'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { extractOgImageUrl, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/cloudflare-takumi')
 
-const toMatchImageSnapshot = configureToMatchImageSnapshot({
-  customDiffConfig: {
-    threshold: 0.1,
-  },
-  failureThresholdType: 'percent',
-  failureThreshold: 0.1,
-})
-expect.extend({ toMatchImageSnapshot })
+setupImageSnapshots(SNAPSHOT_STRICT)
 
 // Check if takumi WASM is available (direct pkg import — bundlers entry needs a bundler)
 let hasTakumiWasm = false
@@ -143,12 +136,9 @@ describe('cloudflare-takumi', () => {
 
     it('serves og images dynamically via wrangler', async () => {
       const html = await $fetch<string>(serverUrl)
-      const ogImageMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-        || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
+      const ogImagePath = extractOgImageUrl(html)
+      expect(ogImagePath).toBeTruthy()
 
-      expect(ogImageMatch?.[1]).toBeTruthy()
-
-      const ogImagePath = new URL(ogImageMatch![1]!).pathname
       const image = await $fetch(`${serverUrl}${ogImagePath}`, {
         responseType: 'arrayBuffer' as const,
       })
@@ -159,11 +149,7 @@ describe('cloudflare-takumi', () => {
     }, 30000)
   })
 
-  // Tests the font subset glyph fallback fix: Google Fonts serves variable fonts as
-  // multiple WOFF2 subsets (one per unicode-range). When all subsets are loaded with
-  // the same font name, the renderer only uses the first match and won't fall through
-  // to other subsets for missing glyphs, producing NO GLYPH boxes. Loading each subset
-  // with a unique name and using a comma-separated fontFamily enables proper fallback.
+  // Tests the font subset glyph fallback fix
   describe.runIf(hasTakumiWasm)('font subset glyph fallback', () => {
     let Renderer: any
     let fontSubsets: Uint8Array[]
@@ -201,7 +187,6 @@ describe('cloudflare-takumi', () => {
       }
 
       const buffer = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
-      // Should render actual text (small PNG), not NO GLYPH boxes (larger PNG)
       expect(buffer.length).toBeLessThan(8000)
     })
 
@@ -224,9 +209,6 @@ describe('cloudflare-takumi', () => {
         { width: 400, height: 80, format: 'png' },
       )
 
-      // With unique names the renderer falls through subsets until it finds the glyph.
-      // NO GLYPH boxes for 5 chars ("Hello") produce a larger PNG than actual text.
-      // Working renders are consistently under 8000 bytes for this simple test.
       expect(buffer.length).toBeLessThan(8000)
       expect(Buffer.from(buffer)).toMatchImageSnapshot({
         customSnapshotIdentifier: 'cloudflare-takumi-font-subset-fallback',

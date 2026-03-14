@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { setup } from '@nuxt/test-utils/e2e'
 import { afterAll, describe, expect, it } from 'vitest'
+import { fetchOgHtml, waitFor } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -12,42 +13,6 @@ const pagesDir = join(fixtureRoot, 'pages')
 
 // Track files created during test for cleanup
 const createdFiles: string[] = []
-
-function extractOgImageUrl(html: string): string | null {
-  const match = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)
-    || html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/)
-  if (!match?.[1])
-    return null
-  try {
-    return new URL(match[1]).pathname
-  }
-  catch {
-    return match[1]
-  }
-}
-
-async function fetchOgHtml(pagePath: string): Promise<string | null> {
-  const html = await $fetch(pagePath).catch(() => '') as string
-  if (!html)
-    return null
-  const ogUrl = extractOgImageUrl(html)
-  if (!ogUrl)
-    return null
-  return await $fetch(ogUrl.replace(/\.png$/, '.html')).catch(() => '') as string
-}
-
-/**
- * Poll until a condition is met or timeout.
- */
-async function waitFor(fn: () => Promise<boolean>, { timeout = 15000, interval = 500 } = {}): Promise<void> {
-  const start = Date.now()
-  while (Date.now() - start < timeout) {
-    if (await fn())
-      return
-    await new Promise(r => setTimeout(r, interval))
-  }
-  throw new Error(`waitFor timed out after ${timeout}ms`)
-}
 
 describe.skipIf(!import.meta.env?.TEST_DEV)('hmr', async () => {
   await setup({
