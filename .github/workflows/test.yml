@@ -55,6 +55,9 @@ jobs:
 
       - run: pnpm i
 
+      - name: Prepare
+        run: pnpm nuxt prepare
+
       - name: Unit tests
         run: pnpm vitest --project unit
 
@@ -73,6 +76,9 @@ jobs:
           cache: pnpm
 
       - run: pnpm i
+
+      - name: Build
+        run: pnpm run build
 
       - name: Prepare fixtures
         run: pnpm prepare:fixtures
