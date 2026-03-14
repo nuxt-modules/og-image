@@ -79,7 +79,9 @@ function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>
         }
       }
     }
-    node.style.fontFamily = expanded.join(', ')
+    // Quote each name — takumi 0.72.0 uses expect_ident_or_string() which only
+    // reads one token for unquoted names, breaking multi-word names like "Nunito Sans__0"
+    node.style.fontFamily = expanded.map((f: string) => `"${f}"`).join(', ')
   }
   if (node.children) {
     for (const child of node.children)

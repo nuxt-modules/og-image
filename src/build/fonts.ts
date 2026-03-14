@@ -255,6 +255,8 @@ export async function parseFontsFromTemplate(
   // @nuxt/fonts may serve a variable font with a single weight (e.g. 400), but fontless
   // downloaded static alternatives for other weights (e.g. 700). Create font entries
   // for each downloaded weight so Satori can use them.
+  // Clone from ALL subset templates (latin, cyrillic, etc.) so unicode-range filtering
+  // at runtime doesn't drop the font for the wrong subset.
   const expandedFonts = [...fontMap.values()]
   const existingKeys = new Set(expandedFonts.map(f => `${f.family}-${f.weight}-${f.style}`))
   for (const [key] of options.convertedWoff2Files) {
@@ -264,11 +266,13 @@ export async function parseFontsFromTemplate(
     if (!match)
       continue
     const [, family, weightStr, style] = match
-    // Find a template font for this family+style to clone properties from
-    const template = expandedFonts.find(f => f.family === family && f.style === style)
-    if (!template)
+    const weight = Number(weightStr)
+    // Clone from ALL templates for this family+style (one per subset/unicodeRange)
+    const templates = expandedFonts.filter(f => f.family === family && f.style === style)
+    if (templates.length === 0)
       continue
-    expandedFonts.push({ ...template, weight: Number(weightStr) })
+    for (const template of templates)
+      expandedFonts.push({ ...template, weight })
     existingKeys.add(key)
   }
 

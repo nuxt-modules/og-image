@@ -98,10 +98,10 @@ function buildIconSvg(iconData: { body: string, width?: number, height?: number 
     }
     filteredAttrs.push(`${key}="${value}"`)
   }
-  // Merge existing style with display:flex
-  const mergedStyle = existingStyle ? `display:flex; ${existingStyle}` : 'display:flex'
   const attrsStr = filteredAttrs.length > 0 ? ` ${filteredAttrs.join(' ')}` : ''
 
+  // Keep width/height="100%" — resolved to parent pixel dims by satori svg-size plugin at runtime
+  const mergedStyle = existingStyle ? `display:flex; ${existingStyle}` : 'display:flex'
   let svg = `<span${attrsStr} style="${mergedStyle}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
   svg = makeIdsUnique(svg)
   return svg

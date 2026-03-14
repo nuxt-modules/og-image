@@ -15,6 +15,7 @@ import { applyEmojis } from './transforms/emojis'
 const RE_KEBAB_SEGMENT = /-([a-z])/g
 const RE_AMP_ENTITY = /&amp;/g
 const RE_CSS_QUOTES = /^['"](.+)['"]$/
+const RE_IMPORTANT = /\s*!important\s*$/
 const RE_BODY_CONTENT = /<body>([\s\S]*)<\/body>/
 
 function camelCase(str: string): string {
@@ -90,11 +91,13 @@ export function parseStyleAttr(style: string | null | undefined): Record<string,
     const prop = decl.slice(0, colonIdx).trim()
     const val = decl.slice(colonIdx + 1).trim()
     if (prop && val) {
+      // Strip !important — Satori/Takumi don't support CSS specificity
       // Strip CSS quotes from font-family — Satori matches font names as plain
       // strings (e.g. "JetBrains Mono"), not CSS-quoted values ("'JetBrains Mono'")
+      const cleanVal = val.replace(RE_IMPORTANT, '')
       result[camelCase(prop)] = prop === 'font-family'
-        ? val.replace(RE_CSS_QUOTES, '$1')
-        : val
+        ? cleanVal.replace(RE_CSS_QUOTES, '$1')
+        : cleanVal
     }
   }
   return Object.keys(result).length ? result : undefined
