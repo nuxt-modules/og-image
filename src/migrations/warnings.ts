@@ -117,30 +117,29 @@ export function emitWarnings(): void {
     + [...counts.composable.values()].reduce((a, b) => a + b, 0)
     + [...counts.component.values()].reduce((a, b) => a + b, 0)
 
-  logger.warn('')
-  logger.warn('┌─────────────────────────────────────────────┐')
-  logger.warn('│  nuxt-og-image v6 Migration Required        │')
-  logger.warn('└─────────────────────────────────────────────┘')
-  logger.warn('')
+  const body = [
+    formatWarnings(),
+    '',
+    `Found ${totalIssues} issue${totalIssues > 1 ? 's' : ''} requiring migration.`,
+    '',
+    'Run the migration command to fix automatically:',
+    '',
+    '  npx nuxt-og-image migrate v6',
+    '',
+    'Or preview changes first:',
+    '',
+    '  npx nuxt-og-image migrate v6 --dry-run',
+    '',
+    `Migration guide: https://nuxtseo.com/og-image/migration-guide/v6`,
+  ].join('\n')
 
-  const lines = formatWarnings().split('\n')
-  for (const line of lines) {
-    logger.warn(line)
-  }
-
-  logger.warn('')
-  logger.warn(`Found ${totalIssues} issue${totalIssues > 1 ? 's' : ''} requiring migration.`)
-  logger.warn('')
-  logger.warn('Run the migration command to fix automatically:')
-  logger.warn('')
-  logger.warn('  npx nuxt-og-image migrate v6')
-  logger.warn('')
-  logger.warn('Or preview changes first:')
-  logger.warn('')
-  logger.warn('  npx nuxt-og-image migrate v6 --dry-run')
-  logger.warn('')
-  logger.info('Migration guide: https://nuxtseo.com/og-image/migration-guide/v6')
-  logger.warn('')
+  logger.box({
+    title: 'nuxt-og-image v6 Migration Required',
+    message: body,
+    style: {
+      borderColor: 'yellow',
+    },
+  })
 }
 
 function formatWarnings(): string {
