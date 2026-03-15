@@ -55,6 +55,9 @@ jobs:
 
       - run: pnpm i
 
+      - name: Build
+        run: pnpm run build
+
       - name: Prepare
         run: pnpm nuxt prepare
 

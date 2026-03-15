@@ -1,4 +1,3 @@
-import { isCI } from 'std-env'
 import { defineConfig, defineProject } from 'vitest/config'
 
 export default defineConfig({
