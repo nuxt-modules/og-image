@@ -57,7 +57,7 @@ catalog:
   '@vueuse/nuxt': ^14.2.1
   better-sqlite3: ^12.8.0
   birpc: ^4.0.0
-  bumpp: ^10.4.1
+  bumpp: ^11.0.1
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   culori: ^4.0.2
