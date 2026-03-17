@@ -573,6 +573,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Used by builder:watch to detect when a nested component changes and trigger a Nitro reload.
     const ogImageTransformedFiles = new Set<string>()
 
+    // Track fontless-downloaded static fonts by font identity (family+weight+style → download path)
+    // Used to set satoriSrc on @nuxt/fonts entries, bypassing variable font WOFF files
+    const convertedWoff2Files = new Map<string, string>()
+
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
 
@@ -1134,10 +1138,6 @@ import { resolve as nodeResolve } from '${nodeBinding}'
 export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : nodeResolve
 `
     }
-    // Track fontless-downloaded static fonts by font identity (family+weight+style → download path)
-    // Used to set satoriSrc on @nuxt/fonts entries, bypassing variable font WOFF files
-    const convertedWoff2Files = new Map<string, string>()
-
     // Whether satori/takumi are detected renderers — gates WOFF2 conversion and fontless logic
     // Browser renderer handles WOFF2 and variable fonts natively
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')

@@ -79,6 +79,7 @@ const SVG_CAMEL_ATTRS: Record<string, string> = {
 export const SVG_CAMEL_ATTR_VALUES = new Set(Object.values(SVG_CAMEL_ATTRS))
 
 const RE_PERCENT = /^\d+%$/
+const RE_VIEWBOX_SEP = /[\s,]+/
 
 /**
  * Resolve an SVG element's width or height from multiple sources:
@@ -111,7 +112,7 @@ export function resolveSvgDimension(
   // 3. viewBox fallback
   const vb = props.viewBox || props.viewbox
   if (typeof vb === 'string') {
-    const parts = vb.split(/[\s,]+/)
+    const parts = vb.split(RE_VIEWBOX_SEP)
     if (parts.length === 4) {
       const n = Number(parts[key === 'width' ? 2 : 3])
       if (!Number.isNaN(n))
