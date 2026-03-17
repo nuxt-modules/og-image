@@ -88,3 +88,10 @@ jobs:
 
       - name: E2E tests
         run: pnpm vitest --project e2e
+
+      - name: Upload snapshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-diffs
+          path: test/e2e-not-nuxt/__image_snapshots__/__diff_output__/
