@@ -169,6 +169,7 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
   let renderer: RendererType
 
   if (options.component) {
+    // eslint-disable-next-line harlanzw/vue-no-resolve-component-in-composables
     const result = resolveComponent(options.component)
     resolved = result.component
     renderer = result.renderer

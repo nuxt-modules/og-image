@@ -43,10 +43,11 @@ skills:
     generator: skilld
   vitest-skilld:
     packageName: vitest
-    version: 4.0.18
+    version: 4.1.0
+    packages: "vitest@4.1.0"
     repo: vitest-dev/vitest
-    source: "https://github.com/vitest-dev/vitest/tree/v4.0.18/docs"
-    syncedAt: 2026-02-18
+    source: "https://github.com/vitest-dev/vitest/tree/v4.1.0/docs"
+    syncedAt: 2026-03-16
     generator: skilld
   shiki-skilld:
     packageName: shiki
@@ -54,4 +55,26 @@ skills:
     repo: shikijs/shiki
     source: "https://github.com/shikijs/shiki/tree/v4.0.0/docs"
     syncedAt: 2026-02-28
+    generator: skilld
+  satori-skilld:
+    packageName: satori
+    version: 0.25.0
+    repo: vercel/satori
+    source: "https://github.com/vercel/satori/tree/v0.25.0/docs"
+    syncedAt: 2026-03-16
+    generator: skilld
+  lightningcss-skilld:
+    packageName: lightningcss
+    version: 1.32.0
+    repo: parcel-bundler/lightningcss
+    source: "https://github.com/parcel-bundler/lightningcss/tree/v1.32.0/docs"
+    syncedAt: 2026-03-16
+    generator: skilld
+  takumi-rs-core-skilld:
+    packageName: "@takumi-rs/core"
+    version: 1.0.0-beta.3
+    packages: "@takumi-rs/core@1.0.0-beta.3"
+    repo: kane50613/takumi
+    source: "https://takumi.kane.tw/llms.txt"
+    syncedAt: 2026-03-17
     generator: skilld
