@@ -28,47 +28,35 @@ export function codepointsIntersectRanges(codepoints: Set<number>, ranges: [numb
   return false
 }
 
-/** Extract all codepoints from text content in a satori VNode tree */
-export function extractCodepointsFromVNodes(node: VNode): Set<number> {
+function addCodepointsFromString(str: string, codepoints: Set<number>) {
+  for (const ch of str)
+    codepoints.add(ch.codePointAt(0)!)
+}
+
+/**
+ * Extract all codepoints from text content in a node tree.
+ * Works with both satori VNodes (text in props.children) and takumi nodes (text in .text field).
+ */
+export function extractCodepoints(node: VNode | Record<string, any>): Set<number> {
   const codepoints = new Set<number>()
-  const walk = (n: VNode) => {
-    const { children } = n.props
+  const walk = (n: any) => {
+    // Takumi: text field
+    if (typeof n.text === 'string')
+      addCodepointsFromString(n.text, codepoints)
+    // Satori VNode: text in props.children
+    const children = n.props?.children ?? n.children
     if (typeof children === 'string') {
-      for (const ch of children) {
-        codepoints.add(ch.codePointAt(0)!)
-      }
+      addCodepointsFromString(children, codepoints)
     }
     else if (Array.isArray(children)) {
       for (const child of children) {
         if (child == null)
           continue
-        if (typeof child === 'string') {
-          for (const ch of child) {
-            codepoints.add(ch.codePointAt(0)!)
-          }
-        }
-        else {
+        if (typeof child === 'string')
+          addCodepointsFromString(child, codepoints)
+        else
           walk(child)
-        }
       }
-    }
-  }
-  walk(node)
-  return codepoints
-}
-
-/** Extract all codepoints from text content in a takumi node tree */
-export function extractCodepointsFromTakumiNodes(node: { text?: string, children?: any[] }): Set<number> {
-  const codepoints = new Set<number>()
-  const walk = (n: { text?: string, children?: any[] }) => {
-    if (typeof n.text === 'string') {
-      for (const ch of n.text) {
-        codepoints.add(ch.codePointAt(0)!)
-      }
-    }
-    if (Array.isArray(n.children)) {
-      for (const child of n.children)
-        walk(child)
     }
   }
   walk(node)

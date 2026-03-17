@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import type { FontConfig, RuntimeFontConfig } from '../../types'
+import type { FontConfig, OgImageRenderEventContext, RuntimeFontConfig } from '../../types'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { fontRequirements, getComponentFontMap } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
@@ -8,7 +8,7 @@ import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
 
-export { codepointsIntersectRanges, extractCodepointsFromTakumiNodes, extractCodepointsFromVNodes, parseUnicodeRange } from './unicode-range'
+export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from './unicode-range'
 
 export interface LoadFontsOptions {
   /**
@@ -237,4 +237,56 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   }
 
   return loaded
+}
+
+/**
+ * Load additional fonts specified via defineOgImage({ fonts: [...] }).
+ * Only object format ({ name, weight, path }) with a path is supported.
+ */
+export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDefs: any[]): Promise<RuntimeFontConfig[]> {
+  const results: RuntimeFontConfig[] = []
+  for (const def of fontDefs) {
+    if (!def || typeof def !== 'object' || !def.path)
+      continue
+
+    const name: string = def.name
+    const weight: number = def.weight || 400
+    const style: 'normal' | 'italic' = def.style === 'italic' ? 'italic' : 'normal'
+    const path: string = def.path
+
+    const fontConfig = { family: name, weight, style, src: path, localPath: path } satisfies FontConfig
+    const data = await resolve(event.e, fontConfig).catch(() => null)
+    if (data) {
+      results.push({
+        ...fontConfig,
+        cacheKey: `custom-${name}-${weight}-${style}-${path}`,
+        data,
+      } satisfies RuntimeFontConfig)
+    }
+  }
+  return results
+}
+
+export interface LoadFontsForRendererOptions extends LoadFontsOptions {
+  /** Custom font definitions from defineOgImage({ fonts: [...] }) — satori only */
+  fontDefs?: any[]
+}
+
+/**
+ * Shared font loading sequence used by both renderers.
+ * Loads base fonts via loadAllFonts, then appends any custom font definitions.
+ */
+export async function loadFontsForRenderer(event: OgImageRenderEventContext, options: LoadFontsForRendererOptions): Promise<RuntimeFontConfig[]> {
+  const baseFonts = await loadAllFonts(event.e, options)
+  if (!Array.isArray(options.fontDefs) || options.fontDefs.length === 0)
+    return baseFonts
+  const customFonts = await loadDefinedFonts(event, options.fontDefs)
+  return [...baseFonts, ...customFonts]
+}
+
+/** Get the default font family override from options or first resolved font */
+export function getDefaultFontFamily(options: { props?: Record<string, any> }): { fontFamilyOverride: string | undefined, defaultFont: string | undefined } {
+  const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
+  const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
+  return { fontFamilyOverride, defaultFont }
 }

@@ -1,12 +1,11 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { FontConfig, OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../../../types'
+import type { OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../../../types'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
-import resolvedFonts from '#og-image/fonts'
 import { defu } from 'defu'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { extractCodepointsFromVNodes, loadAllFonts, loadAllFontsDebug } from '../fonts'
+import { extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer } from '../fonts'
 import { getResvg, getSatori, getSharp } from './instances'
 import { createVNodes } from './vnodes'
 
@@ -38,21 +37,28 @@ function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warni
 export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg: string | void, warnings: string[], fonts: RuntimeFontConfig[] }> {
   const { options } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
-  const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
-  // Always include the default font (first resolved, e.g. Lobster) so the wrapper div renders correctly
-  const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
+  const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const [satori, vnodes] = await Promise.all([
     getSatori(),
     createVNodes(event),
   ])
-  const codepoints = extractCodepointsFromVNodes(vnodes)
-  const fonts = await loadAllFonts(event.e, { supportsWoff2: false, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
+  const codepoints = extractCodepoints(vnodes)
+  const hasCustomFonts = Array.isArray(options.fonts) && options.fonts.length > 0
+  const fonts = await loadFontsForRenderer(event, {
+    supportsWoff2: false,
+    component: options.component,
+    fontFamilyOverride: fontFamilyOverride || defaultFont,
+    codepoints,
+    fontDefs: options.fonts,
+  })
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
   // Remap to satori's font format (requires `name` instead of `family`).
-  // Cache by source array reference so satori's WeakMap font cache hits.
-  const satoriFonts = _satoriFontCache.get(fonts) ?? fonts.map(f => ({ ...f, name: f.family }))
-  _satoriFontCache.set(fonts, satoriFonts)
+  // Use WeakMap cache only for base fonts (stable reference from fontArrayCache).
+  // Custom font arrays are per-request so can't benefit from identity caching.
+  const satoriFonts = (!hasCustomFonts && _satoriFontCache.get(fonts)) || fonts.map(f => ({ ...f, name: f.family }))
+  if (!hasCustomFonts)
+    _satoriFontCache.set(fonts, satoriFonts)
   // Build tailwind theme from TW4 font vars, filtered to loaded font families
   // TW4 vars contain full font stacks (e.g. "ui-sans-serif, system-ui, ...") but Satori
   // can only use fonts that are actually loaded — filter to available families

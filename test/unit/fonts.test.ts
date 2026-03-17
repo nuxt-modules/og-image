@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
 import { extractFontFacesWithSubsets } from '../../src/build/css/font-face'
 import { fontKey, getStaticInterFonts, matchesFontRequirements, resolveFontFamilies } from '../../src/build/fonts'
-import { codepointsIntersectRanges, extractCodepointsFromTakumiNodes, extractCodepointsFromVNodes, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
+import { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
 
 describe('extractCustomFontFamilies', () => {
   it('extracts unquoted family names', () => {
@@ -276,10 +276,10 @@ describe('codepointsIntersectRanges', () => {
   })
 })
 
-describe('extractCodepointsFromVNodes', () => {
-  it('extracts from string children', () => {
+describe('extractCodepoints', () => {
+  it('extracts from VNode string children', () => {
     const node = { type: 'div', props: { children: 'AB' } }
-    const cp = extractCodepointsFromVNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.has(0x41)).toBe(true) // A
     expect(cp.has(0x42)).toBe(true) // B
   })
@@ -294,53 +294,51 @@ describe('extractCodepointsFromVNodes', () => {
         ],
       },
     }
-    const cp = extractCodepointsFromVNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.has('H'.codePointAt(0)!)).toBe(true)
     expect(cp.has('W'.codePointAt(0)!)).toBe(true)
   })
 
   it('handles null children in array', () => {
     const node = { type: 'div', props: { children: [null, 'A'] } }
-    const cp = extractCodepointsFromVNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.has(0x41)).toBe(true)
   })
 
   it('handles node with no children', () => {
     const node = { type: 'div', props: {} }
-    const cp = extractCodepointsFromVNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.size).toBe(0)
   })
 
   it('extracts surrogate pair codepoints', () => {
     const node = { type: 'div', props: { children: '\u{1F600}' } } // 😀
-    const cp = extractCodepointsFromVNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.has(0x1F600)).toBe(true)
   })
-})
 
-describe('extractCodepointsFromTakumiNodes', () => {
-  it('extracts from text field', () => {
+  it('extracts from takumi text field', () => {
     const node = { text: 'AB' }
-    const cp = extractCodepointsFromTakumiNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.has(0x41)).toBe(true)
     expect(cp.has(0x42)).toBe(true)
   })
 
-  it('extracts from nested children', () => {
+  it('extracts from takumi nested children', () => {
     const node = {
       children: [
         { text: 'Hello' },
         { children: [{ text: 'World' }] },
       ],
     }
-    const cp = extractCodepointsFromTakumiNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.has('H'.codePointAt(0)!)).toBe(true)
     expect(cp.has('W'.codePointAt(0)!)).toBe(true)
   })
 
   it('handles node with no text or children', () => {
     const node = {}
-    const cp = extractCodepointsFromTakumiNodes(node)
+    const cp = extractCodepoints(node)
     expect(cp.size).toBe(0)
   })
 })

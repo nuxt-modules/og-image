@@ -1,10 +1,10 @@
-import type { FontConfig, OgImageRenderEventContext, Renderer } from '../../../types'
-import resolvedFonts from '#og-image/fonts'
+import type { Node } from '@takumi-rs/core'
+import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { getNitroOrigin } from '#site-config/server/composables'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
-import { extractCodepointsFromTakumiNodes, loadAllFonts } from '../fonts'
+import { extractCodepoints, getDefaultFontFamily, loadFontsForRenderer } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 
@@ -62,9 +62,9 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
   }
 }
 
-function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>) {
+function rewriteFontFamilies(node: Node, familySubsetNames: Map<string, string[]>) {
   if (node.style?.fontFamily) {
-    const families = node.style.fontFamily.split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
+    const families = (node.style.fontFamily as string).split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
     const expanded = families.flatMap((f: string) => familySubsetNames.get(f) || [f])
     // Append all other loaded font subsets as fallback for missing glyphs.
     // Without this, an element styled with e.g. font-family: 'Poppins' would
@@ -79,11 +79,10 @@ function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>
         }
       }
     }
-    // Quote each name — takumi 0.72.0 uses expect_ident_or_string() which only
-    // reads one token for unquoted names, breaking multi-word names like "Nunito Sans__0"
+    // Quote each name so multi-word subset names like "Nunito Sans__0" are parsed correctly
     node.style.fontFamily = expanded.map((f: string) => `"${f}"`).join(', ')
   }
-  if (node.children) {
+  if ('children' in node && node.children) {
     for (const child of node.children)
       rewriteFontFamilies(child, familySubsetNames)
   }
@@ -92,21 +91,21 @@ function rewriteFontFamilies(node: any, familySubsetNames: Map<string, string[]>
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options } = event
 
-  const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
-  const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
+  const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
-  const codepoints = extractCodepointsFromTakumiNodes(nodes)
-  const fonts = await loadAllFonts(event.e, { supportsWoff2: true, preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
+  const codepoints = extractCodepoints(nodes)
+  const fonts = await loadFontsForRenderer(event, { supportsWoff2: true, preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
 
   const state = await getTakumiState(event)
   await loadFontsIntoRenderer(state, fonts)
 
-  nodes.style = nodes.style || {}
+  const rootStyle = nodes.style ?? {}
   if (fontFamilyOverride && state.familySubsetNames.has(fontFamilyOverride)) {
-    nodes.style.fontFamily = fontFamilyOverride
+    rootStyle.fontFamily = fontFamilyOverride
   }
+  nodes.style = rootStyle
 
   rewriteFontFamilies(nodes, state.familySubsetNames)
 
@@ -168,7 +167,7 @@ const TakumiRenderer: Renderer = {
   async debug(e) {
     const [vnodes, fonts] = await Promise.all([
       createTakumiNodes(e),
-      loadAllFonts(e.e, { supportsWoff2: true, preferStatic: true, component: e.options.component }),
+      loadFontsForRenderer(e, { supportsWoff2: true, preferStatic: true, component: e.options.component }),
     ])
     return {
       vnodes,
