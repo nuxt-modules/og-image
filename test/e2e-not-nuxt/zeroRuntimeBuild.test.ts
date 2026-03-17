@@ -23,7 +23,8 @@ describe('zeroRuntime', () => {
   })
 
   it('basic', async () => {
-    await exec('nuxt', ['build'], { nodeOptions: { cwd: resolve('../fixtures/zero-runtime') } })
+    await exec('nuxt', ['cleanup'], { nodeOptions: { cwd: fixtureDir } })
+    await exec('nuxt', ['build'], { nodeOptions: { cwd: fixtureDir } })
     const serverOutputPath = resolve('../fixtures/zero-runtime/.output/server')
     const { stdout } = await exec('du', ['-sh', serverOutputPath])
     // eslint-disable-next-line no-console,style/no-tabs
