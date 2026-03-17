@@ -90,14 +90,28 @@ export function matchesFontRequirements(
 // ============================================================================
 
 /**
+ * Build a case-insensitive lookup from canonical font family names.
+ * Used to normalize user-typed names (e.g. 'Biz UDPGothic' → 'BIZ UDPGothic').
+ */
+export function buildFontFamilyCanonicalMap(canonicalNames: string[]): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const name of canonicalNames)
+    map.set(name.toLowerCase(), name)
+  return map
+}
+
+/**
  * Resolve font family class suffixes and inline names to actual font family names.
  * Uses TW4 font vars to map class names (e.g., 'sans' → --font-sans → 'Inter').
+ * When knownFamilies is provided, normalizes names to their canonical casing
+ * (e.g. 'Biz UDPGothic' → 'BIZ UDPGothic') so downstream matching works.
  * Returns empty array if no families detected (meaning: don't filter by family).
  */
 export function resolveFontFamilies(
   familyClasses: string[],
   familyNames: string[],
   fontVars: Record<string, string>,
+  knownFamilies?: Map<string, string>,
 ): string[] {
   if (familyClasses.length === 0 && familyNames.length === 0)
     return []
@@ -121,9 +135,12 @@ export function resolveFontFamilies(
     }
   }
 
-  // Add directly referenced family names from inline styles
-  for (const name of familyNames)
-    families.add(name)
+  // Add directly referenced family names from inline styles,
+  // normalizing to canonical casing when a case-insensitive match exists
+  for (const name of familyNames) {
+    const canonical = knownFamilies?.get(name.toLowerCase())
+    families.add(canonical ?? name)
+  }
 
   return [...families]
 }

@@ -54,6 +54,13 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
       if (!state.familySubsetNames.has(font.family))
         state.familySubsetNames.set(font.family, [])
       state.familySubsetNames.get(font.family)!.push(subsetName)
+      // Store lowercase alias for case-insensitive font-family matching
+      const lowerFamily = font.family.toLowerCase()
+      if (lowerFamily !== font.family) {
+        if (!state.familySubsetNames.has(lowerFamily))
+          state.familySubsetNames.set(lowerFamily, [])
+        state.familySubsetNames.get(lowerFamily)!.push(subsetName)
+      }
     }
     catch (err) {
       logger.warn(`Failed to load font "${font.family}" (weight: ${font.weight}) into takumi renderer: ${(err as Error).message}`)
@@ -62,10 +69,19 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
   }
 }
 
+/**
+ * Case-insensitive font family lookup. Tries exact match first, then lowercase.
+ * This handles mismatched casing between template styles ('Biz UDPGothic')
+ * and @nuxt/fonts canonical names ('BIZ UDPGothic').
+ */
+function lookupFontSubsets(family: string, familySubsetNames: Map<string, string[]>): string[] | undefined {
+  return familySubsetNames.get(family) || familySubsetNames.get(family.toLowerCase())
+}
+
 function rewriteFontFamilies(node: Node, familySubsetNames: Map<string, string[]>) {
   if (node.style?.fontFamily) {
     const families = (node.style.fontFamily as string).split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
-    const expanded = families.flatMap((f: string) => familySubsetNames.get(f) || [f])
+    const expanded = families.flatMap((f: string) => lookupFontSubsets(f, familySubsetNames) || [f])
     // Append all other loaded font subsets as fallback for missing glyphs.
     // Without this, an element styled with e.g. font-family: 'Poppins' would
     // have no fallback when Poppins lacks glyphs (e.g. Devanagari script) —

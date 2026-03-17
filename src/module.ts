@@ -27,6 +27,7 @@ import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
 import { convertWoff2ToTtf, persistFontUrlMapping, resolveOgImageFonts } from './build/fontless'
 import {
+  buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
   parseFontsFromTemplate,
   resolveFontFamilies,
@@ -603,7 +604,14 @@ export default defineNuxtModule<ModuleOptions>({
           // Lazy-load CSS metadata for font var resolution.
           // Track pending promise so convertWoff2ToTtf can await all resolutions.
           const p = loadCssMetadata().then(async () => {
-            const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars)
+            // Build canonical font family map from resolved @nuxt/fonts families.
+            // Normalizes template names to match @nuxt/fonts casing (e.g. 'Biz UDPGothic' → 'BIZ UDPGothic').
+            let knownFamilies: Map<string, string> | undefined
+            if (hasNuxtFonts) {
+              const resolvedFonts = await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
+              knownFamilies = buildFontFamilyCanonicalMap(resolvedFonts.map(f => f.family))
+            }
+            const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars, knownFamilies)
             const compWeights = [...reqs.weights]
             if (!compWeights.includes(400))
               compWeights.push(400)

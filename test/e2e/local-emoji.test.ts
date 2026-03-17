@@ -56,4 +56,15 @@ describe('local emoji rendering', () => {
       failureThresholdType: 'percent',
     })
   }, 60000)
+
+  // Regression: emoji in BlogPost.takumi title prop gets squished at large font size
+  it.runIf(hasTakumi)('takumi: BlogPost template emoji in title is not squished', async () => {
+    const images = await fetchOgImages('/blogpost-emoji')
+    expect(images.get('/blogpost-emoji')!.byteLength).toBeGreaterThan(1000)
+    expect(images.get('/blogpost-emoji')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'local-emoji-blogpost-takumi',
+      failureThreshold: 0.01,
+      failureThresholdType: 'percent',
+    })
+  }, 60000)
 })

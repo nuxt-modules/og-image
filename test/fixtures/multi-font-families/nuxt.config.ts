@@ -32,6 +32,7 @@ export default defineNuxtConfig({
       { name: 'LocalSerif', src: '/fonts/LocalSerif-Regular.ttf', provider: 'none', global: true },
       // Noto Sans Devanagari — tests non-Latin script rendering and font fallback
       { name: 'Noto Sans Devanagari', weights: [400, 700], global: true },
+      { name: 'BIZ UDPGothic', weights: [400, 700], global: true },
     ],
   },
 
