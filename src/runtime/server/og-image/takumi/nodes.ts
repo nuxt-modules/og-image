@@ -1,3 +1,4 @@
+import type { ContainerNode, ImageNode, Node, TextNode } from '@takumi-rs/core'
 import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { createVNodes, SVG_CAMEL_ATTR_VALUES } from '../core/vnodes'
 
@@ -7,64 +8,61 @@ const RE_AMP = /&/g
 const RE_LT = /</g
 const RE_GT = />/g
 
-export interface TakumiNode {
-  type: 'container' | 'image' | 'text'
-  children?: TakumiNode[]
-  text?: string
-  src?: string
-  style?: Record<string, any>
-  tw?: string
-  /** Any extra HTML attributes (width, height, alt, etc.) are spread as top-level props */
-  [key: string]: any
-}
-
-export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<TakumiNode> {
+export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<Node> {
   const vnodeTree = await createVNodes(ctx)
   return await vnodeToTakumiNode(vnodeTree)
 }
 
-// Attributes that are meaningful to Takumi's layout engine (must be numeric)
-function pickDimensions(props: Record<string, any>): Record<string, number> | undefined {
-  let out: Record<string, number> | undefined
-  for (const key of ['width', 'height'] as const) {
-    const v = props[key]
-    if (v == null)
-      continue
-    const n = Number(v)
-    if (!Number.isNaN(n)) {
-      out ??= {}
-      out[key] = n
-    }
-  }
-  return out
+// Extract numeric width/height from HTML attributes
+function pickNumericDimension(props: Record<string, any>, key: 'width' | 'height'): number | undefined {
+  const v = props[key]
+  if (v == null)
+    return undefined
+  const n = Number(v)
+  return Number.isNaN(n) ? undefined : n
 }
 
-async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
+async function vnodeToTakumiNode(vnode: VNode): Promise<Node> {
   const { style, children, class: cls, tw, src, ...rest } = vnode.props
-  const attrs = pickDimensions(rest)
 
-  const base: TakumiNode = {
-    type: 'container',
+  const baseMetadata = {
     tw: tw || cls || undefined,
     style,
-    ...attrs,
   }
 
-  // SVG elements → convert to SVG to string
+  // SVG elements → convert to SVG string
   if (vnode.type === 'svg') {
     return {
-      ...base,
+      ...baseMetadata,
       type: 'image',
       src: vnodeToHtmlString(vnode),
-    }
+      width: pickNumericDimension(rest, 'width'),
+      height: pickNumericDimension(rest, 'height'),
+    } satisfies ImageNode
   }
 
   if (vnode.type === 'img') {
     return {
-      ...base,
+      ...baseMetadata,
       type: 'image',
       src: src || rest.href || '',
-    }
+      width: pickNumericDimension(rest, 'width'),
+      height: pickNumericDimension(rest, 'height'),
+    } satisfies ImageNode
+  }
+
+  // For non-image nodes, merge any explicit width/height into style
+  const containerStyle = { ...style }
+  const w = pickNumericDimension(rest, 'width')
+  const h = pickNumericDimension(rest, 'height')
+  if (w != null && !containerStyle.width)
+    containerStyle.width = w
+  if (h != null && !containerStyle.height)
+    containerStyle.height = h
+  const hasStyle = Object.keys(containerStyle).length > 0
+  const containerMetadata = {
+    tw: baseMetadata.tw,
+    style: hasStyle ? containerStyle : undefined,
   }
 
   // Pure text content → emit a text node with style applied directly.
@@ -78,15 +76,15 @@ async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
 
   if (textContent !== undefined) {
     return {
-      ...base,
+      ...containerMetadata,
       type: 'text',
       text: textContent,
-    }
+    } satisfies TextNode
   }
 
   // Array children
   if (Array.isArray(children)) {
-    const takumiChildren: TakumiNode[] = []
+    const takumiChildren: Node[] = []
     for (const child of children) {
       if (child && typeof child === 'object')
         takumiChildren.push(await vnodeToTakumiNode(child))
@@ -95,13 +93,17 @@ async function vnodeToTakumiNode(vnode: VNode): Promise<TakumiNode> {
     }
 
     return {
-      ...base,
+      ...containerMetadata,
+      type: 'container',
       children: takumiChildren.length ? takumiChildren : undefined,
-    }
+    } satisfies ContainerNode
   }
 
   // No children
-  return base
+  return {
+    ...containerMetadata,
+    type: 'container',
+  } satisfies ContainerNode
 }
 
 function vnodeToHtmlString(vnode: VNode): string {
