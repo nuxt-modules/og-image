@@ -14,6 +14,13 @@ export default defineNuxtConfig({
   ogImage: {
     zeroRuntime: true,
     sharpOptions: true,
+    fonts: [
+      {
+        name: 'OPTIEinstein',
+        weight: 800,
+        path: '/OPTIEinstein-Black.otf',
+      },
+    ],
   },
 
   routeRules: {
