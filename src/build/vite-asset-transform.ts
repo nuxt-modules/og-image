@@ -37,6 +37,9 @@ const RE_NON_STYLE_VAR_ATTR = /\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+
 const RE_QUOTED_ATTR = /^([a-z-]+)="(.*)"$/i
 const RE_COLOR_PROP_NAME = /color|fill|stroke|background|border|outline|shadow|accent|caret/
 const RE_STYLE_VAR_ATTR = /\bstyle="([^"]*var\(--[^"]+)"/g
+const RE_INLINE_STYLE = /\bstyle="([^"]*)"/g
+const RE_CSS_VAR_DEF = /--([\w-]+)\s*:\s*([^;]+)/g
+const RE_DYNAMIC_STYLE_VAR = /:style="([^"]*var\(--[^"]+)"/g
 const RE_IMAGE_SRC = /(?<!:)src="((?:\/|~\/|@\/)[^"]+\.(png|jpg|jpeg|gif|webp|svg))"/g
 const RE_SCOPED_DATA_V = /\[data-v-([a-f0-9]+)\]/
 const RE_FILE_EXTENSION = /\.\w+$/
@@ -561,8 +564,22 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       }
 
       // Resolve var() in HTML attributes and inline styles
-      if (options.cssProvider?.getVars && template.includes('var(')) {
-        const vars = await options.cssProvider.getVars(rootAttrs)
+      if (template.includes('var(')) {
+        const vars = options.cssProvider?.getVars
+          ? await options.cssProvider.getVars(rootAttrs)
+          : new Map<string, string>()
+
+        // Extract inline CSS custom property definitions from static style attributes
+        RE_INLINE_STYLE.lastIndex = 0
+        for (const m of template.matchAll(RE_INLINE_STYLE)) {
+          RE_CSS_VAR_DEF.lastIndex = 0
+          for (const def of m[1]!.matchAll(RE_CSS_VAR_DEF)) {
+            const name = `--${def[1]}`
+            if (!vars.has(name))
+              vars.set(name, def[2]!.trim())
+          }
+        }
+
         if (vars.size > 0) {
           // Non-style, non-class attributes (e.g., SVG fill="var(--bg)")
           const replacements: Array<{ from: string, to: string }> = []
@@ -615,6 +632,20 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               downleveled.push(`${prop}: ${value}`)
             }
             r.to = `style="${downleveled.join('; ')}"`
+            template = template.replace(r.from, r.to)
+            hasChanges = true
+          }
+
+          // Dynamic :style bindings: resolve var() in Vue :style="..." attributes
+          RE_DYNAMIC_STYLE_VAR.lastIndex = 0
+          const dynamicReplacements: Array<{ from: string, to: string }> = []
+          template.replace(RE_DYNAMIC_STYLE_VAR, (match, styleExpr) => {
+            const resolved = resolveCssVars(styleExpr, vars)
+            if (resolved !== styleExpr)
+              dynamicReplacements.push({ from: match, to: `:style="${resolved}"` })
+            return match
+          })
+          for (const r of dynamicReplacements) {
             template = template.replace(r.from, r.to)
             hasChanges = true
           }
