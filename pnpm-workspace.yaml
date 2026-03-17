@@ -104,7 +104,7 @@ catalog:
   vitest: ^4.1.0
   vue: ^3.5.30
   vue-router: ^5.0.3
-  vue-tsc: ^3.2.5
+  vue-tsc: ^3.2.6
   wrangler: ^4.74.0
   yoga-wasm-web: ^0.3.3
 catalogs:

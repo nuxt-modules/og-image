@@ -78,6 +78,48 @@ const SVG_CAMEL_ATTRS: Record<string, string> = {
 
 export const SVG_CAMEL_ATTR_VALUES = new Set(Object.values(SVG_CAMEL_ATTRS))
 
+const RE_PERCENT = /^\d+%$/
+
+/**
+ * Resolve an SVG element's width or height from multiple sources:
+ * 1. Numeric HTML attribute (e.g. width="24")
+ * 2. Style property (e.g. style.width = 48 or "48px")
+ * 3. viewBox (3rd/4th value for width/height)
+ *
+ * Percentage attributes are skipped (returned as undefined) so callers
+ * can fall back to ancestor or renderer-specific resolution.
+ */
+export function resolveSvgDimension(
+  props: Record<string, any>,
+  style: Record<string, any> | undefined,
+  key: 'width' | 'height',
+): number | undefined {
+  // 1. HTML attribute (skip percentages)
+  const attr = props[key]
+  if (attr != null && !RE_PERCENT.test(String(attr))) {
+    const n = Number(attr)
+    if (!Number.isNaN(n))
+      return n
+  }
+  // 2. Style property
+  const sv = style?.[key]
+  if (sv != null) {
+    const n = typeof sv === 'number' ? sv : Number.parseInt(String(sv))
+    if (!Number.isNaN(n))
+      return n
+  }
+  // 3. viewBox fallback
+  const vb = props.viewBox || props.viewbox
+  if (typeof vb === 'string') {
+    const parts = vb.split(/[\s,]+/)
+    if (parts.length === 4) {
+      const n = Number(parts[key === 'width' ? 2 : 3])
+      if (!Number.isNaN(n))
+        return n
+    }
+  }
+}
+
 export function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
   if (!style)
     return undefined

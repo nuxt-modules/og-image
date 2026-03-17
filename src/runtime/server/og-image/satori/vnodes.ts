@@ -1,14 +1,14 @@
 import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../types'
 import resolvedFonts from '#og-image/fonts'
 import { walkTree } from '../core/plugins'
-import { createVNodes as coreCreateVNodes } from '../core/vnodes'
+import { createVNodes as coreCreateVNodes, resolveSvgDimension } from '../core/vnodes'
 import classes from './plugins/classes'
 import emojis from './plugins/emojis'
 import flex from './plugins/flex'
 import nuxtIcon from './plugins/nuxt-icon'
 
 // Re-export shared utilities for external consumers
-export { htmlToVNode, SVG_CAMEL_ATTR_VALUES, warnUnsupportedSvgElements } from '../core/vnodes'
+export { htmlToVNode, resolveSvgDimension, SVG_CAMEL_ATTR_VALUES, warnUnsupportedSvgElements } from '../core/vnodes'
 
 // Get default font family from resolved fonts
 function getDefaultFontFamily(): string {
@@ -20,12 +20,12 @@ function getDefaultFontFamily(): string {
 }
 
 const RE_PX = /^(\d+(?:\.\d+)?)px$/
-const RE_PERCENT = /^\d+%$/
 
 /**
  * Satori embeds inline <svg> as data URI <image> elements, resolving width/height
  * attributes to pixel values. Percentage values (width="100%") become NaN.
- * This walk finds the nearest ancestor with explicit pixel dimensions and resolves.
+ * This walk uses the shared resolveSvgDimension (attrs → style → viewBox),
+ * then falls back to the nearest ancestor with explicit pixel dimensions.
  */
 function findAncestorPxDim(ancestors: VNode[], prop: 'width' | 'height'): number | undefined {
   for (let i = ancestors.length - 1; i >= 0; i--) {
@@ -38,17 +38,20 @@ function findAncestorPxDim(ancestors: VNode[], prop: 'width' | 'height'): number
   }
 }
 
+const RE_PERCENT = /^\d+%$/
+
 function resolveSvgPercentDimensions(node: VNode, ancestors: VNode[] = []) {
   if (node.type === 'svg') {
-    if (RE_PERCENT.test(node.props?.width || '')) {
-      const px = findAncestorPxDim(ancestors, 'width')
-      if (px)
-        node.props.width = px
-    }
-    if (RE_PERCENT.test(node.props?.height || '')) {
-      const px = findAncestorPxDim(ancestors, 'height')
-      if (px)
-        node.props.height = px
+    for (const dim of ['width', 'height'] as const) {
+      const val = String(node.props?.[dim] || '')
+      const isPercent = RE_PERCENT.test(val)
+      if (isPercent) {
+        // Percentage → prefer ancestor container px, fall back to viewBox
+        const resolved = findAncestorPxDim(ancestors, dim) ?? resolveSvgDimension(node.props, node.props?.style, dim)
+        if (resolved)
+          node.props[dim] = resolved
+      }
+      // Don't resolve relative units (em/rem) — satori handles these natively
     }
   }
   if (Array.isArray(node.props?.children)) {

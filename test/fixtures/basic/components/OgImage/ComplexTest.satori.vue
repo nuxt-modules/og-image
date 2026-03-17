@@ -11,7 +11,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 p-12">
+  <div class="w-full h-full flex flex-col p-12" style="background: linear-gradient(to bottom right, #312e81, #581c87, #9d174d);">
     <!-- Header -->
     <div class="flex justify-between items-start mb-8">
       <div class="flex items-center gap-4">
