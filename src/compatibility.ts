@@ -193,7 +193,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
     return {
-      [`#og-image/bindings/${key}`]: binding === false ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
+      [`#og-image/bindings/${key}`]: !binding ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
     }
   }
   // Resolve satori's bundled yoga.wasm (yoga-layout, not yoga-wasm-web)
