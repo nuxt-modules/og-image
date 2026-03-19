@@ -192,6 +192,12 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     }
     // @ts-expect-error untyped
     resolvedCompatibility[key] = binding
+    // When binding is falsy, also mock the renderer — the renderer imports from
+    // the binding at module level, so a mocked binding with missing named exports
+    // causes Rollup errors (e.g. "createBrowser" is not exported by empty mock)
+    if (!binding && isRendererBinding) {
+      nitroConfig.alias![`#og-image/renderers/${key}`] = emptyMock
+    }
     return {
       [`#og-image/bindings/${key}`]: !binding ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
     }
