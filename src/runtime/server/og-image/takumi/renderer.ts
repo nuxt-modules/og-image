@@ -13,8 +13,7 @@ const RE_QUOTES = /['"]/g
 interface TakumiState {
   renderer: any
   loadedFontKeys: Set<string>
-  familySubsetNames: Map<string, string[]>
-  subsetCounter: number
+  loadedFamilies: Set<string>
 }
 
 async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiState> {
@@ -25,8 +24,7 @@ async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiS
   nitro._takumiState = {
     renderer: new Renderer(),
     loadedFontKeys: new Set(),
-    familySubsetNames: new Map(),
-    subsetCounter: 0,
+    loadedFamilies: new Set(),
   } satisfies TakumiState
   return nitro._takumiState
 }
@@ -43,24 +41,17 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
       ? new Uint8Array(font.data)
       : Uint8Array.from(font.data as Uint8Array)
 
-    const subsetName = `${font.family}__${state.subsetCounter++}`
     try {
+      // Use the real family name so takumi can do font-weight matching
+      // within the same family. Previously each weight got a unique subset
+      // name (e.g. "Inter__0", "Inter__1") which broke weight selection.
       await state.renderer.loadFont({
-        name: subsetName,
+        name: font.family,
         data: fontData,
         weight: font.weight,
         style: font.style as 'normal' | 'italic' | 'oblique',
       })
-      if (!state.familySubsetNames.has(font.family))
-        state.familySubsetNames.set(font.family, [])
-      state.familySubsetNames.get(font.family)!.push(subsetName)
-      // Store lowercase alias for case-insensitive font-family matching
-      const lowerFamily = font.family.toLowerCase()
-      if (lowerFamily !== font.family) {
-        if (!state.familySubsetNames.has(lowerFamily))
-          state.familySubsetNames.set(lowerFamily, [])
-        state.familySubsetNames.get(lowerFamily)!.push(subsetName)
-      }
+      state.loadedFamilies.add(font.family)
     }
     catch (err) {
       logger.warn(`Failed to load font "${font.family}" (weight: ${font.weight}) into takumi renderer: ${(err as Error).message}`)
@@ -74,33 +65,34 @@ async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: 
  * This handles mismatched casing between template styles ('Biz UDPGothic')
  * and @nuxt/fonts canonical names ('BIZ UDPGothic').
  */
-function lookupFontSubsets(family: string, familySubsetNames: Map<string, string[]>): string[] | undefined {
-  return familySubsetNames.get(family) || familySubsetNames.get(family.toLowerCase())
+function lookupFontFamily(family: string, loadedFamilies: Set<string>): string | undefined {
+  if (loadedFamilies.has(family))
+    return family
+  for (const loaded of loadedFamilies) {
+    if (loaded.toLowerCase() === family.toLowerCase())
+      return loaded
+  }
 }
 
-function rewriteFontFamilies(node: Node, familySubsetNames: Map<string, string[]>) {
+function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>) {
   if (node.style?.fontFamily) {
     const families = (node.style.fontFamily as string).split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
-    const expanded = families.flatMap((f: string) => lookupFontSubsets(f, familySubsetNames) || [f])
-    // Append all other loaded font subsets as fallback for missing glyphs.
-    // Without this, an element styled with e.g. font-family: 'Poppins' would
-    // have no fallback when Poppins lacks glyphs (e.g. Devanagari script) —
-    // the renderer needs other loaded fonts in the font stack to fall back to.
-    const expandedSet = new Set(expanded)
-    for (const subsets of familySubsetNames.values()) {
-      for (const name of subsets) {
-        if (!expandedSet.has(name)) {
-          expanded.push(name)
-          expandedSet.add(name)
-        }
+    // Resolve each family to the loaded name (case-insensitive), keep unloaded families as-is
+    const resolved = families.map((f: string) => lookupFontFamily(f, loadedFamilies) || f)
+    // Append other loaded families as fallback for missing glyphs
+    const seen = new Set(resolved.map(f => f.toLowerCase()))
+    for (const family of loadedFamilies) {
+      if (!seen.has(family.toLowerCase())) {
+        resolved.push(family)
+        seen.add(family.toLowerCase())
       }
     }
-    // Quote each name so multi-word subset names like "Nunito Sans__0" are parsed correctly
-    node.style.fontFamily = expanded.map((f: string) => `"${f}"`).join(', ')
+    // Quote each name so multi-word family names are parsed correctly
+    node.style.fontFamily = resolved.map((f: string) => `"${f}"`).join(', ')
   }
   if ('children' in node && node.children) {
     for (const child of node.children)
-      rewriteFontFamilies(child, familySubsetNames)
+      rewriteFontFamilies(child, loadedFamilies)
   }
 }
 
@@ -118,12 +110,12 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   await loadFontsIntoRenderer(state, fonts)
 
   const rootStyle = nodes.style ?? {}
-  if (fontFamilyOverride && state.familySubsetNames.has(fontFamilyOverride)) {
+  if (fontFamilyOverride && state.loadedFamilies.has(fontFamilyOverride)) {
     rootStyle.fontFamily = fontFamilyOverride
   }
   nodes.style = rootStyle
 
-  rewriteFontFamilies(nodes, state.familySubsetNames)
+  rewriteFontFamilies(nodes, state.loadedFamilies)
 
   const extractResourceUrls = await getExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
