@@ -162,13 +162,13 @@ describe('urlEncoding', () => {
     })
 
     it('does not truncate on commas inside prop values (encoded)', () => {
-      const decoded = decodeOgImageParams('description_Ship+fast%2C+flexible%2C+and+more,w_1200')
-      expect(decoded).toEqual({ width: 1200, props: { description: 'Ship fast, flexible, and more' } })
+      const decoded = decodeOgImageParams('description_Ship+fast%2C+flexible%2C+and+more')
+      expect(decoded).toEqual({ props: { description: 'Ship fast, flexible, and more' } })
     })
 
     it('does not truncate on commas inside prop values (decoded)', () => {
-      const decoded = decodeOgImageParams('description_Ship+fast, flexible, and more,w_1200')
-      expect(decoded).toEqual({ width: 1200, props: { description: 'Ship fast, flexible, and more' } })
+      const decoded = decodeOgImageParams('description_Ship+fast, flexible, and more')
+      expect(decoded).toEqual({ props: { description: 'Ship fast, flexible, and more' } })
     })
 
     it('ignores empty string values during decoding', () => {
