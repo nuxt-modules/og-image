@@ -12,6 +12,9 @@ withDefaults(defineProps<{
       <div class="text-[64px] leading-tight font-bold mb-4">
         {{ title }}
       </div>
+      <div class="text-[40px] leading-tight font-normal text-gray-500">
+        This text should be regular weight
+      </div>
     </div>
   </div>
 </template>

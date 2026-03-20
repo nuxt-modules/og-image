@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
-import { fetchOgImages, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
+import { fetchOgImages, setupImageSnapshots, SNAPSHOT_DEFAULT, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -42,9 +42,13 @@ describe('multi-font-families', () => {
     }
 
     for (const [path, id] of Object.entries(snapshotIds)) {
-      expect(images.get(path)).toMatchImageSnapshot({
-        customSnapshotIdentifier: id,
-      })
+      // Use tighter threshold for biz-udp-bold: the font-weight regression
+      // (subset naming causing wrong weight) only produces ~0.7% pixel diff,
+      // which the global SNAPSHOT_LOOSE (1%) would miss.
+      const opts = path === '/biz-udp-bold'
+        ? { customSnapshotIdentifier: id, ...SNAPSHOT_DEFAULT }
+        : { customSnapshotIdentifier: id }
+      expect(images.get(path)).toMatchImageSnapshot(opts)
     }
   })
 
