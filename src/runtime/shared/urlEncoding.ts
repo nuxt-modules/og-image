@@ -29,6 +29,7 @@ const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
 const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
+const RE_COMMA_SEPARATOR = /,(?=\w+_)/
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -234,7 +235,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
   const options: Record<string, any> = {}
 
   // Split by comma, but not escaped commas (%2C)
-  const parts = encoded.split(',')
+  const parts = encoded.split(RE_COMMA_SEPARATOR)
 
   for (const part of parts) {
     // Find first underscore that's not escaped (not preceded by another underscore)

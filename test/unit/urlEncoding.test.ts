@@ -161,6 +161,16 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({ width: 1200, props: { count: 42 } })
     })
 
+    it('does not truncate on commas inside prop values (encoded)', () => {
+      const decoded = decodeOgImageParams('description_Ship+fast%2C+flexible%2C+and+more,w_1200')
+      expect(decoded).toEqual({ width: 1200, props: { description: 'Ship fast, flexible, and more' } })
+    })
+
+    it('does not truncate on commas inside prop values (decoded)', () => {
+      const decoded = decodeOgImageParams('description_Ship+fast, flexible, and more,w_1200')
+      expect(decoded).toEqual({ width: 1200, props: { description: 'Ship fast, flexible, and more' } })
+    })
+
     it('ignores empty string values during decoding', () => {
       const decoded = decodeOgImageParams('c_Default,primaryColor_')
       expect(decoded).toEqual({ component: 'Default', props: {} })
