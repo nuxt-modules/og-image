@@ -64,7 +64,7 @@ catalog:
   defu: ^6.1.4
   devalue: ^5.6.4
   eslint: ^10.0.3
-  eslint-plugin-harlanzw: ^0.7.0
+  eslint-plugin-harlanzw: ^0.8.0
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
@@ -88,7 +88,7 @@ catalog:
   playwright-core: ^1.58.2
   radix3: ^1.1.2
   sass: ^1.98.0
-  satori: ^0.25.0
+  satori: ^0.26.0
   sharp: ^0.34.5
   sirv: ^3.0.2
   std-env: ^4.0.0
@@ -105,7 +105,7 @@ catalog:
   vue: ^3.5.30
   vue-router: ^5.0.4
   vue-tsc: ^3.2.6
-  wrangler: ^4.75.0
+  wrangler: ^4.76.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
