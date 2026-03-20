@@ -1,7 +1,7 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
 import { appendHeader } from 'h3'
 import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
-import { ref, toValue } from 'vue'
+import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 const RE_COMMA = /,/g
