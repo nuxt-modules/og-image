@@ -14,23 +14,20 @@ export function defineOgImageRaw(_options: DefineOgImageInput | DefineOgImageInp
   const nuxtApp = useNuxtApp()
   const route = useRoute()
   const basePath = route.path || '/' // (pages may be disabled)'
-  // if we're loading the same path as the SSR response
-  if (nuxtApp.payload.path === basePath) {
-    // we keep track of how this function is used, correct usage is that it should have been called
-    // server-side before client side, if we're only calling it client-side then it means it's being used incorrectly
-    const state = import.meta.dev ? useState<boolean>(`og-image:ssr-exists:${basePath}`, () => false) : ref(false)
-    // clone to avoid any issues
-    if (import.meta.dev && !import.meta.server) {
-      // should be tree shaken
+  if (import.meta.dev && import.meta.server) {
+    // track that defineOgImage was called server-side for this path
+    useState<boolean>(`og-image:ssr-exists:${basePath}`, () => false).value = true
+  }
+  if (!import.meta.server) {
+    // validate during hydration that the server also called defineOgImage for this path
+    // catches .client.vue components or other client-only contexts where og images won't be generated
+    if (import.meta.dev && nuxtApp.isHydrating) {
+      const state = useState<boolean>(`og-image:ssr-exists:${basePath}`, () => false)
       // skip validation in error context - error pages have special lifecycle that confuses state tracking
       if (!state.value && !useError().value) {
         throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup, see https://github.com/nuxt-modules/og-image/pull/293.' })
       }
-      return []
     }
-    state.value = true
-  }
-  if (!import.meta.server) {
     return []
   }
 
