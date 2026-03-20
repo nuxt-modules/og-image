@@ -16,6 +16,7 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -490,7 +491,7 @@ export default defineNuxtModule<ModuleOptions>({
         const hadShim = 'defineAppConfig' in globalThis
         if (!hadShim)
           (globalThis as any).defineAppConfig = (config: any) => config
-        const cfg = await import(configPath).then(m => m.default || m).catch(() => ({}))
+        const cfg = await import(pathToFileURL(configPath).href).then(m => m.default || m).catch(() => ({}))
         if (!hadShim)
           delete (globalThis as any).defineAppConfig
         if (cfg?.ui?.colors)

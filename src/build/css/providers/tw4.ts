@@ -1,5 +1,6 @@
 import type { CssProvider } from '../css-provider'
 import { readFile } from 'node:fs/promises'
+import { pathToFileURL } from 'node:url'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
 import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
@@ -48,12 +49,12 @@ export function createModuleLoader(baseDir: string) {
   return async (id: string, base: string) => {
     const resolved = resolveModulePath(id, { from: base || baseDir })
     if (resolved) {
-      const module = await import(resolved).then(m => m.default || m)
+      const module = await import(pathToFileURL(resolved).href).then(m => m.default || m)
       return { path: resolved, base: dirname(resolved), module }
     }
     // Fallback: try relative resolution
     const relativePath = join(base || baseDir, id)
-    const module = await import(relativePath).then(m => m.default || m).catch(() => ({}))
+    const module = await import(pathToFileURL(relativePath).href).then(m => m.default || m).catch(() => ({}))
     return { path: relativePath, base: dirname(relativePath), module }
   }
 }
