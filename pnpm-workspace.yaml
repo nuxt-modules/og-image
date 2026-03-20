@@ -49,8 +49,8 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': ^1.0.0-beta.6
-  '@takumi-rs/wasm': ^1.0.0-beta.6
+  '@takumi-rs/core': ^1.0.0-beta.7
+  '@takumi-rs/wasm': ^1.0.0-beta.7
   '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.30
   '@vueuse/core': ^14.2.1
@@ -64,7 +64,7 @@ catalog:
   defu: ^6.1.4
   devalue: ^5.6.4
   eslint: ^10.0.3
-  eslint-plugin-harlanzw: ^0.6.0
+  eslint-plugin-harlanzw: ^0.7.0
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
@@ -80,7 +80,7 @@ catalog:
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.120.0
+  oxc-parser: ^0.121.0
   oxc-walker: ^0.7.0
   pathe: ^2.0.3
   pkg-types: ^2.3.0
@@ -103,7 +103,7 @@ catalog:
   unplugin: ^3.0.0
   vitest: ^4.1.0
   vue: ^3.5.30
-  vue-router: ^5.0.3
+  vue-router: ^5.0.4
   vue-tsc: ^3.2.6
   wrangler: ^4.75.0
   yoga-wasm-web: ^0.3.3
