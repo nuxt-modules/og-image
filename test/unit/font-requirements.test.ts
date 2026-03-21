@@ -226,6 +226,41 @@ describe('font-requirements', () => {
       expect(result.familyNames).toContain('Inter')
     })
 
+    it('should extract font-family from script setup computed properties', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
+
+      const result = await extractFontRequirementsFromVue(`
+<template>
+  <div :style="mainStyle">Text</div>
+  <h1 :style="titleStyle">Title</h1>
+</template>
+<script setup lang="ts">
+import { computed } from 'vue'
+const mainStyle = computed(() => ({
+  fontFamily: '"Inter", sans-serif',
+}))
+const titleStyle = computed(() => ({
+  fontFamily: '"Nunito", sans-serif !important',
+}))
+</script>
+`)
+
+      expect(result.familyNames).toContain('Inter')
+      expect(result.familyNames).toContain('Nunito')
+    })
+
+    it('should extract font-family from JS style with nested quotes', async () => {
+      const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
+
+      const result = await extractFontRequirementsFromVue(`
+<template>
+  <div :style="{ fontFamily: '&quot;Fira Code&quot;, monospace' }">Code</div>
+</template>
+`)
+
+      expect(result.familyNames).toContain('Fira Code')
+    })
+
     it('should return empty families when no font-family classes used', async () => {
       const { extractFontRequirementsFromVue } = await import('../../src/build/css/css-classes')
 
