@@ -54,11 +54,15 @@ onMounted(() => {
   })
 })
 
-// Recalculate scale when container resizes
+// Recalculate scale when container resizes or configured width changes
 useResizeObserver(container, () => {
   if (src.value)
     setSource()
 })
+watch(() => toValue(options.value.width), () => {
+  if (src.value)
+    setSource()
+}, { flush: 'post' })
 </script>
 
 <template>
