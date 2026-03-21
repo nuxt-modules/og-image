@@ -1573,6 +1573,13 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
   const outputDir = cliPath
     ? resolve(cwd, cliPath)
     : resolve(baseDir, 'components', 'OgImage')
+
+  // Ensure output directory is within the project
+  if (!outputDir.startsWith(cwd)) {
+    p.log.error('Output path must be within the project directory')
+    process.exit(1)
+  }
+
   if (!existsSync(outputDir))
     mkdirSync(outputDir, { recursive: true })
 
@@ -1599,8 +1606,12 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
       let pagePath = pageInput.trim()
       if (!pagePath.endsWith('.vue'))
         pagePath += '.vue'
-      const fullPagePath = join(pagesDir, pagePath)
-      if (insertDefineOgImage(fullPagePath, componentName)) {
+      const fullPagePath = resolve(pagesDir, pagePath)
+      // Ensure page path is within the pages directory
+      if (!fullPagePath.startsWith(pagesDir)) {
+        p.log.warn('Page path must be within the pages directory')
+      }
+      else if (insertDefineOgImage(fullPagePath, componentName)) {
         p.log.success(`Added defineOgImage('${componentName}') to ${relative(cwd, fullPagePath)}`)
       }
       else if (!existsSync(fullPagePath)) {
