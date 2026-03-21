@@ -14,6 +14,8 @@ const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
 const DEVTOOLS_UI_LOCAL_PORT = 3030
 
 const RE_TILDE_SLASH = /^~\//
+const RE_WORD_CHARS_ONLY = /^\w+$/
+const RE_SCRIPT_SETUP = /<script\s+setup[^>]*>\n?/
 
 const SCRIPT_BLOCK = `<script setup lang="ts">
 const { title = 'My Page', description = '' } = defineProps<{
@@ -140,7 +142,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     if (content.includes('defineOgImage'))
       return false
     const call = `defineOgImage('${componentName}')`
-    const scriptSetupMatch = content.match(/<script\s+setup[^>]*>\n?/)
+    const scriptSetupMatch = content.match(RE_SCRIPT_SETUP)
     if (scriptSetupMatch) {
       const insertPos = scriptSetupMatch.index! + scriptSetupMatch[0].length
       await writeFile(resolved, `${content.slice(0, insertPos)}${call}\n${content.slice(insertPos)}`, 'utf-8')
@@ -188,7 +190,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
           throw new Error(`Invalid renderer: ${renderer}`)
 
         // Validate component name: PascalCase identifier only, no path separators or special chars
-        if (!/^\w+$/.test(name))
+        if (!RE_WORD_CHARS_ONLY.test(name))
           throw new Error(`Invalid component name: ${name}`)
 
         const baseDir = existsSync(join(nuxt.options.srcDir, 'app'))
@@ -214,7 +216,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
         return outputPath
       },
       async addOgImageToPage(componentName: string, pageFile: string) {
-        if (!/^\w+$/.test(componentName))
+        if (!RE_WORD_CHARS_ONLY.test(componentName))
           throw new Error(`Invalid component name: ${componentName}`)
         return insertDefineOgImage(componentName, pageFile)
       },

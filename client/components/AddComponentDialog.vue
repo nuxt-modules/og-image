@@ -7,13 +7,15 @@ function handleClose(_a: unknown, resolve: (value: AddComponentResult | false) =
   resolve(false)
 }
 
+const RE_WORD_CHARS_ONLY = /^\w+$/
+
 const componentName = ref('')
 const nameError = ref('')
 
 function validateName(value: string): string {
   if (!value.trim())
     return 'Name is required'
-  if (!/^\w+$/.test(value.trim()))
+  if (!RE_WORD_CHARS_ONLY.test(value.trim()))
     return 'Only letters, numbers, and underscores allowed'
   return ''
 }
