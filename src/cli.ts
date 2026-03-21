@@ -25,7 +25,8 @@ const RE_EXCLUDE_DIST = /dist/
 const RE_VUE_OR_SCRIPT = /\.(?:vue|ts|tsx|js|jsx)$/
 const RE_PASCAL_CASE_STRICT = /^[A-Z]\w*$/
 const RE_PASCAL_CASE_START = /^[A-Z]/
-const RE_SCRIPT_SETUP = /<script\s+setup[^>]*>\n?/
+const RE_SCRIPT_SETUP = /<script\s+setup[^>]*>\r?\n?/
+const RE_PATH_SEPARATOR = /[\\/]|\.\./
 
 // Deprecated composable names that should be renamed to defineOgImage
 const DEPRECATED_COMPOSABLE_NAMES = new Set([
@@ -1239,6 +1240,19 @@ async function runSwitch(args: string[]): Promise<void> {
     }
   }
 
+  // Check for conflicts before renaming
+  const conflicts: string[] = []
+  for (const component of toMigrate) {
+    const newPath = component.path.replace(`.${fromRenderer}.vue`, `.${toRenderer}.vue`)
+    if (existsSync(newPath))
+      conflicts.push(`${basename(component.path)} → ${basename(newPath)} (already exists)`)
+  }
+  if (conflicts.length > 0) {
+    p.log.error('Conflicts detected, aborting:')
+    for (const c of conflicts) p.log.error(`  ${c}`)
+    process.exit(1)
+  }
+
   // Rename files
   for (const component of toMigrate) {
     const newPath = component.path.replace(`.${fromRenderer}.vue`, `.${toRenderer}.vue`)
@@ -1246,54 +1260,69 @@ async function runSwitch(args: string[]): Promise<void> {
     p.log.success(`${basename(component.path)} → ${basename(newPath)}`)
   }
 
-  // Manage dependencies: remove old, install new
-  const noFromComponentsRemaining = allComponents.filter(c => c.renderer === fromRenderer).length === toMigrate.length
-  const detectedPreset = await detectDeploymentTarget(cwd)
-  const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
-  if (detectedPreset)
-    p.log.info(`Detected deployment target: ${detectedPreset}`)
+  // Manage dependencies: remove old, install new (only if package.json exists)
+  const hasPkg = existsSync(join(cwd, 'package.json'))
+  if (hasPkg) {
+    const noFromComponentsRemaining = allComponents.filter(c => c.renderer === fromRenderer).length === toMigrate.length
+    const detectedPreset = await detectDeploymentTarget(cwd)
+    const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
+    if (detectedPreset)
+      p.log.info(`Detected deployment target: ${detectedPreset}`)
 
-  const manageDeps = skipConfirm || await p.confirm({
-    message: `Manage dependencies? (install ${toRenderer}, ${noFromComponentsRemaining ? `remove ${fromRenderer}` : 'keep existing'})`,
-    initialValue: true,
-  }).then(v => !p.isCancel(v) && v)
+    const manageDeps = skipConfirm || await p.confirm({
+      message: `Manage dependencies? (install ${toRenderer}, ${noFromComponentsRemaining ? `remove ${fromRenderer}` : 'keep existing'})`,
+      initialValue: true,
+    }).then(v => !p.isCancel(v) && v)
 
-  if (manageDeps) {
-    // Remove old renderer deps if no components remain using it
-    if (noFromComponentsRemaining) {
-      const oldDeps = [...new Set([...getRendererDeps(fromRenderer, false), ...getRendererDeps(fromRenderer, true)])]
-      // Only remove deps not shared with the target renderer
-      const newDeps = new Set([...getRendererDeps(toRenderer, false), ...getRendererDeps(toRenderer, true)])
-      const toRemove = oldDeps.filter(d => !newDeps.has(d))
-      if (toRemove.length > 0) {
-        const pm = await detectPackageManager(cwd)
-        const spinner = p.spinner()
-        spinner.start(`Removing ${fromRenderer} dependencies...`)
-        for (const dep of toRemove) {
-          await removeDependency(dep, { cwd })
-            .catch(() => p.log.warn(`Could not remove ${dep}, remove manually: ${pm?.name || 'npm'} remove ${dep}`))
+    if (manageDeps) {
+      // Remove old renderer deps if no components remain using it
+      if (noFromComponentsRemaining) {
+        const oldDeps = [...new Set([...getRendererDeps(fromRenderer, false), ...getRendererDeps(fromRenderer, true)])]
+        // Only remove deps not shared with the target renderer
+        const newDeps = new Set([...getRendererDeps(toRenderer, false), ...getRendererDeps(toRenderer, true)])
+        const toRemove = oldDeps.filter(d => !newDeps.has(d))
+        if (toRemove.length > 0) {
+          const pm = await detectPackageManager(cwd)
+          const spinner = p.spinner()
+          spinner.start(`Removing ${fromRenderer} dependencies...`)
+          for (const dep of toRemove) {
+            await removeDependency(dep, { cwd })
+              .catch(() => p.log.warn(`Could not remove ${dep}, remove manually: ${pm?.name || 'npm'} remove ${dep}`))
+          }
+          spinner.stop(`Removed ${fromRenderer} dependencies`)
         }
-        spinner.stop(`Removed ${fromRenderer} dependencies`)
       }
+
+      await installRendererDeps([toRenderer], isEdge)
     }
 
-    await installRendererDeps([toRenderer], isEdge)
-  }
-
-  // Run nuxt prepare
-  const spinner = p.spinner()
-  spinner.start('Running nuxt prepare to update types...')
-  const { exec } = await import('tinyexec')
-  try {
-    await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
-    spinner.stop('Types updated')
-  }
-  catch {
-    spinner.stop('Failed to run nuxt prepare')
-    p.log.warn('Run manually: npx nuxt prepare')
+    // Run nuxt prepare
+    const spinner = p.spinner()
+    spinner.start('Running nuxt prepare to update types...')
+    const { exec } = await import('tinyexec')
+    try {
+      await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+      spinner.stop('Types updated')
+    }
+    catch {
+      spinner.stop('Failed to run nuxt prepare')
+      p.log.warn('Run manually: npx nuxt prepare')
+    }
   }
 
   p.outro('Renderer switch complete!')
+}
+
+function readPackageJson(cwd: string): Record<string, any> | null {
+  const pkgPath = join(cwd, 'package.json')
+  if (!existsSync(pkgPath))
+    return null
+  try {
+    return JSON.parse(readFileSync(pkgPath, 'utf-8'))
+  }
+  catch {
+    return null
+  }
 }
 
 // Infer renderer from existing components or installed packages
@@ -1313,9 +1342,8 @@ function inferRenderer(cwd: string): RendererName | null {
   }
 
   // Fall back to checking installed packages
-  const pkgPath = join(cwd, 'package.json')
-  if (existsSync(pkgPath)) {
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+  const pkg = readPackageJson(cwd)
+  if (pkg) {
     const allDeps = { ...pkg.dependencies, ...pkg.devDependencies }
     if (allDeps['@takumi-rs/core'] || allDeps['@takumi-rs/wasm'])
       return 'takumi'
@@ -1329,10 +1357,9 @@ function inferRenderer(cwd: string): RendererName | null {
 type CssFramework = 'tailwind' | 'unocss' | 'none'
 
 function detectCssFramework(cwd: string): CssFramework {
-  const pkgPath = join(cwd, 'package.json')
-  if (!existsSync(pkgPath))
+  const pkg = readPackageJson(cwd)
+  if (!pkg)
     return 'none'
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies }
   if (allDeps['@unocss/nuxt'] || allDeps.unocss)
     return 'unocss'
@@ -1470,29 +1497,41 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
 
   p.intro('Create OG Image Component')
 
+  // Shared validation
+  const validateName = (v: string | undefined): string | undefined => {
+    const trimmed = v?.trim()
+    if (!trimmed)
+      return 'Name is required'
+    if (RE_PATH_SEPARATOR.test(trimmed))
+      return 'Name must not contain path separators or ".."'
+    if (!RE_PASCAL_CASE_STRICT.test(trimmed))
+      return 'Must be PascalCase (e.g. MyOgImage)'
+  }
+
   // Resolve component name
   let componentName = name
   if (!componentName) {
     const input = await p.text({
       message: 'Component name:',
       placeholder: 'MyOgImage',
-      validate: (v: string | undefined) => {
-        if (!v?.trim())
-          return 'Name is required'
-        if (!RE_PASCAL_CASE_STRICT.test(v.trim()))
-          return 'Must be PascalCase (e.g. MyOgImage)'
-      },
+      validate: validateName,
     })
     if (p.isCancel(input)) {
       p.cancel('Cancelled')
       process.exit(0)
     }
-    componentName = input as string
+    componentName = (input as string).trim()
   }
-
-  // Ensure PascalCase
-  if (!RE_PASCAL_CASE_START.test(componentName)) {
-    componentName = componentName.charAt(0).toUpperCase() + componentName.slice(1)
+  else {
+    // Normalize and validate CLI-provided name
+    componentName = componentName.trim()
+    if (!RE_PASCAL_CASE_START.test(componentName))
+      componentName = componentName.charAt(0).toUpperCase() + componentName.slice(1)
+    const err = validateName(componentName)
+    if (err) {
+      p.log.error(err)
+      process.exit(1)
+    }
   }
 
   // Resolve renderer: flag > infer > prompt

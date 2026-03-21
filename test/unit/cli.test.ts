@@ -106,6 +106,14 @@ describe('cli', () => {
       expect(existsSync(join(tmpDir, 'components/special/Custom.takumi.vue'))).toBe(true)
     })
 
+    it('rejects path traversal in name', () => {
+      expect(() => runCli('create ../Evil --renderer takumi')).toThrow()
+    })
+
+    it('rejects non-PascalCase name from CLI', () => {
+      expect(() => runCli('create foo-bar --renderer takumi')).toThrow()
+    })
+
     it('fails if file already exists', () => {
       runCli('create Dupe --renderer takumi')
       expect(() => runCli('create Dupe --renderer takumi')).toThrow()
@@ -116,6 +124,73 @@ describe('cli', () => {
       const content = readFileSync(join(tmpDir, 'components/OgImage/Modern.takumi.vue'), 'utf-8')
       expect(content).toContain('const { title =')
       expect(content).not.toContain('withDefaults')
+    })
+  })
+
+  describe('switch', () => {
+    it('renames components from one renderer to another', () => {
+      const ogDir = join(tmpDir, 'components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Card.satori.vue'), '<template>card</template>')
+      writeFileSync(join(ogDir, 'Blog.satori.vue'), '<template>blog</template>')
+
+      const output = runCli('switch --from satori --to takumi --yes')
+      expect(output).toContain('Renderer switch complete')
+      expect(existsSync(join(ogDir, 'Card.takumi.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Blog.takumi.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Card.satori.vue'))).toBe(false)
+    })
+
+    it('--dry-run does not rename files', () => {
+      const ogDir = join(tmpDir, 'components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Card.satori.vue'), '<template>card</template>')
+
+      const output = runCli('switch --from satori --to takumi --dry-run')
+      expect(output).toContain('Dry run')
+      expect(existsSync(join(ogDir, 'Card.satori.vue'))).toBe(true)
+      expect(existsSync(join(ogDir, 'Card.takumi.vue'))).toBe(false)
+    })
+
+    it('aborts on destination conflict', () => {
+      const ogDir = join(tmpDir, 'components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Card.satori.vue'), '<template>satori</template>')
+      writeFileSync(join(ogDir, 'Card.takumi.vue'), '<template>takumi</template>')
+
+      expect(() => runCli('switch --from satori --to takumi --yes')).toThrow()
+      // Original file should be untouched
+      expect(readFileSync(join(ogDir, 'Card.satori.vue'), 'utf-8')).toBe('<template>satori</template>')
+    })
+
+    it('handles app/ directory for Nuxt v4', () => {
+      const ogDir = join(tmpDir, 'app/components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Card.satori.vue'), '<template>card</template>')
+
+      runCli('switch --from satori --to takumi --yes')
+      expect(existsSync(join(ogDir, 'Card.takumi.vue'))).toBe(true)
+    })
+
+    it('reports nothing to do when no components match', () => {
+      const ogDir = join(tmpDir, 'components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Card.takumi.vue'), '<template>card</template>')
+
+      const output = runCli('switch --from satori --to takumi --yes')
+      expect(output).toContain('No components using satori')
+    })
+
+    it('only renames components matching --from renderer', () => {
+      const ogDir = join(tmpDir, 'components/OgImage')
+      mkdirSync(ogDir, { recursive: true })
+      writeFileSync(join(ogDir, 'Card.satori.vue'), '<template>satori</template>')
+      writeFileSync(join(ogDir, 'Blog.takumi.vue'), '<template>takumi</template>')
+
+      runCli('switch --from satori --to browser --yes')
+      expect(existsSync(join(ogDir, 'Card.browser.vue'))).toBe(true)
+      // takumi component should be untouched
+      expect(existsSync(join(ogDir, 'Blog.takumi.vue'))).toBe(true)
     })
   })
 
