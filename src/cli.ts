@@ -1462,7 +1462,7 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
     const input = await p.text({
       message: 'Component name:',
       placeholder: 'MyOgImage',
-      validate: (v) => {
+      validate: (v: string) => {
         if (!v.trim())
           return 'Name is required'
         if (!RE_PASCAL_CASE_STRICT.test(v.trim()))
