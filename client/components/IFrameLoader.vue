@@ -62,7 +62,7 @@ useResizeObserver(container, () => {
 </script>
 
 <template>
-  <div ref="container" class="iframe-loader" :style="{ aspectRatio }">
+  <div ref="container" class="iframe-loader" :style="{ aspectRatio, maxWidth: `${toValue(options.width) || 1200}px` }">
     <iframe ref="iframe" />
   </div>
 </template>
@@ -71,7 +71,6 @@ useResizeObserver(container, () => {
 .iframe-loader {
   position: relative;
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
   border-radius: var(--radius-md);
   overflow: hidden;

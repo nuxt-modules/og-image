@@ -60,7 +60,7 @@ function onError() {
     <img
       v-show="!isLoading && !error"
       :src="src"
-      :style="{ aspectRatio }"
+      :style="{ aspectRatio, maxWidth: maxWidth ? `${maxWidth}px` : undefined }"
       @load="onLoad"
       @error="onError"
     >
@@ -99,7 +99,6 @@ function onError() {
 .image-loader img {
   width: 100%;
   height: 100%;
-  max-width: 1200px;
   object-fit: contain;
   background: var(--color-surface-sunken);
 }
