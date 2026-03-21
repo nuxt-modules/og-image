@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from '#imports'
+import { onBeforeUnmount, ref, toValue, watch } from '#imports'
+import { options } from '../util/logic'
 
 const props = defineProps<{
   src: string
@@ -60,7 +61,7 @@ function onError() {
     <img
       v-show="!isLoading && !error"
       :src="src"
-      :style="{ aspectRatio }"
+      :style="{ aspectRatio, maxWidth: `${toValue(options.width) || 1200}px` }"
       @load="onLoad"
       @error="onError"
     >
@@ -99,7 +100,6 @@ function onError() {
 .image-loader img {
   width: 100%;
   height: 100%;
-  max-width: 1200px;
   object-fit: contain;
   background: var(--color-surface-sunken);
 }

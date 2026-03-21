@@ -54,15 +54,19 @@ onMounted(() => {
   })
 })
 
-// Recalculate scale when container resizes
+// Recalculate scale when container resizes or configured width changes
 useResizeObserver(container, () => {
   if (src.value)
     setSource()
 })
+watch(() => toValue(options.value.width), () => {
+  if (src.value)
+    setSource()
+}, { flush: 'post' })
 </script>
 
 <template>
-  <div ref="container" class="iframe-loader" :style="{ aspectRatio }">
+  <div ref="container" class="iframe-loader" :style="{ aspectRatio, maxWidth: `${toValue(options.width) || 1200}px` }">
     <iframe ref="iframe" />
   </div>
 </template>
@@ -71,7 +75,6 @@ useResizeObserver(container, () => {
 .iframe-loader {
   position: relative;
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
   border-radius: var(--radius-md);
   overflow: hidden;
