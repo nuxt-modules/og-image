@@ -270,12 +270,15 @@ function hasChromiumSuffix(filename: string): boolean {
 }
 
 function listTemplates() {
-  const templates = readdirSync(communityDir)
-    .filter(f => f.endsWith('.vue'))
-    .map(getBaseName)
-  console.log('\nAvailable community templates:')
-  templates.forEach(t => console.log(`  - ${t}`))
-  console.log('\nUsage: npx nuxt-og-image eject <template-name>\n')
+  const templates = [...new Set(
+    readdirSync(communityDir)
+      .filter(f => f.endsWith('.vue'))
+      .map(getBaseName),
+  )]
+  p.intro('Community Templates')
+  p.note(templates.map(t => `• ${t}`).join('\n'), 'Available')
+  p.log.info('Usage: npx nuxt-og-image eject <template-name>')
+  p.outro('')
 }
 
 function findTemplateFile(name: string): string | null {
@@ -1080,6 +1083,202 @@ async function runMigrate(args: string[]): Promise<void> {
   p.outro(dryRun ? 'Dry run complete' : 'Migration complete!')
 }
 
+// Switch renderer command
+async function runSwitch(args: string[]): Promise<void> {
+  const dryRun = args.includes('--dry-run') || args.includes('-d')
+  const skipConfirm = args.includes('--yes') || args.includes('-y')
+
+  // Parse --from and --to flags
+  const fromIdx = args.indexOf('--from')
+  const toIdx = args.indexOf('--to')
+  const cliFrom = fromIdx !== -1 ? args[fromIdx + 1] : null
+  const cliTo = toIdx !== -1 ? args[toIdx + 1] : null
+
+  const validRenderers = RENDERERS.map(r => r.name)
+
+  if (cliFrom && !validRenderers.includes(cliFrom as RendererName)) {
+    p.log.error(`Invalid --from renderer: ${cliFrom}. Must be ${validRenderers.join(', ')}`)
+    process.exit(1)
+  }
+  if (cliTo && !validRenderers.includes(cliTo as RendererName)) {
+    p.log.error(`Invalid --to renderer: ${cliTo}. Must be ${validRenderers.join(', ')}`)
+    process.exit(1)
+  }
+
+  p.intro('Switch OG Image renderer')
+
+  const cwd = process.cwd()
+
+  // Find all OG image components with renderer suffixes
+  const dirs = [cwd]
+  if (existsSync(join(cwd, 'app')))
+    dirs.push(join(cwd, 'app'))
+  const layersDir = join(cwd, 'layers')
+  if (existsSync(layersDir)) {
+    const layerDirs = readdirSync(layersDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => join(layersDir, d.name))
+    dirs.push(...layerDirs)
+  }
+
+  const allComponents: Array<{ path: string, renderer: RendererName }> = []
+  for (const dir of dirs) {
+    const components = findOgImageComponents(dir)
+    for (const filepath of components) {
+      const match = basename(filepath).match(RE_RENDERER_SUFFIX)
+      if (match) {
+        allComponents.push({ path: filepath, renderer: match[1] as RendererName })
+      }
+    }
+  }
+
+  if (allComponents.length === 0) {
+    p.log.warn('No OG image components with renderer suffixes found.')
+    p.outro('Nothing to do')
+    return
+  }
+
+  // Detect which renderers are currently in use
+  const currentRenderers = [...new Set(allComponents.map(c => c.renderer))]
+  p.log.info(`Found ${allComponents.length} component(s) using: ${currentRenderers.join(', ')}`)
+
+  // Determine source renderer
+  let fromRenderer: RendererName
+  if (cliFrom) {
+    fromRenderer = cliFrom as RendererName
+  }
+  else if (skipConfirm) {
+    if (currentRenderers.length === 1) {
+      fromRenderer = currentRenderers[0]!
+    }
+    else {
+      p.log.error('Multiple renderers detected. Use --from to specify which to migrate.')
+      process.exit(1)
+    }
+  }
+  else {
+    const fromSelection = await p.select({
+      message: 'Which renderer do you want to migrate from?',
+      options: currentRenderers.map(r => ({
+        value: r,
+        label: RENDERERS.find(rd => rd.name === r)?.label || r,
+      })),
+      initialValue: currentRenderers[0],
+    })
+    if (p.isCancel(fromSelection)) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+    fromRenderer = fromSelection as RendererName
+  }
+
+  // Determine target renderer
+  let toRenderer: RendererName
+  if (cliTo) {
+    toRenderer = cliTo as RendererName
+  }
+  else if (skipConfirm) {
+    toRenderer = fromRenderer === 'takumi' ? 'satori' : 'takumi'
+  }
+  else {
+    const targetOptions = RENDERERS.filter(r => r.name !== fromRenderer)
+    const toSelection = await p.select({
+      message: 'Which renderer do you want to switch to?',
+      options: targetOptions.map(r => ({
+        value: r.name,
+        label: r.label,
+        hint: r.description,
+      })),
+      initialValue: targetOptions[0]?.name,
+    })
+    if (p.isCancel(toSelection)) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+    toRenderer = toSelection as RendererName
+  }
+
+  if (fromRenderer === toRenderer) {
+    p.log.warn(`Source and target renderer are the same (${fromRenderer}).`)
+    p.outro('Nothing to do')
+    return
+  }
+
+  // Filter components to migrate
+  const toMigrate = allComponents.filter(c => c.renderer === fromRenderer)
+
+  if (toMigrate.length === 0) {
+    p.log.warn(`No components using ${fromRenderer} renderer found.`)
+    p.outro('Nothing to do')
+    return
+  }
+
+  // Show what will be renamed
+  p.note(
+    toMigrate.map(c => `${relative(cwd, c.path)} → ${basename(c.path).replace(`.${fromRenderer}.vue`, `.${toRenderer}.vue`)}`).join('\n'),
+    `Renaming ${toMigrate.length} component(s): ${fromRenderer} → ${toRenderer}`,
+  )
+
+  if (dryRun) {
+    p.log.warn('[Dry run mode, no changes will be made]')
+    p.outro('Dry run complete')
+    return
+  }
+
+  if (!skipConfirm) {
+    const confirmed = await p.confirm({
+      message: `Rename ${toMigrate.length} component(s) from ${fromRenderer} to ${toRenderer}?`,
+      initialValue: true,
+    })
+    if (p.isCancel(confirmed) || !confirmed) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+  }
+
+  // Rename files
+  for (const component of toMigrate) {
+    const newPath = component.path.replace(`.${fromRenderer}.vue`, `.${toRenderer}.vue`)
+    renameSync(component.path, newPath)
+    p.log.success(`${basename(component.path)} → ${basename(newPath)}`)
+  }
+
+  // Install target renderer deps
+  if (!skipConfirm) {
+    const installDeps = await p.confirm({
+      message: `Install ${toRenderer} dependencies?`,
+      initialValue: true,
+    })
+    if (!p.isCancel(installDeps) && installDeps) {
+      const detectedPreset = await detectDeploymentTarget(cwd)
+      const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
+      if (detectedPreset)
+        p.log.info(`Detected deployment target: ${detectedPreset}`)
+      await installRendererDeps([toRenderer], isEdge)
+    }
+  }
+  else {
+    const detectedPreset = await detectDeploymentTarget(cwd)
+    const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
+    await installRendererDeps([toRenderer], isEdge)
+  }
+
+  // Run nuxt prepare
+  const spinner = p.spinner()
+  spinner.start('Running nuxt prepare to update types...')
+  const { exec } = await import('tinyexec')
+  try {
+    await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+    spinner.stop('Types updated')
+  }
+  catch {
+    spinner.stop('Failed to run nuxt prepare')
+    p.log.warn('Run manually: npx nuxt prepare')
+  }
+
+  p.outro('Renderer switch complete!')
+}
+
 // Enable command
 async function runEnable(renderer: string, args: string[]): Promise<void> {
   const def = RENDERERS.find(r => r.name === renderer)
@@ -1113,11 +1312,30 @@ async function runEnable(renderer: string, args: string[]): Promise<void> {
   p.outro('Done')
 }
 
+function showHelp() {
+  p.intro('nuxt-og-image CLI')
+  p.note([
+    'list              List available community templates',
+    'eject <name>      Eject a community template to your project',
+    'migrate v6        Migrate to v6 (component suffixes + new API)',
+    '                  Options: --dry-run, --yes, --renderer <renderer>',
+    'switch            Switch components between renderers',
+    '                  Options: --from <renderer>, --to <renderer>, --dry-run, --yes',
+    'enable <renderer> Install dependencies for a renderer (satori, browser, takumi)',
+    '                  Options: --edge (install wasm versions for edge runtimes)',
+  ].join('\n'), 'Commands')
+  p.outro('')
+}
+
 // CLI entry
 const args = process.argv.slice(2)
 const command = args[0]
+const hasHelp = args.includes('--help') || args.includes('-h')
 
-if (command === 'eject') {
+if (hasHelp || !command) {
+  showHelp()
+}
+else if (command === 'eject') {
   const templateName = args[1]
   if (!templateName) {
     p.log.error('Please specify a template name.')
@@ -1139,6 +1357,9 @@ else if (command === 'migrate') {
   }
   runMigrate(args)
 }
+else if (command === 'switch') {
+  runSwitch(args.slice(1))
+}
 else if (command === 'enable') {
   const renderer = args[1]
   if (!renderer) {
@@ -1149,12 +1370,7 @@ else if (command === 'enable') {
   runEnable(renderer, args)
 }
 else {
-  console.log('nuxt-og-image CLI\n')
-  console.log('Commands:')
-  console.log('  list              List available community templates')
-  console.log('  eject <name>      Eject a community template to your project')
-  console.log('  migrate v6        Migrate to v6 (component suffixes + new API)')
-  console.log('                    Options: --dry-run, --yes, --renderer <satori|browser|takumi>')
-  console.log('  enable <renderer> Install dependencies for a renderer (satori, browser, takumi)')
-  console.log('                    Options: --edge (install wasm versions for edge runtimes)')
+  p.log.error(`Unknown command: ${command}`)
+  showHelp()
+  process.exit(1)
 }
