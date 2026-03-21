@@ -38,7 +38,9 @@ const RE_ARBITRARY_FONT_WEIGHT = /^font-\[(\d+)\]$/
 const RE_FONT_STYLE_ITALIC = /font-style:\s*italic/i
 const RE_ARBITRARY_VALUE = /^\[['"]?(.+?)['"]?\]$/
 const RE_DIGITS_ONLY = /^\d+$/
-const RE_JS_FONT_FAMILY = /fontFamily:\s*['"]([^'"]+)['"]/g
+// Match fontFamily values with either single or double quote delimiters.
+// Handles nested quotes: fontFamily: '"Nunito", sans-serif' or fontFamily: "'Nunito', sans-serif"
+const RE_JS_FONT_FAMILY = /fontFamily:\s*(?:'([^']+)'|"([^"]+)")/g
 
 // font-* classes that are NOT font-family classes
 const FONT_NON_FAMILY_CLASSES = new Set([
@@ -141,6 +143,16 @@ export async function extractFontRequirementsFromVue(code: string): Promise<{
     }
   }
 
+  // Scan <script setup> for fontFamily in computed style objects.
+  // When components use `:style="computedProp"` with `fontFamily: '"Nunito", ...'`
+  // in script setup, the template AST only sees the reference name (e.g. "titleStyle"),
+  // not the actual font-family value. This catches those declarations.
+  const scriptContent = descriptor.scriptSetup?.content || descriptor.script?.content
+  if (scriptContent) {
+    extractFontFamilyFromJsStyle(scriptContent, familyNames)
+    extractFontFamilyFromStyle(scriptContent, familyNames)
+  }
+
   return { weights, styles, familyClasses, familyNames, hasDynamicBindings }
 }
 
@@ -205,8 +217,11 @@ function extractFontFamilyFromStyle(style: string, familyNames: Set<string>): vo
 
 function extractFontFamilyFromJsStyle(content: string, familyNames: Set<string>): void {
   for (const match of content.matchAll(RE_JS_FONT_FAMILY)) {
-    const primary = extractCustomFontFamilies(match[1]!)[0]
-    if (primary)
-      familyNames.add(primary)
+    // match[1] is single-quote delimited, match[2] is double-quote delimited
+    const value = match[1] || match[2]
+    if (!value)
+      continue
+    for (const name of extractCustomFontFamilies(value))
+      familyNames.add(name)
   }
 }
