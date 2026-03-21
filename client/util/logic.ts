@@ -42,8 +42,10 @@ export const hasProductionUrl = computed(() => {
   return !url.includes('localhost') && !url.includes('127.0.0.1')
 })
 
+const RE_TRAILING_SLASH = /\/$/
+
 export const previewHost = computed(() => {
   if (previewSource.value === 'production' && hasProductionUrl.value)
-    return productionUrl.value.replace(/\/$/, '')
+    return productionUrl.value.replace(RE_TRAILING_SLASH, '')
   return host.value
 })

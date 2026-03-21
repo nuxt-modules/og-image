@@ -359,8 +359,12 @@ function resetAll() {
 }
 
 const productionHostname = computed(() => {
-  try { return new URL(productionUrl.value).hostname }
-  catch { return productionUrl.value }
+  try {
+    return new URL(productionUrl.value).hostname
+  }
+  catch {
+    return productionUrl.value
+  }
 })
 </script>
 
