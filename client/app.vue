@@ -5,6 +5,7 @@ import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute, watch }
 import defu from 'defu'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 
+import AddComponentDialog from './components/AddComponentDialog.vue'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
 import RendererSelectModal from './components/RendererSelectModal.vue'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
@@ -137,6 +138,7 @@ const runtimeVersion = computed(() => {
   <UApp>
     <div class="relative bg-base flex flex-col min-h-screen">
       <div class="gradient-bg" />
+      <AddComponentDialog />
       <CreateOgImageDialog />
       <RendererSelectModal />
 
