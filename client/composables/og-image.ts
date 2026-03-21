@@ -10,7 +10,7 @@ import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
 import { description, globalRefreshTime, hasMadeChanges, ogImageKey, options, optionsOverrides, path, previewHost, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
 import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
-import { CreateOgImageDialogPromise } from './templates'
+import { AddComponentDialogPromise, CreateOgImageDialogPromise } from './templates'
 
 const RE_SUFFIX_SATORI = /Satori$/
 const RE_SUFFIX_BROWSER = /Browser$/
@@ -427,6 +427,29 @@ export function useOgImage() {
       await devtoolsClient.value?.devtools.rpc.openInEditor(v)
   }
 
+  async function createComponent() {
+    const result = await AddComponentDialogPromise.start()
+    if (!result)
+      return
+    const v = await ogImageRpc.value!.createComponent({
+      name: result.name,
+      renderer: renderer.value,
+      pageFile: pageFile.value || '',
+    })
+    globalRefreshTime.value = Date.now()
+    refreshSources()
+    if (v)
+      await devtoolsClient.value?.devtools.rpc.openInEditor(v)
+  }
+
+  async function addExistingComponent(componentName: string) {
+    await ogImageRpc.value!.addOgImageToPage(componentName, pageFile.value || '')
+    globalRefreshTime.value = Date.now()
+    refreshSources()
+    if (pageFile.value)
+      await devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
+  }
+
   async function resetProps(fetch = true) {
     if (fetch)
       await refreshPathDebug()
@@ -497,6 +520,8 @@ export function useOgImage() {
     openCurrentComponent,
     patchOptions,
     ejectComponent,
+    createComponent,
+    addExistingComponent,
     resetProps,
     updateProps,
 

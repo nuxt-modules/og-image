@@ -1381,7 +1381,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
     if (nuxt.options.dev) {
       setupDevHandler(config, resolver, getDetectedRenderers)
-      setupDevToolsUI(config, resolve)
+      setupDevToolsUI(config, resolve, nuxt, cssFramework || 'none')
 
       // Capture Nitro for HMR reload (only needed for component add/remove)
       const useNitro = new Promise<import('nitropack/types').Nitro>((resolveNitro) => {

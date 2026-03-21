@@ -48,7 +48,10 @@ const {
   openImage,
   openCurrentPageFile,
   openCurrentComponent,
+  componentNames,
   ejectComponent,
+  createComponent,
+  addExistingComponent,
   resetProps,
   updateProps,
   refreshSources,
@@ -458,12 +461,41 @@ const productionHostname = computed(() => {
         <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
           No OG Image Defined
         </h2>
-        <p class="text-[var(--color-text-muted)] mb-4 text-sm sm:text-base">
-          Add <code class="inline-code">defineOgImage()</code> to your
+        <p class="text-[var(--color-text-muted)] mb-5 text-sm sm:text-base">
+          This page has no <code class="inline-code">defineOgImage()</code> in
           <UButton variant="link" class="cursor-pointer" @click="openCurrentPageFile">
             {{ currentPageFile }}
           </UButton>
         </p>
+
+        <!-- Existing components: let user pick one -->
+        <div v-if="componentNames.length" class="mb-4 flex flex-col items-center gap-3">
+          <div class="flex flex-wrap justify-center gap-2">
+            <UButton
+              v-for="c in componentNames"
+              :key="c.pascalName"
+              color="primary"
+              variant="soft"
+              size="sm"
+              @click="addExistingComponent(c.pascalName)"
+            >
+              {{ c.pascalName }}
+            </UButton>
+          </div>
+          <span class="text-xs text-[var(--color-text-subtle)]">or</span>
+          <UButton variant="link" size="xs" class="text-[var(--color-text-subtle)]" @click="createComponent()">
+            Create new component
+          </UButton>
+        </div>
+
+        <!-- No components: create is the primary CTA -->
+        <div v-else class="mb-4">
+          <UButton color="primary" size="md" @click="createComponent()">
+            <UIcon name="carbon:add" class="w-4 h-4" />
+            Create OG Image Component
+          </UButton>
+        </div>
+
         <div v-if="globalDebug?.runtimeConfig?.hasNuxtContent" class="text-sm text-[var(--color-text-subtle)]">
           Using Nuxt Content? See the <a href="https://nuxtseo.com/docs/integrations/content" target="_blank" class="text-[var(--seo-green)] hover:underline">integration guide</a>
         </div>
@@ -579,233 +611,253 @@ const productionHostname = computed(() => {
             <span class="hidden sm:inline">Debug</span>
           </UButton>
         </div>
+      </div>
 
-        <!-- Social preview tabs -->
-        <div class="px-3 sm:px-4 border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
-          <UTabs
-            v-model="socialPreview"
-            :items="socialItems"
-            :content="false"
-            size="xs"
-            variant="link"
-            color="neutral"
-          >
-            <template #leading="{ item, ui }">
-              <UIcon
-                :name="item.icon"
-                :class="ui.leadingIcon"
-                :style="item.iconScale ? { transform: `scale(${item.iconScale})` } : undefined"
-              />
+      <!-- Social preview tabs -->
+      <div class="px-3 sm:px-4 border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
+        <UTabs
+          v-model="socialPreview"
+          :items="socialItems"
+          :content="false"
+          size="xs"
+          variant="link"
+          color="neutral"
+        >
+          <template #leading="{ item, ui }">
+            <UIcon
+              :name="item.icon"
+              :class="ui.leadingIcon"
+              :style="item.iconScale ? { transform: `scale(${item.iconScale})` } : undefined"
+            />
+          </template>
+        </UTabs>
+      </div>
+
+      <!-- Size variant toggles + image key selector -->
+      <div v-if="currentSizeVariants.length || allImageKeys.length > 1" class="size-variant-bar">
+        <template v-if="currentSizeVariants.length">
+          <span class="size-variant-label">Width</span>
+          <div class="size-variant-group">
+            <button
+              v-for="(variant, idx) in currentSizeVariants"
+              :key="variant.label"
+              class="size-variant-btn"
+              :class="{ active: (activeSizeVariant[socialPreview] ?? 0) === idx }"
+              @click="activeSizeVariant[socialPreview] = idx"
+            >
+              <span class="size-variant-name">{{ variant.label }}</span>
+              <span class="size-variant-px">{{ variant.width }}px</span>
+            </button>
+          </div>
+        </template>
+
+        <template v-if="allImageKeys.length > 1">
+          <span class="size-variant-label">Image</span>
+          <div class="size-variant-group">
+            <button
+              v-for="key in allImageKeys"
+              :key="key"
+              class="size-variant-btn"
+              :class="{ active: (ogImageKey || 'og') === key }"
+              @click="ogImageKey = key"
+            >
+              <span class="size-variant-name">{{ key }}</span>
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- Preview area -->
+      <div class="preview-area panel-grids" :class="{ 'preview-area--panel-open': sidePanelOpen && !isPageScreenshot }">
+        <div ref="rawPreviewRef" class="preview-content" :class="{ 'preview-content--no-transition': isRawDragging }" :style="previewMaxWidth ? { maxWidth: previewMaxWidth } : undefined">
+          <!-- Twitter/X preview -->
+          <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="effectiveTitle" :aspect-ratio="aspectRatio">
+            <template #domain>
+              <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ effectiveSiteUrl }}</a>
             </template>
-          </UTabs>
-        </div>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @click="openImage"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </TwitterCardRenderer>
 
-        <!-- Size variant toggles + image key selector -->
-        <div v-if="currentSizeVariants.length || allImageKeys.length > 1" class="size-variant-bar">
-          <template v-if="currentSizeVariants.length">
-            <span class="size-variant-label">Width</span>
-            <div class="size-variant-group">
-              <button
-                v-for="(variant, idx) in currentSizeVariants"
-                :key="variant.label"
-                class="size-variant-btn"
-                :class="{ active: (activeSizeVariant[socialPreview] ?? 0) === idx }"
-                @click="activeSizeVariant[socialPreview] = idx"
-              >
-                <span class="size-variant-name">{{ variant.label }}</span>
-                <span class="size-variant-px">{{ variant.width }}px</span>
-              </button>
-            </div>
-          </template>
+          <!-- Facebook preview -->
+          <FacebookCardRenderer v-else-if="socialPreview === 'facebook'">
+            <template #siteName>
+              {{ effectiveSiteUrl }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <template #description>
+              {{ effectiveDescription }}
+            </template>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </FacebookCardRenderer>
 
-          <template v-if="allImageKeys.length > 1">
-            <span class="size-variant-label">Image</span>
-            <div class="size-variant-group">
-              <button
-                v-for="key in allImageKeys"
-                :key="key"
-                class="size-variant-btn"
-                :class="{ active: (ogImageKey || 'og') === key }"
-                @click="ogImageKey = key"
-              >
-                <span class="size-variant-name">{{ key }}</span>
-              </button>
-            </div>
-          </template>
-        </div>
+          <!-- LinkedIn preview -->
+          <LinkedInCardRenderer v-else-if="socialPreview === 'linkedin'">
+            <template #siteName>
+              {{ effectiveSiteUrl }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </LinkedInCardRenderer>
 
-        <!-- Preview area -->
-        <div class="preview-area panel-grids" :class="{ 'preview-area--panel-open': sidePanelOpen && !isPageScreenshot }">
-          <div ref="rawPreviewRef" class="preview-content" :class="{ 'preview-content--no-transition': isRawDragging }" :style="previewMaxWidth ? { maxWidth: previewMaxWidth } : undefined">
-            <!-- Twitter/X preview -->
-            <TwitterCardRenderer v-if="socialPreview === 'twitter'" :title="effectiveTitle" :aspect-ratio="aspectRatio">
-              <template #domain>
-                <a target="_blank" :href="withHttps(socialSiteUrl)">From {{ effectiveSiteUrl }}</a>
-              </template>
-              <ImageLoader
-                v-if="imageFormat !== 'html'"
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @click="openImage"
-                @refresh="refreshSources"
-              />
-              <IFrameLoader
-                v-else
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </TwitterCardRenderer>
+          <!-- Discord preview -->
+          <DiscordCardRenderer v-else-if="socialPreview === 'discord'">
+            <template #siteName>
+              {{ effectiveSiteName }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <template #description>
+              {{ effectiveDescription }}
+            </template>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </DiscordCardRenderer>
 
-            <!-- Facebook preview -->
-            <FacebookCardRenderer v-else-if="socialPreview === 'facebook'">
-              <template #siteName>
-                {{ effectiveSiteUrl }}
-              </template>
-              <template #title>
-                {{ effectiveTitle }}
-              </template>
-              <template #description>
-                {{ effectiveDescription }}
-              </template>
-              <ImageLoader
-                v-if="imageFormat !== 'html'"
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-              <IFrameLoader
-                v-else
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </FacebookCardRenderer>
+          <!-- Slack preview -->
+          <SlackCardRenderer v-else-if="socialPreview === 'slack'">
+            <template #favIcon>
+              <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`" width="30" height="30" alt="">
+            </template>
+            <template #siteName>
+              {{ effectiveSiteName }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <template #description>
+              {{ effectiveDescription }}
+            </template>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </SlackCardRenderer>
 
-            <!-- LinkedIn preview -->
-            <LinkedInCardRenderer v-else-if="socialPreview === 'linkedin'">
-              <template #siteName>
-                {{ effectiveSiteUrl }}
-              </template>
-              <template #title>
-                {{ effectiveTitle }}
-              </template>
-              <ImageLoader
-                v-if="imageFormat !== 'html'"
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-              <IFrameLoader
-                v-else
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </LinkedInCardRenderer>
-
-            <!-- Discord preview -->
-            <DiscordCardRenderer v-else-if="socialPreview === 'discord'">
-              <template #siteName>
-                {{ effectiveSiteName }}
-              </template>
-              <template #title>
-                {{ effectiveTitle }}
-              </template>
-              <template #description>
-                {{ effectiveDescription }}
-              </template>
-              <ImageLoader
-                v-if="imageFormat !== 'html'"
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-              <IFrameLoader
-                v-else
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </DiscordCardRenderer>
-
-            <!-- Slack preview -->
-            <SlackCardRenderer v-else-if="socialPreview === 'slack'">
-              <template #favIcon>
-                <img :src="`https://www.google.com/s2/favicons?domain=${encodeURIComponent(socialSiteUrl)}&sz=30`" width="30" height="30" alt="">
-              </template>
-              <template #siteName>
-                {{ effectiveSiteName }}
-              </template>
-              <template #title>
-                {{ effectiveTitle }}
-              </template>
-              <template #description>
-                {{ effectiveDescription }}
-              </template>
-              <ImageLoader
-                v-if="imageFormat !== 'html'"
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-              <IFrameLoader
-                v-else
-                :src="src"
-                :aspect-ratio="aspectRatio"
-                @load="generateLoadTime"
-                @refresh="refreshSources"
-              />
-            </SlackCardRenderer>
-
-            <!-- WhatsApp preview -->
-            <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'" :squared="whatsappSquared">
-              <template #siteName>
-                {{ effectiveSiteName }}
-              </template>
-              <template #title>
-                {{ effectiveTitle }}
-              </template>
-              <template #description>
-                {{ effectiveDescription }}
-              </template>
-              <template #url>
-                {{ effectiveSiteUrl }}
-              </template>
-              <template v-if="whatsappInlineSrc !== src" #inlineImage>
-                <img
-                  :src="whatsappInlineSrc"
-                  alt=""
-                >
-              </template>
+          <!-- WhatsApp preview -->
+          <WhatsAppRenderer v-else-if="socialPreview === 'whatsapp'" :squared="whatsappSquared">
+            <template #siteName>
+              {{ effectiveSiteName }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <template #description>
+              {{ effectiveDescription }}
+            </template>
+            <template #url>
+              {{ effectiveSiteUrl }}
+            </template>
+            <template v-if="whatsappInlineSrc !== src" #inlineImage>
               <img
-                v-if="imageFormat !== 'html'"
-                :src="src"
+                :src="whatsappInlineSrc"
                 alt=""
-                @load="generateLoadTime({ timeTaken: '0', sizeKb: '' })"
               >
-            </WhatsAppRenderer>
+            </template>
+            <img
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              alt=""
+              @load="generateLoadTime({ timeTaken: '0', sizeKb: '' })"
+            >
+          </WhatsAppRenderer>
 
-            <!-- Bluesky preview -->
-            <BlueskyCardRenderer v-else-if="socialPreview === 'bluesky'">
-              <template #siteName>
-                {{ effectiveSiteUrl }}
-              </template>
-              <template #title>
-                {{ effectiveTitle }}
-              </template>
-              <template #description>
-                {{ effectiveDescription }}
-              </template>
+          <!-- Bluesky preview -->
+          <BlueskyCardRenderer v-else-if="socialPreview === 'bluesky'">
+            <template #siteName>
+              {{ effectiveSiteUrl }}
+            </template>
+            <template #title>
+              {{ effectiveTitle }}
+            </template>
+            <template #description>
+              {{ effectiveDescription }}
+            </template>
+            <ImageLoader
+              v-if="imageFormat !== 'html'"
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+            <IFrameLoader
+              v-else
+              :src="src"
+              :aspect-ratio="aspectRatio"
+              @load="generateLoadTime"
+              @refresh="refreshSources"
+            />
+          </BlueskyCardRenderer>
+
+          <!-- Raw preview with resize handle -->
+          <div v-else class="raw-preview-wrapper">
+            <div class="raw-preview" :class="{ 'raw-preview--dragging': isRawDragging }">
               <ImageLoader
                 v-if="imageFormat !== 'html'"
                 :src="src"
@@ -820,272 +872,252 @@ const productionHostname = computed(() => {
                 @load="generateLoadTime"
                 @refresh="refreshSources"
               />
-            </BlueskyCardRenderer>
-
-            <!-- Raw preview with resize handle -->
-            <div v-else class="raw-preview-wrapper">
-              <div class="raw-preview" :class="{ 'raw-preview--dragging': isRawDragging }">
-                <ImageLoader
-                  v-if="imageFormat !== 'html'"
-                  :src="src"
-                  :aspect-ratio="aspectRatio"
-                  @load="generateLoadTime"
-                  @refresh="refreshSources"
-                />
-                <IFrameLoader
-                  v-else
-                  :src="src"
-                  :aspect-ratio="aspectRatio"
-                  @load="generateLoadTime"
-                  @refresh="refreshSources"
-                />
-              </div>
-              <!-- Drag handle — double-click resets -->
-              <div
-                class="raw-resize-handle"
-                @pointerdown="onRawHandlePointerDown"
-                @dblclick="rawResizeWidth = null"
-              >
-                <div class="raw-resize-grip" />
-              </div>
-              <!-- Width readout -->
-              <div v-if="rawResizeWidth" class="raw-resize-readout">
-                {{ rawResizeWidth }}px
-              </div>
             </div>
-
-            <!-- Status line -->
-            <div v-if="description" class="status-line">
-              {{ description }}
+            <!-- Drag handle — double-click resets -->
+            <div
+              class="raw-resize-handle"
+              @pointerdown="onRawHandlePointerDown"
+              @dblclick="rawResizeWidth = null"
+            >
+              <div class="raw-resize-grip" />
+            </div>
+            <!-- Width readout -->
+            <div v-if="rawResizeWidth" class="raw-resize-readout">
+              {{ rawResizeWidth }}px
             </div>
           </div>
-        </div>
 
-        <!-- Floating Props Panel -->
-        <Transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 translate-x-4"
-          enter-to-class="opacity-100 translate-x-0"
-          leave-active-class="transition duration-150 ease-in"
-          leave-from-class="opacity-100 translate-x-0"
-          leave-to-class="opacity-0 translate-x-4"
-        >
-          <div v-if="sidePanelOpen && !isPageScreenshot" class="props-panel">
-            <div class="props-header">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-[var(--color-text)]">Debug</span>
+          <!-- Status line -->
+          <div v-if="description" class="status-line">
+            {{ description }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Props Panel -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 translate-x-4"
+        enter-to-class="opacity-100 translate-x-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-x-0"
+        leave-to-class="opacity-0 translate-x-4"
+      >
+        <div v-if="sidePanelOpen && !isPageScreenshot" class="props-panel">
+          <div class="props-header">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-[var(--color-text)]">Debug</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <UButton
+                v-if="hasMadeChanges"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                @click="resetAll()"
+              >
+                Reset
+              </UButton>
+              <UButton
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                icon="carbon:close"
+                aria-label="Close panel"
+                @click="sidePanelOpen = false"
+              />
+            </div>
+          </div>
+          <div class="props-content">
+            <div class="px-3 pt-2 border-b border-[var(--color-border)]">
+              <UTabs
+                v-model="protoTab"
+                :items="protoTabs"
+                :content="false"
+                size="xs"
+                variant="link"
+                color="neutral"
+              />
+            </div>
+
+            <!-- Meta Tags Tab -->
+            <div v-if="protoTab === 'meta-tags'">
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>{{ metaLabelPrefix }} Title</span>
+                  <UTooltip :text="isTwitterMode ? 'The twitter:title meta tag. Controls the title shown on Twitter/X cards.' : 'The og:title meta tag. Controls the title shown when shared on social platforms.'" :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UInput
+                  :model-value="isTwitterMode ? (metaOverrides.twitterTitle || socialPreviewTitle) : (metaOverrides.ogTitle || socialPreviewTitle)"
+                  size="xs"
+                  :name="isTwitterMode ? 'twitter-title' : 'og-title'"
+                  autocomplete="off"
+                  :placeholder="isTwitterMode ? 'twitter:title…' : 'og:title…'"
+                  @update:model-value="updateMetaField(isTwitterMode ? 'twitterTitle' : 'ogTitle', $event as string)"
+                />
               </div>
-              <div class="flex items-center gap-1">
-                <UButton
-                  v-if="hasMadeChanges"
-                  variant="ghost"
-                  color="neutral"
+
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>{{ metaLabelPrefix }} Description</span>
+                  <UTooltip :text="isTwitterMode ? 'The twitter:description meta tag. Controls the description shown on Twitter/X cards.' : 'The og:description meta tag. Controls the description shown when shared on social platforms.'" :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UInput
+                  :model-value="metaOverrides.description || socialPreviewDescription"
                   size="xs"
-                  @click="resetAll()"
-                >
-                  Reset
-                </UButton>
-                <UButton
-                  variant="ghost"
-                  color="neutral"
+                  :name="isTwitterMode ? 'twitter-description' : 'og-description'"
+                  autocomplete="off"
+                  :placeholder="isTwitterMode ? 'twitter:description…' : 'og:description…'"
+                  @update:model-value="updateMetaField('description', $event as string)"
+                />
+              </div>
+
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>{{ socialPreview === 'discord' ? 'OG Site Name' : 'OG URL' }}</span>
+                  <UTooltip :text="socialPreview === 'discord' ? 'The og:site_name meta tag. Discord uses this for the provider name above the title.' : 'The og:url meta tag. The canonical URL shown in social card previews.'" :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UInput
+                  :model-value="metaOverrides.siteName || slackSocialPreviewSiteName"
                   size="xs"
-                  icon="carbon:close"
-                  aria-label="Close panel"
-                  @click="sidePanelOpen = false"
+                  :name="socialPreview === 'discord' ? 'og-site-name' : 'og-url'"
+                  autocomplete="off"
+                  :placeholder="socialPreview === 'discord' ? 'og:site_name…' : 'og:url…'"
+                  @update:model-value="updateMetaField('siteName', $event as string)"
                 />
               </div>
             </div>
-            <div class="props-content">
-              <div class="px-3 pt-2 border-b border-[var(--color-border)]">
-                <UTabs
-                  v-model="protoTab"
-                  :items="protoTabs"
-                  :content="false"
+
+            <!-- OG Image Props Tab -->
+            <div v-else-if="protoTab === 'og-props'">
+              <div class="props-field">
+                <div class="props-field-label">
+                  <span>Color Mode</span>
+                  <UTooltip text="Changes the color mode passed to the OG image renderer." :delay-duration="0">
+                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                  </UTooltip>
+                </div>
+                <UButton
                   size="xs"
-                  variant="link"
                   color="neutral"
-                />
+                  variant="soft"
+                  :icon="imageColorMode === 'dark' ? 'carbon:moon' : 'carbon:sun'"
+                  @click="imageColorMode = imageColorMode === 'dark' ? 'light' : 'dark'"
+                >
+                  {{ imageColorMode === 'dark' ? 'Dark' : 'Light' }}
+                </UButton>
               </div>
 
-              <!-- Meta Tags Tab -->
-              <div v-if="protoTab === 'meta-tags'">
-                <div class="props-field">
-                  <div class="props-field-label">
-                    <span>{{ metaLabelPrefix }} Title</span>
-                    <UTooltip :text="isTwitterMode ? 'The twitter:title meta tag. Controls the title shown on Twitter/X cards.' : 'The og:title meta tag. Controls the title shown when shared on social platforms.'" :delay-duration="0">
-                      <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                    </UTooltip>
-                  </div>
-                  <UInput
-                    :model-value="isTwitterMode ? (metaOverrides.twitterTitle || socialPreviewTitle) : (metaOverrides.ogTitle || socialPreviewTitle)"
-                    size="xs"
-                    :name="isTwitterMode ? 'twitter-title' : 'og-title'"
-                    autocomplete="off"
-                    :placeholder="isTwitterMode ? 'twitter:title…' : 'og:title…'"
-                    @update:model-value="updateMetaField(isTwitterMode ? 'twitterTitle' : 'ogTitle', $event as string)"
-                  />
-                </div>
+              <JsonEditorVue
+                :model-value="propEditor"
+                class="jse-theme-dark"
+                :main-menu-bar="false"
+                :navigation-bar="false"
+                @update:model-value="updateProps"
+              />
+            </div>
 
-                <div class="props-field">
-                  <div class="props-field-label">
-                    <span>{{ metaLabelPrefix }} Description</span>
-                    <UTooltip :text="isTwitterMode ? 'The twitter:description meta tag. Controls the description shown on Twitter/X cards.' : 'The og:description meta tag. Controls the description shown when shared on social platforms.'" :delay-duration="0">
-                      <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                    </UTooltip>
-                  </div>
-                  <UInput
-                    :model-value="metaOverrides.description || socialPreviewDescription"
-                    size="xs"
-                    :name="isTwitterMode ? 'twitter-description' : 'og-description'"
-                    autocomplete="off"
-                    :placeholder="isTwitterMode ? 'twitter:description…' : 'og:description…'"
-                    @update:model-value="updateMetaField('description', $event as string)"
-                  />
-                </div>
-
-                <div class="props-field">
-                  <div class="props-field-label">
-                    <span>{{ socialPreview === 'discord' ? 'OG Site Name' : 'OG URL' }}</span>
-                    <UTooltip :text="socialPreview === 'discord' ? 'The og:site_name meta tag. Discord uses this for the provider name above the title.' : 'The og:url meta tag. The canonical URL shown in social card previews.'" :delay-duration="0">
-                      <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                    </UTooltip>
-                  </div>
-                  <UInput
-                    :model-value="metaOverrides.siteName || slackSocialPreviewSiteName"
-                    size="xs"
-                    :name="socialPreview === 'discord' ? 'og-site-name' : 'og-url'"
-                    autocomplete="off"
-                    :placeholder="socialPreview === 'discord' ? 'og:site_name…' : 'og:url…'"
-                    @update:model-value="updateMetaField('siteName', $event as string)"
-                  />
-                </div>
-              </div>
-
-              <!-- OG Image Props Tab -->
-              <div v-else-if="protoTab === 'og-props'">
-                <div class="props-field">
-                  <div class="props-field-label">
-                    <span>Color Mode</span>
-                    <UTooltip text="Changes the color mode passed to the OG image renderer." :delay-duration="0">
-                      <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                    </UTooltip>
-                  </div>
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    variant="soft"
-                    :icon="imageColorMode === 'dark' ? 'carbon:moon' : 'carbon:sun'"
-                    @click="imageColorMode = imageColorMode === 'dark' ? 'light' : 'dark'"
-                  >
-                    {{ imageColorMode === 'dark' ? 'Dark' : 'Light' }}
-                  </UButton>
-                </div>
-
-                <JsonEditorVue
-                  :model-value="propEditor"
-                  class="jse-theme-dark"
-                  :main-menu-bar="false"
-                  :navigation-bar="false"
-                  @update:model-value="updateProps"
-                />
-              </div>
-
-              <!-- Fonts Tab -->
-              <div v-else-if="protoTab === 'fonts'" class="fonts-tab">
-                <!-- Detected requirements — compact summary bar -->
-                <div v-if="detectedFontRequirements" class="fonts-detected">
-                  <div class="fonts-detected-inner">
-                    <span class="fonts-detected-label">Detected</span>
-                    <span v-for="w in detectedFontRequirements.weights" :key="`w-${w}`" class="fonts-chip">{{ w }}</span>
-                    <span v-for="s in detectedFontRequirements.styles" :key="`s-${s}`" class="fonts-chip">{{ s }}</span>
-                    <template v-if="detectedFontRequirements.families?.length">
-                      <span class="fonts-detected-sep" />
-                      <span
-                        v-for="f in detectedFontRequirements.families"
-                        :key="f"
-                        class="fonts-chip"
-                        :class="unresolvedFamilies.includes(f) ? 'fonts-chip--error' : 'fonts-chip--family'"
-                      >
-                        <UIcon v-if="unresolvedFamilies.includes(f)" name="carbon:warning-filled" class="w-2.5 h-2.5 shrink-0" />
-                        {{ f }}
-                      </span>
-                    </template>
-                  </div>
-                </div>
-
-                <!-- Resolved fonts actually used for rendering -->
-                <div v-if="resolvedFamilyNames.length" class="fonts-detected fonts-resolved">
-                  <div class="fonts-detected-inner">
-                    <span class="fonts-detected-label">Rendering</span>
-                    <span v-for="f in resolvedFamilyNames" :key="f" class="fonts-chip fonts-chip--family">{{ f }}</span>
-                  </div>
-                </div>
-
-                <!-- Font specimen list -->
-                <div v-if="fontFiles.length" class="fonts-specimen">
-                  <template v-for="family in fontFamilyNames" :key="family">
-                    <button
-                      class="fonts-family-row"
-                      :class="{ active: fontOverride === family }"
-                      @click="applyFontOverride(family)"
+            <!-- Fonts Tab -->
+            <div v-else-if="protoTab === 'fonts'" class="fonts-tab">
+              <!-- Detected requirements — compact summary bar -->
+              <div v-if="detectedFontRequirements" class="fonts-detected">
+                <div class="fonts-detected-inner">
+                  <span class="fonts-detected-label">Detected</span>
+                  <span v-for="w in detectedFontRequirements.weights" :key="`w-${w}`" class="fonts-chip">{{ w }}</span>
+                  <span v-for="s in detectedFontRequirements.styles" :key="`s-${s}`" class="fonts-chip">{{ s }}</span>
+                  <template v-if="detectedFontRequirements.families?.length">
+                    <span class="fonts-detected-sep" />
+                    <span
+                      v-for="f in detectedFontRequirements.families"
+                      :key="f"
+                      class="fonts-chip"
+                      :class="unresolvedFamilies.includes(f) ? 'fonts-chip--error' : 'fonts-chip--family'"
                     >
-                      <span class="fonts-family-name" :style="{ fontFamily: `'ogp-${family}', sans-serif` }">{{ family }}</span>
-                      <span class="fonts-family-meta">
-                        <span v-if="fontFamilySizes.get(family)" class="fonts-family-size">{{ formatBytes(fontFamilySizes.get(family)!) }}</span>
-                        <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
-                      </span>
-                    </button>
-                    <div class="fonts-variants">
-                      <div
-                        v-for="f in fontFiles.filter(ff => ff.family === family)"
-                        :key="f.key"
-                        class="fonts-variant"
-                        :class="{ loaded: f.loaded }"
-                      >
-                        <span class="fonts-variant-dot" />
-                        <span class="fonts-variant-label">{{ f.weight }}{{ f.style === 'italic' ? 'i' : '' }}</span>
-                        <span v-if="f.subsetCount > 1" class="fonts-variant-count">&times;{{ f.subsetCount }}</span>
-                        <template v-if="f.subsets.length">
-                          <span v-for="s in f.subsets" :key="s" class="fonts-subset-chip">{{ s }}</span>
-                        </template>
-                      </div>
-                    </div>
+                      <UIcon v-if="unresolvedFamilies.includes(f)" name="carbon:warning-filled" class="w-2.5 h-2.5 shrink-0" />
+                      {{ f }}
+                    </span>
                   </template>
                 </div>
+              </div>
 
-                <div v-else class="fonts-empty">
-                  No fonts resolved. Install <code class="inline-code">@nuxt/fonts</code> to enable.
+              <!-- Resolved fonts actually used for rendering -->
+              <div v-if="resolvedFamilyNames.length" class="fonts-detected fonts-resolved">
+                <div class="fonts-detected-inner">
+                  <span class="fonts-detected-label">Rendering</span>
+                  <span v-for="f in resolvedFamilyNames" :key="f" class="fonts-chip fonts-chip--family">{{ f }}</span>
                 </div>
               </div>
 
-              <!-- useSeoMeta snippet for meta tag overrides -->
-              <div v-if="protoTab === 'meta-tags' && hasMetaOverrides" class="snippet-wrapper">
-                <div class="snippet-header">
-                  <code class="snippet-label">useSeoMeta</code>
-                  <UButton
-                    variant="ghost"
-                    color="neutral"
-                    size="xs"
-                    :icon="snippetCopied ? 'carbon:checkmark' : 'carbon:copy'"
-                    @click="copySnippet"
-                  />
-                </div>
-                <OCodeBlock :code="seoMetaSnippet" lang="js" class="snippet-block" />
+              <!-- Font specimen list -->
+              <div v-if="fontFiles.length" class="fonts-specimen">
+                <template v-for="family in fontFamilyNames" :key="family">
+                  <button
+                    class="fonts-family-row"
+                    :class="{ active: fontOverride === family }"
+                    @click="applyFontOverride(family)"
+                  >
+                    <span class="fonts-family-name" :style="{ fontFamily: `'ogp-${family}', sans-serif` }">{{ family }}</span>
+                    <span class="fonts-family-meta">
+                      <span v-if="fontFamilySizes.get(family)" class="fonts-family-size">{{ formatBytes(fontFamilySizes.get(family)!) }}</span>
+                      <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
+                    </span>
+                  </button>
+                  <div class="fonts-variants">
+                    <div
+                      v-for="f in fontFiles.filter(ff => ff.family === family)"
+                      :key="f.key"
+                      class="fonts-variant"
+                      :class="{ loaded: f.loaded }"
+                    >
+                      <span class="fonts-variant-dot" />
+                      <span class="fonts-variant-label">{{ f.weight }}{{ f.style === 'italic' ? 'i' : '' }}</span>
+                      <span v-if="f.subsetCount > 1" class="fonts-variant-count">&times;{{ f.subsetCount }}</span>
+                      <template v-if="f.subsets.length">
+                        <span v-for="s in f.subsets" :key="s" class="fonts-subset-chip">{{ s }}</span>
+                      </template>
+                    </div>
+                  </div>
+                </template>
               </div>
 
-              <UAlert
-                v-else-if="hasMadeChanges && protoTab !== 'meta-tags'"
-                color="warning"
-                variant="subtle"
-                icon="carbon:warning"
-                title="Unsaved changes"
-                description="These changes are for preview only and won't persist."
-                class="mx-3 my-2"
-              />
+              <div v-else class="fonts-empty">
+                No fonts resolved. Install <code class="inline-code">@nuxt/fonts</code> to enable.
+              </div>
             </div>
+
+            <!-- useSeoMeta snippet for meta tag overrides -->
+            <div v-if="protoTab === 'meta-tags' && hasMetaOverrides" class="snippet-wrapper">
+              <div class="snippet-header">
+                <code class="snippet-label">useSeoMeta</code>
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  :icon="snippetCopied ? 'carbon:checkmark' : 'carbon:copy'"
+                  @click="copySnippet"
+                />
+              </div>
+              <OCodeBlock :code="seoMetaSnippet" lang="js" class="snippet-block" />
+            </div>
+
+            <UAlert
+              v-else-if="hasMadeChanges && protoTab !== 'meta-tags'"
+              color="warning"
+              variant="subtle"
+              icon="carbon:warning"
+              title="Unsaved changes"
+              description="These changes are for preview only and won't persist."
+              class="mx-3 my-2"
+            />
           </div>
-        </Transition>
-      </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
