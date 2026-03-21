@@ -23,6 +23,9 @@ const RE_EXCLUDE_OUTPUT = /\.output/
 const RE_EXCLUDE_DATA = /\.data/
 const RE_EXCLUDE_DIST = /dist/
 const RE_VUE_OR_SCRIPT = /\.(?:vue|ts|tsx|js|jsx)$/
+const RE_PASCAL_CASE_STRICT = /^[A-Z]\w*$/
+const RE_PASCAL_CASE_START = /^[A-Z]/
+const RE_SCRIPT_SETUP = /<script\s+setup[^>]*>\n?/
 
 // Deprecated composable names that should be renamed to defineOgImage
 const DEPRECATED_COMPOSABLE_NAMES = new Set([
@@ -1422,7 +1425,7 @@ function insertDefineOgImage(filePath: string, componentName: string): boolean {
   const call = `defineOgImage('${componentName}', { title: 'Hello' })`
 
   // Has <script setup>
-  const scriptSetupMatch = content.match(/<script\s+setup[^>]*>\n?/)
+  const scriptSetupMatch = content.match(RE_SCRIPT_SETUP)
   if (scriptSetupMatch) {
     const insertPos = scriptSetupMatch.index! + scriptSetupMatch[0].length
     const updated = `${content.slice(0, insertPos)}${call}\n${content.slice(insertPos)}`
@@ -1462,7 +1465,7 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
       validate: (v) => {
         if (!v.trim())
           return 'Name is required'
-        if (!/^[A-Z]\w*$/.test(v.trim()))
+        if (!RE_PASCAL_CASE_STRICT.test(v.trim()))
           return 'Must be PascalCase (e.g. MyOgImage)'
       },
     })
@@ -1474,7 +1477,7 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
   }
 
   // Ensure PascalCase
-  if (!/^[A-Z]/.test(componentName)) {
+  if (!RE_PASCAL_CASE_START.test(componentName)) {
     componentName = componentName.charAt(0).toUpperCase() + componentName.slice(1)
   }
 
