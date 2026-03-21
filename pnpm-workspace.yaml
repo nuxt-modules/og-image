@@ -49,8 +49,8 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': ^1.0.0-beta.7
-  '@takumi-rs/wasm': ^1.0.0-beta.7
+  '@takumi-rs/core': ^1.0.0-beta.8
+  '@takumi-rs/wasm': ^1.0.0-beta.8
   '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.30
   '@vueuse/core': ^14.2.1
@@ -63,8 +63,8 @@ catalog:
   culori: ^4.0.2
   defu: ^6.1.4
   devalue: ^5.6.4
-  eslint: ^10.0.3
-  eslint-plugin-harlanzw: ^0.8.0
+  eslint: ^10.1.0
+  eslint-plugin-harlanzw: ^0.9.2
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
