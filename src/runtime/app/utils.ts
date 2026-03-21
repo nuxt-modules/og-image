@@ -7,6 +7,7 @@ import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
+import { logger } from '../logger'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
@@ -79,7 +80,14 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             const payload = resolveUnrefHeadInput(options) as any
             if (payload.props && typeof payload.props.title === 'undefined')
               payload.props.title = '%s'
-            payload.component = resolveComponentName(options.component)
+            if (typeof payload.component === 'string') {
+              payload.component = resolveComponentName(payload.component)
+            }
+            else if (payload.component) {
+              if (import.meta.dev)
+                logger.warn(`defineOgImage() received a non-string component value (${typeof payload.component}). Pass the component name as a plain string.`)
+              delete payload.component
+            }
             payload.key = key
             delete payload.url
             if (payload._query && Object.keys(payload._query).length === 0) {
