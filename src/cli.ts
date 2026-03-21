@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFile
 import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import { loadNuxtConfig } from '@nuxt/kit'
-import { addDependency, detectPackageManager } from 'nypm'
+import { addDependency, detectPackageManager, removeDependency } from 'nypm'
 import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
 import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
@@ -1246,23 +1246,37 @@ async function runSwitch(args: string[]): Promise<void> {
     p.log.success(`${basename(component.path)} → ${basename(newPath)}`)
   }
 
-  // Install target renderer deps
-  if (!skipConfirm) {
-    const installDeps = await p.confirm({
-      message: `Install ${toRenderer} dependencies?`,
-      initialValue: true,
-    })
-    if (!p.isCancel(installDeps) && installDeps) {
-      const detectedPreset = await detectDeploymentTarget(cwd)
-      const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
-      if (detectedPreset)
-        p.log.info(`Detected deployment target: ${detectedPreset}`)
-      await installRendererDeps([toRenderer], isEdge)
+  // Manage dependencies: remove old, install new
+  const noFromComponentsRemaining = allComponents.filter(c => c.renderer === fromRenderer).length === toMigrate.length
+  const detectedPreset = await detectDeploymentTarget(cwd)
+  const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
+  if (detectedPreset)
+    p.log.info(`Detected deployment target: ${detectedPreset}`)
+
+  const manageDeps = skipConfirm || await p.confirm({
+    message: `Manage dependencies? (install ${toRenderer}, ${noFromComponentsRemaining ? `remove ${fromRenderer}` : 'keep existing'})`,
+    initialValue: true,
+  }).then(v => !p.isCancel(v) && v)
+
+  if (manageDeps) {
+    // Remove old renderer deps if no components remain using it
+    if (noFromComponentsRemaining) {
+      const oldDeps = [...new Set([...getRendererDeps(fromRenderer, false), ...getRendererDeps(fromRenderer, true)])]
+      // Only remove deps not shared with the target renderer
+      const newDeps = new Set([...getRendererDeps(toRenderer, false), ...getRendererDeps(toRenderer, true)])
+      const toRemove = oldDeps.filter(d => !newDeps.has(d))
+      if (toRemove.length > 0) {
+        const pm = await detectPackageManager(cwd)
+        const spinner = p.spinner()
+        spinner.start(`Removing ${fromRenderer} dependencies...`)
+        for (const dep of toRemove) {
+          await removeDependency(dep, { cwd })
+            .catch(() => p.log.warn(`Could not remove ${dep}, remove manually: ${pm?.name || 'npm'} remove ${dep}`))
+        }
+        spinner.stop(`Removed ${fromRenderer} dependencies`)
+      }
     }
-  }
-  else {
-    const detectedPreset = await detectDeploymentTarget(cwd)
-    const isEdge = detectedPreset ? EDGE_PRESETS.includes(detectedPreset) : false
+
     await installRendererDeps([toRenderer], isEdge)
   }
 
