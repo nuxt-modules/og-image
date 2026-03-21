@@ -7,7 +7,7 @@ import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
-import { description, globalRefreshTime, hasMadeChanges, host, ogImageKey, options, optionsOverrides, path, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
+import { description, globalRefreshTime, hasMadeChanges, ogImageKey, options, optionsOverrides, path, previewHost, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
 import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
 import { CreateOgImageDialogPromise } from './templates'
@@ -119,7 +119,7 @@ export function useOgImage() {
       keyOpts || {},
     )
     const encoded = encodeOgImageParams(params)
-    return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
+    return withQuery(joinURL(previewHost.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
       timestamp: refreshTime.value,
       colorMode: imageColorMode.value,
     })
@@ -131,7 +131,7 @@ export function useOgImage() {
       if (hasProtocol(url, { acceptRelative: true })) {
         return url
       }
-      return joinURL(host.value, url)
+      return joinURL(previewHost.value, url)
     }
     // Build encoded URL with options (Cloudinary-style)
     // Use defu to deep-merge props (shallow spread would drop original props like title)
@@ -141,7 +141,7 @@ export function useOgImage() {
       options.value,
     )
     const encoded = encodeOgImageParams(params)
-    return withQuery(joinURL(host.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
+    return withQuery(joinURL(previewHost.value, `/_og/d/${encoded || 'default'}.${imageFormat.value}`), {
       timestamp: refreshTime.value, // Cache bust for devtools
       colorMode: imageColorMode.value, // Pass color mode to renderer
     })
