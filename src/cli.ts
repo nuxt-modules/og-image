@@ -1279,6 +1279,287 @@ async function runSwitch(args: string[]): Promise<void> {
   p.outro('Renderer switch complete!')
 }
 
+// Infer renderer from existing components or installed packages
+function inferRenderer(cwd: string): RendererName | null {
+  // Check existing OG image components for a renderer suffix
+  const dirs = [cwd]
+  if (existsSync(join(cwd, 'app')))
+    dirs.push(join(cwd, 'app'))
+
+  for (const dir of dirs) {
+    const components = findOgImageComponents(dir)
+    for (const filepath of components) {
+      const match = basename(filepath).match(RE_RENDERER_SUFFIX)
+      if (match)
+        return match[1] as RendererName
+    }
+  }
+
+  // Fall back to checking installed packages
+  const pkgPath = join(cwd, 'package.json')
+  if (existsSync(pkgPath)) {
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies }
+    if (allDeps['@takumi-rs/core'] || allDeps['@takumi-rs/wasm'])
+      return 'takumi'
+    if (allDeps.satori)
+      return 'satori'
+  }
+
+  return null
+}
+
+type CssFramework = 'tailwind' | 'unocss' | 'none'
+
+function detectCssFramework(cwd: string): CssFramework {
+  const pkgPath = join(cwd, 'package.json')
+  if (!existsSync(pkgPath))
+    return 'none'
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+  const allDeps = { ...pkg.dependencies, ...pkg.devDependencies }
+  if (allDeps['@unocss/nuxt'] || allDeps.unocss)
+    return 'unocss'
+  if (allDeps['@nuxtjs/tailwindcss'] || allDeps.tailwindcss || allDeps['@nuxt/ui'])
+    return 'tailwind'
+  return 'none'
+}
+
+const SCRIPT_BLOCK = `<script setup lang="ts">
+const { title = 'My Page', description = '' } = defineProps<{
+  title?: string
+  description?: string
+}>()
+</script>`
+
+function getStarterTemplate(renderer: RendererName, css: CssFramework): string {
+  // Satori only supports a subset of CSS via inline styles
+  if (renderer === 'satori') {
+    return `${SCRIPT_BLOCK}
+
+<template>
+  <div :style="{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', padding: '60px', backgroundColor: 'white', color: '#171717' }">
+    <h1 :style="{ fontSize: '72px', fontWeight: 'bold', margin: 0, lineHeight: 1.1, textAlign: 'center' }">
+      {{ title }}
+    </h1>
+    <p v-if="description" :style="{ fontSize: '32px', opacity: 0.6, marginTop: '16px', textAlign: 'center', maxWidth: '900px' }">
+      {{ description }}
+    </p>
+  </div>
+</template>
+`
+  }
+
+  // Takumi and browser support full CSS
+  if (css === 'tailwind' || css === 'unocss') {
+    return `${SCRIPT_BLOCK}
+
+<template>
+  <div class="w-full h-full flex flex-col justify-center items-center p-[60px] bg-white text-neutral-900 dark:bg-neutral-900 dark:text-white">
+    <h1 class="text-[72px] font-bold m-0 leading-tight text-center" style="text-wrap: balance;">
+      {{ title }}
+    </h1>
+    <p v-if="description" class="text-[32px] opacity-60 mt-4 text-center max-w-[900px]">
+      {{ description }}
+    </p>
+  </div>
+</template>
+`
+  }
+
+  return `${SCRIPT_BLOCK}
+
+<template>
+  <div class="container">
+    <h1>{{ title }}</h1>
+    <p v-if="description">
+      {{ description }}
+    </p>
+  </div>
+</template>
+
+<style scoped>
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  background: white;
+  color: #171717;
+}
+h1 {
+  font-size: 72px;
+  font-weight: bold;
+  margin: 0;
+  line-height: 1.1;
+  text-align: center;
+  text-wrap: balance;
+}
+p {
+  font-size: 32px;
+  opacity: 0.6;
+  margin-top: 16px;
+  text-align: center;
+  max-width: 900px;
+}
+</style>
+`
+}
+
+// Insert defineOgImage into a Vue page file
+function insertDefineOgImage(filePath: string, componentName: string): boolean {
+  if (!existsSync(filePath))
+    return false
+
+  const content = readFileSync(filePath, 'utf-8')
+
+  // Already has defineOgImage
+  if (content.includes('defineOgImage'))
+    return false
+
+  const call = `defineOgImage('${componentName}', { title: 'Hello' })`
+
+  // Has <script setup>
+  const scriptSetupMatch = content.match(/<script\s+setup[^>]*>\n?/)
+  if (scriptSetupMatch) {
+    const insertPos = scriptSetupMatch.index! + scriptSetupMatch[0].length
+    const updated = `${content.slice(0, insertPos)}${call}\n${content.slice(insertPos)}`
+    writeFileSync(filePath, updated, 'utf-8')
+    return true
+  }
+
+  // No script setup, add one
+  const updated = `<script setup lang="ts">\n${call}\n</script>\n\n${content}`
+  writeFileSync(filePath, updated, 'utf-8')
+  return true
+}
+
+// Create command
+async function runCreate(name: string | undefined, args: string[]): Promise<void> {
+  const cwd = process.cwd()
+
+  // Parse flags
+  const rendererIdx = args.indexOf('--renderer')
+  const cliRenderer = rendererIdx !== -1 ? args[rendererIdx + 1] : null
+  if (cliRenderer && !RENDERERS.some(r => r.name === cliRenderer)) {
+    p.log.error(`Invalid renderer: ${cliRenderer}. Must be ${RENDERERS.map(r => r.name).join(', ')}`)
+    process.exit(1)
+  }
+
+  const pathIdx = args.indexOf('--path')
+  const cliPath = pathIdx !== -1 ? args[pathIdx + 1] : null
+
+  p.intro('Create OG Image Component')
+
+  // Resolve component name
+  let componentName = name
+  if (!componentName) {
+    const input = await p.text({
+      message: 'Component name:',
+      placeholder: 'MyOgImage',
+      validate: (v) => {
+        if (!v.trim())
+          return 'Name is required'
+        if (!/^[A-Z]\w*$/.test(v.trim()))
+          return 'Must be PascalCase (e.g. MyOgImage)'
+      },
+    })
+    if (p.isCancel(input)) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+    componentName = input as string
+  }
+
+  // Ensure PascalCase
+  if (!/^[A-Z]/.test(componentName)) {
+    componentName = componentName.charAt(0).toUpperCase() + componentName.slice(1)
+  }
+
+  // Resolve renderer: flag > infer > prompt
+  let renderer: RendererName
+  if (cliRenderer) {
+    renderer = cliRenderer as RendererName
+  }
+  else {
+    const inferred = inferRenderer(cwd)
+    if (inferred) {
+      renderer = inferred
+      p.log.info(`Inferred renderer: ${renderer}`)
+    }
+    else {
+      const selection = await p.select({
+        message: 'Which renderer?',
+        options: RENDERERS.map(r => ({
+          value: r.name,
+          label: r.label,
+          hint: r.description,
+        })),
+        initialValue: 'takumi' as RendererName,
+      })
+      if (p.isCancel(selection)) {
+        p.cancel('Cancelled')
+        process.exit(0)
+      }
+      renderer = selection as RendererName
+    }
+  }
+
+  // Detect CSS framework
+  const css = detectCssFramework(cwd)
+  if (css !== 'none')
+    p.log.info(`Detected CSS framework: ${css}`)
+
+  // Determine output directory
+  const baseDir = existsSync(join(cwd, 'app')) ? join(cwd, 'app') : cwd
+  const outputDir = cliPath
+    ? resolve(cwd, cliPath)
+    : resolve(baseDir, 'components', 'OgImage')
+  if (!existsSync(outputDir))
+    mkdirSync(outputDir, { recursive: true })
+
+  const filename = `${componentName}.${renderer}.vue`
+  const outputPath = join(outputDir, filename)
+
+  if (existsSync(outputPath)) {
+    p.log.error(`File already exists: ${relative(cwd, outputPath)}`)
+    process.exit(1)
+  }
+
+  const template = getStarterTemplate(renderer, css)
+  writeFileSync(outputPath, template, 'utf-8')
+  p.log.success(`Created ${relative(cwd, outputPath)}`)
+
+  // Offer to insert defineOgImage into a page
+  const pagesDir = existsSync(join(baseDir, 'pages')) ? join(baseDir, 'pages') : null
+  if (pagesDir) {
+    const pageInput = await p.text({
+      message: 'Add defineOgImage to a page? (relative path from pages/, leave empty to skip)',
+      placeholder: 'index.vue',
+    })
+    if (!p.isCancel(pageInput) && pageInput && pageInput.trim()) {
+      let pagePath = pageInput.trim()
+      if (!pagePath.endsWith('.vue'))
+        pagePath += '.vue'
+      const fullPagePath = join(pagesDir, pagePath)
+      if (insertDefineOgImage(fullPagePath, componentName)) {
+        p.log.success(`Added defineOgImage('${componentName}') to ${relative(cwd, fullPagePath)}`)
+      }
+      else if (!existsSync(fullPagePath)) {
+        p.log.warn(`Page not found: ${relative(cwd, fullPagePath)}`)
+      }
+      else {
+        p.log.info('Page already has defineOgImage, skipped')
+      }
+    }
+  }
+
+  p.log.info(`Usage: defineOgImage('${componentName}', { title: 'Hello' })`)
+  p.outro('')
+}
+
 // Enable command
 async function runEnable(renderer: string, args: string[]): Promise<void> {
   const def = RENDERERS.find(r => r.name === renderer)
@@ -1315,14 +1596,16 @@ async function runEnable(renderer: string, args: string[]): Promise<void> {
 function showHelp() {
   p.intro('nuxt-og-image CLI')
   p.note([
+    'create [name]     Scaffold a new OG image component',
+    '                  Options: --renderer <renderer>, --path <dir>',
     'list              List available community templates',
     'eject <name>      Eject a community template to your project',
-    'migrate v6        Migrate to v6 (component suffixes + new API)',
-    '                  Options: --dry-run, --yes, --renderer <renderer>',
     'switch            Switch components between renderers',
     '                  Options: --from <renderer>, --to <renderer>, --dry-run, --yes',
     'enable <renderer> Install dependencies for a renderer (satori, browser, takumi)',
     '                  Options: --edge (install wasm versions for edge runtimes)',
+    'migrate v6        Migrate to v6 (component suffixes + new API)',
+    '                  Options: --dry-run, --yes, --renderer <renderer>',
   ].join('\n'), 'Commands')
   p.outro('')
 }
@@ -1334,6 +1617,9 @@ const hasHelp = args.includes('--help') || args.includes('-h')
 
 if (hasHelp || !command) {
   showHelp()
+}
+else if (command === 'create') {
+  runCreate(args[1], args.slice(1))
 }
 else if (command === 'eject') {
   const templateName = args[1]
