@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { OgImageRuntimeConfig } from '../src/runtime/types'
 import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch'
-import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute } from '#imports'
+import { computed, provide, useAsyncData, useHead, useNuxtApp, useRoute, watch } from '#imports'
 import defu from 'defu'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 
@@ -11,7 +11,7 @@ import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey }
 import { useOgImage } from './composables/og-image'
 import { appFetch, colorMode } from './composables/rpc'
 import { loadShiki } from './composables/shiki'
-import { globalRefreshTime, ogImageKey, options, optionsOverrides, path, query, refreshTime } from './util/logic'
+import { globalRefreshTime, ogImageKey, options, optionsOverrides, path, productionUrl, query, refreshTime } from './util/logic'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 
 const RE_IMAGE_EXT = /\.(png|jpeg|jpg|webp)$/
@@ -76,6 +76,14 @@ const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = 
   watch: [appFetch, path, refreshTime, ogImageKey],
   default: () => ({ extract: { options: [], socialPreview: { root: {}, images: [] } } }),
 })
+
+// Sync production URL from site config for production preview toggle
+watch(globalDebug, (val) => {
+  // @ts-expect-error globalDebug type doesn't include siteConfigUrl
+  if (val?.siteConfigUrl)
+    // @ts-expect-error globalDebug type doesn't include siteConfigUrl
+    productionUrl.value = val.siteConfigUrl
+}, { immediate: true })
 
 // @ts-expect-error untyped
 provide(GlobalDebugKey, globalDebug)
