@@ -30,6 +30,7 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
+const RE_NON_ASCII = /[^\x00-\x7F]/
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -212,11 +213,19 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
       parts.push(`${alias}_${b64}`)
     }
     else {
-      // Simple value - URL encode for special chars including emojis
-      // First encode underscores, then use encodeURIComponent for unicode
-      const encoded = encodeURIComponent(String(value).replace(RE_UNDERSCORE, '__'))
-        .replace(RE_PERCENT20, '+') // spaces as +
-      parts.push(`${alias}_${encoded}`)
+      const str = String(value)
+      if (RE_NON_ASCII.test(str)) {
+        // Non-ASCII values use base64 to avoid percent-encoded UTF-8 in the URL path.
+        // h3 v1.15.7+ decodes percent-encoded req.url which breaks proxies.
+        // Prefix with ~ so the decoder knows to b64-decode instead of URL-decode.
+        parts.push(`${alias}_~${b64Encode(str)}`)
+      }
+      else {
+        // ASCII-safe value - URL encode for special chars
+        const encoded = encodeURIComponent(str.replace(RE_UNDERSCORE, '__'))
+          .replace(RE_PERCENT20, '+') // spaces as +
+        parts.push(`${alias}_${encoded}`)
+      }
     }
   }
 
@@ -271,7 +280,9 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else if (KNOWN_PARAMS.has(paramName)) {
       // Known OgImageOptions param - decode value
-      value = decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+      value = value.startsWith('~')
+        ? b64Decode(value.slice(1))
+        : decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
       // Try to parse as number or boolean
       if (value === 'true') {
         options[paramName] = true
@@ -286,7 +297,9 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else {
       // Unknown param - treat as component prop
-      value = decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+      value = value.startsWith('~')
+        ? b64Decode(value.slice(1))
+        : decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
       options.props = options.props || {}
       // Try to parse as number or boolean
       if (value === 'true') {
