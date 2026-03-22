@@ -1288,6 +1288,15 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
     const cacheVersion = config.cacheVersion === false ? '' : (config.cacheVersion ?? version)
     const versionSuffix = cacheVersion ? `/${cacheVersion}` : ''
+    // Auto-detect NuxtHub KV: when using default cache storage and NuxtHub has KV enabled,
+    // use the NuxtHub KV mount instead of Nitro's default cache (which has no persistent
+    // backing on Cloudflare Workers)
+    if (config.runtimeCacheStorage === true && hasNuxtModule('@nuxthub/core')) {
+      const hubKv = (nuxt.options as Record<string, any>).hub?.kv
+      if (hubKv && hubKv !== false) {
+        config.runtimeCacheStorage = 'kv'
+      }
+    }
     let baseCacheKey: string | false
     if (config.runtimeCacheStorage === true) {
       // default: use nitro's built-in cache storage
