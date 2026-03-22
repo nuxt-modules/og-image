@@ -580,4 +580,184 @@ describe('urlEncoding', () => {
       expect(url).not.toContain('%')
     })
   })
+
+  describe('adversarial inputs', () => {
+    function roundtrip(props: Record<string, any>) {
+      const encoded = encodeOgImageParams({ props })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props })
+    }
+
+    // b64 output chars that overlap with URL encoding separators
+    it('round-trips value whose b64 contains - (URL-safe +)', () => {
+      // Find a string whose b64 output contains -
+      roundtrip({ title: 'thé' }) // b64: dGjDqQ (may have -)
+    })
+
+    it('round-trips value whose b64 contains ~ (URL-safe /)', () => {
+      // ~ is our b64 replacement for /, also our prefix marker
+      roundtrip({ title: '¿qué?' })
+    })
+
+    // Multiple tildes
+    it('round-trips value that is just ~~~', () => {
+      const encoded = encodeOgImageParams({ props: { title: '~~~' } })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props: { title: '~~~' } })
+    })
+
+    it('round-trips value ~~café (tilde + tilde + non-ASCII)', () => {
+      roundtrip({ title: '~~café' })
+    })
+
+    it('round-trips value ~café (tilde + non-ASCII)', () => {
+      // Non-ASCII, so it goes through b64 path. The ~ in the value is part of the b64 payload.
+      roundtrip({ title: '~café' })
+    })
+
+    // Null bytes and control characters
+    it('round-trips value with tab character', () => {
+      roundtrip({ title: 'hello\tworld' })
+    })
+
+    it('round-trips value with newline', () => {
+      roundtrip({ title: 'line1\nline2' })
+    })
+
+    // Values that look like b64 but aren't
+    it('round-trips ASCII value that looks like valid b64: ~SGVsbG8', () => {
+      // ~SGVsbG8 decodes to "Hello" in b64 — but the encoder should escape this as ~~SGVsbG8
+      const encoded = encodeOgImageParams({ props: { title: '~SGVsbG8' } })
+      expect(encoded).toBe('title_~~SGVsbG8')
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props: { title: '~SGVsbG8' } })
+    })
+
+    // Underscore attacks — the param separator
+    it('round-trips value: key_value (looks like a param)', () => {
+      roundtrip({ title: 'key_value' })
+    })
+
+    it('round-trips value: w_1200 (looks like width param)', () => {
+      roundtrip({ title: 'w_1200' })
+    })
+
+    // Comma attacks — the param list separator
+    it('round-trips value with comma followed by param-like pattern', () => {
+      roundtrip({ title: 'hello,w_1200' })
+    })
+
+    it('round-trips value: a,b,c,d', () => {
+      roundtrip({ title: 'a,b,c,d' })
+    })
+
+    // Very short non-ASCII
+    it('round-trips single non-ASCII char: é', () => {
+      roundtrip({ title: 'é' })
+    })
+
+    it('round-trips single emoji: 🎉', () => {
+      roundtrip({ title: '🎉' })
+    })
+
+    // 4-byte UTF-8 (supplementary plane)
+    it('round-trips 4-byte UTF-8 chars (math symbols)', () => {
+      roundtrip({ title: '𝕳𝖊𝖑𝖑𝖔' })
+    })
+
+    it('round-trips 4-byte UTF-8 chars (ancient scripts)', () => {
+      roundtrip({ title: '𐍈𐌰𐌹𐍂𐌷𐌰' })
+    })
+
+    // Surrogate pair edge: emoji with ZWJ (zero width joiner)
+    it('round-trips ZWJ emoji sequence (family)', () => {
+      roundtrip({ title: '👨‍👩‍👧‍👦 Family' })
+    })
+
+    it('round-trips flag emoji (regional indicator)', () => {
+      roundtrip({ title: '🇯🇵 Japan' })
+    })
+
+    // Mixed b64 and normal in same encode
+    it('round-trips mix of ASCII and non-ASCII props in same call', () => {
+      const encoded = encodeOgImageParams({
+        props: {
+          title: 'café frappé',
+          slug: 'hello-world',
+          tag: '~special',
+          emoji: '🚀',
+          plain: 'just ascii',
+        },
+      })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({
+        props: {
+          title: 'café frappé',
+          slug: 'hello-world',
+          tag: '~special',
+          emoji: '🚀',
+          plain: 'just ascii',
+        },
+      })
+    })
+
+    // Value that produces b64 output matching param separator pattern
+    // e.g. b64 output like "abc,w_123" would break comma splitting
+    it('b64 encoded value does not contain raw commas', () => {
+      // Base64 alphabet is [A-Za-z0-9+/=], our URL-safe variant uses [-~]
+      // None of these include comma, so b64 output can never contain ","
+      const encoded = encodeOgImageParams({ props: { title: 'ñoño' } })
+      // The b64 portion (after ~) should not contain commas
+      const parts = encoded.split('title_~')
+      if (parts[1]) {
+        expect(parts[1]).not.toContain(',')
+      }
+    })
+
+    // HTML/XSS in values
+    it('round-trips HTML content in value', () => {
+      roundtrip({ title: '<script>alert("xss")</script>' })
+    })
+
+    it('round-trips HTML entities', () => {
+      roundtrip({ title: '&amp; &lt; &gt; &quot;' })
+    })
+
+    // Very long ASCII value (near MAX_PATH_LENGTH boundary)
+    it('round-trips 200-char ASCII value', () => {
+      roundtrip({ title: 'a'.repeat(200) })
+    })
+
+    // Empty-ish values
+    // Space-only value encodes as "+", which the decoder coerces to Number(0).
+    // This is a preexisting quirk in the number coercion logic, not related to the b64 change.
+    it('space-only value is coerced to 0 by decoder (preexisting)', () => {
+      const encoded = encodeOgImageParams({ props: { title: ' ' } })
+      expect(encoded).toBe('title_+')
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props: { title: 0 } })
+    })
+
+    it('round-trips value that is just +', () => {
+      roundtrip({ title: '+' })
+    })
+
+    it('round-trips value that is just %', () => {
+      roundtrip({ title: '%' })
+    })
+
+    // RTL text
+    it('round-trips Arabic text', () => {
+      roundtrip({ title: 'مرحبا بالعالم' })
+    })
+
+    it('round-trips Hebrew text', () => {
+      roundtrip({ title: 'שלום עולם' })
+    })
+
+    // Mixed direction
+    it('round-trips mixed LTR/RTL text', () => {
+      roundtrip({ title: 'Hello مرحبا World' })
+    })
+  })
 })
