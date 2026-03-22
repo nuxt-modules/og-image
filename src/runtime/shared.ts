@@ -70,7 +70,9 @@ function filterIsOgImageOption(key: string) {
     'resvg',
     'sharp',
     'screenshot',
+    'takumi',
     'cacheMaxAgeSeconds',
+    'cacheKey',
     'key',
   ]
   return keys.includes(key as keyof OgImageOptionsInternal)
