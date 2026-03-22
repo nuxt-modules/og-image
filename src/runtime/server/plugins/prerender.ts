@@ -2,6 +2,7 @@ import type { Hookable } from 'hookable'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { parse } from 'devalue'
+import { appendResponseHeader } from 'h3'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { parseURL } from 'ufo'
 import { isInternalRoute } from '../../shared'
@@ -50,6 +51,18 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
         await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, opt)
       }
     }
+
+    // Emit x-nitro-prerender headers from the finalized prerender paths.
+    // These paths are stored on the event context by defineOgImage, keyed by OG key
+    // so that only the final path per key is emitted (preventing stale hash URLs
+    // from being enqueued when defineOgImage is called multiple times with the same key).
+    const prerenderPaths: Map<string, string> | undefined = ctx.event.context._ogImagePrerenderPaths
+    if (prerenderPaths) {
+      for (const prerenderPath of prerenderPaths.values()) {
+        appendResponseHeader(ctx.event, 'x-nitro-prerender', prerenderPath)
+      }
+    }
+
     // if we're prerendering then we don't need these options in the final HTML
     const index = html.bodyAppend.findIndex((script: string) => script.includes('id="nuxt-og-image-options"'))
     if (index !== -1) {
