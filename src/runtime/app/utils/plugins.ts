@@ -96,6 +96,8 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
       nuxtApp.ssrContext!._ogImageDevtoolsInstance?.dispose()
       nuxtApp.ssrContext!._ogImageInstance = undefined
       nuxtApp.ssrContext!._ogImagePayloads = []
+      if (import.meta.prerender)
+        e?.context._ogImagePrerenderPaths?.clear()
       return
     }
     routeRules = defu((nuxtApp.ssrContext?.event as any)?.context._nitro?.routeRules?.ogImage, routeRules)
@@ -105,5 +107,12 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
       (routeRules as OgImageOptions)._hash = hash
     }
     createOgImageMeta(src, routeRules as OgImageOptions, nuxtApp.ssrContext!)
+    // Update prerender paths so the render:html hook emits the correct URL
+    if (import.meta.prerender && e) {
+      const ogKey = (routeRules as OgImageOptions).key || 'og'
+      const prerenderPath = (src.split('?')[0] || src).replace(/,/g, '%2C')
+      const prerenderPaths: Map<string, string> = e.context._ogImagePrerenderPaths || (e.context._ogImagePrerenderPaths = new Map())
+      prerenderPaths.set(ogKey, prerenderPath)
+    }
   })
 }

@@ -1,5 +1,4 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
-import { appendHeader } from 'h3'
 import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
@@ -69,6 +68,11 @@ function useProcessOgImageOptions(
     nuxtApp.ssrContext!._ogImageDevtoolsInstance?.dispose()
     nuxtApp.ssrContext!._ogImageInstance = undefined
     nuxtApp.ssrContext!._ogImagePayloads = []
+    if (import.meta.prerender) {
+      const event = useRequestEvent(nuxtApp)
+      if (event?.context._ogImagePrerenderPaths)
+        event.context._ogImagePrerenderPaths.clear()
+    }
     return
   }
 
@@ -106,15 +110,22 @@ function useProcessOgImageOptions(
     return toValue(validOptions.url)
   }
   const { path, hash } = getOgImagePath(basePath, validOptions)
-  if (import.meta.prerender) {
-    // Encode commas to prevent HTTP header splitting (commas separate header values)
-    const prerenderPath = (path.split('?')[0] || path).replace(RE_COMMA, '%2C')
-    appendHeader(useRequestEvent(nuxtApp)!, 'x-nitro-prerender', prerenderPath)
-  }
   // Include hash in options if hash mode was used (for prerender cache lookup)
   if (hash) {
     validOptions._hash = hash
   }
   createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
+  if (import.meta.prerender) {
+    // Store prerender paths on the event context, keyed by OG key so that
+    // when defineOgImage is called multiple times with the same key (e.g. layout
+    // then page), only the final path survives. The render:html hook reads these
+    // and sets the x-nitro-prerender header with only the paths that match the
+    // finalized payloads, preventing stale hash URLs from being enqueued.
+    const ogKey = validOptions.key || 'og'
+    const prerenderPath = (path.split('?')[0] || path).replace(RE_COMMA, '%2C')
+    const event = useRequestEvent(nuxtApp)!
+    const prerenderPaths: Map<string, string> = event.context._ogImagePrerenderPaths || (event.context._ogImagePrerenderPaths = new Map())
+    prerenderPaths.set(ogKey, prerenderPath)
+  }
   return path
 }
