@@ -11,6 +11,8 @@ import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
+const RE_COMMA = /,/g
+
 export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
@@ -110,7 +112,7 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
     // Update prerender paths so the render:html hook emits the correct URL
     if (import.meta.prerender && e) {
       const ogKey = (routeRules as OgImageOptions).key || 'og'
-      const prerenderPath = (src.split('?')[0] || src).replace(/,/g, '%2C')
+      const prerenderPath = (src.split('?')[0] || src).replace(RE_COMMA, '%2C')
       const prerenderPaths: Map<string, string> = e.context._ogImagePrerenderPaths || (e.context._ogImagePrerenderPaths = new Map())
       prerenderPaths.set(ogKey, prerenderPath)
     }
