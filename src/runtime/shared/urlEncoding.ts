@@ -30,6 +30,8 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
+// eslint-disable-next-line no-control-regex
+const RE_NON_ASCII = /[^\u0000-\u007F]/
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -216,15 +218,62 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
       parts.push(`${alias}_${b64}`)
     }
     else {
-      // Simple value - URL encode for special chars including emojis
-      // First encode underscores, then use encodeURIComponent for unicode
-      const encoded = encodeURIComponent(String(value).replace(RE_UNDERSCORE, '__'))
-        .replace(RE_PERCENT20, '+') // spaces as +
-      parts.push(`${alias}_${encoded}`)
+      const str = String(value)
+      if (RE_NON_ASCII.test(str)) {
+        // Non-ASCII values use base64 to avoid percent-encoded UTF-8 in the URL path.
+        // h3 v1.15.7+ decodes percent-encoded req.url which breaks proxies.
+        // Prefix with ~ so the decoder knows to b64-decode instead of URL-decode.
+        parts.push(`${alias}_~${b64Encode(str)}`)
+      }
+      else {
+        // ASCII-safe value - URL encode for special chars
+        // Escape leading ~ to avoid ambiguity with b64 marker prefix
+        const escaped = str.startsWith('~') ? `~${str}` : str
+        const encoded = encodeURIComponent(escaped.replace(RE_UNDERSCORE, '__'))
+          .replace(RE_PERCENT20, '+') // spaces as +
+        parts.push(`${alias}_${encoded}`)
+      }
     }
   }
 
   return parts.join(',')
+}
+
+const RE_NUMERIC = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/
+
+/**
+ * Parse a string as a number only if it's actually numeric.
+ * Avoids false positives like Number('+') → 0 or Number('') → 0.
+ */
+function tryParseNumber(value: string): string | number {
+  if (RE_NUMERIC.test(value)) {
+    const num = Number(value)
+    if (!Number.isNaN(num))
+      return num
+  }
+  return value
+}
+
+/**
+ * Decode a simple string value, handling ~ prefix for b64-encoded non-ASCII
+ * and ~~ escape for literal values starting with ~.
+ */
+function decodeSimpleValue(raw: string): string {
+  if (raw.startsWith('~~')) {
+    // Escaped leading ~ — decode the rest normally
+    return decodeURIComponent(raw.slice(1).replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+  }
+  if (raw.startsWith('~')) {
+    // b64-encoded non-ASCII value
+    try {
+      return b64Decode(raw.slice(1))
+    }
+    catch {
+      // Fallback: treat as literal value if b64 decode fails
+      return decodeURIComponent(raw.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+    }
+  }
+  return decodeURIComponent(raw.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
 }
 
 /**
@@ -275,7 +324,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else if (KNOWN_PARAMS.has(paramName)) {
       // Known OgImageOptions param - decode value
-      value = decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+      value = decodeSimpleValue(value)
       // Try to parse as number or boolean
       if (value === 'true') {
         options[paramName] = true
@@ -284,13 +333,12 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         options[paramName] = false
       }
       else if (value !== '') {
-        const num = Number(value)
-        options[paramName] = Number.isNaN(num) ? value : num
+        options[paramName] = tryParseNumber(value)
       }
     }
     else {
       // Unknown param - treat as component prop
-      value = decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+      value = decodeSimpleValue(value)
       options.props = options.props || {}
       // Try to parse as number or boolean
       if (value === 'true') {
@@ -300,8 +348,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         options.props[paramName] = false
       }
       else if (value !== '') {
-        const num = Number(value)
-        options.props[paramName] = Number.isNaN(num) ? value : num
+        options.props[paramName] = tryParseNumber(value)
       }
     }
   }
