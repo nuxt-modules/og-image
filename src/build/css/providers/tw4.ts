@@ -47,7 +47,14 @@ async function loadTw4Deps() {
  */
 export function createModuleLoader(baseDir: string) {
   return async (id: string, base: string) => {
-    const resolved = resolveModulePath(id, { from: base || baseDir, try: true })
+    // Use suffixes + extensions to handle packages without an `exports` map
+    // (e.g. daisyui/theme resolves to daisyui/theme/index.js)
+    const resolved = resolveModulePath(id, {
+      from: base || baseDir,
+      try: true,
+      suffixes: ['', '/index'],
+      extensions: ['.js', '.mjs', '.cjs'],
+    })
     if (resolved) {
       const module = await import(pathToFileURL(resolved).href).then(m => m.default || m)
       return { path: resolved, base: dirname(resolved), module }
@@ -85,7 +92,13 @@ export function createStylesheetLoader(baseDir: string) {
       return { path: resolved, base: dirname(resolved), content }
     }
     // Handle node_modules imports (e.g., @nuxt/ui)
-    const resolved = resolveModulePath(id, { from: base || baseDir, conditions: ['style'], try: true })
+    const resolved = resolveModulePath(id, {
+      from: base || baseDir,
+      conditions: ['style'],
+      try: true,
+      suffixes: ['', '/index'],
+      extensions: ['.css', '.js', '.mjs'],
+    })
     if (resolved) {
       const content = await readFile(resolved, 'utf-8').catch(() => '')
       return { path: resolved, base: dirname(resolved), content }
