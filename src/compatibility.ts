@@ -217,7 +217,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     nitroConfig.alias || {},
   )
   // if we're using any wasm modules we need to enable the wasm runtime
-  if (Object.values(compatibility).includes('wasm')) {
+  // Check resolvedCompatibility (includes user overrides), not just the preset defaults
+  if (Object.values(resolvedCompatibility).includes('wasm')) {
     nitroConfig.experimental = nitroConfig.experimental || {}
     nitroConfig.experimental.wasm = true
   }

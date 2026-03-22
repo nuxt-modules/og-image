@@ -1,20 +1,18 @@
-import type { Collection } from '@nuxt/content'
+import { createContentSchemaFactory } from 'nuxtseo-shared/content'
 import { z } from 'zod'
 
-export const ogImageSchema = z.object({
-  url: z.string().optional(),
-  component: z.string().optional(),
-  props: z.record(z.string(), z.any()),
-}).optional()
+const { defineSchema, asCollection, schema } = createContentSchemaFactory({
+  fieldName: 'ogImage',
+  label: 'og-image',
+  docsUrl: 'https://nuxtseo.com/og-image/integrations/content',
+  buildSchema: _z => _z.object({
+    url: _z.string().optional(),
+    component: _z.string().optional(),
+    props: _z.record(_z.string(), _z.any()),
+  }).optional(),
+}, z)
 
-export const schema = z.object({
-  ogImage: ogImageSchema,
-})
+export { asCollection as asOgImageCollection, defineSchema as defineOgImageSchema, schema }
 
-export function asOgImageCollection<T>(collection: Collection<T>): Collection<T> {
-  if (collection.type === 'page') {
-    // @ts-expect-error untyped
-    collection.schema = collection.schema ? schema.extend(collection.schema.shape) : schema
-  }
-  return collection
-}
+// Legacy exports
+export const ogImageSchema = schema.shape.ogImage

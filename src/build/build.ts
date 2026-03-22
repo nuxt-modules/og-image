@@ -83,9 +83,10 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           }
         }
       }
-      const [resvgHash, yogaHash] = await Promise.all([
+      const [resvgHash, yogaHash, takumiHash] = await Promise.all([
         resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm'),
         resolveFilePathSha1('satori/yoga.wasm'),
+        resolveFilePathSha1('@takumi-rs/wasm/takumi_wasm_bg.wasm'),
       ])
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
@@ -117,6 +118,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           contents = contents
             .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
             .replaceAll('"satori/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
+            .replaceAll('"@takumi-rs/wasm/takumi_wasm_bg.wasm?module"', `"${wasmPath}takumi_wasm_bg-${takumiHash}.wasm${postfix}"`)
             // Legacy: also handle yoga-wasm-web path in case it appears
             .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
           // Nitro's WASM plugin may have already resolved the paths (hashed filenames, moved to wasm/).
@@ -141,7 +143,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
 }
 
 async function resolveFilePathSha1(path: string) {
-  const _path = await resolvePath(path)
+  const _path = await resolvePath(path).catch(() => path)
   return sha1(existsSync(_path) ? await readFile(_path) : Buffer.from(path))
 }
 
