@@ -1,7 +1,5 @@
 catalogMode: prefer
-
 cleanupUnusedCatalogs: true
-
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -14,9 +12,11 @@ trustPolicyExclude:
   - koa@2.16.3
   - semver@5.7.2
   - '@nuxtjs/tailwindcss@7.0.0-beta.1'
+
 packages:
   - playground
   - client
+
 overrides:
   vite: npm:vite@8.0.0-beta.13
 
@@ -64,7 +64,7 @@ catalog:
   defu: ^6.1.4
   devalue: ^5.6.4
   eslint: ^10.1.0
-  eslint-plugin-harlanzw: ^0.10.2
+  eslint-plugin-harlanzw: ^0.10.3
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
@@ -112,6 +112,7 @@ catalogs:
     '@iconify-json/simple-icons': ^1.2.74
     json-editor-vue: ^0.18.1
     shiki: ^4.0.2
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -121,5 +122,4 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
-
 trustPolicyIgnoreAfter: 262800
