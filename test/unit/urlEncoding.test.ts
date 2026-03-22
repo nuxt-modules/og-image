@@ -729,13 +729,8 @@ describe('urlEncoding', () => {
     })
 
     // Empty-ish values
-    // Space-only value encodes as "+", which the decoder coerces to Number(0).
-    // This is a preexisting quirk in the number coercion logic, not related to the b64 change.
-    it('space-only value is coerced to 0 by decoder (preexisting)', () => {
-      const encoded = encodeOgImageParams({ props: { title: ' ' } })
-      expect(encoded).toBe('title_+')
-      const decoded = decodeOgImageParams(encoded)
-      expect(decoded).toEqual({ props: { title: 0 } })
+    it('round-trips value that is just a space', () => {
+      roundtrip({ title: ' ' })
     })
 
     it('round-trips value that is just +', () => {

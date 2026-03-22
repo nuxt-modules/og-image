@@ -235,6 +235,21 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
   return parts.join(',')
 }
 
+const RE_NUMERIC = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/
+
+/**
+ * Parse a string as a number only if it's actually numeric.
+ * Avoids false positives like Number('+') → 0 or Number('') → 0.
+ */
+function tryParseNumber(value: string): string | number {
+  if (RE_NUMERIC.test(value)) {
+    const num = Number(value)
+    if (!Number.isNaN(num))
+      return num
+  }
+  return value
+}
+
 /**
  * Decode a simple string value, handling ~ prefix for b64-encoded non-ASCII
  * and ~~ escape for literal values starting with ~.
@@ -314,8 +329,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         options[paramName] = false
       }
       else if (value !== '') {
-        const num = Number(value)
-        options[paramName] = Number.isNaN(num) ? value : num
+        options[paramName] = tryParseNumber(value)
       }
     }
     else {
@@ -330,8 +344,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         options.props[paramName] = false
       }
       else if (value !== '') {
-        const num = Number(value)
-        options.props[paramName] = Number.isNaN(num) ? value : num
+        options.props[paramName] = tryParseNumber(value)
       }
     }
   }
