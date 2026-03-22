@@ -30,7 +30,8 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
-const RE_NON_ASCII = /[^\x00-\x7F]/
+// eslint-disable-next-line no-control-regex
+const RE_NON_ASCII = /[^\u0000-\u007F]/
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -222,7 +223,9 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
       }
       else {
         // ASCII-safe value - URL encode for special chars
-        const encoded = encodeURIComponent(str.replace(RE_UNDERSCORE, '__'))
+        // Escape leading ~ to avoid ambiguity with b64 marker prefix
+        const escaped = str.startsWith('~') ? `~${str}` : str
+        const encoded = encodeURIComponent(escaped.replace(RE_UNDERSCORE, '__'))
           .replace(RE_PERCENT20, '+') // spaces as +
         parts.push(`${alias}_${encoded}`)
       }
@@ -230,6 +233,28 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
   }
 
   return parts.join(',')
+}
+
+/**
+ * Decode a simple string value, handling ~ prefix for b64-encoded non-ASCII
+ * and ~~ escape for literal values starting with ~.
+ */
+function decodeSimpleValue(raw: string): string {
+  if (raw.startsWith('~~')) {
+    // Escaped leading ~ — decode the rest normally
+    return decodeURIComponent(raw.slice(1).replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+  }
+  if (raw.startsWith('~')) {
+    // b64-encoded non-ASCII value
+    try {
+      return b64Decode(raw.slice(1))
+    }
+    catch {
+      // Fallback: treat as literal value if b64 decode fails
+      return decodeURIComponent(raw.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+    }
+  }
+  return decodeURIComponent(raw.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
 }
 
 /**
@@ -280,9 +305,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else if (KNOWN_PARAMS.has(paramName)) {
       // Known OgImageOptions param - decode value
-      value = value.startsWith('~')
-        ? b64Decode(value.slice(1))
-        : decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+      value = decodeSimpleValue(value)
       // Try to parse as number or boolean
       if (value === 'true') {
         options[paramName] = true
@@ -297,9 +320,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
     }
     else {
       // Unknown param - treat as component prop
-      value = value.startsWith('~')
-        ? b64Decode(value.slice(1))
-        : decodeURIComponent(value.replace(RE_PLUS, '%20')).replace(RE_DOUBLE_UNDERSCORE, '_')
+      value = decodeSimpleValue(value)
       options.props = options.props || {}
       // Try to parse as number or boolean
       if (value === 'true') {

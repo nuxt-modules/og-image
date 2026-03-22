@@ -465,17 +465,13 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({})
     })
 
-    // Edge: ASCII value that starts with ~ is a known ambiguity.
-    // encodeURIComponent does NOT encode ~, so `~hello` stays as-is in the URL.
-    // The decoder sees the ~ prefix and attempts b64 decode, producing garbage.
-    // This is a documented edge case: values starting with ~ will not roundtrip correctly.
-    it('aSCII value starting with ~ is ambiguous with b64 marker (known limitation)', () => {
+    // Edge: ASCII value that starts with ~ is escaped with ~~ to avoid b64 marker ambiguity
+    it('round-trips ASCII value starting with ~', () => {
       const encoded = encodeOgImageParams({ props: { title: '~hello' } })
-      // The value is literally ~hello, which looks like a b64-prefixed value to the decoder
-      expect(encoded).toBe('title_~hello')
-      // Decoder sees ~ prefix, strips it, tries atob("hello") which is invalid b64 and throws.
-      // This is a known limitation: ASCII values starting with ~ cannot roundtrip.
-      expect(() => decodeOgImageParams(encoded)).toThrow()
+      // Encoder escapes leading ~ as ~~
+      expect(encoded).toBe('title_~~hello')
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props: { title: '~hello' } })
     })
 
     // Edge: underscores (existing __ escape mechanism)
@@ -555,8 +551,10 @@ describe('urlEncoding', () => {
     // atob throws on invalid base64 characters, so the decoder propagates the error.
     // This is a known limitation: if a URL is manually crafted with ~<invalid b64>,
     // it will throw rather than degrade gracefully.
-    it('throws on value starting with ~ that is not valid b64', () => {
-      expect(() => decodeOgImageParams('title_~!!!')).toThrow()
+    it('gracefully falls back for value starting with ~ that is not valid b64', () => {
+      // Invalid b64 after ~ prefix should fall back to URL decoding instead of throwing
+      const decoded = decodeOgImageParams('title_~!!!')
+      expect(decoded).toEqual({ props: { title: '~!!!' } })
     })
 
     // Encoded non-ASCII should use ~ prefix, not percent encoding
