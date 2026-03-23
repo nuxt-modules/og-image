@@ -1,36 +1,13 @@
 import { resolve } from 'pathe'
 
 export default defineNuxtConfig({
-  ssr: false,
-
-  modules: [
-    '@nuxt/fonts',
-    '@nuxt/ui',
-  ],
+  extends: ['nuxtseo-shared/layer-devtools'],
 
   ogImage: false,
 
-  css: ['~/assets/css/global.css'],
-
-  // @ts-expect-error @nuxt/fonts module config
-  fonts: {
-    families: [
-      { name: 'Hubot Sans' },
-    ],
-  },
-
-  devtools: {
-    enabled: false,
-  },
-
   nitro: {
     prerender: {
-      routes: [
-        '/',
-        '/templates',
-        '/debug',
-        '/docs',
-      ],
+      routes: ['/', '/templates', '/debug', '/docs'],
     },
     output: {
       publicDir: resolve(__dirname, '../dist/client'),
@@ -44,6 +21,4 @@ export default defineNuxtConfig({
   experimental: {
     componentIslands: true,
   },
-
-  compatibilityDate: '2024-09-11',
 })

@@ -6,7 +6,6 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useOgImage } from '../composables/og-image'
 import { RendererSelectDialogPromise } from '../composables/renderer-select'
 import { isConnectionFailed, isFallbackMode } from '../composables/rpc'
-import { hasProductionUrl, previewSource, productionUrl } from '../util/logic'
 
 const RE_SINGLE_QUOTE = /'/g
 const RE_VUE_FILENAME = /[^/]+\.vue$/

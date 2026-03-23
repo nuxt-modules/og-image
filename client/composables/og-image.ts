@@ -7,9 +7,9 @@ import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
-import { description, globalRefreshTime, hasMadeChanges, ogImageKey, options, optionsOverrides, path, previewHost, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
+import { description, globalRefreshTime, hasMadeChanges, ogImageKey, options, optionsOverrides, previewHost, propEditor } from '../util/logic'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
-import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
+import { devtoolsClient, ogImageRpc } from './rpc'
 import { AddComponentDialogPromise, CreateOgImageDialogPromise } from './templates'
 
 const RE_SUFFIX_SATORI = /Satori$/

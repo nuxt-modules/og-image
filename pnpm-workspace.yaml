@@ -77,7 +77,7 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
   nuxt-site-config: ^3.2.21
-  nuxtseo-shared: ^0.1.2
+  nuxtseo-shared: ^0.1.6
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -109,11 +109,13 @@ catalog:
   wrangler: ^4.76.0
   yoga-wasm-web: ^0.3.3
 catalogs:
+  conflicts_nuxtseo-shared_h0_1_3:
+    nuxtseo-shared: ^0.1.5
+
   devtools:
     '@iconify-json/simple-icons': ^1.2.74
     json-editor-vue: ^0.18.1
     shiki: ^4.0.2
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
