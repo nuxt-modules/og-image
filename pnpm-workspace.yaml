@@ -96,7 +96,7 @@ catalog:
   tailwindcss: ^4.2.2
   tinyexec: ^1.0.4
   tinyglobby: ^0.2.15
-  typescript: ^5.9.3
+  typescript: ^6.0.2
   ufo: ^1.6.3
   ultrahtml: ^1.6.0
   unifont: ^0.7.4
