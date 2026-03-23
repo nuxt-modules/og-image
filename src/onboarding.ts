@@ -5,7 +5,7 @@ import { existsSync, readdirSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { isCI } from 'std-env'
-import { getPresetNitroPresetCompatibility, resolveNitroPreset } from './compatibility'
+import { getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
 import { promptFontsMigration } from './migrations/fonts'
 import { logger } from './runtime/logger'
 import { getRendererFromFilename, hasResolvableDependency } from './util'
@@ -299,7 +299,7 @@ export async function onUpgrade(
   if (detectedRenderers.size === 0)
     detectedRenderers.add('satori')
 
-  const preset = resolveNitroPreset()
+  const preset = resolveOgImagePreset()
   const compatibility = getPresetNitroPresetCompatibility(preset)
   for (const renderer of detectedRenderers) {
     const validation = await validateProviderSetup(renderer, compatibility)

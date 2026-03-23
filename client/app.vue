@@ -90,7 +90,6 @@ provide(RefetchPathDebugKey, refreshPathDebug)
 const {
   isDebugLoading,
   error,
-  isPageScreenshot,
   refreshSources,
   resetProps,
 } = useOgImage()

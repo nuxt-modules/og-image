@@ -41,7 +41,7 @@ import { ComponentImportRewritePlugin } from './build/vite-component-import-rewr
 import {
   ensureDependencies,
   getPresetNitroPresetCompatibility,
-  resolveNitroPreset,
+  resolveOgImagePreset,
 } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
@@ -330,7 +330,7 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
     // Resolve preset early to check compatibility settings
-    const preset = resolveNitroPreset(nuxt.options.nitro)
+    const preset = resolveOgImagePreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
     // Cloudflare Workers-specific checks

@@ -1070,9 +1070,6 @@ const productionHostname = computed(() => {
       </Transition>
     </div>
   </div>
-  </Transition>
-  </div>
-  </div>
 </template>
 
 <style scoped>

@@ -8,7 +8,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
 import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
-import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { RE_LEGACY_SUFFIX } from '../util'
 
 const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g
@@ -47,7 +47,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
 
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed
-    const target = resolveNitroPreset(nitro.options)
+    const target = resolveOgImagePreset(nitro.options)
     const normalizedTarget = target.replace(RE_LEGACY_SUFFIX, '')
     const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-pages-static', 'cloudflare-module', 'cloudflare-durable', 'vercel-edge', 'netlify-edge'].includes(normalizedTarget)
     const isCloudflarePreset = normalizedTarget.startsWith('cloudflare')

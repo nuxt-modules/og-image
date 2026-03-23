@@ -1,7 +1,7 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { RuntimeCompatibilitySchema } from '../runtime/types'
 import { addDependency, detectPackageManager } from 'nypm'
-import { getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { logger } from '../runtime/logger'
 import { hasResolvableDependency } from '../util'
 
@@ -133,7 +133,7 @@ export function getProviderDependencies(
 }
 
 export function getRecommendedBindingFromPreset(provider: ProviderName): BindingVariant {
-  const preset = resolveNitroPreset()
+  const preset = resolveOgImagePreset()
   const compatibility = getPresetNitroPresetCompatibility(preset)
   return getRecommendedBinding(provider, compatibility)
 }
