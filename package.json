@@ -19,9 +19,6 @@
   "bugs": {
     "url": "https://github.com/nuxt-modules/og-image/issues"
   },
-  "imports": {
-    "#nuxtseo-shared/server/kit": "./node_modules/nuxtseo-shared/dist/runtime/server/kit.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/types.d.mts",
