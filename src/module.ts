@@ -1329,12 +1329,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
-      if (!isNuxtGenerate() && nuxt.options.build) {
-        nuxt.options.nitro = nuxt.options.nitro || {}
-        nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
-        nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
-      }
-
       // set theme color for the NuxtSeo component
       type ColorMode = 'light' | 'dark' | 'system'
       const hasColorModeModule = hasNuxtModule('@nuxtjs/color-mode')
