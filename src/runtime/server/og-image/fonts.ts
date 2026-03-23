@@ -10,19 +10,21 @@ import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
 
 export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from './unicode-range'
 
+function fontFormat(src: string): 'ttf' | 'woff' | 'woff2' {
+  if (src.endsWith('.woff2'))
+    return 'woff2'
+  if (src.endsWith('.woff'))
+    return 'woff'
+  return 'ttf'
+}
+
 export interface LoadFontsOptions {
   /**
-   * Whether the renderer supports WOFF2.
-   * When false, WOFF2 fonts will use satoriSrc (converted TTF) if available,
-   * otherwise they will be skipped.
+   * Font formats the renderer can parse.
+   * Satori: ttf, woff (no WOFF2)
+   * Takumi: ttf, woff2 (no WOFF)
    */
-  supportsWoff2: boolean
-  /**
-   * Prefer static (satoriSrc) fonts over WOFF2 when available.
-   * Used by Takumi to avoid WOFF2 subset decompression bugs while still
-   * falling through to WOFF2 when no static alternative exists.
-   */
-  preferStatic?: boolean
+  supportedFormats: Set<'ttf' | 'woff' | 'woff2'>
   /** Component pascalName — filters fonts to only what this component needs */
   component?: string
   /** When set, ensures this font family is included even if not in requirements */
@@ -160,27 +162,22 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   const results = await Promise.all(
     fonts.map(async (f) => {
       let src = f.src
-      const isWoff2 = f.src.endsWith('.woff2')
+      const srcFormat = fontFormat(f.src)
 
-      if (isWoff2 && (options.preferStatic || !options.supportsWoff2)) {
-        // When preferStatic is set (Takumi), only use satoriSrc if it's a format
-        // Takumi supports (.ttf). Takumi cannot parse .woff files, so skip those
-        // and fall through to the original .woff2 which Takumi handles natively.
-        const satoriSrcUsable = f.satoriSrc
-          && (!options.preferStatic || !f.satoriSrc.endsWith('.woff'))
-        if (satoriSrcUsable) {
-          src = f.satoriSrc!
+      // If the primary src format isn't supported, try satoriSrc as alternative
+      if (!options.supportedFormats.has(srcFormat)) {
+        if (f.satoriSrc && options.supportedFormats.has(fontFormat(f.satoriSrc))) {
+          src = f.satoriSrc
         }
-        else if (!options.supportsWoff2) {
-          // Satori: can't use WOFF2 at all, skip this font
+        else {
+          // No usable format available, skip this font
           return null
         }
-        // Takumi (preferStatic + supportsWoff2): fall through to WOFF2 — better than nothing
       }
 
       let data = await loadFont(event, f, src)
-      // When satoriSrc fails to load (e.g. 404), try original WOFF2 for renderers that support it
-      if (!data && src !== f.src && options.supportsWoff2) {
+      // When satoriSrc fails to load (e.g. 404), try original src if its format is supported
+      if (!data && src !== f.src && options.supportedFormats.has(srcFormat)) {
         data = await loadFont(event, f, f.src)
         if (data)
           src = f.src
@@ -207,7 +204,7 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   const isCommunity = options.component && (map as Record<string, any>)[options.component]?.category === 'community'
 
   // Warn when rendering with Satori and only variable fonts are available (deduplicated)
-  if (!options.supportsWoff2 && loaded.length === 0 && fonts.length > 0 && !isCommunity) {
+  if (!options.supportedFormats.has('woff2') && loaded.length === 0 && fonts.length > 0 && !isCommunity) {
     const variableFamilies = [...new Set(fonts.map(f => f.family))]
     const warnKey = `variable-fonts-${variableFamilies.join(',')}`
     if (!_warnedFontKeys.has(warnKey)) {
