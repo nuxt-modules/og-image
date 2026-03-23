@@ -163,9 +163,13 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
       const isWoff2 = f.src.endsWith('.woff2')
 
       if (isWoff2 && (options.preferStatic || !options.supportsWoff2)) {
-        if (f.satoriSrc) {
-          // Use static alternative (TTF/WOFF) downloaded by fontless
-          src = f.satoriSrc
+        // When preferStatic is set (Takumi), only use satoriSrc if it's a format
+        // Takumi supports (.ttf). Takumi cannot parse .woff files, so skip those
+        // and fall through to the original .woff2 which Takumi handles natively.
+        const satoriSrcUsable = f.satoriSrc
+          && (!options.preferStatic || !f.satoriSrc.endsWith('.woff'))
+        if (satoriSrcUsable) {
+          src = f.satoriSrc!
         }
         else if (!options.supportsWoff2) {
           // Satori: can't use WOFF2 at all, skip this font
