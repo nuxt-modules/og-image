@@ -10,21 +10,25 @@ import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
 
 export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from './unicode-range'
 
-function fontFormat(src: string): 'ttf' | 'woff' | 'woff2' {
+type FontFormat = 'ttf' | 'otf' | 'woff' | 'woff2'
+
+function fontFormat(src: string): FontFormat {
   if (src.endsWith('.woff2'))
     return 'woff2'
   if (src.endsWith('.woff'))
     return 'woff'
+  if (src.endsWith('.otf'))
+    return 'otf'
   return 'ttf'
 }
 
 export interface LoadFontsOptions {
   /**
    * Font formats the renderer can parse.
-   * Satori: ttf, woff (no WOFF2)
-   * Takumi: ttf, woff2 (no WOFF)
+   * Satori: ttf, otf, woff
+   * Takumi: ttf, woff2
    */
-  supportedFormats: Set<'ttf' | 'woff' | 'woff2'>
+  supportedFormats: Set<FontFormat>
   /** Component pascalName — filters fonts to only what this component needs */
   component?: string
   /** When set, ensures this font family is included even if not in requirements */
