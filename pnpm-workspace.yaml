@@ -76,7 +76,7 @@ catalog:
   magicast: ^0.5.2
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
-  nuxt-site-config: ^3.2.21
+  nuxt-site-config: ^4.0.0
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
