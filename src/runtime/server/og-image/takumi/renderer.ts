@@ -102,7 +102,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
   const codepoints = extractCodepoints(nodes)
-  const fonts = await loadFontsForRenderer(event, { supportsWoff2: true, preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
+  const fonts = await loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
 
@@ -175,7 +175,7 @@ const TakumiRenderer: Renderer = {
   async debug(e) {
     const [vnodes, fonts] = await Promise.all([
       createTakumiNodes(e),
-      loadFontsForRenderer(e, { supportsWoff2: true, preferStatic: true, component: e.options.component }),
+      loadFontsForRenderer(e, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: e.options.component }),
     ])
     return {
       vnodes,
