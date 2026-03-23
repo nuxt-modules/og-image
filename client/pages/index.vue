@@ -344,16 +344,6 @@ const seoMetaSnippet = computed(() => {
   return `useSeoMeta({\n${entries.join(',\n')}\n})`
 })
 
-const snippetCopied = ref(false)
-
-function copySnippet() {
-  if (!seoMetaSnippet.value)
-    return
-  navigator.clipboard.writeText(seoMetaSnippet.value)
-  snippetCopied.value = true
-  setTimeout(() => snippetCopied.value = false, 2000)
-}
-
 function resetAll() {
   resetProps(true)
   fontOverride.value = ''
@@ -374,10 +364,9 @@ const productionHostname = computed(() => {
   <div class="preview-container card animate-fade-up">
     <!-- Demo mode when devtools connection fails -->
     <div v-if="isConnectionFailed" class="h-full flex flex-col">
-      <div class="alert-banner warning">
-        <UIcon name="carbon:warning" class="shrink-0" />
-        <span>Could not connect to devtools. Showing demo preview.</span>
-      </div>
+      <DevtoolsAlert variant="warning">
+        Could not connect to devtools. Showing demo preview.
+      </DevtoolsAlert>
       <div class="flex-1 flex items-center justify-center p-6 sm:p-8">
         <div class="w-full max-w-2xl">
           <TwitterCardRenderer title="My Page Title" :aspect-ratio="1200 / 630">
@@ -404,10 +393,10 @@ const productionHostname = computed(() => {
 
     <!-- Custom OG Image (prebuilt URL) -->
     <div v-else-if="isCustomOgImage" class="h-full flex flex-col">
-      <div class="toolbar-minimal">
+      <DevtoolsToolbar variant="minimal">
         <span class="text-[var(--color-text-subtle)]">Prebuilt:</span>
         <code class="text-[var(--color-text-muted)]">{{ options?.url }}</code>
-      </div>
+      </DevtoolsToolbar>
       <div class="flex-1 flex items-center justify-center p-6 sm:p-8">
         <ImageLoader
           :src="src"
@@ -420,52 +409,40 @@ const productionHostname = computed(() => {
 
     <!-- Loading state -->
     <div v-else-if="isDebugLoading" class="h-full flex items-center justify-center p-6 sm:p-8">
-      <div class="max-w-lg text-center">
-        <div class="empty-state-icon animate-pulse">
-          <UIcon name="carbon:image-search" class="w-8 h-8" />
-        </div>
-        <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
-          Loading OG Image&#8230;
-        </h2>
-      </div>
+      <DevtoolsEmptyState icon="carbon:image-search" title="Loading OG Image&#8230;" class="animate-pulse" />
     </div>
 
     <!-- Server error (e.g. font loading failure) -->
     <div v-else-if="fetchError" class="h-full flex items-center justify-center p-6 sm:p-8">
-      <div class="max-w-lg text-center animate-scale-in">
-        <div class="empty-state-icon empty-state-icon--error">
-          <UIcon name="carbon:warning" class="w-8 h-8" />
-        </div>
-        <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
-          OG Image Error
-        </h2>
-        <p class="text-[var(--color-text-muted)] mb-4 text-sm sm:text-base">
-          {{ fetchError.message }}
-        </p>
-        <details v-if="fetchError.stack?.length" class="text-left">
+      <DevtoolsEmptyState
+        icon="carbon:warning"
+        title="OG Image Error"
+        :description="fetchError.message"
+        variant="error"
+        class="animate-scale-in"
+      >
+        <details v-if="fetchError.stack?.length" class="text-left w-full">
           <summary class="text-xs text-[var(--color-text-subtle)] cursor-pointer hover:text-[var(--color-text-muted)]">
             Stack trace
           </summary>
           <pre class="mt-2 text-xs text-[var(--color-text-subtle)] overflow-auto max-h-48 p-3 rounded-lg bg-[var(--color-surface-sunken)] border border-[var(--color-border-subtle)]">{{ fetchError.stack.join('\n') }}</pre>
         </details>
-      </div>
+      </DevtoolsEmptyState>
     </div>
 
     <!-- Missing defineOgImage error -->
     <div v-else-if="isValidDebugError || !hasDefinedOgImage" class="h-full flex items-center justify-center p-6 sm:p-8">
-      <div class="max-w-lg text-center animate-scale-in">
-        <div class="empty-state-icon">
-          <UIcon name="carbon:image-search" class="w-8 h-8" />
-        </div>
-        <h2 class="text-lg sm:text-xl font-semibold text-[var(--color-text)] mb-3">
-          No OG Image Defined
-        </h2>
-        <p class="text-[var(--color-text-muted)] mb-5 text-sm sm:text-base">
+      <DevtoolsEmptyState
+        icon="carbon:image-search"
+        title="No OG Image Defined"
+        class="animate-scale-in"
+      >
+        <template #description>
           This page has no <code class="inline-code">defineOgImage()</code> in
           <UButton variant="link" class="cursor-pointer" @click="openCurrentPageFile">
             {{ currentPageFile }}
           </UButton>
-        </p>
+        </template>
 
         <!-- Existing components: let user pick one -->
         <div v-if="componentNames.length" class="mb-4 flex flex-col items-center gap-3">
@@ -502,37 +479,36 @@ const productionHostname = computed(() => {
           Learn more
           <UIcon name="carbon:arrow-right" class="w-3 h-3" />
         </a>
-      </div>
+      </DevtoolsEmptyState>
     </div>
 
     <!-- Main preview UI -->
     <div v-else class="h-full flex flex-col">
       <!-- Fallback mode banner -->
-      <div v-if="isFallbackMode" class="alert-banner info">
-        <UIcon name="carbon:information" class="shrink-0" />
-        <span>Fallback mode: Connected to localhost:3000</span>
-      </div>
+      <DevtoolsAlert v-if="isFallbackMode" variant="info">
+        Fallback mode: Connected to localhost:3000
+      </DevtoolsAlert>
 
       <!-- Production preview banner -->
-      <div v-if="previewSource === 'production' && hasProductionUrl" class="alert-banner production">
-        <UIcon name="carbon:cloud" class="shrink-0" />
-        <span>Previewing from <strong>{{ productionUrl }}</strong></span>
-        <UButton variant="link" size="xs" class="ml-auto" @click="previewSource = 'local'">
-          Switch to local
-        </UButton>
-      </div>
+      <DevtoolsAlert v-if="previewSource === 'production' && hasProductionUrl" variant="production">
+        Previewing from <strong>{{ productionUrl }}</strong>
+        <template #action>
+          <UButton variant="link" size="xs" @click="previewSource = 'local'">
+            Switch to local
+          </UButton>
+        </template>
+      </DevtoolsAlert>
 
       <!-- Renderer incompatibility banner -->
-      <div v-if="!isComponentCompatibleWithRenderer && activeComponent" class="alert-banner warning">
-        <UIcon name="carbon:warning" class="shrink-0" />
-        <span>
-          Component <code class="inline-code">{{ activeComponentName }}</code> uses {{ activeComponent.renderer }} renderer.
-          <NuxtLink to="/templates" class="text-[var(--seo-green)] hover:underline ml-1">Select a {{ renderer }} template</NuxtLink>
-        </span>
-      </div>
+      <DevtoolsAlert v-if="!isComponentCompatibleWithRenderer && activeComponent" variant="warning">
+        Component <code class="inline-code">{{ activeComponentName }}</code> uses {{ activeComponent.renderer }} renderer.
+        <NuxtLink to="/templates" class="text-[var(--seo-green)] hover:underline ml-1">
+          Select a {{ renderer }} template
+        </NuxtLink>
+      </DevtoolsAlert>
 
       <!-- Top toolbar -->
-      <div class="toolbar">
+      <DevtoolsToolbar>
         <!-- Left: Renderer + Format controls -->
         <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
           <UButton color="neutral" variant="ghost" size="xs" aria-label="Change renderer and format" @click="RendererSelectDialogPromise.start()">
@@ -592,8 +568,8 @@ const productionHostname = computed(() => {
         <div class="flex items-center gap-2">
           <!-- Production URL indicator -->
           <UTooltip v-if="previewSource === 'production' && hasProductionUrl" :text="productionUrl" :delay-duration="200">
-            <span class="production-url-badge">
-              <span class="production-url-dot" />
+            <span class="devtools-production-badge">
+              <span class="devtools-production-dot" />
               <span class="hidden sm:inline text-xs">{{ productionHostname }}</span>
             </span>
           </UTooltip>
@@ -610,7 +586,7 @@ const productionHostname = computed(() => {
             <span class="hidden sm:inline">Debug</span>
           </UButton>
         </div>
-      </div>
+      </DevtoolsToolbar>
 
       <!-- Social preview tabs -->
       <div class="px-3 sm:px-4 border-b border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
@@ -902,222 +878,200 @@ const productionHostname = computed(() => {
         leave-from-class="opacity-100 translate-x-0"
         leave-to-class="opacity-0 translate-x-4"
       >
-        <div v-if="sidePanelOpen && !isPageScreenshot" class="props-panel">
-          <div class="props-header">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-[var(--color-text)]">Debug</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <UButton
-                v-if="hasMadeChanges"
-                variant="ghost"
-                color="neutral"
-                size="xs"
-                @click="resetAll()"
-              >
-                Reset
-              </UButton>
-              <UButton
-                variant="ghost"
-                color="neutral"
-                size="xs"
-                icon="carbon:close"
-                aria-label="Close panel"
-                @click="sidePanelOpen = false"
-              />
-            </div>
-          </div>
-          <div class="props-content">
-            <div class="px-3 pt-2 border-b border-[var(--color-border)]">
-              <UTabs
-                v-model="protoTab"
-                :items="protoTabs"
-                :content="false"
-                size="xs"
-                variant="link"
-                color="neutral"
-              />
-            </div>
-
-            <!-- Meta Tags Tab -->
-            <div v-if="protoTab === 'meta-tags'">
-              <div class="props-field">
-                <div class="props-field-label">
-                  <span>{{ metaLabelPrefix }} Title</span>
-                  <UTooltip :text="isTwitterMode ? 'The twitter:title meta tag. Controls the title shown on Twitter/X cards.' : 'The og:title meta tag. Controls the title shown when shared on social platforms.'" :delay-duration="0">
-                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                  </UTooltip>
-                </div>
-                <UInput
-                  :model-value="isTwitterMode ? (metaOverrides.twitterTitle || socialPreviewTitle) : (metaOverrides.ogTitle || socialPreviewTitle)"
-                  size="xs"
-                  :name="isTwitterMode ? 'twitter-title' : 'og-title'"
-                  autocomplete="off"
-                  :placeholder="isTwitterMode ? 'twitter:title…' : 'og:title…'"
-                  @update:model-value="updateMetaField(isTwitterMode ? 'twitterTitle' : 'ogTitle', $event as string)"
-                />
-              </div>
-
-              <div class="props-field">
-                <div class="props-field-label">
-                  <span>{{ metaLabelPrefix }} Description</span>
-                  <UTooltip :text="isTwitterMode ? 'The twitter:description meta tag. Controls the description shown on Twitter/X cards.' : 'The og:description meta tag. Controls the description shown when shared on social platforms.'" :delay-duration="0">
-                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                  </UTooltip>
-                </div>
-                <UInput
-                  :model-value="metaOverrides.description || socialPreviewDescription"
-                  size="xs"
-                  :name="isTwitterMode ? 'twitter-description' : 'og-description'"
-                  autocomplete="off"
-                  :placeholder="isTwitterMode ? 'twitter:description…' : 'og:description…'"
-                  @update:model-value="updateMetaField('description', $event as string)"
-                />
-              </div>
-
-              <div class="props-field">
-                <div class="props-field-label">
-                  <span>{{ socialPreview === 'discord' ? 'OG Site Name' : 'OG URL' }}</span>
-                  <UTooltip :text="socialPreview === 'discord' ? 'The og:site_name meta tag. Discord uses this for the provider name above the title.' : 'The og:url meta tag. The canonical URL shown in social card previews.'" :delay-duration="0">
-                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                  </UTooltip>
-                </div>
-                <UInput
-                  :model-value="metaOverrides.siteName || slackSocialPreviewSiteName"
-                  size="xs"
-                  :name="socialPreview === 'discord' ? 'og-site-name' : 'og-url'"
-                  autocomplete="off"
-                  :placeholder="socialPreview === 'discord' ? 'og:site_name…' : 'og:url…'"
-                  @update:model-value="updateMetaField('siteName', $event as string)"
-                />
-              </div>
-            </div>
-
-            <!-- OG Image Props Tab -->
-            <div v-else-if="protoTab === 'og-props'">
-              <div class="props-field">
-                <div class="props-field-label">
-                  <span>Color Mode</span>
-                  <UTooltip text="Changes the color mode passed to the OG image renderer." :delay-duration="0">
-                    <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
-                  </UTooltip>
-                </div>
-                <UButton
-                  size="xs"
-                  color="neutral"
-                  variant="soft"
-                  :icon="imageColorMode === 'dark' ? 'carbon:moon' : 'carbon:sun'"
-                  @click="imageColorMode = imageColorMode === 'dark' ? 'light' : 'dark'"
-                >
-                  {{ imageColorMode === 'dark' ? 'Dark' : 'Light' }}
-                </UButton>
-              </div>
-
-              <JsonEditorVue
-                :model-value="propEditor"
-                class="jse-theme-dark"
-                :main-menu-bar="false"
-                :navigation-bar="false"
-                @update:model-value="updateProps"
-              />
-            </div>
-
-            <!-- Fonts Tab -->
-            <div v-else-if="protoTab === 'fonts'" class="fonts-tab">
-              <!-- Detected requirements — compact summary bar -->
-              <div v-if="detectedFontRequirements" class="fonts-detected">
-                <div class="fonts-detected-inner">
-                  <span class="fonts-detected-label">Detected</span>
-                  <span v-for="w in detectedFontRequirements.weights" :key="`w-${w}`" class="fonts-chip">{{ w }}</span>
-                  <span v-for="s in detectedFontRequirements.styles" :key="`s-${s}`" class="fonts-chip">{{ s }}</span>
-                  <template v-if="detectedFontRequirements.families?.length">
-                    <span class="fonts-detected-sep" />
-                    <span
-                      v-for="f in detectedFontRequirements.families"
-                      :key="f"
-                      class="fonts-chip"
-                      :class="unresolvedFamilies.includes(f) ? 'fonts-chip--error' : 'fonts-chip--family'"
-                    >
-                      <UIcon v-if="unresolvedFamilies.includes(f)" name="carbon:warning-filled" class="w-2.5 h-2.5 shrink-0" />
-                      {{ f }}
-                    </span>
-                  </template>
-                </div>
-              </div>
-
-              <!-- Resolved fonts actually used for rendering -->
-              <div v-if="resolvedFamilyNames.length" class="fonts-detected fonts-resolved">
-                <div class="fonts-detected-inner">
-                  <span class="fonts-detected-label">Rendering</span>
-                  <span v-for="f in resolvedFamilyNames" :key="f" class="fonts-chip fonts-chip--family">{{ f }}</span>
-                </div>
-              </div>
-
-              <!-- Font specimen list -->
-              <div v-if="fontFiles.length" class="fonts-specimen">
-                <template v-for="family in fontFamilyNames" :key="family">
-                  <button
-                    class="fonts-family-row"
-                    :class="{ active: fontOverride === family }"
-                    @click="applyFontOverride(family)"
-                  >
-                    <span class="fonts-family-name" :style="{ fontFamily: `'ogp-${family}', sans-serif` }">{{ family }}</span>
-                    <span class="fonts-family-meta">
-                      <span v-if="fontFamilySizes.get(family)" class="fonts-family-size">{{ formatBytes(fontFamilySizes.get(family)!) }}</span>
-                      <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
-                    </span>
-                  </button>
-                  <div class="fonts-variants">
-                    <div
-                      v-for="f in fontFiles.filter(ff => ff.family === family)"
-                      :key="f.key"
-                      class="fonts-variant"
-                      :class="{ loaded: f.loaded }"
-                    >
-                      <span class="fonts-variant-dot" />
-                      <span class="fonts-variant-label">{{ f.weight }}{{ f.style === 'italic' ? 'i' : '' }}</span>
-                      <span v-if="f.subsetCount > 1" class="fonts-variant-count">&times;{{ f.subsetCount }}</span>
-                      <template v-if="f.subsets.length">
-                        <span v-for="s in f.subsets" :key="s" class="fonts-subset-chip">{{ s }}</span>
-                      </template>
-                    </div>
-                  </div>
-                </template>
-              </div>
-
-              <div v-else class="fonts-empty">
-                No fonts resolved. Install <code class="inline-code">@nuxt/fonts</code> to enable.
-              </div>
-            </div>
-
-            <!-- useSeoMeta snippet for meta tag overrides -->
-            <div v-if="protoTab === 'meta-tags' && hasMetaOverrides" class="snippet-wrapper">
-              <div class="snippet-header">
-                <code class="snippet-label">useSeoMeta</code>
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  :icon="snippetCopied ? 'carbon:checkmark' : 'carbon:copy'"
-                  @click="copySnippet"
-                />
-              </div>
-              <OCodeBlock :code="seoMetaSnippet" lang="js" class="snippet-block" />
-            </div>
-
-            <UAlert
-              v-else-if="hasMadeChanges && protoTab !== 'meta-tags'"
-              color="warning"
-              variant="subtle"
-              icon="carbon:warning"
-              title="Unsaved changes"
-              description="These changes are for preview only and won't persist."
-              class="mx-3 my-2"
+        <DevtoolsPanel v-if="sidePanelOpen && !isPageScreenshot" title="Debug" class="props-panel" @close="sidePanelOpen = false">
+          <template #actions>
+            <UButton
+              v-if="hasMadeChanges"
+              @click="resetAll()"
+            >
+              Reset
+            </UButton>
+          </template>
+          <div class="px-3 pt-2 border-b border-[var(--color-border)]">
+            <UTabs
+              v-model="protoTab"
+              :items="protoTabs"
+              :content="false"
+              size="xs"
+              variant="link"
+              color="neutral"
             />
           </div>
-        </div>
+
+          <!-- Meta Tags Tab -->
+          <div v-if="protoTab === 'meta-tags'">
+            <div class="props-field">
+              <div class="props-field-label">
+                <span>{{ metaLabelPrefix }} Title</span>
+                <UTooltip :text="isTwitterMode ? 'The twitter:title meta tag. Controls the title shown on Twitter/X cards.' : 'The og:title meta tag. Controls the title shown when shared on social platforms.'" :delay-duration="0">
+                  <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                </UTooltip>
+              </div>
+              <UInput
+                :model-value="isTwitterMode ? (metaOverrides.twitterTitle || socialPreviewTitle) : (metaOverrides.ogTitle || socialPreviewTitle)"
+                size="xs"
+                :name="isTwitterMode ? 'twitter-title' : 'og-title'"
+                autocomplete="off"
+                :placeholder="isTwitterMode ? 'twitter:title…' : 'og:title…'"
+                @update:model-value="updateMetaField(isTwitterMode ? 'twitterTitle' : 'ogTitle', $event as string)"
+              />
+            </div>
+
+            <div class="props-field">
+              <div class="props-field-label">
+                <span>{{ metaLabelPrefix }} Description</span>
+                <UTooltip :text="isTwitterMode ? 'The twitter:description meta tag. Controls the description shown on Twitter/X cards.' : 'The og:description meta tag. Controls the description shown when shared on social platforms.'" :delay-duration="0">
+                  <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                </UTooltip>
+              </div>
+              <UInput
+                :model-value="metaOverrides.description || socialPreviewDescription"
+                size="xs"
+                :name="isTwitterMode ? 'twitter-description' : 'og-description'"
+                autocomplete="off"
+                :placeholder="isTwitterMode ? 'twitter:description…' : 'og:description…'"
+                @update:model-value="updateMetaField('description', $event as string)"
+              />
+            </div>
+
+            <div class="props-field">
+              <div class="props-field-label">
+                <span>{{ socialPreview === 'discord' ? 'OG Site Name' : 'OG URL' }}</span>
+                <UTooltip :text="socialPreview === 'discord' ? 'The og:site_name meta tag. Discord uses this for the provider name above the title.' : 'The og:url meta tag. The canonical URL shown in social card previews.'" :delay-duration="0">
+                  <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                </UTooltip>
+              </div>
+              <UInput
+                :model-value="metaOverrides.siteName || slackSocialPreviewSiteName"
+                size="xs"
+                :name="socialPreview === 'discord' ? 'og-site-name' : 'og-url'"
+                autocomplete="off"
+                :placeholder="socialPreview === 'discord' ? 'og:site_name…' : 'og:url…'"
+                @update:model-value="updateMetaField('siteName', $event as string)"
+              />
+            </div>
+          </div>
+
+          <!-- OG Image Props Tab -->
+          <div v-else-if="protoTab === 'og-props'">
+            <div class="props-field">
+              <div class="props-field-label">
+                <span>Color Mode</span>
+                <UTooltip text="Changes the color mode passed to the OG image renderer." :delay-duration="0">
+                  <UIcon name="carbon:help" class="w-3.5 h-3.5 text-[var(--color-text-subtle)] cursor-help" />
+                </UTooltip>
+              </div>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="soft"
+                :icon="imageColorMode === 'dark' ? 'carbon:moon' : 'carbon:sun'"
+                @click="imageColorMode = imageColorMode === 'dark' ? 'light' : 'dark'"
+              >
+                {{ imageColorMode === 'dark' ? 'Dark' : 'Light' }}
+              </UButton>
+            </div>
+
+            <JsonEditorVue
+              :model-value="propEditor"
+              class="jse-theme-dark"
+              :main-menu-bar="false"
+              :navigation-bar="false"
+              @update:model-value="updateProps"
+            />
+          </div>
+
+          <!-- Fonts Tab -->
+          <div v-else-if="protoTab === 'fonts'" class="fonts-tab">
+            <!-- Detected requirements — compact summary bar -->
+            <div v-if="detectedFontRequirements" class="fonts-detected">
+              <div class="fonts-detected-inner">
+                <span class="fonts-detected-label">Detected</span>
+                <span v-for="w in detectedFontRequirements.weights" :key="`w-${w}`" class="fonts-chip">{{ w }}</span>
+                <span v-for="s in detectedFontRequirements.styles" :key="`s-${s}`" class="fonts-chip">{{ s }}</span>
+                <template v-if="detectedFontRequirements.families?.length">
+                  <span class="fonts-detected-sep" />
+                  <span
+                    v-for="f in detectedFontRequirements.families"
+                    :key="f"
+                    class="fonts-chip"
+                    :class="unresolvedFamilies.includes(f) ? 'fonts-chip--error' : 'fonts-chip--family'"
+                  >
+                    <UIcon v-if="unresolvedFamilies.includes(f)" name="carbon:warning-filled" class="w-2.5 h-2.5 shrink-0" />
+                    {{ f }}
+                  </span>
+                </template>
+              </div>
+            </div>
+
+            <!-- Resolved fonts actually used for rendering -->
+            <div v-if="resolvedFamilyNames.length" class="fonts-detected fonts-resolved">
+              <div class="fonts-detected-inner">
+                <span class="fonts-detected-label">Rendering</span>
+                <span v-for="f in resolvedFamilyNames" :key="f" class="fonts-chip fonts-chip--family">{{ f }}</span>
+              </div>
+            </div>
+
+            <!-- Font specimen list -->
+            <div v-if="fontFiles.length" class="fonts-specimen">
+              <template v-for="family in fontFamilyNames" :key="family">
+                <button
+                  class="fonts-family-row"
+                  :class="{ active: fontOverride === family }"
+                  @click="applyFontOverride(family)"
+                >
+                  <span class="fonts-family-name" :style="{ fontFamily: `'ogp-${family}', sans-serif` }">{{ family }}</span>
+                  <span class="fonts-family-meta">
+                    <span v-if="fontFamilySizes.get(family)" class="fonts-family-size">{{ formatBytes(fontFamilySizes.get(family)!) }}</span>
+                    <UIcon v-if="fontOverride === family" name="carbon:checkmark-filled" class="fonts-family-check" />
+                  </span>
+                </button>
+                <div class="fonts-variants">
+                  <div
+                    v-for="f in fontFiles.filter(ff => ff.family === family)"
+                    :key="f.key"
+                    class="fonts-variant"
+                    :class="{ loaded: f.loaded }"
+                  >
+                    <span class="fonts-variant-dot" />
+                    <span class="fonts-variant-label">{{ f.weight }}{{ f.style === 'italic' ? 'i' : '' }}</span>
+                    <span v-if="f.subsetCount > 1" class="fonts-variant-count">&times;{{ f.subsetCount }}</span>
+                    <template v-if="f.subsets.length">
+                      <span v-for="s in f.subsets" :key="s" class="fonts-subset-chip">{{ s }}</span>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <div v-else class="fonts-empty">
+              No fonts resolved. Install <code class="inline-code">@nuxt/fonts</code> to enable.
+            </div>
+          </div>
+
+          <!-- useSeoMeta snippet for meta tag overrides -->
+          <DevtoolsSnippet
+            v-if="protoTab === 'meta-tags' && hasMetaOverrides"
+            label="useSeoMeta"
+            :code="seoMetaSnippet"
+            lang="js"
+          />
+
+          <UAlert
+            v-else-if="hasMadeChanges && protoTab !== 'meta-tags'"
+            color="warning"
+            variant="subtle"
+            icon="carbon:warning"
+            title="Unsaved changes"
+            description="These changes are for preview only and won't persist."
+            class="mx-3 my-2"
+          />
+        </DevtoolsPanel>
       </Transition>
     </div>
+  </div>
+  </Transition>
+  </div>
   </div>
 </template>
 
@@ -1143,77 +1097,6 @@ const productionHostname = computed(() => {
     border-left: 0;
     border-right: 0;
   }
-}
-
-/* Alert banners */
-.alert-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8125rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.alert-banner.warning {
-  background: oklch(85% 0.12 85 / 0.1);
-  color: oklch(55% 0.15 85);
-  border-bottom-color: oklch(75% 0.12 85 / 0.2);
-}
-
-.dark .alert-banner.warning {
-  background: oklch(45% 0.12 85 / 0.15);
-  color: oklch(80% 0.12 85);
-}
-
-.alert-banner.info {
-  background: oklch(85% 0.1 230 / 0.1);
-  color: oklch(55% 0.12 230);
-  border-bottom-color: oklch(75% 0.1 230 / 0.2);
-}
-
-.dark .alert-banner.info {
-  background: oklch(45% 0.1 230 / 0.15);
-  color: oklch(80% 0.1 230);
-}
-
-.alert-banner.production {
-  background: oklch(85% 0.12 145 / 0.1);
-  color: oklch(45% 0.15 145);
-  border-bottom-color: oklch(75% 0.12 145 / 0.2);
-}
-
-.dark .alert-banner.production {
-  background: oklch(35% 0.08 145 / 0.15);
-  color: oklch(75% 0.12 145);
-}
-
-/* Toolbar */
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  position: relative;
-}
-
-@media (min-width: 640px) {
-  .toolbar {
-    padding: 0.75rem 1rem;
-  }
-}
-
-.toolbar-minimal {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-sunken);
 }
 
 /* Preview source toggle */
@@ -1253,37 +1136,6 @@ const productionHostname = computed(() => {
 
 .dark .preview-source-btn.active {
   box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
-}
-
-/* Production URL badge */
-.production-url-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-full);
-  background: oklch(85% 0.12 145 / 0.12);
-  color: oklch(45% 0.15 145);
-  font-weight: 500;
-  font-family: var(--font-mono, ui-monospace, monospace);
-}
-
-.dark .production-url-badge {
-  background: oklch(35% 0.08 145 / 0.2);
-  color: oklch(75% 0.12 145);
-}
-
-.production-url-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: oklch(65% 0.2 145);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
 }
 
 /* Component info */
@@ -1512,7 +1364,7 @@ const productionHostname = computed(() => {
   }
 }
 
-/* Props panel */
+/* Props panel — positioning only, visuals from DevtoolsPanel */
 .props-panel {
   position: absolute;
   right: 0.75rem;
@@ -1520,17 +1372,6 @@ const productionHostname = computed(() => {
   bottom: 0.75rem;
   width: 18rem;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  box-shadow: 0 8px 32px oklch(0% 0 0 / 0.12);
-  overflow: hidden;
-}
-
-.dark .props-panel {
-  box-shadow: 0 8px 32px oklch(0% 0 0 / 0.4);
 }
 
 @media (min-width: 640px) {
@@ -1550,20 +1391,6 @@ const productionHostname = computed(() => {
   }
 }
 
-.props-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-sunken);
-}
-
-.props-content {
-  flex: 1;
-  overflow: auto;
-}
-
 .props-field {
   padding: 0.375rem 0.75rem;
 }
@@ -1578,33 +1405,6 @@ const productionHostname = computed(() => {
   margin-bottom: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-}
-
-/* Empty state */
-.empty-state-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 4rem;
-  height: 4rem;
-  border-radius: var(--radius-lg);
-  background: oklch(65% 0.2 145 / 0.12);
-  color: var(--seo-green);
-  margin-bottom: 1.5rem;
-}
-
-.dark .empty-state-icon {
-  background: oklch(65% 0.2 145 / 0.15);
-}
-
-.empty-state-icon--error {
-  background: oklch(55% 0.2 25 / 0.12);
-  color: oklch(55% 0.2 25);
-}
-
-.dark .empty-state-icon--error {
-  background: oklch(55% 0.2 25 / 0.15);
-  color: oklch(75% 0.15 25);
 }
 
 /* Fonts tab */
@@ -1816,33 +1616,6 @@ const productionHostname = computed(() => {
   font-size: 0.75rem;
   color: var(--color-text-subtle);
   text-align: center;
-}
-
-/* Snippet block */
-.snippet-wrapper {
-  margin: 0.5rem 0.75rem;
-}
-
-.snippet-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.375rem;
-}
-
-.snippet-label {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  letter-spacing: -0.01em;
-}
-
-.snippet-block {
-  border-radius: var(--radius-sm);
-  font-size: 0.6875rem;
-  line-height: 1.6;
-  padding: 0.5rem 0.625rem !important;
 }
 
 /* Inline code */
