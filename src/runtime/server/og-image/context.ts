@@ -16,7 +16,7 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
-import { decodeOgImageParams, separateProps } from '../../shared'
+import { decodeOgImageParams, extractEncodedSegment, separateProps } from '../../shared'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
@@ -59,7 +59,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Parse encoded params from URL path (Cloudinary-style)
   // URL format: /_og/d/w_1200,title_Hello.png
   // Hash mode: /_og/d/o_<hash>.png (for long URLs)
-  const encodedSegment = (path.split('/').pop() as string).replace(new RegExp(`\\.${extension}$`), '')
+  const encodedSegment = extractEncodedSegment(path, extension)
 
   // Check for hash mode (o_<hash>)
   const hashMatch = encodedSegment.match(RE_HASH_MODE)
