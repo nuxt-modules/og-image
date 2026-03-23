@@ -45,7 +45,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const codepoints = extractCodepoints(vnodes)
   const hasCustomFonts = Array.isArray(options.fonts) && options.fonts.length > 0
   const fonts = await loadFontsForRenderer(event, {
-    supportsWoff2: false,
+    supportedFormats: new Set(['ttf', 'otf', 'woff'] as const),
     component: options.component,
     fontFamilyOverride: fontFamilyOverride || defaultFont,
     codepoints,
