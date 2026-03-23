@@ -1,10 +1,7 @@
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'pathe'
-
-const layerDir = resolve(dirname(fileURLToPath(import.meta.resolve('nuxtseo-shared'))), 'layer-devtools')
+import { resolve } from 'pathe'
 
 export default defineNuxtConfig({
-  extends: [layerDir],
+  extends: ['nuxtseo-layer-devtools'],
 
   ogImage: false,
 
