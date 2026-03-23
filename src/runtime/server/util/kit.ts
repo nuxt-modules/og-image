@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import type { NuxtIslandResponse } from 'nuxt/app'
 import { hash } from 'ohash'
 
-export { createNitroRouteRuleMatcher, withoutQuery } from '#nuxtseo-shared/server/kit'
+export { createNitroRouteRuleMatcher, withoutQuery } from 'nuxtseo-shared/server'
 
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>): Promise<NuxtIslandResponse> {
   const hashId = hash([component, props]).replaceAll('_', '-')
