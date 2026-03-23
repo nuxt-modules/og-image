@@ -26,6 +26,7 @@ const RE_PERCENT20 = /%20/g
 const RE_PLUS = /\+/g
 const RE_SINGLE_UNDERSCORE = /(?<!_)_(?!_)/
 const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
+const RE_OG_ROUTE_PREFIX = /\/_og\/[ds]\//
 const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
@@ -441,4 +442,18 @@ export function parseOgImageUrl(url: string): {
     extension,
     isStatic,
   }
+}
+
+/**
+ * Extract the encoded segment from the full path, handling the case where
+ * %2F in prop values has been decoded to / by intermediaries (#522).
+ * Uses the full catch-all match after /_og/d/ (or /_og/s/) instead of
+ * only the last path segment.
+ */
+export function extractEncodedSegment(path: string, extension: string): string {
+  const match = path.match(RE_OG_ROUTE_PREFIX)
+  if (match?.index != null) {
+    return path.slice(match.index + match[0].length).replace(new RegExp(`\\.${extension}$`), '')
+  }
+  return (path.split('/').pop() as string).replace(new RegExp(`\\.${extension}$`), '')
 }
