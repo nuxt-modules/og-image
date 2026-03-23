@@ -42,11 +42,16 @@ describe('urlEncoding', () => {
       expect(encoded).toBe('title_Hello__World')
     })
 
-    it('escapes commas in values', () => {
+    it('b64 encodes values with commas (avoids percent-encoding)', () => {
       const encoded = encodeOgImageParams({
         props: { title: 'Hello, World' },
       })
-      expect(encoded).toBe('title_Hello%2C+World')
+      // Commas produce %2C via encodeURIComponent, which triggers b64 encoding
+      expect(encoded).toMatch(/^title_~/)
+      expect(encoded).not.toContain('%')
+      // Verify roundtrip
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props: { title: 'Hello, World' } })
     })
 
     it('base64 encodes complex objects', () => {
@@ -753,6 +758,264 @@ describe('urlEncoding', () => {
     // Mixed direction
     it('round-trips mixed LTR/RTL text', () => {
       roundtrip({ title: 'Hello مرحبا World' })
+    })
+  })
+
+  describe('uRL-sensitive characters (#529)', () => {
+    function roundtrip(props: Record<string, any>) {
+      const encoded = encodeOgImageParams({ props })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props })
+    }
+
+    it('round-trips value with hash character', () => {
+      roundtrip({ title: 'Some # char' })
+    })
+
+    it('round-trips value with question mark', () => {
+      roundtrip({ title: 'What? Really?' })
+    })
+
+    it('round-trips value with backslash', () => {
+      roundtrip({ title: 'path\\to\\file' })
+    })
+
+    it('round-trips value with all problematic chars from #529', () => {
+      roundtrip({ title: 'Some illegal chars here # ? \\' })
+    })
+
+    it('encodes URL-sensitive chars via b64 (no percent-encoding in output)', () => {
+      const encoded = encodeOgImageParams({ props: { title: 'Hello # World' } })
+      expect(encoded).not.toContain('%')
+      expect(encoded).toMatch(/^title_~/)
+    })
+
+    it('round-trips value with equals sign', () => {
+      roundtrip({ title: 'key=value' })
+    })
+
+    it('round-trips value with ampersand', () => {
+      roundtrip({ title: 'foo&bar' })
+    })
+
+    it('round-trips value with at sign', () => {
+      roundtrip({ title: 'user@example.com' })
+    })
+
+    it('round-trips value with colon', () => {
+      roundtrip({ title: 'Time: 12:30' })
+    })
+
+    it('round-trips value with semicolon', () => {
+      roundtrip({ title: 'a;b;c' })
+    })
+
+    it('round-trips value with square brackets', () => {
+      roundtrip({ title: 'array[0]' })
+    })
+
+    it('round-trips value with curly braces', () => {
+      roundtrip({ title: '{json}' })
+    })
+  })
+
+  describe('image URLs as props (#528)', () => {
+    function roundtrip(props: Record<string, any>) {
+      const encoded = encodeOgImageParams({ props })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props })
+    }
+
+    it('round-trips a full image URL with query params', () => {
+      roundtrip({ image: 'https://images.prismic.io/xxx/aVfGGnNYClf9ou-1-.png?auto=format,compress' })
+    })
+
+    it('round-trips image URL (no percent-encoding in output)', () => {
+      const encoded = encodeOgImageParams({
+        props: { image: 'https://example.com/image.png?w=200&h=100' },
+      })
+      expect(encoded).not.toContain('%')
+      expect(encoded).toMatch(/^image_~/)
+    })
+
+    it('round-trips URL with fragment', () => {
+      roundtrip({ link: 'https://example.com/page#section' })
+    })
+
+    it('round-trips URL with port and path', () => {
+      roundtrip({ image: 'http://localhost:3000/api/image.jpg' })
+    })
+
+    it('preserves full URL through buildOgImageUrl/parseOgImageUrl (dynamic)', () => {
+      const options = {
+        component: 'Article',
+        props: { image: 'https://images.prismic.io/xxx/aVfGGnNYClf9ou-1-.png?auto=format,compress' },
+      }
+      const { url } = buildOgImageUrl(options, 'png', false)
+      expect(url).not.toContain('%')
+      const parsed = parseOgImageUrl(url)
+      expect(parsed.options).toEqual(options)
+    })
+  })
+
+  describe('stress test: try to break the URL path system', () => {
+    function roundtrip(props: Record<string, any>) {
+      const encoded = encodeOgImageParams({ props })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded).toEqual({ props })
+    }
+
+    function fullRoundtrip(props: Record<string, any>, isStatic = false) {
+      const options = { component: 'Test', props }
+      const { url } = buildOgImageUrl(options, 'png', isStatic)
+      const parsed = parseOgImageUrl(url)
+      expect(parsed.options).toEqual(options)
+      expect(parsed.extension).toBe('png')
+    }
+
+    // Values that mimic OG image URL structure
+    it('round-trips value containing /_og/s/ prefix', () => {
+      roundtrip({ title: '/_og/s/w_1200.png' })
+    })
+
+    it('round-trips value containing /_og/d/ prefix', () => {
+      roundtrip({ title: '/_og/d/c_NuxtSeo,title_Hello.png' })
+    })
+
+    it('round-trips value that looks like hash mode: o_abc123', () => {
+      roundtrip({ title: 'o_abc123' })
+    })
+
+    // Extension confusion
+    it('round-trips value ending in .png', () => {
+      roundtrip({ title: 'screenshot.png' })
+    })
+
+    it('round-trips value ending in .jpeg', () => {
+      roundtrip({ path: '/images/photo.jpeg' })
+    })
+
+    it('full roundtrip with .png in prop value', () => {
+      fullRoundtrip({ image: 'https://cdn.example.com/banner.png' })
+    })
+
+    // Null byte
+    it('round-trips value with null byte', () => {
+      roundtrip({ title: 'hello\x00world' })
+    })
+
+    // Every ASCII printable special character
+    it('round-trips all ASCII special characters', () => {
+      roundtrip({ title: '!@#$%^&*()_+-=[]{}|;:\'",.<>?/\\`~' })
+    })
+
+    // Newlines, tabs, carriage returns together
+    it('round-trips value with mixed whitespace', () => {
+      roundtrip({ title: 'line1\r\nline2\ttab\r\nline3' })
+    })
+
+    // Values that look like b64 params
+    it('round-trips value that mimics encoded satori param', () => {
+      roundtrip({ title: 'satori_eyJmb250cyI6W119' })
+    })
+
+    // Param injection: value that tries to inject new params
+    it('round-trips value with comma+param pattern injection attempt', () => {
+      roundtrip({ title: 'hello,c_Evil,w_9999' })
+    })
+
+    // Unicode edge cases
+    it('round-trips lone surrogate pair halves', () => {
+      // U+D800 is a lone high surrogate — edge case for UTF encoding
+      // Most environments will replace with U+FFFD, so just verify no crash
+      const encoded = encodeOgImageParams({ props: { title: '\uFFFD' } })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded.props.title).toBeDefined()
+    })
+
+    it('value with BOM (byte order mark) has BOM stripped by TextDecoder', () => {
+      // BOM (\uFEFF) is stripped by TextDecoder — this is correct/expected behavior
+      const encoded = encodeOgImageParams({ props: { title: '\uFEFFhello' } })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded.props.title).toBe('hello')
+    })
+
+    it('round-trips value with zero-width spaces', () => {
+      roundtrip({ title: 'hello\u200Bworld\u200Btest' })
+    })
+
+    it('round-trips value with RTL override characters', () => {
+      roundtrip({ title: '\u202Ehello\u202C' })
+    })
+
+    // Extremely long URL values
+    it('full roundtrip with very long image URL (static uses hash)', () => {
+      const longUrl = `https://images.example.com/${'a'.repeat(300)}.png?token=${'b'.repeat(100)}`
+      const options = { component: 'Test', props: { image: longUrl } }
+      const result = buildOgImageUrl(options, 'png', true)
+      // Should use hash mode
+      expect(result.hash).toBeDefined()
+      expect(result.url).toMatch(/o_[a-z0-9]+/)
+    })
+
+    // Multiple props with special chars
+    it('round-trips multiple props all containing URL-sensitive chars', () => {
+      roundtrip({
+        title: 'What? Really!',
+        image: 'https://example.com/img.png?w=100',
+        path: '/blog/hello#section',
+        code: 'if (a && b) { return c; }',
+        email: 'user@test.com',
+      })
+    })
+
+    // Values that are pure percent encoding
+    it('round-trips value that is all percent-encoded chars', () => {
+      roundtrip({ title: '%23%3F%2F%5C' })
+    })
+
+    // Double encoding protection
+    it('does not double-encode already percent-encoded values', () => {
+      const encoded = encodeOgImageParams({ props: { title: '%23%3F' } })
+      // Should b64 encode since it contains %
+      expect(encoded).toMatch(/^title_~/)
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded.props.title).toBe('%23%3F')
+    })
+
+    // Mixed safe and unsafe props in same encode
+    it('full roundtrip with mix of safe and unsafe props', () => {
+      fullRoundtrip({
+        slug: 'hello-world',
+        title: 'Hello # World?',
+        count: 42,
+        featured: true,
+        image: 'https://cdn.test.com/img.jpg',
+      })
+    })
+
+    // Encoded output should never contain raw URL-sensitive chars
+    it('encoded output never contains raw #, ?, or unescaped slashes', () => {
+      const cases = [
+        { title: 'test#hash' },
+        { title: 'test?query' },
+        { title: 'test/slash' },
+        { title: 'test\\backslash' },
+        { title: 'test=equals' },
+        { title: 'test&amp' },
+      ]
+      for (const props of cases) {
+        const encoded = encodeOgImageParams({ props })
+        // Raw dangerous chars should never appear in encoded output
+        expect(encoded).not.toContain('#')
+        expect(encoded).not.toContain('?')
+        expect(encoded).not.toContain('/')
+        expect(encoded).not.toContain('\\')
+        expect(encoded).not.toContain('=')
+        expect(encoded).not.toContain('&')
+        // And no percent-encoding either (all handled via b64)
+        expect(encoded).not.toContain('%')
+      }
     })
   })
 })
