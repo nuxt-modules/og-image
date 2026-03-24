@@ -10,7 +10,7 @@ export default defineNuxtConfig({
       routes: ['/', '/templates', '/debug', '/docs'],
     },
     output: {
-      publicDir: resolve(__dirname, '../dist/client'),
+      publicDir: resolve(__dirname, '../dist/devtools'),
     },
   },
 
