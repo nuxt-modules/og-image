@@ -2,15 +2,13 @@ import type { NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
 import type { BirpcReturn } from 'birpc'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { globalRefreshTime } from '../util/logic'
 
 export const devtoolsClient = ref<NuxtDevtoolsIframeClient>()
 
 export const ogImageRpc = ref<BirpcReturn<ServerFunctions>>()
 
 // Connection state tracking
-export const connectionState = ref<'connecting' | 'connected' | 'fallback' | 'failed'>('connecting')
-export const isConnected = computed(() => connectionState.value === 'connected' || connectionState.value === 'fallback')
+const connectionState = ref<'connecting' | 'connected' | 'fallback' | 'failed'>('connecting')
 export const isConnectionFailed = computed(() => connectionState.value === 'failed')
 export const isFallbackMode = computed(() => connectionState.value === 'fallback')
 
@@ -60,7 +58,7 @@ useDevtoolsConnection({
         refreshSources()
       },
       refreshGlobalData() {
-        globalRefreshTime.value = Date.now()
+        refreshSources()
       },
     })
   },

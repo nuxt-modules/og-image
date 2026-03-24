@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import type { GlobalDebugResponse } from '../composables/fetch'
+import type { GlobalDebugResponse } from '../composables/types'
 import { inject } from '#imports'
 import { computed, ref, watch } from 'vue'
 import { GlobalDebugKey } from '../composables/keys'

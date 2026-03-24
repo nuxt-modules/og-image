@@ -10,7 +10,7 @@
     "@vueuse/core": "catalog:",
     "json-editor-vue": "catalog:devtools",
     "nuxt": "catalog:",
-    "nuxtseo-shared": "catalog:",
+    "nuxtseo-layer-devtools": "catalog:",
     "shiki": "catalog:devtools",
     "vue": "catalog:",
     "vue-router": "catalog:"

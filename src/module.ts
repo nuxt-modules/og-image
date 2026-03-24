@@ -224,6 +224,9 @@ export default defineNuxtModule<ModuleOptions>({
     '@nuxt/fonts': {
       optional: true,
     },
+    'nuxt-site-config': {
+      version: '>=3.2',
+    },
   },
   defaults() {
     return {

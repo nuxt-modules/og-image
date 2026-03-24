@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { OgImageRuntimeConfig } from '../src/runtime/types'
-import type { GlobalDebugResponse, PathDebugResponse } from './composables/fetch'
+import type { GlobalDebugResponse, PathDebugResponse } from './composables/types'
 import { computed, provide, useAsyncData, useNuxtApp, useRoute, watch } from '#imports'
 import defu from 'defu'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
@@ -10,7 +10,7 @@ import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
 import RendererSelectModal from './components/RendererSelectModal.vue'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
 import { useOgImage } from './composables/og-image'
-import { globalRefreshTime, ogImageKey, options, optionsOverrides } from './util/logic'
+import { ogImageKey, options, optionsOverrides } from './util/logic'
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 
 const RE_IMAGE_EXT = /\.(png|jpeg|jpg|webp)$/
@@ -26,7 +26,7 @@ const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', 
     return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
   return appFetch.value('/_og/debug.json')
 }, {
-  watch: [appFetch, globalRefreshTime],
+  watch: [appFetch, refreshTime],
   default: () => ({ runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }),
 })
 

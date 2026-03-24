@@ -1,8 +1,6 @@
 import type { OgImageOptionsInternal } from '../../src/runtime/types'
 import { computed, ref } from 'vue'
 
-export const globalRefreshTime = ref(Date.now())
-
 export const description = ref<string | null>(null)
 export const ogImageKey = ref()
 
