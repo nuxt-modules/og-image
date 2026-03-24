@@ -53,7 +53,10 @@ npx nuxi@latest module add og-image
 
 ## Demos
 
-- [👾 &nbsp;Playground](https://stackblitz.com/edit/nuxt-starter-pxs3wk?file=nuxt.config.ts)
+- [Satori (custom template)](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/basic-satori)
+- [Takumi (custom template)](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/basic-takumi)
+- [Nuxt Content](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/content)
+- [i18n](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/i18n)
 
 ## Sponsors
 

@@ -1,0 +1,20 @@
+{
+  "name": "nuxt-og-image-i18n-example",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "catalog:",
+    "@resvg/resvg-js": "catalog:conflicts_@resvg/resvg-js_h2_6_0",
+    "fontless": "catalog:conflicts_fontless_h0_2_0",
+    "nuxt": "catalog:",
+    "nuxt-og-image": "catalog:",
+    "nuxt-site-config": "catalog:",
+    "satori": "catalog:",
+    "vue": "catalog:"
+  }
+}

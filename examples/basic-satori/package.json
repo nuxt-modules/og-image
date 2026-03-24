@@ -1,0 +1,19 @@
+{
+  "name": "nuxt-og-image-basic-satori-example",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "catalog:",
+    "fontless": "catalog:",
+    "nuxt": "catalog:",
+    "nuxt-og-image": "catalog:",
+    "nuxt-site-config": "catalog:",
+    "satori": "catalog:",
+    "vue": "catalog:"
+  }
+}

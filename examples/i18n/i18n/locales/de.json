@@ -1,0 +1,10 @@
+{
+  "og": {
+    "title": "Willkommen auf meiner Website",
+    "description": "Dynamische OG-Bilder mit i18n-Unterstützung"
+  },
+  "page": {
+    "heading": "Hallo!",
+    "description": "Diese Seite generiert sprachabhängige OG-Bilder."
+  }
+}

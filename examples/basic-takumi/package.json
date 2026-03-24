@@ -1,0 +1,19 @@
+{
+  "name": "nuxt-og-image-basic-takumi-example",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@takumi-rs/core": "catalog:",
+    "nuxt": "catalog:",
+    "nuxt-og-image": "catalog:",
+    "nuxt-site-config": "catalog:",
+    "tailwindcss": "catalog:",
+    "vue": "catalog:"
+  }
+}

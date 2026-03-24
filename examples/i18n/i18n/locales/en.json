@@ -1,0 +1,10 @@
+{
+  "og": {
+    "title": "Welcome to My Website",
+    "description": "Dynamic OG images with i18n support"
+  },
+  "page": {
+    "heading": "Hello!",
+    "description": "This page generates locale-aware OG images."
+  }
+}

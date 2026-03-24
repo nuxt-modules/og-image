@@ -16,6 +16,7 @@ trustPolicyExclude:
 packages:
   - playground
   - devtools
+  - '!examples/**'
 overrides:
   vite: npm:vite@8.0.1
 catalog:
