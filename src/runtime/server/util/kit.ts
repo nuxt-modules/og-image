@@ -1,8 +1,13 @@
 import type { H3Event } from 'h3'
+import type { NitroRouteRules } from 'nitropack'
 import type { NuxtIslandResponse } from 'nuxt/app'
+import { defu } from 'defu'
+import { useRuntimeConfig } from 'nitropack/runtime'
 import { hash } from 'ohash'
+import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
+import { withoutBase, withoutTrailingSlash } from 'ufo'
 
-export { createNitroRouteRuleMatcher, withoutQuery } from 'nuxtseo-shared/server'
+export { withoutQuery } from 'nuxtseo-shared/utils'
 
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>): Promise<NuxtIslandResponse> {
   const hashId = hash([component, props]).replaceAll('_', '-')
@@ -11,4 +16,21 @@ export function fetchIsland(e: H3Event, component: string, props: Record<string,
       props: JSON.stringify(props),
     },
   })
+}
+
+export function createNitroRouteRuleMatcher(): ((path: string) => NitroRouteRules) {
+  const { nitro, app } = useRuntimeConfig()
+  const _routeRulesMatcher = toRouteMatcher(
+    createRadixRouter({
+      routes: Object.fromEntries(
+        Object.entries(nitro?.routeRules || {})
+          .map(([path, rules]) => [withoutTrailingSlash(path), rules]),
+      ),
+    }),
+  )
+  return (path: string) => {
+    return defu({}, ..._routeRulesMatcher.matchAll(
+      withoutBase(withoutTrailingSlash(path.split('?')[0]), app.baseURL),
+    ).reverse()) as NitroRouteRules
+  }
 }

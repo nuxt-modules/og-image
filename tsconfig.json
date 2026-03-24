@@ -1,9 +1,4 @@
 {
   "extends": "./.nuxt/tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "#nuxtseo-shared/*": ["./node_modules/nuxtseo-shared/dist/runtime/*"]
-    }
-  },
-  "exclude": ["test/**", "playground/**", "client/**"]
+  "exclude": ["test/**", "playground/**", "client/**", "devtools/**"]
 }

@@ -1,6 +1,23 @@
+catalogMode: prefer
+cleanupUnusedCatalogs: true
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - semver@5.7.2
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
+
 packages:
   - playground
   - devtools
+overrides:
+  vite: npm:vite@8.0.1
 catalog:
   '@antfu/eslint-config': ^7.7.3
   '@clack/prompts': ^1.1.0
@@ -90,13 +107,11 @@ catalog:
   vue-tsc: ^3.2.6
   wrangler: ^4.76.0
   yoga-wasm-web: ^0.3.3
-catalogMode: prefer
 catalogs:
   devtools:
     '@iconify-json/simple-icons': ^1.2.75
     json-editor-vue: ^0.18.1
     shiki: ^4.0.2
-cleanupUnusedCatalogs: true
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
@@ -106,19 +121,4 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - vue-demi
-overrides:
-  vite: npm:vite@8.0.1
-shellEmulator: true
-
-trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - eslint-import-resolver-typescript@3.10.1
-  - undici-types@6.21.0
-  - semver@6.3.1
-  - koa@2.16.3
-  - semver@5.7.2
-  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
-
 trustPolicyIgnoreAfter: 262800
