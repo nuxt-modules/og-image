@@ -1,6 +1,6 @@
 import type { AsyncDataRequestStatus } from '#app'
 import type { InjectionKey, Ref } from 'vue'
-import type { GlobalDebugResponse, PathDebugResponse } from './fetch'
+import type { GlobalDebugResponse, PathDebugResponse } from './types'
 
 export const GlobalDebugKey: InjectionKey<Ref<GlobalDebugResponse | null>> = Symbol('GlobalDebug')
 export const PathDebugKey: InjectionKey<Ref<PathDebugResponse | null>> = Symbol('PathDebug')

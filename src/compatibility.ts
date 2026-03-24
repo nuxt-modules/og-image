@@ -4,24 +4,9 @@ import type { NitroConfig } from 'nitropack/config'
 import type { CompatibilityFlags, RendererType, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
-import { env, provider } from 'std-env'
+import { resolveNitroPreset } from './kit'
 import { logger } from './runtime/logger'
 import { RE_LEGACY_SUFFIX } from './util'
-
-const autodetectableProviders = {
-  azure_static: 'azure',
-  cloudflare_pages: 'cloudflare-pages',
-  netlify: 'netlify',
-  stormkit: 'stormkit',
-  vercel: 'vercel',
-  cleavr: 'cleavr',
-  stackblitz: 'stackblitz',
-}
-
-const autodetectableStaticProviders = {
-  netlify: 'netlify-static',
-  vercel: 'vercel-static',
-}
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime
@@ -122,26 +107,13 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'cloudflare-durable': cloudflare,
 } as const
 
-export function detectTarget(options: { static?: boolean } = {}) {
-  // @ts-expect-error untyped
-  return options?.static ? autodetectableStaticProviders[provider] : autodetectableProviders[provider]
-}
-
-export function resolveNitroPreset(nitroConfig?: NitroConfig): string {
-  if (provider === 'stackblitz' || provider === 'codesandbox')
-    return provider
+export function resolveOgImagePreset(nitroConfig?: NitroConfig): string {
   const nuxt = useNuxt()
   if (nuxt.options.dev)
     return 'nitro-dev'
-  // check for prerendering
   if (nuxt.options.nitro.static)
     return 'nitro-prerender'
-  let preset
-  if (nitroConfig && nitroConfig?.preset)
-    preset = nitroConfig.preset
-  if (!preset)
-    preset = env.NITRO_PRESET || env.SERVER_PRESET || detectTarget() || 'node-server'
-  return preset.replace('_', '-') // sometimes they are different
+  return resolveNitroPreset(nitroConfig)
 }
 
 export function getPresetNitroPresetCompatibility(target: string) {
@@ -156,7 +128,7 @@ export function getPresetNitroPresetCompatibility(target: string) {
 }
 
 export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: Resolver, overrides?: RuntimeCompatibilitySchema, detectedRenderers: Set<RendererType> }): Promise<Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>> {
-  const target = resolveNitroPreset(nitroConfig)
+  const target = resolveOgImagePreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
 
   const { resolve, detectedRenderers } = options
@@ -217,7 +189,8 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     nitroConfig.alias || {},
   )
   // if we're using any wasm modules we need to enable the wasm runtime
-  if (Object.values(compatibility).includes('wasm')) {
+  // Check resolvedCompatibility (includes user overrides), not just the preset defaults
+  if (Object.values(resolvedCompatibility).includes('wasm')) {
     nitroConfig.experimental = nitroConfig.experimental || {}
     nitroConfig.experimental.wasm = true
   }

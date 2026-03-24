@@ -16,8 +16,8 @@ defineOgImage('NuxtSeo.satori', { title: 'Test' })
 // Bare shorthand (unambiguous component)
 defineOgImage('Creal', { title: 'Test' })
 
-// Component with no typed props (runtime defineProps)
-defineOgImage('CalcTest', {})
+// Ambiguous component (has both .satori and .takumi variants, so must use dot-notation)
+defineOgImage('CalcTest.satori', {})
 
 // Getter function for reactive props
 defineOgImage('CustomFonts', { title: () => 'reactive' })

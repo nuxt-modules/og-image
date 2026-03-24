@@ -41,7 +41,7 @@ import { ComponentImportRewritePlugin } from './build/vite-component-import-rewr
 import {
   ensureDependencies,
   getPresetNitroPresetCompatibility,
-  resolveNitroPreset,
+  resolveOgImagePreset,
 } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
@@ -224,6 +224,9 @@ export default defineNuxtModule<ModuleOptions>({
     '@nuxt/fonts': {
       optional: true,
     },
+    'nuxt-site-config': {
+      version: '>=3.2',
+    },
   },
   defaults() {
     return {
@@ -330,7 +333,7 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
 
     // Resolve preset early to check compatibility settings
-    const preset = resolveNitroPreset(nuxt.options.nitro)
+    const preset = resolveOgImagePreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
 
     // Cloudflare Workers-specific checks
@@ -1329,12 +1332,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       : undefined
     nuxt.hooks.hook('modules:done', async () => {
       // allow other modules to modify runtime data
-      if (!isNuxtGenerate() && nuxt.options.build) {
-        nuxt.options.nitro = nuxt.options.nitro || {}
-        nuxt.options.nitro.prerender = nuxt.options.nitro.prerender || {}
-        nuxt.options.nitro.prerender.routes = nuxt.options.nitro.prerender.routes || []
-      }
-
       // set theme color for the NuxtSeo component
       type ColorMode = 'light' | 'dark' | 'system'
       const hasColorModeModule = hasNuxtModule('@nuxtjs/color-mode')

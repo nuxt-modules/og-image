@@ -8,7 +8,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
 import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
-import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { RE_LEGACY_SUFFIX } from '../util'
 
 const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g
@@ -47,7 +47,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
 
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed
-    const target = resolveNitroPreset(nitro.options)
+    const target = resolveOgImagePreset(nitro.options)
     const normalizedTarget = target.replace(RE_LEGACY_SUFFIX, '')
     const isEdgePreset = ['cloudflare', 'cloudflare-pages', 'cloudflare-pages-static', 'cloudflare-module', 'cloudflare-durable', 'vercel-edge', 'netlify-edge'].includes(normalizedTarget)
     const isCloudflarePreset = normalizedTarget.startsWith('cloudflare')
@@ -83,9 +83,10 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           }
         }
       }
-      const [resvgHash, yogaHash] = await Promise.all([
+      const [resvgHash, yogaHash, takumiHash] = await Promise.all([
         resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm'),
         resolveFilePathSha1('satori/yoga.wasm'),
+        resolveFilePathSha1('@takumi-rs/wasm/takumi_wasm_bg.wasm'),
       ])
       for (const entry of wasmEntries) {
         if (!existsSync(entry))
@@ -117,6 +118,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           contents = contents
             .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
             .replaceAll('"satori/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
+            .replaceAll('"@takumi-rs/wasm/takumi_wasm_bg.wasm?module"', `"${wasmPath}takumi_wasm_bg-${takumiHash}.wasm${postfix}"`)
             // Legacy: also handle yoga-wasm-web path in case it appears
             .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
           // Nitro's WASM plugin may have already resolved the paths (hashed filenames, moved to wasm/).
@@ -141,7 +143,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
 }
 
 async function resolveFilePathSha1(path: string) {
-  const _path = await resolvePath(path)
+  const _path = await resolvePath(path).catch(() => path)
   return sha1(existsSync(_path) ? await readFile(_path) : Buffer.from(path))
 }
 

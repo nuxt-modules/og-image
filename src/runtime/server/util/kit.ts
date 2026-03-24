@@ -7,18 +7,15 @@ import { hash } from 'ohash'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withoutBase, withoutTrailingSlash } from 'ufo'
 
+export { withoutQuery } from 'nuxtseo-shared/utils'
+
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>): Promise<NuxtIslandResponse> {
-  // using Nuxt Island, generate the og:image HTML
   const hashId = hash([component, props]).replaceAll('_', '-')
   return e.$fetch<NuxtIslandResponse>(`/__nuxt_island/${component}_${hashId}.json`, {
     params: {
       props: JSON.stringify(props),
     },
   })
-}
-
-export function withoutQuery(path: string) {
-  return path.split('?')[0]
 }
 
 export function createNitroRouteRuleMatcher(): ((path: string) => NitroRouteRules) {
@@ -33,8 +30,7 @@ export function createNitroRouteRuleMatcher(): ((path: string) => NitroRouteRule
   )
   return (path: string) => {
     return defu({}, ..._routeRulesMatcher.matchAll(
-      // radix3 does not support trailing slashes
-      withoutBase(withoutTrailingSlash(withoutQuery(path)), app.baseURL),
+      withoutBase(withoutTrailingSlash(path.split('?')[0]), app.baseURL),
     ).reverse()) as NitroRouteRules
   }
 }

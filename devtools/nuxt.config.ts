@@ -1,0 +1,24 @@
+import { resolve } from 'pathe'
+
+export default defineNuxtConfig({
+  extends: ['nuxtseo-layer-devtools'],
+
+  ogImage: false,
+
+  nitro: {
+    prerender: {
+      routes: ['/', '/templates', '/debug', '/docs'],
+    },
+    output: {
+      publicDir: resolve(__dirname, '../dist/devtools'),
+    },
+  },
+
+  app: {
+    baseURL: '/__nuxt-og-image',
+  },
+
+  experimental: {
+    componentIslands: true,
+  },
+})

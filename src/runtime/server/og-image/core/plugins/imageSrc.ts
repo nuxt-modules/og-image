@@ -1,5 +1,5 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
-import { useNitroOrigin } from '#site-config/server/composables/useNitroOrigin'
+import { getNitroOrigin } from '#site-config/server/composables/getNitroOrigin'
 import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
 import { toBase64Image } from '../../../../shared'
@@ -55,7 +55,7 @@ export default defineTransformer([
           if (!imageBuffer && !import.meta.prerender) {
             // see if we can fetch it from a kv host if we're using an edge provider
             imageBuffer = (await e.$fetch(src, {
-              baseURL: useNitroOrigin(e),
+              baseURL: getNitroOrigin(e),
               responseType: 'arrayBuffer',
             })
               .catch(() => {})) as BufferSource | undefined
@@ -114,7 +114,7 @@ export default defineTransformer([
         }
         else {
           // with query to avoid satori caching issue
-          node.props.src = `${withBase(src, `${useNitroOrigin(e)}`)}?${Date.now()}`
+          node.props.src = `${withBase(src, `${getNitroOrigin(e)}`)}?${Date.now()}`
         }
       }
     },
@@ -140,7 +140,7 @@ export default defineTransformer([
             .catch(() => {})) as BufferSource | undefined
           if (!imageBuffer && !import.meta.prerender) {
             imageBuffer = (await e.$fetch(src, {
-              baseURL: useNitroOrigin(e),
+              baseURL: getNitroOrigin(e),
               responseType: 'arrayBuffer',
             }).catch(() => {})) as BufferSource | undefined
           }

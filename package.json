@@ -129,6 +129,8 @@
     "magicast": "catalog:",
     "mocked-exports": "catalog:",
     "nuxt-site-config": "catalog:",
+    "nuxtseo-layer-devtools": "catalog:",
+    "nuxtseo-shared": "catalog:",
     "nypm": "catalog:",
     "ofetch": "catalog:",
     "ohash": "catalog:",

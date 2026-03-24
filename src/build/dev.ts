@@ -3,7 +3,7 @@ import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { RendererType } from '../runtime/types'
 import { useNuxt } from '@nuxt/kit'
-import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveNitroPreset } from '../compatibility'
+import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { getMissingDependencies, getRecommendedBinding } from '../utils/dependencies'
 
 // we need all of the runtime dependencies when using build
@@ -13,7 +13,7 @@ export function setupDevHandler(options: ModuleOptions, resolve: Resolver, getDe
     // In dev, expand detected renderers to include any with installed dependencies
     // This allows community templates to work for any renderer the user has deps for
     const detectedRenderers = new Set(getDetectedRenderers())
-    const targetCompatibility = getPresetNitroPresetCompatibility(resolveNitroPreset(nitro.options))
+    const targetCompatibility = getPresetNitroPresetCompatibility(resolveOgImagePreset(nitro.options))
     for (const renderer of (['satori', 'takumi', 'browser'] as const)) {
       if (!detectedRenderers.has(renderer)) {
         const binding = getRecommendedBinding(renderer, targetCompatibility)

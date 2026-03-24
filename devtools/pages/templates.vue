@@ -32,7 +32,7 @@ async function selectTemplate(componentName: string) {
     <!-- Content -->
     <div v-else class="templates-content stagger-children">
       <!-- Your Templates -->
-      <OSectionBlock v-if="appComponents.length" icon="carbon:app" text="Your Templates">
+      <DevtoolsSection v-if="appComponents.length" icon="carbon:app" text="Your Templates">
         <template #description>
           Custom OG Image components in your project
         </template>
@@ -51,10 +51,10 @@ async function selectTemplate(componentName: string) {
             />
           </button>
         </div>
-      </OSectionBlock>
+      </DevtoolsSection>
 
       <!-- Community Templates -->
-      <OSectionBlock icon="carbon:user-multiple" text="Community Templates">
+      <DevtoolsSection icon="carbon:user-multiple" text="Community Templates">
         <template #description>
           Pre-built templates you can use or eject
         </template>
@@ -73,7 +73,7 @@ async function selectTemplate(componentName: string) {
             />
           </button>
         </div>
-      </OSectionBlock>
+      </DevtoolsSection>
     </div>
   </div>
 </template>

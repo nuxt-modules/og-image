@@ -1,7 +1,7 @@
 import type { Buffer } from 'node:buffer'
 import type { Browser, Page, PageScreenshotOptions } from 'playwright-core'
 import type { OgImageRenderEventContext } from '../../../types'
-import { useNitroOrigin } from '#site-config/server/composables'
+import { getNitroOrigin } from '#site-config/server/composables'
 import { withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { buildOgImageUrl } from '../../../shared'
@@ -99,7 +99,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     // Playwright: browser.newPage({ colorScheme, baseURL })
     page = await browser.newPage({
       colorScheme: colorPreference || 'no-preference',
-      baseURL: useNitroOrigin(e),
+      baseURL: getNitroOrigin(e),
     })
   }
 
@@ -134,7 +134,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
       // avoid another fetch to the base path to resolve options
       const url = isPlaywrightPage(page)
         ? withQuery(path, options.props || {})
-        : `${useNitroOrigin(e)}${withQuery(path, options.props || {})}`
+        : `${getNitroOrigin(e)}${withQuery(path, options.props || {})}`
       await gotoWithIdle(page, url, 10000)
     }
 

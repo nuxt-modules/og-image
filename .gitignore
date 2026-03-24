@@ -66,3 +66,4 @@ docs/public
 
 # Skilld references (recreated by `skilld install`)
 .skilld
+.claude/

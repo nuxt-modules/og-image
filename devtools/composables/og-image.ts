@@ -7,9 +7,9 @@ import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
-import { description, globalRefreshTime, hasMadeChanges, ogImageKey, options, optionsOverrides, path, previewHost, propEditor, query, refreshSources, refreshTime, slowRefreshSources } from '../util/logic'
+import { description, hasMadeChanges, ogImageKey, options, optionsOverrides, previewHost, propEditor } from '../util/logic'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
-import { colorMode, devtoolsClient, ogImageRpc } from './rpc'
+import { devtoolsClient, ogImageRpc } from './rpc'
 import { AddComponentDialogPromise, CreateOgImageDialogPromise } from './templates'
 
 const RE_SUFFIX_SATORI = /Satori$/
@@ -420,8 +420,6 @@ export function useOgImage() {
     if (!dir)
       return
     const v = await ogImageRpc.value!.ejectCommunityTemplate(`${dir}/${component}.vue`)
-    // Refresh component list so the ejected app component is picked up
-    globalRefreshTime.value = Date.now()
     refreshSources()
     if (v)
       await devtoolsClient.value?.devtools.rpc.openInEditor(v)
@@ -436,7 +434,6 @@ export function useOgImage() {
       renderer: renderer.value,
       pageFile: pageFile.value || '',
     })
-    globalRefreshTime.value = Date.now()
     refreshSources()
     if (v)
       await devtoolsClient.value?.devtools.rpc.openInEditor(v)
@@ -444,7 +441,6 @@ export function useOgImage() {
 
   async function addExistingComponent(componentName: string) {
     await ogImageRpc.value!.addOgImageToPage(componentName, pageFile.value || '')
-    globalRefreshTime.value = Date.now()
     refreshSources()
     if (pageFile.value)
       await devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)

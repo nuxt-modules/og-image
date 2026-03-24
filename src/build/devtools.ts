@@ -5,13 +5,10 @@ import type { ModuleOptions } from '../module'
 import type { ClientFunctions, CreateComponentOptions, ServerFunctions } from '../rpc-types'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
-import { addCustomTab, extendServerRpc, onDevToolsInitialized } from '@nuxt/devtools-kit'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
+import { setupDevToolsUI as _setupDevToolsUI, setupDevToolsRpc } from 'nuxtseo-shared/devtools'
 import { isAbsolute, join, relative, resolve as resolvePath } from 'pathe'
 import { RE_RENDERER_SUFFIX } from '../util'
-
-const DEVTOOLS_UI_ROUTE = '/__nuxt-og-image'
-const DEVTOOLS_UI_LOCAL_PORT = 3030
 
 const RE_TILDE_SLASH = /^~\//
 const RE_WORD_CHARS_ONLY = /^\w+$/
@@ -100,35 +97,14 @@ p {
 }
 
 export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resolve'], nuxt: Nuxt = useNuxt(), cssFramework: string = 'none') {
-  const clientPath = resolve('./client')
-  const communityTemplatesDir = resolve('./runtime/app/components/Templates/Community')
-  const isProductionBuild = existsSync(clientPath)
+  _setupDevToolsUI({
+    route: '/__nuxt-og-image',
+    name: 'nuxt-og-image',
+    title: 'OG Image',
+    icon: 'carbon:image-search',
+  }, resolve, nuxt)
 
-  // Serve production-built client (used when package is published)
-  if (isProductionBuild) {
-    nuxt.hook('vite:serverCreated', async (server) => {
-      const sirv = await import('sirv').then(r => r.default || r)
-      server.middlewares.use(
-        DEVTOOLS_UI_ROUTE,
-        sirv(clientPath, { dev: true, single: true }),
-      )
-    })
-  }
-  // In local development, start a separate Nuxt Server and proxy to serve the client
-  else {
-    nuxt.hook('vite:extendConfig', (config) => {
-      if (!config.server) {
-        (config as any).server = {}
-      }
-      (config.server as any).proxy ||= {}
-      config.server!.proxy![DEVTOOLS_UI_ROUTE] = {
-        target: `http://localhost:${DEVTOOLS_UI_LOCAL_PORT}${DEVTOOLS_UI_ROUTE}`,
-        changeOrigin: true,
-        followRedirects: true,
-        rewrite: path => path.replace(DEVTOOLS_UI_ROUTE, ''),
-      }
-    })
-  }
+  const communityTemplatesDir = resolve('./runtime/app/components/Templates/Community')
 
   const useNitro = new Promise<Nitro>((resolve) => {
     nuxt.hooks.hook('nitro:init', resolve)
@@ -153,84 +129,70 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     return true
   }
 
-  // wait for DevTools to be initialized
-  onDevToolsInitialized(async () => {
-    const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {
-      async ejectCommunityTemplate(path: string) {
-        const [dirName, componentName] = path.split('/')
-        const nameWithoutExt = componentName?.replace('.vue', '') || ''
-        // Handle both dot-notation (NuxtSeo.takumi) and PascalCase (NuxtSeoTakumi)
-        let dotNotationName: string
-        if (nameWithoutExt.includes('.')) {
-          dotNotationName = `${nameWithoutExt}.vue`
-        }
-        else {
-          const rendererMatch = nameWithoutExt.match(RE_RENDERER_SUFFIX)
-          const renderer = rendererMatch?.[1]?.toLowerCase() || 'satori'
-          const baseName = nameWithoutExt.replace(RE_RENDERER_SUFFIX, '')
-          dotNotationName = `${baseName}.${renderer}.vue`
-        }
-        const dir = join(nuxt.options.srcDir, 'components', dirName || '')
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true })
-        }
-        const newPath = join(dir, dotNotationName)
-        const templatePath = join(communityTemplatesDir, dotNotationName)
-        const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)
-        await writeFile(newPath, template, { encoding: 'utf-8' })
-        await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
-        const nitro = await useNitro
-        await nitro.hooks.callHook('rollup:reload')
-        return newPath
-      },
-      async createComponent({ name, renderer, pageFile }: CreateComponentOptions) {
-        // Validate renderer
-        const validRenderers = ['satori', 'browser', 'takumi']
-        if (!validRenderers.includes(renderer))
-          throw new Error(`Invalid renderer: ${renderer}`)
-
-        // Validate component name: PascalCase identifier only, no path separators or special chars
-        if (!RE_WORD_CHARS_ONLY.test(name))
-          throw new Error(`Invalid component name: ${name}`)
-
-        const baseDir = existsSync(join(nuxt.options.srcDir, 'app'))
-          ? join(nuxt.options.srcDir, 'app')
-          : nuxt.options.srcDir
-        const outputDir = join(baseDir, 'components', 'OgImage')
-        if (!existsSync(outputDir))
-          mkdirSync(outputDir, { recursive: true })
-
-        const filename = `${name}.${renderer}.vue`
-        const outputPath = join(outputDir, filename)
-        if (existsSync(outputPath))
-          throw new Error(`File already exists: ${relative(nuxt.options.rootDir, outputPath)}`)
-
-        const template = getStarterTemplate(renderer, cssFramework)
-        await writeFile(outputPath, template, { encoding: 'utf-8' })
-
-        await insertDefineOgImage(name, pageFile)
-
-        await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
-        const nitro = await useNitro
-        await nitro.hooks.callHook('rollup:reload')
-        return outputPath
-      },
-      async addOgImageToPage(componentName: string, pageFile: string) {
-        if (!RE_WORD_CHARS_ONLY.test(componentName))
-          throw new Error(`Invalid component name: ${componentName}`)
-        return insertDefineOgImage(componentName, pageFile)
-      },
-    })
-
+  setupDevToolsRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
+    async ejectCommunityTemplate(path: string) {
+      const [dirName, componentName] = path.split('/')
+      const nameWithoutExt = componentName?.replace('.vue', '') || ''
+      let dotNotationName: string
+      if (nameWithoutExt.includes('.')) {
+        dotNotationName = `${nameWithoutExt}.vue`
+      }
+      else {
+        const rendererMatch = nameWithoutExt.match(RE_RENDERER_SUFFIX)
+        const renderer = rendererMatch?.[1]?.toLowerCase() || 'satori'
+        const baseName = nameWithoutExt.replace(RE_RENDERER_SUFFIX, '')
+        dotNotationName = `${baseName}.${renderer}.vue`
+      }
+      const dir = join(nuxt.options.srcDir, 'components', dirName || '')
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+      const newPath = join(dir, dotNotationName)
+      const templatePath = join(communityTemplatesDir, dotNotationName)
+      const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)
+      await writeFile(newPath, template, { encoding: 'utf-8' })
+      await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
+      const nitro = await useNitro
+      await nitro.hooks.callHook('rollup:reload')
+      return newPath
+    },
+    async createComponent({ name, renderer, pageFile }: CreateComponentOptions) {
+      const validRenderers = ['satori', 'browser', 'takumi']
+      if (!validRenderers.includes(renderer))
+        throw new Error(`Invalid renderer: ${renderer}`)
+      if (!RE_WORD_CHARS_ONLY.test(name))
+        throw new Error(`Invalid component name: ${name}`)
+      const baseDir = existsSync(join(nuxt.options.srcDir, 'app'))
+        ? join(nuxt.options.srcDir, 'app')
+        : nuxt.options.srcDir
+      const outputDir = join(baseDir, 'components', 'OgImage')
+      if (!existsSync(outputDir))
+        mkdirSync(outputDir, { recursive: true })
+      const filename = `${name}.${renderer}.vue`
+      const outputPath = join(outputDir, filename)
+      if (existsSync(outputPath))
+        throw new Error(`File already exists: ${relative(nuxt.options.rootDir, outputPath)}`)
+      const template = getStarterTemplate(renderer, cssFramework)
+      await writeFile(outputPath, template, { encoding: 'utf-8' })
+      await insertDefineOgImage(name, pageFile)
+      await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
+      const nitro = await useNitro
+      await nitro.hooks.callHook('rollup:reload')
+      return outputPath
+    },
+    async addOgImageToPage(componentName: string, pageFile: string) {
+      if (!RE_WORD_CHARS_ONLY.test(componentName))
+        throw new Error(`Invalid component name: ${componentName}`)
+      return insertDefineOgImage(componentName, pageFile)
+    },
+  } as ServerFunctions, nuxt).then((rpc) => {
     let cssRefreshTimer: ReturnType<typeof setTimeout> | undefined
     nuxt.hook('builder:watch', (e, watchPath) => {
       if (!e || !watchPath)
         return
-      // Use pathe's resolve (not the module resolver) to normalize the path
       const normalizedPath = relative(nuxt.options.srcDir, isAbsolute(watchPath) ? watchPath : resolvePath(nuxt.options.srcDir, watchPath))
       const absolutePath = isAbsolute(watchPath) ? watchPath : join(nuxt.options.rootDir, watchPath)
 
-      // CSS file or framework config change → debounced refresh so devtools re-renders with fresh styles
       const isCssChange = absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
         const src = typeof entry === 'string' ? entry : (entry as any)?.src
         return src && absolutePath.endsWith(src.replace(RE_TILDE_SLASH, ''))
@@ -243,10 +205,9 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
         return
       }
 
-      // needs to be for a page change
       if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
-        rpc.broadcast.refreshRouteData(normalizedPath) // client needs to figure it if it's for the page we're on
-          .catch(() => {}) // ignore errors
+        rpc.broadcast.refreshRouteData(normalizedPath)
+          .catch(() => {})
       }
       if (options.componentDirs.some(dir => normalizedPath.includes(dir))) {
         if (e === 'change') {
@@ -258,17 +219,5 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
         }
       }
     })
-    // call client RPC functions
-    // since it might have multiple clients connected, we use `broadcast` to call all of them
-  })
-
-  addCustomTab({
-    name: 'nuxt-og-image',
-    title: 'OG Image',
-    icon: 'carbon:image-search',
-    view: {
-      type: 'iframe',
-      src: DEVTOOLS_UI_ROUTE,
-    },
   })
 }
