@@ -1,6 +1,8 @@
 import type { NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
 import type { BirpcReturn } from 'birpc'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
+import { appFetch, useDevtoolsConnection } from 'nuxtseo-layer-devtools/composables/rpc'
+import { base, path, query, refreshSources } from 'nuxtseo-layer-devtools/composables/state'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 export const devtoolsClient = ref<NuxtDevtoolsIframeClient>()

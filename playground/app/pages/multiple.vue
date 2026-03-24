@@ -1,12 +1,4 @@
 <script setup>
-import { definePageMeta, useServerSeoMeta } from '#imports'
-
-definePageMeta({
-  title: 'Home',
-  description: 'This is the home page',
-  breadcrumbTitle: 'Home',
-})
-
 useServerSeoMeta({
   description: 'page description',
   title: 'Welcome to the playground',
@@ -33,35 +25,7 @@ defineOgImage('NuxtSeo', {
 </script>
 
 <template>
-  <div class="px-7 my-5">
-    <div>
-      <ul>
-        <li>
-          <NuxtLink href="/chromium/screenshot">
-            Chromium screenshot
-          </NuxtLink>
-        </li>
-        <li>
-          <NuxtLink href="/chromium/component">
-            Chromium component
-          </NuxtLink>
-        </li>
-      </ul>
-      <ul>
-        <li>
-          <NuxtLink href="/satori/">
-            Satori index
-          </NuxtLink>
-        </li>
-        <li>
-          <a target="_blank" href="/_og/image/satori/og.png">Satori png</a>
-        </li>
-        <li>
-          <NuxtLink to="/satori/image">
-            Satori image
-          </NuxtLink>
-        </li>
-      </ul>
-    </div>
+  <div>
+    <UPageHeader title="Multiple OG Images" description="Page with two defineOgImage calls: default and square." />
   </div>
 </template>

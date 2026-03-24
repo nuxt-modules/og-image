@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
 const templates = [
   { name: 'NuxtSeo', slug: 'nuxt-seo', description: 'Flexible theme-aware template with icon support' },
   { name: 'Nuxt', slug: 'nuxt', description: 'Official Nuxt branding with SVG graphics' },
@@ -19,47 +17,36 @@ const errors = ref<Record<string, boolean>>({})
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 py-12 px-8">
-    <div class="max-w-7xl mx-auto">
-      <h1 class="text-4xl font-bold text-gray-900 mb-2">
-        OG Image Templates
-      </h1>
-      <p class="text-lg text-gray-600 mb-8">
-        Community templates for Nuxt OG Image
-      </p>
+  <div class="space-y-6">
+    <UPageHeader
+      title="OG Image Templates"
+      description="Community templates for Nuxt OG Image"
+    />
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <NuxtLink
-          v-for="template in templates"
-          :key="template.name"
-          :to="`/templates/${template.slug}`"
-          class="group block bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
-        >
-          <div class="aspect-[1200/630] bg-gray-200 relative overflow-hidden">
-            <img
-              :src="`/__og-image__/image/templates/${template.slug}/og.png`"
-              :alt="template.name"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-              @error="errors[template.name] = true"
-            >
-            <div
-              v-if="errors[template.name]"
-              class="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400"
-            >
-              Failed to load
-            </div>
+    <UPageGrid>
+      <UPageCard
+        v-for="template in templates"
+        :key="template.name"
+        :title="template.name"
+        :description="template.description"
+        :to="`/templates/${template.slug}`"
+      >
+        <div class="aspect-[1200/630] bg-(--ui-bg-muted) relative overflow-hidden rounded-lg">
+          <img
+            :src="`/__og-image__/image/templates/${template.slug}/og.png`"
+            :alt="template.name"
+            class="w-full h-full object-cover"
+            loading="lazy"
+            @error="errors[template.name] = true"
+          >
+          <div
+            v-if="errors[template.name]"
+            class="absolute inset-0 flex items-center justify-center text-(--ui-text-muted)"
+          >
+            Failed to load
           </div>
-          <div class="p-4">
-            <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {{ template.name }}
-            </h3>
-            <p class="text-sm text-gray-500 mt-1">
-              {{ template.description }}
-            </p>
-          </div>
-        </NuxtLink>
-      </div>
-    </div>
+        </div>
+      </UPageCard>
+    </UPageGrid>
   </div>
 </template>

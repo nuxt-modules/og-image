@@ -19,4 +19,11 @@ export default antfu({
     'harlanzw/link-trailing-slash': 'off',
     'harlanzw/link-lowercase': 'off',
   },
+}, {
+  files: ['examples/**/package.json'],
+  rules: {
+    'pnpm/json-enforce-catalog': 'off',
+    'pnpm/json-valid-catalog': 'off',
+    'pnpm/json-prefer-workspace-settings': 'off',
+  },
 })

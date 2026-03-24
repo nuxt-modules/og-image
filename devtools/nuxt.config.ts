@@ -5,6 +5,10 @@ export default defineNuxtConfig({
 
   ogImage: false,
 
+  imports: {
+    autoImport: true,
+  },
+
   nitro: {
     prerender: {
       routes: ['/', '/templates', '/debug', '/docs'],
@@ -14,11 +18,16 @@ export default defineNuxtConfig({
     },
   },
 
-  app: {
-    baseURL: '/__nuxt-og-image',
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vueuse/core',
+        'json-editor-vue',
+      ],
+    },
   },
 
-  experimental: {
-    componentIslands: true,
+  app: {
+    baseURL: '/__nuxt-og-image',
   },
 })

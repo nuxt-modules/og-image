@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import JsonEditorVue from 'json-editor-vue'
 import { useHead } from 'nuxt/app'
+import { hasProductionUrl, previewSource, productionUrl } from 'nuxtseo-layer-devtools/composables/state'
 import { withHttps } from 'ufo'
 import { computed, reactive, ref, watch } from 'vue'
 import { useOgImage } from '../composables/og-image'
@@ -517,26 +518,6 @@ const productionHostname = computed(() => {
             <span class="hidden sm:inline">{{ activeFormatLabel }}</span>
             <UIcon name="carbon:chevron-down" class="w-3 h-3 opacity-60" />
           </UButton>
-
-          <!-- Preview source toggle: Local vs Production -->
-          <div v-if="hasProductionUrl" class="preview-source-toggle">
-            <button
-              class="preview-source-btn"
-              :class="{ active: previewSource === 'local' }"
-              @click="previewSource = 'local'"
-            >
-              <UIcon name="carbon:laptop" class="w-3.5 h-3.5" />
-              <span class="hidden sm:inline">Local</span>
-            </button>
-            <button
-              class="preview-source-btn"
-              :class="{ active: previewSource === 'production' }"
-              @click="previewSource = 'production'"
-            >
-              <UIcon name="carbon:cloud" class="w-3.5 h-3.5" />
-              <span class="hidden sm:inline">Production</span>
-            </button>
-          </div>
         </div>
 
         <!-- Center: Component info -->
@@ -1097,44 +1078,6 @@ const productionHostname = computed(() => {
 }
 
 /* Preview source toggle */
-.preview-source-toggle {
-  display: flex;
-  gap: 1px;
-  background: var(--color-border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.preview-source-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background: var(--color-surface-sunken);
-  border: none;
-  cursor: pointer;
-  transition: color 150ms, background 150ms;
-  white-space: nowrap;
-}
-
-.preview-source-btn:hover {
-  color: var(--color-text);
-  background: var(--color-surface-elevated);
-}
-
-.preview-source-btn.active {
-  color: var(--color-text);
-  background: var(--color-surface-elevated);
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.06);
-}
-
-.dark .preview-source-btn.active {
-  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
-}
-
 /* Component info */
 .component-info {
   position: absolute;

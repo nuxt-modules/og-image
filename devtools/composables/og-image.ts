@@ -3,6 +3,8 @@ import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions, OgIm
 import { computed, inject, toValue, watch } from '#imports'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
+import { colorMode } from 'nuxtseo-layer-devtools/composables/rpc'
+import { path, query, refreshSources, refreshTime, slowRefreshSources } from 'nuxtseo-layer-devtools/composables/state'
 import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'

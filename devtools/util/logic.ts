@@ -1,4 +1,5 @@
 import type { OgImageOptionsInternal } from '../../src/runtime/types'
+import { hasProductionUrl, host, previewSource, productionUrl } from 'nuxtseo-layer-devtools/composables/state'
 import { computed, ref } from 'vue'
 
 export const description = ref<string | null>(null)

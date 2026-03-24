@@ -1,5 +1,23 @@
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
-  modules: ['nuxt-og-image'],
+  modules: ['nuxt-og-image', '@nuxt/fonts'],
+
+  css: ['~/assets/css/main.css'],
+
+  imports: {
+    autoImport: true,
+  },
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
+
+  fonts: {
+    families: [
+      { name: 'Plus Jakarta Sans', global: true },
+    ],
+  },
 
   site: {
     url: 'https://example.com',

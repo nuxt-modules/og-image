@@ -17,6 +17,8 @@ const flagMap: Record<string, string> = {
   en: '🇬🇧',
   fr: '🇫🇷',
   de: '🇩🇪',
+  ja: '🇯🇵',
+  ko: '🇰🇷',
 }
 
 const flag = computed(() => flagMap[props.locale] || '')

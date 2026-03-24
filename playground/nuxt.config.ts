@@ -1,47 +1,13 @@
-import { startSubprocess } from '@nuxt/devtools-kit'
-import { defineNuxtModule } from '@nuxt/kit'
 import { defineNuxtConfig } from 'nuxt/config'
-import { resolve } from 'pathe'
 import NuxtOgImage from '../src/module'
 
 export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   modules: [
+    NuxtOgImage,
     '@vueuse/nuxt',
     '@nuxt/ui',
     '@nuxt/content',
-    NuxtOgImage, /**
-                  * Start a sub Nuxt Server for developing the client
-                  *
-                  * The terminal output can be found in the Terminals tab of the devtools.
-                  */
-    defineNuxtModule({
-      setup(_, nuxt) {
-        if (!nuxt.options.dev)
-          return
-        const subprocess = startSubprocess(
-          {
-            command: 'npx',
-            args: ['nuxi', 'dev', '--port', '3030'],
-            cwd: resolve(__dirname, '../client'),
-          },
-          {
-            id: 'nuxt-og-image:client',
-            name: 'Nuxt OG Image Client Dev',
-          },
-        )
-        subprocess.getProcess().stdout?.on('data', (data) => {
-          console.log(` - devtools: ${data.toString()}`)
-        })
-        subprocess.getProcess().stderr?.on('data', (data) => {
-          console.error(` - devtools: ${data.toString()}`)
-        })
-
-        process.on('exit', () => {
-          subprocess.terminate()
-        })
-      },
-    }),
     '@nuxt/fonts',
   ],
   components: [
@@ -85,8 +51,6 @@ export default defineNuxtConfig({
     },
   },
 
-  debug: false,
-
   devtools: {
     enabled: true,
   },
@@ -98,36 +62,6 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    // fonts: [
-    //   {
-    //     name: 'optieinstein',
-    //     weight: 800,
-    //     // path must point to a public font file
-    //     path: '/OPTIEinstein-Black.otf',
-    //   },
-    // ],
-    // compatibility: {
-    //   runtime: {
-    //     resvg: 'wasm',
-    //   },
-    // },
-    // defaults: {
-    //   extension: 'jpeg',
-    // },
-    // compatibility: {
-    //   dev: {
-    //     chromium: false,
-    //   },
-    // },
-    // runtimeCacheStorage: {
-    //   driver: 'redis',
-    //   options: {
-    //     host: 'localhost',
-    //     port: 6379,
-    //   },
-    // },
-    // Enable for CI persistent caching:
-    // buildCache: true,
     debug: true,
   },
 
