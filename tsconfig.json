@@ -1,4 +1,4 @@
 {
   "extends": "./.nuxt/tsconfig.json",
-  "exclude": ["test/**", "playground/**", "client/**", "devtools/**"]
+  "exclude": ["test/**", "playground/**", "client/**", "devtools/**", "examples/**"]
 }
