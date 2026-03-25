@@ -126,6 +126,7 @@ const runtimeVersion = computed(() => {
 
 <template>
   <DevtoolsLayout
+    module-name="nuxt-og-image"
     title="OG Image"
     icon="carbon:image-search"
     :version="runtimeVersion"
