@@ -11,7 +11,7 @@ Nuxt OG Image allows you to easily generate OG Images using either Vue component
 
 OG Images are known to improve click-through rates on social media.
 
-New to Open Graph? Check out the [Mastering Open Graph Tags](https://nuxtseo.com/learn/mastering-meta/open-graph) guide to learn more about why you might
+New to Open Graph? Check out the [Mastering Open Graph Tags](https://nuxtseo.com/learn-seo/nuxt/mastering-meta/open-graph) guide to learn more about why you might
 need this module.
 
 <p align="center">
