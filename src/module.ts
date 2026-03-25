@@ -262,6 +262,8 @@ export default defineNuxtModule<ModuleOptions>({
         return p.replace('/shared/runtime/', '/runtime/')
       if (p.includes('/shared/client'))
         return p.replace('/shared/client', '/client')
+      if (p.includes('/shared/devtools'))
+        return p.replace('/shared/devtools', '/devtools')
       return p
     }
     const resolve: typeof _resolver.resolve = path => fixSharedPath(_resolver.resolve(path))
