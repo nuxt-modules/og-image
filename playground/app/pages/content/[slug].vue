@@ -9,8 +9,8 @@ useSeoMeta({
   title: page.value?.seo?.title || 'Nuxt OG Image',
   description: page.value?.seo?.description || 'The quickest and easiest way to build Open Graph images for Nuxt.',
 })
-if (page.value.ogImage) {
-  defineOgImage(page.value.ogImage)
+if (page.value.ogImage?.component) {
+  defineOgImage(page.value.ogImage.component, page.value.ogImage.props)
 }
 </script>
 
