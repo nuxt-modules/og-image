@@ -1,6 +1,24 @@
 # Changelog
 
 
+## v6.2.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.0...main)
+
+### 🩹 Fixes
+
+- Missing compatibility config ([4541033c](https://github.com/nuxt-modules/og-image/commit/4541033c))
+- **devtools:** Broken resolution ([57ac2647](https://github.com/nuxt-modules/og-image/commit/57ac2647))
+
+### 🏡 Chore
+
+- Label devtools layout ([ed041041](https://github.com/nuxt-modules/og-image/commit/ed041041))
+- Bump deps ([41fa2371](https://github.com/nuxt-modules/og-image/commit/41fa2371))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.1.2...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.1.2...main)

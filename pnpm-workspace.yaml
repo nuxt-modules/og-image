@@ -74,8 +74,8 @@ catalog:
   magicast: ^0.5.2
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
-  nuxt-site-config: ^4.0.1
-  nuxtseo-layer-devtools: ^0.3.1
+  nuxt-site-config: ^4.0.6
+  nuxtseo-layer-devtools: ^0.3.8
   nuxtseo-shared: ^0.7.1
   nypm: ^0.6.5
   ofetch: ^1.5.1
