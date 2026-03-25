@@ -1,6 +1,61 @@
 # Changelog
 
 
+## v6.1.2...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.1.2...main)
+
+### 🚀 Enhancements
+
+- **content:** Add `defineOgImageSchema()` composable ([#520](https://github.com/nuxt-modules/og-image/pull/520))
+
+### 🩹 Fixes
+
+- Update pnpm-lock.yaml ([0784c378](https://github.com/nuxt-modules/og-image/commit/0784c378))
+- Broken slash decoding in some cases ([6f8ac765](https://github.com/nuxt-modules/og-image/commit/6f8ac765))
+- **client:** Resolve layer-devtools path via import.meta.resolve ([dd4e0578](https://github.com/nuxt-modules/og-image/commit/dd4e0578))
+- **cloudflare:** Resolve fonts via localFetch when ASSETS binding unavailable ([#527](https://github.com/nuxt-modules/og-image/pull/527))
+- B64 encode props with URL-sensitive characters ([#530](https://github.com/nuxt-modules/og-image/pull/530))
+- Resolve CI issues ([f3e3045b](https://github.com/nuxt-modules/og-image/commit/f3e3045b))
+- Use explicit imports mapping for #nuxtseo-shared ([08594505](https://github.com/nuxt-modules/og-image/commit/08594505))
+- Use direct nuxtseo-shared/runtime imports, bump to ^0.3.0 ([31b1a991](https://github.com/nuxt-modules/og-image/commit/31b1a991))
+- Resolve CI failures in lint, build, typecheck, and tests ([47e85d35](https://github.com/nuxt-modules/og-image/commit/47e85d35))
+- Use dot-notation for ambiguous CalcTest component in type test ([3ba63fef](https://github.com/nuxt-modules/og-image/commit/3ba63fef))
+
+### 💅 Refactors
+
+- Migrate to nuxtseo-shared for shared utilities ([f909f014](https://github.com/nuxt-modules/og-image/commit/f909f014))
+- **client:** Migrate devtools to nuxtseo-shared layer ([48c15483](https://github.com/nuxt-modules/og-image/commit/48c15483))
+- Use published nuxtseo-layer-devtools package ([74393aa3](https://github.com/nuxt-modules/og-image/commit/74393aa3))
+- Remove dead defensive prerender initialization ([3b0dae14](https://github.com/nuxt-modules/og-image/commit/3b0dae14))
+- Use nuxtseo-shared subpath exports, bump to ^0.5.0 ([bd50740f](https://github.com/nuxt-modules/og-image/commit/bd50740f))
+- Migrate to nuxtseo-shared ([#521](https://github.com/nuxt-modules/og-image/pull/521))
+
+### 🏡 Chore
+
+- Sync ([1f7cb2c4](https://github.com/nuxt-modules/og-image/commit/1f7cb2c4))
+- Sync ([ca0fb5b0](https://github.com/nuxt-modules/og-image/commit/ca0fb5b0))
+- Update lockfile ([162799b7](https://github.com/nuxt-modules/og-image/commit/162799b7))
+- Bump nuxtseo-shared to ^0.2.0 ([ecf3d6b0](https://github.com/nuxt-modules/og-image/commit/ecf3d6b0))
+- Bump nuxtseo-shared to ^0.4.0, revert runtime to #alias ([b368142f](https://github.com/nuxt-modules/og-image/commit/b368142f))
+- Sync ([f173a2a7](https://github.com/nuxt-modules/og-image/commit/f173a2a7))
+- Sync ([eb106f60](https://github.com/nuxt-modules/og-image/commit/eb106f60))
+- Sync ([0f4b0f27](https://github.com/nuxt-modules/og-image/commit/0f4b0f27))
+- Sync ([50f5e65e](https://github.com/nuxt-modules/og-image/commit/50f5e65e))
+- Sync ([787a087e](https://github.com/nuxt-modules/og-image/commit/787a087e))
+- Remove unrelated files from PR ([5f8ed2f2](https://github.com/nuxt-modules/og-image/commit/5f8ed2f2))
+- Examples ([73c36536](https://github.com/nuxt-modules/og-image/commit/73c36536))
+- Sync ([837a3e66](https://github.com/nuxt-modules/og-image/commit/837a3e66))
+- Sync ([2d63ada7](https://github.com/nuxt-modules/og-image/commit/2d63ada7))
+
+### ✅ Tests
+
+- Update cloudflare-takumi snapshots after template redesign ([66c2a80a](https://github.com/nuxt-modules/og-image/commit/66c2a80a))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.1.1...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.1.1...main)

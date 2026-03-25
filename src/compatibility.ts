@@ -1,6 +1,7 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack/config'
+import type { PresetName } from 'nitropack/presets'
 import type { CompatibilityFlags, RendererType, RuntimeCompatibilitySchema } from './runtime/types'
 import { addTemplate, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
@@ -61,7 +62,7 @@ export const WebContainer: RuntimeCompatibilitySchema = {
   emoji: 'fetch', // webcontainer has size constraints
 }
 
-export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = {
+export const RuntimeCompatibility: Partial<Record<PresetName | 'stackblitz' | 'codesandbox', RuntimeCompatibilitySchema>> = {
   'nitro-dev': NodeDevRuntime,
   'nitro-prerender': NodePrerenderRuntime,
   'node-server': NodeRuntime,
@@ -69,7 +70,11 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
   'bun': NodeRuntime,
   'stackblitz': WebContainer,
   'codesandbox': WebContainer,
+  'aws-amplify': awsLambda,
   'aws-lambda': awsLambda,
+  'azure': awsLambda,
+  'azure-functions': awsLambda,
+  'azure-swa': awsLambda,
   'netlify': awsLambda,
   'netlify-edge': {
     browser: false,
@@ -86,6 +91,9 @@ export const RuntimeCompatibility: Record<string, RuntimeCompatibilitySchema> = 
     },
   },
   'firebase': awsLambda,
+  'firebase-app-hosting': awsLambda,
+  'genezio': awsLambda,
+  'stormkit': awsLambda,
   'vercel': awsLambda,
   'vercel-edge': {
     browser: false,
