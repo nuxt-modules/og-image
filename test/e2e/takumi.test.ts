@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
-import { extractOgImageUrl, fetchOgImage, fetchOgImages, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
+import { extractOgImageUrl, fetchOgImage, fetchOgImages, getImageDimensions, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -50,7 +50,11 @@ describe('dimension clamping', () => {
     expect(ogUrl).toBeTruthy()
     const oversizedUrl = `${ogUrl}?width=20000&height=20000`
     const image: ArrayBuffer = await $fetch(oversizedUrl, { responseType: 'arrayBuffer' })
-    expect(Buffer.from(image).length).toBeGreaterThan(0)
+    const buf = Buffer.from(image)
+    expect(buf.length).toBeGreaterThan(0)
+    const dims = getImageDimensions(buf)
+    expect(dims.width).toBeLessThanOrEqual(2048)
+    expect(dims.height).toBeLessThanOrEqual(2048)
   }, 60000)
 })
 

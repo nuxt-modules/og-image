@@ -324,7 +324,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     if (config.debug && !nuxt.options.dev) {
-      logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and disables some security restrictions. Disable it before deploying to production.')
+      logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
     }
 
     // Check for removed/deprecated config options

@@ -131,7 +131,7 @@ export async function imageEventHandler(e: H3Event) {
     ]).catch((err: any) => {
       if (err?.message?.includes('timed out')) {
         logger.error(`renderer.createImage timeout for ${e.path}`)
-        return createError({ statusCode: 408, statusMessage: `[Nuxt OG Image] Render timed out.` })
+        return createError({ statusCode: 408, statusMessage: `[Nuxt OG Image] Request timed out while waiting for OG image render.` })
       }
       logger.error(`renderer.createImage error for ${e.path}:`, err?.stack || err?.message || err)
       throw err
