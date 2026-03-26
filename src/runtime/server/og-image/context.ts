@@ -94,12 +94,25 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
 
   // Also support query params for backwards compat and dynamic overrides
   const query = getQuery(e)
+
+  // Cap total query string size to prevent oversized payloads
+  const MAX_QUERY_LENGTH = 2048
+  const rawQuery = e.path.split('?')[1] || ''
+  if (rawQuery.length > MAX_QUERY_LENGTH) {
+    return createError({
+      statusCode: 400,
+      statusMessage: `[Nuxt OG Image] Query string exceeds maximum length of ${MAX_QUERY_LENGTH} characters.`,
+    })
+  }
+
   let queryParams: Record<string, any> = {}
   for (const k in query) {
     const v = String(query[k])
     if (!v)
       continue
     if (v.startsWith('{')) {
+      if (v.length > 4096)
+        continue // silently drop oversized JSON values
       try {
         queryParams[k] = JSON.parse(v)
       }
@@ -140,6 +153,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
 
   // Normalise options and get renderer from component metadata
   const normalised = normaliseOptions(options)
+
+  // Cap screenshot.delay to prevent indefinite waits (max 10s)
+  if (normalised.options.screenshot?.delay != null)
+    normalised.options.screenshot.delay = Math.min(Math.max(0, Number(normalised.options.screenshot.delay) || 0), 10_000)
 
   // Auto-eject community templates in dev mode (skip devtools requests)
   if (normalised.component?.category === 'community')
