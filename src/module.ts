@@ -207,13 +207,22 @@ export interface ModuleOptions {
     /** Render timeout in milliseconds. Returns 408 on timeout. @default 10000 */
     renderTimeout?: number
     /**
-     * Restrict runtime image generation to requests from allowed origins.
-     * - `true`: only allow requests from the site config URL origin
-     * - `string[]`: allow requests from the site config URL origin plus these origins
-     * - `false` (default): no origin restriction
+     * Maximum allowed length (in characters) for the query string on runtime OG image requests.
+     * Requests exceeding this limit receive a 400 response.
      *
-     * When enabled, requests without a matching Origin or Referer header receive a 403.
-     * Prerendering is never restricted.
+     * Set to a number to enable (e.g. `2048`). Leave `null` to disable.
+     *
+     * @default null
+     */
+    maxQueryParamSize?: number | null
+    /**
+     * Restrict runtime image generation to requests whose Host header matches allowed hosts.
+     * - `true`: only allow requests whose Host matches the site config URL host
+     * - `string[]`: allow the site config URL host plus these additional origins
+     * - `false` (default): no host restriction
+     *
+     * Uses h3's `getRequestHost` with `X-Forwarded-Host` support for reverse proxies.
+     * Prerendering and dev mode are never restricted.
      *
      * @default false
      */
@@ -1400,6 +1409,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           maxDimension: config.security?.maxDimension ?? 2048,
           maxDpr: config.security?.maxDpr ?? 2,
           renderTimeout: config.security?.renderTimeout ?? 10_000,
+          maxQueryParamSize: config.security?.maxQueryParamSize ?? null,
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),

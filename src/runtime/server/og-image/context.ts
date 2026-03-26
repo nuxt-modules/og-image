@@ -92,6 +92,18 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     urlOptions = decodeOgImageParams(encodedSegment)
   }
 
+  // Reject oversized query strings to limit abuse surface
+  const maxQueryParamSize = runtimeConfig.security?.maxQueryParamSize
+  if (maxQueryParamSize && !import.meta.prerender) {
+    const queryString = parseURL(e.path).search || ''
+    if (queryString.length > maxQueryParamSize) {
+      return createError({
+        statusCode: 400,
+        statusMessage: `[Nuxt OG Image] Query string exceeds maximum allowed length of ${maxQueryParamSize} characters.`,
+      })
+    }
+  }
+
   // Also support query params for backwards compat and dynamic overrides
   const query = getQuery(e)
   let queryParams: Record<string, any> = {}

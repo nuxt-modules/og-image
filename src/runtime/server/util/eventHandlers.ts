@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
-import { createError, getHeader, H3Error, setHeader } from 'h3'
+import { createError, getRequestHost, H3Error, setHeader } from 'h3'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
@@ -20,24 +20,18 @@ export async function imageEventHandler(e: H3Event) {
   const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey, security } = useOgImageRuntimeConfig()
 
-  // Origin restriction: block runtime requests from unknown origins
+  // Origin restriction: block runtime requests from unknown hosts
   if (!import.meta.prerender && !import.meta.dev && security?.restrictRuntimeImagesToOrigin) {
-    const siteOrigin = new URL(getSiteConfig(e).url).origin
-    const allowedOrigins = [siteOrigin, ...security.restrictRuntimeImagesToOrigin]
-    const requestOrigin = getHeader(e, 'origin') || getHeader(e, 'referer')
-    let originHost: string | null = null
-    if (requestOrigin) {
-      try {
-        originHost = new URL(requestOrigin).origin
-      }
-      catch {
-        // malformed origin/referer
-      }
-    }
-    if (!originHost || !allowedOrigins.includes(originHost)) {
+    const siteHost = new URL(getSiteConfig(e).url).host
+    const allowedHosts = [siteHost, ...security.restrictRuntimeImagesToOrigin.map((o) => {
+      try { return new URL(o).host }
+      catch { return o }
+    })]
+    const requestHost = getRequestHost(e, { xForwardedHost: true })
+    if (!requestHost || !allowedHosts.includes(requestHost)) {
       return createError({
         statusCode: 403,
-        statusMessage: '[Nuxt OG Image] Origin not allowed.',
+        statusMessage: '[Nuxt OG Image] Host not allowed.',
       })
     }
   }
