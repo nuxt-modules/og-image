@@ -8,6 +8,71 @@ import { logger } from '../../../util/logger'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
+// SSRF prevention: block private/loopback URLs outside dev mode
+const RE_IPV6_BRACKETS = /^\[|\]$/g
+const RE_MAPPED_V4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/
+const RE_DIGIT_ONLY = /^\d+$/
+const RE_INT_IP = /^(?:0x[\da-f]+|\d+)$/i
+
+function isPrivateIPv4(a: number, b: number): boolean {
+  if (a === 127)
+    return true // loopback
+  if (a === 10)
+    return true // 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31)
+    return true // 172.16.0.0/12
+  if (a === 192 && b === 168)
+    return true // 192.168.0.0/16
+  if (a === 169 && b === 254)
+    return true // link-local
+  if (a === 0)
+    return true // 0.0.0.0/8
+  return false
+}
+
+/**
+ * Block URLs targeting internal/private networks.
+ * Handles standard IPs, hex (0x7f000001), decimal (2130706433),
+ * IPv6-mapped IPv4 (::ffff:127.0.0.1), and localhost.
+ * Only http/https protocols are allowed.
+ */
+function isBlockedUrl(url: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  }
+  catch {
+    return true
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+    return true
+  const hostname = parsed.hostname.toLowerCase()
+  const bare = hostname.replace(RE_IPV6_BRACKETS, '')
+  if (bare === 'localhost' || bare.endsWith('.localhost'))
+    return true
+  // Normalize IPv6-mapped IPv4 (::ffff:1.2.3.4)
+  const mappedV4 = bare.match(RE_MAPPED_V4)
+  const ip = mappedV4 ? mappedV4[1]! : bare
+  // Standard dotted-decimal IPv4
+  const parts = ip.split('.')
+  if (parts.length === 4 && parts.every(p => RE_DIGIT_ONLY.test(p))) {
+    const octets = parts.map(Number)
+    if (octets.some(o => o > 255))
+      return true
+    return isPrivateIPv4(octets[0]!, octets[1]!)
+  }
+  // Single integer (decimal/hex) IP: e.g. 2130706433 or 0x7f000001
+  if (RE_INT_IP.test(ip)) {
+    const num = Number(ip)
+    if (!Number.isNaN(num) && num >= 0 && num <= 0xFFFFFFFF)
+      return isPrivateIPv4((num >> 24) & 0xFF, (num >> 16) & 0xFF)
+  }
+  // IPv6 private ranges
+  if (bare === '::1' || bare.startsWith('fc') || bare.startsWith('fd') || bare.startsWith('fe80'))
+    return true
+  return false
+}
+
 const RE_URL_LEADING = /^url\(['"]?/
 const RE_URL_TRAILING = /['"]?\)$/
 
@@ -70,15 +135,22 @@ export default defineTransformer([
       // avoid trying to fetch base64 image uris
       else if (!src.startsWith('data:')) {
         src = decodeHtml(src)
-        node.props.src = src
-        // fetch remote images and embed as base64 to avoid satori re-fetching at render time
-        imageBuffer = (await $fetch(src, {
-          responseType: 'arrayBuffer',
-        })
-          .catch(() => {})) as BufferSource | undefined
-        if (imageBuffer) {
-          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-          node.props.src = toBase64Image(buffer)
+        // Block private/loopback URLs outside dev to prevent SSRF
+        if (!import.meta.dev && isBlockedUrl(src)) {
+          logger.warn(`Blocked internal image fetch: ${src}`)
+          delete node.props.src
+        }
+        else {
+          node.props.src = src
+          // fetch remote images and embed as base64 to avoid satori re-fetching at render time
+          imageBuffer = (await $fetch(src, {
+            responseType: 'arrayBuffer',
+          })
+            .catch(() => {})) as BufferSource | undefined
+          if (imageBuffer) {
+            const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+            node.props.src = toBase64Image(buffer)
+          }
         }
       }
 
@@ -147,9 +219,16 @@ export default defineTransformer([
         }
       }
       else {
-        imageBuffer = (await $fetch(decodeHtml(src), {
-          responseType: 'arrayBuffer',
-        }).catch(() => {})) as BufferSource | undefined
+        const decodedSrc = decodeHtml(src)
+        if (!import.meta.dev && isBlockedUrl(decodedSrc)) {
+          logger.warn(`Blocked internal background-image fetch: ${decodedSrc}`)
+          delete node.props.style!.backgroundImage
+        }
+        else {
+          imageBuffer = (await $fetch(decodedSrc, {
+            responseType: 'arrayBuffer',
+          }).catch(() => {})) as BufferSource | undefined
+        }
       }
       if (imageBuffer) {
         const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer

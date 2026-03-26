@@ -195,6 +195,39 @@ export interface ModuleOptions {
    * @example { provider: 'cloudflare', binding: 'BROWSER' }
    */
   browser?: BrowserConfig
+  /**
+   * Security limits for image generation. Prevents denial of service via
+   * oversized dimensions, unbounded DPR, or long-running renders.
+   */
+  security?: {
+    /** Maximum allowed width or height in pixels. @default 2048 */
+    maxDimension?: number
+    /** Maximum device pixel ratio (takumi renderer). @default 2 */
+    maxDpr?: number
+    /** Render timeout in milliseconds. Returns 408 on timeout. @default 15000 */
+    renderTimeout?: number
+    /**
+     * Maximum allowed length (in characters) for the query string on runtime OG image requests.
+     * Requests exceeding this limit receive a 400 response.
+     *
+     * Set to a number to enable (e.g. `2048`). Leave `null` to disable.
+     *
+     * @default null
+     */
+    maxQueryParamSize?: number | null
+    /**
+     * Restrict runtime image generation to requests whose Host header matches allowed hosts.
+     * - `true`: only allow requests whose Host matches the site config URL host
+     * - `string[]`: allow the site config URL host plus these additional origins
+     * - `false` (default): no host restriction
+     *
+     * Uses h3's `getRequestHost` with `X-Forwarded-Host` support for reverse proxies.
+     * Prerendering and dev mode are never restricted.
+     *
+     * @default false
+     */
+    restrictRuntimeImagesToOrigin?: boolean | string[]
+  }
 }
 
 export interface ModuleHooks {
@@ -288,6 +321,10 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
+    }
+
+    if (config.debug && !nuxt.options.dev) {
+      logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
     }
 
     // Check for removed/deprecated config options
@@ -1372,6 +1409,15 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
               binding: config.browser.binding,
             }
           : undefined,
+        security: {
+          maxDimension: config.security?.maxDimension ?? 2048,
+          maxDpr: config.security?.maxDpr ?? 2,
+          renderTimeout: config.security?.renderTimeout ?? 15_000,
+          maxQueryParamSize: config.security?.maxQueryParamSize ?? null,
+          restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true
+            ? []
+            : (config.security?.restrictRuntimeImagesToOrigin || false),
+        },
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

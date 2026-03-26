@@ -92,6 +92,18 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     urlOptions = decodeOgImageParams(encodedSegment)
   }
 
+  // Reject oversized query strings to limit abuse surface
+  const maxQueryParamSize = runtimeConfig.security?.maxQueryParamSize
+  if (maxQueryParamSize && !import.meta.prerender) {
+    const queryString = parseURL(e.path).search || ''
+    if (queryString.length > maxQueryParamSize) {
+      return createError({
+        statusCode: 400,
+        statusMessage: `[Nuxt OG Image] Query string exceeds maximum allowed length of ${maxQueryParamSize} characters.`,
+      })
+    }
+  }
+
   // Also support query params for backwards compat and dynamic overrides
   const query = getQuery(e)
   let queryParams: Record<string, any> = {}
@@ -130,6 +142,17 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const routeRules = routeRuleMatcher(basePath)
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
   const options = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptionsInternal
+
+  // Clamp dimensions to prevent DoS via oversized image generation
+  const maxDim = runtimeConfig.security?.maxDimension || 2048
+  if (options.width != null) {
+    const w = Number(options.width)
+    options.width = Number.isFinite(w) ? Math.min(Math.max(1, w), maxDim) : undefined
+  }
+  if (options.height != null) {
+    const h = Number(options.height)
+    options.height = Number.isFinite(h) ? Math.min(Math.max(1, h), maxDim) : undefined
+  }
 
   // Strip HTML event handlers and dangerous attributes from props (GHSA-mg36-wvcr-m75h)
   if (options.props && typeof options.props === 'object')

@@ -65,6 +65,14 @@ export interface OgImageRuntimeConfig {
     binding?: string
   }
 
+  security: {
+    maxDimension: number
+    maxDpr: number
+    renderTimeout: number
+    maxQueryParamSize: number | null
+    restrictRuntimeImagesToOrigin: false | string[]
+  }
+
   app: {
     baseURL: string
   }

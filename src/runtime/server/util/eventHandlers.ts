@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
-import { createError, H3Error, setHeader } from 'h3'
+import { createError, getRequestHost, H3Error, setHeader } from 'h3'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
@@ -18,7 +18,27 @@ export async function imageEventHandler(e: H3Event) {
     return ctx
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
-  const { debug, baseCacheKey } = useOgImageRuntimeConfig()
+  const { debug, baseCacheKey, security } = useOgImageRuntimeConfig()
+
+  // Origin restriction: block runtime requests from unknown hosts
+  if (!import.meta.prerender && !import.meta.dev && security?.restrictRuntimeImagesToOrigin) {
+    const siteHost = new URL(getSiteConfig(e).url).host
+    const allowedHosts = [siteHost, ...security.restrictRuntimeImagesToOrigin.map((o) => {
+      try {
+        return new URL(o).host
+      }
+      catch {
+        return o
+      }
+    })]
+    const requestHost = getRequestHost(e, { xForwardedHost: true })
+    if (!requestHost || !allowedHosts.includes(requestHost)) {
+      return createError({
+        statusCode: 403,
+        statusMessage: '[Nuxt OG Image] Host not allowed.',
+      })
+    }
+  }
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
@@ -100,9 +120,23 @@ export async function imageEventHandler(e: H3Event) {
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
-    image = await renderer.createImage(ctx).catch((err: any) => {
+    const { security } = useOgImageRuntimeConfig()
+    const timeout = security?.renderTimeout || 15_000
+    let timer: ReturnType<typeof setTimeout> | undefined
+    image = await Promise.race([
+      renderer.createImage(ctx),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout)
+      }),
+    ]).catch((err: any) => {
+      if (err?.message?.includes('timed out')) {
+        logger.error(`renderer.createImage timeout for ${e.path}`)
+        return createError({ statusCode: 408, statusMessage: `[Nuxt OG Image] Request timed out while waiting for OG image render.` })
+      }
       logger.error(`renderer.createImage error for ${e.path}:`, err?.stack || err?.message || err)
       throw err
+    }).finally(() => {
+      clearTimeout(timer)
     })
     if (image instanceof H3Error)
       return image

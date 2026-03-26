@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
-import { extractOgImageUrl, fetchOgImage, fetchOgImages, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
+import { extractOgImageUrl, fetchOgImage, fetchOgImages, getImageDimensions, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -39,6 +39,23 @@ describe('takumi renderer', () => {
   it.runIf(!hasTakumi)('skips takumi tests when @takumi-rs/core not installed', () => {
     expect(true).toBe(true)
   })
+})
+
+// ── Security: dimension clamping (GHSA-c7xp-q6q8-hg76) ───────────────
+
+describe('dimension clamping', () => {
+  it('clamps oversized width/height query params to max dimension', async () => {
+    const html = await $fetch('/prefix/takumi') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const oversizedUrl = `${ogUrl}?width=20000&height=20000`
+    const image: ArrayBuffer = await $fetch(oversizedUrl, { responseType: 'arrayBuffer' })
+    const buf = Buffer.from(image)
+    expect(buf.length).toBeGreaterThan(0)
+    const dims = getImageDimensions(buf)
+    expect(dims.width).toBeLessThanOrEqual(2048)
+    expect(dims.height).toBeLessThanOrEqual(2048)
+  }, 60000)
 })
 
 // ── Renderer comparison: same component, satori vs takumi ───────────────
