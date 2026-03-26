@@ -93,10 +93,17 @@ function extractTopLevelKeys(body: string, re: RegExp): string[] {
   for (const ch of body) {
     if (ch === '{' || ch === '<' || ch === '(') {
       depth++
-      if (depth > 1) { flat += ' '; continue }
+      if (depth > 1) {
+        flat += ' '
+        continue
+      }
     }
     else if (ch === '}' || ch === '>' || ch === ')') {
-      if (depth > 1) { flat += ' '; depth--; continue }
+      if (depth > 1) {
+        flat += ' '
+        depth--
+        continue
+      }
       depth--
     }
     flat += depth <= 1 ? ch : ' '

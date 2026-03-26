@@ -1051,7 +1051,9 @@ export default defineNuxtModule<ModuleOptions>({
               })) {
                 return
               }
-              const communityFile = fs.readFileSync(filePath, 'utf-8')
+              const propNames = fs.statSync(filePath).isFile()
+                ? extractPropNamesFromVue(fs.readFileSync(filePath, 'utf-8'))
+                : []
               ogImageComponentCtx.components.push({
                 hash: '',
                 pascalName,
@@ -1059,7 +1061,7 @@ export default defineNuxtModule<ModuleOptions>({
                 path: filePath,
                 category: 'community',
                 renderer,
-                propNames: extractPropNamesFromVue(communityFile),
+                propNames,
               })
             })
         }
