@@ -40,10 +40,10 @@ function findBalanced(source: string, openChar: string, closeChar: string, start
 
 export function extractPropNamesFromVue(code: string): string[] {
   const match = RE_SCRIPT_SETUP.exec(code)
-  if (!match)
+  if (!match?.[1])
     return []
 
-  const src = match[1]
+  const src: string = match[1]
 
   const dpIndex = src.indexOf('defineProps')
   if (dpIndex === -1)
@@ -69,8 +69,8 @@ export function extractPropNamesFromVue(code: string): string[] {
     const names: string[] = []
     let m: RegExpExecArray | null
     // eslint-disable-next-line no-cond-assign
-    while (m = RE_ARRAY_ITEM.exec(trimmed))
-      names.push(m[1])
+    while ((m = RE_ARRAY_ITEM.exec(trimmed)))
+      names.push(m[1]!)
     RE_ARRAY_ITEM.lastIndex = 0
     return names
   }
@@ -111,8 +111,8 @@ function extractTopLevelKeys(body: string, re: RegExp): string[] {
 
   let m: RegExpExecArray | null
   // eslint-disable-next-line no-cond-assign
-  while (m = re.exec(flat))
-    keys.push(m[1])
+  while ((m = re.exec(flat)))
+    keys.push(m[1]!)
   re.lastIndex = 0
   return keys
 }
