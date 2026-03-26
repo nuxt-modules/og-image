@@ -122,11 +122,12 @@ export async function imageEventHandler(e: H3Event) {
   if (!image) {
     const { security } = useOgImageRuntimeConfig()
     const timeout = security?.renderTimeout || 15_000
+    let timer: ReturnType<typeof setTimeout> | undefined
     image = await Promise.race([
       renderer.createImage(ctx),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout),
-      ),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout)
+      }),
     ]).catch((err: any) => {
       if (err?.message?.includes('timed out')) {
         logger.error(`renderer.createImage timeout for ${e.path}`)
@@ -134,6 +135,8 @@ export async function imageEventHandler(e: H3Event) {
       }
       logger.error(`renderer.createImage error for ${e.path}:`, err?.stack || err?.message || err)
       throw err
+    }).finally(() => {
+      clearTimeout(timer)
     })
     if (image instanceof H3Error)
       return image

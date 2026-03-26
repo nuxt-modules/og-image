@@ -143,12 +143,16 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
   const options = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptionsInternal
 
-  // Clamp dimensions to prevent DoS via oversized image generation (GHSA-c7xp-q6q8-hg76)
+  // Clamp dimensions to prevent DoS via oversized image generation
   const maxDim = runtimeConfig.security?.maxDimension || 2048
-  if (typeof options.width === 'number')
-    options.width = Math.min(Math.max(1, options.width), maxDim)
-  if (typeof options.height === 'number')
-    options.height = Math.min(Math.max(1, options.height), maxDim)
+  if (options.width != null) {
+    const w = Number(options.width)
+    options.width = Number.isFinite(w) ? Math.min(Math.max(1, w), maxDim) : undefined
+  }
+  if (options.height != null) {
+    const h = Number(options.height)
+    options.height = Number.isFinite(h) ? Math.min(Math.max(1, h), maxDim) : undefined
+  }
 
   // Strip HTML event handlers and dangerous attributes from props (GHSA-mg36-wvcr-m75h)
   if (options.props && typeof options.props === 'object')

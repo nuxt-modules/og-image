@@ -135,12 +135,13 @@ export default defineTransformer([
       // avoid trying to fetch base64 image uris
       else if (!src.startsWith('data:')) {
         src = decodeHtml(src)
-        node.props.src = src
         // Block private/loopback URLs outside dev to prevent SSRF
         if (!import.meta.dev && isBlockedUrl(src)) {
           logger.warn(`Blocked internal image fetch: ${src}`)
+          delete node.props.src
         }
         else {
+          node.props.src = src
           // fetch remote images and embed as base64 to avoid satori re-fetching at render time
           imageBuffer = (await $fetch(src, {
             responseType: 'arrayBuffer',
