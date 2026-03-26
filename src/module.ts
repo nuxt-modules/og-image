@@ -35,6 +35,7 @@ import {
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
+import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
@@ -1005,6 +1006,10 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
+    // Pre-load the SFC compiler so extractPropNamesFromVue works synchronously
+    // inside the components:extend hook (which is itself synchronous)
+    await loadSfcCompiler()
+
     nuxt.hook('components:extend', (components) => {
       allNuxtComponents = components
       ogImageComponentCtx.components = []
@@ -1046,6 +1051,7 @@ export default defineNuxtModule<ModuleOptions>({
             ogImageComponentCtx.detectedRenderers.add(renderer)
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
+          const propNames = extractPropNamesFromVue(componentFile)
           ogImageComponentCtx.components.push({
             hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
@@ -1054,6 +1060,7 @@ export default defineNuxtModule<ModuleOptions>({
             category,
             credits,
             renderer,
+            propNames,
           })
         }
       })
@@ -1085,6 +1092,9 @@ export default defineNuxtModule<ModuleOptions>({
               })) {
                 return
               }
+              const propNames = fs.statSync(filePath).isFile()
+                ? extractPropNamesFromVue(fs.readFileSync(filePath, 'utf-8'))
+                : []
               ogImageComponentCtx.components.push({
                 hash: '',
                 pascalName,
@@ -1092,6 +1102,7 @@ export default defineNuxtModule<ModuleOptions>({
                 path: filePath,
                 category: 'community',
                 renderer,
+                propNames,
               })
             })
         }

@@ -96,6 +96,8 @@ export interface OgImageComponent {
   category: 'app' | 'community' | 'pro'
   credits?: string
   renderer: RendererType
+  /** Declared prop names extracted from defineProps at build time (used for prop whitelisting) */
+  propNames?: string[]
 }
 
 export interface ScreenshotOptions {

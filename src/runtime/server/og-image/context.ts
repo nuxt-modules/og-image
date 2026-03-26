@@ -16,6 +16,7 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
+import { logger } from '../../logger'
 import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps } from '../../shared'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
@@ -25,17 +26,19 @@ import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './inst
 
 const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
 
-export function resolvePathCacheKey(e: H3Event, path: string, includeQuery = false) {
+export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: Record<string, any>) {
   const siteConfig = getSiteConfig(e, {
     resolveRefs: true,
   })
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
-  const hashParts = [
+  const hashParts: any[] = [
     basePath,
     import.meta.prerender ? '' : siteConfig.url,
   ]
-  if (includeQuery)
-    hashParts.push(hash(getQuery(e)))
+  // Hash resolved options (not raw query string) so unknown/extra query params
+  // cannot produce unique cache keys and bypass the cache.
+  if (resolvedOptions)
+    hashParts.push(hash(resolvedOptions))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
     hash(hashParts),
@@ -168,6 +171,23 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Normalise options and get renderer from component metadata
   const normalised = normaliseOptions(options)
 
+  // Whitelist props: only allow props declared in the component's defineProps.
+  // Components without defineProps accept no props. Prevents cache key inflation
+  // from arbitrary query params (DoS vector).
+  if (normalised.component && normalised.options.props && typeof normalised.options.props === 'object') {
+    const allowedProps = normalised.component.propNames || []
+    const allowedSet = new Set(allowedProps)
+    const raw = normalised.options.props as Record<string, any>
+    const filtered: Record<string, any> = {}
+    for (const key of Object.keys(raw)) {
+      if (allowedSet.has(key))
+        filtered[key] = raw[key]
+      else if (import.meta.dev)
+        logger.warn(`[Nuxt OG Image] Prop "${key}" is not declared by component "${normalised.component.pascalName}" and was dropped. Declared props: ${allowedProps.join(', ')}`)
+    }
+    normalised.options.props = filtered
+  }
+
   // Auto-eject community templates in dev mode (skip devtools requests)
   if (normalised.component?.category === 'community')
     autoEjectCommunityTemplate(normalised.component, runtimeConfig, { requestPath: e.path })
@@ -177,7 +197,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // so use the options hash directly as cache key to avoid all hash-mode images sharing one cache entry.
   // Component hash is appended so template changes invalidate the runtime cache.
   const baseCacheKey = normalised.options.cacheKey
-    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams))
+    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, normalised.options))
   const key = componentHash ? `${baseCacheKey}:${componentHash}` : baseCacheKey
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
