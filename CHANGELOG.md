@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v6.2.1...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.1...main)
+
+### 🏡 Chore
+
+- Bump deps ([caf70605](https://github.com/nuxt-modules/og-image/commit/caf70605))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.2.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.0...main)

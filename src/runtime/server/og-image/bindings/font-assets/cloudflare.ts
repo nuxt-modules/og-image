@@ -9,6 +9,9 @@ export async function resolve(event: H3Event, font: FontConfig) {
   const fullPath = withBase(path, app.baseURL)
 
   // Try ASSETS binding first (Cloudflare Pages / Workers with static assets)
+  // This is the recommended approach and requires either:
+  // - nitro.cloudflare.deployConfig: true (generates wrangler.json with ASSETS binding)
+  // - A wrangler.toml/json with [assets] configured
   const assets = event.context.cloudflare?.env?.ASSETS || event.context.ASSETS
   if (assets && typeof assets.fetch === 'function') {
     const origin = event.context.cloudflare?.request?.url || `https://${event.headers.get('host') || 'localhost'}`
@@ -21,9 +24,6 @@ export async function resolve(event: H3Event, font: FontConfig) {
 
   // Fallback: use event.fetch (Nitro localFetch) which routes through the h3 app
   // and can serve public assets from Nitro's built-in asset handler.
-  // This is needed for Workers Static Assets (WSA) deployments where the ASSETS
-  // binding is not injected into env (assets are served at the runtime level
-  // before the worker's fetch runs).
   if (typeof event.fetch === 'function') {
     const origin = event.context.cloudflare?.request?.url || `https://${event.headers.get('host') || 'localhost'}`
     const url = new URL(fullPath, origin).href
@@ -33,5 +33,14 @@ export async function resolve(event: H3Event, font: FontConfig) {
     }
   }
 
-  throw new Error(`[Nuxt OG Image] Cannot resolve font "${font.family}" on Cloudflare Workers: no ASSETS binding or event.fetch available. Ensure static assets are configured.`)
+  if (!assets && !event.context._ogImageWarnedMissingAssets) {
+    event.context._ogImageWarnedMissingAssets = true
+    console.warn(
+      `[Nuxt OG Image] No ASSETS binding found on Cloudflare Workers. Font loading will fail. `
+      + `To fix this, add \`nitro: { cloudflare: { deployConfig: true } }\` to your nuxt.config `
+      + `and deploy with \`npx wrangler --cwd .output deploy\` instead of using the --assets flag.`,
+    )
+  }
+
+  throw new Error(`[Nuxt OG Image] Cannot resolve font "${font.family}" on Cloudflare Workers: no ASSETS binding available (path: ${fullPath}).`)
 }
