@@ -1,6 +1,29 @@
 # Changelog
 
 
+## v6.2.4...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.4...main)
+
+### 🩹 Fixes
+
+- Hydration-issue warning due to SSR generated DateTime value ([#535](https://github.com/nuxt-modules/og-image/pull/535))
+- Sanitize component props ([#543](https://github.com/nuxt-modules/og-image/pull/543))
+- Harden security defaults ([#540](https://github.com/nuxt-modules/og-image/pull/540))
+- Whitelist component props to prevent cache key DoS ([#544](https://github.com/nuxt-modules/og-image/pull/544))
+
+### 🏡 Chore
+
+- Bump deps ([a8a65b66](https://github.com/nuxt-modules/og-image/commit/a8a65b66))
+- Bump deps ([bcad7915](https://github.com/nuxt-modules/og-image/commit/bcad7915))
+- Artifact ([284540a7](https://github.com/nuxt-modules/og-image/commit/284540a7))
+- Sync ([e7deb1f7](https://github.com/nuxt-modules/og-image/commit/e7deb1f7))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+- Loïs Bégué ([@khatastroffik](https://github.com/khatastroffik))
+
 ## v6.2.2...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.2...main)

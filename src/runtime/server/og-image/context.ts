@@ -174,16 +174,19 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Whitelist props: only allow props declared in the component's defineProps.
   // Components without defineProps accept no props. Prevents cache key inflation
   // from arbitrary query params (DoS vector).
+  // colorMode and timestamp are always allowed: colorMode is used by the renderer
+  // (styleDirectives, html template) and timestamp is a devtools cache-buster.
   if (normalised.component && normalised.options.props && typeof normalised.options.props === 'object') {
+    const builtinProps = new Set(['colorMode', 'timestamp'])
     const allowedProps = normalised.component.propNames || []
     const allowedSet = new Set(allowedProps)
     const raw = normalised.options.props as Record<string, any>
     const filtered: Record<string, any> = {}
     for (const key of Object.keys(raw)) {
-      if (allowedSet.has(key))
+      if (allowedSet.has(key) || builtinProps.has(key))
         filtered[key] = raw[key]
       else if (import.meta.dev)
-        logger.warn(`[Nuxt OG Image] Prop "${key}" is not declared by component "${normalised.component.pascalName}" and was dropped. Declared props: ${allowedProps.join(', ')}`)
+        logger.warn(`[Nuxt OG Image] Prop "${key}" is not declared by component "${normalised.component.pascalName}". Declared props: ${allowedProps.join(', ')}`)
     }
     normalised.options.props = filtered
   }
