@@ -4,7 +4,6 @@ import type { GlobalDebugResponse, PathDebugResponse } from './composables/types
 import { computed, provide, useAsyncData, useNuxtApp, useRoute, watch } from '#imports'
 import defu from 'defu'
 import { appFetch } from 'nuxtseo-layer-devtools/composables/rpc'
-
 import { loadShiki } from 'nuxtseo-layer-devtools/composables/shiki'
 import { path, productionUrl, query, refreshTime } from 'nuxtseo-layer-devtools/composables/state'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
@@ -14,7 +13,6 @@ import RendererSelectModal from './components/RendererSelectModal.vue'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
 import { useOgImage } from './composables/og-image'
 import { ogImageKey, options, optionsOverrides } from './util/logic'
-import 'vanilla-jsoneditor/themes/jse-theme-dark.css'
 
 const RE_IMAGE_EXT = /\.(png|jpeg|jpg|webp)$/
 

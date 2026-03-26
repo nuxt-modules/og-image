@@ -30,7 +30,6 @@ catalog:
   '@nuxt/content': ^3.12.0
   '@nuxt/devtools': ^3.2.4
   '@nuxt/devtools-kit': ^3.2.4
-  '@nuxt/devtools-ui-kit': ^3.2.4
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
@@ -75,8 +74,8 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
   nuxt-site-config: ^4.0.6
-  nuxtseo-layer-devtools: ^0.4.0
-  nuxtseo-shared: ^0.8.0
+  nuxtseo-layer-devtools: ^0.4.4
+  nuxtseo-shared: ^0.8.1
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -110,14 +109,12 @@ catalog:
 catalogs:
   devtools:
     '@iconify-json/simple-icons': ^1.2.75
-    json-editor-vue: ^0.18.1
     shiki: ^4.0.2
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
   - better-sqlite3
   - esbuild
-  - json-editor-vue
   - sharp
   - unrs-resolver
   - vue-demi

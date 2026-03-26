@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import JsonEditorVue from 'json-editor-vue'
 import { useHead } from 'nuxt/app'
 import { hasProductionUrl, previewSource, productionUrl } from 'nuxtseo-layer-devtools/composables/state'
 import { withHttps } from 'ufo'
@@ -10,6 +9,27 @@ import { isConnectionFailed, isFallbackMode } from '../composables/rpc'
 
 const RE_SINGLE_QUOTE = /'/g
 const RE_VUE_FILENAME = /[^/]+\.vue$/
+const RE_HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i
+
+const EXCLUDED_PROPS = new Set(['colorMode'])
+const editableProps = computed(() =>
+  Object.keys(propEditor.value).filter(k => !EXCLUDED_PROPS.has(k)),
+)
+
+function editProp(key: string, value: unknown) {
+  propEditor.value = { ...propEditor.value, [key]: value }
+  updateProps({ [key]: value })
+}
+
+function inferPropType(value: unknown): 'color' | 'number' | 'json' | 'string' {
+  if (typeof value === 'number')
+    return 'number'
+  if (typeof value === 'string' && RE_HEX_COLOR.test(value))
+    return 'color'
+  if (typeof value === 'string')
+    return 'string'
+  return 'json'
+}
 
 const {
   globalDebug,
@@ -953,13 +973,45 @@ const productionHostname = computed(() => {
               </UButton>
             </div>
 
-            <JsonEditorVue
-              :model-value="propEditor"
-              class="jse-theme-dark"
-              :main-menu-bar="false"
-              :navigation-bar="false"
-              @update:model-value="updateProps"
-            />
+            <div v-if="editableProps.length" class="prop-editor">
+              <div v-for="key in editableProps" :key="key" class="prop-field">
+                <label class="prop-label">{{ key }}</label>
+                <input
+                  v-if="inferPropType(propEditor[key]) === 'color'"
+                  type="color"
+                  :value="propEditor[key]"
+                  class="prop-input prop-input-color"
+                  @input="editProp(key, ($event.target as HTMLInputElement).value)"
+                >
+                <input
+                  v-else-if="inferPropType(propEditor[key]) === 'number'"
+                  type="number"
+                  :value="propEditor[key]"
+                  class="prop-input"
+                  @input="editProp(key, Number(($event.target as HTMLInputElement).value))"
+                >
+                <textarea
+                  v-else-if="inferPropType(propEditor[key]) === 'json'"
+                  :value="JSON.stringify(propEditor[key], null, 2)"
+                  class="prop-input prop-input-json"
+                  rows="3"
+                  @change="(() => {
+                    try { editProp(key, JSON.parse(($event.target as HTMLTextAreaElement).value)) }
+                    catch {}
+                  })()"
+                />
+                <input
+                  v-else
+                  type="text"
+                  :value="propEditor[key]"
+                  class="prop-input"
+                  @input="editProp(key, ($event.target as HTMLInputElement).value)"
+                >
+              </div>
+            </div>
+            <div v-else class="prop-editor-empty">
+              No props defined
+            </div>
           </div>
 
           <!-- Fonts Tab -->
@@ -1552,6 +1604,63 @@ const productionHostname = computed(() => {
 }
 
 .fonts-empty {
+  padding: 1rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+/* Prop editor */
+.prop-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.prop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.prop-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-subtle);
+  letter-spacing: 0.01em;
+}
+
+.prop-input {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 150ms;
+}
+
+.prop-input:focus {
+  border-color: var(--seo-green);
+}
+
+.prop-input-color {
+  width: 2.5rem;
+  height: 1.5rem;
+  padding: 0.125rem;
+  cursor: pointer;
+}
+
+.prop-input-json {
+  resize: vertical;
+  min-height: 2.5rem;
+  line-height: 1.4;
+}
+
+.prop-editor-empty {
   padding: 1rem 0.75rem;
   font-size: 0.75rem;
   color: var(--color-text-subtle);

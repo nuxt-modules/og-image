@@ -158,7 +158,6 @@
     "@img/sharp-linux-x64": "catalog:",
     "@nuxt/content": "catalog:",
     "@nuxt/devtools": "catalog:",
-    "@nuxt/devtools-ui-kit": "catalog:",
     "@nuxt/fonts": "catalog:",
     "@nuxt/icon": "catalog:",
     "@nuxt/image": "catalog:",

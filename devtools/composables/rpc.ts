@@ -3,7 +3,7 @@ import type { BirpcReturn } from 'birpc'
 import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
 import { appFetch, useDevtoolsConnection } from 'nuxtseo-layer-devtools/composables/rpc'
 import { base, path, query, refreshSources } from 'nuxtseo-layer-devtools/composables/state'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 export const devtoolsClient = ref<NuxtDevtoolsIframeClient>()
 
@@ -28,24 +28,32 @@ async function tryFallbackConnection() {
   return false
 }
 
+let timer: null | NodeJS.Timeout = null
+
 // Set timeout for connection - if not connected within 2s, try fallback
 onMounted(() => {
-  const timer = setTimeout(async () => {
+  timer = setTimeout(async () => {
     if (connectionState.value === 'connecting') {
       const fallbackWorked = await tryFallbackConnection()
       if (!fallbackWorked) {
         connectionState.value = 'failed'
       }
     }
+    timer = null
   }, 2000)
 
   onUnmounted(() => {
-    clearTimeout(timer)
+    if (timer) {
+      clearTimeout(timer)
+    }
   })
 })
 
 useDevtoolsConnection({
   onConnected(client) {
+    if (timer) {
+      clearTimeout(timer)
+    }
     connectionState.value = 'connected'
     base.value = client.host.nuxt.vueApp.config.globalProperties?.$router?.options?.history?.base || client.host.app.baseURL || '/'
     devtoolsClient.value = client

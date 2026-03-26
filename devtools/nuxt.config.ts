@@ -22,7 +22,6 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: [
         '@vueuse/core',
-        'json-editor-vue',
       ],
     },
   },
