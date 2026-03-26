@@ -48,6 +48,7 @@ catalog:
   '@tailwindcss/vite': ^4.2.2
   '@takumi-rs/core': 1.0.0-beta.13
   '@takumi-rs/wasm': 1.0.0-beta.13
+  '@unocss/nuxt': ^66.6.7
   '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.31
   '@vueuse/core': ^14.2.1
@@ -99,6 +100,7 @@ catalog:
   ufo: ^1.6.3
   ultrahtml: ^1.6.0
   unifont: ^0.7.4
+  unocss: ^66.6.7
   unplugin: ^3.0.0
   vitest: ^4.1.1
   vue: ^3.5.31
