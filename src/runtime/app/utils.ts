@@ -184,10 +184,6 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
   // Build URL with encoded options (Cloudinary-style)
   // Include _path so the server knows which page to render
   // Pass defaults to skip encoding default values in URL
-  // For dynamic images, append build ID to bust external platform caches (Telegram, Facebook, etc.)
-  if (!isStatic && runtimeConfig.app.buildId) {
-    path = withQuery(path, { _v: runtimeConfig.app.buildId })
-  }
   const result = buildOgImageUrl(options, extension, isStatic, defaults)
   const path = joinURL('/', baseURL, result.url)
   return {
