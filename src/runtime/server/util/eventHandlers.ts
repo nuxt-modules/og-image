@@ -24,8 +24,12 @@ export async function imageEventHandler(e: H3Event) {
   if (!import.meta.prerender && !import.meta.dev && security?.restrictRuntimeImagesToOrigin) {
     const siteHost = new URL(getSiteConfig(e).url).host
     const allowedHosts = [siteHost, ...security.restrictRuntimeImagesToOrigin.map((o) => {
-      try { return new URL(o).host }
-      catch { return o }
+      try {
+        return new URL(o).host
+      }
+      catch {
+        return o
+      }
     })]
     const requestHost = getRequestHost(e, { xForwardedHost: true })
     if (!requestHost || !allowedHosts.includes(requestHost)) {
