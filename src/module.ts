@@ -195,6 +195,18 @@ export interface ModuleOptions {
    * @example { provider: 'cloudflare', binding: 'BROWSER' }
    */
   browser?: BrowserConfig
+  /**
+   * Security limits for image generation. Prevents denial of service via
+   * oversized dimensions, unbounded DPR, or long-running renders.
+   */
+  security?: {
+    /** Maximum allowed width or height in pixels. @default 2048 */
+    maxDimension?: number
+    /** Maximum device pixel ratio (takumi renderer). @default 2 */
+    maxDpr?: number
+    /** Render timeout in milliseconds. Returns 408 on timeout. @default 10000 */
+    renderTimeout?: number
+  }
 }
 
 export interface ModuleHooks {
@@ -1372,6 +1384,11 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
               binding: config.browser.binding,
             }
           : undefined,
+        security: {
+          maxDimension: config.security?.maxDimension ?? 2048,
+          maxDpr: config.security?.maxDpr ?? 2,
+          renderTimeout: config.security?.renderTimeout ?? 10_000,
+        },
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

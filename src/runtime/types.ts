@@ -65,6 +65,12 @@ export interface OgImageRuntimeConfig {
     binding?: string
   }
 
+  security: {
+    maxDimension: number
+    maxDpr: number
+    renderTimeout: number
+  }
+
   app: {
     baseURL: string
   }

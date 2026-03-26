@@ -100,7 +100,18 @@ export async function imageEventHandler(e: H3Event) {
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
-    image = await renderer.createImage(ctx).catch((err: any) => {
+    const { security } = useOgImageRuntimeConfig()
+    const timeout = security?.renderTimeout || 10_000
+    image = await Promise.race([
+      renderer.createImage(ctx),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout),
+      ),
+    ]).catch((err: any) => {
+      if (err?.message?.includes('timed out')) {
+        logger.error(`renderer.createImage timeout for ${e.path}`)
+        return createError({ statusCode: 408, statusMessage: `[Nuxt OG Image] Render timed out.` })
+      }
       logger.error(`renderer.createImage error for ${e.path}:`, err?.stack || err?.message || err)
       throw err
     })

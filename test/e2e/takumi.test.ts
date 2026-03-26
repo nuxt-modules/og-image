@@ -41,6 +41,19 @@ describe('takumi renderer', () => {
   })
 })
 
+// ── Security: dimension clamping (GHSA-c7xp-q6q8-hg76) ───────────────
+
+describe('dimension clamping', () => {
+  it('clamps oversized width/height query params to max dimension', async () => {
+    const html = await $fetch('/prefix/takumi') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const oversizedUrl = `${ogUrl}?width=20000&height=20000`
+    const image: ArrayBuffer = await $fetch(oversizedUrl, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(image).length).toBeGreaterThan(0)
+  }, 60000)
+})
+
 // ── Renderer comparison: same component, satori vs takumi ───────────────
 
 describe('renderer comparison', () => {

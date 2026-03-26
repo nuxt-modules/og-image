@@ -8,6 +8,18 @@ import { logger } from '../../../util/logger'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
+const RE_PRIVATE_IP = /^(?:127\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.|0\.|169\.254\.|::1|fc00:|fd00:|fe80:)/i
+
+function isLoopbackUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname
+    return RE_PRIVATE_IP.test(hostname) || hostname === 'localhost'
+  }
+  catch {
+    return false
+  }
+}
+
 const RE_URL_LEADING = /^url\(['"]?/
 const RE_URL_TRAILING = /['"]?\)$/
 
@@ -71,14 +83,20 @@ export default defineTransformer([
       else if (!src.startsWith('data:')) {
         src = decodeHtml(src)
         node.props.src = src
-        // fetch remote images and embed as base64 to avoid satori re-fetching at render time
-        imageBuffer = (await $fetch(src, {
-          responseType: 'arrayBuffer',
-        })
-          .catch(() => {})) as BufferSource | undefined
-        if (imageBuffer) {
-          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-          node.props.src = toBase64Image(buffer)
+        // Block private/loopback URLs outside dev to prevent SSRF
+        if (!import.meta.dev && isLoopbackUrl(src)) {
+          logger.warn(`Blocked loopback image fetch: ${src}`)
+        }
+        else {
+          // fetch remote images and embed as base64 to avoid satori re-fetching at render time
+          imageBuffer = (await $fetch(src, {
+            responseType: 'arrayBuffer',
+          })
+            .catch(() => {})) as BufferSource | undefined
+          if (imageBuffer) {
+            const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+            node.props.src = toBase64Image(buffer)
+          }
         }
       }
 
@@ -147,9 +165,15 @@ export default defineTransformer([
         }
       }
       else {
-        imageBuffer = (await $fetch(decodeHtml(src), {
-          responseType: 'arrayBuffer',
-        }).catch(() => {})) as BufferSource | undefined
+        const decodedSrc = decodeHtml(src)
+        if (!import.meta.dev && isLoopbackUrl(decodedSrc)) {
+          logger.warn(`Blocked loopback background-image fetch: ${decodedSrc}`)
+        }
+        else {
+          imageBuffer = (await $fetch(decodedSrc, {
+            responseType: 'arrayBuffer',
+          }).catch(() => {})) as BufferSource | undefined
+        }
       }
       if (imageBuffer) {
         const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
