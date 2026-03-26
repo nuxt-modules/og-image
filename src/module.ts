@@ -35,7 +35,7 @@ import {
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
-import { extractPropNamesFromVue } from './build/props'
+import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
@@ -968,6 +968,10 @@ export default defineNuxtModule<ModuleOptions>({
         })
       }
     }
+
+    // Pre-load the SFC compiler so extractPropNamesFromVue works synchronously
+    // inside the components:extend hook (which is itself synchronous)
+    await loadSfcCompiler()
 
     nuxt.hook('components:extend', (components) => {
       allNuxtComponents = components

@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { extractPropNamesFromVue } from '../../src/build/props'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { extractPropNamesFromVue, loadSfcCompiler } from '../../src/build/props'
 
 describe('extractPropNamesFromVue', () => {
+  beforeAll(async () => {
+    await loadSfcCompiler()
+  })
+
   it('extracts from TypeScript generic defineProps', () => {
     const code = `
 <script setup lang="ts">
@@ -109,7 +113,7 @@ const msg = 'hello'
     expect(extractPropNamesFromVue(code)).toEqual([])
   })
 
-  it('handles withDefaults wrapping runtime object', () => {
+  it('returns empty for invalid withDefaults + runtime object (Vue compiler rejects this)', () => {
     const code = `
 <script setup>
 withDefaults(defineProps({
@@ -121,6 +125,7 @@ withDefaults(defineProps({
 })
 </script>
 <template><div /></template>`
-    expect(extractPropNamesFromVue(code)).toEqual(['title', 'color'])
+    // withDefaults only works with type-based defineProps; compiler throws
+    expect(extractPropNamesFromVue(code)).toEqual([])
   })
 })
