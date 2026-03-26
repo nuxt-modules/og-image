@@ -144,10 +144,11 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   // Default to 1x DPR for consistent output with satori (1200x600).
   // Users can set `takumi.devicePixelRatio: 2` in defineOgImage options for higher resolution.
-  const dpr = options.takumi?.devicePixelRatio ?? 1
+  const dpr = Math.min(Math.max(1, options.takumi?.devicePixelRatio ?? 1), 2)
+  const maxDim = event.runtimeConfig.maxDimension || 2048
   const renderOptions = defu(options.takumi, {
-    width: Number(options.width) * dpr,
-    height: Number(options.height) * dpr,
+    width: Math.min(Number(options.width) * dpr, maxDim),
+    height: Math.min(Number(options.height) * dpr, maxDim),
     format,
     fetchedResources,
     devicePixelRatio: dpr,

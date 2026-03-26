@@ -195,6 +195,20 @@ export interface ModuleOptions {
    * @example { provider: 'cloudflare', binding: 'BROWSER' }
    */
   browser?: BrowserConfig
+  /**
+   * Maximum allowed width or height in pixels for generated images.
+   * Prevents DoS via oversized dimension parameters.
+   *
+   * @default 2048
+   */
+  maxDimension?: number
+  /**
+   * Timeout in milliseconds for image rendering.
+   * If rendering exceeds this limit, the request returns a 408 error.
+   *
+   * @default 30000
+   */
+  renderTimeout?: number
 }
 
 export interface ModuleHooks {
@@ -1372,6 +1386,8 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
               binding: config.browser.binding,
             }
           : undefined,
+        maxDimension: config.maxDimension ?? 2048,
+        renderTimeout: config.renderTimeout ?? 30_000,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs

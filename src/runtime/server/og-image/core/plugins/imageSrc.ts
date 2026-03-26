@@ -1,10 +1,12 @@
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { getNitroOrigin } from '#site-config/server/composables/getNitroOrigin'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
 import { logger } from '../../../util/logger'
+import { validateExternalUrl } from '../../../util/security'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
@@ -71,14 +73,20 @@ export default defineTransformer([
       else if (!src.startsWith('data:')) {
         src = decodeHtml(src)
         node.props.src = src
-        // fetch remote images and embed as base64 to avoid satori re-fetching at render time
-        imageBuffer = (await $fetch(src, {
-          responseType: 'arrayBuffer',
-        })
-          .catch(() => {})) as BufferSource | undefined
-        if (imageBuffer) {
-          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-          node.props.src = toBase64Image(buffer)
+        const siteUrl = getSiteConfig(e).url
+        if (!validateExternalUrl(src, siteUrl)) {
+          logger.warn(`Blocked external image fetch (not same-origin): ${src}`)
+        }
+        else {
+          // fetch remote images and embed as base64 to avoid satori re-fetching at render time
+          imageBuffer = (await $fetch(src, {
+            responseType: 'arrayBuffer',
+          })
+            .catch(() => {})) as BufferSource | undefined
+          if (imageBuffer) {
+            const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
+            node.props.src = toBase64Image(buffer)
+          }
         }
       }
 
@@ -147,9 +155,16 @@ export default defineTransformer([
         }
       }
       else {
-        imageBuffer = (await $fetch(decodeHtml(src), {
-          responseType: 'arrayBuffer',
-        }).catch(() => {})) as BufferSource | undefined
+        const decodedSrc = decodeHtml(src)
+        const siteUrl = getSiteConfig(e).url
+        if (!validateExternalUrl(decodedSrc, siteUrl)) {
+          logger.warn(`Blocked external background-image fetch (not same-origin): ${decodedSrc}`)
+        }
+        else {
+          imageBuffer = (await $fetch(decodedSrc, {
+            responseType: 'arrayBuffer',
+          }).catch(() => {})) as BufferSource | undefined
+        }
       }
       if (imageBuffer) {
         const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer

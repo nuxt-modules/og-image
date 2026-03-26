@@ -41,6 +41,22 @@ describe('takumi renderer', () => {
   })
 })
 
+// ── Dimension clamping (GHSA-c7xp-q6q8-hg76) ─────────────────────────
+
+describe('dimension clamping', () => {
+  it('clamps oversized width/height query params to max dimension', async () => {
+    // Fetch the takumi page to get the base OG image URL
+    const html = await $fetch('/prefix/takumi') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    // Append oversized dimensions via query params
+    const oversizedUrl = `${ogUrl}?width=20000&height=20000`
+    // Should succeed (clamped to 4096) rather than OOM/crash
+    const image: ArrayBuffer = await $fetch(oversizedUrl, { responseType: 'arrayBuffer' })
+    expect(Buffer.from(image).length).toBeGreaterThan(0)
+  }, 60000)
+})
+
 // ── Renderer comparison: same component, satori vs takumi ───────────────
 
 describe('renderer comparison', () => {

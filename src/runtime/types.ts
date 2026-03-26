@@ -64,6 +64,10 @@ export interface OgImageRuntimeConfig {
     provider?: BrowserProvider
     binding?: string
   }
+  /** Maximum allowed width or height in pixels */
+  maxDimension: number
+  /** Timeout in milliseconds for image rendering */
+  renderTimeout: number
 
   app: {
     baseURL: string

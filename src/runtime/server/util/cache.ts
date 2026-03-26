@@ -34,7 +34,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         value: null,
         expiresAt: Date.now(),
       })) as any
-      if (typeof getQuery(ctx.e).purge !== 'undefined') {
+      if (import.meta.dev && typeof getQuery(ctx.e).purge !== 'undefined') {
         await cache.removeItem(key).catch(() => {
         })
       }

@@ -25,17 +25,19 @@ import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './inst
 
 const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
 
-export function resolvePathCacheKey(e: H3Event, path: string, includeQuery = false) {
+export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: Record<string, any>) {
   const siteConfig = getSiteConfig(e, {
     resolveRefs: true,
   })
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
-  const hashParts = [
+  const hashParts: any[] = [
     basePath,
     import.meta.prerender ? '' : siteConfig.url,
   ]
-  if (includeQuery)
-    hashParts.push(hash(getQuery(e)))
+  // Hash resolved options (not raw query string) so unknown/extra query params
+  // cannot produce unique cache keys and bypass the cache.
+  if (resolvedOptions)
+    hashParts.push(hash(resolvedOptions))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
     hash(hashParts),
@@ -95,11 +97,25 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Also support query params for backwards compat and dynamic overrides
   const query = getQuery(e)
   let queryParams: Record<string, any> = {}
+
+  // Cap total query string size to prevent oversized payloads
+  const MAX_QUERY_LENGTH = 2048
+  const MAX_JSON_VALUE_LENGTH = 4096
+  const rawQuery = e.path.split('?')[1] || ''
+  if (rawQuery.length > MAX_QUERY_LENGTH) {
+    return createError({
+      statusCode: 400,
+      statusMessage: `[Nuxt OG Image] Query string exceeds maximum length of ${MAX_QUERY_LENGTH} characters.`,
+    })
+  }
+
   for (const k in query) {
     const v = String(query[k])
     if (!v)
       continue
     if (v.startsWith('{')) {
+      if (v.length > MAX_JSON_VALUE_LENGTH)
+        continue // silently drop oversized JSON values
       try {
         queryParams[k] = JSON.parse(v)
       }
@@ -131,6 +147,17 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
   const options = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptionsInternal
 
+  // Clamp dimensions to prevent DoS via excessively large image generation (GHSA-c7xp-q6q8-hg76)
+  const maxDim = runtimeConfig.maxDimension || 2048
+  if (typeof options.width === 'number')
+    options.width = Math.min(Math.max(1, options.width), maxDim)
+  if (typeof options.height === 'number')
+    options.height = Math.min(Math.max(1, options.height), maxDim)
+
+  // Cap screenshot.delay to prevent indefinite waits (max 10s)
+  if (options.screenshot?.delay != null)
+    options.screenshot.delay = Math.min(Math.max(0, Number(options.screenshot.delay) || 0), 10_000)
+
   if (!options) {
     return createError({
       statusCode: 404,
@@ -146,11 +173,12 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     autoEjectCommunityTemplate(normalised.component, runtimeConfig, { requestPath: e.path })
 
   const rendererType = normalised.renderer
-  // In hash mode, basePath is always '/' (since _path isn't in the prerender cache payload),
-  // so use the options hash directly as cache key to avoid all hash-mode images sharing one cache entry.
+  // Cache key is derived from resolved options, not raw query string.
+  // This prevents cache bypass via unknown query params (?v=uuid, etc.)
+  // In hash mode, basePath is always '/' so use the options hash directly.
   // Component hash is appended so template changes invalidate the runtime cache.
   const baseCacheKey = normalised.options.cacheKey
-    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams))
+    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, normalised.options))
   const key = componentHash ? `${baseCacheKey}:${componentHash}` : baseCacheKey
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
