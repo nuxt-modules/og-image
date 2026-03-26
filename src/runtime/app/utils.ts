@@ -168,7 +168,7 @@ export interface GetOgImagePathResult {
 /**
  * @deprecated Use the return value of `defineOgImage()` instead, which now returns an array of generated paths.
  */
-export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptions>): GetOgImagePathResult {
+export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
   const runtimeConfig = useRuntimeConfig()
   const baseURL = runtimeConfig.app.baseURL
   const { defaults } = useOgImageRuntimeConfig()
@@ -177,7 +177,7 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
   const options: Record<string, any> = { ..._options, _path: _pagePath }
   // Include the component template hash so that template changes produce different URLs,
   // busting CDN/build caches (Vercel, social platform crawlers like Twitter/Facebook, etc.)
-  const componentName = _options?.component || defaults?.component || componentNames?.[0]?.pascalName
+  const componentName = _options?.component || componentNames?.[0]?.pascalName
   const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
   if (component?.hash)
     options._componentHash = component.hash
