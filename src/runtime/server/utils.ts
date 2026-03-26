@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import type { OgImageComponent, OgImageOptions, OgImageOptionsInternal, OgImageRuntimeConfig } from '../types'
+import type { OgImageComponent, OgImageOptionsInternal, OgImageRuntimeConfig } from '../types'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { joinURL } from 'ufo'
