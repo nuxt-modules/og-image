@@ -204,7 +204,7 @@ export interface ModuleOptions {
     maxDimension?: number
     /** Maximum device pixel ratio (takumi renderer). @default 2 */
     maxDpr?: number
-    /** Render timeout in milliseconds. Returns 408 on timeout. @default 10000 */
+    /** Render timeout in milliseconds. Returns 408 on timeout. @default 15000 */
     renderTimeout?: number
     /**
      * Maximum allowed length (in characters) for the query string on runtime OG image requests.
@@ -1412,7 +1412,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
         security: {
           maxDimension: config.security?.maxDimension ?? 2048,
           maxDpr: config.security?.maxDpr ?? 2,
-          renderTimeout: config.security?.renderTimeout ?? 10_000,
+          renderTimeout: config.security?.renderTimeout ?? 15_000,
           maxQueryParamSize: config.security?.maxQueryParamSize ?? null,
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true
             ? []

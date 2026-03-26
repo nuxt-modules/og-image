@@ -121,7 +121,7 @@ export async function imageEventHandler(e: H3Event) {
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
     const { security } = useOgImageRuntimeConfig()
-    const timeout = security?.renderTimeout || 10_000
+    const timeout = security?.renderTimeout || 15_000
     image = await Promise.race([
       renderer.createImage(ctx),
       new Promise<never>((_, reject) =>
