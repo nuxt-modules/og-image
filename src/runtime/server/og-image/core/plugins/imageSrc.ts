@@ -222,6 +222,7 @@ export default defineTransformer([
         const decodedSrc = decodeHtml(src)
         if (!import.meta.dev && isBlockedUrl(decodedSrc)) {
           logger.warn(`Blocked internal background-image fetch: ${decodedSrc}`)
+          delete node.props.style!.backgroundImage
         }
         else {
           imageBuffer = (await $fetch(decodedSrc, {
