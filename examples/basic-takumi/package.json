@@ -13,7 +13,7 @@
     "@takumi-rs/core": "^1.0.0-beta.20",
     "nuxt": "^4.4.2",
     "nuxt-og-image": "latest",
-    "nuxt-site-config": "^4.0.6",
+    "nuxt-site-config": "^4.0.7",
     "tailwindcss": "^4.2.2",
     "vue": "^3.5.31"
   }
