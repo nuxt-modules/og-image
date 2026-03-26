@@ -393,6 +393,51 @@ describe('urlEncoding', () => {
     })
   })
 
+  describe('_componentHash cache busting', () => {
+    it('encodes _componentHash as ch alias', () => {
+      const encoded = encodeOgImageParams({ props: { title: 'Hello' }, _componentHash: 'abc123' })
+      expect(encoded).toContain('ch_abc123')
+      expect(encoded).toContain('title_Hello')
+    })
+
+    it('different _componentHash produces different URL', () => {
+      const url1 = buildOgImageUrl({ props: { title: 'Hello' }, _componentHash: 'hash1' }, 'png', true)
+      const url2 = buildOgImageUrl({ props: { title: 'Hello' }, _componentHash: 'hash2' }, 'png', true)
+      expect(url1.url).not.toBe(url2.url)
+    })
+
+    it('same _componentHash produces same URL', () => {
+      const url1 = buildOgImageUrl({ props: { title: 'Hello' }, _componentHash: 'hash1' }, 'png', true)
+      const url2 = buildOgImageUrl({ props: { title: 'Hello' }, _componentHash: 'hash1' }, 'png', true)
+      expect(url1.url).toBe(url2.url)
+    })
+
+    it('decodes _componentHash as known param (not as prop)', () => {
+      const encoded = encodeOgImageParams({ props: { title: 'Hello' }, _componentHash: 'abc123' })
+      const decoded = decodeOgImageParams(encoded)
+      expect(decoded._componentHash).toBe('abc123')
+      expect(decoded.props?.ch).toBeUndefined()
+      expect(decoded.props?._componentHash).toBeUndefined()
+    })
+
+    it('_componentHash affects hash mode URLs too', () => {
+      const longTitle = 'A'.repeat(250)
+      const opts1 = { props: { title: longTitle }, _componentHash: 'hash1' }
+      const opts2 = { props: { title: longTitle }, _componentHash: 'hash2' }
+      const result1 = buildOgImageUrl(opts1, 'png', true)
+      const result2 = buildOgImageUrl(opts2, 'png', true)
+      expect(result1.hash).toBeDefined()
+      expect(result2.hash).toBeDefined()
+      expect(result1.hash).not.toBe(result2.hash)
+    })
+
+    it('_componentHash included in hashOgImageOptions (not excluded like _path)', () => {
+      const hash1 = hashOgImageOptions({ width: 1200, _componentHash: 'hash1' })
+      const hash2 = hashOgImageOptions({ width: 1200, _componentHash: 'hash2' })
+      expect(hash1).not.toBe(hash2)
+    })
+  })
+
   describe('non-ASCII encode/decode roundtrip', () => {
     function roundtrip(props: Record<string, any>) {
       const encoded = encodeOgImageParams({ props })

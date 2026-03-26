@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
-import type { OgImageOptions, OgImageRuntimeConfig } from '../types'
+import type { OgImageComponent, OgImageOptions, OgImageRuntimeConfig } from '../types'
+import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { joinURL } from 'ufo'
 import { buildOgImageUrl } from '../shared'
@@ -14,9 +15,16 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
   const { defaults } = useOgImageRuntimeConfig()
   const extension = _options?.extension || defaults.extension
   const isStatic = import.meta.prerender
+  const options: Record<string, any> = { ..._options, _path: _pagePath }
+  // Include the component template hash so that template changes produce different URLs,
+  // busting CDN/build caches (Vercel, social platform crawlers like Twitter/Facebook, etc.)
+  const componentName = _options?.component || defaults.component || (componentNames as OgImageComponent[])?.[0]?.pascalName
+  const component = (componentNames as OgImageComponent[])?.find(c => c.pascalName === componentName || c.kebabName === componentName)
+  if (component?.hash)
+    options._componentHash = component.hash
   // Include _path so the server knows which page to render
   // Pass defaults to skip encoding default values in URL
-  const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic, defaults)
+  const result = buildOgImageUrl(options, extension, isStatic, defaults)
   return {
     path: joinURL('/', baseURL, result.url),
     hash: result.hash,

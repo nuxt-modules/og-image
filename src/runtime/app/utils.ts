@@ -174,15 +174,22 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
   const { defaults } = useOgImageRuntimeConfig()
   const extension = _options?.extension || defaults?.extension || 'png'
   const isStatic = import.meta.prerender
+  const options: Record<string, any> = { ..._options, _path: _pagePath }
+  // Include the component template hash so that template changes produce different URLs,
+  // busting CDN/build caches (Vercel, social platform crawlers like Twitter/Facebook, etc.)
+  const componentName = _options?.component || defaults?.component || componentNames?.[0]?.pascalName
+  const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
+  if (component?.hash)
+    options._componentHash = component.hash
   // Build URL with encoded options (Cloudinary-style)
   // Include _path so the server knows which page to render
   // Pass defaults to skip encoding default values in URL
-  const result = buildOgImageUrl({ ..._options, _path: _pagePath }, extension, isStatic, defaults)
-  let path = joinURL('/', baseURL, result.url)
   // For dynamic images, append build ID to bust external platform caches (Telegram, Facebook, etc.)
   if (!isStatic && runtimeConfig.app.buildId) {
     path = withQuery(path, { _v: runtimeConfig.app.buildId })
   }
+  const result = buildOgImageUrl(options, extension, isStatic, defaults)
+  const path = joinURL('/', baseURL, result.url)
   return {
     path,
     hash: result.hash,

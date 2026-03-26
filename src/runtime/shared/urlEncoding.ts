@@ -46,6 +46,7 @@ const PARAM_ALIASES: Record<string, string> = {
   cache: 'cacheMaxAgeSeconds',
   p: '_path', // page path - needs alias since _path starts with underscore
   q: '_query', // query params - needs alias since _query starts with underscore
+  ch: '_componentHash', // component template hash for cache busting prerendered URLs
 }
 
 // Reverse mapping (param name -> alias)
@@ -75,6 +76,7 @@ const KNOWN_PARAMS = new Set([
   'fonts',
   '_query',
   '_hash',
+  '_componentHash',
   'socialPreview',
   'props',
   '_path',

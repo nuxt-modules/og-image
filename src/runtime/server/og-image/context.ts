@@ -115,8 +115,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
 
   // basePath is used for route rules matching - can be provided via _path param
   const basePath = withoutTrailingSlash(urlOptions._path || '/')
+  const componentHash = urlOptions._componentHash || ''
   delete urlOptions._path
   delete urlOptions._hash // Remove internal hash field
+  delete urlOptions._componentHash // Not needed for rendering
 
   const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
     ? withQuery(basePath, queryParams._query)
@@ -146,8 +148,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const rendererType = normalised.renderer
   // In hash mode, basePath is always '/' (since _path isn't in the prerender cache payload),
   // so use the options hash directly as cache key to avoid all hash-mode images sharing one cache entry.
-  const key = normalised.options.cacheKey
+  // Component hash is appended so template changes invalidate the runtime cache.
+  const baseCacheKey = normalised.options.cacheKey
     || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams))
+  const key = componentHash ? `${baseCacheKey}:${componentHash}` : baseCacheKey
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (rendererType) {
