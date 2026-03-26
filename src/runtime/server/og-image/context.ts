@@ -16,7 +16,7 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
-import { decodeOgImageParams, extractEncodedSegment, separateProps } from '../../shared'
+import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps } from '../../shared'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
@@ -137,6 +137,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     options.width = Math.min(Math.max(1, options.width), maxDim)
   if (typeof options.height === 'number')
     options.height = Math.min(Math.max(1, options.height), maxDim)
+
+  // Strip HTML event handlers and dangerous attributes from props (GHSA-mg36-wvcr-m75h)
+  if (options.props && typeof options.props === 'object')
+    options.props = sanitizeProps(options.props as Record<string, any>)
 
   if (!options) {
     return createError({
