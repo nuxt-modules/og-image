@@ -773,6 +773,9 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.experimental.componentIslands ||= true
 
     if (config.debug || nuxt.options.dev) {
+      if (config.debug && !nuxt.options.dev) {
+        logger.warn('Debug mode is enabled for a production build. The `/_og/debug.json` endpoint will be publicly accessible, exposing runtime config and component details. Disable it with `ogImage: { debug: false }` before deploying.')
+      }
       addServerHandler({
         lazy: true,
         route: '/_og/debug.json',
