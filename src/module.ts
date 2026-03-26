@@ -35,6 +35,7 @@ import {
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
+import { extractPropNamesFromVue } from './build/props'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
@@ -1009,6 +1010,7 @@ export default defineNuxtModule<ModuleOptions>({
             ogImageComponentCtx.detectedRenderers.add(renderer)
           const componentFile = fs.readFileSync(component.filePath, 'utf-8')
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
+          const propNames = extractPropNamesFromVue(componentFile)
           ogImageComponentCtx.components.push({
             hash: hash(componentFile).replaceAll('_', '-'),
             pascalName: component.pascalName,
@@ -1017,6 +1019,7 @@ export default defineNuxtModule<ModuleOptions>({
             category,
             credits,
             renderer,
+            propNames,
           })
         }
       })
@@ -1048,6 +1051,7 @@ export default defineNuxtModule<ModuleOptions>({
               })) {
                 return
               }
+              const communityFile = fs.readFileSync(filePath, 'utf-8')
               ogImageComponentCtx.components.push({
                 hash: '',
                 pascalName,
@@ -1055,6 +1059,7 @@ export default defineNuxtModule<ModuleOptions>({
                 path: filePath,
                 category: 'community',
                 renderer,
+                propNames: extractPropNamesFromVue(communityFile),
               })
             })
         }

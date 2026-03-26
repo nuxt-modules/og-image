@@ -16,6 +16,7 @@ import { useNitroApp } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
+import { logger } from '../../logger'
 import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps } from '../../shared'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
@@ -144,6 +145,23 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
 
   // Normalise options and get renderer from component metadata
   const normalised = normaliseOptions(options)
+
+  // Whitelist props: only allow props declared in the component's defineProps.
+  // Components without defineProps accept no props. Prevents cache key inflation
+  // from arbitrary query params (DoS vector).
+  if (normalised.component && normalised.options.props && typeof normalised.options.props === 'object') {
+    const allowedProps = normalised.component.propNames || []
+    const allowedSet = new Set(allowedProps)
+    const raw = normalised.options.props as Record<string, any>
+    const filtered: Record<string, any> = {}
+    for (const key of Object.keys(raw)) {
+      if (allowedSet.has(key))
+        filtered[key] = raw[key]
+      else if (import.meta.dev)
+        logger.warn(`[Nuxt OG Image] Prop "${key}" is not declared by component "${normalised.component.pascalName}" and was dropped. Declared props: ${allowedProps.join(', ')}`)
+    }
+    normalised.options.props = filtered
+  }
 
   // Auto-eject community templates in dev mode (skip devtools requests)
   if (normalised.component?.category === 'community')
