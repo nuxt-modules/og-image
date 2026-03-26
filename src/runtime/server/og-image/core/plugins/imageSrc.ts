@@ -8,16 +8,69 @@ import { logger } from '../../../util/logger'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
-const RE_PRIVATE_IP = /^(?:127\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.|0\.|169\.254\.|::1|fc00:|fd00:|fe80:)/i
+// SSRF prevention: block private/loopback URLs outside dev mode
+const RE_IPV6_BRACKETS = /^\[|\]$/g
+const RE_MAPPED_V4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/
+const RE_DIGIT_ONLY = /^\d+$/
+const RE_INT_IP = /^(?:0x[\da-f]+|\d+)$/i
 
-function isLoopbackUrl(url: string): boolean {
+function isPrivateIPv4(a: number, b: number): boolean {
+  if (a === 127)
+    return true // loopback
+  if (a === 10)
+    return true // 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31)
+    return true // 172.16.0.0/12
+  if (a === 192 && b === 168)
+    return true // 192.168.0.0/16
+  if (a === 169 && b === 254)
+    return true // link-local
+  if (a === 0)
+    return true // 0.0.0.0/8
+  return false
+}
+
+/**
+ * Block URLs targeting internal/private networks.
+ * Handles standard IPs, hex (0x7f000001), decimal (2130706433),
+ * IPv6-mapped IPv4 (::ffff:127.0.0.1), and localhost.
+ * Only http/https protocols are allowed.
+ */
+function isBlockedUrl(url: string): boolean {
+  let parsed: URL
   try {
-    const hostname = new URL(url).hostname
-    return RE_PRIVATE_IP.test(hostname) || hostname === 'localhost'
+    parsed = new URL(url)
   }
   catch {
-    return false
+    return true
   }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+    return true
+  const hostname = parsed.hostname.toLowerCase()
+  const bare = hostname.replace(RE_IPV6_BRACKETS, '')
+  if (bare === 'localhost' || bare.endsWith('.localhost'))
+    return true
+  // Normalize IPv6-mapped IPv4 (::ffff:1.2.3.4)
+  const mappedV4 = bare.match(RE_MAPPED_V4)
+  const ip = mappedV4 ? mappedV4[1]! : bare
+  // Standard dotted-decimal IPv4
+  const parts = ip.split('.')
+  if (parts.length === 4 && parts.every(p => RE_DIGIT_ONLY.test(p))) {
+    const octets = parts.map(Number)
+    if (octets.some(o => o > 255))
+      return true
+    return isPrivateIPv4(octets[0]!, octets[1]!)
+  }
+  // Single integer (decimal/hex) IP: e.g. 2130706433 or 0x7f000001
+  if (RE_INT_IP.test(ip)) {
+    const num = Number(ip)
+    if (!Number.isNaN(num) && num >= 0 && num <= 0xFFFFFFFF)
+      return isPrivateIPv4((num >> 24) & 0xFF, (num >> 16) & 0xFF)
+  }
+  // IPv6 private ranges
+  if (bare === '::1' || bare.startsWith('fc') || bare.startsWith('fd') || bare.startsWith('fe80'))
+    return true
+  return false
 }
 
 const RE_URL_LEADING = /^url\(['"]?/
@@ -84,8 +137,8 @@ export default defineTransformer([
         src = decodeHtml(src)
         node.props.src = src
         // Block private/loopback URLs outside dev to prevent SSRF
-        if (!import.meta.dev && isLoopbackUrl(src)) {
-          logger.warn(`Blocked loopback image fetch: ${src}`)
+        if (!import.meta.dev && isBlockedUrl(src)) {
+          logger.warn(`Blocked internal image fetch: ${src}`)
         }
         else {
           // fetch remote images and embed as base64 to avoid satori re-fetching at render time
@@ -166,8 +219,8 @@ export default defineTransformer([
       }
       else {
         const decodedSrc = decodeHtml(src)
-        if (!import.meta.dev && isLoopbackUrl(decodedSrc)) {
-          logger.warn(`Blocked loopback background-image fetch: ${decodedSrc}`)
+        if (!import.meta.dev && isBlockedUrl(decodedSrc)) {
+          logger.warn(`Blocked internal background-image fetch: ${decodedSrc}`)
         }
         else {
           imageBuffer = (await $fetch(decodedSrc, {
