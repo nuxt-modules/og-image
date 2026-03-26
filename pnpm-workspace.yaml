@@ -75,8 +75,8 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
   nuxt-site-config: ^4.0.6
-  nuxtseo-layer-devtools: ^0.3.8
-  nuxtseo-shared: ^0.7.1
+  nuxtseo-layer-devtools: ^0.4.0
+  nuxtseo-shared: ^0.8.0
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
