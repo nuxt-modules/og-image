@@ -59,6 +59,9 @@ export interface OgImageRuntimeConfig {
   /** Path to community templates (dev only) */
   communityTemplatesDir?: string
 
+  /** Maximum concurrent image renders (edge-compatible in-process semaphore) */
+  maxConcurrentRenders: number
+
   /** Browser renderer config for cloudflare binding access */
   browser?: {
     provider?: BrowserProvider

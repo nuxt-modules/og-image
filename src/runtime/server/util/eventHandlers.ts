@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import type { Semaphore } from './security'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createError, H3Error, setHeader } from 'h3'
 import { logger } from '../../logger'
@@ -8,6 +9,10 @@ import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
+import { coalesce, createSemaphore } from './security'
+
+// Lazy-init semaphore on first use (needs runtime config for limit)
+let renderSemaphore: Semaphore | undefined
 
 export async function imageEventHandler(e: H3Event) {
   const ctx = await resolveContext(e).catch((err: any) => {
@@ -100,7 +105,23 @@ export async function imageEventHandler(e: H3Event) {
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
-    image = await renderer.createImage(ctx).catch((err: any) => {
+    // Request coalescing: if multiple requests arrive for the same key before the
+    // first render completes, they share one Promise (single-flight pattern).
+    // Concurrency semaphore: limits parallel renders to prevent memory exhaustion.
+    // Both are process-local and edge-compatible (no shared state needed).
+    image = await coalesce(ctx.key, async () => {
+      const runtimeCfg = useOgImageRuntimeConfig()
+      if (!renderSemaphore)
+        renderSemaphore = createSemaphore(runtimeCfg.maxConcurrentRenders || 3)
+
+      await renderSemaphore.acquire()
+      try {
+        return await renderer.createImage(ctx)
+      }
+      finally {
+        renderSemaphore.release()
+      }
+    }).catch((err: any) => {
       logger.error(`renderer.createImage error for ${e.path}:`, err?.stack || err?.message || err)
       throw err
     })

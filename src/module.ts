@@ -187,6 +187,14 @@ export interface ModuleOptions {
    */
   fontSubsets?: string[]
   /**
+   * Maximum number of concurrent image renders. Prevents memory exhaustion
+   * from burst traffic. Excess requests wait in a FIFO queue.
+   * Works on all runtimes including edge (in-process semaphore).
+   *
+   * @default 3
+   */
+  maxConcurrentRenders?: number
+  /**
    * Browser renderer configuration.
    *
    * When using browser-based rendering (screenshots), configure the browser provider.
@@ -1365,6 +1373,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cacheQueryParams: config.cacheQueryParams ?? false,
         cssFramework: cssFramework || 'none',
+        maxConcurrentRenders: config.maxConcurrentRenders ?? 3,
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'
           ? {
