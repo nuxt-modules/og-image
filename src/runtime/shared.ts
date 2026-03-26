@@ -100,6 +100,22 @@ export function separateProps(options: OgImageOptions | undefined, ignoreKeys: s
   return result as OgImageOptions
 }
 
+const DANGEROUS_ATTRS = new Set(['autofocus', 'contenteditable', 'tabindex', 'accesskey'])
+
+/**
+ * Strip HTML event handlers and dangerous attributes from props to prevent
+ * reflected XSS via Vue fallthrough attributes (GHSA-mg36-wvcr-m75h).
+ */
+export function sanitizeProps(props: Record<string, any>): Record<string, any> {
+  const clean: Record<string, any> = {}
+  for (const key of Object.keys(props)) {
+    if (key.startsWith('on') || DANGEROUS_ATTRS.has(key.toLowerCase()))
+      continue
+    clean[key] = props[key]
+  }
+  return clean
+}
+
 export function withoutQuery(path: string) {
   return path.split('?')[0]
 }
