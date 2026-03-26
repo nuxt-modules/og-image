@@ -195,6 +195,36 @@ export interface ModuleOptions {
    * @example { provider: 'cloudflare', binding: 'BROWSER' }
    */
   browser?: BrowserConfig
+  /**
+   * Maximum allowed width or height in pixels for generated images.
+   * Prevents DoS via oversized dimension parameters.
+   *
+   * @default 2048
+   */
+  maxDimension?: number
+  /**
+   * Timeout in milliseconds for image rendering.
+   * If rendering exceeds this limit, the request returns a 408 error.
+   *
+   * @default 30000
+   */
+  renderTimeout?: number
+  /**
+   * Maximum number of concurrent image renders. Prevents memory exhaustion
+   * from burst traffic. Excess requests wait in a FIFO queue.
+   * Works on all runtimes including edge (in-process semaphore).
+   *
+   * @default 3
+   */
+  maxConcurrentRenders?: number
+  /**
+   * Additional domains allowed for external image fetching in OG templates.
+   * By default, only same-origin URLs and subdomains of your site URL are allowed.
+   * Subdomain matching is applied: adding "cdn.example.com" also allows "a.cdn.example.com".
+   *
+   * @example ['cdn.example.com', 'images.unsplash.com']
+   */
+  allowedDomains?: string[]
 }
 
 export interface ModuleHooks {
@@ -773,6 +803,9 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.experimental.componentIslands ||= true
 
     if (config.debug || nuxt.options.dev) {
+      if (config.debug && !nuxt.options.dev) {
+        logger.warn('Debug mode is enabled for a production build. The `/_og/debug.json` endpoint will be publicly accessible, exposing runtime config and component details. Disable it with `ogImage: { debug: false }` before deploying.')
+      }
       addServerHandler({
         lazy: true,
         route: '/_og/debug.json',
@@ -1372,6 +1405,10 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
               binding: config.browser.binding,
             }
           : undefined,
+        maxDimension: config.maxDimension ?? 2048,
+        renderTimeout: config.renderTimeout ?? 30_000,
+        maxConcurrentRenders: config.maxConcurrentRenders ?? 3,
+        allowedDomains: config.allowedDomains,
       }
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
