@@ -14,7 +14,12 @@ body:
       required: true
     attributes:
       label: 🛠️ To reproduce
-      description: 'A reproduction of the bug. Please use a Nuxt OG Image starter https://nuxtseo.com/og-image/getting-started/stackblitz'
+      description: |
+        A reproduction of the bug. Please create a StackBlitz reproduction from one of the starters:
+        - [Basic Satori](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/basic-satori)
+        - [Basic Takumi](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/basic-takumi)
+        - [Content](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/content)
+        - [i18n](https://stackblitz.com/github/nuxt-modules/og-image/tree/main/examples/i18n)
       placeholder: https://stackblitz.com/[...]
   - type: textarea
     validations:
