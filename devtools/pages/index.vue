@@ -11,26 +11,6 @@ const RE_SINGLE_QUOTE = /'/g
 const RE_VUE_FILENAME = /[^/]+\.vue$/
 const RE_HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 
-const EXCLUDED_PROPS = new Set(['colorMode'])
-const editableProps = computed(() =>
-  Object.keys(propEditor.value).filter(k => !EXCLUDED_PROPS.has(k)),
-)
-
-function editProp(key: string, value: unknown) {
-  propEditor.value = { ...propEditor.value, [key]: value }
-  updateProps({ [key]: value })
-}
-
-function inferPropType(value: unknown): 'color' | 'number' | 'json' | 'string' {
-  if (typeof value === 'number')
-    return 'number'
-  if (typeof value === 'string' && RE_HEX_COLOR.test(value))
-    return 'color'
-  if (typeof value === 'string')
-    return 'string'
-  return 'json'
-}
-
 const {
   globalDebug,
   isDebugLoading,
@@ -76,6 +56,26 @@ const {
   updateProps,
   refreshSources,
 } = useOgImage()
+
+const EXCLUDED_PROPS = new Set(['colorMode'])
+const editableProps = computed(() =>
+  Object.keys(propEditor.value).filter(k => !EXCLUDED_PROPS.has(k)),
+)
+
+function editProp(key: string, value: unknown) {
+  propEditor.value = { ...propEditor.value, [key]: value }
+  updateProps({ [key]: value })
+}
+
+function inferPropType(value: unknown): 'color' | 'number' | 'json' | 'string' {
+  if (typeof value === 'number')
+    return 'number'
+  if (typeof value === 'string' && RE_HEX_COLOR.test(value))
+    return 'color'
+  if (typeof value === 'string')
+    return 'string'
+  return 'json'
+}
 
 const rendererIcons: Record<string, string> = {
   satori: 'logos:vercel-icon',

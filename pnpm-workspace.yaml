@@ -21,7 +21,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^7.7.3
   '@clack/prompts': ^1.1.0
-  '@iconify-json/carbon': ^1.2.19
+  '@iconify-json/carbon': ^1.2.20
   '@iconify-json/logos': ^1.2.10
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
@@ -61,7 +61,7 @@ catalog:
   defu: ^6.1.4
   devalue: ^5.6.4
   eslint: ^10.1.0
-  eslint-plugin-harlanzw: ^0.11.0
+  eslint-plugin-harlanzw: ^0.12.0
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
@@ -74,7 +74,7 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
   nuxt-site-config: ^4.0.6
-  nuxtseo-layer-devtools: ^0.4.4
+  nuxtseo-layer-devtools: ^0.4.5
   nuxtseo-shared: ^0.8.1
   nypm: ^0.6.5
   ofetch: ^1.5.1

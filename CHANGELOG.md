@@ -1,6 +1,26 @@
 # Changelog
 
 
+## v6.2.2...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.2...main)
+
+### 🔥 Performance
+
+- **devtools:** Drop json-editor-vue ([14a585b7](https://github.com/nuxt-modules/og-image/commit/14a585b7))
+
+### 🩹 Fixes
+
+- **cloudflare:** Detect legacy assets mode ([7f60a480](https://github.com/nuxt-modules/og-image/commit/7f60a480))
+
+### 🏡 Chore
+
+- Bump deps ([362cee2a](https://github.com/nuxt-modules/og-image/commit/362cee2a))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.2.1...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.1...main)
