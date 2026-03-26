@@ -69,6 +69,7 @@ export interface OgImageRuntimeConfig {
     maxDimension: number
     maxDpr: number
     renderTimeout: number
+    restrictRuntimeImagesToOrigin: false | string[]
   }
 
   app: {

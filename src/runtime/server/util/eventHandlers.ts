@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
-import { createError, H3Error, setHeader } from 'h3'
+import { createError, getHeader, H3Error, setHeader } from 'h3'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'
@@ -18,7 +18,29 @@ export async function imageEventHandler(e: H3Event) {
     return ctx
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
-  const { debug, baseCacheKey } = useOgImageRuntimeConfig()
+  const { debug, baseCacheKey, security } = useOgImageRuntimeConfig()
+
+  // Origin restriction: block runtime requests from unknown origins
+  if (!import.meta.prerender && !import.meta.dev && security?.restrictRuntimeImagesToOrigin) {
+    const siteOrigin = new URL(getSiteConfig(e).url).origin
+    const allowedOrigins = [siteOrigin, ...security.restrictRuntimeImagesToOrigin]
+    const requestOrigin = getHeader(e, 'origin') || getHeader(e, 'referer')
+    let originHost: string | null = null
+    if (requestOrigin) {
+      try {
+        originHost = new URL(requestOrigin).origin
+      }
+      catch {
+        // malformed origin/referer
+      }
+    }
+    if (!originHost || !allowedOrigins.includes(originHost)) {
+      return createError({
+        statusCode: 403,
+        statusMessage: '[Nuxt OG Image] Origin not allowed.',
+      })
+    }
+  }
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')

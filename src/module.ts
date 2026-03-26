@@ -206,6 +206,18 @@ export interface ModuleOptions {
     maxDpr?: number
     /** Render timeout in milliseconds. Returns 408 on timeout. @default 10000 */
     renderTimeout?: number
+    /**
+     * Restrict runtime image generation to requests from allowed origins.
+     * - `true`: only allow requests from the site config URL origin
+     * - `string[]`: allow requests from the site config URL origin plus these origins
+     * - `false` (default): no origin restriction
+     *
+     * When enabled, requests without a matching Origin or Referer header receive a 403.
+     * Prerendering is never restricted.
+     *
+     * @default false
+     */
+    restrictRuntimeImagesToOrigin?: boolean | string[]
   }
 }
 
@@ -1388,6 +1400,9 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           maxDimension: config.security?.maxDimension ?? 2048,
           maxDpr: config.security?.maxDpr ?? 2,
           renderTimeout: config.security?.renderTimeout ?? 10_000,
+          restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true
+            ? []
+            : (config.security?.restrictRuntimeImagesToOrigin || false),
         },
       }
       if (nuxt.options.dev) {
