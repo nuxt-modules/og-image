@@ -26,17 +26,19 @@ import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './inst
 
 const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
 
-export function resolvePathCacheKey(e: H3Event, path: string, includeQuery = false) {
+export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: Record<string, any>) {
   const siteConfig = getSiteConfig(e, {
     resolveRefs: true,
   })
   const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
-  const hashParts = [
+  const hashParts: any[] = [
     basePath,
     import.meta.prerender ? '' : siteConfig.url,
   ]
-  if (includeQuery)
-    hashParts.push(hash(getQuery(e)))
+  // Hash resolved options (not raw query string) so unknown/extra query params
+  // cannot produce unique cache keys and bypass the cache.
+  if (resolvedOptions)
+    hashParts.push(hash(resolvedOptions))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
     hash(hashParts),
@@ -172,7 +174,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // so use the options hash directly as cache key to avoid all hash-mode images sharing one cache entry.
   // Component hash is appended so template changes invalidate the runtime cache.
   const baseCacheKey = normalised.options.cacheKey
-    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, runtimeConfig.cacheQueryParams))
+    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, normalised.options))
   const key = componentHash ? `${baseCacheKey}:${componentHash}` : baseCacheKey
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
