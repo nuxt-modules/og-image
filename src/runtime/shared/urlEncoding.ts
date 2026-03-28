@@ -33,6 +33,7 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
+const RE_SIGNATURE_SUFFIX = /,s_[^,]+$/
 // eslint-disable-next-line no-control-regex
 const RE_NON_ASCII = /[^\u0000-\u007F]/
 
@@ -477,7 +478,7 @@ export function parseOgImageUrl(url: string): {
   }
 
   // Strip URL signature suffix before decoding params
-  const paramsOnly = encoded.replace(/,s_[^,]+$/, '')
+  const paramsOnly = encoded.replace(RE_SIGNATURE_SUFFIX, '')
 
   return {
     options: decodeOgImageParams(paramsOnly),
