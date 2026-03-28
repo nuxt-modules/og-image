@@ -229,8 +229,9 @@ export interface ModuleOptions {
      */
     restrictRuntimeImagesToOrigin?: boolean | string[]
     /**
-     * HMAC secret for URL signing. When set, all runtime OG image URLs are signed
-     * and the handler rejects requests with missing or invalid signatures.
+     * Secret for URL signing. When set, all runtime OG image URLs include a
+     * keyed hash signature and the handler rejects requests with missing or
+     * invalid signatures.
      *
      * Must be a stable string across deployments. Generate one with:
      * `npx nuxt-og-image generate-secret`
@@ -336,7 +337,7 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
     }
 
-    if (!config.zeroRuntime && !config.security?.secret) {
+    if (nuxt.options.dev && !config.zeroRuntime && !config.security?.secret) {
       logger.warn([
         'OG image URLs are not signed. Anyone can craft arbitrary image generation requests.',
         '',

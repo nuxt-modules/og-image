@@ -86,8 +86,8 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       })
     }
   }
-  else if (RE_SIGNATURE_SUFFIX.test(encodedSegment)) {
-    // Strip signature even when not verifying (dev/prerender) so it doesn't pollute decoded params
+  else if (secret && RE_SIGNATURE_SUFFIX.test(encodedSegment)) {
+    // Strip signature in dev/prerender so it doesn't pollute decoded params
     paramsSegment = encodedSegment.replace(RE_SIGNATURE_SUFFIX, '')
   }
 
@@ -122,17 +122,15 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     urlOptions = decodeOgImageParams(paramsSegment)
   }
 
-  // Reject oversized query strings (skipped when signing is active since query params are ignored)
-  if (!secret) {
-    const maxQueryParamSize = runtimeConfig.security?.maxQueryParamSize
-    if (maxQueryParamSize && !import.meta.prerender) {
-      const queryString = parseURL(e.path).search || ''
-      if (queryString.length > maxQueryParamSize) {
-        return createError({
-          statusCode: 400,
-          statusMessage: `[Nuxt OG Image] Query string exceeds maximum allowed length of ${maxQueryParamSize} characters.`,
-        })
-      }
+  // Reject oversized query strings to reduce parsing overhead
+  const maxQueryParamSize = runtimeConfig.security?.maxQueryParamSize
+  if (maxQueryParamSize && !import.meta.prerender) {
+    const queryString = parseURL(e.path).search || ''
+    if (queryString.length > maxQueryParamSize) {
+      return createError({
+        statusCode: 400,
+        statusMessage: `[Nuxt OG Image] Query string exceeds maximum allowed length of ${maxQueryParamSize} characters.`,
+      })
     }
   }
 

@@ -411,7 +411,7 @@ export function buildOgImageUrl(
   }
 
   const segment = encoded || 'default'
-  // Sign dynamic URLs only (static/prerendered are served as files, no runtime verification)
+  // Sign dynamic URLs only; static/prerendered are served as files with no runtime verification
   const signed = secret && !isStatic ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
 
   return {
@@ -420,7 +420,7 @@ export function buildOgImageUrl(
 }
 
 /**
- * Sign encoded params using ohash (SHA-256 based, cross-runtime compatible).
+ * Sign encoded params using a keyed hash (ohash, cross-runtime compatible).
  * Returns first 16 chars of the base64url hash for URL brevity.
  */
 export function signEncodedParams(encoded: string, secret: string): string {
@@ -476,8 +476,11 @@ export function parseOgImageUrl(url: string): {
     }
   }
 
+  // Strip URL signature suffix before decoding params
+  const paramsOnly = encoded.replace(/,s_[^,]+$/, '')
+
   return {
-    options: decodeOgImageParams(encoded),
+    options: decodeOgImageParams(paramsOnly),
     extension,
     isStatic,
   }
