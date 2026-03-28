@@ -157,6 +157,10 @@ export interface OgImageOptions {
   props?: Record<string, any>
   extension?: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html'
   emojis?: IconifyEmojiIconSets | false
+  /**
+   * Provide a static HTML template to render the OG Image instead of a component.
+   */
+  html?: string
   // vendor config
   resvg?: ResvgRenderOptions
   satori?: SatoriOptions

@@ -25,6 +25,7 @@ import { useOgImageRuntimeConfig } from '../utils'
 import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './instances'
 
 const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
+const RE_SIGNATURE_SUFFIX = /,s_([^,]+)$/
 
 export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: Record<string, any>) {
   const siteConfig = getSiteConfig(e, {
@@ -69,7 +70,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   let paramsSegment = encodedSegment
   if (secret && !import.meta.dev && !import.meta.prerender) {
     // Extract signature (last ,s_<value> in the segment)
-    const sigMatch = encodedSegment.match(/,s_([^,]+)$/)
+    const sigMatch = encodedSegment.match(RE_SIGNATURE_SUFFIX)
     if (!sigMatch) {
       return createError({
         statusCode: 403,
@@ -85,9 +86,9 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       })
     }
   }
-  else if (/,s_([^,]+)$/.test(encodedSegment)) {
+  else if (RE_SIGNATURE_SUFFIX.test(encodedSegment)) {
     // Strip signature even when not verifying (dev/prerender) so it doesn't pollute decoded params
-    paramsSegment = encodedSegment.replace(/,s_([^,]+)$/, '')
+    paramsSegment = encodedSegment.replace(RE_SIGNATURE_SUFFIX, '')
   }
 
   // Check for hash mode (o_<hash>)
