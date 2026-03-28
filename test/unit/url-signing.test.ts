@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildOgImageUrl,
-  encodeOgImageParams,
   signEncodedParams,
   verifyOgImageSignature,
 } from '../../src/runtime/shared/urlEncoding'
