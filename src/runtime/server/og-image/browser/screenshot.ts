@@ -5,6 +5,7 @@ import { getNitroOrigin } from '#site-config/server/composables'
 import { withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { buildOgImageUrl } from '../../../shared'
+import { logger } from '../../util/logger'
 import { useOgImageRuntimeConfig } from '../../utils'
 
 // Detect if we're using Playwright or Puppeteer
@@ -104,6 +105,9 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
   }
 
   try {
+    if (options.html) {
+      logger.warn('The `html` option is deprecated and will be removed in the next major version. Use a Vue component instead.')
+    }
     if (import.meta.prerender && !options.html) {
       // we need to do a nitro fetch for the HTML instead of rendering with browser
       options.html = await e.$fetch(path).catch(() => undefined) as string

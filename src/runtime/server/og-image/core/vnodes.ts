@@ -225,6 +225,9 @@ export interface CreateVNodesOptions {
 
 export async function createVNodes(ctx: OgImageRenderEventContext, options?: CreateVNodesOptions): Promise<VNode> {
   let html = ctx.options.html
+  if (html) {
+    logger.warn('The `html` option is deprecated and will be removed in the next major version. Use a Vue component instead.')
+  }
   if (!html) {
     const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
     // this fixes any inline style props that need to be wrapped in single quotes, such as:

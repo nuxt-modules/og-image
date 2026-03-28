@@ -154,6 +154,8 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
         queryParams[k] = v
       }
     }
+    // Always strip html from query params before separation to prevent SSRF via inline HTML injection
+    delete queryParams.html
     queryParams = separateProps(queryParams)
   }
 
@@ -163,6 +165,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   delete urlOptions._path
   delete urlOptions._hash // Remove internal hash field
   delete urlOptions._componentHash // Not needed for rendering
+  // In strict mode, strip html from URL options (disables the feature entirely)
+  if (runtimeConfig.security?.strict) {
+    delete urlOptions.html
+  }
 
   const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
     ? withQuery(basePath, queryParams._query)
