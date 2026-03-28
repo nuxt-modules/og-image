@@ -71,6 +71,7 @@ export interface OgImageRuntimeConfig {
     renderTimeout: number
     maxQueryParamSize: number | null
     restrictRuntimeImagesToOrigin: false | string[]
+    secret: string
   }
 
   app: {

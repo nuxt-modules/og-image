@@ -17,7 +17,7 @@ import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
 import { logger } from '../../logger'
-import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps } from '../../shared'
+import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps, verifyOgImageSignature } from '../../shared'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
@@ -25,6 +25,7 @@ import { useOgImageRuntimeConfig } from '../utils'
 import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './instances'
 
 const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
+const RE_SIGNATURE_SUFFIX = /,s_([^,]+)$/
 
 export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: Record<string, any>) {
   const siteConfig = getSiteConfig(e, {
@@ -64,8 +65,34 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // Hash mode: /_og/d/o_<hash>.png (for long URLs)
   const encodedSegment = extractEncodedSegment(path, extension)
 
+  // Extract and verify URL signature when signing is enabled
+  const secret = runtimeConfig.security?.secret
+  let paramsSegment = encodedSegment
+  if (secret && !import.meta.dev && !import.meta.prerender) {
+    // Extract signature (last ,s_<value> in the segment)
+    const sigMatch = encodedSegment.match(RE_SIGNATURE_SUFFIX)
+    if (!sigMatch) {
+      return createError({
+        statusCode: 403,
+        statusMessage: '[Nuxt OG Image] Missing URL signature. Configure security.secret to sign URLs.',
+      })
+    }
+    const signature = sigMatch[1]!
+    paramsSegment = encodedSegment.slice(0, sigMatch.index!)
+    if (!verifyOgImageSignature(paramsSegment, signature, secret!)) {
+      return createError({
+        statusCode: 403,
+        statusMessage: '[Nuxt OG Image] Invalid URL signature.',
+      })
+    }
+  }
+  else if (secret && RE_SIGNATURE_SUFFIX.test(encodedSegment)) {
+    // Strip signature in dev/prerender so it doesn't pollute decoded params
+    paramsSegment = encodedSegment.replace(RE_SIGNATURE_SUFFIX, '')
+  }
+
   // Check for hash mode (o_<hash>)
-  const hashMatch = encodedSegment.match(RE_HASH_MODE)
+  const hashMatch = paramsSegment.match(RE_HASH_MODE)
   let urlOptions: Record<string, any> = {}
 
   if (hashMatch) {
@@ -92,10 +119,10 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     }
   }
   else {
-    urlOptions = decodeOgImageParams(encodedSegment)
+    urlOptions = decodeOgImageParams(paramsSegment)
   }
 
-  // Reject oversized query strings to limit abuse surface
+  // Reject oversized query strings to reduce parsing overhead
   const maxQueryParamSize = runtimeConfig.security?.maxQueryParamSize
   if (maxQueryParamSize && !import.meta.prerender) {
     const queryString = parseURL(e.path).search || ''
@@ -107,26 +134,28 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     }
   }
 
-  // Also support query params for backwards compat and dynamic overrides
-  const query = getQuery(e)
+  // When URL signing is active, ignore all query param overrides to prevent injection
   let queryParams: Record<string, any> = {}
-  for (const k in query) {
-    const v = String(query[k])
-    if (!v)
-      continue
-    if (v.startsWith('{')) {
-      try {
-        queryParams[k] = JSON.parse(v)
+  if (!secret || import.meta.dev || import.meta.prerender) {
+    const query = getQuery(e)
+    for (const k in query) {
+      const v = String(query[k])
+      if (!v)
+        continue
+      if (v.startsWith('{')) {
+        try {
+          queryParams[k] = JSON.parse(v)
+        }
+        catch {
+          // ignore parse errors
+        }
       }
-      catch {
-        // ignore parse errors
+      else {
+        queryParams[k] = v
       }
     }
-    else {
-      queryParams[k] = v
-    }
+    queryParams = separateProps(queryParams)
   }
-  queryParams = separateProps(queryParams)
 
   // basePath is used for route rules matching - can be provided via _path param
   const basePath = withoutTrailingSlash(urlOptions._path || '/')

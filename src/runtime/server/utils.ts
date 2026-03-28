@@ -12,7 +12,7 @@ export interface GetOgImagePathResult {
 
 export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
   const baseURL = useRuntimeConfig().app.baseURL
-  const { defaults } = useOgImageRuntimeConfig()
+  const { defaults, security } = useOgImageRuntimeConfig()
   const extension = _options?.extension || defaults.extension
   const isStatic = import.meta.prerender
   const options: Record<string, any> = { ..._options, _path: _pagePath }
@@ -24,7 +24,7 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
     options._componentHash = component.hash
   // Include _path so the server knows which page to render
   // Pass defaults to skip encoding default values in URL
-  const result = buildOgImageUrl(options, extension, isStatic, defaults)
+  const result = buildOgImageUrl(options, extension, isStatic, defaults, security?.secret || undefined)
   return {
     path: joinURL('/', baseURL, result.url),
     hash: result.hash,

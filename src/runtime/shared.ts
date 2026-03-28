@@ -4,7 +4,7 @@ import { defu } from 'defu'
 import { toValue } from 'vue'
 
 export { extractSocialPreviewTags, toBase64Image } from './pure'
-export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, extractEncodedSegment, hashOgImageOptions, parseOgImageUrl } from './shared/urlEncoding'
+export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, extractEncodedSegment, hashOgImageOptions, parseOgImageUrl, signEncodedParams, verifyOgImageSignature } from './shared/urlEncoding'
 
 const RE_KEBAB_CASE = /-([a-z])/g
 
@@ -60,7 +60,6 @@ function filterIsOgImageOption(key: string) {
     'alt',
     'props',
     'renderer',
-    'html',
     'component',
     'emojis',
     '_query',

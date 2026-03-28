@@ -79,9 +79,9 @@ async function takeScreenshot(page: Page, selector: string | undefined, options:
 }
 
 export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
-  const { colorPreference, defaults } = useOgImageRuntimeConfig()
+  const { colorPreference, defaults, security } = useOgImageRuntimeConfig()
   // For browser renderer, we need to load the HTML template with options encoded in URL
-  const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false, defaults).url
+  const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false, defaults, security?.secret || undefined).url
 
   // Create page - Playwright and Puppeteer have different newPage signatures
   let page: Page

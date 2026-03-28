@@ -228,6 +228,15 @@ export interface ModuleOptions {
      * @default false
      */
     restrictRuntimeImagesToOrigin?: boolean | string[]
+    /**
+     * Secret for URL signing. When set, all runtime OG image URLs include a
+     * keyed hash signature and the handler rejects requests with missing or
+     * invalid signatures.
+     *
+     * Must be a stable string across deployments. Generate one with:
+     * `npx nuxt-og-image generate-secret`
+     */
+    secret?: string
   }
 }
 
@@ -326,6 +335,20 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (config.debug && !nuxt.options.dev) {
       logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
+    }
+
+    if (nuxt.options.dev && !config.zeroRuntime && !config.security?.secret) {
+      logger.warn([
+        'OG image URLs are not signed. Anyone can craft arbitrary image generation requests.',
+        '',
+        'Either set a signing secret:',
+        '  ogImage: { security: { secret: process.env.OG_IMAGE_SECRET } }',
+        '',
+        '  Generate one with: npx nuxt-og-image generate-secret',
+        '',
+        'Or enable zero-runtime mode to disable dynamic generation entirely:',
+        '  ogImage: { zeroRuntime: true }',
+      ].join('\n'))
     }
 
     // Check for removed/deprecated config options
@@ -1428,6 +1451,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
+          secret: config.security?.secret || '',
         },
       }
       if (nuxt.options.dev) {

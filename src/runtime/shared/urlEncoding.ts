@@ -1,3 +1,5 @@
+import { hash } from 'ohash'
+
 /**
  * URL encoding for OG image options (Cloudinary/IPX style)
  *
@@ -31,6 +33,7 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
+const RE_SIGNATURE_SUFFIX = /,s_[^,]+$/
 // eslint-disable-next-line no-control-regex
 const RE_NON_ASCII = /[^\u0000-\u007F]/
 
@@ -67,7 +70,6 @@ const KNOWN_PARAMS = new Set([
   'cacheMaxAgeSeconds',
   'cacheKey',
   'extension',
-  'html',
   'satori',
   'resvg',
   'sharp',
@@ -391,6 +393,7 @@ export function buildOgImageUrl(
   extension: string = 'png',
   isStatic: boolean = false,
   defaults?: Record<string, any>,
+  secret?: string,
 ): BuildOgImageUrlResult {
   const encoded = encodeOgImageParams(options, defaults)
   const prefix = isStatic ? '/_og/s' : '/_og/d'
@@ -408,9 +411,36 @@ export function buildOgImageUrl(
     }
   }
 
+  const segment = encoded || 'default'
+  // Sign dynamic URLs only; static/prerendered are served as files with no runtime verification
+  const signed = secret && !isStatic ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
+
   return {
-    url: encoded ? `${prefix}/${encoded}.${extension}` : `${prefix}/default.${extension}`,
+    url: `${prefix}/${signed}.${extension}`,
   }
+}
+
+/**
+ * Sign encoded params using a keyed hash (ohash, cross-runtime compatible).
+ * Returns first 16 chars of the base64url hash for URL brevity.
+ */
+export function signEncodedParams(encoded: string, secret: string): string {
+  return hash(`${secret}:${encoded}`).slice(0, 16)
+}
+
+/**
+ * Verify a signature against encoded params.
+ * Uses constant-time string comparison to prevent timing attacks.
+ */
+export function verifyOgImageSignature(encoded: string, signature: string, secret: string): boolean {
+  const expected = signEncodedParams(encoded, secret)
+  if (expected.length !== signature.length)
+    return false
+  // constant-time comparison
+  let result = 0
+  for (let i = 0; i < expected.length; i++)
+    result |= expected.charCodeAt(i) ^ signature.charCodeAt(i)
+  return result === 0
 }
 
 /**
@@ -447,8 +477,11 @@ export function parseOgImageUrl(url: string): {
     }
   }
 
+  // Strip URL signature suffix before decoding params
+  const paramsOnly = encoded.replace(RE_SIGNATURE_SUFFIX, '')
+
   return {
-    options: decodeOgImageParams(encoded),
+    options: decodeOgImageParams(paramsOnly),
     extension,
     isStatic,
   }

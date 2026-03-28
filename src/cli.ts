@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
@@ -1660,6 +1661,26 @@ async function runEnable(renderer: string, args: string[]): Promise<void> {
   p.outro('Done')
 }
 
+function generateSecret() {
+  const secret = randomBytes(32).toString('hex')
+  p.intro('nuxt-og-image generate-secret')
+  p.note([
+    `${secret}`,
+    '',
+    'Add this to your nuxt.config.ts:',
+    '',
+    '  ogImage: {',
+    '    security: {',
+    `      secret: process.env.OG_IMAGE_SECRET,`,
+    '    }',
+    '  }',
+    '',
+    'Then set the environment variable:',
+    `  OG_IMAGE_SECRET=${secret}`,
+  ].join('\n'), 'Generated Secret')
+  p.outro('')
+}
+
 function showHelp() {
   p.intro('nuxt-og-image CLI')
   p.note([
@@ -1673,6 +1694,7 @@ function showHelp() {
     '                  Options: --edge (install wasm versions for edge runtimes)',
     'migrate v6        Migrate to v6 (component suffixes + new API)',
     '                  Options: --dry-run, --yes, --renderer <renderer>',
+    'generate-secret   Generate a signing secret for URL tamper protection',
   ].join('\n'), 'Commands')
   p.outro('')
 }
@@ -1712,6 +1734,9 @@ else if (command === 'migrate') {
 }
 else if (command === 'switch') {
   runSwitch(args.slice(1))
+}
+else if (command === 'generate-secret') {
+  generateSecret()
 }
 else if (command === 'enable') {
   const renderer = args[1]
