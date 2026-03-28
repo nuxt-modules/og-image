@@ -1463,7 +1463,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
       // JSON roundtrip ensures runtimeConfig values are serializable and context-independent.
       // Vite's module runner creates objects in a separate V8 context that can't be structuredClone'd.
-      // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = JSON.parse(JSON.stringify(runtimeConfig))
     })
 
