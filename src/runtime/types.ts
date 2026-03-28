@@ -72,6 +72,7 @@ export interface OgImageRuntimeConfig {
     maxQueryParamSize: number | null
     restrictRuntimeImagesToOrigin: false | string[]
     secret: string
+    strict: boolean
   }
 
   app: {
@@ -159,6 +160,9 @@ export interface OgImageOptions {
   emojis?: IconifyEmojiIconSets | false
   /**
    * Provide a static HTML template to render the OG Image instead of a component.
+   *
+   * @deprecated The `html` option will be removed in the next major version due to SSRF risk.
+   * Use a Vue component instead. Disabled when `security.strict` is enabled.
    */
   html?: string
   // vendor config
