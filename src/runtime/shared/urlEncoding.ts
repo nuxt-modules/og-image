@@ -411,8 +411,8 @@ export function buildOgImageUrl(
   }
 
   const segment = encoded || 'default'
-  // When a secret is provided, append HMAC signature to the path segment
-  const signed = secret ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
+  // Sign dynamic URLs only (static/prerendered are served as files, no runtime verification)
+  const signed = secret && !isStatic ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
 
   return {
     url: `${prefix}/${signed}.${extension}`,

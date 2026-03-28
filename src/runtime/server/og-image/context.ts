@@ -175,9 +175,6 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const routeRuleMatcher = createNitroRouteRuleMatcher()
   const routeRules = routeRuleMatcher(basePath)
   const ogImageRouteRules = separateProps(routeRules.ogImage as RouteRulesOgImage)
-  // html option was removed (security: SSRF vector), strip any attempts to pass it
-  delete queryParams.html
-  delete urlOptions.html
   const options = defu(queryParams, urlOptions, ogImageRouteRules, runtimeConfig.defaults) as OgImageOptionsInternal
 
   // Clamp dimensions to prevent DoS via oversized image generation
