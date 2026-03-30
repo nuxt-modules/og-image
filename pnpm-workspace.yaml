@@ -22,10 +22,10 @@ catalog:
   '@antfu/eslint-config': ^7.7.3
   '@clack/prompts': ^1.1.0
   '@iconify-json/carbon': ^1.2.20
-  '@iconify-json/logos': ^1.2.10
+  '@iconify-json/logos': ^1.2.11
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.32
+  '@iconify-json/tabler': ^1.2.33
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.12.0
   '@nuxt/devtools': ^3.2.4
@@ -66,8 +66,8 @@ catalog:
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
-  globby: ^16.1.1
-  happy-dom: ^20.8.8
+  globby: ^16.2.0
+  happy-dom: ^20.8.9
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.32.0
   magic-string: ^0.30.21
@@ -75,8 +75,8 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
   nuxt-site-config: ^4.0.7
-  nuxtseo-layer-devtools: ^5.0.1
-  nuxtseo-shared: ^5.0.1
+  nuxtseo-layer-devtools: ^5.0.2
+  nuxtseo-shared: ^5.0.2
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -106,7 +106,7 @@ catalog:
   vue: ^3.5.31
   vue-router: ^5.0.4
   vue-tsc: ^3.2.6
-  wrangler: ^4.77.0
+  wrangler: ^4.78.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
