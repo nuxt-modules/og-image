@@ -1664,20 +1664,12 @@ async function runEnable(renderer: string, args: string[]): Promise<void> {
 function generateSecret() {
   const secret = randomBytes(32).toString('hex')
   p.intro('nuxt-og-image generate-secret')
-  p.note([
-    `${secret}`,
-    '',
-    'Add this to your nuxt.config.ts:',
-    '',
-    '  ogImage: {',
-    '    security: {',
-    `      secret: process.env.OG_IMAGE_SECRET,`,
-    '    }',
-    '  }',
-    '',
-    'Then set the environment variable:',
-    `  OG_IMAGE_SECRET=${secret}`,
-  ].join('\n'), 'Generated Secret')
+  p.log.step(`Secret: ${secret}`)
+  p.log.message('')
+  p.log.message('Set the environment variable:')
+  p.log.message(`  NUXT_OG_IMAGE_SECRET=${secret}`)
+  p.log.message('')
+  p.log.message('The secret is automatically picked up via runtime config.')
   p.outro('')
 }
 

@@ -349,16 +349,18 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
     }
 
-    if (config.security?.strict && !config.security?.secret) {
-      throw new Error('[nuxt-og-image] `security.strict` requires `security.secret` to be set. Generate one with: npx nuxt-og-image generate-secret')
+    const hasSecret = !!(config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET)
+
+    if (config.security?.strict && !hasSecret) {
+      throw new Error('[nuxt-og-image] `security.strict` requires a signing secret. Generate one with: npx nuxt-og-image generate-secret')
     }
 
-    if (nuxt.options.dev && !config.zeroRuntime && !config.security?.secret) {
+    if (nuxt.options.dev && !config.zeroRuntime && !hasSecret) {
       logger.warn([
         'OG image URLs are not signed. Anyone can craft arbitrary image generation requests.',
         '',
-        'Either set a signing secret:',
-        '  ogImage: { security: { secret: process.env.OG_IMAGE_SECRET } }',
+        'Set a signing secret via env variable:',
+        '  NUXT_OG_IMAGE_SECRET=<secret>',
         '',
         '  Generate one with: npx nuxt-og-image generate-secret',
         '',
@@ -1468,7 +1470,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
-          secret: config.security?.secret || '',
+          secret: config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET || '',
         },
       }
       if (nuxt.options.dev) {

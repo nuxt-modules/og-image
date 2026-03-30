@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v6.2.6...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.6...main)
+
+### 🚀 Enhancements
+
+- **security:** Add URL signing to prevent parameter tampering ([#546](https://github.com/nuxt-modules/og-image/pull/546))
+
+### 🩹 Fixes
+
+- **security:** Strict mode, deprecate `html` ([#545](https://github.com/nuxt-modules/og-image/pull/545))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.2.4...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.4...main)
