@@ -40,23 +40,33 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
 
   // wait for DevTools to be initialized
   onDevToolsInitialized(async () => {
-    const rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {})
+    let rpc: ReturnType<typeof extendServerRpc<ClientFunctions, ServerFunctions>> | undefined
+    try {
+      rpc = extendServerRpc<ClientFunctions, ServerFunctions>('nuxt-og-image', {})
+    }
+    catch (err) {
+      console.warn('[nuxt-og-image] Failed to set up DevTools RPC - live refresh will not work. If you\'re using @nuxt/devtools >= 4.0, this version of nuxt-og-image may not be compatible yet.', err)
+      return
+    }
+    if (!rpc?.broadcast) {
+      console.warn('[nuxt-og-image] DevTools RPC connected but `broadcast` is unavailable - live refresh will not work. If you\'re using @nuxt/devtools >= 4.0, this version of nuxt-og-image may not be compatible yet.')
+      return
+    }
 
     nuxt.hook('builder:watch', (e, path) => {
       path = relative(nuxt.options.srcDir, resolve(nuxt.options.srcDir, path))
       // needs to be for a page change
       if ((e === 'change' || e.includes('link')) && (path.startsWith('pages') || path.startsWith('content'))) {
-        rpc.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
-          .catch(() => {}) // ignore errors
+        rpc!.broadcast.refreshRouteData(path) // client needs to figure it if it's for the page we're on
+          ?.catch(() => {}) // ignore errors
       }
       if (options.componentDirs.some(dir => path.includes(dir))) {
         if (e === 'change') {
-          rpc.broadcast.refresh()
-            .catch(() => {})
+          rpc!.broadcast.refresh()
+            ?.catch(() => {})
         }
         else {
-          rpc.broadcast.refreshGlobalData().catch(() => {
-          })
+          rpc!.broadcast.refreshGlobalData()?.catch(() => {})
         }
       }
     })
