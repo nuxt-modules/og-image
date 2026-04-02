@@ -225,10 +225,13 @@ export async function parseFontsFromTemplate(
   nuxt: Nuxt,
   options: {
     convertedWoff2Files: Map<string, string>
+    /** Required font weights from component analysis — used to expand variable fonts */
+    requiredWeights?: number[]
   },
 ): Promise<ParsedFont[]> {
-  // Cache on nuxt instance keyed by convertedWoff2Files state
-  const cacheKey = `${options.convertedWoff2Files.size}:${[...options.convertedWoff2Files.keys()].toSorted().join(',')}`
+  // Cache on nuxt instance keyed by convertedWoff2Files state + requiredWeights
+  const weightsKey = options.requiredWeights?.toSorted((a, b) => a - b).join(',') || ''
+  const cacheKey = `${options.convertedWoff2Files.size}:${[...options.convertedWoff2Files.keys()].toSorted().join(',')}:${weightsKey}`
   const cache: Map<string, ParsedFont[]> = (nuxt as any)._ogImageParsedFontsCache ||= new Map()
   const cached = cache.get(cacheKey)
   if (cached)
@@ -291,6 +294,33 @@ export async function parseFontsFromTemplate(
     for (const template of templates)
       expandedFonts.push({ ...template, weight })
     existingKeys.add(key)
+  }
+
+  // Expand variable fonts for all required weights.
+  // Variable fonts (with weightRange) support a range of weights in a single file.
+  // Create entries for each required weight within the range so renderers like Takumi
+  // (which load WOFF2 natively) can match the correct weight at render time.
+  // This is independent of convertedWoff2Files — that handles Satori's static font downloads.
+  if (options.requiredWeights && options.requiredWeights.length > 0) {
+    // Collect variable fonts by their weight range
+    const variableFonts = expandedFonts.filter(f => f.weightRange)
+    for (const varFont of variableFonts) {
+      const [min, max] = varFont.weightRange!
+      for (const w of options.requiredWeights) {
+        if (w < min || w > max)
+          continue
+        const expandKey = `${varFont.family}-${w}-${varFont.style}`
+        if (existingKeys.has(expandKey))
+          continue
+        // Clone from ALL templates for this family+style (one per subset/unicodeRange)
+        const templates = expandedFonts.filter(f =>
+          f.family === varFont.family && f.style === varFont.style,
+        )
+        for (const template of templates)
+          expandedFonts.push({ ...template, weight: w })
+        existingKeys.add(expandKey)
+      }
+    }
   }
 
   const defaultUnicodeRange = 'U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'

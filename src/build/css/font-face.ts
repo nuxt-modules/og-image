@@ -130,14 +130,18 @@ export async function extractFontFacesSimple(css: string): Promise<Array<{
   style: string
   unicodeRange?: string
   isWoff2: boolean
+  /** Original weight range for variable fonts (e.g. [100, 900]) */
+  weightRange?: [number, number]
 }>> {
   const fonts = await extractFontFaces(css)
   return fonts.map((font) => {
     const urlSource = font.sources.find(s => s.type === 'url')
     let weight: number
+    let weightRange: [number, number] | undefined
     if (Array.isArray(font.weight)) {
       const [min, max] = font.weight
       weight = (min <= 400 && max >= 400) ? 400 : min
+      weightRange = [min, max]
     }
     else {
       weight = font.weight
@@ -150,6 +154,7 @@ export async function extractFontFacesSimple(css: string): Promise<Array<{
       style: font.style,
       unicodeRange: font.unicodeRange,
       isWoff2: src.endsWith('.woff2'),
+      weightRange,
     }
   }).filter(f => f.src)
 }
@@ -166,6 +171,7 @@ export async function extractFontFacesWithSubsets(css: string): Promise<Array<{
   unicodeRange?: string
   isWoff2: boolean
   subset?: string
+  weightRange?: [number, number]
 }>> {
   const fontFaceRe = RE_FONT_FACE_WITH_SUBSET
   const results: Array<{
@@ -176,6 +182,7 @@ export async function extractFontFacesWithSubsets(css: string): Promise<Array<{
     unicodeRange?: string
     isWoff2: boolean
     subset?: string
+    weightRange?: [number, number]
   }> = []
 
   for (const match of css.matchAll(fontFaceRe)) {

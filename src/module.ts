@@ -1282,7 +1282,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
       const fonts = hasNuxtFonts
-        ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
+        ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirementsState.weights })
         : []
       return `export default ${JSON.stringify(fonts)}`
     }

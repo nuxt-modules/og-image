@@ -214,6 +214,31 @@ describe('extractFontFacesWithSubsets', () => {
     expect(fonts.map(f => f.subset)).toContain('latin')
   })
 
+  it('preserves weightRange for variable fonts', async () => {
+    const variableFontCss = `
+/* latin */
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/_fonts/public-sans-latin-variable.woff2) format('woff2');
+  unicode-range: U+0000-00FF;
+}
+`
+    const fonts = await extractFontFacesWithSubsets(variableFontCss)
+    expect(fonts).toHaveLength(1)
+    expect(fonts[0].weight).toBe(400) // collapsed default
+    expect(fonts[0].weightRange).toEqual([100, 900])
+    expect(fonts[0].family).toBe('Public Sans')
+  })
+
+  it('does not set weightRange for static fonts', async () => {
+    const fonts = await extractFontFacesWithSubsets(multiSubsetCss)
+    for (const font of fonts) {
+      expect(font.weightRange).toBeUndefined()
+    }
+  })
+
   it('includes fonts without subset comments', async () => {
     const cssNoComment = `
 @font-face {

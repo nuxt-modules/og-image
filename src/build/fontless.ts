@@ -470,7 +470,7 @@ export async function resolveOgImageFonts(options: {
 
   // 1. Extract fonts from @nuxt/fonts global CSS (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
-    ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
+    ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirements.weights })
     : []
 
   // Auto-detect subsets from @nuxt/fonts CSS comments (e.g. devanagari, cyrillic)
@@ -531,7 +531,7 @@ export async function resolveOgImageFonts(options: {
   // not the actual @nuxt/fonts families (e.g. Inter).
   const nuxtFontFamilies = new Set(
     hasNuxtFonts
-      ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files })).map(f => f.family)
+      ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirements.weights })).map(f => f.family)
       : [],
   )
   const fonts = !fontRequirements.hasDynamicBindings
