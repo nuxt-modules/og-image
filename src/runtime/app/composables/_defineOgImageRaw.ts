@@ -1,4 +1,5 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
+import { injectHead } from '@unhead/vue'
 import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
@@ -102,6 +103,48 @@ function useProcessOgImageOptions(
       // @ts-expect-error untyped
       validOptions[key] = defaults[key]
   }
+  // Auto-inject title and description from useSeoMeta / useHead into props
+  // so that OG image components can access the page's SEO metadata automatically.
+  if (import.meta.server) {
+    const head = injectHead()
+    if (head) {
+      const entries = head.headEntries()
+      let headTitle: string | undefined
+      let headDescription: string | undefined
+      // Iterate entries in order (last entry wins via defu merge later)
+      for (const entry of entries) {
+        const input = toValue(entry.input) as Record<string, any> | undefined
+        if (!input || typeof input !== 'object')
+          continue
+        if ('title' in input) {
+          const t = toValue(input.title)
+          if (typeof t === 'string')
+            headTitle = t
+        }
+        if (Array.isArray(input.meta)) {
+          for (const meta of input.meta) {
+            const m = toValue(meta)
+            if (!m || typeof m !== 'object')
+              continue
+            if (m.name === 'description' || m.property === 'og:description') {
+              const c = toValue(m.content)
+              if (typeof c === 'string')
+                headDescription = c
+            }
+          }
+        }
+      }
+      if (headTitle || headDescription) {
+        const props = (validOptions as OgImageOptions).props || {}
+        if (headTitle && typeof props.title === 'undefined')
+          props.title = headTitle
+        if (headDescription && typeof props.description === 'undefined')
+          props.description = headDescription
+        ;(validOptions as OgImageOptions).props = props
+      }
+    }
+  }
+
   if (route.query)
     validOptions._query = route.query
   // allow overriding using a prebuild config
