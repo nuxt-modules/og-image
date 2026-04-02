@@ -33,6 +33,7 @@ export default defineNuxtConfig({
       // Noto Sans Devanagari — tests non-Latin script rendering and font fallback
       { name: 'Noto Sans Devanagari', weights: [400, 700], global: true },
       { name: 'BIZ UDPGothic', weights: [400, 700], global: true },
+      { name: 'Public Sans', weights: [400, 500, 600, 700, 800, 900], global: true },
     ],
   },
 

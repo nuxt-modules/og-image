@@ -25,6 +25,8 @@ describe('multi-font-families', () => {
       '/devanagari-satori',
       '/takumi-variable-bold',
       '/biz-udp-bold',
+      '/font-black',
+      '/font-black-takumi',
     )
 
     const snapshotIds: Record<string, string> = {
@@ -39,6 +41,8 @@ describe('multi-font-families', () => {
       // Case-insensitive font-family matching: template uses 'Biz UDPGothic',
       // @nuxt/fonts resolves as 'BIZ UDPGothic' — should still render correctly (#500)
       '/biz-udp-bold': 'multi-font-biz-udp-bold-takumi',
+      '/font-black': 'multi-font-font-black',
+      '/font-black-takumi': 'multi-font-font-black-takumi',
     }
 
     for (const [path, id] of Object.entries(snapshotIds)) {
