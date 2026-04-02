@@ -111,7 +111,7 @@ function useProcessOgImageOptions(
       const entries = head.headEntries()
       let headTitle: string | undefined
       let headDescription: string | undefined
-      // Iterate entries in order (last entry wins via defu merge later)
+      // Iterate entries in order (last entry wins)
       for (const entry of entries) {
         const input = toValue(entry.input) as Record<string, any> | undefined
         if (!input || typeof input !== 'object')
@@ -120,6 +120,14 @@ function useProcessOgImageOptions(
           const t = toValue(input.title)
           if (typeof t === 'string')
             headTitle = t
+        }
+        // useSeoMeta() stores meta as _flatMeta (flat object with keys like description, ogDescription)
+        // while useHead() stores meta as input.meta (array of { name, content } objects)
+        if (input._flatMeta && typeof input._flatMeta === 'object') {
+          const flat = input._flatMeta
+          const d = toValue(flat.description) || toValue(flat.ogDescription)
+          if (typeof d === 'string')
+            headDescription = d
         }
         if (Array.isArray(input.meta)) {
           for (const meta of input.meta) {
