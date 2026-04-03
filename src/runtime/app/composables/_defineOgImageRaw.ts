@@ -3,6 +3,7 @@ import { injectHead } from '@unhead/vue'
 import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
+import type { Unhead } from 'unhead/types'
 
 const RE_COMMA = /,/g
 
@@ -103,54 +104,14 @@ function useProcessOgImageOptions(
       // @ts-expect-error untyped
       validOptions[key] = defaults[key]
   }
-  // Auto-inject title and description from useSeoMeta / useHead into props
-  // so that OG image components can access the page's SEO metadata automatically.
+
+  // Capture the head instance during component setup so that createOgImageMeta
+  // can lazily resolve title/description from useSeoMeta / useHead after all
+  // component setups have completed (ordering-independent).
+  let head: Unhead | undefined
   if (import.meta.server) {
-    const head = injectHead()
-    if (head) {
-      const entries = head.headEntries()
-      let headTitle: string | undefined
-      let headDescription: string | undefined
-      // Iterate entries in order (last entry wins)
-      for (const entry of entries) {
-        const input = toValue(entry.input) as Record<string, any> | undefined
-        if (!input || typeof input !== 'object')
-          continue
-        if ('title' in input) {
-          const t = toValue(input.title)
-          if (typeof t === 'string')
-            headTitle = t
-        }
-        // useSeoMeta() stores meta as _flatMeta (flat object with keys like description, ogDescription)
-        // while useHead() stores meta as input.meta (array of { name, content } objects)
-        if (input._flatMeta && typeof input._flatMeta === 'object') {
-          const flat = input._flatMeta
-          const d = toValue(flat.description) || toValue(flat.ogDescription)
-          if (typeof d === 'string')
-            headDescription = d
-        }
-        if (Array.isArray(input.meta)) {
-          for (const meta of input.meta) {
-            const m = toValue(meta)
-            if (!m || typeof m !== 'object')
-              continue
-            if (m.name === 'description' || m.property === 'og:description') {
-              const c = toValue(m.content)
-              if (typeof c === 'string')
-                headDescription = c
-            }
-          }
-        }
-      }
-      if (headTitle || headDescription) {
-        const props = (validOptions as OgImageOptions).props || {}
-        if (headTitle && typeof props.title === 'undefined')
-          props.title = headTitle
-        if (headDescription && typeof props.description === 'undefined')
-          props.description = headDescription
-        ;(validOptions as OgImageOptions).props = props
-      }
-    }
+    try { head = injectHead() as unknown as Unhead }
+    catch {}
   }
 
   if (route.query)
@@ -165,7 +126,7 @@ function useProcessOgImageOptions(
   if (hash) {
     validOptions._hash = hash
   }
-  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
+  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!, basePath, head)
   if (import.meta.prerender) {
     // Store prerender paths on the event context, keyed by OG key so that
     // when defineOgImage is called multiple times with the same key (e.g. layout
