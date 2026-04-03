@@ -1,18 +1,62 @@
 import type { ActiveHeadEntry, Head } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
+import type { Unhead } from 'unhead/types'
 import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
+import { toValue } from 'vue'
 import { joinURL, withQuery } from 'ufo'
 import { logger } from '../logger'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
 
-type OgImagePayload = [string, OgImageOptionsInternal, Required<Head>['meta']]
+type OgImagePayload = [string, OgImageOptionsInternal, string]
+
+/**
+ * Extract title and description from head entries set by useSeoMeta / useHead.
+ * useSeoMeta stores description in _flatMeta (flat object), while useHead stores
+ * it in input.meta (array of { name, content } objects). Title is always hoisted
+ * to entry.input.title by both APIs.
+ */
+function extractHeadSeoProps(head: Unhead): { title?: string, description?: string } {
+  const result: { title?: string, description?: string } = {}
+  try {
+    const entries = head.headEntries()
+    for (const entry of entries) {
+      const input = toValue(entry.input) as Record<string, any> | undefined
+      if (!input || typeof input !== 'object')
+        continue
+      if ('title' in input) {
+        const t = toValue(input.title)
+        if (typeof t === 'string')
+          result.title = t
+      }
+      if (input._flatMeta && typeof input._flatMeta === 'object') {
+        const d = toValue(input._flatMeta.description) || toValue(input._flatMeta.ogDescription)
+        if (typeof d === 'string')
+          result.description = d
+      }
+      if (Array.isArray(input.meta)) {
+        for (const meta of input.meta) {
+          const m = toValue(meta)
+          if (!m || typeof m !== 'object')
+            continue
+          if (m.name === 'description' || m.property === 'og:description') {
+            const c = toValue(m.content)
+            if (typeof c === 'string')
+              result.description = c
+          }
+        }
+      }
+    }
+  }
+  catch {}
+  return result
+}
 
 declare module 'nuxt/app' {
   interface NuxtSSRContext {
@@ -33,7 +77,7 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   useHead({ meta }, { tagPriority: 'high' })
 }
 
-export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePrebuilt, ssrContext: NuxtSSRContext) {
+export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePrebuilt, ssrContext: NuxtSSRContext, pagePath?: string, head?: Unhead) {
   if (import.meta.client) {
     return
   }
@@ -48,19 +92,46 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
     return
   if (input._query && Object.keys(input._query).length && url)
     url = withQuery(url, { _query: input._query })
-  const meta = generateMeta(url, resolvedOptions)
+  // Store basePath in the payload so meta() can lazily rebuild URLs with head-derived props
+  const basePath = pagePath || '/'
   if (currentPayloadIdx === -1) {
-    payloads.push([resolvedOptions.key!, _input, meta as any])
+    payloads.push([resolvedOptions.key!, _input, basePath])
   }
   else {
-    payloads[currentPayloadIdx] = [resolvedOptions.key!, _input, meta as any]
+    payloads[currentPayloadIdx] = [resolvedOptions.key!, _input, basePath]
   }
 
   ssrContext._ogImageInstance?.dispose()
   ssrContext._ogImageInstance = useHead({
+    // Meta is generated lazily so that title/description from useSeoMeta / useHead
+    // are available regardless of call ordering (all component setups have completed
+    // by the time Unhead resolves tags).
     meta() {
       const finalPayload = ssrContext._ogImagePayloads || []
-      return finalPayload.flatMap(([_, __, meta]) => meta)
+      return finalPayload.flatMap(([_, options, payloadBasePath]) => {
+        const opts = { ...options, props: { ...options.props } }
+        // Inject title/description from head entries if not already set
+        if (head) {
+          const seo = extractHeadSeoProps(head)
+          if (seo.title && typeof opts.props.title === 'undefined')
+            opts.props.title = seo.title
+          if (seo.description && typeof opts.props.description === 'undefined')
+            opts.props.description = seo.description
+        }
+        const { path: resolvedUrl } = getOgImagePath(payloadBasePath, opts)
+        const finalUrl = opts._query && Object.keys(opts._query).length
+          ? withQuery(resolvedUrl, { _query: opts._query })
+          : resolvedUrl
+        // Update prerender paths to match the lazily resolved URL
+        if (import.meta.prerender && ssrContext.event) {
+          const prerenderPaths: Map<string, string> | undefined = ssrContext.event.context._ogImagePrerenderPaths
+          if (prerenderPaths) {
+            const ogKey = opts.key || 'og'
+            prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
+          }
+        }
+        return generateMeta(finalUrl, opts)
+      })
     },
   }, {
     processTemplateParams: true,
@@ -78,8 +149,15 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         innerHTML: () => {
           const devtoolsPayload = (ssrContext._ogImagePayloads || []).map(([key, options]) => {
             const payload = resolveUnrefHeadInput(options) as any
+            // Use %s template param for title - resolved by Unhead's processTemplateParams
             if (payload.props && typeof payload.props.title === 'undefined')
               payload.props.title = '%s'
+            // Inject description from head entries for devtools/prerender cache
+            if (head && payload.props && typeof payload.props.description === 'undefined') {
+              const seo = extractHeadSeoProps(head)
+              if (seo.description)
+                payload.props.description = seo.description
+            }
             if (typeof payload.component === 'string') {
               payload.component = resolveComponentName(payload.component)
             }

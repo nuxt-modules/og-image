@@ -1,7 +1,9 @@
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
+import { injectHead } from '@unhead/vue'
 import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
+import type { Unhead } from 'unhead/types'
 
 const RE_COMMA = /,/g
 
@@ -102,6 +104,16 @@ function useProcessOgImageOptions(
       // @ts-expect-error untyped
       validOptions[key] = defaults[key]
   }
+
+  // Capture the head instance during component setup so that createOgImageMeta
+  // can lazily resolve title/description from useSeoMeta / useHead after all
+  // component setups have completed (ordering-independent).
+  let head: Unhead | undefined
+  if (import.meta.server) {
+    try { head = injectHead() as unknown as Unhead }
+    catch {}
+  }
+
   if (route.query)
     validOptions._query = route.query
   // allow overriding using a prebuild config
@@ -114,7 +126,7 @@ function useProcessOgImageOptions(
   if (hash) {
     validOptions._hash = hash
   }
-  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
+  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!, basePath, head)
   if (import.meta.prerender) {
     // Store prerender paths on the event context, keyed by OG key so that
     // when defineOgImage is called multiple times with the same key (e.g. layout
