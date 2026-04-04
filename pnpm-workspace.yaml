@@ -20,7 +20,7 @@ overrides:
   vite: npm:vite@8.0.1
 catalog:
   '@antfu/eslint-config': ^7.7.3
-  '@clack/prompts': ^1.1.0
+  '@clack/prompts': ^1.2.0
   '@iconify-json/carbon': ^1.2.20
   '@iconify-json/logos': ^1.2.11
   '@iconify-json/noto': ^1.2.7
@@ -36,7 +36,7 @@ catalog:
   '@nuxt/kit': ^4.4.2
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^4.0.0
-  '@nuxt/ui': ^4.6.0
+  '@nuxt/ui': ^4.6.1
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.2.4
@@ -46,11 +46,11 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': 1.0.0-beta.13
-  '@takumi-rs/wasm': 1.0.0-beta.13
+  '@takumi-rs/core': 1.0.0-rc.14
+  '@takumi-rs/wasm': 1.0.0-rc.14
   '@unocss/nuxt': ^66.6.7
   '@vitejs/plugin-vue': ^6.0.5
-  '@vue/compiler-sfc': ^3.5.31
+  '@vue/compiler-sfc': ^3.5.32
   '@vueuse/core': ^14.2.1
   '@vueuse/nuxt': ^14.2.1
   better-sqlite3: ^12.8.0
@@ -61,7 +61,7 @@ catalog:
   culori: ^4.0.2
   defu: ^6.1.4
   devalue: ^5.6.4
-  eslint: ^10.1.0
+  eslint: ^10.2.0
   eslint-plugin-harlanzw: ^0.12.0
   exsolve: ^1.0.8
   fontless: ^0.2.1
@@ -75,19 +75,19 @@ catalog:
   mocked-exports: ^0.1.1
   nuxt: ^4.4.2
   nuxt-site-config: ^4.0.7
-  nuxtseo-layer-devtools: ^5.0.2
-  nuxtseo-shared: ^5.0.2
+  nuxtseo-layer-devtools: ^5.1.0
+  nuxtseo-shared: ^5.1.0
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.121.0
+  oxc-parser: ^0.123.0
   oxc-walker: ^0.7.0
   pathe: ^2.0.3
   pkg-types: ^2.3.0
-  playwright: ^1.58.2
-  playwright-core: ^1.58.2
+  playwright: ^1.59.1
+  playwright-core: ^1.59.1
   radix3: ^1.1.2
-  sass: ^1.98.0
+  sass: ^1.99.0
   satori: ^0.26.0
   sharp: ^0.34.5
   sirv: ^3.0.2
@@ -103,14 +103,14 @@ catalog:
   unocss: ^66.6.7
   unplugin: ^3.0.0
   vitest: ^4.1.2
-  vue: ^3.5.31
+  vue: ^3.5.32
   vue-router: ^5.0.4
   vue-tsc: ^3.2.6
-  wrangler: ^4.78.0
+  wrangler: ^4.80.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
-    '@iconify-json/simple-icons': ^1.2.75
+    '@iconify-json/simple-icons': ^1.2.76
     shiki: ^4.0.2
 onlyBuiltDependencies:
   - '@parcel/watcher'

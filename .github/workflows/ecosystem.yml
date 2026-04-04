@@ -13,7 +13,7 @@ jobs:
     name: 🌐 npmx.dev build (${{ matrix.attempt }})
     runs-on: ubuntu-24.04-arm
     container:
-      image: mcr.microsoft.com/playwright:v1.58.2-noble
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
     strategy:
       fail-fast: false
       matrix:
