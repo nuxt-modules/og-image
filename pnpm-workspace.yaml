@@ -19,7 +19,7 @@ packages:
 overrides:
   vite: npm:vite@8.0.1
 catalog:
-  '@antfu/eslint-config': ^7.7.3
+  '@antfu/eslint-config': ^8.0.0
   '@clack/prompts': ^1.1.0
   '@iconify-json/carbon': ^1.2.20
   '@iconify-json/logos': ^1.2.11
