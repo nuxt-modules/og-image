@@ -6,8 +6,10 @@ import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
+import { renameSubsetFonts } from './font-subsets'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
 
+export { buildSubsetFamilyChain, renameSubsetFonts, resolveSubsetChain } from './font-subsets'
 export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from './unicode-range'
 
 type FontFormat = 'ttf' | 'otf' | 'woff' | 'woff2'
@@ -280,13 +282,20 @@ export interface LoadFontsForRendererOptions extends LoadFontsOptions {
 /**
  * Shared font loading sequence used by both renderers.
  * Loads base fonts via loadAllFonts, then appends any custom font definitions.
+ *
+ * When a font family has multiple unicode-range subsets loaded (e.g., CJK fonts
+ * split into many small chunks), renames each subset to a unique family name
+ * (e.g., "Noto Sans SC__0", "Noto Sans SC__1") so renderers use font-family
+ * fallback chains for per-character glyph coverage. Without this, both Satori
+ * and Takumi pick the first font file and show .notdef for characters in other subsets.
  */
 export async function loadFontsForRenderer(event: OgImageRenderEventContext, options: LoadFontsForRendererOptions): Promise<RuntimeFontConfig[]> {
   const baseFonts = await loadAllFonts(event.e, options)
-  if (!Array.isArray(options.fontDefs) || options.fontDefs.length === 0)
-    return baseFonts
-  const customFonts = await loadDefinedFonts(event, options.fontDefs)
-  return [...baseFonts, ...customFonts]
+  const customFonts = Array.isArray(options.fontDefs) && options.fontDefs.length > 0
+    ? await loadDefinedFonts(event, options.fontDefs)
+    : []
+  const allFonts = customFonts.length > 0 ? [...baseFonts, ...customFonts] : baseFonts
+  return renameSubsetFonts(allFonts)
 }
 
 /** Get the default font family override from options or first resolved font */

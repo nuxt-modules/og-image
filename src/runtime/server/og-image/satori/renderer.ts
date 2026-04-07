@@ -5,7 +5,7 @@ import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { defu } from 'defu'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer } from '../fonts'
+import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getResvg, getSatori, getSharp } from './instances'
 import { createVNodes } from './vnodes'
 
@@ -59,16 +59,30 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const satoriFonts = (!hasCustomFonts && _satoriFontCache.get(fonts)) || fonts.map(f => ({ ...f, name: f.family }))
   if (!hasCustomFonts)
     _satoriFontCache.set(fonts, satoriFonts)
-  // Build tailwind theme from TW4 font vars, filtered to loaded font families
+
+  // Build subset family chains for fonts that were split into unicode-range subsets
+  const subsetChains = buildSubsetFamilyChain(fonts)
+
+  // Build tailwind theme from TW4 font vars, filtered to loaded font families.
   // TW4 vars contain full font stacks (e.g. "ui-sans-serif, system-ui, ...") but Satori
-  // can only use fonts that are actually loaded — filter to available families
+  // can only use fonts that are actually loaded — filter to available families.
+  // For subset fonts, expand original family names into the full subset chain.
   const loadedFamilies = new Set(satoriFonts.map(f => f.name))
   const defaultFamily = satoriFonts[0]?.name
   function resolveAvailableFamily(cssValue: string): string | undefined {
     const families = cssValue.split(',').map(f => f.trim().replace(RE_FONT_QUOTES, ''))
-    const available = families.filter(f => loadedFamilies.has(f))
-    if (available.length > 0)
-      return available.join(', ')
+    const resolved: string[] = []
+    for (const f of families) {
+      if (loadedFamilies.has(f)) {
+        resolved.push(f)
+        continue
+      }
+      const chain = resolveSubsetChain(f, subsetChains)
+      if (chain)
+        resolved.push(...chain)
+    }
+    if (resolved.length > 0)
+      return resolved.join(', ')
     return defaultFamily
   }
   const fontFamily: Record<string, string> = {}
@@ -80,6 +94,10 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
     if (resolved)
       fontFamily[slot] = resolved
   }
+  // Rewrite inline fontFamily in vnodes to use subset chains
+  if (subsetChains.size > 0)
+    rewriteVNodeFontFamilies(vnodes, subsetChains)
+
   const satoriOptions: SatoriOptions = defu(options.satori, _satoriOptions, <SatoriOptions>{
     fonts: satoriFonts,
     tailwindConfig: Object.keys(fontFamily).length ? { theme: { fontFamily } } : undefined,
@@ -129,6 +147,33 @@ async function createJpeg(event: OgImageRenderEventContext) {
   return sharp(svgBuffer, options)
     .jpeg(options as JpegOptions)
     .toBuffer()
+}
+
+/**
+ * Walk the satori VNode tree and rewrite fontFamily values to use subset chains.
+ * E.g., `fontFamily: "Noto Sans SC"` → `fontFamily: "Noto Sans SC__0, Noto Sans SC__1, ..."`
+ */
+function rewriteVNodeFontFamilies(node: any, subsetChains: Map<string, string[]>) {
+  const style = node.props?.style
+  if (style?.fontFamily && typeof style.fontFamily === 'string') {
+    const families = style.fontFamily.split(',').map((f: string) => f.trim().replace(RE_FONT_QUOTES, ''))
+    const resolved: string[] = []
+    for (const f of families) {
+      const chain = resolveSubsetChain(f, subsetChains)
+      if (chain)
+        resolved.push(...chain)
+      else
+        resolved.push(f)
+    }
+    style.fontFamily = resolved.join(', ')
+  }
+  const children = node.props?.children
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      if (child && typeof child === 'object')
+        rewriteVNodeFontFamilies(child, subsetChains)
+    }
+  }
 }
 
 const SatoriRenderer: Renderer = {

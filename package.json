@@ -150,6 +150,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
+    "@fontsource/noto-sans-sc": "catalog:",
     "@iconify-json/carbon": "catalog:",
     "@iconify-json/logos": "catalog:",
     "@iconify-json/noto": "catalog:",

@@ -34,6 +34,8 @@ export default defineNuxtConfig({
       { name: 'Noto Sans Devanagari', weights: [400, 700], global: true },
       { name: 'BIZ UDPGothic', weights: [400, 700], global: true },
       { name: 'Public Sans', weights: [400, 500, 600, 700, 800, 900], global: true },
+      // CJK font with many unicode-range subsets — tests per-character fallback across subsets (#551)
+      { name: 'Noto Sans SC', weights: [400], styles: ['normal'], subsets: ['chinese-simplified', 'latin'], global: true },
     ],
   },
 

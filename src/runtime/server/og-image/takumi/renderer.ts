@@ -4,7 +4,7 @@ import { getNitroOrigin } from '#site-config/server/composables'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
-import { extractCodepoints, getDefaultFontFamily, loadFontsForRenderer } from '../fonts'
+import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 
@@ -74,25 +74,35 @@ function lookupFontFamily(family: string, loadedFamilies: Set<string>): string |
   }
 }
 
-function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>) {
+function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>, subsetChains: Map<string, string[]>) {
   if (node.style?.fontFamily) {
     const families = (node.style.fontFamily as string).split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
-    // Resolve each family to the loaded name (case-insensitive), keep unloaded families as-is
-    const resolved = families.map((f: string) => lookupFontFamily(f, loadedFamilies) || f)
-    // Append other loaded families as fallback for missing glyphs
-    const seen = new Set(resolved.map(f => f.toLowerCase()))
-    for (const family of loadedFamilies) {
-      if (!seen.has(family.toLowerCase())) {
-        resolved.push(family)
-        seen.add(family.toLowerCase())
+    const resolved: string[] = []
+    const seen = new Set<string>()
+    const addUnique = (name: string) => {
+      if (!seen.has(name.toLowerCase())) {
+        resolved.push(name)
+        seen.add(name.toLowerCase())
       }
     }
-    // Quote each name so multi-word family names are parsed correctly
+    for (const f of families) {
+      // Check if this is an original family name that was split into subsets
+      const chain = resolveSubsetChain(f, subsetChains)
+      if (chain) {
+        chain.forEach(addUnique)
+        continue
+      }
+      // Resolve case-insensitive match against loaded families
+      addUnique(lookupFontFamily(f, loadedFamilies) || f)
+    }
+    // Append remaining loaded families as fallback for missing glyphs
+    for (const family of loadedFamilies)
+      addUnique(family)
     node.style.fontFamily = resolved.map((f: string) => `"${f}"`).join(', ')
   }
   if ('children' in node && node.children) {
     for (const child of node.children)
-      rewriteFontFamilies(child, loadedFamilies)
+      rewriteFontFamilies(child, loadedFamilies, subsetChains)
   }
 }
 
@@ -106,16 +116,25 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
 
+  const subsetChains = buildSubsetFamilyChain(fonts)
+
   const state = await getTakumiState(event)
   await loadFontsIntoRenderer(state, fonts)
 
   const rootStyle = nodes.style ?? {}
-  if (fontFamilyOverride && state.loadedFamilies.has(fontFamilyOverride)) {
-    rootStyle.fontFamily = fontFamilyOverride
+  // If fontFamilyOverride was renamed into subsets, use the chain instead
+  if (fontFamilyOverride) {
+    const chain = subsetChains.get(fontFamilyOverride)
+    if (chain) {
+      rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
+    }
+    else if (state.loadedFamilies.has(fontFamilyOverride)) {
+      rootStyle.fontFamily = fontFamilyOverride
+    }
   }
   nodes.style = rootStyle
 
-  rewriteFontFamilies(nodes, state.loadedFamilies)
+  rewriteFontFamilies(nodes, state.loadedFamilies, subsetChains)
 
   const extractResourceUrls = await getExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
