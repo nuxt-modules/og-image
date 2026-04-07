@@ -10,11 +10,11 @@
   "dependencies": {
     "@nuxt/fonts": "^0.14.0",
     "@tailwindcss/vite": "^4.2.2",
-    "@takumi-rs/core": "^1.0.0-rc.6",
+    "@takumi-rs/core": "^1.0.0-rc.14",
     "nuxt": "^4.4.2",
     "nuxt-og-image": "latest",
     "nuxt-site-config": "^4.0.7",
     "tailwindcss": "^4.2.2",
-    "vue": "^3.5.31"
+    "vue": "^3.5.32"
   }
 }

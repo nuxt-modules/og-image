@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v6.3.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.0...main)
+
+### 🩹 Fixes
+
+- Prefer runtime config for secret ([651962d0](https://github.com/nuxt-modules/og-image/commit/651962d0))
+
+### 🏡 Chore
+
+- Bump ([8cf8dc3e](https://github.com/nuxt-modules/og-image/commit/8cf8dc3e))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.2.6...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.2.6...main)
