@@ -21,6 +21,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^8.0.0
   '@clack/prompts': ^1.2.0
+  '@fontsource/noto-sans-sc': ^5.2.9
   '@iconify-json/carbon': ^1.2.20
   '@iconify-json/logos': ^1.2.11
   '@iconify-json/noto': ^1.2.7

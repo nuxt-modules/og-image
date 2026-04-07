@@ -235,6 +235,8 @@ export interface FontConfig {
 export interface RuntimeFontConfig extends FontConfig {
   cacheKey: string
   data: BufferSource
+  /** Original family name before subset renaming (e.g., "Noto Sans SC" when family is "Noto Sans SC__0") */
+  originalFamily?: string
 }
 
 export interface RuntimeCompatibilitySchema {

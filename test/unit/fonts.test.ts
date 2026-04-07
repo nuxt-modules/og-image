@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
 import { extractFontFacesWithSubsets } from '../../src/build/css/font-face'
 import { fontKey, getStaticInterFonts, matchesFontRequirements, resolveFontFamilies } from '../../src/build/fonts'
+import { buildSubsetFamilyChain, renameSubsetFonts } from '../../src/runtime/server/og-image/font-subsets'
 import { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
 
 describe('extractCustomFontFamilies', () => {
@@ -252,6 +253,90 @@ describe('extractFontFacesWithSubsets', () => {
     expect(fonts).toHaveLength(1)
     expect(fonts[0].subset).toBeUndefined()
   })
+
+  it('captures numbered CJK subsets with unicode-range', async () => {
+    // Fontsource index.css uses numbered subset comments like /* noto-sans-sc-[4]-400-normal */
+    // which don't match the [a-z-]+ pattern but the @font-face blocks should still be captured
+    const cjkCss = `
+/* noto-sans-sc-[112]-400-normal */
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(/_fonts/chunk112.woff2) format('woff2');
+  unicode-range: U+5E16, U+5E1D, U+5E2D;
+}
+/* noto-sans-sc-[119]-400-normal */
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(/_fonts/chunk119.woff2) format('woff2');
+  unicode-range: U+7684, U+7F51;
+}
+`
+    const fonts = await extractFontFacesWithSubsets(cjkCss)
+    expect(fonts).toHaveLength(2)
+    // Both should have unicode-range preserved
+    expect(fonts[0].unicodeRange).toBeDefined()
+    expect(fonts[1].unicodeRange).toBeDefined()
+    // Different src URLs
+    expect(fonts[0].src).toContain('chunk112')
+    expect(fonts[1].src).toContain('chunk119')
+    // Same family/weight/style
+    expect(fonts[0].family).toBe('Noto Sans SC')
+    expect(fonts[1].family).toBe('Noto Sans SC')
+  })
+
+  it('preserves all CJK subsets through fontKey dedup', async () => {
+    // Fonts with different unicodeRange should NOT be deduped
+    const cjkCss = `
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/_fonts/chunk0.woff2) format('woff2');
+  unicode-range: U+5E16;
+}
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/_fonts/chunk1.woff2) format('woff2');
+  unicode-range: U+7684;
+}
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/_fonts/chunk2.woff2) format('woff2');
+  unicode-range: U+0000-00FF;
+}
+`
+    const fonts = await extractFontFacesWithSubsets(cjkCss)
+    expect(fonts).toHaveLength(3)
+    // Each should produce a different fontKey
+    const keys = fonts.map(f => fontKey(f))
+    expect(new Set(keys).size).toBe(3)
+  })
+})
+
+describe('cJK subset codepoint filtering', () => {
+  it('keeps only subsets intersecting template codepoints', () => {
+    // 帖 = U+5E16, 的 = U+7684
+    const codepoints = new Set([0x5E16, 0x7684])
+
+    // Subset covering 帖
+    expect(codepointsIntersectRanges(codepoints, [[0x5E16, 0x5E16]])).toBe(true)
+    // Subset covering 的
+    expect(codepointsIntersectRanges(codepoints, [[0x7684, 0x7684]])).toBe(true)
+    // Latin subset (no CJK chars)
+    expect(codepointsIntersectRanges(codepoints, [[0x0000, 0x00FF]])).toBe(false)
+    // Different CJK range
+    expect(codepointsIntersectRanges(codepoints, [[0x9000, 0x9FFF]])).toBe(false)
+  })
 })
 
 describe('parseUnicodeRange', () => {
@@ -365,5 +450,98 @@ describe('extractCodepoints', () => {
     const node = {}
     const cp = extractCodepoints(node)
     expect(cp.size).toBe(0)
+  })
+})
+
+describe('renameSubsetFonts', () => {
+  function makeFontConfig(overrides: Partial<{ family: string, weight: number, style: string, cacheKey: string, data: ArrayBuffer }>): any {
+    return {
+      family: 'Inter',
+      weight: 400,
+      style: 'normal',
+      src: '/test.woff2',
+      localPath: '/test.woff2',
+      cacheKey: 'default-key',
+      data: new ArrayBuffer(8),
+      ...overrides,
+    }
+  }
+
+  it('does not rename when each family/weight/style has only one font', () => {
+    const fonts = [
+      makeFontConfig({ family: 'Inter', cacheKey: 'inter-400' }),
+      makeFontConfig({ family: 'Inter', weight: 700, cacheKey: 'inter-700' }),
+    ]
+    const result = renameSubsetFonts(fonts)
+    expect(result).toHaveLength(2)
+    expect(result[0].family).toBe('Inter')
+    expect(result[1].family).toBe('Inter')
+    expect(result[0].originalFamily).toBeUndefined()
+  })
+
+  it('renames subset fonts with unique suffixes', () => {
+    const fonts = [
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-chunk0', data: new ArrayBuffer(10) }),
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-chunk1', data: new ArrayBuffer(20) }),
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-chunk2', data: new ArrayBuffer(30) }),
+    ]
+    const result = renameSubsetFonts(fonts)
+    expect(result).toHaveLength(3)
+    expect(result[0].family).toBe('Noto Sans SC__0')
+    expect(result[1].family).toBe('Noto Sans SC__1')
+    expect(result[2].family).toBe('Noto Sans SC__2')
+    // All preserve original family name
+    expect(result[0].originalFamily).toBe('Noto Sans SC')
+    expect(result[1].originalFamily).toBe('Noto Sans SC')
+    expect(result[2].originalFamily).toBe('Noto Sans SC')
+  })
+
+  it('does not rename when all fonts in a group have the same cacheKey', () => {
+    // This happens when fontless provides the same static font for all subsets
+    const fonts = [
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'same-key' }),
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'same-key' }),
+    ]
+    const result = renameSubsetFonts(fonts)
+    expect(result).toHaveLength(2)
+    expect(result[0].family).toBe('Noto Sans SC')
+    expect(result[0].originalFamily).toBeUndefined()
+  })
+
+  it('only renames the group that has multiple distinct fonts', () => {
+    const fonts = [
+      makeFontConfig({ family: 'Inter', cacheKey: 'inter-400' }),
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-0' }),
+      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-1' }),
+    ]
+    const result = renameSubsetFonts(fonts)
+    expect(result).toHaveLength(3)
+    // Inter stays the same
+    expect(result[0].family).toBe('Inter')
+    expect(result[0].originalFamily).toBeUndefined()
+    // Noto gets renamed
+    expect(result[1].family).toBe('Noto Sans SC__0')
+    expect(result[2].family).toBe('Noto Sans SC__1')
+  })
+})
+
+describe('buildSubsetFamilyChain', () => {
+  it('builds chain from renamed fonts', () => {
+    const fonts = [
+      { family: 'Noto Sans SC__0', originalFamily: 'Noto Sans SC' },
+      { family: 'Noto Sans SC__1', originalFamily: 'Noto Sans SC' },
+      { family: 'Inter', originalFamily: undefined },
+    ] as any[]
+    const chains = buildSubsetFamilyChain(fonts)
+    expect(chains.size).toBe(1)
+    expect(chains.get('Noto Sans SC')).toEqual(['Noto Sans SC__0', 'Noto Sans SC__1'])
+  })
+
+  it('returns empty map when no fonts are renamed', () => {
+    const fonts = [
+      { family: 'Inter', originalFamily: undefined },
+    ] as any[]
+    const chains = buildSubsetFamilyChain(fonts)
+    expect(chains.size).toBe(0)
   })
 })

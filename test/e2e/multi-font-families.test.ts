@@ -80,4 +80,21 @@ describe('multi-font-families', () => {
     const font400: ArrayBuffer = await $fetch('/_og-static-fonts/Noto_Sans_Devanagari-400-normal.woff', { responseType: 'arrayBuffer' })
     expect(font400.byteLength).toBeGreaterThan(1000)
   })
+
+  // #551 — CJK fonts split into 100+ unicode-range subsets by fontsource.
+  // Without subset font renaming, renderers pick one subset and show .notdef
+  // boxes for characters in other subsets.
+  it('renders CJK text across multiple unicode-range subsets (takumi)', async () => {
+    const images = await fetchOgImages('/cjk-subset')
+    expect(images.get('/cjk-subset')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-cjk-subset-takumi',
+    })
+  })
+
+  it('renders CJK text across multiple unicode-range subsets (satori)', async () => {
+    const images = await fetchOgImages('/cjk-subset-satori')
+    expect(images.get('/cjk-subset-satori')).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'multi-font-cjk-subset-satori',
+    })
+  })
 }, 60000)
