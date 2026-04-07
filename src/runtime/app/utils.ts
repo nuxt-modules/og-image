@@ -94,7 +94,8 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   if (import.meta.client) {
     return
   }
-  const { defaults } = useOgImageRuntimeConfig()
+  const ogImageConfig = useOgImageRuntimeConfig()
+  const { defaults } = ogImageConfig
   const resolvedOptions = separateProps(defu(input, defaults))
   resolvedOptions.key = resolvedOptions.key || 'og'
   const payloads = ssrContext._ogImagePayloads || []
@@ -109,6 +110,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   else {
     payloads[currentPayloadIdx] = [resolvedOptions.key!, _input, basePath]
   }
+
+  // Capture config eagerly while Nuxt context is available.
+  // The lazy meta() callback runs during unhead tag resolution, where
+  // useNuxtApp() / useRuntimeConfig() are no longer accessible.
+  const baseURL = useRuntimeConfig().app.baseURL
 
   ssrContext._ogImageInstance?.dispose()
   ssrContext._ogImageInstance = useHead({
@@ -128,7 +134,16 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           if (seo.description && typeof opts.props.description === 'undefined')
             opts.props.description = seo.description
         }
-        const { path: resolvedUrl } = getOgImagePath(payloadBasePath, opts)
+        // Inline getOgImagePath logic: useRuntimeConfig() is unavailable in lazy callbacks
+        const extension = opts.extension || defaults?.extension || 'png'
+        const isStatic = import.meta.prerender
+        const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
+        const componentName = opts.component || componentNames?.[0]?.pascalName
+        const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
+        if (component?.hash)
+          urlOpts._componentHash = component.hash
+        const result = buildOgImageUrl(urlOpts, extension, isStatic, defaults, ogImageConfig.security?.secret || undefined)
+        const resolvedUrl = joinURL('/', baseURL, result.url)
         const finalUrl = opts._query && Object.keys(opts._query).length
           ? withQuery(resolvedUrl, { _query: opts._query })
           : resolvedUrl
