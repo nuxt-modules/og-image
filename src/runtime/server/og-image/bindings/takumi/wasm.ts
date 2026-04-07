@@ -1,4 +1,4 @@
-import init, { extractResourceUrls, Renderer } from '@takumi-rs/wasm'
+import init, { extractResourceUrls, Renderer } from '@takumi-rs/wasm/no-bundler'
 
 const wasmBinary = import('@takumi-rs/wasm/takumi_wasm_bg.wasm?module' as string)
   .then(m => m.default || m)
