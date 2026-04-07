@@ -1,7 +1,6 @@
 import type { VueHeadClient } from '@unhead/vue'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
-import { injectHead } from '@unhead/vue'
-import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
+import { createError, injectHead, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
