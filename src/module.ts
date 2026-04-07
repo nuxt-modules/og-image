@@ -1052,7 +1052,7 @@ export default defineNuxtModule<ModuleOptions>({
     // inside the components:extend hook (which is itself synchronous)
     await loadSfcCompiler()
 
-    nuxt.hook('components:extend', (components) => {
+    nuxt.hook('components:extend', async (components) => {
       allNuxtComponents = components
       ogImageComponentCtx.components = []
       // Don't clear detectedRenderers - pre-scan already populated it and nitro:init may have already fired
