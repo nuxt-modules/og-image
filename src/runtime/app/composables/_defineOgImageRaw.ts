@@ -1,9 +1,8 @@
+import type { VueHeadClient } from '@unhead/vue'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
-import { createError, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
+import { createError, injectHead, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
-
-const RE_COMMA = /,/g
 
 /**
  * Internal raw implementation for defining OG images.
@@ -102,6 +101,21 @@ function useProcessOgImageOptions(
       // @ts-expect-error untyped
       validOptions[key] = defaults[key]
   }
+
+  // Capture the head instance during component setup so that createOgImageMeta
+  // can lazily resolve title/description from useSeoMeta / useHead after all
+  // component setups have completed (ordering-independent).
+  let head: VueHeadClient | undefined
+  if (import.meta.server) {
+    try {
+      head = injectHead()
+    }
+    catch (e) {
+      if (import.meta.dev)
+        console.warn('[nuxt-og-image] Failed to inject head for OG image metadata generation.', e)
+    }
+  }
+
   if (route.query)
     validOptions._query = route.query
   // allow overriding using a prebuild config
@@ -114,18 +128,15 @@ function useProcessOgImageOptions(
   if (hash) {
     validOptions._hash = hash
   }
-  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!)
+  createOgImageMeta(path, validOptions, nuxtApp.ssrContext!, basePath, head)
+  // Prerender path registration is handled lazily inside createOgImageMeta's
+  // meta() callback, after title/description from head entries are injected.
+  // This ensures the prerender URL matches the final og:image meta tag URL.
   if (import.meta.prerender) {
-    // Store prerender paths on the event context, keyed by OG key so that
-    // when defineOgImage is called multiple times with the same key (e.g. layout
-    // then page), only the final path survives. The render:html hook reads these
-    // and sets the x-nitro-prerender header with only the paths that match the
-    // finalized payloads, preventing stale hash URLs from being enqueued.
-    const ogKey = validOptions.key || 'og'
-    const prerenderPath = (path.split('?')[0] || path).replace(RE_COMMA, '%2C')
+    // Ensure the map exists so the lazy callback can write to it
     const event = useRequestEvent(nuxtApp)!
-    const prerenderPaths: Map<string, string> = event.context._ogImagePrerenderPaths || (event.context._ogImagePrerenderPaths = new Map())
-    prerenderPaths.set(ogKey, prerenderPath)
+    if (!event.context._ogImagePrerenderPaths)
+      event.context._ogImagePrerenderPaths = new Map()
   }
   return path
 }
