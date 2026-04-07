@@ -253,8 +253,8 @@ export interface ModuleOptions {
 }
 
 export interface ModuleHooks {
-  'nuxt-og-image:components': (ctx: { components: OgImageComponent[] }) => Promise<void> | void
-  'nuxt-og-image:runtime-config': (config: ModuleOptions) => Promise<void> | void
+  'nuxt-og-image:components': (ctx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> }) => Promise<void> | void
+  'nuxt-og-image:runtime-config': (config: OgImageRuntimeConfig) => Promise<void> | void
 }
 
 function isProviderEnabledForEnv(provider: keyof CompatibilityFlags, nuxt: Nuxt, config: ModuleOptions) {
@@ -1181,7 +1181,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       // @ts-expect-error untyped
-      nuxt.hooks.hook('nuxt-og-image:components', ogImageComponentCtx)
+      await nuxt.hooks.callHook('nuxt-og-image:components', ogImageComponentCtx)
     })
     addTemplate({
       filename: 'nuxt-og-image/components.mjs',

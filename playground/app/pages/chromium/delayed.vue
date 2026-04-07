@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { definePageMeta, onMounted, onUnmounted, ref } from '#imports'
+import { defineOgImageScreenshot, definePageMeta, onMounted, onUnmounted, ref } from '#imports'
 
 definePageMeta({
   title: 'About',
   description: 'My description',
   image: 'https://example.com/image.jpg',
+})
+
+defineOgImageScreenshot({
+  selector: '.custom-screenshot',
+  mask: '.hidden-element',
+  width: 2000,
+  height: 1000,
+  delay: 300,
 })
 
 const counter = ref(0)
@@ -24,13 +32,6 @@ onUnmounted(() => {
 
 <template>
   <div class="custom-screenshot" style="width: 2000px; height: 1000px; display: flex; background-color: #0047e1; color: white; padding: 200px; font-size: 5rem; align-items: center;">
-    <OgImageScreenshot
-      selector=".custom-screenshot"
-      mask=".hidden-element"
-      :width="2000"
-      :height="1000"
-      :delay="300"
-    />
     <div>
       <div>
         Custom screenshot

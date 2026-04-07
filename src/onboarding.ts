@@ -68,7 +68,7 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
         '[nuxt-og-image] No OG image provider dependencies found. '
         + 'Install a provider before running in CI:\n'
         + '  npm add @resvg/resvg-js satori yoga-wasm-web  # for satori\n'
-        + '  npm add @playwright/core                      # for browser\n'
+        + '  npm add playwright-core                       # for browser\n'
         + 'See: https://nuxtseo.com/og-image/getting-started',
       )
     }

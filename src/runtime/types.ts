@@ -275,7 +275,12 @@ export type ReactiveComponentProps<T extends Component> = {
   [K in keyof ExtractComponentProps<T>]?: MaybeRefOrGetter<ExtractComponentProps<T>[K]>
 }
 
-export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'resvg' | 'sharp'>
+export type OgImagePageScreenshotOptions = Omit<OgImageOptions, 'html' | 'component' | 'satori' | 'resvg' | 'sharp' | 'screenshot'> & Omit<ScreenshotOptions, 'width' | 'height' | 'delay'> & {
+  /**
+   * How long to wait before taking the screenshot. Useful for waiting for animations.
+   */
+  delay?: number
+}
 
 export interface VNode {
   type: string

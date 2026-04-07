@@ -27,7 +27,7 @@ export interface ProviderDefinition {
 export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
   {
     name: 'satori',
-    description: 'SVG-based renderer using Satori (default)',
+    description: 'SVG-based renderer using Satori',
     bindings: {
       'node': [
         { name: 'satori', description: 'HTML to SVG renderer' },
@@ -45,7 +45,7 @@ export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
   },
   {
     name: 'takumi',
-    description: 'Rust-based high-performance renderer',
+    description: 'Rust-based high-performance renderer (recommended)',
     bindings: {
       'node': [
         { name: '@takumi-rs/core', description: 'Native Takumi renderer' },
@@ -206,9 +206,9 @@ export async function promptForRendererSelection(): Promise<ProviderName> {
   const renderer = await logger.prompt('Which renderer would you like to use?', {
     type: 'select',
     options: PROVIDER_DEPENDENCIES.map(p => p.name),
-    initial: 'satori',
+    initial: 'takumi',
   })
-  return (renderer as ProviderName) || 'satori'
+  return (renderer as ProviderName) || 'takumi'
 }
 
 export async function validateProviderSetup(
