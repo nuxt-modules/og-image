@@ -736,6 +736,7 @@ export default defineNuxtModule<ModuleOptions>({
         runtime: {
           browser: false, // should already be false
           satori: false,
+          takumi: false,
         },
       })
 
