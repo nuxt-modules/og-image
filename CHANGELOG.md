@@ -1,6 +1,38 @@
 # Changelog
 
 
+## v6.3.2...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.2...main)
+
+### 🩹 Fixes
+
+- Expand variable font weights for all renderers ([#549](https://github.com/nuxt-modules/og-image/pull/549))
+- Fall back across unicode-range font subsets for CJK rendering ([#554](https://github.com/nuxt-modules/og-image/pull/554))
+- Auto-inject title and description from useSeoMeta into OG image props ([b4290b37](https://github.com/nuxt-modules/og-image/commit/b4290b37))
+- Remove eager prerender path write to prevent stale URL race ([f17c7f94](https://github.com/nuxt-modules/og-image/commit/f17c7f94))
+- Import injectHead from nuxt/app instead of @unhead/vue ([6d6d74d3](https://github.com/nuxt-modules/og-image/commit/6d6d74d3))
+- Capture runtime config eagerly for lazy meta callback ([5e7a687a](https://github.com/nuxt-modules/og-image/commit/5e7a687a))
+- Use Takumi `no-bundler` path so binary not included when `zeroRuntime: true` ([#556](https://github.com/nuxt-modules/og-image/pull/556))
+- Auto-inject title and description from useSeoMeta into OG image props ([#555](https://github.com/nuxt-modules/og-image/pull/555))
+- Move devtools-only deps to devDependencies ([0ea13015](https://github.com/nuxt-modules/og-image/commit/0ea13015))
+
+### 🏡 Chore
+
+- Bump ([0ebf894d](https://github.com/nuxt-modules/og-image/commit/0ebf894d))
+- Bump ([7ae2246b](https://github.com/nuxt-modules/og-image/commit/7ae2246b))
+- Sync ([f9935be6](https://github.com/nuxt-modules/og-image/commit/f9935be6))
+- Sync ([05da4f64](https://github.com/nuxt-modules/og-image/commit/05da4f64))
+
+### ✅ Tests
+
+- Add e2e tests for useSeoMeta auto-injection into OG image props ([60eac224](https://github.com/nuxt-modules/og-image/commit/60eac224))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+- Kane Wang ([@yeecord](https://github.com/yeecord))
+
 ## v6.3.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.0...main)
