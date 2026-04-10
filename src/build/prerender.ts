@@ -45,6 +45,9 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
       orphanedOgHashes.push(route.route)
       route.skip = true
       delete route.error
+      // Clear contents so downstream hooks (e.g. html-validator) have nothing
+      // to validate regardless of module registration order.
+      route.contents = ''
     })
 
     nitro.hooks.hook('prerender:done', async () => {
