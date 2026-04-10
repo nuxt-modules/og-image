@@ -136,7 +136,10 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         }
         // Inline getOgImagePath logic: useRuntimeConfig() is unavailable in lazy callbacks
         const extension = opts.extension || defaults?.extension || 'png'
-        const isStatic = import.meta.prerender
+        // Force dynamic+signed URLs even during prerender when strict+secret are set.
+        // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
+        // setups where pages are prerendered but OG images are served dynamically.
+        const isStatic = import.meta.prerender && !(ogImageConfig.security?.secret && ogImageConfig.security?.strict)
         const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
         const componentName = opts.component || componentNames?.[0]?.pascalName
         const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
@@ -147,8 +150,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         const finalUrl = opts._query && Object.keys(opts._query).length
           ? withQuery(resolvedUrl, { _query: opts._query })
           : resolvedUrl
-        // Update prerender paths to match the lazily resolved URL
-        if (import.meta.prerender && ssrContext.event) {
+        // Update prerender paths to match the lazily resolved URL.
+        // Only emit for static URLs: dynamic (/_og/d/) URLs are runtime-only and
+        // must not be force-prerendered via x-nitro-prerender, because long ones
+        // would hit the filesystem 255-byte filename limit when nitro writes them.
+        if (isStatic && import.meta.prerender && ssrContext.event) {
           const prerenderPaths: Map<string, string> | undefined = ssrContext.event.context._ogImagePrerenderPaths
           if (prerenderPaths) {
             const ogKey = opts.key || 'og'
@@ -275,7 +281,10 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
   const baseURL = runtimeConfig.app.baseURL
   const { defaults, security } = useOgImageRuntimeConfig()
   const extension = _options?.extension || defaults?.extension || 'png'
-  const isStatic = import.meta.prerender
+  // Force dynamic+signed URLs even during prerender when strict+secret are set.
+  // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
+  // setups where pages are prerendered but OG images are served dynamically.
+  const isStatic = import.meta.prerender && !(security?.secret && security?.strict)
   const options: Record<string, any> = { ..._options, _path: _pagePath }
   // Include the component template hash so that template changes produce different URLs,
   // busting CDN/build caches (Vercel, social platform crawlers like Twitter/Facebook, etc.)

@@ -21,6 +21,41 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
       // avoid wasm handling while prerendering
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false
+      // Dynamic OG URLs are runtime-only. Prevent nitro's crawler from picking
+      // them up via HTML meta extraction and writing them to disk as filenames,
+      // which would hit the filesystem 255-byte limit for long signed URLs.
+      nitroConfig.prerender = nitroConfig.prerender || {}
+      nitroConfig.prerender.ignore = nitroConfig.prerender.ignore || []
+      if (Array.isArray(nitroConfig.prerender.ignore))
+        nitroConfig.prerender.ignore.push('/_og/d/')
+    })
+
+    // Track hash-mode OG URLs whose source page isn't in the prerender graph.
+    // These 404 at context.ts because the page's defineOgImage() never ran so
+    // the hash:<hash> cache entry was never written. Clear the error so the build
+    // doesn't fail, and warn once at the end of prerender so users can investigate.
+    const orphanedOgHashes: string[] = []
+    nitro.hooks.hook('prerender:route', (route) => {
+      if (!route.error || route.error.statusCode !== 404)
+        return
+      if (!route.route.includes('/_og/s/o_'))
+        return
+      orphanedOgHashes.push(route.route)
+      route.error = undefined
+      route.contents = ''
+      route.fileName = undefined
+    })
+
+    nitro.hooks.hook('prerender:done', async () => {
+      if (orphanedOgHashes.length > 0) {
+        logger.warn(
+          `Skipped ${orphanedOgHashes.length} orphaned OG image hash URL${orphanedOgHashes.length > 1 ? 's' : ''} during prerender. `
+          + `These URLs were crawled from HTML but their source page was not prerendered, so the hash cache entry was never written. `
+          + `If your pages are prerendered but OG images are generated at runtime, enable \`security.strict\` with a \`security.secret\` to switch to signed dynamic URLs.`,
+        )
+        for (const route of orphanedOgHashes)
+          logger.info(`  ${route}`)
+      }
     })
 
     // Cleanup old build cache files after prerender
