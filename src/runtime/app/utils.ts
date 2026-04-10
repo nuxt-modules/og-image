@@ -146,9 +146,14 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         if (component?.hash)
           urlOpts._componentHash = component.hash
         const result = buildOgImageUrl(urlOpts, extension, isStatic, defaults, ogImageConfig.security?.secret || undefined)
-        // Propagate hash so prerender plugin can store it in prerenderOptionsCache
-        if (result.hash)
+        // Propagate hash so prerender plugin can store it in prerenderOptionsCache.
+        // Must set on both the local copy (opts) AND the original options object,
+        // because the payload script serializer reads from the original in
+        // ssrContext._ogImagePayloads, not the copy.
+        if (result.hash) {
           opts._hash = result.hash
+          options._hash = result.hash
+        }
         const resolvedUrl = joinURL('/', baseURL, result.url)
         const finalUrl = opts._query && Object.keys(opts._query).length
           ? withQuery(resolvedUrl, { _query: opts._query })
