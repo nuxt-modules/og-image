@@ -308,6 +308,50 @@ describe('urlEncoding', () => {
       }, 'png', true, defaults)
       expect(result.url).toBe('/_og/s/c_Test,title_Hello.png')
     })
+
+    // These tests lock in the contract that callers rely on when strict+secret
+    // are enabled. In that mode, getOgImagePath() passes isStatic=false even
+    // during prerender so the URLs baked into HTML are signed and dynamic, and
+    // pass runtime signature verification when served by the /_og/d/** handler.
+    describe('strict+secret contract', () => {
+      const SECRET = 'test-secret-key'
+
+      it('isStatic=false + secret produces signed dynamic URL', () => {
+        const result = buildOgImageUrl({ width: 1200 }, 'png', false, undefined, SECRET)
+        expect(result.url).toMatch(/^\/_og\/d\/w_1200,s_[\w-]+\.png$/)
+        expect(result.hash).toBeUndefined()
+      })
+
+      it('isStatic=true + secret produces UNSIGNED static URL (existing behavior)', () => {
+        // Static/prerendered URLs are served directly from disk and bypass the
+        // route handler, so they don't carry signatures. Preserved as-is.
+        const result = buildOgImageUrl({ width: 1200 }, 'png', true, undefined, SECRET)
+        expect(result.url).toBe('/_og/s/w_1200.png')
+        expect(result.url).not.toMatch(/,s_/)
+      })
+
+      it('long URLs + isStatic=false + secret use signed dynamic, NOT hash mode', () => {
+        // This is the core of Fix B: when strict+secret decouples isStatic from
+        // prerender, long URLs must stay in the signed dynamic path instead of
+        // hash mode (hash mode only works for URLs served from disk).
+        const longTitle = 'A'.repeat(250)
+        const result = buildOgImageUrl({ props: { title: longTitle } }, 'png', false, undefined, SECRET)
+        expect(result.url).toMatch(/^\/_og\/d\//)
+        expect(result.url).toMatch(/,s_[\w-]+\.png$/)
+        expect(result.url).not.toMatch(/\/o_[a-z0-9]+\./) // no hash-mode fallback
+        expect(result.hash).toBeUndefined()
+      })
+
+      it('signature changes when options change', () => {
+        const a = buildOgImageUrl({ width: 1200 }, 'png', false, undefined, SECRET)
+        const b = buildOgImageUrl({ width: 1201 }, 'png', false, undefined, SECRET)
+        const sigA = a.url.match(/,s_([\w-]+)\.png$/)?.[1]
+        const sigB = b.url.match(/,s_([\w-]+)\.png$/)?.[1]
+        expect(sigA).toBeDefined()
+        expect(sigB).toBeDefined()
+        expect(sigA).not.toBe(sigB)
+      })
+    })
   })
 
   describe('parseOgImageUrl', () => {

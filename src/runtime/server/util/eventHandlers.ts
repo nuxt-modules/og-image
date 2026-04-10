@@ -20,23 +20,33 @@ export async function imageEventHandler(e: H3Event) {
   const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey, security } = useOgImageRuntimeConfig()
 
-  // Origin restriction: block runtime requests from unknown hosts
+  // Origin restriction: block runtime requests from unknown hosts.
+  // Loopback requests (localhost, 127.0.0.1, ::1) are always allowed so
+  // production builds running locally for e2e/CI don't need to disable the
+  // check entirely. HMAC signing still protects these requests.
   if (!import.meta.prerender && !import.meta.dev && security?.restrictRuntimeImagesToOrigin) {
-    const siteHost = new URL(getSiteConfig(e).url).host
-    const allowedHosts = [siteHost, ...security.restrictRuntimeImagesToOrigin.map((o) => {
-      try {
-        return new URL(o).host
-      }
-      catch {
-        return o
-      }
-    })]
     const requestHost = getRequestHost(e, { xForwardedHost: true })
-    if (!requestHost || !allowedHosts.includes(requestHost)) {
-      return createError({
-        statusCode: 403,
-        statusMessage: '[Nuxt OG Image] Host not allowed.',
-      })
+    const requestHostname = requestHost?.split(':')[0]?.replace(/^\[|\]$/g, '')
+    const isLoopback = requestHostname === 'localhost'
+      || requestHostname === '127.0.0.1'
+      || requestHostname === '0.0.0.0'
+      || requestHostname === '::1'
+    if (!isLoopback) {
+      const siteHost = new URL(getSiteConfig(e).url).host
+      const allowedHosts = [siteHost, ...security.restrictRuntimeImagesToOrigin.map((o) => {
+        try {
+          return new URL(o).host
+        }
+        catch {
+          return o
+        }
+      })]
+      if (!requestHost || !allowedHosts.includes(requestHost)) {
+        return createError({
+          statusCode: 403,
+          statusMessage: '[Nuxt OG Image] Host not allowed.',
+        })
+      }
     }
   }
   // debug - allow in dev mode OR when debug is enabled in config
