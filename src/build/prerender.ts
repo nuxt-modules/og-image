@@ -32,18 +32,19 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
 
     // Track hash-mode OG URLs whose source page isn't in the prerender graph.
     // These 404 at context.ts because the page's defineOgImage() never ran so
-    // the hash:<hash> cache entry was never written. Clear the error so the build
-    // doesn't fail, and warn once at the end of prerender so users can investigate.
+    // the hash:<hash> cache entry was never written. Clear the error so nitro
+    // doesn't add them to failedRoutes (which would fail the build).
+    // Must use prerender:generate (fires before failedRoutes check), not
+    // prerender:route (fires after — too late to prevent the build failure).
     const orphanedOgHashes: string[] = []
-    nitro.hooks.hook('prerender:route', (route) => {
+    nitro.hooks.hook('prerender:generate', (route) => {
       if (!route.error || route.error.statusCode !== 404)
         return
       if (!route.route.includes('/_og/s/o_'))
         return
       orphanedOgHashes.push(route.route)
-      route.error = undefined
-      route.contents = ''
-      route.fileName = undefined
+      route.skip = true
+      delete route.error
     })
 
     nitro.hooks.hook('prerender:done', async () => {
