@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v6.3.3...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.3...main)
+
+### 🩹 Fixes
+
+- Add missing nitro presets to compatibility map ([#559](https://github.com/nuxt-modules/og-image/pull/559))
+
+### 🏡 Chore
+
+- Sync ([e2dcc301](https://github.com/nuxt-modules/og-image/commit/e2dcc301))
+- Sync ([bd3b422f](https://github.com/nuxt-modules/og-image/commit/bd3b422f))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.3.2...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.2...main)
