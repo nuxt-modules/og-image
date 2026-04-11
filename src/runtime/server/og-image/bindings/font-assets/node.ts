@@ -9,9 +9,14 @@ export async function resolve(event: H3Event, font: FontConfig) {
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
   const origin = getNitroOrigin(event)
-  const res = await fetch(new URL(fullPath, origin).href)
-  if (res.ok) {
+  const res = await fetch(new URL(fullPath, origin).href).catch(() => null)
+  if (res?.ok) {
     return Buffer.from(await res.arrayBuffer())
   }
-  throw new Error(`[Nuxt OG Image] Failed to resolve font: ${path}`)
+  // Fallback to Nitro's internal handler when origin is unreachable
+  // (behind a proxy, serverless, or server not fully started)
+  const arrayBuffer = await event.$fetch(fullPath, {
+    responseType: 'arrayBuffer',
+  }) as ArrayBuffer
+  return Buffer.from(arrayBuffer)
 }

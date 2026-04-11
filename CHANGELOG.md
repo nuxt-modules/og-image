@@ -1,6 +1,24 @@
 # Changelog
 
 
+## v6.3.7...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.7...main)
+
+### 🩹 Fixes
+
+- Resolve :style object literal bindings to inline CSS ([#562](https://github.com/nuxt-modules/og-image/pull/562))
+- Misc cache improvements ([#564](https://github.com/nuxt-modules/og-image/pull/564))
+
+### 🏡 Chore
+
+- Takumi v1 ([cdf161b3](https://github.com/nuxt-modules/og-image/commit/cdf161b3))
+- **test:** Update takumi wasm import for new package structure ([#565](https://github.com/nuxt-modules/og-image/pull/565))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.3.6...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.6...main)
