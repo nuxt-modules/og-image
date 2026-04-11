@@ -57,8 +57,8 @@ describe('cache key generation', () => {
       expect(withoutQuery.props).toBeUndefined()
 
       // After prop whitelisting removes them, the options hash would be identical
-      const hashWith = hashOgImageOptions({ width: 1200, props: {} })
-      const hashWithout = hashOgImageOptions({ width: 1200 })
+      const _hashWith = hashOgImageOptions({ width: 1200, props: {} })
+      const _hashWithout = hashOgImageOptions({ width: 1200 })
       // Empty props object vs no props: hash should differ
       // This is why prop whitelisting is critical for cache stability
     })
