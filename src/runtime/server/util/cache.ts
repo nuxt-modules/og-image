@@ -5,6 +5,7 @@ import { useStorage } from 'nitropack/runtime'
 import { digest } from 'ohash'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+import { logger } from '../../logger'
 
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
@@ -78,14 +79,14 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         'Vary': 'accept-encoding, host',
         'etag': `W/"${digest(value)}"`,
         'last-modified': new Date().toUTCString(),
-        'cache-control': `public, s-maxage=${maxAge}, stale-while-revalidate`,
+        'cache-control': `public, max-age=${maxAge}, s-maxage=${maxAge}, stale-while-revalidate=${maxAge}, stale-if-error=${maxAge}`,
       }
       setHeaders(ctx.e, headers)
       await cache.setItem(key, {
         value,
         headers,
         expiresAt: Date.now() + (maxAge * 1000),
-      })
+      }).catch(err => logger.warn(`[Nuxt OG Image] Failed to write cache for key "${key}": ${err?.message || err}`))
     },
   }
 }

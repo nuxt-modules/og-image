@@ -110,6 +110,7 @@ export async function imageEventHandler(e: H3Event) {
     case 'png':
     case 'jpeg':
     case 'jpg':
+    case 'webp':
       if (!renderer.supportedFormats.includes(extension)) {
         return createError({
           statusCode: 400,
