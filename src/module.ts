@@ -878,17 +878,30 @@ export default defineNuxtModule<ModuleOptions>({
       handler: resolve(`${basePath}/image`),
     })
 
-    // Add SWR route rule for the dynamic OG image endpoint so platforms like
-    // Vercel get durable ISR caching (survives deployments) without manual config.
-    // Skipped if the user already configured a rule for this route.
-    if (!nuxt.options.dev && config.runtimeCacheStorage !== false) {
-      const ogRouteRule = nuxt.options.routeRules?.['/_og/d/**']
-      if (!ogRouteRule?.swr && !ogRouteRule?.isr && !ogRouteRule?.cache) {
-        const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
-        nuxt.options.routeRules = nuxt.options.routeRules || {}
-        nuxt.options.routeRules['/_og/d/**'] = defu(
-          nuxt.options.routeRules['/_og/d/**'] || {},
-          { swr: ttl },
+    // Add cache route rules for OG image endpoints so platforms like Vercel
+    // get durable caching (survives deployments) without manual config.
+    // Skipped if the user already configured a rule for a given route.
+    if (!nuxt.options.dev) {
+      nuxt.options.routeRules = nuxt.options.routeRules || {}
+
+      // Dynamic endpoint: SWR for background revalidation
+      if (config.runtimeCacheStorage !== false) {
+        const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
+        if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache) {
+          const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
+          nuxt.options.routeRules['/_og/d/**'] = defu(
+            nuxt.options.routeRules['/_og/d/**'] || {},
+            { swr: ttl },
+          )
+        }
+      }
+
+      // Prerendered endpoint: immutable static assets baked at build time
+      const ogStaticRule = nuxt.options.routeRules['/_og/s/**']
+      if (!ogStaticRule?.swr && !ogStaticRule?.isr && !ogStaticRule?.cache && !ogStaticRule?.headers) {
+        nuxt.options.routeRules['/_og/s/**'] = defu(
+          nuxt.options.routeRules['/_og/s/**'] || {},
+          { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
         )
       }
     }
