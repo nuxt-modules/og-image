@@ -35,6 +35,10 @@ const DIRECTIVE_NODE = 7
 const RE_PURE_NUMBER = /^\d+(?:\.\d+)?$/
 const RE_DOUBLE_QUOTE = /"/g
 const RE_CAMEL_TO_KEBAB = /[A-Z]/g
+const RE_SINGLE_QUOTE_STRING = /^'([^']*)'$/
+const RE_DOUBLE_QUOTE_STRING = /^"([^"]*)"$/
+const RE_BACKTICK_STRING = /^`([^`]*)`$/
+const RE_NUMERIC_WITH_UNIT = /^[\d.]+(?:px|em|rem|%|vh|vw|ch|ex|vmin|vmax|pt|pc|in|cm|mm)?$/
 
 /**
  * Convert camelCase CSS property to kebab-case (e.g. fontSize -> font-size)
@@ -127,10 +131,10 @@ function parseStyleEntry(entry: string): [string, string] | undefined {
   // Value must be a static string literal, number, or simple expression
   // Reject anything that looks like a variable reference or function call
   let value: string
-  const singleQuoteMatch = rawValue.match(/^'([^']*)'$/)
-  const doubleQuoteMatch = rawValue.match(/^"([^"]*)"$/)
-  const backtickMatch = rawValue.match(/^`([^`]*)`$/)
-  const numberMatch = rawValue.match(/^[\d.]+(?:px|em|rem|%|vh|vw|ch|ex|vmin|vmax|pt|pc|in|cm|mm)?$/)
+  const singleQuoteMatch = rawValue.match(RE_SINGLE_QUOTE_STRING)
+  const doubleQuoteMatch = rawValue.match(RE_DOUBLE_QUOTE_STRING)
+  const backtickMatch = rawValue.match(RE_BACKTICK_STRING)
+  const numberMatch = rawValue.match(RE_NUMERIC_WITH_UNIT)
 
   if (singleQuoteMatch) {
     value = singleQuoteMatch[1]!
