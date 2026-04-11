@@ -11,9 +11,10 @@ import { logger } from '../../logger'
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
+  secret?: string
 }): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  let enabled = !import.meta.dev && import.meta.env?.MODE !== 'test' && maxAge > 0
+  let enabled = !import.meta.dev && maxAge > 0
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
 
@@ -35,7 +36,15 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         value: null,
         expiresAt: Date.now(),
       })) as any
-      if (typeof getQuery(ctx.e).purge !== 'undefined') {
+      const purgeValue = getQuery(ctx.e).purge
+      if (typeof purgeValue !== 'undefined') {
+        // When URL signing is enabled, require the secret as the purge value
+        if (options.secret && purgeValue !== options.secret) {
+          return createError({
+            statusCode: 403,
+            statusMessage: '[Nuxt OG Image] Invalid purge token. Provide the signing secret as ?purge=<secret>.',
+          })
+        }
         await cache.removeItem(key).catch(() => {
         })
       }

@@ -27,6 +27,7 @@ const DEPRECATED_CONFIG: Record<string, string> = {
   runtimeSatori: 'Use compatibility.runtime.satori',
   cacheTtl: 'Use cacheMaxAgeSeconds',
   cache: 'Use cacheMaxAgeSeconds',
+  cacheQueryParams: 'Removed (all options are encoded in the URL path)',
   cacheKey: 'Removed',
   static: 'Removed - use zeroRuntime',
   fonts: 'Use @nuxt/fonts module instead',

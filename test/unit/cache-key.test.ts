@@ -41,49 +41,8 @@ describe('cache key generation', () => {
     })
   })
 
-  describe('query param cache key impact', () => {
-    // Simulates the flow: query params are separated into props via separateProps,
-    // then merged into options via defu. When cacheQueryParams is false, query params
-    // should NOT be processed, so the options hash stays the same regardless of
-    // what query params the user appends to the OG image URL.
-
-    it('unknown query params do not affect options after separateProps', () => {
-      // Unknown params become props, which are then stripped by prop whitelisting
-      const withQuery = separateProps({ ref: 'twitter', utm_source: 'og' })
-      const withoutQuery = separateProps({})
-
-      // 'ref' and 'utm_source' are not OG image options, so they become props
-      expect(withQuery.props).toEqual({ ref: 'twitter', utm_source: 'og' })
-      expect(withoutQuery.props).toBeUndefined()
-
-      // After prop whitelisting removes them, the options hash would be identical
-      const hashWith = hashOgImageOptions({ width: 1200, props: {} })
-      const hashWithout = hashOgImageOptions({ width: 1200 })
-      // Empty props object vs no props: hash should differ
-      // This is why prop whitelisting is critical for cache stability
-    })
-
-    it('known OG image query params DO affect the options hash', () => {
-      // If cacheQueryParams is true, a query like ?width=800 would override
-      const baseOptions = { width: 1200, height: 600, props: { title: 'Hello' } }
-      const overridden = { width: 800, height: 600, props: { title: 'Hello' } }
-
-      const hashBase = hashOgImageOptions(baseOptions)
-      const hashOverridden = hashOgImageOptions(overridden)
-      expect(hashBase).not.toBe(hashOverridden)
-    })
-
-    it('declared prop query params affect the options hash', () => {
-      // If cacheQueryParams is true and ?title=Override is passed,
-      // it overrides the path-encoded title
-      const original = { width: 1200, props: { title: 'Original' } }
-      const overridden = { width: 1200, props: { title: 'Override' } }
-
-      expect(hashOgImageOptions(original)).not.toBe(hashOgImageOptions(overridden))
-    })
-
-    it('query params separated correctly into options vs props', () => {
-      // Simulate: ?width=800&title=Hello&ref=twitter
+  describe('separateProps', () => {
+    it('separates known OG image options from component props', () => {
       const separated = separateProps({ width: 800, title: 'Hello', ref: 'twitter' })
 
       // width is a known OG image option, stays at top level

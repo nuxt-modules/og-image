@@ -34,6 +34,7 @@ export const REMOVED_CONFIG: Record<string, string> = {
   'runtimeSatori': 'compatibility.runtime.satori',
   'cacheTtl': 'cacheMaxAgeSeconds',
   'cache': 'cacheMaxAgeSeconds',
+  'cacheQueryParams': 'Removed (all options are encoded in the URL path)',
   'cacheKey': 'Removed',
   'static': 'zeroRuntime',
   'chromium-node': 'compatibility.runtime.browser: \'playwright\'',

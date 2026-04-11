@@ -176,16 +176,7 @@ export interface ModuleOptions {
    *
    * @default 60 * 60 * 24 * 3 (3 days)
    */
-  cacheTtl?: number
-  /**
-   * Include query parameters in cache keys.
-   *
-   * When enabled, requests like `/page?foo=bar` will have a separate cache from `/page`.
-   * Enable this if your OG image content depends on query params.
-   *
-   * @default false
-   */
-  cacheQueryParams?: boolean
+  cacheMaxAgeSeconds?: number
   /**
    * Font subsets to download when resolving missing font families via fontless.
    *
@@ -355,10 +346,10 @@ export default defineNuxtModule<ModuleOptions>({
       return
     }
 
-    // Resolve cacheTtl into defaults.cacheMaxAgeSeconds
-    if (config.cacheTtl != null) {
+    // Resolve top-level cacheMaxAgeSeconds into defaults
+    if (config.cacheMaxAgeSeconds != null) {
       config.defaults = config.defaults || {} as any
-      config.defaults.cacheMaxAgeSeconds = config.defaults.cacheMaxAgeSeconds ?? config.cacheTtl
+      config.defaults.cacheMaxAgeSeconds = config.defaults.cacheMaxAgeSeconds ?? config.cacheMaxAgeSeconds
     }
 
     if (config.debug && !nuxt.options.dev) {
@@ -893,7 +884,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (!nuxt.options.dev && config.runtimeCacheStorage !== false) {
       const ogRouteRule = nuxt.options.routeRules?.['/_og/d/**']
       if (!ogRouteRule?.swr && !ogRouteRule?.isr && !ogRouteRule?.cache) {
-        const ttl = config.cacheTtl ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
+        const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
         nuxt.options.routeRules = nuxt.options.routeRules || {}
         nuxt.options.routeRules['/_og/d/**'] = defu(
           nuxt.options.routeRules['/_og/d/**'] || {},
@@ -1484,7 +1475,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
 
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
-        cacheQueryParams: config.cacheQueryParams ?? false,
         cssFramework: cssFramework || 'none',
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'

@@ -135,11 +135,9 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   }
 
   // Query param overrides are allowed in dev/prerender for debugging.
-  // In production with signing, they're blocked to prevent injection.
-  // In production without signing, they're only processed when cacheQueryParams
-  // is enabled to prevent cache key inflation from arbitrary query strings.
+  // In production they're ignored since all options are encoded in the URL path.
   let queryParams: Record<string, any> = {}
-  if (import.meta.dev || import.meta.prerender || (!secret && runtimeConfig.cacheQueryParams)) {
+  if (import.meta.dev || import.meta.prerender) {
     const query = getQuery(e)
     for (const k in query) {
       const v = String(query[k])

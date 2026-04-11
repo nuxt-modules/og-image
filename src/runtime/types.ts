@@ -46,7 +46,6 @@ export interface OgImageRuntimeConfig {
 
   isNuxtContentDocumentDriven: boolean
   zeroRuntime: boolean
-  cacheQueryParams: boolean
   cssFramework: 'tailwind' | 'unocss' | 'none'
 
   componentDirs?: string[]
