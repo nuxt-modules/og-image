@@ -5,14 +5,30 @@ import { useStorage } from 'nitropack/runtime'
 import { digest } from 'ohash'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+import { logger } from '../../logger'
+
+/**
+ * Constant-time string comparison to prevent timing attacks on secret values.
+ * Works on edge runtimes without node:crypto.
+ */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length)
+    return false
+  let mismatch = 0
+  for (let i = 0; i < a.length; i++)
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return mismatch === 0
+}
 
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
+  secret?: string
 }): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  let enabled = !import.meta.dev && import.meta.env?.MODE !== 'test' && maxAge > 0
+  const intentionallyEnabled = !import.meta.dev && maxAge > 0
+  let enabled = intentionallyEnabled
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
 
@@ -34,7 +50,15 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         value: null,
         expiresAt: Date.now(),
       })) as any
-      if (typeof getQuery(ctx.e).purge !== 'undefined') {
+      const purgeValue = getQuery(ctx.e).purge
+      if (typeof purgeValue !== 'undefined') {
+        // When URL signing is enabled, require the secret as the purge value
+        if (options.secret && !safeCompare(String(purgeValue), options.secret)) {
+          return createError({
+            statusCode: 403,
+            statusMessage: '[Nuxt OG Image] Invalid purge token. Provide the signing secret as ?purge=<secret>.',
+          })
+        }
         await cache.removeItem(key).catch(() => {
         })
       }
@@ -52,6 +76,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         }
 
         setHeaders(ctx.e, headers)
+        setHeader(ctx.e, 'X-OG-Cache', 'HIT')
       }
       else {
         // expired
@@ -70,6 +95,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
     enabled,
     cachedItem,
     async update(item) {
+      setHeader(ctx.e, 'X-OG-Cache', intentionallyEnabled ? 'MISS' : 'DISABLED')
       if (!enabled)
         return
       const value = Buffer.from(item as Uint8Array).toString('base64')
@@ -78,14 +104,14 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         'Vary': 'accept-encoding, host',
         'etag': `W/"${digest(value)}"`,
         'last-modified': new Date().toUTCString(),
-        'cache-control': `public, s-maxage=${maxAge}, stale-while-revalidate`,
+        'cache-control': `public, max-age=${maxAge}, s-maxage=${maxAge}, stale-while-revalidate=${maxAge}, stale-if-error=${maxAge}`,
       }
       setHeaders(ctx.e, headers)
       await cache.setItem(key, {
         value,
         headers,
         expiresAt: Date.now() + (maxAge * 1000),
-      })
+      }).catch(err => logger.warn(`[Nuxt OG Image] Failed to write cache for key "${key}": ${err?.message || err}`))
     },
   }
 }

@@ -168,14 +168,15 @@ export interface ModuleOptions {
    */
   emojiStrategy?: 'auto' | 'local' | 'fetch'
   /**
-   * Include query parameters in cache keys.
+   * Default cache duration in seconds for generated OG images.
    *
-   * When enabled, requests like `/page?foo=bar` will have a separate cache from `/page`.
-   * Enable this if your OG image content depends on query params.
+   * Controls the internal storage TTL, HTTP Cache-Control headers, and the
+   * auto-configured SWR route rule. Can be overridden per-image via
+   * `defineOgImage`'s `cacheMaxAgeSeconds` option.
    *
-   * @default false
+   * @default 60 * 60 * 24 * 3 (3 days)
    */
-  cacheQueryParams?: boolean
+  cacheMaxAgeSeconds?: number
   /**
    * Font subsets to download when resolving missing font families via fontless.
    *
@@ -343,6 +344,12 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
+    }
+
+    // Resolve top-level cacheMaxAgeSeconds into defaults
+    if (config.cacheMaxAgeSeconds != null) {
+      config.defaults = config.defaults || {} as any
+      config.defaults.cacheMaxAgeSeconds = config.cacheMaxAgeSeconds
     }
 
     if (config.debug && !nuxt.options.dev) {
@@ -870,6 +877,36 @@ export default defineNuxtModule<ModuleOptions>({
       route: '/_og/s/**',
       handler: resolve(`${basePath}/image`),
     })
+
+    // Add cache route rules for OG image endpoints so platforms like Vercel
+    // get durable caching (survives deployments) without manual config.
+    // Skipped if the user already configured a rule for a given route.
+    if (!nuxt.options.dev) {
+      nuxt.options.routeRules = nuxt.options.routeRules || {}
+
+      // Dynamic endpoint: SWR for background revalidation.
+      // Skipped during tests because Nitro's cachedEventHandler wrapper
+      // changes the execution context and can break font loading.
+      if (config.runtimeCacheStorage !== false && !nuxt.options.test) {
+        const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
+        if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache && !ogDynamicRule?.headers) {
+          const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
+          nuxt.options.routeRules['/_og/d/**'] = defu(
+            nuxt.options.routeRules['/_og/d/**'] || {},
+            { swr: ttl },
+          )
+        }
+      }
+
+      // Prerendered endpoint: immutable static assets baked at build time
+      const ogStaticRule = nuxt.options.routeRules['/_og/s/**']
+      if (!ogStaticRule?.swr && !ogStaticRule?.isr && !ogStaticRule?.cache && !ogStaticRule?.headers) {
+        nuxt.options.routeRules['/_og/s/**'] = defu(
+          nuxt.options.routeRules['/_og/s/**'] || {},
+          { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+        )
+      }
+    }
 
     if (!nuxt.options.dev) {
       nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
@@ -1453,7 +1490,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
 
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
-        cacheQueryParams: config.cacheQueryParams ?? false,
         cssFramework: cssFramework || 'none',
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'

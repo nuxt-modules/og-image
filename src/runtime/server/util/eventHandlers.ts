@@ -110,6 +110,7 @@ export async function imageEventHandler(e: H3Event) {
     case 'png':
     case 'jpeg':
     case 'jpg':
+    case 'webp':
       if (!renderer.supportedFormats.includes(extension)) {
         return createError({
           statusCode: 400,
@@ -135,6 +136,7 @@ export async function imageEventHandler(e: H3Event) {
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
+    secret: security?.secret,
   })
   // we sent a 304 not modified
   if (typeof cacheApi === 'undefined')
@@ -144,7 +146,6 @@ export async function imageEventHandler(e: H3Event) {
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (!image) {
-    const { security } = useOgImageRuntimeConfig()
     const timeout = security?.renderTimeout || 15_000
     let timer: ReturnType<typeof setTimeout> | undefined
     image = await Promise.race([

@@ -455,6 +455,7 @@ const DEPRECATED_CONFIG_KEYS: Record<string, string> = {
   runtimeSatori: 'compatibility.runtime.satori',
   cacheTtl: 'cacheMaxAgeSeconds',
   cache: 'cacheMaxAgeSeconds',
+  cacheQueryParams: 'Removed',
   cacheKey: 'Removed',
   static: 'zeroRuntime',
   componentOptions: 'Removed (use defineOgImage())',
