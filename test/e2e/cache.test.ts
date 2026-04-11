@@ -1,5 +1,5 @@
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
 import { extractOgImageUrl } from '../utils'
 
@@ -11,7 +11,7 @@ await setup({
   build: true,
 })
 
-describe('cache query params', () => {
+describe('page query params in OG image URLs', () => {
   it('encodes page query param as title in OG image URL', async () => {
     const html = await $fetch('/satori/query-param?title=Hello') as string
     const ogUrl = extractOgImageUrl(html)
@@ -56,5 +56,35 @@ describe('cache query params', () => {
     expect(url1).not.toBe(url2)
     expect(url1).toContain('Same')
     expect(url2).toContain('Same')
+  }, 60000)
+})
+
+describe('cache headers', () => {
+  it('dynamic OG image has public cache headers', async () => {
+    const html = await $fetch('/satori/query-param?title=CacheTest') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+
+    const res = await fetch(ogUrl!)
+    const cacheControl = res.headers.get('cache-control')
+    expect(cacheControl).toContain('public')
+    expect(cacheControl).toContain('max-age=')
+    expect(cacheControl).toContain('stale-while-revalidate=')
+    expect(res.headers.get('etag')).toBeTruthy()
+    expect(res.headers.get('last-modified')).toBeTruthy()
+    expect(res.headers.get('vary')).toContain('host')
+  }, 60000)
+
+  it('prerendered OG image has immutable cache headers', async () => {
+    // /satori/ is in the prerender routes list, so its OG image is at /_og/s/
+    const html = await $fetch('/satori/') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    expect(ogUrl).toContain('/_og/s/')
+
+    const res = await fetch(ogUrl!)
+    const cacheControl = res.headers.get('cache-control')
+    expect(cacheControl).toContain('immutable')
+    expect(cacheControl).toContain('max-age=31536000')
   }, 60000)
 })
