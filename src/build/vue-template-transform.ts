@@ -21,7 +21,9 @@ interface StyleCollector {
   existingStyle?: string
   styleLoc?: { start: number, end: number }
   elementLoc: { start: number, end: number }
-  hasDynamicStyle?: boolean // :style binding detected
+  /** Parsed static :style object literal properties (camelCase keys already converted to kebab-case) */
+  dynamicStyleProps?: Record<string, string>
+  dynamicStyleLoc?: { start: number, end: number }
   /** HTML width/height attrs to fold into CSS style (for <img> elements) */
   dimensionAttrs?: Array<{ name: string, value: string }>
 }
@@ -32,6 +34,122 @@ const DIRECTIVE_NODE = 7
 
 const RE_PURE_NUMBER = /^\d+(?:\.\d+)?$/
 const RE_DOUBLE_QUOTE = /"/g
+const RE_CAMEL_TO_KEBAB = /[A-Z]/g
+
+/**
+ * Convert camelCase CSS property to kebab-case (e.g. fontSize -> font-size)
+ */
+function camelToKebab(str: string): string {
+  return str.replace(RE_CAMEL_TO_KEBAB, m => `-${m.toLowerCase()}`)
+}
+
+/**
+ * Parse a static JS object literal expression into key/value pairs.
+ * Handles: `{ width: '32px', height: '32px', fontSize: '14px' }`
+ * Returns undefined for non-object or dynamic expressions.
+ */
+function parseStaticStyleObject(expr: string): Record<string, string> | undefined {
+  const trimmed = expr.trim()
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}'))
+    return undefined
+
+  const inner = trimmed.slice(1, -1).trim()
+  if (!inner)
+    return {}
+
+  const result: Record<string, string> = {}
+  // Split on commas that aren't inside quotes or nested braces/parens
+  let depth = 0
+  let inQuote: string | null = null
+  let current = ''
+
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]!
+    if (inQuote) {
+      current += ch
+      if (ch === inQuote && inner[i - 1] !== '\\')
+        inQuote = null
+      continue
+    }
+    if (ch === '\'' || ch === '"' || ch === '`') {
+      inQuote = ch
+      current += ch
+      continue
+    }
+    if (ch === '(' || ch === '[' || ch === '{') {
+      depth++
+      current += ch
+      continue
+    }
+    if (ch === ')' || ch === ']' || ch === '}') {
+      depth--
+      current += ch
+      continue
+    }
+    if (ch === ',' && depth === 0) {
+      const parsed = parseStyleEntry(current)
+      if (!parsed)
+        return undefined // dynamic expression, bail
+      result[parsed[0]] = parsed[1]
+      current = ''
+      continue
+    }
+    current += ch
+  }
+
+  if (current.trim()) {
+    const parsed = parseStyleEntry(current)
+    if (!parsed)
+      return undefined
+    result[parsed[0]] = parsed[1]
+  }
+
+  return result
+}
+
+/**
+ * Parse a single "key: 'value'" entry from a JS object literal.
+ * Returns [kebab-case-key, value] or undefined if dynamic.
+ */
+function parseStyleEntry(entry: string): [string, string] | undefined {
+  const colonIdx = entry.indexOf(':')
+  if (colonIdx === -1)
+    return undefined
+
+  const rawKey = entry.slice(0, colonIdx).trim()
+  const rawValue = entry.slice(colonIdx + 1).trim()
+
+  // Key: strip quotes if present, convert camelCase to kebab
+  const key = rawKey.replace(/^['"]|['"]$/g, '')
+  if (!key)
+    return undefined
+
+  // Value must be a static string literal, number, or simple expression
+  // Reject anything that looks like a variable reference or function call
+  let value: string
+  const singleQuoteMatch = rawValue.match(/^'([^']*)'$/)
+  const doubleQuoteMatch = rawValue.match(/^"([^"]*)"$/)
+  const backtickMatch = rawValue.match(/^`([^`]*)`$/)
+  const numberMatch = rawValue.match(/^[\d.]+(?:px|em|rem|%|vh|vw|ch|ex|vmin|vmax|pt|pc|in|cm|mm)?$/)
+
+  if (singleQuoteMatch) {
+    value = singleQuoteMatch[1]!
+  }
+  else if (doubleQuoteMatch) {
+    value = doubleQuoteMatch[1]!
+  }
+  else if (backtickMatch && !backtickMatch[1]!.includes('${')) {
+    value = backtickMatch[1]!
+  }
+  else if (numberMatch) {
+    value = rawValue
+  }
+  else {
+    return undefined // dynamic value, bail
+  }
+
+  return [camelToKebab(key), value]
+}
 
 // Escape quotes for HTML attribute values
 function escapeAttrValue(value: string): string {
@@ -85,9 +203,19 @@ export async function transformVueTemplate(
           logger.warn(`[vue-template-transform] Found style attr without value at ${prop.loc.start.offset}`)
         }
       }
-      // Detect dynamic :style binding (v-bind:style or :style)
+      // Detect and parse static :style object literal bindings
       if (prop.type === DIRECTIVE_NODE && prop.name === 'bind' && (prop as any).arg?.content === 'style') {
-        collector.hasDynamicStyle = true
+        const exp = (prop as any).exp?.content as string | undefined
+        if (exp) {
+          const parsed = parseStaticStyleObject(exp)
+          if (parsed) {
+            collector.dynamicStyleProps = parsed
+            collector.dynamicStyleLoc = {
+              start: prop.loc.start.offset,
+              end: prop.loc.end.offset,
+            }
+          }
+        }
       }
       // Collect width/height HTML attrs on <img> to fold into CSS
       if (prop.type === ATTRIBUTE_NODE && (prop.name === 'width' || prop.name === 'height') && prop.value && el.tag === 'img') {
@@ -98,7 +226,7 @@ export async function transformVueTemplate(
       // TODO: Handle dynamic :class bindings (type 7)
     }
 
-    if (collector.classes.length > 0 || collector.existingStyle || collector.dimensionAttrs?.length) {
+    if (collector.classes.length > 0 || collector.existingStyle || collector.dimensionAttrs?.length || collector.dynamicStyleProps) {
       if (collector.existingStyle && !collector.styleLoc) {
         logger.warn(`[vue-template-transform] BUG: existingStyle found but styleLoc is undefined!`)
       }
@@ -157,6 +285,11 @@ export async function transformVueTemplate(
       }
     }
 
+    // Merge :style object literal props (highest precedence, like Vue runtime behavior)
+    if (collector.dynamicStyleProps) {
+      Object.assign(styleProps, collector.dynamicStyleProps)
+    }
+
     // If `flex` class resolved to display:flex without an explicit direction,
     // emit flex-direction:row (CSS default) so the runtime flex plugin won't override it.
     // Runs after inline style merge so style="flex-direction: column" can still override.
@@ -173,8 +306,9 @@ export async function transformVueTemplate(
     const hasUnresolved = unresolvedClasses.length > 0
     const resolvedSome = collector.classes.length > 0 && (unresolvedClasses.length < collector.classes.length || hasClassRewrites)
     const styleChanged = collector.existingStyle && styleStr !== collector.existingStyle
+    const hasDynamicStyleResolved = collector.dynamicStyleProps && Object.keys(collector.dynamicStyleProps).length > 0
 
-    if (!resolvedSome && !styleChanged && !collector.dimensionAttrs?.length)
+    if (!resolvedSome && !styleChanged && !collector.dimensionAttrs?.length && !hasDynamicStyleResolved)
       continue
 
     hasChanges = true
@@ -188,6 +322,11 @@ export async function transformVueTemplate(
         // Remove class attr entirely
         s.remove(collector.classLoc.start, collector.classLoc.end)
       }
+    }
+
+    // Remove :style binding (now merged into static style)
+    if (collector.dynamicStyleLoc) {
+      s.remove(collector.dynamicStyleLoc.start, collector.dynamicStyleLoc.end)
     }
 
     // Add/update style attribute

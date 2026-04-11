@@ -871,6 +871,21 @@ export default defineNuxtModule<ModuleOptions>({
       handler: resolve(`${basePath}/image`),
     })
 
+    // Auto-configure SWR route rules for the dynamic OG image endpoint so
+    // platforms like Vercel get durable ISR caching (survives deployments)
+    // without users needing manual routeRules config.
+    // Only set if the user hasn't already configured a rule for this route.
+    if (!nuxt.options.dev && config.runtimeCacheStorage !== false) {
+      const ogRouteRule = nuxt.options.routeRules?.['/_og/d/**']
+      if (!ogRouteRule?.swr && !ogRouteRule?.isr && !ogRouteRule?.cache) {
+        nuxt.options.routeRules = nuxt.options.routeRules || {}
+        nuxt.options.routeRules['/_og/d/**'] = defu(
+          nuxt.options.routeRules['/_og/d/**'] || {},
+          { swr: config.defaults?.cacheMaxAgeSeconds || 60 * 60 * 24 * 3 },
+        )
+      }
+    }
+
     if (!nuxt.options.dev) {
       nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
     }
