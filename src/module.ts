@@ -884,8 +884,10 @@ export default defineNuxtModule<ModuleOptions>({
     if (!nuxt.options.dev) {
       nuxt.options.routeRules = nuxt.options.routeRules || {}
 
-      // Dynamic endpoint: SWR for background revalidation
-      if (config.runtimeCacheStorage !== false) {
+      // Dynamic endpoint: SWR for background revalidation.
+      // Skipped during tests because Nitro's cachedEventHandler wrapper
+      // changes the execution context and can break font loading.
+      if (config.runtimeCacheStorage !== false && !nuxt.options.test) {
         const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
         if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache && !ogDynamicRule?.headers) {
           const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
