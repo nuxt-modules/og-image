@@ -155,7 +155,7 @@ describe('cloudflare-takumi', () => {
     let fontSubsets: Uint8Array[]
 
     beforeAll(async () => {
-      const takumi = await import('@takumi-rs/wasm/bundlers/node')
+      const takumi = await import('@takumi-rs/wasm/node')
       Renderer = takumi.Renderer
 
       const fontsDir = resolve(fixtureDir, '.output/public/_fonts')
