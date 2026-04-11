@@ -1,6 +1,51 @@
 # Changelog
 
 
+## v6.3.6...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.6...main)
+
+### 🩹 Fixes
+
+- **prerender:** Compat issue with html validator ([51aa00d3](https://github.com/nuxt-modules/og-image/commit/51aa00d3))
+
+### 🏡 Chore
+
+- Wrong copy ([70eab6f5](https://github.com/nuxt-modules/og-image/commit/70eab6f5))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
+## v6.3.5...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.5...main)
+
+### 🩹 Fixes
+
+- **prerender:** Edge cases in option caching ([93ab1c67](https://github.com/nuxt-modules/og-image/commit/93ab1c67))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
+## v6.3.4...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.4...main)
+
+### 🩹 Fixes
+
+- **prerender:** Sign dynamic URLs in strict mode and handle orphan hashes ([#560](https://github.com/nuxt-modules/og-image/pull/560))
+
+### 🏡 Chore
+
+- Sync ([4529b9e7](https://github.com/nuxt-modules/og-image/commit/4529b9e7))
+- Broken i18n fixture ([c96607be](https://github.com/nuxt-modules/og-image/commit/c96607be))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.3.3...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.3...main)

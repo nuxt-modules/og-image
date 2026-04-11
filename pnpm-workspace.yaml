@@ -30,8 +30,8 @@ catalog:
   '@iconify-json/tabler': ^1.2.33
   '@img/sharp-linux-x64': ^0.34.5
   '@nuxt/content': ^3.12.0
-  '@nuxt/devtools': ^3.2.4
-  '@nuxt/devtools-kit': ^3.2.4
+  '@nuxt/devtools': 4.0.0-alpha.4
+  '@nuxt/devtools-kit': 4.0.0-alpha.4
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
@@ -48,8 +48,8 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': 1.0.0-beta.13
-  '@takumi-rs/wasm': 1.0.0-beta.13
+  '@takumi-rs/core': 1.0.1
+  '@takumi-rs/wasm': 1.0.1
   '@unocss/nuxt': ^66.6.8
   '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.32
