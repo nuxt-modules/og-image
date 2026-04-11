@@ -175,6 +175,16 @@ export interface ModuleOptions {
    *
    * @default false
    */
+  /**
+   * Default cache duration in seconds for generated OG images.
+   *
+   * Controls the internal storage TTL, HTTP Cache-Control headers, and the
+   * auto-configured SWR route rule. Can be overridden per-image via
+   * `defineOgImage`'s `cacheMaxAgeSeconds` option.
+   *
+   * @default 60 * 60 * 24 * 3 (3 days)
+   */
+  cacheTtl?: number
   cacheQueryParams?: boolean
   /**
    * Font subsets to download when resolving missing font families via fontless.
@@ -343,6 +353,12 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
+    }
+
+    // Resolve cacheTtl into defaults.cacheMaxAgeSeconds
+    if (config.cacheTtl != null) {
+      config.defaults = config.defaults || {} as any
+      config.defaults.cacheMaxAgeSeconds = config.defaults.cacheMaxAgeSeconds ?? config.cacheTtl
     }
 
     if (config.debug && !nuxt.options.dev) {
@@ -870,6 +886,20 @@ export default defineNuxtModule<ModuleOptions>({
       route: '/_og/s/**',
       handler: resolve(`${basePath}/image`),
     })
+
+    // Add SWR route rule for the dynamic OG image endpoint so platforms like
+    // Vercel get durable ISR caching (survives deployments) without manual config.
+    // Skipped if the user already configured a rule for this route.
+    if (!nuxt.options.dev && config.runtimeCacheStorage !== false) {
+      const ogRouteRule = nuxt.options.routeRules?.['/_og/d/**']
+      if (!ogRouteRule?.swr && !ogRouteRule?.isr && !ogRouteRule?.cache) {
+        nuxt.options.routeRules = nuxt.options.routeRules || {}
+        nuxt.options.routeRules['/_og/d/**'] = defu(
+          nuxt.options.routeRules['/_og/d/**'] || {},
+          { swr: config.defaults?.cacheMaxAgeSeconds || 60 * 60 * 24 * 3 },
+        )
+      }
+    }
 
     if (!nuxt.options.dev) {
       nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
