@@ -60,19 +60,29 @@ describe('page query params in OG image URLs', () => {
 })
 
 describe('cache headers', () => {
-  it('dynamic OG image has public cache headers', async () => {
+  it('dynamic OG image sets correct cache headers on miss', async () => {
     const html = await $fetch('/satori/query-param?title=CacheTest') as string
     const ogUrl = extractOgImageUrl(html)
     expect(ogUrl).toBeTruthy()
 
     const res = await fetch(ogUrl!)
-    const cacheControl = res.headers.get('cache-control')
-    expect(cacheControl).toContain('public')
-    expect(cacheControl).toContain('max-age=')
-    expect(cacheControl).toContain('stale-while-revalidate=')
+    expect(res.headers.get('cache-control')).toMatchInlineSnapshot(`"public, max-age=259200, s-maxage=259200, stale-while-revalidate=259200, stale-if-error=259200"`)
+    expect(res.headers.get('x-og-cache')).toMatchInlineSnapshot(`"MISS"`)
     expect(res.headers.get('etag')).toBeTruthy()
     expect(res.headers.get('last-modified')).toBeTruthy()
-    expect(res.headers.get('vary')).toContain('host')
+    expect(res.headers.get('vary')).toMatchInlineSnapshot(`"accept-encoding, host"`)
+  }, 60000)
+
+  it('dynamic OG image returns HIT on second request', async () => {
+    const html = await $fetch('/satori/query-param?title=HitTest') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+
+    // First request populates cache
+    await fetch(ogUrl!)
+    // Second request should hit
+    const res = await fetch(ogUrl!)
+    expect(res.headers.get('x-og-cache')).toMatchInlineSnapshot(`"HIT"`)
   }, 60000)
 
   it('prerendered OG image has immutable cache headers', async () => {
@@ -83,8 +93,6 @@ describe('cache headers', () => {
     expect(ogUrl).toContain('/_og/s/')
 
     const res = await fetch(ogUrl!)
-    const cacheControl = res.headers.get('cache-control')
-    expect(cacheControl).toContain('immutable')
-    expect(cacheControl).toContain('max-age=31536000')
+    expect(res.headers.get('cache-control')).toMatchInlineSnapshot(`"public, max-age=31536000, immutable"`)
   }, 60000)
 })

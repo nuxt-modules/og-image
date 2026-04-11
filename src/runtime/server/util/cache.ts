@@ -62,6 +62,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         }
 
         setHeaders(ctx.e, headers)
+        setHeader(ctx.e, 'X-OG-Cache', 'HIT')
       }
       else {
         // expired
@@ -80,6 +81,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
     enabled,
     cachedItem,
     async update(item) {
+      setHeader(ctx.e, 'X-OG-Cache', enabled ? 'MISS' : 'DISABLED')
       if (!enabled)
         return
       const value = Buffer.from(item as Uint8Array).toString('base64')
