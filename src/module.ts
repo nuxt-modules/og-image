@@ -349,7 +349,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Resolve top-level cacheMaxAgeSeconds into defaults
     if (config.cacheMaxAgeSeconds != null) {
       config.defaults = config.defaults || {} as any
-      config.defaults.cacheMaxAgeSeconds = config.defaults.cacheMaxAgeSeconds ?? config.cacheMaxAgeSeconds
+      config.defaults.cacheMaxAgeSeconds = config.cacheMaxAgeSeconds
     }
 
     if (config.debug && !nuxt.options.dev) {
@@ -887,7 +887,7 @@ export default defineNuxtModule<ModuleOptions>({
       // Dynamic endpoint: SWR for background revalidation
       if (config.runtimeCacheStorage !== false) {
         const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
-        if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache) {
+        if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache && !ogDynamicRule?.headers) {
           const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
           nuxt.options.routeRules['/_og/d/**'] = defu(
             nuxt.options.routeRules['/_og/d/**'] || {},
