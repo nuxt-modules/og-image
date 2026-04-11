@@ -15,7 +15,6 @@ export async function resolve(event: H3Event, font: FontConfig) {
   }
   // Fallback to Nitro's internal handler when origin is unreachable
   // (behind a proxy, serverless, or server not fully started)
-  // @ts-expect-error excessive stack depth from Nuxt typed routes
   const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
   }) as ArrayBuffer
