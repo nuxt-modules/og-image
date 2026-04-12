@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v6.3.8...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.8...main)
+
+### 🩹 Fixes
+
+- Fallback to internal handler when font origin is unreachable ([#566](https://github.com/nuxt-modules/og-image/pull/566))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.3.7...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.7...main)
