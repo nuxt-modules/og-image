@@ -17,7 +17,7 @@ packages:
   - devtools
   - '!examples/**'
 overrides:
-  vite: 8.0.6
+  vite: 8.0.8
   vitest-environment-nuxt: 1.0.1
 catalog:
   '@antfu/eslint-config': ^8.1.1
@@ -48,8 +48,8 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': ^1.0.4
-  '@takumi-rs/wasm': ^1.0.4
+  '@takumi-rs/core': ^1.0.5
+  '@takumi-rs/wasm': ^1.0.5
   '@unocss/nuxt': ^66.6.8
   '@vitejs/plugin-vue': ^6.0.5
   '@vue/compiler-sfc': ^3.5.32
