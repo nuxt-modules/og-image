@@ -877,6 +877,15 @@ export default defineNuxtModule<ModuleOptions>({
       route: '/_og/s/**',
       handler: resolve(`${basePath}/image`),
     })
+    // Resolver endpoint: /_og/r/<path> 302 redirects to the resolved og:image
+    // for the given page by fetching its HTML and reading the meta tag.
+    // Always uses the generated runtime handler (not zero-runtime) since it
+    // only needs HTML parsing, no image rendering.
+    addServerHandler({
+      lazy: true,
+      route: '/_og/r/**',
+      handler: resolve('./runtime/server/routes/resolve'),
+    })
 
     // Add cache route rules for OG image endpoints so platforms like Vercel
     // get durable caching (survives deployments) without manual config.
@@ -905,6 +914,19 @@ export default defineNuxtModule<ModuleOptions>({
           nuxt.options.routeRules['/_og/s/**'] || {},
           { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
         )
+      }
+
+      // Resolver endpoint: SWR to cache the redirect resolution. Each resolution
+      // costs one HTML fetch; SWR lets background revalidation keep it warm.
+      if (config.runtimeCacheStorage !== false && !nuxt.options.test) {
+        const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
+        if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
+          const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
+          nuxt.options.routeRules['/_og/r/**'] = defu(
+            nuxt.options.routeRules['/_og/r/**'] || {},
+            { swr: ttl },
+          )
+        }
       }
     }
 
