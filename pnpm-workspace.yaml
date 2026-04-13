@@ -20,7 +20,7 @@ overrides:
   vite: 8.0.6
   vitest-environment-nuxt: 1.0.1
 catalog:
-  '@antfu/eslint-config': ^8.1.1
+  '@antfu/eslint-config': ^8.2.0
   '@clack/prompts': ^1.2.0
   '@fontsource/noto-sans-sc': ^5.2.9
   '@iconify-json/carbon': ^1.2.20
@@ -48,14 +48,14 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': ^1.0.4
-  '@takumi-rs/wasm': ^1.0.4
+  '@takumi-rs/core': ^1.0.7
+  '@takumi-rs/wasm': ^1.0.7
   '@unocss/nuxt': ^66.6.8
-  '@vitejs/plugin-vue': ^6.0.5
+  '@vitejs/plugin-vue': ^6.0.6
   '@vue/compiler-sfc': ^3.5.32
   '@vueuse/core': ^14.2.1
   '@vueuse/nuxt': ^14.2.1
-  better-sqlite3: ^12.8.0
+  better-sqlite3: ^12.9.0
   birpc: ^4.0.0
   bumpp: ^11.0.1
   chrome-launcher: ^1.2.1
@@ -82,7 +82,7 @@ catalog:
   nypm: ^0.6.5
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.124.0
+  oxc-parser: ^0.125.0
   oxc-walker: ^0.7.0
   pathe: ^2.0.3
   pkg-types: ^2.3.0
@@ -108,11 +108,11 @@ catalog:
   vue: ^3.5.32
   vue-router: ^5.0.4
   vue-tsc: ^3.2.6
-  wrangler: ^4.81.1
+  wrangler: ^4.82.1
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
-    '@iconify-json/simple-icons': ^1.2.77
+    '@iconify-json/simple-icons': ^1.2.78
     shiki: ^4.0.2
 onlyBuiltDependencies:
   - '@parcel/watcher'
