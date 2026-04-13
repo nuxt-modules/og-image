@@ -24,10 +24,15 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
       // Dynamic OG URLs are runtime-only. Prevent nitro's crawler from picking
       // them up via HTML meta extraction and writing them to disk as filenames,
       // which would hit the filesystem 255-byte limit for long signed URLs.
+      // The resolver endpoint is excluded for the same reason and because each
+      // resolution triggers a cross-page HTML fetch that may race with the
+      // prerender graph.
       nitroConfig.prerender = nitroConfig.prerender || {}
       nitroConfig.prerender.ignore = nitroConfig.prerender.ignore || []
-      if (Array.isArray(nitroConfig.prerender.ignore))
+      if (Array.isArray(nitroConfig.prerender.ignore)) {
         nitroConfig.prerender.ignore.push('/_og/d/')
+        nitroConfig.prerender.ignore.push('/_og/r/')
+      }
     })
 
     // Track hash-mode OG URLs whose source page isn't in the prerender graph.
