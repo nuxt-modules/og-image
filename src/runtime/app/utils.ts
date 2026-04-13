@@ -21,11 +21,11 @@ const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
 type OgImagePayload = [string, OgImageOptionsInternal, string]
 
 /**
- * Extract title and description from head entries set by useSeoMeta / useHead.
+ * Extract title and description from head entries set by useSeoMeta.
  *
- * useSeoMeta stores description in `_flatMeta` (flat object keyed by meta name),
- * while useHead stores it in `input.meta` (array of { name, content } objects).
- * Title is hoisted to `entry.input.title` by both APIs.
+ * Only pulls from useSeoMeta entries (identified by the `_flatMeta` marker)
+ * so plain `useHead({ title })` page titles don't leak into og:image URLs (#573).
+ * useSeoMeta hoists title to `entry.input.title` and description to `_flatMeta`.
  */
 function extractHeadSeoProps(head: VueHeadClient): { title?: string, description?: string } {
   const result: { title?: string, description?: string } = {}
@@ -35,33 +35,20 @@ function extractHeadSeoProps(head: VueHeadClient): { title?: string, description
       if (!input || typeof input !== 'object')
         continue
 
-      // Title: both useSeoMeta and useHead hoist title to entry.input.title
+      // `_flatMeta` is only populated by useSeoMeta — use it to distinguish from useHead.
+      const flatMeta = input._flatMeta
+      if (!flatMeta || typeof flatMeta !== 'object')
+        continue
+
       if ('title' in input) {
         const t = toValue(input.title)
         if (typeof t === 'string')
           result.title = t
       }
 
-      // Description from useSeoMeta: stored in _flatMeta
-      if (input._flatMeta && typeof input._flatMeta === 'object') {
-        const d = toValue(input._flatMeta.description) || toValue(input._flatMeta.ogDescription)
-        if (typeof d === 'string')
-          result.description = d
-      }
-
-      // Description from useHead({ meta: [...] })
-      if (Array.isArray(input.meta)) {
-        for (const meta of input.meta) {
-          const m = toValue(meta)
-          if (!m || typeof m !== 'object')
-            continue
-          if (m.name === 'description' || m.property === 'og:description') {
-            const c = toValue(m.content)
-            if (typeof c === 'string')
-              result.description = c
-          }
-        }
-      }
+      const desc = toValue(flatMeta.description) || toValue(flatMeta.ogDescription)
+      if (typeof desc === 'string')
+        result.description = desc
     }
   }
   catch (e) {
@@ -127,11 +114,20 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
       const seo = head ? extractHeadSeoProps(head) : undefined
       return finalPayload.flatMap(([_, options, payloadBasePath]) => {
         const opts = { ...options, props: { ...options.props } }
-        // Inject title/description from head entries if not explicitly set
+        // Resolve component with alias/shorthand support so we know which props it declares.
+        // Skips auto-injection for props the component doesn't accept
+        // (#573: useHead({ title }) was leaking into URLs of components without a title prop).
+        const rawComponentName = opts.component || componentNames?.[0]?.pascalName
+        const resolvedComponentName = rawComponentName ? resolveComponentName(rawComponentName) : undefined
+        const resolvedComponent = resolvedComponentName
+          ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
+          : undefined
+        const declaredProps = resolvedComponent?.propNames
+        // Inject title/description from head entries if not explicitly set AND the component declares them
         if (seo) {
-          if (seo.title && typeof opts.props.title === 'undefined')
+          if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
             opts.props.title = seo.title
-          if (seo.description && typeof opts.props.description === 'undefined')
+          if (seo.description && typeof opts.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
             opts.props.description = seo.description
         }
         // Inline getOgImagePath logic: useRuntimeConfig() is unavailable in lazy callbacks
@@ -141,6 +137,8 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         // setups where pages are prerendered but OG images are served dynamically.
         const isStatic = import.meta.prerender && !(ogImageConfig.security?.secret && ogImageConfig.security?.strict)
         const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
+        // Use a strict (non-aliased) lookup for hash — matches main behavior so URLs
+        // stay stable for shorthand component names like `Default` or `NuxtSeo.satori`.
         const componentName = opts.component || componentNames?.[0]?.pascalName
         const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
         if (component?.hash)
@@ -190,11 +188,18 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           const seo = head ? extractHeadSeoProps(head) : undefined
           const devtoolsPayload = (ssrContext._ogImagePayloads || []).map(([key, options]) => {
             const payload = resolveUnrefHeadInput(options) as any
+            // Resolve component to check declared props before auto-injecting title/description
+            const rawComponentName = payload.component || componentNames?.[0]?.pascalName
+            const resolvedComponentName = rawComponentName ? resolveComponentName(rawComponentName) : undefined
+            const component = resolvedComponentName
+              ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
+              : undefined
+            const declaredProps = component?.propNames
             // Use %s template param for title so unhead resolves it with titleTemplate
-            if (payload.props && typeof payload.props.title === 'undefined')
+            if (payload.props && typeof payload.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
               payload.props.title = '%s'
             // Inject description from head entries for devtools/prerender cache
-            if (seo?.description && payload.props && typeof payload.props.description === 'undefined')
+            if (seo?.description && payload.props && typeof payload.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
               payload.props.description = seo.description
             if (typeof payload.component === 'string') {
               payload.component = resolveComponentName(payload.component)

@@ -50,4 +50,21 @@ describe('useSeoMeta auto-injection', () => {
     expect(params.props?.title).toBe('Explicit Title')
     expect(params.props?.description).toBe('Explicit description')
   }, 60000)
+
+  it('does not inject title/description when component does not declare them (#573)', async () => {
+    const html = await $fetch('/satori/seo-meta-inject-undeclared') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const params = extractOgParams(ogUrl!)
+    expect(params.props?.title).toBeUndefined()
+    expect(params.props?.description).toBeUndefined()
+  }, 60000)
+
+  it('does not inject title from plain useHead (only useSeoMeta) (#573)', async () => {
+    const html = await $fetch('/satori/seo-meta-inject-usehead') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const params = extractOgParams(ogUrl!)
+    expect(params.props?.title).toBeUndefined()
+  }, 60000)
 })
