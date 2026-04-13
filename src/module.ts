@@ -918,6 +918,9 @@ export default defineNuxtModule<ModuleOptions>({
 
       // Resolver endpoint: SWR to cache the redirect resolution. Each resolution
       // costs one HTML fetch; SWR lets background revalidation keep it warm.
+      // Skipped during tests for the same reason as /_og/d/**: Nitro's
+      // cachedEventHandler wrapper changes the execution context and can break
+      // font loading in the tests that assert image output.
       if (config.runtimeCacheStorage !== false && !nuxt.options.test) {
         const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
         if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {

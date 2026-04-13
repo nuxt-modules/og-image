@@ -56,9 +56,11 @@ export default defineEventHandler(async (event) => {
   const security = runtimeConfig.security
 
   // Origin restriction: mirror imageEventHandler — block runtime requests from
-  // unknown hosts so the resolver can't be abused as an open proxy. Loopback
-  // hosts are only trusted when URL signing is active (matches the main
-  // handler's policy).
+  // unknown hosts so the resolver can't be abused as an open proxy. The whole
+  // check is bypassed during prerender and dev (same as the main handler);
+  // at production runtime, loopback hosts are only trusted when URL signing
+  // is active, because without a secret the Host / X-Forwarded-Host headers
+  // are user-controlled and can't be trusted on their own.
   if (!import.meta.prerender && !import.meta.dev && security?.restrictRuntimeImagesToOrigin) {
     const requestHost = getRequestHost(event, { xForwardedHost: true })
     let requestHostname: string | undefined
@@ -114,10 +116,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Reject anything that looks like a protocol-relative or absolute URL sneaking
-  // past withLeadingSlash (e.g. `/_og/r//evil.com/x`). After withLeadingSlash
-  // collapses to a single leading `/`, a benign path starts with `/` followed
-  // by a non-slash character.
+  // Reject protocol-relative or scheme-prefixed paths (e.g. `/_og/r//evil.com/x`
+  // or `/_og/r/http://evil.com/x`). A safe same-origin path has exactly one
+  // leading slash followed by a non-slash character; a scheme contains `://`.
   if (targetPath.includes('://') || RE_DOUBLE_LEADING_SLASH.test(targetPath)) {
     throw createError({
       statusCode: 400,
@@ -135,7 +136,10 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   // Pull out resolver-controlled params (prefixed `_og_`) before forwarding the
   // rest to the page fetch, so they don't leak into the rendered page's query.
-  const metaKey = query._og_key === 'twitter' ? 'twitter:image' : 'og:image'
+  // `_og_key` selects which meta tag to redirect to; accepted case-insensitively
+  // so copy/paste from user code doesn't silently fall back to og:image.
+  const ogKey = typeof query._og_key === 'string' ? query._og_key.toLowerCase() : ''
+  const metaKey = ogKey === 'twitter' ? 'twitter:image' : 'og:image'
   const forwardQuery: Record<string, any> = {}
   for (const [k, v] of Object.entries(query)) {
     if (!k.startsWith('_og_'))
