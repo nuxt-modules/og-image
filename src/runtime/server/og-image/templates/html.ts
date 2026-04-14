@@ -1,7 +1,6 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import resolvedFonts from '#og-image/fonts'
-import { createHeadCore } from '@unhead/vue'
-import { renderSSRHead } from '@unhead/vue/server'
+import { createHead, renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../core/transforms/emojis'
@@ -19,7 +18,7 @@ export async function html(ctx: OgImageRenderEventContext) {
     })
   }
   const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
-  const head = createHeadCore()
+  const head = createHead()
   head.push(island.head)
 
   let defaultFontFamily = 'sans-serif'
