@@ -1,6 +1,26 @@
 # Changelog
 
 
+## v6.3.10...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.10...main)
+
+### 🚀 Enhancements
+
+- Add `/_og/r/<path>` resolver endpoint ([#572](https://github.com/nuxt-modules/og-image/pull/572))
+
+### 🩹 Fixes
+
+- Avoid leaking useHead title into og:image URL ([#573](https://github.com/nuxt-modules/og-image/pull/573), [#574](https://github.com/nuxt-modules/og-image/pull/574))
+
+### 🏡 Chore
+
+- Bump deps ([39a558d7](https://github.com/nuxt-modules/og-image/commit/39a558d7))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.3.9...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.9...main)
