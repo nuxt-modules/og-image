@@ -1545,6 +1545,16 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
+
+      // Non-sensitive subset exposed to the browser so defineOgImage can rebuild
+      // og:image URLs on SPA navigation (#567). Secrets and internal-only fields
+      // stay server-side; only defaults and the strict/hasSecret flags travel.
+      nuxt.options.runtimeConfig.public ||= {}
+      nuxt.options.runtimeConfig.public['nuxt-og-image'] = {
+        defaults: runtimeConfig.defaults,
+        hasSecret: !!runtimeConfig.security?.secret,
+        strict: !!runtimeConfig.security?.strict,
+      }
     })
 
     // Setup playground. Only available in development

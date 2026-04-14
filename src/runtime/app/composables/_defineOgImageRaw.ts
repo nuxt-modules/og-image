@@ -2,7 +2,7 @@ import type { VueHeadClient } from '@unhead/vue'
 import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
 import { createError, injectHead, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
-import { createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
+import { clientProcessOgImageOptions, createOgImageMeta, getOgImagePath, setHeadOgImagePrebuilt, useOgImageRuntimeConfig } from '../utils'
 
 /**
  * Internal raw implementation for defining OG images.
@@ -26,7 +26,13 @@ export function defineOgImageRaw(_options: DefineOgImageInput | DefineOgImageInp
         throw createError({ message: 'You are using a defineOgImage() function in a client-only context. You must call this function within your root component setup, see https://github.com/nuxt-modules/og-image/pull/293.' })
       }
     }
-    return []
+    // On initial hydration, the SSR-rendered meta tag is authoritative. Skip re-registering
+    // to avoid duplicate work and URL drift (SSR has access to useSeoMeta head entries).
+    // For SPA navigation, register a client-side useHead so iOS share sheet, devtools and any
+    // manual DOM readers see the current page's og:image instead of the initial page's (#567).
+    if (nuxtApp.isHydrating)
+      return []
+    return clientProcessOgImageOptions(_options, route, basePath)
   }
 
   const paths: string[] = []
