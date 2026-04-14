@@ -1549,9 +1549,8 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       // Non-sensitive subset exposed to the browser so defineOgImage can rebuild
       // og:image URLs on SPA navigation (#567). Secrets and internal-only fields
       // stay server-side; only defaults and the strict/hasSecret flags travel.
-      nuxt.options.runtimeConfig.public ||= {}
       nuxt.options.runtimeConfig.public['nuxt-og-image'] = {
-        defaults: runtimeConfig.defaults,
+        defaults: runtimeConfig.defaults as any,
         hasSecret: !!runtimeConfig.security?.secret,
         strict: !!runtimeConfig.security?.strict,
       }
