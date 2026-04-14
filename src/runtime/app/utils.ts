@@ -2,13 +2,34 @@ import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
-import { toValue } from 'vue'
+import { isRef, toValue } from 'vue'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+
+/**
+ * Recursively unwrap refs/computed/getters in a head input object.
+ *
+ * Replaces `resolveUnrefHeadInput` from `@unhead/vue`, which was removed in
+ * Unhead v3. Keeping a local walker lets us compile against both v2 and v3.
+ */
+function resolveUnrefHeadInput(input: any): any {
+  if (input == null)
+    return input
+  if (isRef(input) || typeof input === 'function')
+    return resolveUnrefHeadInput(toValue(input))
+  if (Array.isArray(input))
+    return input.map(resolveUnrefHeadInput)
+  if (typeof input === 'object') {
+    const result: Record<string, any> = {}
+    for (const k in input)
+      result[k] = resolveUnrefHeadInput(input[k])
+    return result
+  }
+  return input
+}
 
 const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
 
