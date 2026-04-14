@@ -1,7 +1,6 @@
 import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
-import type { RouteLocationNormalizedLoaded } from 'vue-router'
-import type { DefineOgImageInput, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
+import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { resolveUnrefHeadInput } from '@unhead/vue'
 import { defu } from 'defu'
@@ -9,7 +8,6 @@ import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
-import { logger } from '../logger'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
@@ -54,7 +52,7 @@ function extractHeadSeoProps(head: VueHeadClient): { title?: string, description
   }
   catch (e) {
     if (import.meta.dev)
-      logger.warn('Failed to extract SEO props from head entries', e)
+      console.warn('[nuxt-og-image] Failed to extract SEO props from head entries', e)
   }
   return result
 }
@@ -207,7 +205,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             }
             else if (payload.component) {
               if (import.meta.dev)
-                logger.warn(`defineOgImage() received a non-string component value (${typeof payload.component}). Pass the component name as a plain string.`)
+                console.warn(`[nuxt-og-image] defineOgImage() received a non-string component value (${typeof payload.component}). Pass the component name as a plain string.`)
               delete payload.component
             }
             payload.key = key
@@ -237,129 +235,6 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   }
 
   ssrContext._ogImagePayloads = payloads
-}
-
-/**
- * Cached detection of whether the current deployment serves OG images from /_og/s/ (prerendered
- * files) or /_og/d/ (runtime handler). Determined from the SSR-rendered og:image tag so client-side
- * URL generation matches what the server produced. Falls back to runtime config when the initial
- * tag is a user-provided `url` override.
- */
-let cachedClientIsStatic: boolean | undefined
-
-function detectClientIsStatic(config: OgImageRuntimeConfig): boolean {
-  if (cachedClientIsStatic !== undefined)
-    return cachedClientIsStatic
-  if (typeof document !== 'undefined') {
-    const tags = document.head.querySelectorAll('meta[property="og:image"]')
-    for (const tag of tags) {
-      const url = tag.getAttribute('content') || ''
-      if (url.includes('/_og/s/')) {
-        cachedClientIsStatic = true
-        return true
-      }
-      if (url.includes('/_og/d/')) {
-        cachedClientIsStatic = false
-        return false
-      }
-    }
-  }
-  // Fallback: mirror the server's `isStatic` heuristic (see urlEncoding.ts)
-  cachedClientIsStatic = !(config.security?.secret && config.security?.strict)
-  return cachedClientIsStatic
-}
-
-function resolveReactiveOptions(input: DefineOgImageInput): OgImageOptions | OgImagePrebuilt | false {
-  const options = toValue(input)
-  if (options === false)
-    return false
-  const opts = options as OgImageOptions | OgImagePrebuilt
-  if (opts.width)
-    opts.width = toValue(opts.width)
-  if (opts.height)
-    opts.height = toValue(opts.height)
-  if (opts.alt)
-    opts.alt = toValue(opts.alt)
-  if (opts.url)
-    opts.url = toValue(opts.url)
-  if (opts.props) {
-    opts.props = { ...opts.props }
-    for (const key in opts.props) {
-      opts.props[key] = toValue(opts.props[key])
-    }
-  }
-  return opts
-}
-
-/**
- * Client-side processing for SPA navigations: computes the og:image URL for the current
- * route and registers a `useHead` entry so the DOM meta tags reflect the current page.
- *
- * Addresses #567: on client-side route changes the SSR-rendered og:image tag would otherwise
- * stay pinned to the page the user originally landed on, leaking into iOS share sheets and
- * any other consumer that reads meta tags from the live DOM.
- */
-export function clientProcessOgImageOptions(
-  input: DefineOgImageInput | DefineOgImageInput[],
-  route: RouteLocationNormalizedLoaded,
-  basePath: string,
-): string[] {
-  const inputs = Array.isArray(input) ? input : [input]
-  const ogImageConfig = useOgImageRuntimeConfig()
-  const { defaults } = ogImageConfig
-  const baseURL = useRuntimeConfig().app.baseURL
-  const isStatic = detectClientIsStatic(ogImageConfig)
-  const publicCfg = (useRuntimeConfig().public?.['nuxt-og-image'] as { hasSecret?: boolean, strict?: boolean } | undefined) || {}
-  // Dynamic /_og/d/ URLs require HMAC signing with the secret, which is server-only.
-  // Bail early so we don't emit broken unsigned/bad-signature URLs on SPA navigation.
-  const canSign = isStatic || !publicCfg.hasSecret
-  const paths: string[] = []
-
-  for (const rawInput of inputs) {
-    const resolved = resolveReactiveOptions(rawInput)
-    if (resolved === false)
-      continue
-    const validOptions = resolved as OgImageOptions | OgImagePrebuilt
-
-    for (const key in defaults) {
-      // @ts-expect-error untyped
-      if (validOptions[key] === undefined)
-        // @ts-expect-error untyped
-        validOptions[key] = defaults[key]
-    }
-
-    if (route.query)
-      (validOptions as OgImageOptionsInternal)._query = route.query
-
-    // prebuilt URL override: no URL generation needed, just emit meta
-    if ((validOptions as OgImagePrebuilt).url) {
-      const url = (validOptions as OgImagePrebuilt).url as string
-      useHead({ meta: generateMeta(url, validOptions) }, { tagPriority: 'high' })
-      paths.push(url)
-      continue
-    }
-
-    if (!canSign)
-      continue
-
-    const opts = separateProps(defu(validOptions, defaults)) as OgImageOptionsInternal
-    const extension = opts.extension || defaults?.extension || 'png'
-    const urlOpts: Record<string, any> = { ...opts, _path: basePath }
-    const componentName = opts.component || componentNames?.[0]?.pascalName
-    const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
-    if (component?.hash)
-      urlOpts._componentHash = component.hash
-    // No secret passed here: isStatic paths don't sign; dynamic+hasSecret paths bailed via canSign above.
-    const result = buildOgImageUrl(urlOpts, extension, isStatic, defaults, undefined)
-    const resolvedUrl = joinURL('/', baseURL, result.url)
-    const finalUrl = opts._query && Object.keys(opts._query).length
-      ? withQuery(resolvedUrl, { _query: opts._query })
-      : resolvedUrl
-    useHead({ meta: generateMeta(finalUrl, opts) }, { processTemplateParams: true, tagPriority: 35 })
-    paths.push(finalUrl)
-  }
-
-  return paths
 }
 
 export function resolveComponentName(component: OgImageOptionsInternal['component']): OgImageOptionsInternal['component'] {

@@ -933,9 +933,12 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    if (!nuxt.options.dev) {
-      nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
-    }
+    // Prior versions tree-shook `defineOgImage` out of the client bundle entirely for
+    // bundle-size reasons. That broke #567: on SPA navigation the og:image meta tag
+    // stayed stuck on the initial SSR-rendered URL, leaking into iOS share sheets
+    // and devtools. Keeping the call in the client bundle is cheap (a few KB for the
+    // minimal resolver-URL path) and the correctness win is worth it.
+    nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
 
     ;[
       'defineOgImage',
@@ -954,11 +957,6 @@ export default defineNuxtModule<ModuleOptions>({
           name,
           from: resolve(`./runtime/app/composables/${name}`),
         })
-        if (!nuxt.options.dev) {
-          nuxt.options.optimization.treeShake.composables.client = nuxt.options.optimization.treeShake.composables.client || {}
-          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] || []
-          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
-        }
       })
 
     addImports({
@@ -1546,14 +1544,19 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
 
-      // Non-sensitive subset exposed to the browser so defineOgImage can rebuild
-      // og:image URLs on SPA navigation (#567). Secrets and internal-only fields
-      // stay server-side; only defaults and the strict/hasSecret flags travel.
-      nuxt.options.runtimeConfig.public['nuxt-og-image'] = {
-        defaults: runtimeConfig.defaults as any,
-        hasSecret: !!runtimeConfig.security?.secret,
-        strict: !!runtimeConfig.security?.strict,
-      }
+      // Non-sensitive subset exposed to the browser so defineOgImage can refresh
+      // og:image meta tags on SPA navigation (#567). `_generate` / `nitro.static`
+      // mark pure SSG deployments: the `/_og/r/` resolver won't be served, so the
+      // client rebuilds URLs directly instead. `defaults` feed that rebuild path
+      // so the URL encoding matches what the prerender produced.
+      const hasServerRuntime = !(nuxt.options as any)._generate && !nuxt.options.nitro?.static
+      nuxt.options.runtimeConfig.public = {
+        ...nuxt.options.runtimeConfig.public,
+        'nuxt-og-image': {
+          defaults: runtimeConfig.defaults,
+          hasServerRuntime,
+        },
+      } as any
     })
 
     // Setup playground. Only available in development
