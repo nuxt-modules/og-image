@@ -933,9 +933,12 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    if (!nuxt.options.dev) {
-      nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
-    }
+    // Prior versions tree-shook `defineOgImage` out of the client bundle entirely for
+    // bundle-size reasons. That broke #567: on SPA navigation the og:image meta tag
+    // stayed stuck on the initial SSR-rendered URL, leaking into iOS share sheets
+    // and devtools. Keeping the call in the client bundle is cheap (a few KB for the
+    // minimal resolver-URL path) and the correctness win is worth it.
+    nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = []
 
     ;[
       'defineOgImage',
@@ -954,11 +957,6 @@ export default defineNuxtModule<ModuleOptions>({
           name,
           from: resolve(`./runtime/app/composables/${name}`),
         })
-        if (!nuxt.options.dev) {
-          nuxt.options.optimization.treeShake.composables.client = nuxt.options.optimization.treeShake.composables.client || {}
-          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] = nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'] || []
-          nuxt.options.optimization.treeShake.composables.client['nuxt-og-image'].push(name)
-        }
       })
 
     addImports({
@@ -1545,6 +1543,40 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
+
+      // Non-sensitive subset exposed to the browser so defineOgImage can refresh
+      // og:image meta tags on SPA navigation (#567). `defaults` feed the SSG
+      // URL-rebuild fallback path; `hasServerRuntime` gates the `/_og/r/` resolver
+      // path on the client (the resolver can't be served from a static bucket).
+      //
+      // Seed with a best-effort guess now so the public config is populated before
+      // modules that read it in their own `modules:done` run. The authoritative
+      // value is re-written in `nitro:init` below once preset resolution is done
+      // and `nitro.options.static` reflects static presets (github-pages, etc.).
+      nuxt.options.runtimeConfig.public = {
+        ...nuxt.options.runtimeConfig.public,
+        'nuxt-og-image': {
+          defaults: runtimeConfig.defaults,
+          hasServerRuntime: !(nuxt.options as any)._generate && !nuxt.options.nitro?.static,
+        },
+      } as any
+    })
+
+    // `nitro.options.static` is the source of truth for "no runtime server" but
+    // only gets set after preset resolution, which happens during nitro init.
+    // Reading `nuxt.options.nitro?.static` at `modules:done` misses presets like
+    // `github-pages` / `gitlab-pages` / `netlify-static` that inherit `static: true`
+    // from their preset definition rather than user config. Overwriting here
+    // before nitro/client bundling catches those cases.
+    nuxt.hook('nitro:init', (nitro) => {
+      const pub = (nuxt.options.runtimeConfig.public['nuxt-og-image'] as { defaults?: any, hasServerRuntime?: boolean }) || {}
+      nuxt.options.runtimeConfig.public = {
+        ...nuxt.options.runtimeConfig.public,
+        'nuxt-og-image': {
+          ...pub,
+          hasServerRuntime: !nitro.options.static && !(nuxt.options as any)._generate,
+        },
+      } as any
     })
 
     // Setup playground. Only available in development

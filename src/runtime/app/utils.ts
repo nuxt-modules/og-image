@@ -8,7 +8,6 @@ import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
-import { logger } from '../logger'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
@@ -53,7 +52,7 @@ function extractHeadSeoProps(head: VueHeadClient): { title?: string, description
   }
   catch (e) {
     if (import.meta.dev)
-      logger.warn('Failed to extract SEO props from head entries', e)
+      console.warn('[nuxt-og-image] Failed to extract SEO props from head entries', e)
   }
   return result
 }
@@ -206,7 +205,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             }
             else if (payload.component) {
               if (import.meta.dev)
-                logger.warn(`defineOgImage() received a non-string component value (${typeof payload.component}). Pass the component name as a plain string.`)
+                console.warn(`[nuxt-og-image] defineOgImage() received a non-string component value (${typeof payload.component}). Pass the component name as a plain string.`)
               delete payload.component
             }
             payload.key = key
@@ -318,11 +317,12 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
 
 export function useOgImageRuntimeConfig() {
   const c = useRuntimeConfig()
-  return {
-    defaults: {},
-    ...(c['nuxt-og-image'] as Record<string, any>),
-    app: {
-      baseURL: c.app.baseURL,
-    },
-  } as any as OgImageRuntimeConfig
+  // Server-side: full runtime config at the root key.
+  // Client-side: the root key is stripped (server-only); only the non-sensitive subset
+  // published under `public['nuxt-og-image']` is available. The secret never crosses.
+  const serverCfg = (c['nuxt-og-image'] as Record<string, any> | undefined) || {}
+  const publicCfg = (c.public?.['nuxt-og-image'] as Record<string, any> | undefined) || {}
+  const merged: Record<string, any> = { defaults: {}, ...publicCfg, ...serverCfg }
+  merged.app = { baseURL: c.app.baseURL }
+  return merged as any as OgImageRuntimeConfig
 }
