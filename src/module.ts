@@ -1545,16 +1545,36 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
 
       // Non-sensitive subset exposed to the browser so defineOgImage can refresh
-      // og:image meta tags on SPA navigation (#567). `_generate` / `nitro.static`
-      // mark pure SSG deployments: the `/_og/r/` resolver won't be served, so the
-      // client rebuilds URLs directly instead. `defaults` feed that rebuild path
-      // so the URL encoding matches what the prerender produced.
-      const hasServerRuntime = !(nuxt.options as any)._generate && !nuxt.options.nitro?.static
+      // og:image meta tags on SPA navigation (#567). `defaults` feed the SSG
+      // URL-rebuild fallback path; `hasServerRuntime` gates the `/_og/r/` resolver
+      // path on the client (the resolver can't be served from a static bucket).
+      //
+      // Seed with a best-effort guess now so the public config is populated before
+      // modules that read it in their own `modules:done` run. The authoritative
+      // value is re-written in `nitro:init` below once preset resolution is done
+      // and `nitro.options.static` reflects static presets (github-pages, etc.).
       nuxt.options.runtimeConfig.public = {
         ...nuxt.options.runtimeConfig.public,
         'nuxt-og-image': {
           defaults: runtimeConfig.defaults,
-          hasServerRuntime,
+          hasServerRuntime: !(nuxt.options as any)._generate && !nuxt.options.nitro?.static,
+        },
+      } as any
+    })
+
+    // `nitro.options.static` is the source of truth for "no runtime server" but
+    // only gets set after preset resolution, which happens during nitro init.
+    // Reading `nuxt.options.nitro?.static` at `modules:done` misses presets like
+    // `github-pages` / `gitlab-pages` / `netlify-static` that inherit `static: true`
+    // from their preset definition rather than user config. Overwriting here
+    // before nitro/client bundling catches those cases.
+    nuxt.hook('nitro:init', (nitro) => {
+      const pub = (nuxt.options.runtimeConfig.public['nuxt-og-image'] as { defaults?: any, hasServerRuntime?: boolean }) || {}
+      nuxt.options.runtimeConfig.public = {
+        ...nuxt.options.runtimeConfig.public,
+        'nuxt-og-image': {
+          ...pub,
+          hasServerRuntime: !nitro.options.static && !(nuxt.options as any)._generate,
         },
       } as any
     })
