@@ -892,33 +892,40 @@ export default defineNuxtModule<ModuleOptions>({
     // only `headers` — no `swr`/`isr`/`cache` — because Nitro's
     // cachedEventHandler wraps the handler in a proxied event with stripped
     // headers AND JSON-serializes the response body, which corrupts binary
-    // PNG output (see #578). The handler still sets matching Cache-Control
-    // headers on successful responses; these route rules ensure the policy
-    // is visible to platform tooling even before the handler runs.
+    // PNG output (see #578). The image handler also sets its own Cache-Control
+    // on successful responses; these route rules surface the policy at the
+    // routing layer and cover the resolver endpoint, which redirects without
+    // emitting headers of its own.
     if (!nuxt.options.dev) {
       nuxt.options.routeRules = nuxt.options.routeRules || {}
 
       const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
-      // Dynamic URLs are content-addressed (encoded params + component hash),
-      // so the response is effectively immutable for a given URL — stale
-      // revalidation would just return identical bytes. Use `immutable` with
-      // the configured TTL instead.
-      const dynamicCacheControl = `public, max-age=${ttl}, s-maxage=${ttl}, immutable`
+      // Skip the dynamic/resolver cache rules entirely when caching is
+      // disabled (ttl <= 0). Setting `max-age=0, immutable` would conflict
+      // with the handler's `no-cache, no-store, must-revalidate` policy and
+      // re-enable caching depending on header-override order.
+      if (ttl > 0) {
+        // Dynamic URLs are content-addressed (encoded params + component hash),
+        // so the response is effectively immutable for a given URL — stale
+        // revalidation would just return identical bytes. Use `immutable` with
+        // the configured TTL instead.
+        const dynamicCacheControl = `public, max-age=${ttl}, s-maxage=${ttl}, immutable`
 
-      const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
-      if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache && !ogDynamicRule?.headers) {
-        nuxt.options.routeRules['/_og/d/**'] = defu(
-          nuxt.options.routeRules['/_og/d/**'] || {},
-          { headers: { 'cache-control': dynamicCacheControl } },
-        )
-      }
+        const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
+        if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache && !ogDynamicRule?.headers) {
+          nuxt.options.routeRules['/_og/d/**'] = defu(
+            nuxt.options.routeRules['/_og/d/**'] || {},
+            { headers: { 'cache-control': dynamicCacheControl } },
+          )
+        }
 
-      const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
-      if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
-        nuxt.options.routeRules['/_og/r/**'] = defu(
-          nuxt.options.routeRules['/_og/r/**'] || {},
-          { headers: { 'cache-control': dynamicCacheControl } },
-        )
+        const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
+        if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
+          nuxt.options.routeRules['/_og/r/**'] = defu(
+            nuxt.options.routeRules['/_og/r/**'] || {},
+            { headers: { 'cache-control': dynamicCacheControl } },
+          )
+        }
       }
 
       const ogStaticRule = nuxt.options.routeRules['/_og/s/**']
