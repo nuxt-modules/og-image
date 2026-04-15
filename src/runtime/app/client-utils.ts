@@ -1,11 +1,38 @@
+import type { ActiveHeadEntry, Head, UseHeadInput } from '@unhead/vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import type { DefineOgImageInput, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt } from '../types'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { defu } from 'defu'
-import { useHead, useRuntimeConfig } from 'nuxt/app'
+import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+
+// Per-head-client map of active useHead entries, keyed by og key. Scoped to the
+// Nuxt app via its head instance (released automatically when the head GCs).
+// SPA navigations from a persistent scope (app.vue, layout, root plugin) would
+// otherwise accumulate one useHead entry per navigation, since Vue's scope-
+// dispose only fires on component unmount.
+const clientEntriesByHead: WeakMap<object, Map<string, ActiveHeadEntry<Head>>> = /* @__PURE__ */ new WeakMap()
+
+function registerClientOgHead(ogKey: string, input: UseHeadInput, options?: Parameters<typeof useHead>[1]): void {
+  let entries: Map<string, ActiveHeadEntry<Head>> | undefined
+  try {
+    const head = injectHead() as object | undefined
+    if (head) {
+      entries = clientEntriesByHead.get(head)
+      if (!entries) {
+        entries = new Map()
+        clientEntriesByHead.set(head, entries)
+      }
+    }
+  }
+  catch {}
+  entries?.get(ogKey)?.dispose()
+  const entry = useHead(input, options) as ActiveHeadEntry<Head> | undefined
+  if (entry && entries)
+    entries.set(ogKey, entry)
+}
 
 /**
  * Client-only helpers used by `defineOgImage` during SPA navigation. Lives in its
@@ -112,19 +139,20 @@ export function clientProcessOgImageOptions(
     if (route.query)
       (validOptions as OgImageOptionsInternal)._query = route.query
 
+    const ogKey = (validOptions as OgImageOptions).key || 'og'
+
     // Prebuilt URL override: user pointed at a specific URL, use it directly.
     if ((validOptions as OgImagePrebuilt).url) {
       const url = (validOptions as OgImagePrebuilt).url as string
-      useHead({ meta: generateMeta(url, validOptions) }, { tagPriority: 'high' })
+      registerClientOgHead(ogKey, { meta: generateMeta(url, validOptions) }, { tagPriority: 'high' })
       paths.push(url)
       continue
     }
 
     // SSR: route through the resolver for a guaranteed match with the server URL.
     if (publicCfg.hasServerRuntime) {
-      const ogKey = (validOptions as OgImageOptions).key || 'og'
       const finalUrl = buildResolverUrl(baseURL, basePath, ogKey, route.query as Record<string, any> | undefined)
-      useHead({ meta: generateMeta(finalUrl, validOptions) }, { tagPriority: 35 })
+      registerClientOgHead(ogKey, { meta: generateMeta(finalUrl, validOptions) }, { tagPriority: 35 })
       paths.push(finalUrl)
       continue
     }
@@ -143,7 +171,7 @@ export function clientProcessOgImageOptions(
     const finalUrl = opts._query && Object.keys(opts._query).length
       ? withQuery(resolvedUrl, { _query: opts._query })
       : resolvedUrl
-    useHead({ meta: generateMeta(finalUrl, opts) }, { processTemplateParams: true, tagPriority: 35 })
+    registerClientOgHead(ogKey, { meta: generateMeta(finalUrl, opts) }, { processTemplateParams: true, tagPriority: 35 })
     paths.push(finalUrl)
   }
 
