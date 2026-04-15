@@ -21,6 +21,7 @@ import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProp
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
+import { createTimings, TIMING_CTX_KEY } from '../util/timings'
 import { useOgImageRuntimeConfig } from '../utils'
 import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './instances'
 
@@ -257,6 +258,8 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
       statusMessage: `[Nuxt OG Image] Renderer "${rendererType}" is not available. Component "${normalised.component?.pascalName}" requires the ${rendererType} renderer but it's not bundled for this preset.`,
     })
   }
+  const timings = (e.context[TIMING_CTX_KEY] as ReturnType<typeof createTimings>) || createTimings()
+  e.context[TIMING_CTX_KEY] = timings
   const ctx: OgImageRenderEventContext = {
     e,
     key,
@@ -267,6 +270,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     extension,
     basePath,
     options: normalised.options,
+    timings,
     _nitro: useNitroApp(),
   }
   // call the nitro hook

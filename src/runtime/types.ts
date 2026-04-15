@@ -6,6 +6,7 @@ import type { NitroRuntimeHooks } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions, SharpOptions } from 'sharp'
 import type { MaybeRefOrGetter, Ref } from 'vue'
+import type { Timings } from './server/util/timings'
 
 interface NitroApp {
   hooks: Hookable<NitroRuntimeHooks>
@@ -22,6 +23,7 @@ export interface OgImageRenderEventContext {
   isDevToolsContextRequest: boolean
   publicStoragePath: string
   runtimeConfig: OgImageRuntimeConfig
+  timings: Timings
   _nitro: NitroApp
 }
 
@@ -68,6 +70,7 @@ export interface OgImageRuntimeConfig {
     maxDimension: number
     maxDpr: number
     renderTimeout: number
+    imageFetchTimeout: number
     maxQueryParamSize: number | null
     restrictRuntimeImagesToOrigin: false | string[]
     secret: string

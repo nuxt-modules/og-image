@@ -209,6 +209,17 @@ export interface ModuleOptions {
     /** Render timeout in milliseconds. Returns 408 on timeout. @default 15000 */
     renderTimeout?: number
     /**
+     * Per-image fetch timeout in milliseconds.
+     *
+     * Applies to remote `<img>` / `background-image` fetches done while resolving templates.
+     * A stalled resource can otherwise consume the entire `renderTimeout` budget, which
+     * shows up as near-total request timeouts on edge platforms (e.g. Cloudflare Workers
+     * when the image URL routes back through the same worker).
+     *
+     * @default 3000
+     */
+    imageFetchTimeout?: number
+    /**
      * Maximum allowed length (in characters) for the query string on runtime OG image requests.
      * Requests exceeding this limit receive a 400 response.
      *
@@ -1530,6 +1541,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           maxDimension: config.security?.maxDimension ?? 2048,
           maxDpr: config.security?.maxDpr ?? 2,
           renderTimeout: config.security?.renderTimeout ?? 15_000,
+          imageFetchTimeout: config.security?.imageFetchTimeout ?? 3_000,
           maxQueryParamSize: config.security?.maxQueryParamSize ?? (config.security?.strict ? 2048 : null),
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []

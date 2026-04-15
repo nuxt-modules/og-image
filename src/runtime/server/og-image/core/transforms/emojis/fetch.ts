@@ -1,6 +1,7 @@
 import type { OgImageRenderEventContext } from '../../../../../types'
 import { emojiCache } from '#og-image-cache'
 import { $fetch } from 'ofetch'
+import { getFetchTimeout } from '../../../../util/fetchTimeout'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 
 /**
@@ -26,6 +27,8 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
 
   // If not in cache, try API calls
   if (!svg) {
+    const timeout = getFetchTimeout(ctx.runtimeConfig)
+    const endTiming = ctx.timings.start('emoji-fetch')
     // Try each possible name with the API
     for (const iconName of possibleNames) {
       try {
@@ -33,6 +36,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
           responseType: 'text',
           retry: 2,
           retryDelay: 500,
+          timeout,
         })
 
         // Iconify API returns literal '404' text (not HTTP 404) for missing icons
@@ -48,6 +52,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
         svg = null
       }
     }
+    endTiming()
   }
 
   if (svg) {
