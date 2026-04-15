@@ -66,7 +66,7 @@ describe('cache headers', () => {
     expect(ogUrl).toBeTruthy()
 
     const res = await fetch(ogUrl!)
-    expect(res.headers.get('cache-control')).toMatchInlineSnapshot(`"public, max-age=259200, s-maxage=259200, stale-while-revalidate=259200, stale-if-error=259200"`)
+    expect(res.headers.get('cache-control')).toMatchInlineSnapshot(`"public, max-age=259200, s-maxage=259200, immutable"`)
     expect(res.headers.get('x-og-cache')).toMatchInlineSnapshot(`"MISS"`)
     expect(res.headers.get('etag')).toBeTruthy()
     expect(res.headers.get('last-modified')).toBeTruthy()

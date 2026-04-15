@@ -887,49 +887,53 @@ export default defineNuxtModule<ModuleOptions>({
       handler: resolve('./runtime/server/routes/resolve'),
     })
 
-    // Add cache route rules for OG image endpoints so platforms like Vercel
-    // get durable caching (survives deployments) without manual config.
-    // Skipped if the user already configured a rule for a given route.
+    // Auto-configure cache-control headers for OG image endpoints so CDNs
+    // get correct caching policy at the routing layer. We deliberately set
+    // only `headers` — no `swr`/`isr`/`cache` — because Nitro's
+    // cachedEventHandler wraps the handler in a proxied event with stripped
+    // headers AND JSON-serializes the response body, which corrupts binary
+    // PNG output (see #578). The image handler also sets its own Cache-Control
+    // on successful responses; these route rules surface the policy at the
+    // routing layer and cover the resolver endpoint, which redirects without
+    // emitting headers of its own.
     if (!nuxt.options.dev) {
       nuxt.options.routeRules = nuxt.options.routeRules || {}
 
-      // Dynamic endpoint: SWR for background revalidation.
-      // Skipped during tests because Nitro's cachedEventHandler wrapper
-      // changes the execution context and can break font loading.
-      if (config.runtimeCacheStorage !== false && !nuxt.options.test) {
+      const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
+      // Skip the dynamic/resolver cache rules entirely when caching is
+      // disabled (ttl <= 0). Setting `max-age=0, immutable` would conflict
+      // with the handler's `no-cache, no-store, must-revalidate` policy and
+      // re-enable caching depending on header-override order.
+      if (ttl > 0) {
+        // Dynamic URLs are content-addressed (encoded params + component hash),
+        // so the response is effectively immutable for a given URL — stale
+        // revalidation would just return identical bytes. Use `immutable` with
+        // the configured TTL instead.
+        const dynamicCacheControl = `public, max-age=${ttl}, s-maxage=${ttl}, immutable`
+
         const ogDynamicRule = nuxt.options.routeRules['/_og/d/**']
         if (!ogDynamicRule?.swr && !ogDynamicRule?.isr && !ogDynamicRule?.cache && !ogDynamicRule?.headers) {
-          const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
           nuxt.options.routeRules['/_og/d/**'] = defu(
             nuxt.options.routeRules['/_og/d/**'] || {},
-            { swr: ttl },
+            { headers: { 'cache-control': dynamicCacheControl } },
+          )
+        }
+
+        const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
+        if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
+          nuxt.options.routeRules['/_og/r/**'] = defu(
+            nuxt.options.routeRules['/_og/r/**'] || {},
+            { headers: { 'cache-control': dynamicCacheControl } },
           )
         }
       }
 
-      // Prerendered endpoint: immutable static assets baked at build time
       const ogStaticRule = nuxt.options.routeRules['/_og/s/**']
       if (!ogStaticRule?.swr && !ogStaticRule?.isr && !ogStaticRule?.cache && !ogStaticRule?.headers) {
         nuxt.options.routeRules['/_og/s/**'] = defu(
           nuxt.options.routeRules['/_og/s/**'] || {},
           { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
         )
-      }
-
-      // Resolver endpoint: SWR to cache the redirect resolution. Each resolution
-      // costs one HTML fetch; SWR lets background revalidation keep it warm.
-      // Skipped during tests for the same reason as /_og/d/**: Nitro's
-      // cachedEventHandler wrapper changes the execution context and can break
-      // font loading in the tests that assert image output.
-      if (config.runtimeCacheStorage !== false && !nuxt.options.test) {
-        const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
-        if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
-          const ttl = config.cacheMaxAgeSeconds ?? config.defaults?.cacheMaxAgeSeconds ?? 60 * 60 * 24 * 3
-          nuxt.options.routeRules['/_og/r/**'] = defu(
-            nuxt.options.routeRules['/_og/r/**'] || {},
-            { swr: ttl },
-          )
-        }
       }
     }
 

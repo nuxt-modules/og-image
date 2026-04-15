@@ -104,7 +104,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         'Vary': 'accept-encoding, host',
         'etag': `W/"${digest(value)}"`,
         'last-modified': new Date().toUTCString(),
-        'cache-control': `public, max-age=${maxAge}, s-maxage=${maxAge}, stale-while-revalidate=${maxAge}, stale-if-error=${maxAge}`,
+        'cache-control': `public, max-age=${maxAge}, s-maxage=${maxAge}, immutable`,
       }
       setHeaders(ctx.e, headers)
       await cache.setItem(key, {
