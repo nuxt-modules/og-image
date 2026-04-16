@@ -1,9 +1,12 @@
+import type { H3Event } from 'h3'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { getNitroOrigin } from '#site-config/server/composables/getNitroOrigin'
 import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
+import { fetchLocalAsset } from '../../../util/fetchLocalAsset'
+import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { logger } from '../../../util/logger'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
@@ -76,10 +79,13 @@ function isBlockedUrl(url: string): boolean {
 const RE_URL_LEADING = /^url\(['"]?/
 const RE_URL_TRAILING = /['"]?\)$/
 
+// Marker header lets downstream middleware short-circuit expensive work on
+// subrequests we make during OG image rendering (e.g. on CF Workers where a
+// logo/asset path may route back through the same worker).
+const SUBREQUEST_HEADERS = { 'x-nuxt-og-image': '1' }
+
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
-  // try hydrating from storage
-  // we need to read the file using unstorage
-  // because we can't fetch public files using $fetch when prerendering
+  // try hydrating from storage — can't fetch public files via $fetch when prerendering
   const normalizedSrc = withoutLeadingSlash(src
     .replace('_nuxt/@fs/', '')
     .replace('_nuxt/', '')
@@ -90,150 +96,169 @@ async function resolveLocalFilePathImage(publicStoragePath: string, src: string)
     return await useStorage().getItemRaw(key)
 }
 
-// for relative links we embed them as base64 input or just fix the URL to be absolute
+function toBufferSourceAsBase64(buf: BufferSource): string {
+  const ab = buf instanceof ArrayBuffer
+    ? buf
+    : ArrayBuffer.isView(buf)
+      ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+      : buf
+  return toBase64Image(ab)
+}
+
+interface ResolveResult {
+  buffer?: BufferSource
+  blocked?: boolean
+}
+
+// Per-render dedup: the same URL referenced multiple times in a template
+// (e.g. logo in header + footer) resolves once. Scoped by H3Event so buffers
+// don't leak across renders — entries drop with the event reference.
+const renderCaches = new WeakMap<H3Event, Map<string, Promise<ResolveResult>>>()
+
+function getRenderCache(e: H3Event): Map<string, Promise<ResolveResult>> {
+  let cache = renderCaches.get(e)
+  if (!cache) {
+    cache = new Map()
+    renderCaches.set(e, cache)
+  }
+  return cache
+}
+
+function resolveSrcToBuffer(
+  src: string,
+  kind: 'image' | 'background-image',
+  ctx: OgImageRenderEventContext,
+): Promise<ResolveResult> {
+  const cache = getRenderCache(ctx.e)
+  const existing = cache.get(src)
+  if (existing)
+    return existing
+  const promise = doResolveSrcToBuffer(src, kind, ctx)
+  cache.set(src, promise)
+  return promise
+}
+
+async function doResolveSrcToBuffer(
+  src: string,
+  kind: 'image' | 'background-image',
+  { e, publicStoragePath, runtimeConfig, timings }: OgImageRenderEventContext,
+): Promise<ResolveResult> {
+  const fetchTimeout = getFetchTimeout(runtimeConfig)
+  const logFailure = (url: string, err: unknown) => {
+    logger.debug(`[og-image] ${kind} fetch failed (${url}): ${(err as Error)?.message || err}`)
+  }
+
+  if (src.startsWith('/')) {
+    let buffer: BufferSource | undefined
+    if (import.meta.prerender || import.meta.dev) {
+      const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')
+      buffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
+    }
+    if (!buffer && !import.meta.prerender) {
+      const ab = await timings.measure('image-fetch', () => fetchLocalAsset(e, src, {
+        fetchTimeout,
+        headers: SUBREQUEST_HEADERS,
+        includeExternalFallback: true,
+        onStepFailure: logFailure,
+      }))
+      if (ab)
+        buffer = new Uint8Array(ab)
+    }
+    return buffer ? { buffer } : {}
+  }
+
+  const decodedSrc = decodeHtml(src)
+  if (!import.meta.dev && isBlockedUrl(decodedSrc)) {
+    logger.warn(`Blocked internal ${kind} fetch: ${decodedSrc}`)
+    return { blocked: true }
+  }
+  const end = timings.start('image-fetch')
+  const buffer = (await $fetch(decodedSrc, {
+    responseType: 'arrayBuffer',
+    timeout: fetchTimeout,
+  }).catch((err) => {
+    logFailure(decodedSrc, err)
+  }).finally(end)) as BufferSource | undefined
+  return buffer ? { buffer } : {}
+}
+
+function applyImageDimensions(node: VNode, buffer: BufferSource) {
+  // convert string dimensions to numbers for Satori
+  if (typeof node.props.width === 'string')
+    node.props.width = Number(node.props.width) || undefined
+  if (typeof node.props.height === 'string')
+    node.props.height = Number(node.props.height) || undefined
+
+  // infer missing dimensions from the image's natural aspect ratio
+  if (node.props.width && node.props.height)
+    return
+  const view = buffer instanceof Uint8Array
+    ? buffer
+    : ArrayBuffer.isView(buffer)
+      ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+      : new Uint8Array(buffer)
+  const dimensions = getImageDimensions(view)
+  if (!dimensions?.width || !dimensions?.height)
+    return
+  const naturalAspectRatio = dimensions.width / dimensions.height
+  if (node.props.width && !node.props.height) {
+    node.props.height = Math.round(node.props.width / naturalAspectRatio)
+  }
+  else if (node.props.height && !node.props.width) {
+    node.props.width = Math.round(node.props.height * naturalAspectRatio)
+  }
+  else {
+    node.props.width = dimensions.width
+    node.props.height = dimensions.height
+  }
+}
+
 export default defineTransformer([
   // fix <img src="">
   {
     filter: (node: VNode) => node.type === 'img' && node.props?.src,
-    transform: async (node: VNode, { e, publicStoragePath, runtimeConfig }: OgImageRenderEventContext) => {
+    transform: async (node: VNode, ctx: OgImageRenderEventContext) => {
       let src: string = node.props.src!
-      const isRelative = src.startsWith('/')
-      let dimensions
-      let imageBuffer: BufferSource | undefined
-
+      if (src.startsWith('data:'))
+        return
       if (src.endsWith('.webp')) {
         logger.warn('Using WebP images with Satori is not supported. Please consider switching image format or use the chromium renderer.', src)
       }
+      const isRelative = src.startsWith('/')
+      if (!isRelative)
+        src = node.props.src = decodeHtml(src)
 
-      if (isRelative) {
-        if (import.meta.prerender || import.meta.dev) {
-          const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '')
-          // try hydrating from storage
-          // we need to read the file using unstorage
-          // because we can't fetch public files using $fetch when prerendering
-          imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
-        }
-        if (!imageBuffer) {
-          // see if we can fetch it from a kv host if we're using an edge provider
-          imageBuffer = (await e.$fetch(src, { responseType: 'arrayBuffer' })
-            .catch(() => {})) as BufferSource | undefined
-          if (!imageBuffer && !import.meta.prerender) {
-            // see if we can fetch it from a kv host if we're using an edge provider
-            imageBuffer = (await e.$fetch(src, {
-              baseURL: getNitroOrigin(e),
-              responseType: 'arrayBuffer',
-            })
-              .catch(() => {})) as BufferSource | undefined
-          }
-        }
-        // convert relative images to base64 as satori will have no chance of resolving
-        if (imageBuffer) {
-          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-          node.props.src = toBase64Image(buffer)
-        }
+      const result = await resolveSrcToBuffer(src, 'image', ctx)
+      if (result.blocked) {
+        delete node.props.src
+        return
       }
-      // avoid trying to fetch base64 image uris
-      else if (!src.startsWith('data:')) {
-        src = decodeHtml(src)
-        // Block private/loopback URLs outside dev to prevent SSRF
-        if (!import.meta.dev && isBlockedUrl(src)) {
-          logger.warn(`Blocked internal image fetch: ${src}`)
-          delete node.props.src
-        }
-        else {
-          node.props.src = src
-          // fetch remote images and embed as base64 to avoid satori re-fetching at render time
-          imageBuffer = (await $fetch(src, {
-            responseType: 'arrayBuffer',
-          })
-            .catch(() => {})) as BufferSource | undefined
-          if (imageBuffer) {
-            const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-            node.props.src = toBase64Image(buffer)
-          }
-        }
+      if (result.buffer) {
+        node.props.src = toBufferSourceAsBase64(result.buffer)
+        applyImageDimensions(node, result.buffer)
+        return
       }
-
-      // convert string dimensions to numbers for Satori
-      if (typeof node.props.width === 'string')
-        node.props.width = Number(node.props.width) || undefined
-      if (typeof node.props.height === 'string')
-        node.props.height = Number(node.props.height) || undefined
-
-      // if we're missing either a height or width on an image we can try and compute it using the image size
-      if (imageBuffer && (!node.props.width || !node.props.height)) {
-        dimensions = getImageDimensions(imageBuffer as Uint8Array)
-        // apply a natural aspect ratio if missing a dimension
-        if (dimensions?.width && dimensions?.height) {
-          const naturalAspectRatio = dimensions.width / dimensions.height
-          if (node.props.width && !node.props.height) {
-            node.props.height = Math.round(node.props.width / naturalAspectRatio)
-          }
-          else if (node.props.height && !node.props.width) {
-            node.props.width = Math.round(node.props.height * naturalAspectRatio)
-          }
-          else if (!node.props.width && !node.props.height) {
-            node.props.width = dimensions.width
-            node.props.height = dimensions.height
-          }
-        }
-      }
-      // if it's still relative, we need to swap out the src for an absolute URL
-      if (typeof node.props.src === 'string' && node.props.src.startsWith('/')) {
-        if (imageBuffer) {
-          const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-          node.props.src = toBase64Image(buffer)
-        }
-        else {
-          // with query to avoid satori caching issue
-          node.props.src = `${withBase(src, `${getNitroOrigin(e)}`)}?${Date.now()}`
-        }
-      }
+      // relative src couldn't be fetched — fall back to an absolute URL so
+      // satori/takumi may attempt to resolve at render time
+      if (isRelative)
+        node.props.src = withBase(src, `${getNitroOrigin(ctx.e)}`)
     },
   },
   // fix style="background-image: url('')"
   {
     filter: (node: VNode) => node.props?.style?.backgroundImage?.includes('url('),
-    transform: async (node: VNode, { e, publicStoragePath, runtimeConfig }: OgImageRenderEventContext) => {
-      // same as the above, need to swap out relative background images for absolute
+    transform: async (node: VNode, ctx: OgImageRenderEventContext) => {
       const backgroundImage = node.props.style!.backgroundImage!
       const src = backgroundImage.replace(RE_URL_LEADING, '').replace(RE_URL_TRAILING, '')
       if (src.startsWith('data:'))
         return
-      const isRelative = src?.startsWith('/')
-      let imageBuffer: BufferSource | undefined
-      if (isRelative) {
-        if (import.meta.prerender || import.meta.dev) {
-          const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')
-          imageBuffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
-        }
-        if (!imageBuffer) {
-          imageBuffer = (await e.$fetch(src, { responseType: 'arrayBuffer' })
-            .catch(() => {})) as BufferSource | undefined
-          if (!imageBuffer && !import.meta.prerender) {
-            imageBuffer = (await e.$fetch(src, {
-              baseURL: getNitroOrigin(e),
-              responseType: 'arrayBuffer',
-            }).catch(() => {})) as BufferSource | undefined
-          }
-        }
+      const result = await resolveSrcToBuffer(src, 'background-image', ctx)
+      if (result.blocked) {
+        delete node.props.style!.backgroundImage
+        return
       }
-      else {
-        const decodedSrc = decodeHtml(src)
-        if (!import.meta.dev && isBlockedUrl(decodedSrc)) {
-          logger.warn(`Blocked internal background-image fetch: ${decodedSrc}`)
-          delete node.props.style!.backgroundImage
-        }
-        else {
-          imageBuffer = (await $fetch(decodedSrc, {
-            responseType: 'arrayBuffer',
-          }).catch(() => {})) as BufferSource | undefined
-        }
-      }
-      if (imageBuffer) {
-        const buffer = imageBuffer instanceof ArrayBuffer ? imageBuffer : imageBuffer.buffer as ArrayBuffer
-        node.props.style!.backgroundImage = `url(${toBase64Image(buffer)})`
-      }
+      if (result.buffer)
+        node.props.style!.backgroundImage = `url(${toBufferSourceAsBase64(result.buffer)})`
     },
   },
 ])

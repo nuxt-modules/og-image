@@ -10,12 +10,27 @@ import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
 
 export async function imageEventHandler(e: H3Event) {
+  const reqStart = performance.now()
   const ctx = await resolveContext(e).catch((err: any) => {
     logger.error(`resolveContext error for ${e.path}:`, err?.message || err)
     throw err
   })
   if (ctx instanceof H3Error)
     return ctx
+  const timings = ctx.timings
+  try {
+    return await renderOgImage(e, ctx)
+  }
+  finally {
+    timings.record('total', performance.now() - reqStart)
+    const header = timings.header()
+    if (header)
+      setHeader(e, 'Server-Timing', header)
+  }
+}
+
+async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof resolveContext>>, H3Error>) {
+  const timings = ctx.timings
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
   const { debug, baseCacheKey, security } = useOgImageRuntimeConfig()
@@ -130,24 +145,32 @@ export async function imageEventHandler(e: H3Event) {
     ? getBuildCachedImage(ctx.options, extension)
     : null
   if (buildCachedImage) {
+    timings.record('cache-hit', 0)
     return buildCachedImage
   }
 
+  const endCacheLookup = timings.start('cache-lookup')
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
     secret: security?.secret,
-  })
+  }).finally(endCacheLookup)
   // we sent a 304 not modified
-  if (typeof cacheApi === 'undefined')
+  if (typeof cacheApi === 'undefined') {
     return
-  if (cacheApi instanceof H3Error)
+  }
+  if (cacheApi instanceof H3Error) {
     return cacheApi
+  }
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
+  if (image) {
+    timings.record('cache-hit', 0)
+  }
   if (!image) {
-    const timeout = security?.renderTimeout || 15_000
+    const timeout = security?.renderTimeout ?? 15_000
     let timer: ReturnType<typeof setTimeout> | undefined
+    const endRender = timings.start('render-total')
     image = await Promise.race([
       renderer.createImage(ctx),
       new Promise<never>((_, reject) => {
@@ -162,9 +185,11 @@ export async function imageEventHandler(e: H3Event) {
       throw err
     }).finally(() => {
       clearTimeout(timer)
+      endRender()
     })
-    if (image instanceof H3Error)
+    if (image instanceof H3Error) {
       return image
+    }
     if (!image) {
       return createError({
         statusCode: 500,

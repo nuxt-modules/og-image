@@ -5,6 +5,7 @@ import { getNitroOrigin } from '#site-config/server/composables'
 import { withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { buildOgImageUrl } from '../../../shared'
+import { getFetchTimeout } from '../../util/fetchTimeout'
 import { logger } from '../../util/logger'
 import { useOgImageRuntimeConfig } from '../../utils'
 
@@ -79,8 +80,9 @@ async function takeScreenshot(page: Page, selector: string | undefined, options:
   return await page.screenshot(puppeteerOptions)
 }
 
-export async function createScreenshot({ basePath, e, options, extension }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
-  const { colorPreference, defaults, security } = useOgImageRuntimeConfig()
+export async function createScreenshot({ basePath, e, options, extension, timings }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
+  const runtimeConfig = useOgImageRuntimeConfig()
+  const { colorPreference, defaults, security } = runtimeConfig
   // For browser renderer, we need to load the HTML template with options encoded in URL
   const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false, defaults, security?.secret || undefined).url
 
@@ -110,7 +112,8 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
     }
     if (import.meta.prerender && !options.html) {
       // we need to do a nitro fetch for the HTML instead of rendering with browser
-      options.html = await e.$fetch(path).catch(() => undefined) as string
+      options.html = await timings.measure('html-fetch', () =>
+        e.$fetch(path, { timeout: getFetchTimeout(runtimeConfig) }).catch(() => undefined)) as string
     }
 
     await setViewport(
@@ -159,7 +162,7 @@ export async function createScreenshot({ basePath, e, options, extension }: OgIm
       }, _options.mask)
     }
 
-    return await takeScreenshot(page, _options.selector, screenshotOptions)
+    return await timings.measure('render-browser', () => takeScreenshot(page, _options.selector, screenshotOptions))
   }
   finally {
     await page.close()

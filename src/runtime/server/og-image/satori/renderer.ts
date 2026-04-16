@@ -35,7 +35,7 @@ function withWarningCapture<T>(fn: () => Promise<T>): Promise<{ result: T, warni
 }
 
 export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg: string | void, warnings: string[], fonts: RuntimeFontConfig[] }> {
-  const { options } = event
+  const { options, timings } = event
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const [satori, vnodes] = await Promise.all([
@@ -44,13 +44,13 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   ])
   const codepoints = extractCodepoints(vnodes)
   const hasCustomFonts = Array.isArray(options.fonts) && options.fonts.length > 0
-  const fonts = await loadFontsForRenderer(event, {
+  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, {
     supportedFormats: new Set(['ttf', 'otf', 'woff'] as const),
     component: options.component,
     fontFamilyOverride: fontFamilyOverride || defaultFont,
     codepoints,
     fontDefs: options.fonts,
-  })
+  }))
 
   await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
   // Remap to satori's font format (requires `name` instead of `family`).
@@ -106,9 +106,9 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
     height: options.height!,
   }) as SatoriOptions
 
-  const { result, warnings } = await withWarningCapture(() =>
+  const { result, warnings } = await timings.measure('render-satori', () => withWarningCapture(() =>
     satori(vnodes, satoriOptions),
-  )
+  ))
   return { svg: result, warnings, fonts }
 }
 
@@ -119,15 +119,17 @@ async function createPng(event: OgImageRenderEventContext) {
     throw new Error('Failed to create SVG')
   const options = defu(event.options.resvg, resvgOptions)
   const Resvg = await getResvg()
-  const resvg = new Resvg(svg, options)
-  const pngData = resvg.render()
-  const png = pngData.asPng()
-  // Free WASM resources when using @resvg/resvg-wasm (no-op for native binding)
-  if (typeof (pngData as any).free === 'function')
-    (pngData as any).free()
-  if (typeof (resvg as any).free === 'function')
-    (resvg as any).free()
-  return png
+  return event.timings.measure('render-resvg', () => {
+    const resvg = new Resvg(svg, options)
+    const pngData = resvg.render()
+    const png = pngData.asPng()
+    // Free WASM resources when using @resvg/resvg-wasm (no-op for native binding)
+    if (typeof (pngData as any).free === 'function')
+      (pngData as any).free()
+    if (typeof (resvg as any).free === 'function')
+      (resvg as any).free()
+    return png
+  })
 }
 
 async function createJpeg(event: OgImageRenderEventContext) {
@@ -144,9 +146,9 @@ async function createJpeg(event: OgImageRenderEventContext) {
     throw new Error('Sharp dependency could not be loaded. Please check you have it installed and are using a compatible runtime.')
   })
   const options = defu(event.options.sharp, sharpOptions)
-  return sharp(svgBuffer, options)
+  return event.timings.measure('render-sharp', () => sharp(svgBuffer, options)
     .jpeg(options as JpegOptions)
-    .toBuffer()
+    .toBuffer())
 }
 
 /**

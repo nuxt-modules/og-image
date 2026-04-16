@@ -6,6 +6,8 @@ import { getRequestURL } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
+import { getFetchTimeout } from '../../../util/fetchTimeout'
+import { useOgImageRuntimeConfig } from '../../../utils'
 
 let fontUrlMapping: Record<string, string> | undefined
 
@@ -19,6 +21,7 @@ async function loadFontUrlMapping(): Promise<Record<string, string>> {
 
 export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer> {
   const path = font.src || font.localPath
+  const timeout = getFetchTimeout(useOgImageRuntimeConfig())
 
   // Static bundled fonts — read directly from absolute path
   if (font.absolutePath) {
@@ -48,7 +51,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
 
       const mapping = await loadFontUrlMapping()
       if (mapping[filename]) {
-        const res = await fetch(mapping[filename]).catch(() => null)
+        const res = await fetch(mapping[filename], { signal: AbortSignal.timeout(timeout) }).catch(() => null)
         if (res?.ok)
           return Buffer.from(await res.arrayBuffer())
       }
@@ -78,7 +81,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     const filename = path.slice('/_fonts/'.length)
     const mapping = await loadFontUrlMapping()
     if (mapping[filename]) {
-      const res = await fetch(mapping[filename]).catch(() => null)
+      const res = await fetch(mapping[filename], { signal: AbortSignal.timeout(timeout) }).catch(() => null)
       if (res?.ok)
         return Buffer.from(await res.arrayBuffer())
     }
@@ -99,7 +102,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     const reqUrl = getRequestURL(event)
     const origin = `${reqUrl.protocol}//${reqUrl.host}`
     const url = new URL(withBase(path, app.baseURL), origin).href
-    const res = await fetch(url).catch(() => null)
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeout) }).catch(() => null)
     if (res?.ok) {
       return Buffer.from(await res.arrayBuffer())
     }
@@ -108,6 +111,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   // @ts-expect-error excessive stack depth from Nuxt typed routes
   const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
+    timeout,
   }) as ArrayBuffer
   return Buffer.from(arrayBuffer)
 }

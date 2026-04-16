@@ -1,9 +1,10 @@
 import type { Node } from '@takumi-rs/core'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
+import { fetchLocalAsset } from '../../util/fetchLocalAsset'
+import { getFetchTimeout } from '../../util/fetchTimeout'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -107,12 +108,12 @@ function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>, subsetChai
 }
 
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
-  const { options } = event
+  const { options, timings } = event
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
   const codepoints = extractCodepoints(nodes)
-  const fonts = await loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints })
+  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
 
   await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
 
@@ -139,27 +140,38 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const extractResourceUrls = await getExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
 
-  const origin = getNitroOrigin(event.e)
   const baseURL = event.runtimeConfig.app.baseURL
 
   const fetchedResources: Array<{ src: string, data: Uint8Array }> = []
-  await Promise.all(resourceUrls.map(async (src) => {
-    const urlsToTry = [src]
-    if (src.startsWith('/')) {
-      urlsToTry.push(withBase(src, origin))
-      if (baseURL && baseURL !== '/' && !src.startsWith(baseURL)) {
-        urlsToTry.push(withBase(withBase(src, baseURL), origin))
+  if (resourceUrls.length) {
+    const fetchTimeout = getFetchTimeout(event.runtimeConfig)
+    // Marker header lets downstream middleware short-circuit expensive work
+    // on subrequests we make during OG image rendering (e.g. on CF Workers
+    // where a logo/asset path may route back through the same worker).
+    const headers = { 'x-nuxt-og-image': '1' }
+    await timings.measure('resource-fetch', () => Promise.all(resourceUrls.map(async (src) => {
+      let data: ArrayBuffer | undefined
+      if (src.startsWith('/')) {
+        // withBase is a no-op if src already starts with baseURL
+        const path = withBase(src, baseURL)
+        data = await fetchLocalAsset(event.e, path, {
+          fetchTimeout,
+          headers,
+          includeExternalFallback: true,
+        })
       }
-    }
-
-    for (const url of urlsToTry) {
-      const data = await $fetch(url, { responseType: 'arrayBuffer' }).catch(() => null)
-      if (data) {
-        fetchedResources.push({ src, data: new Uint8Array(data as ArrayBuffer) })
-        break
+      else {
+        data = await $fetch(src, {
+          responseType: 'arrayBuffer',
+          signal: AbortSignal.timeout(fetchTimeout),
+          timeout: fetchTimeout,
+          headers,
+        }).catch(() => undefined) as ArrayBuffer | undefined
       }
-    }
-  }))
+      if (data)
+        fetchedResources.push({ src, data: new Uint8Array(data) })
+    })))
+  }
 
   // Default to 1x DPR for consistent output with satori (1200x600).
   // Users can set `takumi.devicePixelRatio: 2` in defineOgImage options for higher resolution.
@@ -174,7 +186,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     devicePixelRatio: dpr,
   })
 
-  return await state.renderer.render(nodes, renderOptions)
+  return await timings.measure('render-takumi', () => state.renderer.render(nodes, renderOptions))
 }
 
 const TakumiRenderer: Renderer = {
