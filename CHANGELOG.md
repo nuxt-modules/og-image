@@ -1,6 +1,24 @@
 # Changelog
 
 
+## v6.4.2...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.2...main)
+
+### 🩹 Fixes
+
+- Dispose prior og:image head entry on client navigation ([d709ecf1](https://github.com/nuxt-modules/og-image/commit/d709ecf1))
+- Add image fetch timeouts and Server-Timing instrumentation ([#581](https://github.com/nuxt-modules/og-image/pull/581))
+
+### 🏡 Chore
+
+- Bump deps ([62671921](https://github.com/nuxt-modules/og-image/commit/62671921))
+- Sync tests ([53364387](https://github.com/nuxt-modules/og-image/commit/53364387))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.3.10...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.3.10...main)

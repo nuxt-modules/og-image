@@ -19,6 +19,8 @@ packages:
 overrides:
   vite: 8.0.6
   vitest-environment-nuxt: 1.0.1
+  unhead: ^2
+  '@unhead/vue': ^2
 catalog:
   '@antfu/eslint-config': ^8.2.0
   '@clack/prompts': ^1.2.0
