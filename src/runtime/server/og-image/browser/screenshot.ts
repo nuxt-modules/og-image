@@ -112,9 +112,8 @@ export async function createScreenshot({ basePath, e, options, extension, timing
     }
     if (import.meta.prerender && !options.html) {
       // we need to do a nitro fetch for the HTML instead of rendering with browser
-      const endFetch = timings.start('html-fetch')
-      options.html = await e.$fetch(path, { timeout: getFetchTimeout(runtimeConfig) }).catch(() => undefined) as string
-      endFetch()
+      options.html = await timings.measure('html-fetch', () =>
+        e.$fetch(path, { timeout: getFetchTimeout(runtimeConfig) }).catch(() => undefined)) as string
     }
 
     await setViewport(

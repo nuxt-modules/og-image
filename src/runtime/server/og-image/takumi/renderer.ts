@@ -146,12 +146,11 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const fetchedResources: Array<{ src: string, data: Uint8Array }> = []
   if (resourceUrls.length) {
     const fetchTimeout = getFetchTimeout(event.runtimeConfig)
-    const endFetch = timings.start('resource-fetch')
     // Marker header lets downstream middleware short-circuit expensive work
     // on subrequests we make during OG image rendering (e.g. on CF Workers
     // where a logo/asset path may route back through the same worker).
     const headers = { 'x-nuxt-og-image': '1' }
-    await Promise.all(resourceUrls.map(async (src) => {
+    await timings.measure('resource-fetch', () => Promise.all(resourceUrls.map(async (src) => {
       const urlsToTry = [src]
       if (src.startsWith('/')) {
         urlsToTry.push(withBase(src, origin))
@@ -160,15 +159,18 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
         }
       }
 
+      // Shared deadline so a broken resource doesn't burn urlsToTry × fetchTimeout.
+      const deadline = AbortSignal.timeout(fetchTimeout)
       for (const url of urlsToTry) {
-        const data = await $fetch(url, { responseType: 'arrayBuffer', timeout: fetchTimeout, headers }).catch(() => null)
+        if (deadline.aborted)
+          break
+        const data = await $fetch(url, { responseType: 'arrayBuffer', signal: deadline, timeout: fetchTimeout, headers }).catch(() => null)
         if (data) {
           fetchedResources.push({ src, data: new Uint8Array(data as ArrayBuffer) })
           break
         }
       }
-    }))
-    endFetch()
+    })))
   }
 
   // Default to 1x DPR for consistent output with satori (1200x600).

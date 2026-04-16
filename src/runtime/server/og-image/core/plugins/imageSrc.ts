@@ -155,38 +155,52 @@ async function doResolveSrcToBuffer(
       buffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
     }
     if (!buffer && !import.meta.prerender) {
-      // CF Workers ASSETS binding: hits the static asset handler directly.
-      // No subrequest billed, no middleware re-run. Returns undefined for
-      // non-asset paths so Nitro routes still resolve via localFetch below.
+      // Shared deadline across the fallback ladder: a broken URL should not
+      // burn 3× fetchTimeout before the render sees the failure.
+      const deadline = AbortSignal.timeout(fetchTimeout)
+      const remaining = () => {
+        // rough approximation; ofetch's own timeout also enforces upper bound
+        return deadline.aborted ? 1 : fetchTimeout
+      }
       const end = timings.start('image-fetch')
-      buffer = await tryCloudflareAssetsFetch(e, src, AbortSignal.timeout(fetchTimeout))
-        .catch((err) => {
-          logFailure(src, err)
-          return undefined
-        })
-      if (!buffer) {
-        buffer = (await e.$fetch(src, {
-          responseType: 'arrayBuffer',
-          timeout: fetchTimeout,
-          headers: SUBREQUEST_HEADERS,
-        }).catch((err) => {
-          logFailure(src, err)
-        })) as BufferSource | undefined
+      try {
+        // CF Workers ASSETS binding: hits the static asset handler directly.
+        // No subrequest billed, no middleware re-run. Returns undefined for
+        // non-asset paths so Nitro routes still resolve via localFetch below.
+        buffer = await tryCloudflareAssetsFetch(e, src, deadline)
+          .catch((err) => {
+            logFailure(src, err)
+            return undefined
+          })
+        if (!buffer && !deadline.aborted) {
+          // Nitro localFetch: resolves dynamic routes (not just static assets).
+          buffer = (await e.$fetch(src, {
+            responseType: 'arrayBuffer',
+            signal: deadline,
+            timeout: remaining(),
+            headers: SUBREQUEST_HEADERS,
+          }).catch((err) => {
+            logFailure(src, err)
+          })) as BufferSource | undefined
+        }
+        if (!buffer && !deadline.aborted) {
+          // Real external fetch: for platforms where the static asset is served
+          // by platform-level routing (Vercel, Netlify edge) and never reaches
+          // Nitro. Uses global $fetch (ofetch) for a true HTTP hop.
+          const absolute = `${getNitroOrigin(e)}${src}`
+          buffer = (await $fetch(absolute, {
+            responseType: 'arrayBuffer',
+            signal: deadline,
+            timeout: remaining(),
+            headers: SUBREQUEST_HEADERS,
+          }).catch((err) => {
+            logFailure(absolute, err)
+          })) as BufferSource | undefined
+        }
       }
-      if (!buffer) {
-        // Last-resort: same-origin subrequest for platforms without an ASSETS
-        // binding but with platform-level static routing (Vercel, Netlify, etc).
-        const absolute = `${getNitroOrigin(e)}${src}`
-        buffer = (await e.$fetch(src, {
-          baseURL: getNitroOrigin(e),
-          responseType: 'arrayBuffer',
-          timeout: fetchTimeout,
-          headers: SUBREQUEST_HEADERS,
-        }).catch((err) => {
-          logFailure(absolute, err)
-        })) as BufferSource | undefined
+      finally {
+        end()
       }
-      end()
     }
     return buffer ? { buffer } : {}
   }
@@ -202,8 +216,7 @@ async function doResolveSrcToBuffer(
     timeout: fetchTimeout,
   }).catch((err) => {
     logFailure(decodedSrc, err)
-  })) as BufferSource | undefined
-  end()
+  }).finally(end)) as BufferSource | undefined
   return buffer ? { buffer } : {}
 }
 

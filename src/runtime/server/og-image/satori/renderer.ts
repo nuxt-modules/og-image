@@ -119,17 +119,17 @@ async function createPng(event: OgImageRenderEventContext) {
     throw new Error('Failed to create SVG')
   const options = defu(event.options.resvg, resvgOptions)
   const Resvg = await getResvg()
-  const endResvg = event.timings.start('render-resvg')
-  const resvg = new Resvg(svg, options)
-  const pngData = resvg.render()
-  const png = pngData.asPng()
-  endResvg()
-  // Free WASM resources when using @resvg/resvg-wasm (no-op for native binding)
-  if (typeof (pngData as any).free === 'function')
-    (pngData as any).free()
-  if (typeof (resvg as any).free === 'function')
-    (resvg as any).free()
-  return png
+  return event.timings.measure('render-resvg', () => {
+    const resvg = new Resvg(svg, options)
+    const pngData = resvg.render()
+    const png = pngData.asPng()
+    // Free WASM resources when using @resvg/resvg-wasm (no-op for native binding)
+    if (typeof (pngData as any).free === 'function')
+      (pngData as any).free()
+    if (typeof (resvg as any).free === 'function')
+      (resvg as any).free()
+    return png
+  })
 }
 
 async function createJpeg(event: OgImageRenderEventContext) {
