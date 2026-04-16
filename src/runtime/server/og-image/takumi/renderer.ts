@@ -1,9 +1,9 @@
 import type { Node } from '@takumi-rs/core'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
 import { logger } from '../../../logger'
+import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
@@ -140,7 +140,6 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const extractResourceUrls = await getExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
 
-  const origin = getNitroOrigin(event.e)
   const baseURL = event.runtimeConfig.app.baseURL
 
   const fetchedResources: Array<{ src: string, data: Uint8Array }> = []
@@ -151,25 +150,26 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     // where a logo/asset path may route back through the same worker).
     const headers = { 'x-nuxt-og-image': '1' }
     await timings.measure('resource-fetch', () => Promise.all(resourceUrls.map(async (src) => {
-      const urlsToTry = [src]
+      let data: ArrayBuffer | undefined
       if (src.startsWith('/')) {
-        urlsToTry.push(withBase(src, origin))
-        if (baseURL && baseURL !== '/' && !src.startsWith(baseURL)) {
-          urlsToTry.push(withBase(withBase(src, baseURL), origin))
-        }
+        // withBase is a no-op if src already starts with baseURL
+        const path = withBase(src, baseURL)
+        data = await fetchLocalAsset(event.e, path, {
+          fetchTimeout,
+          headers,
+          includeExternalFallback: true,
+        })
       }
-
-      // Shared deadline so a broken resource doesn't burn urlsToTry × fetchTimeout.
-      const deadline = AbortSignal.timeout(fetchTimeout)
-      for (const url of urlsToTry) {
-        if (deadline.aborted)
-          break
-        const data = await $fetch(url, { responseType: 'arrayBuffer', signal: deadline, timeout: fetchTimeout, headers }).catch(() => null)
-        if (data) {
-          fetchedResources.push({ src, data: new Uint8Array(data as ArrayBuffer) })
-          break
-        }
+      else {
+        data = await $fetch(src, {
+          responseType: 'arrayBuffer',
+          signal: AbortSignal.timeout(fetchTimeout),
+          timeout: fetchTimeout,
+          headers,
+        }).catch(() => undefined) as ArrayBuffer | undefined
       }
+      if (data)
+        fetchedResources.push({ src, data: new Uint8Array(data) })
     })))
   }
 
