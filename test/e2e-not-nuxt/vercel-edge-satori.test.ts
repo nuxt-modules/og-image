@@ -4,7 +4,7 @@ import { globby } from 'globby'
 import { $fetch } from 'ofetch'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
+import { ensureLocalModuleStub, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/vercel-edge-satori')
@@ -40,6 +40,7 @@ const vercelScope = process.env.VERCEL_SCOPE || 'my-team-47a10b37'
 let deploymentUrl = ''
 
 async function buildFixture() {
+  await ensureLocalModuleStub()
   await exec('nuxt', ['build'], {
     nodeOptions: {
       cwd: fixtureDir,

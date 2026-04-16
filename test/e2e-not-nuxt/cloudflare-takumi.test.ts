@@ -7,10 +7,11 @@ import { $fetch } from 'ofetch'
 import { join } from 'pathe'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { extractOgImageUrl, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
+import { ensureLocalModuleStub, extractOgImageUrl, getWranglerTestEnv, isWranglerRuntimeUnsupportedError, readLatestWranglerLog, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/cloudflare-takumi')
+const wranglerEnvName = 'cloudflare-takumi'
 
 setupImageSnapshots(SNAPSHOT_STRICT)
 
@@ -28,7 +29,11 @@ catch {
 // Check if wrangler is available
 let hasWrangler = false
 try {
-  await exec('wrangler', ['--version'])
+  await exec('wrangler', ['--version'], {
+    nodeOptions: {
+      env: getWranglerTestEnv(process.env, wranglerEnvName),
+    },
+  })
   hasWrangler = true
 }
 catch {
@@ -37,11 +42,15 @@ catch {
 
 const canRunTests = hasTakumiWasm && hasWrangler
 const isCI = !!process.env.CI
+const hasSandboxedRuntime = !!process.env.CODEX_SANDBOX_NETWORK_DISABLED || !!process.env.NUXT_OG_IMAGE_SKIP_EDGE_RUNTIME
 
 let wranglerProcess: ChildProcess | null = null
 let serverUrl = ''
+let skipWranglerRuntime = false
 
 async function buildFixture(retries = 2) {
+  await ensureLocalModuleStub()
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     const result = exec('nuxt', ['build'], {
       nodeOptions: {
@@ -62,28 +71,48 @@ async function buildFixture(retries = 2) {
 
 async function startWrangler(): Promise<string> {
   return new Promise((resolve, reject) => {
+    let settled = false
     const proc = spawn('wrangler', ['dev', '--port', '8788'], {
       cwd: fixtureDir,
+      env: {
+        ...getWranglerTestEnv(process.env, wranglerEnvName),
+        CI: '1',
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     wranglerProcess = proc
     let output = ''
+    const finish = (value: string) => {
+      if (settled)
+        return
+      settled = true
+      resolve(value)
+    }
+    const fail = (message: string) => {
+      if (settled)
+        return
+      settled = true
+      reject(new Error(`Wrangler failed to start: ${message}`))
+    }
 
     proc.stdout?.on('data', (data) => {
       output += data.toString()
       const match = output.match(/Ready on (http:\/\/\S+)/)
-      if (match?.[1]) {
-        resolve(match[1])
-      }
+      if (match?.[1])
+        finish(match[1])
     })
 
     proc.stderr?.on('data', (data) => {
       output += data.toString()
     })
 
-    proc.on('error', reject)
-    setTimeout(() => reject(new Error(`Wrangler failed to start: ${output}`)), 30000)
+    proc.on('error', error => fail(`${output}\n${error.message}`.trim()))
+    proc.on('close', async (code) => {
+      if (!settled && code)
+        fail([output, await readLatestWranglerLog(wranglerEnvName)].filter(Boolean).join('\n'))
+    })
+    setTimeout(fail, 30000, output)
   })
 }
 
@@ -124,10 +153,19 @@ describe('cloudflare-takumi', () => {
     })
   })
 
-  // Skip wrangler runtime in CI - inspector port 9229 conflicts with other processes
-  describe.runIf(canRunTests && !isCI)('wrangler runtime', () => {
+  // Skip wrangler runtime in CI or sandboxed environments where local interfaces are unavailable
+  describe.runIf(canRunTests && !isCI && !hasSandboxedRuntime)('wrangler runtime', () => {
     beforeAll(async () => {
-      serverUrl = await startWrangler()
+      try {
+        serverUrl = await startWrangler()
+      }
+      catch (error) {
+        if (isWranglerRuntimeUnsupportedError(error)) {
+          skipWranglerRuntime = true
+          return
+        }
+        throw error
+      }
     }, 60000)
 
     afterAll(() => {
@@ -135,6 +173,9 @@ describe('cloudflare-takumi', () => {
     })
 
     it('serves og images dynamically via wrangler', async () => {
+      if (skipWranglerRuntime)
+        return
+
       const html = await $fetch<string>(serverUrl)
       const ogImagePath = extractOgImageUrl(html)
       expect(ogImagePath).toBeTruthy()

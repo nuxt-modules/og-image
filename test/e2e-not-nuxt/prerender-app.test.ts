@@ -3,7 +3,7 @@ import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
 import { exec } from 'tinyexec'
 import { describe, expect, it } from 'vitest'
-import { setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
+import { ensureLocalModuleStub, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -11,6 +11,7 @@ setupImageSnapshots(SNAPSHOT_STRICT)
 
 describe('prerender', () => {
   it('basic', async () => {
+    await ensureLocalModuleStub()
     await exec('nuxt', ['generate'], { nodeOptions: { cwd: resolve('../fixtures/app-dir') } })
     const imagePath = resolve('../fixtures/app-dir/.output/public/_og')
     const images = await globby('**/*.png', { cwd: imagePath }).then((r: string[]) => r.sort())

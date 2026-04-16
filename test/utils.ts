@@ -1,7 +1,64 @@
 import type { MatchImageSnapshotOptions } from 'jest-image-snapshot'
+import * as fs from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { createResolver } from '@nuxt/kit'
 import { $fetch } from '@nuxt/test-utils/e2e'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
+import { join } from 'pathe'
+import { exec } from 'tinyexec'
 import { expect } from 'vitest'
+
+const { resolve } = createResolver(import.meta.url)
+const repoRoot = resolve('..')
+const distModulePath = resolve('../dist/module.mjs')
+const wranglerConfigDir = join(tmpdir(), 'nuxt-og-image-wrangler')
+
+let localModuleStubPromise: Promise<void> | null = null
+
+export async function ensureLocalModuleStub() {
+  try {
+    await fs.access(distModulePath)
+    return
+  }
+  catch {
+  }
+
+  if (!localModuleStubPromise) {
+    localModuleStubPromise = exec('pnpm', ['stub'], {
+      nodeOptions: {
+        cwd: repoRoot,
+      },
+    }).then(() => {})
+  }
+
+  await localModuleStubPromise
+}
+
+function resolveWranglerConfigDir(name = 'default') {
+  return join(wranglerConfigDir, name)
+}
+
+export function getWranglerTestEnv(baseEnv: NodeJS.ProcessEnv = process.env, name = 'default'): NodeJS.ProcessEnv {
+  return {
+    ...baseEnv,
+    WRANGLER_SEND_METRICS: 'false',
+    XDG_CONFIG_HOME: resolveWranglerConfigDir(name),
+  }
+}
+
+export function isWranglerRuntimeUnsupportedError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('uv_interface_addresses returned Unknown system error 1')
+}
+
+export async function readLatestWranglerLog(name = 'default') {
+  const logsDir = join(resolveWranglerConfigDir(name), '.wrangler', 'logs')
+  const logFiles = await fs.readdir(logsDir).catch(() => [])
+  const latestLogFile = logFiles.sort().at(-1)
+  if (!latestLogFile)
+    return ''
+  return await fs.readFile(join(logsDir, latestLogFile), 'utf8').catch(() => '')
+}
 
 /**
  * Extract the first og:image URL path from HTML.
@@ -130,6 +187,9 @@ export async function fetchOgImages(...pagePaths: string[]): Promise<Map<string,
  * Configure and register image snapshot matcher on `expect`.
  */
 export function setupImageSnapshots(opts?: MatchImageSnapshotOptions) {
-  const toMatchImageSnapshot = configureToMatchImageSnapshot(opts ?? SNAPSHOT_DEFAULT)
+  const toMatchImageSnapshot = configureToMatchImageSnapshot({
+    runInProcess: true,
+    ...(opts ?? SNAPSHOT_DEFAULT),
+  })
   expect.extend({ toMatchImageSnapshot })
 }

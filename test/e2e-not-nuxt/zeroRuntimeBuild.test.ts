@@ -3,7 +3,7 @@ import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
 import { exec } from 'tinyexec'
 import { afterEach, describe, expect, it } from 'vitest'
-import { setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
+import { ensureLocalModuleStub, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -23,6 +23,7 @@ describe('zeroRuntime', () => {
   })
 
   it('basic', async () => {
+    await ensureLocalModuleStub()
     await exec('nuxt', ['cleanup'], { nodeOptions: { cwd: fixtureDir } })
     await exec('nuxt', ['build'], { nodeOptions: { cwd: fixtureDir } })
     const serverOutputPath = resolve('../fixtures/zero-runtime/.output/server')
@@ -54,6 +55,7 @@ describe('zeroRuntime', () => {
   }, 120000)
 
   it('local fonts in config', async () => {
+    await ensureLocalModuleStub()
     originalConfig = await readFile(nuxtConfigPath, 'utf-8')
 
     const modifiedConfig = originalConfig.replace(

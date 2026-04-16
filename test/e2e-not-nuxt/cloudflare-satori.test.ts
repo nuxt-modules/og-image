@@ -6,10 +6,11 @@ import { globby } from 'globby'
 import { $fetch } from 'ofetch'
 import { exec } from 'tinyexec'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { extractOgImageUrl, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
+import { ensureLocalModuleStub, extractOgImageUrl, getWranglerTestEnv, isWranglerRuntimeUnsupportedError, readLatestWranglerLog, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 const fixtureDir = resolve('../fixtures/cloudflare-satori')
+const wranglerEnvName = 'cloudflare-satori'
 
 setupImageSnapshots(SNAPSHOT_STRICT)
 
@@ -27,7 +28,11 @@ catch {
 // Check if wrangler is available
 let hasWrangler = false
 try {
-  await exec('wrangler', ['--version'])
+  await exec('wrangler', ['--version'], {
+    nodeOptions: {
+      env: getWranglerTestEnv(process.env, wranglerEnvName),
+    },
+  })
   hasWrangler = true
 }
 catch {
@@ -36,11 +41,14 @@ catch {
 
 const canRunTests = hasSatoriDeps && hasWrangler
 const isCI = !!process.env.CI
+const hasSandboxedRuntime = !!process.env.CODEX_SANDBOX_NETWORK_DISABLED || !!process.env.NUXT_OG_IMAGE_SKIP_EDGE_RUNTIME
 
 let wranglerProcess: ChildProcess | null = null
 let serverUrl = ''
+let skipWranglerRuntime = false
 
 async function buildFixture() {
+  await ensureLocalModuleStub()
   await exec('nuxt', ['build'], {
     nodeOptions: {
       cwd: fixtureDir,
@@ -51,28 +59,48 @@ async function buildFixture() {
 
 async function startWrangler(): Promise<string> {
   return new Promise((resolve, reject) => {
+    let settled = false
     const proc = spawn('wrangler', ['dev', '--port', '8789'], {
       cwd: fixtureDir,
+      env: {
+        ...getWranglerTestEnv(process.env, wranglerEnvName),
+        CI: '1',
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     wranglerProcess = proc
     let output = ''
+    const finish = (value: string) => {
+      if (settled)
+        return
+      settled = true
+      resolve(value)
+    }
+    const fail = (message: string) => {
+      if (settled)
+        return
+      settled = true
+      reject(new Error(`Wrangler failed to start: ${message}`))
+    }
 
     proc.stdout?.on('data', (data) => {
       output += data.toString()
       const match = output.match(/Ready on (http:\/\/\S+)/)
-      if (match?.[1]) {
-        resolve(match[1])
-      }
+      if (match?.[1])
+        finish(match[1])
     })
 
     proc.stderr?.on('data', (data) => {
       output += data.toString()
     })
 
-    proc.on('error', reject)
-    setTimeout(() => reject(new Error(`Wrangler failed to start: ${output}`)), 30000)
+    proc.on('error', error => fail(`${output}\n${error.message}`.trim()))
+    proc.on('close', async (code) => {
+      if (!settled && code)
+        fail([output, await readLatestWranglerLog(wranglerEnvName)].filter(Boolean).join('\n'))
+    })
+    setTimeout(fail, 30000, output)
   })
 }
 
@@ -111,10 +139,19 @@ describe('cloudflare-satori', () => {
     })
   })
 
-  // Skip wrangler runtime in CI - inspector port 9229 conflicts with other processes
-  describe.runIf(canRunTests && !isCI)('wrangler runtime', () => {
+  // Skip wrangler runtime in CI or sandboxed environments where local interfaces are unavailable
+  describe.runIf(canRunTests && !isCI && !hasSandboxedRuntime)('wrangler runtime', () => {
     beforeAll(async () => {
-      serverUrl = await startWrangler()
+      try {
+        serverUrl = await startWrangler()
+      }
+      catch (error) {
+        if (isWranglerRuntimeUnsupportedError(error)) {
+          skipWranglerRuntime = true
+          return
+        }
+        throw error
+      }
     }, 60000)
 
     afterAll(() => {
@@ -122,6 +159,9 @@ describe('cloudflare-satori', () => {
     })
 
     it('serves prerendered og images via wrangler', async () => {
+      if (skipWranglerRuntime)
+        return
+
       const html = await $fetch<string>(serverUrl)
       const ogImagePath = extractOgImageUrl(html)
       expect(ogImagePath).toBeTruthy()
@@ -136,6 +176,9 @@ describe('cloudflare-satori', () => {
     }, 30000)
 
     it('generates og images dynamically at runtime via wrangler', async () => {
+      if (skipWranglerRuntime)
+        return
+
       const image = await $fetch(`${serverUrl}/_og/d/image?path=/`, {
         responseType: 'arrayBuffer' as const,
       })
