@@ -97,7 +97,11 @@ async function resolveLocalFilePathImage(publicStoragePath: string, src: string)
 }
 
 function toBufferSourceAsBase64(buf: BufferSource): string {
-  const ab = buf instanceof ArrayBuffer ? buf : buf.buffer as ArrayBuffer
+  const ab = buf instanceof ArrayBuffer
+    ? buf
+    : ArrayBuffer.isView(buf)
+      ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+      : buf
   return toBase64Image(ab)
 }
 
@@ -213,7 +217,12 @@ function applyImageDimensions(node: VNode, buffer: BufferSource) {
   // infer missing dimensions from the image's natural aspect ratio
   if (node.props.width && node.props.height)
     return
-  const dimensions = getImageDimensions(buffer as Uint8Array)
+  const view = buffer instanceof Uint8Array
+    ? buffer
+    : ArrayBuffer.isView(buffer)
+      ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+      : new Uint8Array(buffer)
+  const dimensions = getImageDimensions(view)
   if (!dimensions?.width || !dimensions?.height)
     return
   const naturalAspectRatio = dimensions.width / dimensions.height

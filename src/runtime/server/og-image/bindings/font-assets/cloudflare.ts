@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
+import { getRequestHost } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { withBase } from 'ufo'
 import { getCloudflareAssets, tryCloudflareAssetsFetch } from '../../../util/cloudflareAssets'
@@ -20,7 +21,7 @@ export async function resolve(event: H3Event, font: FontConfig) {
   // Fallback: use event.fetch (Nitro localFetch) which routes through the h3 app
   // and can serve public assets from Nitro's built-in asset handler.
   if (typeof event.fetch === 'function') {
-    const origin = event.context.cloudflare?.request?.url || `https://${event.headers.get('host') || 'localhost'}`
+    const origin = event.context.cloudflare?.request?.url || `https://${getRequestHost(event) || 'localhost'}`
     const url = new URL(fullPath, origin).href
     const res = await event.fetch(url, { signal: AbortSignal.timeout(timeout) } as any).catch(() => null) as Response | null
     if (res?.ok) {

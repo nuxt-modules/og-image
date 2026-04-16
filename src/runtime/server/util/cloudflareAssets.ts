@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { getRequestHost } from 'h3'
 
 interface AssetsBinding {
   fetch: (request: string | Request, init?: RequestInit) => Promise<Response>
@@ -35,7 +36,7 @@ export async function tryCloudflareAssetsFetch(
   if (!assets)
     return
   const origin = event.context.cloudflare?.request?.url
-    || `https://${event.headers.get('host') || 'localhost'}`
+    || `https://${getRequestHost(event) || 'localhost'}`
   const url = new URL(path, origin).href
   const res = await assets.fetch(url, signal ? { signal } : undefined).catch(() => null)
   if (!res || !res.ok)
