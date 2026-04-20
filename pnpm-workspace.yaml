@@ -17,10 +17,10 @@ packages:
   - devtools
   - '!examples/**'
 overrides:
+  '@unhead/vue': ^2
+  unhead: ^2
   vite: 8.0.6
   vitest-environment-nuxt: 1.0.1
-  unhead: ^2
-  '@unhead/vue': ^2
 catalog:
   '@antfu/eslint-config': ^8.2.0
   '@clack/prompts': ^1.2.0
@@ -50,8 +50,8 @@ catalog:
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
   '@tailwindcss/vite': ^4.2.2
-  '@takumi-rs/core': ^1.0.10
-  '@takumi-rs/wasm': ^1.0.10
+  '@takumi-rs/core': ^1.0.14
+  '@takumi-rs/wasm': ^1.0.14
   '@unocss/nuxt': ^66.6.8
   '@vitejs/plugin-vue': ^6.0.6
   '@vue/compiler-sfc': ^3.5.32
@@ -65,7 +65,7 @@ catalog:
   culori: ^4.0.2
   defu: ^6.1.7
   devalue: ^5.7.1
-  eslint: ^10.2.0
+  eslint: ^10.2.1
   eslint-plugin-harlanzw: ^0.12.1
   exsolve: ^1.0.8
   fontless: ^0.2.1
@@ -100,7 +100,7 @@ catalog:
   tailwindcss: ^4.2.2
   tinyexec: ^1.1.1
   tinyglobby: ^0.2.16
-  typescript: ^6.0.2
+  typescript: ^6.0.3
   ufo: ^1.6.3
   ultrahtml: ^1.6.0
   unifont: ^0.7.4
@@ -109,12 +109,12 @@ catalog:
   vitest: ^4.1.4
   vue: ^3.5.32
   vue-router: ^5.0.4
-  vue-tsc: ^3.2.6
+  vue-tsc: ^3.2.7
   wrangler: ^4.83.0
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
-    '@iconify-json/simple-icons': ^1.2.78
+    '@iconify-json/simple-icons': ^1.2.79
     shiki: ^4.0.2
 onlyBuiltDependencies:
   - '@parcel/watcher'
