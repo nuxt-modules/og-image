@@ -186,6 +186,14 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       return insertDefineOgImage(componentName, pageFile)
     },
   } as ServerFunctions, nuxt).then((rpc) => {
+    const safeBroadcast = (fn: () => unknown) => {
+      try {
+        const result = fn()
+        if (result && typeof (result as Promise<unknown>).then === 'function')
+          (result as Promise<unknown>).catch(() => {})
+      }
+      catch {}
+    }
     let cssRefreshTimer: ReturnType<typeof setTimeout> | undefined
     nuxt.hook('builder:watch', (e, watchPath) => {
       if (!e || !watchPath)
@@ -200,23 +208,19 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       if (isCssChange || normalizedPath.includes('uno.config')) {
         clearTimeout(cssRefreshTimer)
         cssRefreshTimer = setTimeout(() => {
-          rpc.broadcast.refresh().catch(() => {})
+          safeBroadcast(() => rpc.broadcast.refresh())
         }, 200)
         return
       }
 
       if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
-        rpc.broadcast.refreshRouteData(normalizedPath)
-          .catch(() => {})
+        safeBroadcast(() => rpc.broadcast.refreshRouteData(normalizedPath))
       }
       if (options.componentDirs.some(dir => normalizedPath.includes(dir))) {
-        if (e === 'change') {
-          rpc.broadcast.refresh()
-            .catch(() => {})
-        }
-        else {
-          rpc.broadcast.refreshGlobalData().catch(() => {})
-        }
+        if (e === 'change')
+          safeBroadcast(() => rpc.broadcast.refresh())
+        else
+          safeBroadcast(() => rpc.broadcast.refreshGlobalData())
       }
     })
   })
