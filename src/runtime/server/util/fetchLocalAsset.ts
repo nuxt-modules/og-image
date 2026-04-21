@@ -35,14 +35,27 @@ export async function fetchLocalAsset(
   const { fetchTimeout, headers, includeExternalFallback = false, onStepFailure } = options
   const deadline = AbortSignal.timeout(fetchTimeout)
 
-  let result = await tryCloudflareAssetsFetch(event, path, deadline).catch((err) => {
+  // Caller-side timeout enforcement: some transports (notably Nitro's
+  // event.$fetch on Cloudflare Workers) don't propagate AbortSignal to the
+  // in-process handler, so a hung upstream blocks beyond fetchTimeout. Race
+  // each step against a shared timer so the deadline is enforced regardless.
+  let expired = false
+  const timer = new Promise<undefined>((resolve) => {
+    setTimeout(() => {
+      expired = true
+      resolve(undefined)
+    }, fetchTimeout)
+  })
+  const race = <T>(p: Promise<T | undefined>): Promise<T | undefined> => Promise.race([p, timer])
+
+  let result = await race(tryCloudflareAssetsFetch(event, path, deadline).catch((err) => {
     onStepFailure?.(path, err)
     return undefined
-  })
-  if (result || deadline.aborted)
+  }))
+  if (result || expired)
     return result
 
-  result = await event.$fetch(path, {
+  result = await race(event.$fetch(path, {
     responseType: 'arrayBuffer',
     signal: deadline,
     timeout: fetchTimeout,
@@ -50,12 +63,12 @@ export async function fetchLocalAsset(
   }).catch((err: unknown) => {
     onStepFailure?.(path, err)
     return undefined
-  }) as ArrayBuffer | undefined
-  if (result || deadline.aborted || !includeExternalFallback)
+  }) as Promise<ArrayBuffer | undefined>)
+  if (result || expired || !includeExternalFallback)
     return result
 
   const absolute = `${getNitroOrigin(event)}${path}`
-  return await $fetch(absolute, {
+  return await race($fetch(absolute, {
     responseType: 'arrayBuffer',
     signal: deadline,
     timeout: fetchTimeout,
@@ -63,5 +76,5 @@ export async function fetchLocalAsset(
   }).catch((err: unknown) => {
     onStepFailure?.(absolute, err)
     return undefined
-  }) as ArrayBuffer | undefined
+  }) as Promise<ArrayBuffer | undefined>)
 }
