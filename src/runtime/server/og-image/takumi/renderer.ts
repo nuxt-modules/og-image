@@ -15,6 +15,11 @@ interface TakumiState {
   renderer: any
   loadedFontKeys: Set<string>
   loadedFamilies: Set<string>
+  // Serializes WASM-touching work on the shared Renderer. The renderer is
+  // reused across requests in the same isolate (nitroApp is module-scope on
+  // CF Workers etc.) and concurrent loadFont/render calls share linear memory,
+  // which can corrupt state and burn CPU until the wall-clock fires.
+  lock: Promise<unknown>
 }
 
 async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiState> {
@@ -26,8 +31,15 @@ async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiS
     renderer: new Renderer(),
     loadedFontKeys: new Set(),
     loadedFamilies: new Set(),
+    lock: Promise.resolve(),
   } satisfies TakumiState
   return nitro._takumiState
+}
+
+function withTakumiLock<T>(state: TakumiState, fn: () => Promise<T>): Promise<T> {
+  const next = state.lock.then(fn, fn)
+  state.lock = next.catch(() => undefined)
+  return next
 }
 
 async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }>) {
@@ -120,23 +132,9 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const subsetChains = buildSubsetFamilyChain(fonts)
 
   const state = await getTakumiState(event)
-  await loadFontsIntoRenderer(state, fonts)
 
-  const rootStyle = nodes.style ?? {}
-  // If fontFamilyOverride was renamed into subsets, use the chain instead
-  if (fontFamilyOverride) {
-    const chain = subsetChains.get(fontFamilyOverride)
-    if (chain) {
-      rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
-    }
-    else if (state.loadedFamilies.has(fontFamilyOverride)) {
-      rootStyle.fontFamily = fontFamilyOverride
-    }
-  }
-  nodes.style = rootStyle
-
-  rewriteFontFamilies(nodes, state.loadedFamilies, subsetChains)
-
+  // Resource extraction + fetching can run outside the WASM lock — they don't
+  // touch the shared Renderer instance, so concurrent requests can overlap I/O.
   const extractResourceUrls = await getExtractResourceUrls()
   const resourceUrls = await extractResourceUrls(nodes)
 
@@ -186,7 +184,26 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     devicePixelRatio: dpr,
   })
 
-  return await timings.measure('render-takumi', () => state.renderer.render(nodes, renderOptions))
+  // WASM critical section: loadFont and render mutate the shared Renderer's
+  // linear memory. Serializing per isolate avoids cross-request corruption.
+  return await withTakumiLock(state, () => timings.measure('render-takumi', async () => {
+    await loadFontsIntoRenderer(state, fonts)
+
+    const rootStyle = nodes.style ?? {}
+    if (fontFamilyOverride) {
+      const chain = subsetChains.get(fontFamilyOverride)
+      if (chain) {
+        rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
+      }
+      else if (state.loadedFamilies.has(fontFamilyOverride)) {
+        rootStyle.fontFamily = fontFamilyOverride
+      }
+    }
+    nodes.style = rootStyle
+    rewriteFontFamilies(nodes, state.loadedFamilies, subsetChains)
+
+    return state.renderer.render(nodes, renderOptions)
+  }))
 }
 
 const TakumiRenderer: Renderer = {
