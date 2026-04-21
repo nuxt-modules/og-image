@@ -20,7 +20,7 @@ overrides:
   '@unhead/vue': ^2
   unhead: ^2
   vite: 8.0.6
-  vitest-environment-nuxt: 1.0.1
+  vitest-environment-nuxt: 2.0.0
 catalog:
   '@antfu/eslint-config': ^8.2.0
   '@clack/prompts': ^1.2.0
