@@ -11,13 +11,13 @@
     "@nuxt/fonts": "^0.14.0",
     "@nuxtjs/i18n": "^10.2.4",
     "@resvg/resvg-js": "^2.6.2",
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.3",
     "fontless": "^0.2.1",
     "nuxt": "^4.4.2",
     "nuxt-og-image": "latest",
     "nuxt-site-config": "^4.0.8",
     "satori": "^0.26.0",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "^4.2.3",
     "vue": "^3.5.32"
   }
 }
