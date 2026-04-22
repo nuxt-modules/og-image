@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v6.4.4...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.4...main)
+
+### 🩹 Fixes
+
+- **takumi:** Serialize WASM calls ([#583](https://github.com/nuxt-modules/og-image/pull/583))
+
+### 🏡 Chore
+
+- Bump deps ([0509eb75](https://github.com/nuxt-modules/og-image/commit/0509eb75))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.4.2...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.2...main)

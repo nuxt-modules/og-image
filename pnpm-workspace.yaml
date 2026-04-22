@@ -49,12 +49,12 @@ catalog:
   '@resvg/resvg-wasm': ^2.6.2
   '@shikijs/langs': ^4.0.2
   '@shikijs/themes': ^4.0.2
-  '@tailwindcss/vite': ^4.2.3
-  '@takumi-rs/core': ^1.0.15
-  '@takumi-rs/wasm': ^1.0.15
+  '@tailwindcss/vite': ^4.2.4
+  '@takumi-rs/core': ^1.0.16
+  '@takumi-rs/wasm': ^1.0.16
   '@unocss/nuxt': ^66.6.8
   '@vitejs/plugin-vue': ^6.0.6
-  '@vue/compiler-sfc': ^3.5.32
+  '@vue/compiler-sfc': ^3.5.33
   '@vueuse/core': ^14.2.1
   '@vueuse/nuxt': ^14.2.1
   better-sqlite3: ^12.9.0
@@ -97,7 +97,7 @@ catalog:
   sirv: ^3.0.2
   std-env: ^4.1.0
   strip-literal: ^3.1.0
-  tailwindcss: ^4.2.3
+  tailwindcss: ^4.2.4
   tinyexec: ^1.1.1
   tinyglobby: ^0.2.16
   typescript: ^6.0.3
@@ -106,11 +106,11 @@ catalog:
   unifont: ^0.7.4
   unocss: ^66.6.8
   unplugin: ^3.0.0
-  vitest: ^4.1.4
-  vue: ^3.5.32
-  vue-router: ^5.0.4
+  vitest: ^4.1.5
+  vue: ^3.5.33
+  vue-router: ^5.0.6
   vue-tsc: ^3.2.7
-  wrangler: ^4.83.0
+  wrangler: ^4.84.1
   yoga-wasm-web: ^0.3.3
 catalogs:
   devtools:
