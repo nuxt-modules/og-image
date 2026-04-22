@@ -15,15 +15,15 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
 
   const meta: ResolvableMeta[] = []
 
-  if (!isTwitterOnly) {
-    meta.push({ property: 'og:image', content: url })
-    meta.push({ property: 'og:image:type', content: () => `image/${getExtension(toValue(url) as string) || resolvedOptions.extension}` })
-  }
-
   if (includeTwitter) {
     meta.push({ name: 'twitter:card', content: 'summary_large_image' })
     meta.push({ name: 'twitter:image', content: url })
     meta.push({ name: 'twitter:image:src', content: url })
+  }
+
+  if (!isTwitterOnly) {
+    meta.push({ property: 'og:image', content: url })
+    meta.push({ property: 'og:image:type', content: () => `image/${getExtension(toValue(url) as string) || resolvedOptions.extension}` })
   }
 
   if (resolvedOptions.width) {
