@@ -42,34 +42,81 @@ function withTakumiLock<T>(state: TakumiState, fn: () => Promise<T>): Promise<T>
   return next
 }
 
-async function loadFontsIntoRenderer(state: TakumiState, fonts: Array<{ family: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }>) {
+interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }
+
+interface DedupedFontLoad {
+  binaryKey: string
+  family: string
+  style?: string
+  data: BufferSource
+  /** When undefined, binary is shared across multiple weights (variable font) — let takumi read the wght axis. */
+  weight: number | undefined
+}
+
+/**
+ * Collapse font entries that share a binary (same family, style, src) into a single load.
+ * @nuxt/fonts produces per-weight entries all pointing to the same variable WOFF2 URL;
+ * loading the same binary under multiple weight labels prevents takumi from varying the
+ * wght axis. For variable fonts (multiple weights sharing a binary) we pass no weight so
+ * takumi auto-detects the axis from the font metadata.
+ *
+ * Mirrored in test/unit/takumi-font-dedupe.test.ts — keep implementations in sync.
+ */
+function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
+  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, weights: Set<number | undefined> }>()
   for (const font of fonts) {
     if (!font.data)
       continue
-    const uniqueKey = font.cacheKey || `${font.family}-${font.weight}-${font.style}`
-    if (state.loadedFontKeys.has(uniqueKey))
+    const binaryKey = `${font.family}|${font.style || 'normal'}|${font.src || ''}`
+    const existing = byBinary.get(binaryKey)
+    if (existing) {
+      existing.weights.add(font.weight)
+    }
+    else {
+      byBinary.set(binaryKey, {
+        family: font.family,
+        style: font.style,
+        data: font.data,
+        weights: new Set([font.weight]),
+      })
+    }
+  }
+  const result: DedupedFontLoad[] = []
+  for (const [binaryKey, entry] of byBinary) {
+    const isVariable = entry.weights.size > 1
+    result.push({
+      binaryKey,
+      family: entry.family,
+      style: entry.style,
+      data: entry.data,
+      weight: isVariable ? undefined : [...entry.weights][0],
+    })
+  }
+  return result
+}
+
+async function loadFontsIntoRenderer(state: TakumiState, fonts: FontEntry[]) {
+  for (const entry of dedupeFontsByBinary(fonts)) {
+    if (state.loadedFontKeys.has(entry.binaryKey))
       continue
 
-    const fontData = font.data instanceof ArrayBuffer
-      ? new Uint8Array(font.data)
-      : Uint8Array.from(font.data as Uint8Array)
+    const fontData = entry.data instanceof ArrayBuffer
+      ? new Uint8Array(entry.data)
+      : Uint8Array.from(entry.data as Uint8Array)
 
     try {
-      // Use the real family name so takumi can do font-weight matching
-      // within the same family. Previously each weight got a unique subset
-      // name (e.g. "Inter__0", "Inter__1") which broke weight selection.
       await state.renderer.loadFont({
-        name: font.family,
+        name: entry.family,
         data: fontData,
-        weight: font.weight,
-        style: font.style as 'normal' | 'italic' | 'oblique',
+        ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
+        style: entry.style as 'normal' | 'italic' | 'oblique',
       })
-      state.loadedFamilies.add(font.family)
+      state.loadedFamilies.add(entry.family)
     }
     catch (err) {
-      logger.warn(`Failed to load font "${font.family}" (weight: ${font.weight}) into takumi renderer: ${(err as Error).message}`)
+      logger.warn(`Failed to load font "${entry.family}" into takumi renderer: ${(err as Error).message}`)
     }
-    state.loadedFontKeys.add(uniqueKey)
+    state.loadedFontKeys.add(entry.binaryKey)
   }
 }
 
