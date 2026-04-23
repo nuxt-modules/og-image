@@ -16,6 +16,11 @@ export default defineNuxtConfig({
   ogImage: {
     debug: true,
   },
+  nitro: {
+    prerender: {
+      routes: ['/'],
+    },
+  },
   site: {
     url: 'https://example.com',
   },
