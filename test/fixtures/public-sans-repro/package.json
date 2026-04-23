@@ -1,0 +1,19 @@
+{
+  "name": "public-sans-repro-fixture",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate"
+  },
+  "dependencies": {
+    "@nuxt/fonts": "catalog:",
+    "@nuxt/ui": "catalog:",
+    "nuxt": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "nuxt-og-image": "workspace:*"
+  }
+}
