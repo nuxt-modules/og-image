@@ -1,28 +1,18 @@
 import type { H3Event } from 'h3'
 import type { FontConfig, OgImageRenderEventContext, RuntimeFontConfig } from '../../types'
+import type { FontFormat } from './font-source'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { fontRequirements, getComponentFontMap } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
+import { fontFormat, selectFontSource } from './font-source'
 import { renameSubsetFonts } from './font-subsets'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
 
 export { buildSubsetFamilyChain, renameSubsetFonts, resolveSubsetChain } from './font-subsets'
 export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from './unicode-range'
-
-type FontFormat = 'ttf' | 'otf' | 'woff' | 'woff2'
-
-function fontFormat(src: string): FontFormat {
-  if (src.endsWith('.woff2'))
-    return 'woff2'
-  if (src.endsWith('.woff'))
-    return 'woff'
-  if (src.endsWith('.otf'))
-    return 'otf'
-  return 'ttf'
-}
 
 export interface LoadFontsOptions {
   /**
@@ -37,6 +27,13 @@ export interface LoadFontsOptions {
   fontFamilyOverride?: string
   /** Codepoints present in the template — fonts whose unicodeRange doesn't intersect are skipped */
   codepoints?: Set<number>
+  /**
+   * Prefer the static satoriSrc (full TTF/WOFF from fontless) over the primary src
+   * (subset WOFF2 from @nuxt/fonts) when both are usable. Takumi uses this so non-Latin
+   * glyphs (devanagari, CJK, etc.) render — @nuxt/fonts CSS often only ships latin
+   * subsets for a family, but the fontless static file contains the full glyph set.
+   */
+  preferStatic?: boolean
 }
 
 async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<BufferSource | null> {
@@ -151,47 +148,52 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
     }
   }
 
-  // Filter out font subsets whose unicodeRange doesn't intersect the template's codepoints
-  if (options.codepoints && options.codepoints.size > 0) {
-    for (let i = fonts.length - 1; i >= 0; i--) {
-      const f = fonts[i]!
-      if (!f.unicodeRange)
-        continue
-      const ranges = parseUnicodeRange(f.unicodeRange)
-      if (!ranges)
-        continue
-      if (!codepointsIntersectRanges(options.codepoints, ranges))
-        fonts.splice(i, 1)
-    }
+  // Resolve the effective src per font up-front: primary src when supported, else satoriSrc.
+  // Takumi opts into preferStatic so the full static TTF is used instead of the subset WOFF2 —
+  // @nuxt/fonts CSS may only include latin subsets, and using the subset would hide non-latin
+  // glyphs (devanagari, CJK) that the full static file covers.
+  const resolved: Array<{ font: FontConfig, src: string, isStaticFallback: boolean }> = []
+  for (const f of fonts) {
+    const selection = selectFontSource(f, options.supportedFormats, options.preferStatic ?? false)
+    if (selection)
+      resolved.push({ font: f, ...selection })
   }
 
+  // Filter out font subsets whose unicodeRange doesn't intersect the template's codepoints.
+  // Skip entries using the full static fallback — its glyph coverage isn't described by the
+  // parent @font-face unicodeRange (which only applied to the WOFF2 subset).
+  const filtered = options.codepoints && options.codepoints.size > 0
+    ? resolved.filter(({ font: f, isStaticFallback }) => {
+        if (isStaticFallback || !f.unicodeRange)
+          return true
+        const ranges = parseUnicodeRange(f.unicodeRange)
+        if (!ranges)
+          return true
+        return codepointsIntersectRanges(options.codepoints!, ranges)
+      })
+    : resolved
+
   const results = await Promise.all(
-    fonts.map(async (f) => {
-      let src = f.src
-      const srcFormat = fontFormat(f.src)
-
-      // If the primary src format isn't supported, try satoriSrc as alternative
-      if (!options.supportedFormats.has(srcFormat)) {
-        if (f.satoriSrc && options.supportedFormats.has(fontFormat(f.satoriSrc))) {
-          src = f.satoriSrc
-        }
-        else {
-          // No usable format available, skip this font
-          return null
-        }
-      }
-
+    filtered.map(async ({ font: f, src: initialSrc, isStaticFallback }) => {
+      let src = initialSrc
       let data = await loadFont(event, f, src)
-      // When satoriSrc fails to load (e.g. 404), try original src if its format is supported
-      if (!data && src !== f.src && options.supportedFormats.has(srcFormat)) {
+      // Fall back to primary src if the static alternative fails to load (e.g. 404)
+      if (!data && src !== f.src && options.supportedFormats.has(fontFormat(f.src))) {
         data = await loadFont(event, f, f.src)
-        if (data)
+        if (data) {
           src = f.src
+          isStaticFallback = false
+        }
       }
       if (!data)
         return null
+      // Reflect the src actually loaded so downstream dedupe (takumi) keys on the real binary.
+      // Drop unicodeRange when using the full static fallback — the subset range doesn't apply
+      // to the static TTF, and takumi's subset-chain logic would otherwise split the family.
       return {
         ...f,
+        src,
+        ...(isStaticFallback ? { unicodeRange: undefined } : {}),
         cacheKey: `${f.family}-${f.weight}-${f.style}-${src}`,
         data,
       } satisfies RuntimeFontConfig

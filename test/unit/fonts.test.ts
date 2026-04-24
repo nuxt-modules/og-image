@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
 import { extractFontFacesWithSubsets } from '../../src/build/css/font-face'
 import { fontKey, getStaticInterFonts, matchesFontRequirements, resolveFontFamilies } from '../../src/build/fonts'
+import { selectFontSource } from '../../src/runtime/server/og-image/font-source'
 import { buildSubsetFamilyChain, renameSubsetFonts } from '../../src/runtime/server/og-image/font-subsets'
 import { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
+
+const TAKUMI_FORMATS = new Set(['ttf', 'woff2'] as const)
+const SATORI_FORMATS = new Set(['ttf', 'otf', 'woff'] as const)
 
 describe('extractCustomFontFamilies', () => {
   it('extracts unquoted family names', () => {
@@ -543,5 +547,56 @@ describe('buildSubsetFamilyChain', () => {
     ] as any[]
     const chains = buildSubsetFamilyChain(fonts)
     expect(chains.size).toBe(0)
+  })
+})
+
+describe('selectFontSource', () => {
+  // Regression: https://github.com/nuxt-modules/og-image/issues/586
+  // @nuxt/fonts CSS often only ships the latin subset WOFF2 for a family. With preferStatic=true,
+  // takumi should pick the full static TTF (fontless-downloaded satoriSrc) so non-latin glyphs render.
+  it('prefers static satoriSrc for takumi when both primary and satoriSrc are supported', () => {
+    const result = selectFontSource(
+      { src: '/_fonts/devanagari-latin-subset.woff2', satoriSrc: '/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf' },
+      TAKUMI_FORMATS,
+      true,
+    )
+    expect(result).toEqual({ src: '/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf', isStaticFallback: true })
+  })
+
+  it('uses primary WOFF2 for takumi when no satoriSrc exists', () => {
+    const result = selectFontSource({ src: '/_fonts/inter.woff2' }, TAKUMI_FORMATS, true)
+    expect(result).toEqual({ src: '/_fonts/inter.woff2', isStaticFallback: false })
+  })
+
+  it('uses primary src for takumi when preferStatic=false', () => {
+    const result = selectFontSource(
+      { src: '/_fonts/inter.woff2', satoriSrc: '/_og-static-fonts/inter.ttf' },
+      TAKUMI_FORMATS,
+      false,
+    )
+    expect(result).toEqual({ src: '/_fonts/inter.woff2', isStaticFallback: false })
+  })
+
+  it('does not flag as static fallback when satoriSrc equals src (same TTF for both)', () => {
+    const result = selectFontSource(
+      { src: '/_og-static-fonts/inter.ttf', satoriSrc: '/_og-static-fonts/inter.ttf' },
+      TAKUMI_FORMATS,
+      true,
+    )
+    expect(result).toEqual({ src: '/_og-static-fonts/inter.ttf', isStaticFallback: false })
+  })
+
+  it('falls back to satoriSrc for satori when primary is WOFF2 (unsupported)', () => {
+    const result = selectFontSource(
+      { src: '/_fonts/inter.woff2', satoriSrc: '/_og-static-fonts/inter.ttf' },
+      SATORI_FORMATS,
+      false,
+    )
+    expect(result).toEqual({ src: '/_og-static-fonts/inter.ttf', isStaticFallback: true })
+  })
+
+  it('returns null when no supported src is available (satori + WOFF2 only)', () => {
+    const result = selectFontSource({ src: '/_fonts/inter.woff2' }, SATORI_FORMATS, false)
+    expect(result).toBeNull()
   })
 })
