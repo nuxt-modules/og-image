@@ -1,11 +1,11 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
-import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
 import { getRequestURL } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
+import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { useOgImageRuntimeConfig } from '../../../utils'
 

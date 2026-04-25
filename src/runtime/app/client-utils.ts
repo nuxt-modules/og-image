@@ -1,11 +1,11 @@
 import type { ActiveHeadEntry, Head, UseHeadInput } from '@unhead/vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import type { DefineOgImageInput, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt } from '../types'
-import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { defu } from 'defu'
 import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
+import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 // Per-head-client map of active useHead entries, keyed by og key. Scoped to the

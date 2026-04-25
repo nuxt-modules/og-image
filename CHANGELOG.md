@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v6.4.7...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.7...main)
+
+### 🩹 Fixes
+
+- **takumi:** Restore non-latin glyph support regressed in v6.2.0 ([#587](https://github.com/nuxt-modules/og-image/pull/587))
+
+### 🏡 Chore
+
+- Bump deps ([e7e115b4](https://github.com/nuxt-modules/og-image/commit/e7e115b4))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.4.4...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.4...main)

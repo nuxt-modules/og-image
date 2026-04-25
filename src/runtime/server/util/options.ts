@@ -1,6 +1,6 @@
 import type { DefineOgImageInput, OgImageComponent, OgImageOptionsInternal, OgImagePrebuilt, RendererType } from '../../types'
-import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { createError } from 'h3'
+import { componentNames } from '#og-image-virtual/component-names.mjs'
 
 export interface NormalisedOptions {
   options: OgImageOptionsInternal | OgImagePrebuilt

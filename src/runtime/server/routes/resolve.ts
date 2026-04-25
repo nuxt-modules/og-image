@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
-import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createError, defineEventHandler, getQuery, getRequestHost, sendRedirect } from 'h3'
 import { parseURL, withLeadingSlash, withQuery } from 'ufo'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { isInternalRoute } from '../../shared'
 import { useOgImageRuntimeConfig } from '../utils'
 

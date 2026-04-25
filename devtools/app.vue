@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import type { OgImageRuntimeConfig } from '../src/runtime/types'
 import type { GlobalDebugResponse, PathDebugResponse } from './composables/types'
-import { computed, provide, useAsyncData, useNuxtApp, useRoute, watch } from '#imports'
 import defu from 'defu'
 import { appFetch } from 'nuxtseo-layer-devtools/composables/rpc'
 import { loadShiki } from 'nuxtseo-layer-devtools/composables/shiki'
 import { path, productionUrl, query, refreshTime } from 'nuxtseo-layer-devtools/composables/state'
+import { computed, provide, useAsyncData, useNuxtApp, useRoute, watch } from '#imports'
 import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
 import AddComponentDialog from './components/AddComponentDialog.vue'
 import CreateOgImageDialog from './components/CreateOgImageDialog.vue'

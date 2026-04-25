@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
-import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createError, getRequestHost, H3Error, setHeader } from 'h3'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
 import { resolveContext } from '../og-image/context'

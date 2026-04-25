@@ -72,8 +72,8 @@ declare module '#og-image/font-requirements' {
 }
 
 declare module '#og-image-cache' {
-  import type { OgImageOptions } from '#og-image/types'
   import type { Storage } from 'unstorage'
+  import type { OgImageOptions } from '#og-image/types'
 
   export const htmlPayloadCache: Storage<{ expiresAt: number, value: OgImageOptions }>
 

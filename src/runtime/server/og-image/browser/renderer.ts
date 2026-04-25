@@ -1,7 +1,7 @@
 import type { Browser } from 'playwright-core'
 import type { Renderer } from '../../../types'
-import { createBrowser } from '#og-image/bindings/browser'
 import { createError } from 'h3'
+import { createBrowser } from '#og-image/bindings/browser'
 import { createScreenshot } from './screenshot'
 
 const BrowserRenderer: Renderer = {

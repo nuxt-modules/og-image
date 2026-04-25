@@ -1,12 +1,12 @@
 import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
-import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
+import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 /**

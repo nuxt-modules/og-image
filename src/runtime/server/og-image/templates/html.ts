@@ -1,7 +1,7 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
-import resolvedFonts from '#og-image/fonts'
 import { createHead, renderSSRHead } from '@unhead/vue/server'
 import { createError } from 'h3'
+import resolvedFonts from '#og-image/fonts'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../core/transforms/emojis'
 

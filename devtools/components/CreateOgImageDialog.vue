@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
 import type { GlobalDebugResponse } from '../composables/types'
-import { inject } from '#imports'
 import { computed, ref, watch } from 'vue'
+import { inject } from '#imports'
 import { GlobalDebugKey } from '../composables/keys'
 import { CreateOgImageDialogPromise } from '../composables/templates'
 

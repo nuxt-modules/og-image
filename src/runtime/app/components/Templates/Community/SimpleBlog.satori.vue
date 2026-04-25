@@ -3,9 +3,9 @@
  * @credits Full Stack Heroes <https://fullstackheroes.com/>
  */
 
-import { useSiteConfig } from '#site-config/app/composables'
 import { parseURL } from 'ufo'
 import { computed } from 'vue'
+import { useSiteConfig } from '#site-config/app/composables'
 
 const props = withDefaults(defineProps<{
   colorMode?: 'dark' | 'light'

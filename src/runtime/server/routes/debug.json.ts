@@ -1,12 +1,12 @@
+import { defineEventHandler, setHeader } from 'h3'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import compatibility from '#og-image/compatibility'
 import { fontRequirements } from '#og-image/font-requirements'
 import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { getNitroOrigin } from '#site-config/server/composables'
-import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 
-import { defineEventHandler, setHeader } from 'h3'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { useOgImageRuntimeConfig } from '../utils'
 
 export default defineEventHandler(async (e) => {

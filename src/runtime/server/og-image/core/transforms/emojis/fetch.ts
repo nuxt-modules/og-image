@@ -1,6 +1,6 @@
 import type { OgImageRenderEventContext } from '../../../../../types'
-import { emojiCache } from '#og-image-cache'
 import { $fetch } from 'ofetch'
+import { emojiCache } from '#og-image-cache'
 import { getFetchTimeout } from '../../../../util/fetchTimeout'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 

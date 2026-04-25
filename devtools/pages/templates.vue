@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { navigateTo } from '#imports'
 import { withQuery } from 'ufo'
+import { navigateTo } from '#imports'
 import { useOgImage } from '../composables/og-image'
 
 const {

@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { $fetch } from 'ofetch'
+import { getNitroOrigin } from '#site-config/server/composables'
 import { tryCloudflareAssetsFetch } from './cloudflareAssets'
 
 export interface FetchLocalAssetOptions {

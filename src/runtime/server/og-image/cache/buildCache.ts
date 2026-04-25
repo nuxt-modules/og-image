@@ -1,7 +1,7 @@
 import type { OgImageComponent } from '../../../types'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { join } from 'pathe'
+import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { hashOgImageOptions } from '../../../shared/urlEncoding'
 import { useOgImageRuntimeConfig } from '../../utils'
 

@@ -1,8 +1,8 @@
 import type { H3Error, H3Event } from 'h3'
 import type { DevToolsMetaDataExtraction, OgImageOptionsInternal } from '../../types'
-import { htmlPayloadCache } from '#og-image-cache'
 import { parse } from 'devalue'
 import { createError } from 'h3'
+import { htmlPayloadCache } from '#og-image-cache'
 import { extractSocialPreviewTags } from '../../pure'
 import { logger } from '../util/logger'
 
