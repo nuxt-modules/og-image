@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@nuxt/fonts": "^0.14.0",
-    "@nuxtjs/i18n": "^10.2.4",
+    "@nuxtjs/i18n": "^10.3.0",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.2.4",
     "fontless": "^0.2.1",
