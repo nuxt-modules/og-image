@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { defineOgImage } from '#imports'
+
 defineOgImage('DevanagariCard.takumi', {
   title: 'चरन् वै मधु विन्दति',
   description: 'Takumi-only devanagari rendering',
