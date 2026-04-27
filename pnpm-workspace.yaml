@@ -72,6 +72,7 @@ catalog:
   get-image-colors: ^4.0.1
   globby: ^16.2.0
   happy-dom: ^20.9.0
+  hookable: ^5.5.3
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.32.0
   magic-string: ^0.30.21
