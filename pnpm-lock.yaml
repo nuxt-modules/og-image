@@ -156,6 +156,9 @@ catalogs:
     happy-dom:
       specifier: ^20.9.0
       version: 20.9.0
+    hookable:
+      specifier: ^5.5.3
+      version: 5.5.3
     jest-image-snapshot:
       specifier: ^6.5.2
       version: 6.5.2
@@ -508,6 +511,9 @@ importers:
       happy-dom:
         specifier: 'catalog:'
         version: 20.9.0
+      hookable:
+        specifier: 'catalog:'
+        version: 5.5.3
       jest-image-snapshot:
         specifier: 'catalog:'
         version: 6.5.2
@@ -1643,7 +1649,6 @@ packages:
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@img/sharp-linuxmusl-arm64@0.34.5':
     resolution: {integrity: sha512-fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg==}

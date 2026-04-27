@@ -185,6 +185,7 @@
     "get-image-colors": "catalog:",
     "globby": "catalog:",
     "happy-dom": "catalog:",
+    "hookable": "catalog:",
     "jest-image-snapshot": "catalog:",
     "lightningcss": "catalog:",
     "nuxt": "catalog:",
