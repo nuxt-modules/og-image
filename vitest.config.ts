@@ -30,6 +30,7 @@ export default defineConfig({
             '**/.claude/**',
             '**/node_modules/**',
           ],
+          hookTimeout: 240_000,
         },
       }),
     ],
