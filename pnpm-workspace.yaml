@@ -37,7 +37,7 @@ catalog:
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.2.1
   '@nuxt/image': ^2.0.0
-  '@nuxt/kit': ^4.4.2
+  '@nuxt/kit': ^4.4.4
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^4.0.2
   '@nuxt/ui': ^4.7.0
@@ -78,7 +78,7 @@ catalog:
   magic-string: ^0.30.21
   magicast: ^0.5.2
   mocked-exports: ^0.1.1
-  nuxt: ^4.4.2
+  nuxt: ^4.4.4
   nuxt-site-config: ^4.0.8
   nuxtseo-layer-devtools: ^5.1.3
   nuxtseo-shared: ^5.1.3
