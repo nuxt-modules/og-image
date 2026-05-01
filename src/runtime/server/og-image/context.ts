@@ -48,7 +48,7 @@ export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: 
 }
 
 export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {
-  const runtimeConfig = useOgImageRuntimeConfig()
+  const runtimeConfig = useOgImageRuntimeConfig(e)
   // we need to resolve the url ourselves as Nitro may be stripping the base
   const resolvePathWithBase = createSitePathResolver(e, {
     absolute: false,

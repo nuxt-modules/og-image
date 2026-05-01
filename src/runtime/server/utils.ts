@@ -36,9 +36,20 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
 
 export function useOgImageRuntimeConfig(e?: H3Event) {
   const c = useRuntimeConfig(e)
+  const moduleCfg = (c['nuxt-og-image'] as Record<string, any> | undefined) || {}
+  // Top-level `ogImage.secret` is populated by Nuxt's standard env override
+  // (`NUXT_OG_IMAGE_SECRET`) and takes precedence over the build-time
+  // `security.secret` so deployments can rotate the secret without rebuilding.
+  // Passing the event matters on platforms like Cloudflare Workers where env
+  // bindings are only resolved when an event is available.
+  const overrideSecret = (c as Record<string, any>).ogImage?.secret as string | undefined
+  const security = overrideSecret
+    ? { ...(moduleCfg.security || {}), secret: overrideSecret }
+    : moduleCfg.security
   return {
     defaults: {},
-    ...(c['nuxt-og-image'] as Record<string, any>),
+    ...moduleCfg,
+    security,
     app: {
       baseURL: c.app.baseURL,
     },
