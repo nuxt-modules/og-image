@@ -81,7 +81,7 @@ async function takeScreenshot(page: Page, selector: string | undefined, options:
 }
 
 export async function createScreenshot({ basePath, e, options, extension, timings }: OgImageRenderEventContext, browser: Browser): Promise<Buffer> {
-  const runtimeConfig = useOgImageRuntimeConfig()
+  const runtimeConfig = useOgImageRuntimeConfig(e)
   const { colorPreference, defaults, security } = runtimeConfig
   // For browser renderer, we need to load the HTML template with options encoded in URL
   const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false, defaults, security?.secret || undefined).url
