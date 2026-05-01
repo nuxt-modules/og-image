@@ -18,6 +18,7 @@ function getPayloadFromHtml(html: string): string | null {
   return match ? String(match[1]) : null
 }
 
+// @ts-expect-error hookable v6
 export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
   if (!import.meta.prerender)
     return
