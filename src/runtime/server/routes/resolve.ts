@@ -52,7 +52,7 @@ function resolveTargetPath(event: H3Event): string {
 }
 
 export default defineEventHandler(async (event) => {
-  const runtimeConfig = useOgImageRuntimeConfig()
+  const runtimeConfig = useOgImageRuntimeConfig(event)
   const security = runtimeConfig.security
 
   // Origin restriction: mirror imageEventHandler — block runtime requests from

@@ -12,7 +12,7 @@ import { useOgImageRuntimeConfig } from '../utils'
 export default defineEventHandler(async (e) => {
   // set json header
   setHeader(e, 'Content-Type', 'application/json')
-  const runtimeConfig = useOgImageRuntimeConfig()
+  const runtimeConfig = useOgImageRuntimeConfig(e)
   return {
     siteConfigUrl: getSiteConfig(e as any).url,
     origin: getNitroOrigin(e),

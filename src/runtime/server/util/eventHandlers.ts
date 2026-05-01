@@ -36,7 +36,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   const timings = ctx.timings
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
-  const { debug, baseCacheKey, security } = useOgImageRuntimeConfig()
+  const { debug, baseCacheKey, security } = useOgImageRuntimeConfig(e)
 
   // Origin restriction: block runtime requests from unknown hosts.
   // Loopback requests (localhost, 127.0.0.1, ::1) are allowed only when URL

@@ -5,6 +5,7 @@ import { withBase } from 'ufo'
 import { logger } from '../../../logger'
 import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
+import { fetchWithRedirectValidation, isBlockedUrl } from '../../util/ssrf'
 import { withTimeout } from '../../util/withTimeout'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
@@ -264,13 +265,22 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
           includeExternalFallback: true,
         })
       }
-      else {
+      else if (import.meta.dev) {
         data = await $fetch(src, {
           responseType: 'arrayBuffer',
           signal: AbortSignal.timeout(fetchTimeout),
           timeout: fetchTimeout,
           headers,
         }).catch(() => undefined) as ArrayBuffer | undefined
+      }
+      else if (!isBlockedUrl(src)) {
+        // Defense-in-depth: any URL surviving the imageSrc transformer is
+        // re-validated here, with redirects followed manually so 30x →
+        // internal-IP cannot complete the SSRF.
+        data = (await fetchWithRedirectValidation(src, {
+          timeout: fetchTimeout,
+          headers,
+        })) ?? undefined
       }
       if (data)
         fetchedResources.push({ src, data: new Uint8Array(data) })
