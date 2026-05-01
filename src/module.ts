@@ -1558,6 +1558,17 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
 
+      // Top-level alias so `NUXT_OG_IMAGE_SECRET` env var maps automatically via
+      // Nuxt's standard runtime override convention (NUXT_<KEY> -> runtimeConfig.<key>).
+      // Read by useOgImageRuntimeConfig and prefers this value over security.secret
+      // when set, allowing runtime overrides on platforms like Cloudflare Workers
+      // where env bindings are surfaced through the event context.
+      const existingOgImageCfg = (nuxt.options.runtimeConfig as Record<string, any>).ogImage
+      ;(nuxt.options.runtimeConfig as Record<string, any>).ogImage = {
+        ...(existingOgImageCfg && typeof existingOgImageCfg === 'object' ? existingOgImageCfg : {}),
+        secret: (existingOgImageCfg as any)?.secret || config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET || '',
+      }
+
       // Non-sensitive subset exposed to the browser so defineOgImage can refresh
       // og:image meta tags on SPA navigation (#567). `defaults` feed the SSG
       // URL-rebuild fallback path; `hasServerRuntime` gates the `/_og/r/` resolver
