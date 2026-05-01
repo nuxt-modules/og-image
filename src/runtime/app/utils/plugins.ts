@@ -27,7 +27,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
     ssrContext?.head.use({
       key: 'nuxt-og-image:overrides-and-canonical-urls',
       hooks: {
-        'tags:afterResolve': async (ctx) => {
+        'tags:afterResolve': (ctx) => {
           // find title and description as a first pass
           let title = ''
           let description = ''
@@ -57,7 +57,7 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
               // property og:image
               // property twitter:image:src
               if (!tag.props.content?.startsWith('https')) {
-                await nuxtApp.runWithContext(() => {
+                nuxtApp.runWithContext(() => {
                   tag.props.content = toValue(withSiteUrl(tag.props.content || '', {
                     withBase: true,
                     canonical: !import.meta.dev,
