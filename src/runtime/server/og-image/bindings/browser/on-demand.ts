@@ -36,5 +36,6 @@ export async function createBrowser(_event?: H3Event): Promise<Browser | void> {
 
   return await playwrightCore.chromium.launch({
     headless: true,
+    timeout: 15_000,
   })
 }

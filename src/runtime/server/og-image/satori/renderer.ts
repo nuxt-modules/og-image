@@ -4,6 +4,7 @@ import type { OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../
 import { defu } from 'defu'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
+import { withTimeout } from '../../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getResvg, getSatori, getSharp } from './instances'
@@ -39,7 +40,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const { satoriOptions: _satoriOptions } = useOgImageRuntimeConfig()
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const [satori, vnodes] = await Promise.all([
-    getSatori(),
+    timings.measure('satori-init', () => getSatori()),
     createVNodes(event),
   ])
   const codepoints = extractCodepoints(vnodes)
@@ -52,7 +53,12 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
     fontDefs: options.fonts,
   }))
 
-  await event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event)
+  const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
+  await withTimeout(
+    event._nitro.hooks.callHook('nuxt-og-image:satori:vnodes', vnodes, event),
+    hookTimeout,
+    'nuxt-og-image:satori:vnodes hook',
+  )
   // Remap to satori's font format (requires `name` instead of `family`).
   // Use WeakMap cache only for base fonts (stable reference from fontArrayCache).
   // Custom font arrays are per-request so can't benefit from identity caching.

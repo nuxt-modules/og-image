@@ -22,6 +22,7 @@ import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { createTimings, TIMING_CTX_KEY } from '../util/timings'
+import { withTimeout } from '../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../utils'
 import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './instances'
 
@@ -273,7 +274,14 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     timings,
     _nitro: useNitroApp(),
   }
-  // call the nitro hook
-  await ctx._nitro.hooks.callHook('nuxt-og-image:context', ctx)
+  // call the nitro hook — bound by renderTimeout so a hung user hook can't
+  // pin the request indefinitely. The hook continues running in the
+  // background; we just stop awaiting it.
+  const hookTimeout = runtimeConfig.security?.renderTimeout ?? 15_000
+  await withTimeout(
+    ctx._nitro.hooks.callHook('nuxt-og-image:context', ctx),
+    hookTimeout,
+    'nuxt-og-image:context hook',
+  )
   return ctx
 }

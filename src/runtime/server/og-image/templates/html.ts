@@ -17,7 +17,8 @@ export async function html(ctx: OgImageRenderEventContext) {
       statusMessage: `[Nuxt OG Image] Rendering an invalid component. Received options: ${JSON.stringify(options)}.`,
     })
   }
-  const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
+  const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
+  const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout)
   const head = createHead()
   head.push(island.head)
 

@@ -5,6 +5,7 @@ import { withBase } from 'ufo'
 import { logger } from '../../../logger'
 import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
+import { withTimeout } from '../../util/withTimeout'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -36,10 +37,63 @@ async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiS
   return nitro._takumiState
 }
 
-function withTakumiLock<T>(state: TakumiState, fn: () => Promise<T>): Promise<T> {
-  const next = state.lock.then(fn, fn)
-  state.lock = next.catch(() => undefined)
-  return next
+function withTakumiLock<T>(
+  state: TakumiState,
+  timeoutMs: number,
+  fn: () => Promise<T>,
+  onLockTimeout?: () => void,
+): Promise<T> {
+  const guarded = async (): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        fn(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`takumi render timed out after ${timeoutMs}ms (lock-held)`)),
+            timeoutMs,
+          )
+        }),
+      ])
+    }
+    catch (err) {
+      // The hung fn() is still running and holds linear memory. Recreate the
+      // renderer so the next caller starts on a fresh isolate-local instance;
+      // the old renderer is unreferenced and GC'd once fn() finally settles.
+      // Without this reset the lock chain grows unbounded under hangs and
+      // burns CPU on every subsequent waiter.
+      try {
+        const Renderer = await getTakumi()
+        state.renderer = new Renderer()
+        state.loadedFontKeys.clear()
+        state.loadedFamilies.clear()
+      }
+      catch (resetErr) {
+        logger.warn(`failed to reset takumi renderer after lock timeout: ${(resetErr as Error)?.message || resetErr}`)
+      }
+      throw err
+    }
+    finally {
+      clearTimeout(timer)
+    }
+  }
+  // Schedule the work once; future callers chain off this same `work`.
+  const work = state.lock.then(guarded, guarded)
+  state.lock = work.catch(() => undefined)
+  // Lock-acquire timeout: if `work` (or the previous holder it queues behind)
+  // hangs past timeoutMs, release THIS caller early so the upstream request
+  // returns 408 instead of contributing to a snowballing queue. The work
+  // itself keeps running on the chain so its own inner timeout can recover.
+  let acquireTimer: ReturnType<typeof setTimeout> | undefined
+  return Promise.race([
+    work,
+    new Promise<never>((_, reject) => {
+      acquireTimer = setTimeout(() => {
+        onLockTimeout?.()
+        reject(new Error(`takumi lock acquire timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+    }),
+  ]).finally(() => clearTimeout(acquireTimer))
 }
 
 interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }
@@ -174,15 +228,20 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const codepoints = extractCodepoints(nodes)
   const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
 
-  await event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event)
+  const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
+  await withTimeout(
+    event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event),
+    hookTimeout,
+    'nuxt-og-image:takumi:nodes hook',
+  )
 
   const subsetChains = buildSubsetFamilyChain(fonts)
 
-  const state = await getTakumiState(event)
+  const state = await timings.measure('takumi-init', () => getTakumiState(event))
 
   // Resource extraction + fetching can run outside the WASM lock — they don't
   // touch the shared Renderer instance, so concurrent requests can overlap I/O.
-  const extractResourceUrls = await getExtractResourceUrls()
+  const extractResourceUrls = await timings.measure('takumi-extract-init', () => getExtractResourceUrls())
   const resourceUrls = await extractResourceUrls(nodes)
 
   const baseURL = event.runtimeConfig.app.baseURL
@@ -233,24 +292,31 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   // WASM critical section: loadFont and render mutate the shared Renderer's
   // linear memory. Serializing per isolate avoids cross-request corruption.
-  return await withTakumiLock(state, () => timings.measure('render-takumi', async () => {
-    await loadFontsIntoRenderer(state, fonts)
+  // lock-wait captures queue time behind prior renders; render-takumi only
+  // covers post-acquire work so the two are additive and attributable.
+  const lockTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
+  const endLockWait = timings.start('lock-wait')
+  return await withTakumiLock(state, lockTimeout, () => {
+    endLockWait()
+    return timings.measure('render-takumi', async () => {
+      await loadFontsIntoRenderer(state, fonts)
 
-    const rootStyle = nodes.style ?? {}
-    if (fontFamilyOverride) {
-      const chain = subsetChains.get(fontFamilyOverride)
-      if (chain) {
-        rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
+      const rootStyle = nodes.style ?? {}
+      if (fontFamilyOverride) {
+        const chain = subsetChains.get(fontFamilyOverride)
+        if (chain) {
+          rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
+        }
+        else if (state.loadedFamilies.has(fontFamilyOverride)) {
+          rootStyle.fontFamily = fontFamilyOverride
+        }
       }
-      else if (state.loadedFamilies.has(fontFamilyOverride)) {
-        rootStyle.fontFamily = fontFamilyOverride
-      }
-    }
-    nodes.style = rootStyle
-    rewriteFontFamilies(nodes, state.loadedFamilies, subsetChains)
+      nodes.style = rootStyle
+      rewriteFontFamilies(nodes, state.loadedFamilies, subsetChains)
 
-    return state.renderer.render(nodes, renderOptions)
-  }))
+      return state.renderer.render(nodes, renderOptions)
+    })
+  }, endLockWait)
 }
 
 const TakumiRenderer: Renderer = {

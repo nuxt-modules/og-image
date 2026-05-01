@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { withTimeout } from '../../../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../../../utils'
 
 // Type definitions for Cloudflare puppeteer (user must install @cloudflare/puppeteer)
@@ -51,7 +52,10 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
     )
   }
 
-  browserPromise = (async () => {
+  // Bound the launch/connect path; pptr can hang waiting on the binding
+  // and would otherwise pin the request to the outer renderTimeout.
+  const launchTimeout = useOgImageRuntimeConfig().security?.renderTimeout ?? 15_000
+  browserPromise = withTimeout((async () => {
     const pptr = await getPuppeteer()
     // Reuse existing sessions when possible (Cloudflare best practice)
     const sessions = await pptr.sessions(binding)
@@ -70,7 +74,7 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
     })
 
     return browser!
-  })()
+  })(), launchTimeout, 'cloudflare browser launch')
 
   browser = await browserPromise
   browserPromise = null
