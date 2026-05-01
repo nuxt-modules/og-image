@@ -18,6 +18,9 @@ export async function imageEventHandler(e: H3Event) {
   if (ctx instanceof H3Error)
     return ctx
   const timings = ctx.timings
+  // resolveContext creates the timings instance, so record after the fact
+  // using the wall-clock measured from imageEventHandler entry.
+  timings.record('resolve-context', performance.now() - reqStart)
   try {
     return await renderOgImage(e, ctx)
   }

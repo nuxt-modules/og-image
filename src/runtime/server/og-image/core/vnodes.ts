@@ -229,7 +229,8 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
     logger.warn('The `html` option is deprecated and will be removed in the next major version. Use a Vue component instead.')
   }
   if (!html) {
-    const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options)
+    const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
+    const island = await ctx.timings.measure('island-fetch', () => fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout))
     // this fixes any inline style props that need to be wrapped in single quotes, such as:
     // background image, fonts, etc
     island.html = htmlDecodeQuotes(island.html)
@@ -252,7 +253,8 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
     rootChild.props.style = { width: '100%', height: '100%', ...rootChild.props.style }
   }
   warnUnsupportedSvgElements(vnodeTree, ctx.options.component)
-  // run shared plugins
-  await Promise.all(walkTree(ctx, vnodeTree, [encoding, styleDirectives, imageSrc]))
+  // run shared plugins (encoding, styleDirectives, imageSrc); image-fetch
+  // attributes externally so vnode-walk reflects everything else.
+  await ctx.timings.measure('vnode-walk', () => Promise.all(walkTree(ctx, vnodeTree, [encoding, styleDirectives, imageSrc])))
   return vnodeTree
 }

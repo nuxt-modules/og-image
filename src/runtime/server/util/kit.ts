@@ -9,12 +9,17 @@ import { withoutBase, withoutTrailingSlash } from 'ufo'
 
 export { withoutQuery } from 'nuxtseo-shared/utils'
 
-export function fetchIsland(e: H3Event, component: string, props: Record<string, any>): Promise<NuxtIslandResponse> {
+export function fetchIsland(e: H3Event, component: string, props: Record<string, any>, timeout?: number): Promise<NuxtIslandResponse> {
   const hashId = hash([component, props]).replaceAll('_', '-')
+  // signal aborts the underlying fetch; `timeout` is the @nuxt/fetch-level
+  // guard (some adapters honor one but not the other).
+  const signal = timeout ? AbortSignal.timeout(timeout) : undefined
   return e.$fetch<NuxtIslandResponse>(`/__nuxt_island/${component}_${hashId}.json`, {
     params: {
       props: JSON.stringify(props),
     },
+    timeout,
+    signal,
   })
 }
 

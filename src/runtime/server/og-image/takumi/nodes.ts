@@ -16,7 +16,7 @@ const RE_GT = />/g
 
 export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<Node> {
   const vnodeTree = await createVNodes(ctx)
-  return await vnodeToTakumiNode(vnodeTree, DEFAULT_FONT_SIZE)
+  return await ctx.timings.measure('takumi-nodes', () => vnodeToTakumiNode(vnodeTree, DEFAULT_FONT_SIZE))
 }
 
 // Extract numeric width/height from HTML attributes
