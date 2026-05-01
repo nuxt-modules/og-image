@@ -1255,7 +1255,6 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
 
-      // @ts-expect-error untyped
       await nuxt.hooks.callHook('nuxt-og-image:components', ogImageComponentCtx)
     })
     addTemplate({
@@ -1555,7 +1554,6 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
         runtimeConfig.rootDir = nuxt.options.rootDir
         runtimeConfig.communityTemplatesDir = resolve('./runtime/app/components/Templates/Community')
       }
-      // @ts-expect-error untyped
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig

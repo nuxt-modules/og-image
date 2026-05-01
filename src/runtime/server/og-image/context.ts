@@ -272,6 +272,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     basePath,
     options: normalised.options,
     timings,
+    // @ts-expect-error hookable v6
     _nitro: useNitroApp(),
   }
   // call the nitro hook — bound by renderTimeout so a hung user hook can't
