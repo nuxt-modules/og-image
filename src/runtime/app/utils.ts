@@ -3,7 +3,7 @@ import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
-import { useHead, useRuntimeConfig } from 'nuxt/app'
+import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
@@ -310,9 +310,8 @@ export interface GetOgImagePathResult {
  * @deprecated Use the return value of `defineOgImage()` instead, which now returns an array of generated paths.
  */
 export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
-  const runtimeConfig = useRuntimeConfig()
-  const baseURL = runtimeConfig.app.baseURL
-  const { defaults, security } = useOgImageRuntimeConfig()
+  const { app, defaults, security } = useOgImageRuntimeConfig()
+  const baseURL = app.baseURL
   const extension = _options?.extension || defaults?.extension || 'png'
   // Force dynamic+signed URLs even during prerender when strict+secret are set.
   // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
@@ -337,13 +336,17 @@ export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOpti
 }
 
 export function useOgImageRuntimeConfig() {
-  const c = useRuntimeConfig()
+  const event = import.meta.server ? useRequestEvent() : undefined
+  const c = event ? useRuntimeConfig(event) : useRuntimeConfig()
   // Server-side: full runtime config at the root key.
   // Client-side: the root key is stripped (server-only); only the non-sensitive subset
   // published under `public['nuxt-og-image']` is available. The secret never crosses.
   const serverCfg = (c['nuxt-og-image'] as Record<string, any> | undefined) || {}
   const publicCfg = (c.public?.['nuxt-og-image'] as Record<string, any> | undefined) || {}
   const merged: Record<string, any> = { defaults: {}, ...publicCfg, ...serverCfg }
+  const overrideSecret = (c as Record<string, any>).ogImage?.secret as string | undefined
+  if (overrideSecret)
+    merged.security = { ...(merged.security || {}), secret: overrideSecret }
   merged.app = { baseURL: c.app.baseURL }
   return merged as any as OgImageRuntimeConfig
 }
