@@ -25,6 +25,14 @@ vi.mock('#og-image-virtual/component-names.mjs', () => ({
 }))
 
 describe('cloudflare runtime secret', () => {
+  it('does not require an event outside Cloudflare request handling', async () => {
+    const { useOgImageRuntimeConfig } = await import('../../src/runtime/server/utils')
+
+    const config = useOgImageRuntimeConfig()
+
+    expect(config.security.secret).toBe('')
+  })
+
   it('reads NUXT_OG_IMAGE_SECRET from Cloudflare env bindings', async () => {
     const { useOgImageRuntimeConfig } = await import('../../src/runtime/server/utils')
 
