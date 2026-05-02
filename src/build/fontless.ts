@@ -49,6 +49,8 @@ interface DownloadedFont {
 interface FontlessContext {
   resolver: Resolver
   renderedFontURLs: Map<string, string>
+  /** Providers the resolver will consult, in priority order. Used for diagnostics. */
+  providerNames: string[]
 }
 
 function getFontlessContext(nuxt: Nuxt): FontlessContext | undefined {
@@ -86,6 +88,31 @@ export async function initFontless(options: {
     driver: fsDriver({ base: join(options.nuxt.options.rootDir, 'node_modules/.cache/nuxt-og-image/unifont') }),
   })
 
+  // Filter fontless's generic "Could not produce font face declaration" warnings —
+  // og-image emits its own actionable warning with provider/family context (see
+  // resolveAndDownloadFamily). Other warnings pass through unchanged.
+  // consola methods live on the prototype, so a Proxy is the safest way to forward
+  // every call while overriding only `warn` for the specific low-signal message.
+  const filteredLogger = options.logger
+    ? new Proxy(options.logger, {
+        get(target, prop, receiver) {
+          if (prop === 'warn') {
+            return (...args: unknown[]) => {
+              const msg = String(args[0] ?? '')
+              if (msg.includes('Could not produce font face declaration')) {
+                target.debug(msg)
+                return
+              }
+              ;(target.warn as (...a: unknown[]) => unknown)(...args)
+            }
+          }
+          return Reflect.get(target, prop, receiver)
+        },
+      })
+    : undefined
+
+  const priority = nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource']
+
   const resolver = await createResolver({
     normalizeFontData: faces => normalizeFontData(
       {
@@ -96,7 +123,7 @@ export async function initFontless(options: {
       },
       faces,
     ),
-    logger: options.logger,
+    logger: filteredLogger,
     storage,
     options: {
       families: userFamilies,
@@ -104,7 +131,7 @@ export async function initFontless(options: {
       // fontsource/bunny serve WOFF2-only for most fonts, and unifont's cascade stops
       // at the first provider that recognizes the family (even if it returns empty fonts
       // after format filtering), so they must come after Google.
-      priority: nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'],
+      priority,
       defaults: {
         weights: [400, 700],
         styles: ['normal', 'italic'],
@@ -118,7 +145,7 @@ export async function initFontless(options: {
 
   options.logger?.debug(`fontless initialized with formats: ['woff', 'ttf'], subsets: ${JSON.stringify(options.fontSubsets || ['latin'])}, priority: ${JSON.stringify(nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'])}`)
 
-  ;(options.nuxt as any)._ogImageFontless = { resolver, renderedFontURLs } satisfies FontlessContext
+  ;(options.nuxt as any)._ogImageFontless = { resolver, renderedFontURLs, providerNames: priority } satisfies FontlessContext
 }
 
 // ============================================================================
@@ -202,6 +229,7 @@ async function downloadStaticFonts(options: {
   // Alternative providers for retrying when a provider returns variable font binaries
   // (same URL for multiple weights). Fontsource and Bunny serve per-weight static files.
   const fallbackProviders = ['fontsource', 'bunny']
+  const unresolvedFamilies: string[] = []
 
   for (const { family, weights, styles } of options.families) {
     const familyResults = await resolveAndDownloadFamily({
@@ -212,6 +240,9 @@ async function downloadStaticFonts(options: {
       resolver: fontlessCtx.resolver,
       logger: options.logger,
     })
+
+    if (familyResults.length === 0)
+      unresolvedFamilies.push(family)
 
     // Detect variable font binaries: same URL used for multiple weights means the provider
     // returned a variable font file, which Satori can't render at different weights.
@@ -268,7 +299,61 @@ async function downloadStaticFonts(options: {
     }
   }
 
+  if (unresolvedFamilies.length > 0) {
+    const providerList = fontlessCtx.providerNames.join(', ') || 'none'
+    const localFonts = await listLocalPublicFontFiles(options.nuxt).catch(() => [] as string[])
+    const matchedLocal = unresolvedFamilies
+      .map((family) => {
+        const slug = family.toLowerCase().replace(RE_NON_ALPHANUMERIC, '-')
+        const matches = localFonts.filter(f => f.toLowerCase().includes(slug))
+        return { family, matches }
+      })
+      .filter(x => x.matches.length > 0)
+
+    for (const family of unresolvedFamilies) {
+      const local = matchedLocal.find(m => m.family === family)
+      const lines = [
+        `Could not resolve font "${family}" for OG images.`,
+        `  Tried providers: ${providerList}.`,
+      ]
+      if (local) {
+        lines.push(
+          `  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}) but @nuxt/fonts did not emit @font-face for "${family}".`,
+          `  Tailwind v4 @theme variables are not scanned by @nuxt/fonts. Either reference \`font-family: '${family}'\` from a CSS rule (not just a CSS variable),`,
+          `  or declare it explicitly: fonts: { families: [{ name: '${family}', provider: 'local' }] } in nuxt.config.`,
+        )
+      }
+      else {
+        lines.push(
+          `  Not a known Google/Bunny/Fontsource font, and no matching files under public/fonts/.`,
+          `  If this is a custom/local font, add it to nuxt.config: fonts: { families: [{ name: '${family}', src: '/path/to/font.woff2' }] }.`,
+          `  If it should resolve from a remote provider, check the spelling or add the provider to fonts.priority.`,
+        )
+      }
+      options.logger.warn(lines.join('\n'))
+    }
+  }
+
   return results
+}
+
+/** List font filenames under public/fonts/ for diagnostic suggestions. */
+async function listLocalPublicFontFiles(nuxt: Nuxt): Promise<string[]> {
+  const dir = join(nuxt.options.rootDir, 'public', 'fonts')
+  if (!fs.existsSync(dir))
+    return []
+  const out: string[] = []
+  const walk = (d: string) => {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, entry.name)
+      if (entry.isDirectory())
+        walk(p)
+      else if (/\.(?:woff2?|ttf|otf)$/i.test(entry.name))
+        out.push(entry.name)
+    }
+  }
+  walk(dir)
+  return out
 }
 
 /** Resolve and download fonts for a single family. Returns results with URLs for dedup detection. */
