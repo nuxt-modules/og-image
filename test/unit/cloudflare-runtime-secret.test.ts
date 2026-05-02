@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 const runtimeConfig = {
-  app: {
+  'app': {
     baseURL: '/',
   },
   'nuxt-og-image': {
@@ -11,7 +11,7 @@ const runtimeConfig = {
       secret: '',
     },
   },
-  ogImage: {
+  'ogImage': {
     secret: '',
   },
 }
