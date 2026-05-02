@@ -1,6 +1,34 @@
 # Changelog
 
 
+## v6.4.8...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.8...main)
+
+### 🩹 Fixes
+
+- Runtime secret override via NUXT_OG_IMAGE_SECRET ([#593](https://github.com/nuxt-modules/og-image/pull/593))
+- **security:** Harden SSRF guard with redirect validation and IPv6 coverage ([#594](https://github.com/nuxt-modules/og-image/pull/594))
+- Harden takumi WASM lock and expand Server-Timing instrumentation ([#592](https://github.com/nuxt-modules/og-image/pull/592))
+
+### 🏡 Chore
+
+- Lint ([334015c9](https://github.com/nuxt-modules/og-image/commit/334015c9))
+- Add hookable types explicitly ([#588](https://github.com/nuxt-modules/og-image/pull/588))
+- Bump ([0fa3badb](https://github.com/nuxt-modules/og-image/commit/0fa3badb))
+- CI ([8a0be5b8](https://github.com/nuxt-modules/og-image/commit/8a0be5b8))
+- CI ([294e39d6](https://github.com/nuxt-modules/og-image/commit/294e39d6))
+- Broken test ([9a4ca09e](https://github.com/nuxt-modules/og-image/commit/9a4ca09e))
+
+### ✅ Tests
+
+- Bump e2e hook timeout to 240s ([#590](https://github.com/nuxt-modules/og-image/pull/590))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
 ## v6.4.7...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.7...main)
