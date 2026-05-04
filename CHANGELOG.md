@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v6.4.9...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.9...main)
+
+### 🩹 Fixes
+
+- More helpful font warnings ([78ca997b](https://github.com/nuxt-modules/og-image/commit/78ca997b))
+- Resolve Cloudflare runtime og image secret ([#596](https://github.com/nuxt-modules/og-image/pull/596))
+
+### 🏡 Chore
+
+- Bump ([2185ff08](https://github.com/nuxt-modules/og-image/commit/2185ff08))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.4.8...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.8...main)
