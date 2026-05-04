@@ -1,7 +1,10 @@
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
 import { extractFontFacesWithSubsets } from '../../src/build/css/font-face'
-import { fontKey, getStaticInterFonts, matchesFontRequirements, resolveFontFamilies } from '../../src/build/fonts'
+import { fontKey, getStaticInterFonts, matchesFontRequirements, parseConfiguredLocalFonts, resolveFontFamilies } from '../../src/build/fonts'
 import { selectFontSource } from '../../src/runtime/server/og-image/font-source'
 import { buildSubsetFamilyChain, renameSubsetFonts } from '../../src/runtime/server/og-image/font-subsets'
 import { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
@@ -189,6 +192,117 @@ describe('getStaticInterFonts', () => {
     expect(fonts[0].satoriSrc).toBeDefined()
     expect(fonts[1].weight).toBe(700)
     expect(fonts[1].satoriSrc).toBeDefined()
+  })
+})
+
+describe('parseConfiguredLocalFonts', () => {
+  it('resolves global local font families from public/fonts', () => {
+    const rootDir = join(tmpdir(), `og-image-local-fonts-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const fontDir = join(rootDir, 'public/fonts/sofia-pro')
+
+    try {
+      mkdirSync(fontDir, { recursive: true })
+      writeFileSync(join(fontDir, 'sofia-pro-soft-400.woff2'), '')
+      writeFileSync(join(fontDir, 'sofia-pro-soft-400-italic.woff2'), '')
+      writeFileSync(join(fontDir, 'sofia-pro-soft-700.woff2'), '')
+      writeFileSync(join(fontDir, 'sofia-pro-soft-900.woff2'), '')
+
+      const fonts = parseConfiguredLocalFonts({
+        options: {
+          rootDir,
+          fonts: {
+            families: [
+              {
+                name: 'sofia-pro-soft',
+                provider: 'local',
+                weights: [400, 700],
+                styles: ['normal', 'italic'],
+                global: true,
+              },
+            ],
+          },
+        },
+      } as any)
+
+      expect(fonts).toEqual([
+        {
+          family: 'sofia-pro-soft',
+          src: '/fonts/sofia-pro/sofia-pro-soft-400.woff2',
+          weight: 400,
+          style: 'normal',
+          satoriSrc: undefined,
+        },
+        {
+          family: 'sofia-pro-soft',
+          src: '/fonts/sofia-pro/sofia-pro-soft-400-italic.woff2',
+          weight: 400,
+          style: 'italic',
+          satoriSrc: undefined,
+        },
+        {
+          family: 'sofia-pro-soft',
+          src: '/fonts/sofia-pro/sofia-pro-soft-700.woff2',
+          weight: 700,
+          style: 'normal',
+          satoriSrc: undefined,
+        },
+      ])
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('ignores local font families that are not global', () => {
+    const rootDir = join(tmpdir(), `og-image-local-fonts-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const fontDir = join(rootDir, 'public/fonts')
+
+    try {
+      mkdirSync(fontDir, { recursive: true })
+      writeFileSync(join(fontDir, 'custom-font-400.woff2'), '')
+
+      const fonts = parseConfiguredLocalFonts({
+        options: {
+          rootDir,
+          fonts: {
+            families: [
+              { name: 'custom-font', provider: 'local', weights: [400] },
+            ],
+          },
+        },
+      } as any)
+
+      expect(fonts).toEqual([])
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('does not treat providerless remote font families as local', () => {
+    const rootDir = join(tmpdir(), `og-image-local-fonts-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const fontDir = join(rootDir, 'public/fonts')
+
+    try {
+      mkdirSync(fontDir, { recursive: true })
+      writeFileSync(join(fontDir, 'nunito-sans-400.woff2'), '')
+
+      const fonts = parseConfiguredLocalFonts({
+        options: {
+          rootDir,
+          fonts: {
+            families: [
+              { name: 'Nunito Sans', weights: [400], global: true },
+            ],
+          },
+        },
+      } as any)
+
+      expect(fonts).toEqual([])
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
   })
 })
 

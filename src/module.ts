@@ -1337,6 +1337,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
           fontRequirements: fontRequirementsState,
           convertedWoff2Files,
           fontSubsets: config.fontSubsets,
+          warnOnMissingStaticFonts: hasSatoriRenderer(),
         })
       }
       const fonts = await resolveOgImageFonts({
@@ -1431,6 +1432,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           fontRequirements: fontRequirementsState,
           convertedWoff2Files,
           fontSubsets: config.fontSubsets,
+          warnOnMissingStaticFonts: hasSatoriRenderer(),
         })
         fontProcessingDone = true
       })
