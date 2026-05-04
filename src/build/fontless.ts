@@ -18,7 +18,7 @@ import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -32,6 +32,7 @@ export interface ProcessFontsOptions {
   fontRequirements: FontRequirementsState
   convertedWoff2Files: Map<string, string>
   fontSubsets?: string[]
+  warnOnMissingStaticFonts?: boolean
 }
 
 interface DownloadedFont {
@@ -55,6 +56,16 @@ interface FontlessContext {
 
 function getFontlessContext(nuxt: Nuxt): FontlessContext | undefined {
   return (nuxt as any)._ogImageFontless
+}
+
+function getNuxtFontsFamilyConfig(nuxt: Nuxt, family: string): Record<string, unknown> | undefined {
+  const families = ((nuxt.options as any).fonts as { families?: Array<Record<string, unknown>> } | undefined)?.families
+  return families?.find(f => typeof f?.name === 'string' && f.name.toLowerCase() === family.toLowerCase())
+}
+
+function isConfiguredLocalFontFamily(nuxt: Nuxt, family: string): boolean {
+  const config = getNuxtFontsFamilyConfig(nuxt, family)
+  return !!config && config.global === true && (config.provider === 'local' || (!config.provider && !config.src))
 }
 
 export async function initFontless(options: {
@@ -312,21 +323,36 @@ async function downloadStaticFonts(options: {
 
     for (const family of unresolvedFamilies) {
       const local = matchedLocal.find(m => m.family === family)
+      const configuredFamily = getNuxtFontsFamilyConfig(options.nuxt, family)
       const lines = [
         `Could not resolve font "${family}" for OG images.`,
         `  Tried providers: ${providerList}.`,
       ]
-      if (local) {
+      if (configuredFamily && configuredFamily.global !== true) {
+        lines.push(
+          `  "${family}" is declared in fonts.families, but it is not global so @nuxt/fonts did not emit it in nuxt-fonts-global.css.`,
+          `  Set global: true, e.g. fonts: { families: [{ name: '${family}', provider: 'local', weights: [400, 700], global: true }] }.`,
+        )
+      }
+      else if (configuredFamily) {
+        lines.push(
+          `  "${family}" is declared with global: true, but @nuxt/fonts still did not emit @font-face for it.`,
+          `  Check that the configured provider/src, weights, styles, and file names match the available font files.`,
+        )
+        if (local)
+          lines.push(`  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}).`)
+      }
+      else if (local) {
         lines.push(
           `  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}) but @nuxt/fonts did not emit @font-face for "${family}".`,
-          `  Tailwind v4 @theme variables are not scanned by @nuxt/fonts. Either reference \`font-family: '${family}'\` from a CSS rule (not just a CSS variable),`,
-          `  or declare it explicitly: fonts: { families: [{ name: '${family}', provider: 'local' }] } in nuxt.config.`,
+          `  Tailwind v4 @theme variables are not scanned by @nuxt/fonts, and OG images only read globally emitted font faces.`,
+          `  Declare it explicitly with global: true, e.g. fonts: { families: [{ name: '${family}', provider: 'local', weights: [400, 700], global: true }] }.`,
         )
       }
       else {
         lines.push(
           `  Not a known Google/Bunny/Fontsource font, and no matching files under public/fonts/.`,
-          `  If this is a custom/local font, add it to nuxt.config: fonts: { families: [{ name: '${family}', src: '/path/to/font.woff2' }] }.`,
+          `  If this is a custom/local font, add it to nuxt.config with global: true: fonts: { families: [{ name: '${family}', src: '/path/to/font.woff2', global: true }] }.`,
           `  If it should resolve from a remote provider, check the spelling or add the provider to fonts.priority.`,
         )
       }
@@ -424,7 +450,7 @@ async function resolveAndDownloadFamily(options: {
  * Satori can't use WOFF2 directly — uses fontless to download static TTF/WOFF alternatives.
  */
 export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<void> {
-  const { nuxt, logger, fontRequirements, convertedWoff2Files, fontSubsets } = options
+  const { nuxt, logger, fontRequirements, convertedWoff2Files, fontSubsets, warnOnMissingStaticFonts = true } = options
 
   const parsedFonts = await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
 
@@ -440,6 +466,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
   const woff2Fonts = parsedFonts.filter(f =>
     f.src.endsWith('.woff2')
     && !hasNonWoff2.has(fontKey(f))
+    && !isConfiguredLocalFontFamily(nuxt, f.family)
     && fontRequirements.weights.includes(f.weight)
     && fontRequirements.styles.includes(f.style as 'normal' | 'italic'),
   )
@@ -484,7 +511,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
     if (convertedWoff2Files.size > 0) {
       logger.debug(`Resolved ${convertedWoff2Files.size} static font files via fontless`)
     }
-    else {
+    else if (warnOnMissingStaticFonts) {
       logger.warn(`No static fonts available for Satori. Falling back to bundled Inter font. Consider using 'takumi' renderer for variable font support.`)
     }
   }
@@ -557,6 +584,21 @@ export async function resolveOgImageFonts(options: {
   const allFonts = hasNuxtFonts
     ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirements.weights })
     : []
+
+  if (hasNuxtFonts) {
+    const configuredLocalFonts = parseConfiguredLocalFonts(nuxt)
+    if (configuredLocalFonts.length > 0) {
+      const existingKeys = new Set(allFonts.map(f => `${f.family}-${f.weight}-${f.style}`))
+      for (const font of configuredLocalFonts) {
+        const key = `${font.family}-${font.weight}-${font.style}`
+        if (!existingKeys.has(key)) {
+          allFonts.push(font)
+          existingKeys.add(key)
+        }
+      }
+      logger.debug(`Resolved ${configuredLocalFonts.length} configured local font faces from public/fonts`)
+    }
+  }
 
   // Auto-detect subsets from @nuxt/fonts CSS comments (e.g. devanagari, cyrillic)
   // so fontless downloads include non-Latin fonts instead of defaulting to latin-only

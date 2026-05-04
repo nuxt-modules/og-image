@@ -8,12 +8,14 @@ import type { Nuxt } from 'nuxt/schema'
 import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
 import { writeFile } from 'node:fs/promises'
-import { join } from 'pathe'
+import { join, relative } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { extractFontFacesWithSubsets } from './css/font-face'
 
 const RE_FONT_FACE_BLOCK = /@font-face\s*\{[^}]+\}/g
 const RE_FONT_KEY = /^(.+)-(\d+)-(.+)$/
+const RE_FONT_EXT = /\.(?:woff2?|ttf|otf)$/i
+const RE_NON_WORD = /\W+/g
 
 // ============================================================================
 // Types
@@ -209,6 +211,145 @@ export async function parseAppCssFontFaces(nuxt: Nuxt): Promise<ParsedFont[]> {
       })
     }
   }
+
+  return results
+}
+
+// ============================================================================
+// Font Parsing from @nuxt/fonts Local Config
+// ============================================================================
+
+function fontFamilyToSlug(family: string): string {
+  return family.toLowerCase().replace(RE_NON_WORD, '')
+}
+
+function normalizeConfiguredWeights(value: unknown): number[] {
+  if (!Array.isArray(value))
+    return [400, 700]
+
+  const weights = new Set<number>()
+  for (const entry of value) {
+    if (typeof entry === 'number') {
+      weights.add(entry)
+      continue
+    }
+    if (typeof entry === 'string') {
+      const matches = entry.match(/\d{3}/g) || []
+      for (const match of matches)
+        weights.add(Number(match))
+    }
+  }
+  return weights.size > 0 ? [...weights] : [400, 700]
+}
+
+function normalizeConfiguredStyles(value: unknown): Array<'normal' | 'italic'> {
+  if (!Array.isArray(value))
+    return ['normal', 'italic']
+
+  const styles = value.filter((style): style is 'normal' | 'italic' => style === 'normal' || style === 'italic')
+  return styles.length > 0 ? styles : ['normal']
+}
+
+function detectWeight(filename: string): number | undefined {
+  const numeric = filename.match(/(?:^|[-_])([1-9]00)(?:[-_.]|$)/)?.[1]
+  if (numeric)
+    return Number(numeric)
+
+  if (/(?:^|[-_])bold(?:[-_.]|$)/i.test(filename))
+    return 700
+  if (/(?:^|[-_])regular(?:[-_.]|$)/i.test(filename))
+    return 400
+}
+
+function detectStyle(filename: string): 'normal' | 'italic' {
+  return /(?:^|[-_])(?:italic|oblique)(?:[-_.]|$)/i.test(filename) ? 'italic' : 'normal'
+}
+
+function stripFontDescriptors(filename: string): string {
+  return filename
+    .replace(RE_FONT_EXT, '')
+    .replace(/(?:^|[-_])(?:[1-9]00|thin|extra[-_]?light|light|regular|normal|medium|semi[-_]?bold|bold|extra[-_]?bold|black|italic|oblique|latin(?:[-_]?ext)?|cyrillic(?:[-_]?ext)?|greek(?:[-_]?ext)?|vietnamese)(?=[-_.]|$)/gi, '')
+    .replace(/[-_]+$/g, '')
+}
+
+/**
+ * Fallback for @nuxt/fonts local provider timing.
+ *
+ * @nuxt/fonts registers public font files in nitro:init, but og-image can need
+ * the font list while Nitro virtual modules are being generated. When a global
+ * local family is declared, synthesize the same public URLs directly from
+ * public/fonts so dev/test startup does not temporarily fall back to Inter.
+ */
+export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
+  const families = ((nuxt.options as any).fonts as { families?: Array<Record<string, unknown>> } | undefined)?.families || []
+  const localFamilies = families.filter(f =>
+    typeof f.name === 'string'
+    && f.global === true
+    && (f.provider === 'local' || (!f.provider && !f.src)),
+  )
+  if (localFamilies.length === 0)
+    return []
+
+  const publicDir = join(nuxt.options.rootDir, 'public')
+  const fontsDir = join(publicDir, 'fonts')
+  if (!existsSync(fontsDir))
+    return []
+
+  const files: string[] = []
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(path)
+      }
+      else if (RE_FONT_EXT.test(entry.name)) {
+        files.push(path)
+      }
+    }
+  }
+  walk(fontsDir)
+  files.sort()
+
+  const results: ParsedFont[] = []
+  const seen = new Set<string>()
+  for (const family of localFamilies) {
+    const name = family.name as string
+    const familySlug = fontFamilyToSlug(name)
+    const weights = normalizeConfiguredWeights(family.weights)
+    const styles = normalizeConfiguredStyles(family.styles)
+
+    for (const file of files) {
+      const filename = file.split('/').pop() || file
+      if (fontFamilyToSlug(stripFontDescriptors(filename)) !== familySlug)
+        continue
+
+      const weight = detectWeight(filename)
+      const style = detectStyle(filename)
+      if (!weight || !weights.includes(weight) || !styles.includes(style))
+        continue
+
+      const src = `/${relative(publicDir, file)}`
+      const key = fontKey({ family: name, weight, style })
+      if (seen.has(key))
+        continue
+      seen.add(key)
+
+      results.push({
+        family: name,
+        src,
+        weight,
+        style,
+        satoriSrc: src.endsWith('.woff2') ? undefined : src,
+      })
+    }
+  }
+
+  results.sort((a, b) =>
+    a.family.localeCompare(b.family)
+    || a.weight - b.weight
+    || (a.style === b.style ? 0 : a.style === 'normal' ? -1 : 1)
+    || a.src.localeCompare(b.src),
+  )
 
   return results
 }
