@@ -65,7 +65,7 @@ function getNuxtFontsFamilyConfig(nuxt: Nuxt, family: string): Record<string, un
 
 function isConfiguredLocalFontFamily(nuxt: Nuxt, family: string): boolean {
   const config = getNuxtFontsFamilyConfig(nuxt, family)
-  return !!config && config.global === true && (config.provider === 'local' || (!config.provider && !config.src))
+  return !!config && config.global === true && (config.provider === 'local' || typeof config.src === 'string')
 }
 
 export async function initFontless(options: {

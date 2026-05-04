@@ -285,7 +285,7 @@ export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
   const localFamilies = families.filter(f =>
     typeof f.name === 'string'
     && f.global === true
-    && (f.provider === 'local' || (!f.provider && !f.src)),
+    && (f.provider === 'local' || typeof f.src === 'string'),
   )
   if (localFamilies.length === 0)
     return []

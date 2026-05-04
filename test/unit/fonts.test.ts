@@ -278,6 +278,32 @@ describe('parseConfiguredLocalFonts', () => {
       rmSync(rootDir, { recursive: true, force: true })
     }
   })
+
+  it('does not treat providerless remote font families as local', () => {
+    const rootDir = join(tmpdir(), `og-image-local-fonts-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const fontDir = join(rootDir, 'public/fonts')
+
+    try {
+      mkdirSync(fontDir, { recursive: true })
+      writeFileSync(join(fontDir, 'nunito-sans-400.woff2'), '')
+
+      const fonts = parseConfiguredLocalFonts({
+        options: {
+          rootDir,
+          fonts: {
+            families: [
+              { name: 'Nunito Sans', weights: [400], global: true },
+            ],
+          },
+        },
+      } as any)
+
+      expect(fonts).toEqual([])
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('extractFontFacesWithSubsets', () => {
