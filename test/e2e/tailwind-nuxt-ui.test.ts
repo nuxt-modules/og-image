@@ -71,6 +71,44 @@ describe('tailwind-nuxt-ui', () => {
     })
   })
 
+  it('renders inverted tokens snapshot for light colorMode', async () => {
+    const image = await fetchOgImage('/inverted-light')
+    expect(image).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'nuxt-ui-inverted-light',
+      failureThreshold: 1,
+      failureThresholdType: 'percent',
+    })
+  })
+
+  it('renders inverted tokens snapshot for dark colorMode', async () => {
+    const image = await fetchOgImage('/inverted-dark')
+    expect(image).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'nuxt-ui-inverted-dark',
+      failureThreshold: 1,
+      failureThresholdType: 'percent',
+    })
+  })
+
+  it('swaps bg-inverted/text-inverted tokens based on colorMode prop', async () => {
+    // Build emits paired light/dark arbitrary classes when root has :data-theme binding.
+    // Verify the build-time output then assert rendered image colors differ.
+    const html = await $fetch('/inverted-light') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+    const preview = await $fetch(ogUrl!.replace(/\.png$/, '.html')) as string
+    expect(preview, 'preview should contain paired light/dark token classes')
+      .toMatch(/bg-\[#[0-9a-f]+\]\s+dark:bg-\[#[0-9a-f]+\]/i)
+    expect(preview, 'preview should contain paired light/dark text classes')
+      .toMatch(/text-\[#[0-9a-f]+\]\s+dark:text-\[#[0-9a-f]+\]/i)
+
+    // Rendered images for light vs dark colorMode must differ
+    const lightImage = await fetchOgImage('/inverted-light')
+    const darkImage = await fetchOgImage('/inverted-dark')
+    const lightColors = (await getColors(lightImage, 'image/png')).map(c => c.hex().toLowerCase()).sort()
+    const darkColors = (await getColors(darkImage, 'image/png')).map(c => c.hex().toLowerCase()).sort()
+    expect(lightColors.join(','), 'light colorMode palette should differ from dark').not.toBe(darkColors.join(','))
+  })
+
   it('renders html preview with nuxt ui components', async () => {
     const html = await $fetch('/components') as string
     const ogUrl = extractOgImageUrl(html)

@@ -13,6 +13,7 @@ import { getEmojiCodePoint, getEmojiIconNames, RE_MATCH_EMOJIS } from '../runtim
 import { resolveColorMix, splitCssDeclarations } from '../runtime/server/og-image/utils/css'
 import { RE_WHITESPACE } from '../util'
 import { extractFontRequirementsFromVue } from './css/css-classes'
+import { stylesToArbitraryClass } from './css/css-provider'
 import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
 import { transformVueTemplate } from './vue-template-transform'
 
@@ -32,6 +33,7 @@ const RE_ICON_ELEMENT = /<(\w+)((?:\s+[^\s/>][^\s=>]*(?:="[^"]*")?)*\s+class="([
 const RE_HTML_ATTR = /\b([a-z_:@][\w.:-]*)(?:="([^"]*)")?/gi
 const RE_ROOT_ELEMENT = /^\s*<(\w+)\s([^>]*)>/
 const RE_DATA_ATTR = /\bdata-([\w-]+)="([^"]*)"/g
+const RE_DYNAMIC_DATA_THEME = /\s:data-theme="[^"]+"/
 const RE_COLOR_ATTR_NAME = /^(?:color|fill|stroke|flood-color|lighting-color|stop-color)$/
 const RE_NON_STYLE_VAR_ATTR = /\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g
 const RE_QUOTED_ATTR = /^([a-z-]+)="(.*)"$/i
@@ -240,6 +242,55 @@ function isIconClass(cls: string): boolean {
 
 function isUnsupportedClass(cls: string): boolean {
   return UNSUPPORTED_CLASS_PATTERNS.some(p => p.test(cls))
+}
+
+/**
+ * Compare per-class resolutions for light vs dark themes.
+ * For classes that resolve identically, keep the light result.
+ * For classes that differ, emit a class rewrite combining the light arbitrary
+ * class with a `dark:`-prefixed dark arbitrary class so the runtime
+ * styleDirectives plugin can swap based on the colorMode prop.
+ */
+function mergeThemePairs(
+  classes: string[],
+  light: Record<string, Record<string, string> | string>,
+  dark: Record<string, Record<string, string> | string>,
+): Record<string, Record<string, string> | string> {
+  const result: Record<string, Record<string, string> | string> = {}
+  for (const cls of classes) {
+    const l = light[cls]
+    const d = dark[cls]
+    if (l === undefined && d === undefined)
+      continue
+    if (l === undefined) {
+      result[cls] = d!
+      continue
+    }
+    if (d === undefined) {
+      result[cls] = l
+      continue
+    }
+    // Identical resolutions: keep as-is
+    if (typeof l === 'string' && typeof d === 'string' && l === d) {
+      result[cls] = l
+      continue
+    }
+    if (typeof l === 'object' && typeof d === 'object' && JSON.stringify(l) === JSON.stringify(d)) {
+      result[cls] = l
+      continue
+    }
+    // Differ: emit paired arbitrary classes for runtime dark: variant resolution
+    const lightArb = typeof l === 'object' ? stylesToArbitraryClass(l) : l
+    const darkArb = typeof d === 'object' ? stylesToArbitraryClass(d) : d
+    if (lightArb && darkArb) {
+      result[cls] = `${lightArb} dark:${darkArb}`
+    }
+    else {
+      // Fallback: can't express as arbitrary class, use light styles
+      result[cls] = l
+    }
+  }
+  return result
 }
 
 export interface AssetTransformOptions {
@@ -525,6 +576,11 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       if (!rootAttrs['data-theme'] && options.colorPreference)
         rootAttrs['data-theme'] = options.colorPreference
 
+      // Detect dynamic :data-theme="<expr>" binding on root element. When present,
+      // resolve classes for both light and dark themes and emit paired rewrites so
+      // the runtime styleDirectives plugin can swap based on the colorMode prop.
+      const hasDynamicDataTheme = !!(rootAttrMatch?.[2] && RE_DYNAMIC_DATA_THEME.test(` ${rootAttrMatch[2]}`))
+
       // Transform CSS utility classes to inline styles
       if (options.cssProvider) {
         options.beforeCssResolve?.()
@@ -544,6 +600,17 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               }
 
               const componentName = id.split('/').pop()?.replace(RE_FILE_EXTENSION, '')
+
+              if (hasDynamicDataTheme) {
+                const lightAttrs = { ...rootAttrs, 'data-theme': 'light' }
+                const darkAttrs = { ...rootAttrs, 'data-theme': 'dark' }
+                const [lightResolved, darkResolved] = await Promise.all([
+                  options.cssProvider!.resolveClassesToStyles(supported, componentName, lightAttrs),
+                  options.cssProvider!.resolveClassesToStyles(supported, componentName, darkAttrs),
+                ])
+                return mergeThemePairs(supported, lightResolved, darkResolved)
+              }
+
               return options.cssProvider!.resolveClassesToStyles(supported, componentName, rootAttrs)
             },
           })
