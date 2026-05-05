@@ -97,7 +97,7 @@ function withTakumiLock<T>(
   ]).finally(() => clearTimeout(acquireTimer))
 }
 
-interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }
+interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string, weightRange?: [number, number] }
 
 interface DedupedFontLoad {
   binaryKey: string
@@ -112,13 +112,18 @@ interface DedupedFontLoad {
  * Collapse font entries that share a binary (same family, style, src) into a single load.
  * @nuxt/fonts produces per-weight entries all pointing to the same variable WOFF2 URL;
  * loading the same binary under multiple weight labels prevents takumi from varying the
- * wght axis. For variable fonts (multiple weights sharing a binary) we pass no weight so
- * takumi auto-detects the axis from the font metadata.
+ * wght axis. For variable fonts we pass no weight so takumi auto-detects the axis from
+ * the font metadata.
+ *
+ * A binary is treated as variable if EITHER multiple weight tags share it OR any entry
+ * carries a `weightRange` (parsed from CSS `font-weight: <min> <max>`). The latter matters
+ * in dev when the build-time per-weight expansion may not have run yet — we'd otherwise
+ * pass an explicit weight to takumi for a variable file and it would mis-map the axis.
  *
  * Mirrored in test/unit/takumi-font-dedupe.test.ts — keep implementations in sync.
  */
 function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
-  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, weights: Set<number | undefined> }>()
+  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, weights: Set<number | undefined>, hasRange: boolean }>()
   for (const font of fonts) {
     if (!font.data)
       continue
@@ -126,6 +131,8 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
     const existing = byBinary.get(binaryKey)
     if (existing) {
       existing.weights.add(font.weight)
+      if (font.weightRange)
+        existing.hasRange = true
     }
     else {
       byBinary.set(binaryKey, {
@@ -133,12 +140,13 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
         style: font.style,
         data: font.data,
         weights: new Set([font.weight]),
+        hasRange: !!font.weightRange,
       })
     }
   }
   const result: DedupedFontLoad[] = []
   for (const [binaryKey, entry] of byBinary) {
-    const isVariable = entry.weights.size > 1
+    const isVariable = entry.weights.size > 1 || entry.hasRange
     result.push({
       binaryKey,
       family: entry.family,

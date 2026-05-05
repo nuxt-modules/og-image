@@ -232,6 +232,8 @@ export interface FontConfig {
   unicodeRange?: string
   /** When true, this font survives requirements filtering as a last-resort fallback. */
   fallback?: boolean
+  /** Original weight range for variable fonts (e.g. [100, 900]). Present when src is a variable font. */
+  weightRange?: [number, number]
 }
 
 export interface RuntimeFontConfig extends FontConfig {
