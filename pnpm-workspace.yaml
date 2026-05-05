@@ -35,7 +35,7 @@ catalog:
   '@nuxt/devtools': 4.0.0-alpha.4
   '@nuxt/devtools-kit': 4.0.0-alpha.4
   '@nuxt/fonts': ^0.14.0
-  '@nuxt/icon': ^2.2.1
+  '@nuxt/icon': ^2.2.2
   '@nuxt/image': ^2.0.0
   '@nuxt/kit': ^4.4.4
   '@nuxt/module-builder': ^1.0.2
@@ -110,7 +110,7 @@ catalog:
   vitest: ^4.1.5
   vue: ^3.5.33
   vue-router: ^5.0.6
-  vue-tsc: ^3.2.7
+  vue-tsc: ^3.2.8
   wrangler: ^4.87.0
   yoga-wasm-web: ^0.3.3
 catalogs:
