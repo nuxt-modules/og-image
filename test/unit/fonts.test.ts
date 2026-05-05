@@ -713,4 +713,37 @@ describe('selectFontSource', () => {
     const result = selectFontSource({ src: '/_fonts/inter.woff2' }, SATORI_FORMATS, false)
     expect(result).toBeNull()
   })
+
+  // Regression: with a variable font + per-weight static fallbacks, preferStatic
+  // would pick the static TTF and lose the wght axis. The runtime would then
+  // stair-step requested weights through `findClosestWeight` against whatever
+  // weights fontless happened to download (e.g. 400 → 100, 700 → 700 with a
+  // jump in between). Keep the variable WOFF2 so takumi varies the axis.
+  it('keeps the variable WOFF2 over per-weight satoriSrc when entry has weightRange', () => {
+    const result = selectFontSource(
+      {
+        src: '/_fonts/raleway-variable.woff2',
+        satoriSrc: '/_og-static-fonts/Raleway-400-normal.ttf',
+        weightRange: [100, 900],
+      },
+      TAKUMI_FORMATS,
+      true,
+    )
+    expect(result).toEqual({ src: '/_fonts/raleway-variable.woff2', isStaticFallback: false })
+  })
+
+  it('still falls back to satoriSrc for a variable font when primary format is unsupported', () => {
+    // Defensive: if primary src isn't parseable by the renderer, the static is still
+    // better than rendering tofu — we accept the axis loss in that case.
+    const result = selectFontSource(
+      {
+        src: '/_fonts/raleway-variable.woff2',
+        satoriSrc: '/_og-static-fonts/Raleway-400-normal.ttf',
+        weightRange: [100, 900],
+      },
+      SATORI_FORMATS,
+      false,
+    )
+    expect(result).toEqual({ src: '/_og-static-fonts/Raleway-400-normal.ttf', isStaticFallback: true })
+  })
 })
