@@ -739,12 +739,22 @@ function isSystemFont(name: string): boolean {
   return name.startsWith('-') || name.startsWith('var(')
 }
 
+// fontaine/@nuxt/fonts emit metric-only fallback @font-face entries named
+// "<Family> fallback" (e.g. "Sofia Pro fallback") backed by local() Arial/Times.
+// They exist purely to reduce CLS in the browser and are not real downloadable
+// fonts, so OG renderers must not try to resolve them via fontless providers.
+const RE_FONTAINE_FALLBACK = / fallback$/i
+
+function isFontaineFallback(name: string): boolean {
+  return RE_FONTAINE_FALLBACK.test(name)
+}
+
 export function extractCustomFontFamilies(cssValue: string): string[] {
   return cssValue
     .replace(RE_IMPORTANT, '')
     .split(',')
     .map(p => p.trim().replace(RE_QUOTES, ''))
-    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !RE_ONLY_DIGITS.test(name) && !isSystemFont(name))
+    .filter(name => name && !GENERIC_FONT_FAMILIES.has(name.toLowerCase()) && !RE_ONLY_DIGITS.test(name) && !isSystemFont(name) && !isFontaineFallback(name))
 }
 
 // ============================================================================

@@ -626,13 +626,17 @@ export async function resolveOgImageFonts(options: {
     const coveredFamilies = new Set(allFonts.map(f => f.family))
     let missingFamilies: string[] = []
 
+    // Skip fontaine-generated metric fallbacks ("<Family> fallback") — they're
+    // local() metric shims for CLS, not real downloadable fonts.
+    const isFontaineFallback = (name: string): boolean => / fallback$/i.test(name)
+
     if (fontRequirements.families.length > 0) {
-      missingFamilies = fontRequirements.families.filter(f => !coveredFamilies.has(f))
+      missingFamilies = fontRequirements.families.filter(f => !coveredFamilies.has(f) && !isFontaineFallback(f))
     }
     else {
       const defaultVar = tw4FontVars['font-sans']
       if (defaultVar)
-        missingFamilies = extractCustomFontFamilies(defaultVar).filter(f => !coveredFamilies.has(f))
+        missingFamilies = extractCustomFontFamilies(defaultVar).filter(f => !coveredFamilies.has(f) && !isFontaineFallback(f))
     }
 
     if (missingFamilies.length > 0) {
