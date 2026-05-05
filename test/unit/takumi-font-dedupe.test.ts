@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 // weight labels prevented takumi from varying the wght axis — every weight
 // rendered identically (the font's default axis position, typically 400).
 
-interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string }
+interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string, weightRange?: [number, number] }
 
 interface DedupedFontLoad {
   binaryKey: string
@@ -20,7 +20,7 @@ interface DedupedFontLoad {
 }
 
 function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
-  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, weights: Set<number | undefined> }>()
+  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, weights: Set<number | undefined>, hasRange: boolean }>()
   for (const font of fonts) {
     if (!font.data)
       continue
@@ -28,6 +28,8 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
     const existing = byBinary.get(binaryKey)
     if (existing) {
       existing.weights.add(font.weight)
+      if (font.weightRange)
+        existing.hasRange = true
     }
     else {
       byBinary.set(binaryKey, {
@@ -35,12 +37,13 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
         style: font.style,
         data: font.data,
         weights: new Set([font.weight]),
+        hasRange: !!font.weightRange,
       })
     }
   }
   const result: DedupedFontLoad[] = []
   for (const [binaryKey, entry] of byBinary) {
-    const isVariable = entry.weights.size > 1
+    const isVariable = entry.weights.size > 1 || entry.hasRange
     result.push({
       binaryKey,
       family: entry.family,
@@ -111,6 +114,28 @@ describe('dedupeFontsByBinary', () => {
     ]
 
     expect(dedupeFontsByBinary(fonts)).toHaveLength(1)
+  })
+
+  it('treats single-entry variable fonts (weightRange) as axis-driven', () => {
+    // Regression: in dev, build-time per-weight expansion may not have populated
+    // fontRequirements yet, so a variable WOFF2 reaches runtime as a single entry.
+    // Without weightRange detection we'd pass `weight: 400` to takumi and it would
+    // mis-map the wght axis (e.g. requested 400 → rendered 100, requested 700 → 700).
+    const fonts = [
+      {
+        family: 'Public Sans',
+        style: 'normal',
+        weight: 400,
+        src: '/_fonts/public-sans-variable.woff2',
+        data: sharedBuffer,
+        weightRange: [100, 900] as [number, number],
+      },
+    ]
+
+    const deduped = dedupeFontsByBinary(fonts)
+
+    expect(deduped).toHaveLength(1)
+    expect(deduped[0]!.weight).toBeUndefined()
   })
 
   it('preserves the binaryKey shape so state.loadedFontKeys can dedupe across requests', () => {

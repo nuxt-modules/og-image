@@ -34,6 +34,8 @@ export interface ParsedFont {
   absolutePath?: string
   /** When true, this font survives requirements filtering as a last-resort fallback. */
   fallback?: boolean
+  /** Original weight range for variable fonts (e.g. [100, 900]). Present when src is a variable font. */
+  weightRange?: [number, number]
 }
 
 /** URL prefix for @nuxt/fonts web fonts (used by fontless normalizeFontData) */
@@ -481,6 +483,7 @@ export async function parseFontsFromTemplate(
       satoriSrc,
       unicodeRange: font.unicodeRange || defaultUnicodeRange,
       subset: font.subset,
+      weightRange: font.weightRange,
     }
   })
 
