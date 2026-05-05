@@ -401,6 +401,16 @@ function isRootOrHost(selectors: any[]): boolean {
     c.type === 'pseudo-class' && (c.kind === 'root' || c.kind === 'host'))
 }
 
+/**
+ * Check if a selector list contains a bare `.dark` or `.light` theme class
+ * (e.g., `.dark { ... }`). These are emitted by libraries like @nuxt/ui as
+ * the canonical dark-mode rule and act as :root-equivalent for theme vars.
+ */
+function isBareThemeClass(selectors: any[]): boolean {
+  return selectorsContain(selectors, c =>
+    c.type === 'class' && (c.name === 'dark' || c.name === 'light'))
+}
+
 function isUniversal(selectors: any[]): boolean {
   return selectorsContain(selectors, c => c.type === 'universal')
 }
@@ -526,7 +536,7 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
             const selectors = rule.value.selectors
             const declarations = rule.value.declarations
 
-            if (isRootOrHost(selectors)) {
+            if (isRootOrHost(selectors) || isBareThemeClass(selectors)) {
               const vars = extractCustomProps(declarations)
               if (vars.size === 0)
                 return undefined

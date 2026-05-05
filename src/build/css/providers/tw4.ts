@@ -1,4 +1,5 @@
 import type { CssProvider } from '../css-provider'
+import type { ExtractedCssVars } from '../css-utils'
 import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { resolveModulePath } from 'exsolve'
@@ -9,8 +10,10 @@ import {
   extractCssVars,
   extractPerClassVars,
   extractUniversalVars,
+  extractVarsFromCss,
   loadLightningCss,
   postProcessStyles,
+  resolveExtractedVars,
   resolveVarsDeep,
   simplifyCss,
 } from '../css-utils'
@@ -110,10 +113,17 @@ export function createStylesheetLoader(baseDir: string) {
 /**
  * Build Nuxt UI CSS variable declarations.
  * Expands semantic color names (e.g., { primary: 'indigo' }) to full CSS variable sets.
+ *
+ * If `theme` is provided ('light' | 'dark'), semantic bg/text/border variables
+ * are populated for the requested theme.
+ *
+ * Default: legacy behavior — force-set dark-mode semantic values (preserves
+ * backward compatibility with components that don't opt into theme-awareness).
  */
 export function buildNuxtUiVars(
   vars: Map<string, string>,
   nuxtUiColors: Record<string, string>,
+  theme?: 'light' | 'dark',
 ): void {
   const colors = twColors
   const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
@@ -131,30 +141,48 @@ export function buildNuxtUiVars(
       vars.set(`--ui-${semantic}`, colors[colorName]?.[500] || '')
   }
 
-  // Add Nuxt UI semantic text/bg/border variables (dark mode for OG images)
   const neutral = nuxtUiColors.neutral || 'slate'
   const neutralColors = colors[neutral]
-  const semanticVars: Record<string, string> = {
-    // Dark mode text colors (inverted from light mode)
-    '--ui-text-dimmed': neutralColors?.[500] || '',
-    '--ui-text-muted': neutralColors?.[400] || '',
-    '--ui-text-toned': neutralColors?.[300] || '',
-    '--ui-text': neutralColors?.[200] || '',
-    '--ui-text-highlighted': '#ffffff',
-    '--ui-text-inverted': neutralColors?.[900] || '',
-    // Dark mode backgrounds
-    '--ui-bg': neutralColors?.[900] || '',
-    '--ui-bg-muted': neutralColors?.[800] || '',
-    '--ui-bg-elevated': neutralColors?.[800] || '',
-    '--ui-bg-accented': neutralColors?.[700] || '',
-    '--ui-bg-inverted': '#ffffff',
-    // Dark mode borders
-    '--ui-border': neutralColors?.[800] || '',
-    '--ui-border-muted': neutralColors?.[700] || '',
-    '--ui-border-accented': neutralColors?.[700] || '',
-    '--ui-border-inverted': '#ffffff',
-  }
-  // Force-set semantic vars to ensure dark mode (override any light mode vars from CSS)
+
+  // Theme-aware semantic vars. When theme === 'light', emit light values; when 'dark', dark values.
+  // When theme is undefined, fall back to legacy dark-mode forcing (existing OG image default).
+  const semanticVars: Record<string, string> = theme === 'light'
+    ? {
+        '--ui-text-dimmed': neutralColors?.[400] || '',
+        '--ui-text-muted': neutralColors?.[500] || '',
+        '--ui-text-toned': neutralColors?.[600] || '',
+        '--ui-text': neutralColors?.[700] || '',
+        '--ui-text-highlighted': neutralColors?.[900] || '',
+        '--ui-text-inverted': '#ffffff',
+        '--ui-bg': '#ffffff',
+        '--ui-bg-muted': neutralColors?.[50] || '',
+        '--ui-bg-elevated': neutralColors?.[100] || '',
+        '--ui-bg-accented': neutralColors?.[200] || '',
+        '--ui-bg-inverted': neutralColors?.[900] || '',
+        '--ui-border': neutralColors?.[200] || '',
+        '--ui-border-muted': neutralColors?.[200] || '',
+        '--ui-border-accented': neutralColors?.[300] || '',
+        '--ui-border-inverted': neutralColors?.[900] || '',
+      }
+    : {
+        // Dark mode (default for OG images, also explicit theme === 'dark')
+        '--ui-text-dimmed': neutralColors?.[500] || '',
+        '--ui-text-muted': neutralColors?.[400] || '',
+        '--ui-text-toned': neutralColors?.[300] || '',
+        '--ui-text': neutralColors?.[200] || '',
+        '--ui-text-highlighted': '#ffffff',
+        '--ui-text-inverted': neutralColors?.[900] || '',
+        '--ui-bg': neutralColors?.[900] || '',
+        '--ui-bg-muted': neutralColors?.[800] || '',
+        '--ui-bg-elevated': neutralColors?.[800] || '',
+        '--ui-bg-accented': neutralColors?.[700] || '',
+        '--ui-bg-inverted': '#ffffff',
+        '--ui-border': neutralColors?.[800] || '',
+        '--ui-border-muted': neutralColors?.[700] || '',
+        '--ui-border-accented': neutralColors?.[700] || '',
+        '--ui-border-inverted': '#ffffff',
+      }
+  // Force-set semantic vars to override any conflicting CSS-extracted vars
   for (const [name, value] of Object.entries(semanticVars)) {
     if (value)
       vars.set(name, value)
@@ -169,12 +197,15 @@ type TwCompiler = Awaited<ReturnType<typeof import('tailwindcss').compile>>
 let cachedCompiler: TwCompiler | null = null
 let cachedCssPath: string | null = null
 let cachedVars: Map<string, string> | null = null
+/** Theme-qualified vars extracted from compiled CSS (populated lazily as classes are built). */
+let cachedExtractedVars: ExtractedCssVars | null = null
 let pendingCompiler: Promise<{ compiler: TwCompiler, vars: Map<string, string> }> | null = null
 const resolvedStyleCache = new Map<string, Record<string, string> | null>()
 
 /** Clear user vars and style cache only (for HMR when CSS files change) */
 export function clearTw4UserVarsCache() {
   cachedVars = null
+  cachedExtractedVars = null
   resolvedStyleCache.clear()
 }
 
@@ -183,6 +214,7 @@ export function clearTw4Cache() {
   cachedCompiler = null
   cachedCssPath = null
   cachedVars = null
+  cachedExtractedVars = null
   pendingCompiler = null
   resolvedStyleCache.clear()
 }
@@ -232,13 +264,20 @@ async function getCompiler(cssPath: string, nuxtUiColors?: Record<string, string
 
     const vars = new Map<string, string>()
 
-    // Add Nuxt UI color fallbacks
+    // Add Nuxt UI color fallbacks (legacy path: force-dark semantics)
     if (nuxtUiColors)
       buildNuxtUiVars(vars, nuxtUiColors)
 
     cachedCompiler = compiler
     cachedCssPath = cssPath
     cachedVars = vars
+    cachedExtractedVars = {
+      rootVars: new Map(),
+      qualifiedRules: [],
+      universalVars: new Map(),
+      propertyInitials: new Map(),
+      perClassVars: new Map(),
+    }
     resolvedStyleCache.clear()
 
     return { compiler, vars }
@@ -263,8 +302,13 @@ interface ParsedCssOutput {
 /**
  * Parse TW4 compiler output.
  * Extracts CSS variables into vars Map and returns class styles + per-class vars.
+ * If `extractedAccum` is provided, also accumulates theme-qualified rules for theme-aware resolution.
  */
-async function parseCssOutput(rawCss: string, vars: Map<string, string>): Promise<ParsedCssOutput> {
+async function parseCssOutput(
+  rawCss: string,
+  vars: Map<string, string>,
+  extractedAccum?: ExtractedCssVars,
+): Promise<ParsedCssOutput> {
   const css = await simplifyCss(rawCss)
 
   // Extract :root/:host variables
@@ -281,6 +325,33 @@ async function parseCssOutput(rawCss: string, vars: Map<string, string>): Promis
 
   // Extract per-class CSS variable overrides (e.g., .shadow-2xl { --tw-shadow: ... })
   const perClassVars = extractPerClassVars(css)
+
+  // Theme-aware extraction: populate qualified-rule-aware vars cache
+  if (extractedAccum) {
+    const fresh = await extractVarsFromCss(css)
+    for (const [n, v] of fresh.rootVars) {
+      if (!extractedAccum.rootVars.has(n))
+        extractedAccum.rootVars.set(n, v)
+    }
+    extractedAccum.qualifiedRules.push(...fresh.qualifiedRules)
+    for (const [n, v] of fresh.universalVars) {
+      if (!extractedAccum.universalVars.has(n))
+        extractedAccum.universalVars.set(n, v)
+    }
+    for (const [n, v] of fresh.propertyInitials) {
+      if (!extractedAccum.propertyInitials.has(n))
+        extractedAccum.propertyInitials.set(n, v)
+    }
+    for (const [name, classVars] of fresh.perClassVars) {
+      const existing = extractedAccum.perClassVars.get(name)
+      if (existing) {
+        for (const [k, v] of classVars) existing.set(k, v)
+      }
+      else {
+        extractedAccum.perClassVars.set(name, new Map(classVars))
+      }
+    }
+  }
 
   // Extract class styles (skip --tw-* and all CSS vars from style output)
   const classes = extractClassStyles(css, { skipPrefixes: ['--'], merge: true })
@@ -396,50 +467,94 @@ async function buildGradient(
 // ============================================================================
 
 /**
+ * Build a flat var Map for a given theme by overlaying nuxt-ui semantic vars
+ * (theme-aware) and theme-qualified CSS extracted vars onto the legacy base vars.
+ */
+function buildThemeVars(
+  baseVars: Map<string, string>,
+  extracted: ExtractedCssVars | null,
+  theme: 'light' | 'dark',
+  nuxtUiColors?: Record<string, string>,
+): Map<string, string> {
+  // Start from a clone of baseVars stripped of legacy semantic overrides — those
+  // are dark-only and would mask the theme we're building for.
+  const vars = new Map(baseVars)
+
+  // Re-apply nuxt-ui vars for the requested theme (overrides legacy dark-only)
+  if (nuxtUiColors)
+    buildNuxtUiVars(vars, nuxtUiColors, theme)
+
+  if (extracted) {
+    const themeRootAttrs: Record<string, string> = { 'data-theme': theme }
+    const themeVars = resolveExtractedVars(extracted, themeRootAttrs)
+    for (const [n, v] of themeVars)
+      vars.set(n, v)
+  }
+  return vars
+}
+
+/**
  * Resolve an array of Tailwind classes to their full CSS style declarations.
  * Returns a map of class -> { property: value } for all resolvable classes.
+ *
+ * When `theme` is provided, resolution uses theme-aware vars (semantic Nuxt UI
+ * tokens swap based on theme). Otherwise legacy force-dark behavior is used.
  */
 export async function resolveClassesToStyles(
   classes: string[],
   options: Tw4ResolverOptions,
   context?: string,
+  theme?: 'light' | 'dark',
 ): Promise<Record<string, Record<string, string>>> {
   const { compiler, vars } = await getCompiler(options.cssPath, options.nuxtUiColors)
 
-  const uncached = classes.filter(c => !resolvedStyleCache.has(c))
+  // Cache key includes theme so light/dark resolve independently
+  const cacheKeyFor = (cls: string) => theme ? `${cls}|${theme}` : cls
+
+  const uncached = classes.filter(c => !resolvedStyleCache.has(cacheKeyFor(c)))
 
   if (uncached.length > 0) {
     const outputCss = compiler.build(uncached)
-    const { classes: parsedClasses, perClassVars } = await parseCssOutput(outputCss, vars)
+    // Always populate cachedExtractedVars so theme switches stay correct
+    const { classes: parsedClasses, perClassVars } = await parseCssOutput(outputCss, vars, cachedExtractedVars || undefined)
+
+    const resolveVarsForClass = theme
+      ? buildThemeVars(vars, cachedExtractedVars, theme, options.nuxtUiColors)
+      : vars
 
     for (const [className, rawStyles] of parsedClasses) {
       // Merge global vars with per-class var overrides for resolution
       const classVars = perClassVars.get(className)
-      const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
+      const mergedVars = classVars ? new Map([...resolveVarsForClass, ...classVars]) : resolveVarsForClass
       const styles = await postProcessStyles(rawStyles, mergedVars, undefined, context)
+      const cacheKey = cacheKeyFor(className)
       // Gradients must resolve to something for buildGradient to find them later
       if (!styles && className.startsWith('bg-gradient-')) {
-        resolvedStyleCache.set(className, rawStyles)
+        resolvedStyleCache.set(cacheKey, rawStyles)
       }
       else {
-        resolvedStyleCache.set(className, styles)
+        resolvedStyleCache.set(cacheKey, styles)
       }
     }
 
     for (const c of uncached) {
-      if (!resolvedStyleCache.has(c))
-        resolvedStyleCache.set(c, null)
+      const key = cacheKeyFor(c)
+      if (!resolvedStyleCache.has(key))
+        resolvedStyleCache.set(key, null)
     }
   }
 
   const result: Record<string, Record<string, string>> = {}
   for (const cls of classes) {
-    const resolved = resolvedStyleCache.get(cls)
+    const resolved = resolvedStyleCache.get(cacheKeyFor(cls))
     if (resolved)
       result[cls] = resolved
   }
 
-  const gradient = await buildGradient(classes, vars)
+  const gradientVars = theme
+    ? buildThemeVars(vars, cachedExtractedVars, theme, options.nuxtUiColors)
+    : vars
+  const gradient = await buildGradient(classes, gradientVars)
   if (gradient) {
     result[gradient.gradientClass] = { 'background-image': gradient.value }
     for (const colorClass of gradient.colorClasses) {
@@ -548,7 +663,7 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
   return {
     name: 'tailwind',
 
-    async resolveClassesToStyles(classes: string[], context?: string): Promise<Record<string, Record<string, string> | string>> {
+    async resolveClassesToStyles(classes: string[], context?: string, rootAttrs?: Record<string, string>): Promise<Record<string, Record<string, string> | string>> {
       await init()
       if (!cssPath)
         return {}
@@ -558,10 +673,14 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
       const classesToResolve = [...new Set([...classes, ...baseClasses])]
 
       const nuxtUiColors = await options.loadNuxtUiColors()
+      // Theme opt-in: only when rootAttrs has explicit data-theme. Otherwise legacy force-dark.
+      const theme = rootAttrs?.['data-theme'] === 'light' || rootAttrs?.['data-theme'] === 'dark'
+        ? rootAttrs['data-theme']
+        : undefined
       const tw4Resolved = await resolveClassesToStyles(classesToResolve, {
         cssPath,
         nuxtUiColors,
-      }, context)
+      }, context, theme)
 
       // Convert to Map for shared variant resolution
       const resolvedMap = new Map(Object.entries(tw4Resolved))
@@ -578,13 +697,18 @@ export function createTw4Provider(options: Tw4ProviderOptions): CssProvider {
       return extractTw4Metadata({ cssPath, nuxtUiColors })
     },
 
-    async getVars() {
+    async getVars(rootAttrs?: Record<string, string>) {
       await init()
       if (!cssPath)
         return new Map()
       const nuxtUiColors = await options.loadNuxtUiColors()
       const { vars } = await getCompiler(cssPath, nuxtUiColors)
-      return vars
+      const theme = rootAttrs?.['data-theme'] === 'light' || rootAttrs?.['data-theme'] === 'dark'
+        ? rootAttrs['data-theme']
+        : undefined
+      if (!theme)
+        return vars
+      return buildThemeVars(vars, cachedExtractedVars, theme, nuxtUiColors)
     },
 
     clearUserVarsCache: clearTw4UserVarsCache,
