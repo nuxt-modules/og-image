@@ -22,7 +22,7 @@ overrides:
   vite: 8.0.6
   vitest-environment-nuxt: 2.0.0
 catalog:
-  '@antfu/eslint-config': ^8.2.0
+  '@antfu/eslint-config': ^9.0.0
   '@clack/prompts': ^1.3.0
   '@fontsource/noto-sans-sc': ^5.2.9
   '@iconify-json/carbon': ^1.2.20
