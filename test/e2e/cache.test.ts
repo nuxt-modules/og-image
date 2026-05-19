@@ -82,7 +82,7 @@ describe('cache headers', () => {
     await fetch(ogUrl!)
     // Second request should hit
     const res = await fetch(ogUrl!)
-    expect(res.headers.get('x-og-cache')).toMatchInlineSnapshot(`null`)
+    expect(res.headers.get('x-og-cache')).toMatchInlineSnapshot(`"HIT"`)
   }, 60000)
 
   it('prerendered OG image has immutable cache headers', async () => {
