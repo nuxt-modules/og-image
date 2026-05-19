@@ -1,4 +1,4 @@
-import type { Node } from '@takumi-rs/core'
+import type { Node } from '@takumi-rs/helpers'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
 import { withBase } from 'ufo'

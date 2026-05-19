@@ -1,4 +1,4 @@
-import type { ContainerNode, ImageNode, Node, TextNode } from '@takumi-rs/core'
+import type { ContainerNode, ImageNode, Node, TextNode } from '@takumi-rs/helpers'
 import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { createVNodes, resolveSvgDimension, SVG_CAMEL_ATTR_VALUES } from '../core/vnodes'
 

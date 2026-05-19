@@ -1,4 +1,4 @@
-import type { Node } from '@takumi-rs/core'
+import type { Node } from '@takumi-rs/helpers'
 
 const takumiInstance: { instance?: { initWasmPromise: Promise<void>, Renderer: any, extractResourceUrls: (node: Node) => string[] | Promise<string[]> } } = { instance: undefined }
 
