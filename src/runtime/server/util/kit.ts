@@ -10,7 +10,10 @@ import { withoutBase, withoutTrailingSlash } from 'ufo'
 export { withoutQuery } from 'nuxtseo-shared/utils'
 
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>, timeout?: number): Promise<NuxtIslandResponse> {
-  const hashId = hash([component, props]).replaceAll('_', '-')
+  // Must match Nuxt's `computeIslandHash` (nuxt/dist/app/island-hash.js):
+  // `hash([name, filteredProps, context, source]).replace(/[-_]/g, '')`. The server
+  // rejects mismatches with `400 Invalid island request hash`.
+  const hashId = hash([component, props, {}, undefined]).replace(/[-_]/g, '')
   // signal aborts the underlying fetch; `timeout` is the @nuxt/fetch-level
   // guard (some adapters honor one but not the other).
   const signal = timeout ? AbortSignal.timeout(timeout) : undefined
