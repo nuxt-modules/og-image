@@ -14,7 +14,9 @@ export function checkLocalChrome() {
   try {
     hasChromeLocally = !!Launcher.getFirstInstallation()
   }
-  catch { }
+  catch {
+    // Chrome detection can fail on unsupported hosts; treat it as unavailable.
+  }
   return hasChromeLocally
 }
 

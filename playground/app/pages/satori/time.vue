@@ -6,6 +6,7 @@ definePageMeta({
 })
 
 const description = 'This is a description of the page. It can be a bit longer than the title.'
+const title = useState('og-image-time-title', () => `The time is: ${Date.now()}`)
 </script>
 
 <template>
@@ -13,6 +14,6 @@ const description = 'This is a description of the page. It can be a bit longer t
     <div>
       Dynamic Banner page
     </div>
-    <OgImageWithoutCache data-allow-mismatch="attribute" :title="`The time is: ${Date.now()}`" :description="description" icon="carbon:alarm" />
+    <OgImageWithoutCache data-allow-mismatch="attribute" :title="title" :description="description" icon="carbon:alarm" />
   </div>
 </template>

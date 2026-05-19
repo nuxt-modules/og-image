@@ -21,6 +21,7 @@ export async function ensureLocalModuleStub() {
     return
   }
   catch {
+    // Missing stubs are generated below.
   }
 
   if (!localModuleStubPromise) {

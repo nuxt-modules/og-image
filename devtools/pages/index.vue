@@ -997,7 +997,9 @@ const productionHostname = computed(() => {
                   rows="3"
                   @change="(() => {
                     try { editProp(key, JSON.parse(($event.target as HTMLTextAreaElement).value)) }
-                    catch {}
+                    catch {
+                      // Invalid JSON is expected while editing; keep the previous prop value.
+                    }
                   })()"
                 />
                 <input

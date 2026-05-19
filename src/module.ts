@@ -788,7 +788,10 @@ export default defineNuxtModule<ModuleOptions>({
           }
           else {
             await import('sharp')
-              .catch(() => {})
+              .catch((err) => {
+                // Optional sharp dependency can be declared but unavailable in this runtime.
+                void err
+              })
               .then(() => {
                 attemptSharpUsage = true
               })

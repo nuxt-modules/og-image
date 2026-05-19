@@ -265,7 +265,10 @@ describe('vue-template-transform', () => {
         resolveStyles: async () => {
           throw new Error('Resolver failed')
         },
-      }).catch(() => undefined)
+      }).catch((err) => {
+        // This test only asserts that resolver failures do not crash the test runner.
+        void err
+      })
 
       // Should not crash, may return undefined or partial result
       expect(true).toBe(true)

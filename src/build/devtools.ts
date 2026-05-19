@@ -189,10 +189,16 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
     const safeBroadcast = (fn: () => unknown) => {
       try {
         const result = fn()
-        if (result && typeof (result as Promise<unknown>).then === 'function')
-          (result as Promise<unknown>).catch(() => {})
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<unknown>).catch((err) => {
+            // Devtools broadcasts are best-effort; disconnected clients are ignored.
+            void err
+          })
+        }
       }
-      catch {}
+      catch {
+        // Devtools broadcasts are best-effort; disconnected clients are ignored.
+      }
     }
     let cssRefreshTimer: ReturnType<typeof setTimeout> | undefined
     nuxt.hook('builder:watch', (e, watchPath) => {

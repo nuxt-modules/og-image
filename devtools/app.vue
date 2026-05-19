@@ -43,7 +43,9 @@ function getHostOgImageDebugUrl(): string | undefined {
       return
     return new URL(content).pathname.replace(RE_IMAGE_EXT, '.json')
   }
-  catch {}
+  catch {
+    // Cross-origin parent documents cannot be inspected; fall back to route options.
+  }
 }
 
 const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = useAsyncData<PathDebugResponse>('path-debug', async () => {

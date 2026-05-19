@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { resolvePath } from 'mlly'
+import { resolveModulePath } from 'exsolve'
 
 export async function importWasm(input: any) {
   // may be a nested await for some reason
@@ -17,6 +17,6 @@ export async function importWasm(input: any) {
 }
 
 export async function readWasmFile(input: string) {
-  const path = await resolvePath(input)
+  const path = resolveModulePath(input)
   return readFile(path) // stackblitz provides fs
 }

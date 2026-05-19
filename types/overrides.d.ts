@@ -34,3 +34,38 @@ declare module '@nuxt/test-utils/vitest' {
     }
   }
 }
+
+declare module '@takumi-rs/core' {
+  export interface BaseNode {
+    type: string
+    tw?: string
+    style?: Record<string, any>
+  }
+
+  export interface TextNode extends BaseNode {
+    type: 'text'
+    text: string
+  }
+
+  export interface ImageNode extends BaseNode {
+    type: 'image'
+    src: string
+    width?: number
+    height?: number
+  }
+
+  export interface ContainerNode extends BaseNode {
+    type: 'container'
+    children?: Node[]
+  }
+
+  export type Node = TextNode | ImageNode | ContainerNode
+
+  export class Renderer {
+    loadFont(font: { name: string, data: BufferSource, weight?: number, style?: 'normal' | 'italic' | 'oblique' }): Promise<number> | number
+    render(node: Node, options: Record<string, any>): Uint8Array
+    close?: () => Promise<void> | void
+  }
+
+  export function extractResourceUrls(node: Node): string[] | Promise<string[]>
+}

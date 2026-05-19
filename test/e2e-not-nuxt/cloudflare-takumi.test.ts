@@ -224,7 +224,9 @@ describe('cloudflare-takumi', () => {
         try {
           renderer.loadFont({ name: 'Inter', data, weight: 400, style: 'normal' })
         }
-        catch {}
+        catch {
+          // Some subsets may not contain standalone font metadata; later render assertions cover fallback behavior.
+        }
       }
 
       const buffer = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
@@ -242,7 +244,9 @@ describe('cloudflare-takumi', () => {
           renderer.loadFont({ name, data: fontSubsets[i], weight: 400, style: 'normal' })
           names.push(name)
         }
-        catch {}
+        catch {
+          // Some subsets may not contain standalone font metadata; later render assertions cover fallback behavior.
+        }
       }
 
       const buffer = renderer.render(

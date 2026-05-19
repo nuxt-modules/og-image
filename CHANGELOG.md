@@ -1,6 +1,28 @@
 # Changelog
 
 
+## v6.4.11...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.11...main)
+
+### 🚀 Enhancements
+
+- **nuxt-ui:** Color mode aware token resolution via `data-theme` ([#598](https://github.com/nuxt-modules/og-image/pull/598))
+
+### 🩹 Fixes
+
+- **fonts:** Skip fontaine fallbacks ([aa33012c](https://github.com/nuxt-modules/og-image/commit/aa33012c))
+- **takumi:** Treat single-entry variable fonts as axis-driven (defensive) ([#599](https://github.com/nuxt-modules/og-image/pull/599))
+- **takumi:** Keep variable WOFF2 over per-weight static fallback ([#600](https://github.com/nuxt-modules/og-image/pull/600))
+
+### 🏡 Chore
+
+- Bump ([01efcf4e](https://github.com/nuxt-modules/og-image/commit/01efcf4e))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.4.9...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.9...main)

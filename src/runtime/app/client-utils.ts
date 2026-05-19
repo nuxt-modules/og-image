@@ -27,7 +27,9 @@ function registerClientOgHead(ogKey: string, input: UseHeadInput, options?: Para
       }
     }
   }
-  catch {}
+  catch {
+    // Head injection may be unavailable outside a Vue setup scope; useHead still handles registration.
+  }
   entries?.get(ogKey)?.dispose()
   const entry = useHead(input, options) as ActiveHeadEntry<Head> | undefined
   if (entry && entries)

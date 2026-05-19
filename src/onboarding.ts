@@ -339,8 +339,12 @@ defineProps<{
 </template>
 `
 
-  if (!existsSync(componentDir))
-    await mkdir(componentDir, { recursive: true }).catch(() => {})
+  if (!existsSync(componentDir)) {
+    await mkdir(componentDir, { recursive: true }).catch((err) => {
+      // The following write reports the user-facing failure if the directory is still missing.
+      void err
+    })
+  }
 
   await writeFile(componentPath, template)
     .then(() => logger.success('Created components/OgImage/Default.vue'))

@@ -59,7 +59,9 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
             statusMessage: '[Nuxt OG Image] Invalid purge token. Provide the signing secret as ?purge=<secret>.',
           })
         }
-        await cache.removeItem(key).catch(() => {
+        await cache.removeItem(key).catch((err) => {
+          // Cache purge should not fail the request if the backend already removed the item.
+          void err
         })
       }
       else if (expiresAt > Date.now()) {
@@ -80,7 +82,9 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       }
       else {
         // expired
-        await cache.removeItem(key).catch(() => {
+        await cache.removeItem(key).catch((err) => {
+          // Expired cache cleanup is best-effort.
+          void err
         })
       }
     }

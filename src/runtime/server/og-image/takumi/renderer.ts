@@ -80,7 +80,10 @@ function withTakumiLock<T>(
   }
   // Schedule the work once; future callers chain off this same `work`.
   const work = state.lock.then(guarded, guarded)
-  state.lock = work.catch(() => undefined)
+  state.lock = work.catch((err) => {
+    // The caller receives the render failure; keep the shared lock chain usable.
+    void err
+  })
   // Lock-acquire timeout: if `work` (or the previous holder it queues behind)
   // hangs past timeoutMs, release THIS caller early so the upstream request
   // returns 408 instead of contributing to a snowballing queue. The work
@@ -279,7 +282,11 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
           signal: AbortSignal.timeout(fetchTimeout),
           timeout: fetchTimeout,
           headers,
-        }).catch(() => undefined) as ArrayBuffer | undefined
+        }).catch((err) => {
+          // Dev-only external resource fetching is best-effort.
+          void err
+          return undefined
+        }) as ArrayBuffer | undefined
       }
       else if (!isBlockedUrl(src)) {
         // Defense-in-depth: any URL surviving the imageSrc transformer is
@@ -360,9 +367,9 @@ const TakumiRenderer: Renderer = {
     ])
     return {
       vnodes,
-      fonts: fonts.map(({ data: _, ...f }) => ({
+      fonts: fonts.map(({ data, ...f }) => ({
         ...f,
-        size: _.byteLength,
+        size: data.byteLength,
       })),
     }
   },
