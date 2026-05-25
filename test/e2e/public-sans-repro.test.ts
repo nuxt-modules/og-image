@@ -14,6 +14,7 @@ await setup({
   rootDir: resolve('../fixtures/public-sans-repro'),
   server: true,
   build: true,
+  setupTimeout: 240_000,
 })
 
 setupImageSnapshots(SNAPSHOT_LOOSE)
