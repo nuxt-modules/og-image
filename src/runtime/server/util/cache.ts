@@ -20,6 +20,8 @@ function safeCompare(a: string, b: string): boolean {
   return mismatch === 0
 }
 
+let cacheBackendWarned = false
+
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
@@ -36,15 +38,15 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   let cachedItem: BufferSource | false = false
   if (enabled) {
     const hasItem = await cache.hasItem(key).catch((e) => {
+      // Backend unreachable (e.g. NuxtHub KV binding missing during Node prerender).
+      // Degrade to no-cache for this request rather than failing the render.
       enabled = false
-      return createError({
-        cause: e,
-        statusCode: 500,
-        statusMessage: `[Nuxt OG Image] Failed to connect to cache ${options.baseCacheKey}. Response from cache: ${e.message}`,
-      })
+      if (!cacheBackendWarned) {
+        cacheBackendWarned = true
+        logger.warn(`[Nuxt OG Image] Cache backend "${options.baseCacheKey}" unreachable, continuing without cache: ${e?.message || e}`)
+      }
+      return false
     })
-    if (hasItem instanceof Error)
-      return hasItem
     if (hasItem) {
       const { value, expiresAt, headers } = await cache.getItem(key).catch(() => ({
         value: null,
