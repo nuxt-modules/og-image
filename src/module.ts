@@ -325,13 +325,10 @@ export default defineNuxtModule<ModuleOptions>({
     // to incorrectly resolve to dist/shared/runtime/... instead of dist/runtime/...
     // TODO find upstream fix or broken code in module
     const fixSharedPath = (p: string) => {
-      if (p.includes('/shared/runtime/'))
-        return p.replace('/shared/runtime/', '/runtime/')
-      if (p.includes('/shared/client'))
-        return p.replace('/shared/client', '/client')
-      if (p.includes('/shared/devtools'))
-        return p.replace('/shared/devtools', '/devtools')
       return p
+        .replace(/\/shared\/runtime(\/|$)/, '/runtime$1')
+        .replace(/\/shared\/client(\/|$)/, '/client$1')
+        .replace(/\/shared\/devtools(\/|$)/, '/devtools$1')
     }
     const resolve: typeof _resolver.resolve = path => fixSharedPath(_resolver.resolve(path))
     const resolver: typeof _resolver = {
