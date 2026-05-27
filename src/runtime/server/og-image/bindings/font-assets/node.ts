@@ -1,7 +1,8 @@
 import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
-import { useRuntimeConfig } from 'nitropack/runtime'
 import { withBase } from 'ufo'
+// eslint-disable-next-line import/no-unresolved
+import { useRuntimeConfig } from '#imports'
 import { getNitroOrigin } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { useOgImageRuntimeConfig } from '../../../utils'

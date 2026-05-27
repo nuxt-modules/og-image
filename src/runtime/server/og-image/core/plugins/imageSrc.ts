@@ -1,7 +1,8 @@
 import type { H3Event } from 'h3'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
-import { useStorage } from 'nitropack/runtime'
 import { withBase, withoutLeadingSlash } from 'ufo'
+// eslint-disable-next-line import/no-unresolved
+import { useStorage } from '#imports'
 import { getNitroOrigin } from '#site-config/server/composables/getNitroOrigin'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'

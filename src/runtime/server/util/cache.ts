@@ -1,10 +1,11 @@
 import type { H3Error } from 'h3'
 import type { OgImageRenderEventContext } from '../../types'
 import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
-import { useStorage } from 'nitropack/runtime'
 import { digest } from 'ohash'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+// eslint-disable-next-line import/no-unresolved
+import { useStorage } from '#imports'
 import { logger } from '../../logger'
 
 /**

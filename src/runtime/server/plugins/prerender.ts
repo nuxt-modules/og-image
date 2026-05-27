@@ -1,8 +1,9 @@
 import type { Hookable } from 'hookable'
 import { parse } from 'devalue'
 import { appendResponseHeader } from 'h3'
-import { defineNitroPlugin } from 'nitropack/runtime'
 import { parseURL } from 'ufo'
+// eslint-disable-next-line import/no-unresolved
+import { defineNitroPlugin } from '#imports'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { isInternalRoute } from '../../shared'

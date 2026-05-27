@@ -1,5 +1,6 @@
 import type { OgImageRenderEventContext } from '../../../../../types'
-import { useNitroApp } from 'nitropack/runtime'
+// eslint-disable-next-line import/no-unresolved
+import { useNitroApp } from '#imports'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 
 interface IconsData { icons: Record<string, { body: string, width?: number, height?: number }>, width: number, height: number }
@@ -9,6 +10,12 @@ declare module '#og-image-virtual/iconify-json-icons.mjs' {
 }
 
 declare module 'nitropack/types' {
+  interface NitroApp {
+    _ogImageIconsData?: IconsData
+  }
+}
+
+declare module 'nitro/types' {
   interface NitroApp {
     _ogImageIconsData?: IconsData
   }

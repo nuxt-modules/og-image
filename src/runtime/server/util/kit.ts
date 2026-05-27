@@ -2,10 +2,11 @@ import type { H3Event } from 'h3'
 import type { NitroRouteRules } from 'nitropack'
 import type { NuxtIslandResponse } from 'nuxt/app'
 import { defu } from 'defu'
-import { useRuntimeConfig } from 'nitropack/runtime'
 import { hash } from 'ohash'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withoutBase, withoutTrailingSlash } from 'ufo'
+// eslint-disable-next-line import/no-unresolved
+import { useRuntimeConfig } from '#imports'
 
 export { withoutQuery } from 'nuxtseo-shared/utils'
 
