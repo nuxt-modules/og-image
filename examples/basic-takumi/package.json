@@ -10,7 +10,7 @@
   "dependencies": {
     "@nuxt/fonts": "^0.14.0",
     "@tailwindcss/vite": "^4.3.0",
-    "@takumi-rs/core": "^1.2.1",
+    "@takumi-rs/core": "^1.5.1",
     "nuxt": "^4.4.6",
     "nuxt-og-image": "latest",
     "nuxt-site-config": "^4.0.8",

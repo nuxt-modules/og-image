@@ -35,7 +35,6 @@ minimumReleaseAgeExclude:
 shellEmulator: true
 
 trustPolicy: no-downgrade
-
 trustPolicyExclude:
   - chokidar@4.0.3
   - eslint-import-resolver-typescript@3.10.1
@@ -44,6 +43,7 @@ trustPolicyExclude:
   - koa@2.16.3
   - semver@5.7.2
   - '@nuxtjs/tailwindcss@7.0.0-beta.1'
+  - tinyexec@1.2.2
 packages:
   - playground
   - devtools
@@ -57,7 +57,7 @@ catalog:
   '@antfu/eslint-config': ^9.0.0
   '@clack/prompts': ^1.4.0
   '@fontsource/noto-sans-sc': ^5.2.9
-  '@iconify-json/carbon': ^1.2.21
+  '@iconify-json/carbon': ^1.2.22
   '@iconify-json/logos': ^1.2.11
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
@@ -73,25 +73,25 @@ catalog:
   '@nuxt/kit': ^4.4.6
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^4.0.3
-  '@nuxt/ui': ^4.7.1
+  '@nuxt/ui': ^4.8.0
   '@nuxtjs/color-mode': ^4.0.0
   '@nuxtjs/eslint-config-typescript': ^12.1.0
-  '@nuxtjs/i18n': ^10.3.0
+  '@nuxtjs/i18n': ^10.4.0
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
-  '@shikijs/langs': ^4.0.2
-  '@shikijs/themes': ^4.0.2
+  '@shikijs/langs': ^4.1.0
+  '@shikijs/themes': ^4.1.0
   '@tailwindcss/vite': ^4.3.0
-  '@takumi-rs/core': ^1.2.1
-  '@takumi-rs/helpers': ^1.2.1
-  '@takumi-rs/wasm': ^1.2.1
-  '@unocss/config': ^66.6.8
-  '@unocss/core': ^66.6.8
-  '@unocss/nuxt': ^66.6.8
-  '@unocss/preset-icons': ^66.6.8
-  '@unocss/preset-wind': ^66.6.8
-  '@unocss/preset-wind4': ^66.6.8
+  '@takumi-rs/core': ^1.5.1
+  '@takumi-rs/helpers': ^1.5.1
+  '@takumi-rs/wasm': ^1.5.1
+  '@unocss/config': ^66.7.0
+  '@unocss/core': ^66.7.0
+  '@unocss/nuxt': ^66.7.0
+  '@unocss/preset-icons': ^66.7.0
+  '@unocss/preset-wind': ^66.7.0
+  '@unocss/preset-wind4': ^66.7.0
   '@vitejs/plugin-vue': ^6.0.7
   '@vue/compiler-core': ^3.5.34
   '@vue/compiler-sfc': ^3.5.34
@@ -106,7 +106,7 @@ catalog:
   defu: ^6.1.7
   devalue: ^5.8.1
   eslint: ^10.4.0
-  eslint-plugin-harlanzw: ^0.15.1
+  eslint-plugin-harlanzw: ^0.16.0
   exsolve: ^1.0.8
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
@@ -126,40 +126,40 @@ catalog:
   nypm: ^0.6.6
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.132.0
+  oxc-parser: ^0.133.0
   oxc-walker: ^1.0.0
   pathe: ^2.0.3
   pkg-types: ^2.3.1
   playwright: ^1.60.0
   playwright-core: ^1.60.0
   radix3: ^1.1.2
-  sass: ^1.99.0
+  sass: ^1.100.0
   satori: ^0.26.0
   sharp: ^0.34.5
   sirv: ^3.0.2
   std-env: ^4.1.0
   strip-literal: ^3.1.0
   tailwindcss: ^4.3.0
-  tinyexec: ^1.1.2
+  tinyexec: ^1.2.2
   tinyglobby: ^0.2.16
   typescript: ^6.0.3
   ufo: ^1.6.4
   ultrahtml: ^1.6.0
   unbuild: ^3.6.1
   unifont: ^0.7.4
-  unocss: ^66.6.8
+  unocss: ^66.7.0
   unplugin: ^3.0.0
-  vitest: ^4.1.6
+  vitest: ^4.1.7
   vue: ^3.5.34
   vue-router: ^5.0.7
-  vue-tsc: ^3.3.0
-  wrangler: ^4.92.0
+  vue-tsc: ^3.3.2
+  wrangler: ^4.94.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
 catalogs:
   devtools:
-    '@iconify-json/simple-icons': ^1.2.83
-    shiki: ^4.0.2
+    '@iconify-json/simple-icons': ^1.2.84
+    shiki: ^4.1.0
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'

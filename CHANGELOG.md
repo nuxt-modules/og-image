@@ -1,6 +1,24 @@
 # Changelog
 
 
+## v6.5.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.5.0...main)
+
+### 🩹 Fixes
+
+- Nuxt 4.4.6 island validation ([7a28d322](https://github.com/nuxt-modules/og-image/commit/7a28d322))
+
+### 🏡 Chore
+
+- Bump ([57bf33ee](https://github.com/nuxt-modules/og-image/commit/57bf33ee))
+- Tests ([ec3c8901](https://github.com/nuxt-modules/og-image/commit/ec3c8901))
+- Tests ([232ddd4e](https://github.com/nuxt-modules/og-image/commit/232ddd4e))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.4.11...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.4.11...main)
