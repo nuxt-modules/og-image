@@ -20,7 +20,11 @@ function safeCompare(a: string, b: string): boolean {
   return mismatch === 0
 }
 
-let cacheBackendWarned = false
+declare module 'nitropack/types' {
+  interface NitroApp {
+    _ogImageCacheBackendWarned?: boolean
+  }
+}
 
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
@@ -41,8 +45,8 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       // Backend unreachable (e.g. NuxtHub KV binding missing during Node prerender).
       // Degrade to no-cache for this request rather than failing the render.
       enabled = false
-      if (!cacheBackendWarned) {
-        cacheBackendWarned = true
+      if (!ctx._nitro._ogImageCacheBackendWarned) {
+        ctx._nitro._ogImageCacheBackendWarned = true
         logger.warn(`[Nuxt OG Image] Cache backend "${options.baseCacheKey}" unreachable, continuing without cache: ${e?.message || e}`)
       }
       return false
