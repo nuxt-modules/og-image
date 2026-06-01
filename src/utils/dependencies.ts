@@ -1,6 +1,7 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { RuntimeCompatibilitySchema } from '../runtime/types'
 import { addDependency, detectPackageManager } from 'nypm'
+import { hasTTY, isAgent, isCI } from 'std-env'
 import { getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { logger } from '../runtime/logger'
 import { hasResolvableDependency } from '../util'
@@ -199,6 +200,20 @@ export async function ensureProviderDependencies(
   }
 
   return { success: true, installed }
+}
+
+export interface InteractiveEnv {
+  hasTTY: boolean
+  isAgent: boolean
+  isCI: boolean
+}
+
+/**
+ * Whether we can safely show an interactive prompt. AI agents and CI runners have no
+ * TTY to answer a `consola.prompt`, so prompting there hangs or crashes the dev boot.
+ */
+export function canPromptInteractively(env: InteractiveEnv = { hasTTY, isAgent, isCI }): boolean {
+  return env.hasTTY && !env.isAgent && !env.isCI
 }
 
 export async function promptForRendererSelection(): Promise<ProviderName> {

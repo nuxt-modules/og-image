@@ -23,6 +23,7 @@ import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
 import { isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
+import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
@@ -50,7 +51,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -1050,13 +1051,16 @@ export default defineNuxtModule<ModuleOptions>({
         ogImageComponentCtx.detectedRenderers.add(preferred.provider)
         logger.debug(`Using ${preferred.provider} renderer`)
       }
-      else if (nuxt.options.dev && !nuxt.options._prepare) {
+      else if (nuxt.options.dev && !nuxt.options._prepare && canPromptInteractively()) {
         const renderer = await promptForRendererSelection()
         ogImageComponentCtx.detectedRenderers.add(renderer)
         logger.debug(`Using ${renderer} renderer`)
       }
       else {
+        // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
+        // Warn so the choice is visible and the agent can pin a renderer explicitly.
         ogImageComponentCtx.detectedRenderers.add('takumi')
+        logger.warn('No OG image renderer dependency detected. Defaulting to `takumi` (non-interactive environment). Install `@takumi-rs/core`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.')
       }
     }
 
@@ -1076,9 +1080,16 @@ export default defineNuxtModule<ModuleOptions>({
             if (success) {
               availableRenderers.add(renderer)
             }
+            else if (isAgent) {
+              // agents can't recover from a half-installed renderer — fail loud and actionable
+              throw new Error(`[nuxt-og-image] Failed to install ${renderer} dependencies: ${missing.join(', ')}. Install manually: npx nypm add ${missing.join(' ')}`)
+            }
             else {
               logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
             }
+          }
+          else if (isAgent) {
+            throw new Error(`[nuxt-og-image] ${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
           }
           else {
             logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
