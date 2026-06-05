@@ -20,6 +20,24 @@ function safeCompare(a: string, b: string): boolean {
   return mismatch === 0
 }
 
+declare module 'nitropack/types' {
+  interface NitroApp {
+    _ogImageCacheBackendWarned?: boolean
+  }
+}
+
+/**
+ * Emit a single warning per Nitro app when the cache backend is unreachable.
+ * Throttled via a flag stashed on the Nitro app so a broken binding doesn't
+ * spam the logs on every request.
+ */
+function warnCacheBackendUnreachable(ctx: OgImageRenderEventContext, baseCacheKey: string | false, e: unknown): void {
+  if (ctx._nitro._ogImageCacheBackendWarned)
+    return
+  ctx._nitro._ogImageCacheBackendWarned = true
+  logger.warn(`[Nuxt OG Image] Cache backend "${baseCacheKey}" unreachable, continuing without cache: ${(e as Error)?.message || e}`)
+}
+
 // TODO replace once https://github.com/unjs/nitro/pull/1969 is merged
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
@@ -36,20 +54,24 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   let cachedItem: BufferSource | false = false
   if (enabled) {
     const hasItem = await cache.hasItem(key).catch((e) => {
+      // Backend unreachable (e.g. NuxtHub KV binding missing during Node prerender).
+      // Degrade to no-cache for this request rather than failing the render.
       enabled = false
-      return createError({
-        cause: e,
-        statusCode: 500,
-        statusMessage: `[Nuxt OG Image] Failed to connect to cache ${options.baseCacheKey}. Response from cache: ${e.message}`,
-      })
+      warnCacheBackendUnreachable(ctx, options.baseCacheKey, e)
+      return false
     })
-    if (hasItem instanceof Error)
-      return hasItem
-    if (hasItem) {
-      const { value, expiresAt, headers } = await cache.getItem(key).catch(() => ({
-        value: null,
-        expiresAt: Date.now(),
-      })) as any
+    // `hasItem` succeeding doesn't guarantee `getItem` will: the backend can become
+    // unreachable between the two calls, or the stored record can be unreadable.
+    // Degrade the same way rather than reporting it as an ordinary cache miss.
+    const entry = hasItem
+      ? await cache.getItem(key).catch((e) => {
+        enabled = false
+        warnCacheBackendUnreachable(ctx, options.baseCacheKey, e)
+        return null
+      }) as any
+      : null
+    if (entry) {
+      const { value, expiresAt, headers } = entry
       const purgeValue = getQuery(ctx.e).purge
       if (typeof purgeValue !== 'undefined') {
         // When URL signing is enabled, require the secret as the purge value
@@ -99,7 +121,9 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
     enabled,
     cachedItem,
     async update(item) {
-      setHeader(ctx.e, 'X-OG-Cache', intentionallyEnabled ? 'MISS' : 'DISABLED')
+      // `enabled` is false when caching is off OR the backend degraded mid-request;
+      // either way this isn't a normal miss that will be written back.
+      setHeader(ctx.e, 'X-OG-Cache', enabled ? 'MISS' : 'DISABLED')
       if (!enabled)
         return
       const value = Buffer.from(item as Uint8Array).toString('base64')
