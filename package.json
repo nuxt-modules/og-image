@@ -80,7 +80,8 @@
     "sharp": "^0.34.0",
     "tailwindcss": "^4.0.0",
     "unifont": "^0.7.0",
-    "unstorage": "^1.15.0"
+    "unstorage": "^1.15.0",
+    "zod": ">=3"
   },
   "peerDependenciesMeta": {
     "@resvg/resvg-js": {
@@ -114,6 +115,9 @@
       "optional": true
     },
     "unifont": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },
@@ -149,8 +153,7 @@
     "tinyglobby": "catalog:",
     "ufo": "catalog:",
     "ultrahtml": "catalog:",
-    "unplugin": "catalog:",
-    "zod": "catalog:"
+    "unplugin": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -219,6 +222,7 @@
     "vue": "catalog:",
     "vue-tsc": "catalog:",
     "wrangler": "catalog:",
-    "yoga-wasm-web": "catalog:"
+    "yoga-wasm-web": "catalog:",
+    "zod": "catalog:"
   }
 }

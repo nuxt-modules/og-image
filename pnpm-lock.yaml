@@ -432,9 +432,6 @@ importers:
       unstorage:
         specifier: ^1.15.0
         version: 1.17.5(db0@0.3.4(better-sqlite3@12.10.0))(ioredis@5.10.1)
-      zod:
-        specifier: 'catalog:'
-        version: 4.4.3
     devDependencies:
       '@antfu/eslint-config':
         specifier: 'catalog:'
@@ -634,6 +631,9 @@ importers:
       yoga-wasm-web:
         specifier: 'catalog:'
         version: 0.3.3
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
 
   devtools:
     devDependencies:
