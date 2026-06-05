@@ -10,6 +10,7 @@ import { promptFontsMigration } from './migrations/fonts'
 import { logger } from './runtime/logger'
 import { getRendererFromFilename, hasResolvableDependency } from './util'
 import {
+  canPromptInteractively,
   ensureProviderDependencies,
   getInstalledProviders,
   getMissingDependencies,
@@ -73,6 +74,13 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
         + 'See: https://nuxtseo.com/og-image/getting-started',
       )
     }
+    return
+  }
+
+  // non-interactive environment (AI agent or no TTY) — can't prompt, skip onboarding.
+  // module setup auto-detects installed providers and defaults to takumi.
+  if (!canPromptInteractively()) {
+    logger.info('Skipping interactive onboarding (non-interactive environment). Defaulting to the takumi renderer.')
     return
   }
 

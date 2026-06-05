@@ -1,6 +1,7 @@
 import type { Nuxt } from '@nuxt/schema'
 import type { RuntimeCompatibilitySchema } from '../runtime/types'
 import { addDependency, detectPackageManager } from 'nypm'
+import { hasTTY, isAgent, isCI } from 'std-env'
 import { getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { logger } from '../runtime/logger'
 import { hasResolvableDependency } from '../util'
@@ -199,6 +200,33 @@ export async function ensureProviderDependencies(
   }
 
   return { success: true, installed }
+}
+
+export interface InteractiveEnv {
+  /** stdout is a TTY (std-env `hasTTY`, derived from `process.stdout.isTTY`) */
+  hasTTY: boolean
+  /** stdin is a TTY — prompts read from stdin, so a piped/redirected stdin can't answer */
+  hasStdinTTY: boolean
+  isAgent: boolean
+  isCI: boolean
+}
+
+/**
+ * Whether we can safely show an interactive prompt. AI agents and CI runners have no
+ * TTY to answer a `consola.prompt`, so prompting there hangs or crashes the dev boot.
+ *
+ * Both stdout AND stdin must be TTYs: `std-env`'s `hasTTY` only reflects stdout, but a
+ * prompt reads from stdin, so a redirected/piped stdin (e.g. `nuxt dev < /dev/null`, or a
+ * parent spawning with `stdio: ['pipe', 'inherit', 'inherit']`) can never deliver an answer
+ * even when the terminal output looks interactive.
+ */
+export function canPromptInteractively(env: InteractiveEnv = {
+  hasTTY,
+  hasStdinTTY: Boolean(process.stdin?.isTTY),
+  isAgent,
+  isCI,
+}): boolean {
+  return env.hasTTY && env.hasStdinTTY && !env.isAgent && !env.isCI
 }
 
 export async function promptForRendererSelection(): Promise<ProviderName> {
