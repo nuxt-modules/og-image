@@ -107,10 +107,32 @@ function isPrivateIPv6(groups: number[]): boolean {
     return isPrivateIPv4(a, b)
   }
 
+  // ::/96 IPv4-compatible (deprecated, RFC 4291) — embedded IPv4 in the last 32 bits.
+  // Covers ::127.0.0.1, ::169.254.169.254 (metadata) etc. that legacy stacks still route.
+  if (g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0) {
+    const a = (g6 >> 8) & 0xFF
+    const b = g6 & 0xFF
+    return isPrivateIPv4(a, b)
+  }
+
+  // ::ffff:0:0/96 IPv4-translated (RFC 2765/6052) — embedded IPv4 in the last 32 bits
+  if (g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0xFFFF && g5 === 0) {
+    const a = (g6 >> 8) & 0xFF
+    const b = g6 & 0xFF
+    return isPrivateIPv4(a, b)
+  }
+
   // 64:ff9b::/96 NAT64 well-known prefix — embedded IPv4
   if (g0 === 0x64 && g1 === 0xFF9B && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0) {
     const a = (g6 >> 8) & 0xFF
     const b = g6 & 0xFF
+    return isPrivateIPv4(a, b)
+  }
+
+  // 2002::/16 6to4 — embedded IPv4 in the next 32 bits
+  if (g0 === 0x2002) {
+    const a = (g1 >> 8) & 0xFF
+    const b = g1 & 0xFF
     return isPrivateIPv4(a, b)
   }
 
