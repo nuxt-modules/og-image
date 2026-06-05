@@ -130,6 +130,24 @@ describe('isBlockedUrl — GHSA-c2rm-g55x-8hr5 bypasses', () => {
     expect(isBlockedUrl('http://[64:ff9b::a00:1]/')).toBe(true) // embedded 10.0.0.1
   })
 
+  it('blocks 2002::/16 6to4 addresses with embedded private IPv4', () => {
+    expect(isBlockedUrl('http://[2002:7f00:0001::]/')).toBe(true) // embedded 127.0.0.1
+    expect(isBlockedUrl('http://[2002:a9fe:a9fe::]/')).toBe(true) // embedded 169.254.169.254
+    expect(isBlockedUrl('http://[2002:0a00:0001::]/')).toBe(true) // embedded 10.0.0.1
+  })
+
+  it('blocks ::/96 IPv4-compatible (deprecated) with embedded private IPv4', () => {
+    expect(isBlockedUrl('http://[::127.0.0.1]/')).toBe(true) // loopback
+    expect(isBlockedUrl('http://[::7f00:1]/')).toBe(true) // loopback, hex form
+    expect(isBlockedUrl('http://[::a9fe:a9fe]/')).toBe(true) // 169.254.169.254 metadata
+    expect(isBlockedUrl('http://[::0a00:1]/')).toBe(true) // 10.0.0.1
+  })
+
+  it('blocks ::ffff:0:0/96 IPv4-translated with embedded private IPv4', () => {
+    expect(isBlockedUrl('http://[::ffff:0:127.0.0.1]/')).toBe(true) // 127.0.0.1
+    expect(isBlockedUrl('http://[::ffff:0:a9fe:a9fe]/')).toBe(true) // 169.254.169.254
+  })
+
   it('blocks 2001:db8::/32 documentation', () => {
     expect(isBlockedUrl('http://[2001:db8::1]/')).toBe(true)
   })
@@ -153,5 +171,13 @@ describe('isBlockedUrl — public addresses pass through', () => {
 
   it('allows 64:ff9b::/96 with public embedded IPv4', () => {
     expect(isBlockedUrl('http://[64:ff9b::8.8.8.8]/')).toBe(false)
+  })
+
+  it('allows 2002::/16 6to4 addresses with embedded public IPv4', () => {
+    expect(isBlockedUrl('http://[2002:0808:0808::]/')).toBe(false) // embedded 8.8.8.8
+  })
+
+  it('allows ::/96 IPv4-compatible with embedded public IPv4', () => {
+    expect(isBlockedUrl('http://[::8.8.8.8]/')).toBe(false) // embedded 8.8.8.8
   })
 })
