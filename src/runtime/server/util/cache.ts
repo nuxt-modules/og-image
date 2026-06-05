@@ -45,7 +45,11 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   secret?: string
 }): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
-  const intentionallyEnabled = !import.meta.dev && maxAge > 0
+  // Skip the runtime buffer cache during prerender. The output is written to a static
+  // file served via the `/_og/s/**` route rule (which sets its own immutable caching),
+  // and the configured backend may not exist in the Node build environment — e.g. a
+  // Cloudflare KV binding is only bound at runtime in the Worker, not during prerender (#613).
+  const intentionallyEnabled = !import.meta.dev && !import.meta.prerender && maxAge > 0
   let enabled = intentionallyEnabled
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
   const key = ctx.key
@@ -111,8 +115,9 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       }
     }
   }
-  if (!enabled) {
-    // add http headers so the file isn't cached
+  if (!enabled && !import.meta.prerender) {
+    // add http headers so the file isn't cached — but not during prerender, where the
+    // static output is meant to be cached and its headers come from the route rule.
     setHeader(ctx.e, 'Cache-Control', 'no-cache, no-store, must-revalidate')
     setHeader(ctx.e, 'Pragma', 'no-cache')
     setHeader(ctx.e, 'Expires', '0')
