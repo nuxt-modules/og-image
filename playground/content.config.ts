@@ -9,7 +9,7 @@ export default defineContentConfig({
       source: '**/*.md',
       schema: z.object({
         date: z.string().optional(),
-        ogImage: defineOgImageSchema(),
+        ogImage: defineOgImageSchema({ z }),
       }),
     }),
   },
