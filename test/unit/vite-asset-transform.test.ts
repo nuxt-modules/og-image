@@ -206,6 +206,77 @@ const msg = '👋'
     })
   })
 
+  describe('outer template bounds', () => {
+    const plugin = AssetTransformPlugin.raw({
+      ogComponentPaths,
+      rootDir: '/test',
+      srcDir: '/test',
+      publicDir: '/test/public',
+    }, { framework: 'vite' })
+
+    it('should preserve siblings after nested <template #slot> when transforming', async () => {
+      const code = `<template>
+  <div>
+    <Item v-for="x in items" :key="x">
+      <template #caption>caption-{{ x }}</template>
+    </Item>
+    <Icon name="tabler:star" />
+    <footer>sibling</footer>
+  </div>
+</template>`
+
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      expect(result).toBeDefined()
+      expect(result?.code).toContain('caption-{{ x }}')
+      expect(result?.code).toContain('<footer>sibling</footer>')
+      expect(result?.code).toContain('<svg')
+      expect(result?.code.endsWith('</template>')).toBe(true)
+      const nestedClose = (result!.code.match(/<\/template>/g) || []).length
+      expect(nestedClose).toBe(2)
+    })
+
+    it('should preserve siblings after nested <template v-if> when transforming', async () => {
+      const code = `<template>
+  <div>
+    <template v-if="showA">
+      <span>A</span>
+    </template>
+    <template v-else>
+      <span>B</span>
+    </template>
+    <Icon name="tabler:star" />
+    <footer>sibling</footer>
+  </div>
+</template>`
+
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      expect(result).toBeDefined()
+      expect(result?.code).toContain('<span>A</span>')
+      expect(result?.code).toContain('<span>B</span>')
+      expect(result?.code).toContain('<footer>sibling</footer>')
+      expect(result?.code).toContain('<svg')
+      expect(result?.code.endsWith('</template>')).toBe(true)
+      const nestedClose = (result!.code.match(/<\/template>/g) || []).length
+      expect(nestedClose).toBe(3)
+    })
+
+    it('should ignore <template lang="..."> attrs on the outer tag', async () => {
+      const code = `<template lang="html">
+  <div>
+    <Icon name="tabler:star" />
+    <footer>sibling</footer>
+  </div>
+</template>`
+
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      expect(result).toBeDefined()
+      expect(result?.code).toContain('<template lang="html">')
+      expect(result?.code).toContain('<footer>sibling</footer>')
+      expect(result?.code).toContain('<svg')
+      expect(result?.code.endsWith('</template>')).toBe(true)
+    })
+  })
+
   describe('image transform', () => {
     const plugin = AssetTransformPlugin.raw({
       ogComponentPaths,
