@@ -1,31 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { parseStyleAttr } from '../../src/runtime/server/og-image/core/style-attr'
 import { splitCssDeclarations } from '../../src/runtime/server/og-image/utils/css'
-
-function camelCase(str: string): string {
-  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
-}
-
-/**
- * Mirrors parseStyleAttr from src/runtime/server/og-image/core/vnodes.ts
- */
-function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
-  if (!style)
-    return undefined
-  const result: Record<string, any> = {}
-  for (const decl of splitCssDeclarations(style.replace(/&amp;/g, '&'))) {
-    const colonIdx = decl.indexOf(':')
-    if (colonIdx === -1)
-      continue
-    const prop = decl.slice(0, colonIdx).trim()
-    const val = decl.slice(colonIdx + 1).trim()
-    if (prop && val) {
-      result[camelCase(prop)] = prop === 'font-family'
-        ? val.replace(/^['"](.+)['"]$/, '$1')
-        : val
-    }
-  }
-  return Object.keys(result).length ? result : undefined
-}
 
 describe('parseStyleAttr &amp; decoding', () => {
   it('decodes &amp; in URL values', () => {
@@ -48,6 +23,35 @@ describe('parseStyleAttr &amp; decoding', () => {
     expect(result?.display).toBe('flex')
     expect(result?.backgroundImage).toBe('url(https://example.com?w=1200&q=80)')
     expect(result?.color).toBe('red')
+  })
+
+  it('decodes &quot; inside url() so the renderer sees real quotes', () => {
+    const style = 'background-image: url(&quot;data:image/svg+xml,%3Csvg/%3E&quot;)'
+    expect(parseStyleAttr(style)?.backgroundImage)
+      .toBe('url("data:image/svg+xml,%3Csvg/%3E")')
+  })
+
+  it('decodes &#39; (single-quote entity) inside CSS values', () => {
+    const style = 'font-family: &#39;Inter&#39;'
+    expect(parseStyleAttr(style)?.fontFamily).toBe('Inter')
+  })
+
+  it('does not split declarations on a ; inside a &quot;-quoted url()', () => {
+    const style = `background-image: url(&quot;data:image/svg+xml;utf8,%3Csvg/%3E&quot;); color: red`
+    const result = parseStyleAttr(style)
+    expect(result?.backgroundImage).toBe('url("data:image/svg+xml;utf8,%3Csvg/%3E")')
+    expect(result?.color).toBe('red')
+  })
+
+  it('does not double-unescape `&amp;quot;` into a real `"`', () => {
+    // Single-pass entity decode: `&amp;` and `&quot;` are matched in one regex
+    // so the literal `&` from `&amp;` cannot combine with following `quot;` to
+    // form a spurious `&quot;` match. This is the CodeQL `js/double-escaping`
+    // shape, even though realistic Vue SSR output never produces `&amp;quot;`.
+    const decoded = parseStyleAttr('color: red &amp;quot;')
+    // The decoded payload starts with the literal `&` we wanted, not `"`.
+    expect(decoded?.color).toMatch(/^red &/)
+    expect(decoded?.color).not.toMatch(/^red "/)
   })
 })
 

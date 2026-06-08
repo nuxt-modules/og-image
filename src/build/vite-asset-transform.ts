@@ -15,7 +15,7 @@ import { RE_WHITESPACE } from '../util'
 import { extractFontRequirementsFromVue } from './css/css-classes'
 import { stylesToArbitraryClass } from './css/css-provider'
 import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
-import { transformVueTemplate } from './vue-template-transform'
+import { escapeAttrValue, transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
 
@@ -36,7 +36,6 @@ const RE_DATA_ATTR = /\bdata-([\w-]+)="([^"]*)"/g
 const RE_DYNAMIC_DATA_THEME = /\s:data-theme="[^"]+"/
 const RE_COLOR_ATTR_NAME = /^(?:color|fill|stroke|flood-color|lighting-color|stop-color)$/
 const RE_NON_STYLE_VAR_ATTR = /\b(?!style|class)([a-zA-Z-]+)="([^"]*var\(--[^"]+)"/g
-const RE_QUOTED_ATTR = /^([a-z-]+)="(.*)"$/i
 const RE_COLOR_PROP_NAME = /color|fill|stroke|background|border|outline|shadow|accent|caret/
 const RE_STYLE_VAR_ATTR = /\bstyle="([^"]*var\(--[^"]+)"/g
 const RE_INLINE_STYLE = /\bstyle="([^"]*)"/g
@@ -101,13 +100,13 @@ function buildIconSvg(iconData: { body: string, width?: number, height?: number 
       existingStyle = value
       continue
     }
-    filteredAttrs.push(`${key}="${value}"`)
+    filteredAttrs.push(`${key}="${escapeAttrValue(value)}"`)
   }
   const attrsStr = filteredAttrs.length > 0 ? ` ${filteredAttrs.join(' ')}` : ''
 
   // Keep width/height="100%" — resolved to parent pixel dims by satori svg-size plugin at runtime
   const mergedStyle = existingStyle ? `display:flex; ${existingStyle}` : 'display:flex'
-  let svg = `<span${attrsStr} style="${mergedStyle}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
+  let svg = `<span${attrsStr} style="${escapeAttrValue(mergedStyle)}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" fill="currentColor">${body}</svg></span>`
   svg = makeIdsUnique(svg)
   return svg
 }
@@ -648,40 +647,42 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         }
 
         if (vars.size > 0) {
-          // Non-style, non-class attributes (e.g., SVG fill="var(--bg)")
-          const replacements: Array<{ from: string, to: string }> = []
+          // Non-style, non-class attributes (e.g., SVG fill="var(--bg)").
+          // Track resolved values unescaped so downlevelColor can parse them; escape
+          // for HTML only at the final write.
+          const replacements: Array<{ from: string, to: string, attr: string, value: string }> = []
           RE_NON_STYLE_VAR_ATTR.lastIndex = 0
           template.replace(RE_NON_STYLE_VAR_ATTR, (match, attr, value) => {
             const resolved = resolveCssVars(value, vars)
             if (resolved !== value) {
-              replacements.push({ from: match, to: `${attr}="${resolved}"` })
+              replacements.push({ from: match, to: '', attr, value: resolved })
             }
             return match
           })
           // Downlevel modern colors (oklch, etc.) in color-related attributes
           for (const r of replacements) {
-            const attrMatch = r.to.match(RE_QUOTED_ATTR)
-            if (attrMatch?.[1] && attrMatch[2] !== undefined && RE_COLOR_ATTR_NAME.test(attrMatch[1])) {
-              const downleveled = await downlevelColor(attrMatch[1], attrMatch[2])
-              r.to = `${attrMatch[1]}="${downleveled}"`
+            let value = r.value
+            if (RE_COLOR_ATTR_NAME.test(r.attr)) {
+              value = await downlevelColor(r.attr, value)
             }
+            r.to = `${r.attr}="${escapeAttrValue(value)}"`
             template = template.replace(r.from, r.to)
             hasChanges = true
           }
 
-          // Inline style attributes: resolve var() and downlevel colors per-declaration
-          const styleReplacements: Array<{ from: string, to: string }> = []
+          // Inline style attributes: resolve var() and downlevel colors per-declaration.
+          // Hold resolved style content unescaped so downlevelColor / resolveColorMix can
+          // parse it; escape for HTML only when writing the attribute.
+          const styleReplacements: Array<{ from: string, content: string }> = []
           RE_STYLE_VAR_ATTR.lastIndex = 0
           template.replace(RE_STYLE_VAR_ATTR, (match, styleValue) => {
             const resolved = resolveCssVars(styleValue, vars)
             if (resolved !== styleValue)
-              styleReplacements.push({ from: match, to: `style="${resolved}"` })
+              styleReplacements.push({ from: match, content: resolved })
             return match
           })
           for (const r of styleReplacements) {
-            // Downlevel modern colors in each declaration
-            const styleContent = r.to.slice('style="'.length, -1)
-            const declarations = styleContent.split(';').filter(Boolean)
+            const declarations = r.content.split(';').filter(Boolean)
             const downleveled: string[] = []
             for (const decl of declarations) {
               const colonIdx = decl.indexOf(':')
@@ -698,8 +699,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               }
               downleveled.push(`${prop}: ${value}`)
             }
-            r.to = `style="${downleveled.join('; ')}"`
-            template = template.replace(r.from, r.to)
+            const to = `style="${escapeAttrValue(downleveled.join('; '))}"`
+            template = template.replace(r.from, to)
             hasChanges = true
           }
 
@@ -832,9 +833,14 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
                 }
 
                 const merged = { ...matchedStyles, ...existingProps }
-                el.attributes.style = Object.entries(merged)
-                  .map(([p, v]) => `${p}:${v}`)
-                  .join(';')
+                // ultrahtml's serializer does not escape attribute values, so any literal
+                // `"` in a CSS value (e.g. `background-image: url("data:...")`) would close
+                // the `style="..."` attribute early and produce invalid HTML.
+                el.attributes.style = escapeAttrValue(
+                  Object.entries(merged)
+                    .map(([p, v]) => `${p}:${v}`)
+                    .join(';'),
+                )
 
                 // Remove consumed classes
                 const remaining = elClasses.filter(c => !consumedClasses.has(c))
