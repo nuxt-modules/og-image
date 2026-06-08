@@ -157,7 +157,7 @@ function parseStyleEntry(entry: string): [string, string] | undefined {
 }
 
 // Escape quotes for HTML attribute values
-function escapeAttrValue(value: string): string {
+export function escapeAttrValue(value: string): string {
   return value.replace(RE_DOUBLE_QUOTE, '&quot;')
 }
 

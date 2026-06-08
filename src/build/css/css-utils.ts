@@ -931,9 +931,10 @@ export async function postProcessStyles(
     }
 
     // Simplify font-family: extract the first custom family name, unwrapped.
-    // OG renderers don't do font fallback — generic families (monospace, sans-serif)
-    // are noise. Also avoids &quot; encoding in HTML style attributes which breaks
-    // parsing when htmlDecodeQuotes() decodes them back to literal " at runtime.
+    // OG renderers don't do font fallback so generic families (monospace,
+    // sans-serif) are noise. Multi-word names are wrapped in single quotes
+    // because double-quoted family names would round-trip through &quot; in
+    // the inline style attribute.
     if (prop === 'font-family') {
       const custom = extractCustomFontFamilies(value)
       if (custom.length) {

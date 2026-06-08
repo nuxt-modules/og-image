@@ -2,25 +2,19 @@ import type { ElementNode, TextNode } from 'ultrahtml'
 import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { ELEMENT_NODE, parse, TEXT_NODE } from 'ultrahtml'
 import { querySelector } from 'ultrahtml/selector'
-import { decodeHtml, htmlDecodeQuotes } from '../../util/encoding'
+import { decodeHtml } from '../../util/encoding'
 import { fetchIsland } from '../../util/kit'
 import { logger } from '../../util/logger'
-import { splitCssDeclarations } from '../utils/css'
 import { walkTree } from './plugins'
 import encoding from './plugins/encoding'
 import imageSrc from './plugins/imageSrc'
 import styleDirectives from './plugins/styleDirectives'
+import { parseStyleAttr } from './style-attr'
 import { applyEmojis } from './transforms/emojis'
 
-const RE_KEBAB_SEGMENT = /-([a-z])/g
-const RE_AMP_ENTITY = /&amp;/g
-const RE_CSS_QUOTES = /^['"](.+)['"]$/
-const RE_IMPORTANT = /\s*!important\s*$/
-const RE_BODY_CONTENT = /<body>([\s\S]*)<\/body>/
+export { parseStyleAttr }
 
-function camelCase(str: string): string {
-  return str.replace(RE_KEBAB_SEGMENT, (_, c) => c.toUpperCase())
-}
+const RE_BODY_CONTENT = /<body>([\s\S]*)<\/body>/
 
 // SVG attributes that must preserve their camelCase form.
 // HTML parsers lowercase all attributes, but SVG is case-sensitive.
@@ -121,31 +115,6 @@ export function resolveSvgDimension(
   }
 }
 
-export function parseStyleAttr(style: string | null | undefined): Record<string, any> | undefined {
-  if (!style)
-    return undefined
-  const result: Record<string, any> = {}
-  // Decode &amp; before splitting — the `;` in `&amp;` would otherwise act as
-  // a CSS declaration separator and truncate values containing `&` (e.g. URLs).
-  for (const decl of splitCssDeclarations(style.replace(RE_AMP_ENTITY, '&'))) {
-    const colonIdx = decl.indexOf(':')
-    if (colonIdx === -1)
-      continue
-    const prop = decl.slice(0, colonIdx).trim()
-    const val = decl.slice(colonIdx + 1).trim()
-    if (prop && val) {
-      // Strip !important — Satori/Takumi don't support CSS specificity
-      // Strip CSS quotes from font-family — Satori matches font names as plain
-      // strings (e.g. "JetBrains Mono"), not CSS-quoted values ("'JetBrains Mono'")
-      const cleanVal = val.replace(RE_IMPORTANT, '')
-      result[camelCase(prop)] = prop === 'font-family'
-        ? cleanVal.replace(RE_CSS_QUOTES, '$1')
-        : cleanVal
-    }
-  }
-  return Object.keys(result).length ? result : undefined
-}
-
 export function elementToVNode(el: ElementNode): VNode {
   const props: VNode['props'] = {}
 
@@ -231,9 +200,6 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
   if (!html) {
     const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
     const island = await ctx.timings.measure('island-fetch', () => fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout))
-    // this fixes any inline style props that need to be wrapped in single quotes, such as:
-    // background image, fonts, etc
-    island.html = htmlDecodeQuotes(island.html)
     // pre-transform HTML - apply emoji replacements
     await applyEmojis(ctx, island)
     html = island.html

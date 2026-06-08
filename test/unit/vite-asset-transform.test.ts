@@ -306,4 +306,61 @@ const msg = '👋'
       expect(base64Count).toBe(2)
     })
   })
+
+  describe('<style> block inlining', () => {
+    const plugin = AssetTransformPlugin.raw({
+      ogComponentPaths,
+      rootDir: '/test',
+      srcDir: '/test',
+      publicDir: '/test/public',
+    }, { framework: 'vite' })
+
+    it('should escape inner double-quotes when inlining CSS values into style="..."', async () => {
+      const code = `<template>
+  <div class="bg-confetti" />
+</template>
+
+<style scoped>
+.bg-confetti {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10'%3E%3Crect width='5' height='5'/%3E%3C/svg%3E");
+}
+</style>`
+
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      expect(result).toBeDefined()
+      const out = result!.code
+
+      const styleAttrMatch = out.match(/style="([^"]*)"/)
+      expect(styleAttrMatch, 'expected a style="..." attribute in the inlined output').not.toBeNull()
+      expect(styleAttrMatch![1]).toContain('background-image')
+      expect(styleAttrMatch![1]).toContain('&quot;data:image/svg+xml')
+      expect(out).not.toContain('url("data:image/svg+xml')
+      expect(out).not.toContain('<style')
+    })
+
+    it('should round-trip the escaped style back to real quotes for the renderer', async () => {
+      const code = `<template>
+  <div class="bg-confetti" />
+</template>
+
+<style scoped>
+.bg-confetti {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10'%3E%3Crect/%3E%3C/svg%3E");
+}
+</style>`
+
+      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      expect(result).toBeDefined()
+
+      const styleAttrMatch = result!.code.match(/style="([^"]*)"/)
+      expect(styleAttrMatch).not.toBeNull()
+
+      // The serialised attribute holds &quot; to keep the HTML attribute well-formed;
+      // the runtime parser decodes the entities before the renderer sees the CSS string.
+      const { parseStyleAttr } = await import('../../src/runtime/server/og-image/core/style-attr')
+      expect(parseStyleAttr(styleAttrMatch![1])?.backgroundImage).toBe(
+        `url("data:image/svg+xml,%3Csvg width='10' height='10'%3E%3Crect/%3E%3C/svg%3E")`,
+      )
+    })
+  })
 })
