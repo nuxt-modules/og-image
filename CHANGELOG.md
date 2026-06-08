@@ -1,6 +1,34 @@
 # Changelog
 
 
+## v6.5.1...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.5.1...main)
+
+### 🩹 Fixes
+
+- Block embedded-IPv4 IPv6 bypasses ([#624](https://github.com/nuxt-modules/og-image/pull/624))
+- **content:** Declare zod as optional peer dependency ([#622](https://github.com/nuxt-modules/og-image/pull/622), [#625](https://github.com/nuxt-modules/og-image/pull/625))
+- Resolve #og-image alias when no subpath is given ([#615](https://github.com/nuxt-modules/og-image/pull/615), [#617](https://github.com/nuxt-modules/og-image/pull/617))
+- Skip renderer prompt in non-interactive environments ([#623](https://github.com/nuxt-modules/og-image/pull/623))
+- Degrade gracefully when cache backend is unreachable ([#613](https://github.com/nuxt-modules/og-image/pull/613), [#619](https://github.com/nuxt-modules/og-image/pull/619))
+- Skip runtime buffer cache during prerender ([#613](https://github.com/nuxt-modules/og-image/pull/613), [#626](https://github.com/nuxt-modules/og-image/pull/626))
+
+### 🏡 Chore
+
+- Bump ([c3610177](https://github.com/nuxt-modules/og-image/commit/c3610177))
+- Bump ([f23a010a](https://github.com/nuxt-modules/og-image/commit/f23a010a))
+
+### ✅ Tests
+
+- Bump `setupTimeout` for public-sans-repro fixture ([#616](https://github.com/nuxt-modules/og-image/pull/616))
+- Refresh takumi emoji snapshot after takumi-rs 1.5.x bump ([#620](https://github.com/nuxt-modules/og-image/pull/620))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
 ## v6.5.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.5.0...main)
