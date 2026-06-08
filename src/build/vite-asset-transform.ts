@@ -23,7 +23,6 @@ const RE_SVG_ID_ATTR = /\bid="([^"]+)"/g
 const RE_SVG_VIEWBOX = /viewBox="([^"]*)"/
 const RE_SVG_BODY = /<svg[^>]*>([\s\S]*)<\/svg>/
 const RE_OG_IMAGE_QUERY = /\?og-image(?:-depth=\d+)?$/
-const RE_TEMPLATE_CONTENT = /<template>([\s\S]*?)<\/template>/
 const RE_TEXT_BETWEEN_TAGS = />([^<]*)</g
 const RE_SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g
 const RE_WRAPPER_DIV_START = /^<div>/
@@ -276,6 +275,30 @@ export interface AssetTransformOptions {
   onNestedTransform?: (filePath: string) => void
 }
 
+/**
+ * Locate the outer `<template>` block's content offsets in an SFC source.
+ * `templateStart` points just after the opening tag (including any attributes);
+ * `templateEnd` points at the `<` of the closing `</template>`. Uses the SFC
+ * parser so nested `<template v-if>` / `<template #slot>` tags don't fool the
+ * match.
+ */
+function getOuterTemplateBounds(code: string): { templateStart: number, templateEnd: number } | undefined {
+  let descriptor
+  try {
+    descriptor = parseSfc(code).descriptor
+  }
+  catch {
+    return undefined
+  }
+  const template = descriptor.template
+  if (!template)
+    return undefined
+  return {
+    templateStart: template.loc.start.offset,
+    templateEnd: template.loc.end.offset,
+  }
+}
+
 export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
   let emojiIcons: IconifyJSON | null = null
 
@@ -302,13 +325,12 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       if (rawId.includes('?og-image'))
         options.onNestedTransform?.(id)
 
-      const templateMatch = code.match(RE_TEMPLATE_CONTENT)
-      if (!templateMatch)
+      const bounds = getOuterTemplateBounds(code)
+      if (!bounds)
         return
 
       const s = new MagicString(code)
-      const templateStart = code.indexOf('<template>') + '<template>'.length
-      const templateEnd = code.indexOf('</template>')
+      const { templateStart, templateEnd } = bounds
       let template = code.slice(templateStart, templateEnd)
       let hasChanges = false
 
@@ -549,11 +571,11 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           })
 
           if (result) {
-            // Extract the transformed template
-            const newTemplateStart = result.code.indexOf('<template>') + '<template>'.length
-            const newTemplateEnd = result.code.indexOf('</template>')
-            template = result.code.slice(newTemplateStart, newTemplateEnd)
-            hasChanges = true
+            const newBounds = getOuterTemplateBounds(result.code)
+            if (newBounds) {
+              template = result.code.slice(newBounds.templateStart, newBounds.templateEnd)
+              hasChanges = true
+            }
           }
         }
         catch (err) {
