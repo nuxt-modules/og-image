@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import type { RendererType } from '../../src/runtime/types'
+import type { RendererType } from '../../lib/og-image/runtime-types'
 import { computed } from 'vue'
-import { useOgImage } from '../composables/og-image'
-import { RendererSelectDialogPromise } from '../composables/renderer-select'
+import { useOgImage } from '../../lib/og-image/og-image'
+import { RendererSelectDialogPromise } from '../../lib/og-image/renderer-select'
 
 const {
   globalDebug,

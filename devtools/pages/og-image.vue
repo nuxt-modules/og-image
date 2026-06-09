@@ -1,18 +1,18 @@
 <script lang="ts" setup>
-import type { OgImageRuntimeConfig } from '../src/runtime/types'
-import type { GlobalDebugResponse, PathDebugResponse } from './composables/types'
+import type { OgImageRuntimeConfig } from '../lib/og-image/runtime-types'
+import type { GlobalDebugResponse, PathDebugResponse } from '../lib/og-image/types'
 import defu from 'defu'
 import { appFetch } from 'nuxtseo-layer-devtools/composables/rpc'
 import { loadShiki } from 'nuxtseo-layer-devtools/composables/shiki'
 import { path, productionUrl, query, refreshTime } from 'nuxtseo-layer-devtools/composables/state'
 import { computed, provide, useAsyncData, useNuxtApp, useRoute, watch } from '#imports'
-import { encodeOgImageParams } from '../src/runtime/shared/urlEncoding'
-import AddComponentDialog from './components/AddComponentDialog.vue'
-import CreateOgImageDialog from './components/CreateOgImageDialog.vue'
-import RendererSelectModal from './components/RendererSelectModal.vue'
-import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './composables/keys'
-import { useOgImage } from './composables/og-image'
-import { ogImageKey, options, optionsOverrides } from './util/logic'
+import AddComponentDialog from '../components/og-image/AddComponentDialog.vue'
+import CreateOgImageDialog from '../components/og-image/CreateOgImageDialog.vue'
+import RendererSelectModal from '../components/og-image/RendererSelectModal.vue'
+import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from '../lib/og-image/keys'
+import { useOgImage } from '../lib/og-image/og-image'
+import { encodeOgImageParams } from '../lib/og-image/shared/urlEncoding'
+import { ogImageKey, options, optionsOverrides } from '../lib/og-image/util/logic'
 
 const RE_IMAGE_EXT = /\.(png|jpeg|jpg|webp)$/
 
@@ -22,7 +22,7 @@ const nuxtApp = useNuxtApp()
 nuxtApp.payload.data = nuxtApp.payload.data || {}
 
 // @ts-expect-error untyped
-const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('global-debug', () => {
+const { data: globalDebug } = useAsyncData<GlobalDebugResponse>('og-image-global-debug', () => {
   if (!appFetch.value)
     return { runtimeConfig: {} as OgImageRuntimeConfig, componentNames: [] }
   return appFetch.value('/_og/debug.json')
@@ -48,11 +48,9 @@ function getHostOgImageDebugUrl(): string | undefined {
   }
 }
 
-const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = useAsyncData<PathDebugResponse>('path-debug', async () => {
+const { data: pathDebug, refresh: refreshPathDebug, status: pathDebugStatus } = useAsyncData<PathDebugResponse>('og-image-path-debug', async () => {
   if (!appFetch.value)
     return { extract: { options: [], socialPreview: { root: {}, images: [] } } }
-  // Prefer reading the og:image URL from the host document — avoids chicken-and-egg
-  // on first load where options.value is empty and server defaults to wrong component
   let url = getHostOgImageDebugUrl()
   if (!url) {
     const params = defu(
@@ -101,21 +99,21 @@ await resetProps(false)
 
 const route = useRoute()
 const currentTab = computed(() => {
-  const path = route.path
-  if (path === '/templates')
+  const p = route.path
+  if (p === '/og-image/templates')
     return 'templates'
-  if (path === '/debug')
+  if (p === '/og-image/debug')
     return 'debug'
-  if (path === '/docs')
+  if (p === '/og-image/docs')
     return 'docs'
   return 'design'
 })
 
 const navItems = [
-  { value: 'design', to: '/', icon: 'carbon:brush-freehand', label: 'Design' },
-  { value: 'templates', to: '/templates', icon: 'carbon:image', label: 'Templates' },
-  { value: 'debug', to: '/debug', icon: 'carbon:debug', label: 'Debug' },
-  { value: 'docs', to: '/docs', icon: 'carbon:book', label: 'Docs' },
+  { value: 'design', to: '/og-image', icon: 'carbon:brush-freehand', label: 'Design' },
+  { value: 'templates', to: '/og-image/templates', icon: 'carbon:image', label: 'Templates' },
+  { value: 'debug', to: '/og-image/debug', icon: 'carbon:debug', label: 'Debug' },
+  { value: 'docs', to: '/og-image/docs', icon: 'carbon:book', label: 'Docs' },
 ]
 
 const runtimeVersion = computed(() => {

@@ -3,9 +3,9 @@ import { useHead } from 'nuxt/app'
 import { hasProductionUrl, previewSource, productionUrl } from 'nuxtseo-layer-devtools/composables/state'
 import { withHttps } from 'ufo'
 import { computed, reactive, ref, watch } from 'vue'
-import { useOgImage } from '../composables/og-image'
-import { RendererSelectDialogPromise } from '../composables/renderer-select'
-import { isConnectionFailed, isFallbackMode } from '../composables/rpc'
+import { useOgImage } from '../../lib/og-image/og-image'
+import { RendererSelectDialogPromise } from '../../lib/og-image/renderer-select'
+import { isConnectionFailed, isFallbackMode } from '../../lib/og-image/rpc'
 
 const RE_SINGLE_QUOTE = /'/g
 const RE_VUE_FILENAME = /[^/]+\.vue$/

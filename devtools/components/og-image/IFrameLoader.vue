@@ -2,7 +2,7 @@
 import { useDebounceFn, useResizeObserver } from '@vueuse/core'
 import { withQuery } from 'ufo'
 import { onMounted, ref, toValue, watch } from '#imports'
-import { options } from '../util/logic'
+import { options } from '../../lib/og-image/util/logic'
 
 const props = defineProps<{
   src: string

@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions, OgImageOptionsInternal, RendererType } from '../../src/runtime/types'
+import type { DevToolsMetaDataExtraction, OgImageComponent, OgImageOptions, OgImageOptionsInternal, RendererType } from './runtime-types'
 import { useLocalStorage, useWindowSize } from '@vueuse/core'
 import defu from 'defu'
 import { colorMode } from 'nuxtseo-layer-devtools/composables/rpc'
@@ -8,10 +8,10 @@ import { relative } from 'pathe'
 import { hasProtocol, joinURL, parseURL, withQuery } from 'ufo'
 import { ref } from 'vue'
 import { computed, inject, toValue, watch } from '#imports'
-import { encodeOgImageParams, separateProps } from '../../src/runtime/shared'
-import { description, hasMadeChanges, ogImageKey, options, optionsOverrides, previewHost, propEditor } from '../util/logic'
+import { encodeOgImageParams, separateProps } from './shared'
+import { description, hasMadeChanges, ogImageKey, options, optionsOverrides, previewHost, propEditor } from './util/logic'
 import { GlobalDebugKey, PathDebugKey, PathDebugStatusKey, RefetchPathDebugKey } from './keys'
-import { devtoolsClient, ogImageRpc } from './rpc'
+import { host, ogImageRpc } from './rpc'
 import { AddComponentDialogPromise, CreateOgImageDialogPromise } from './templates'
 
 const RE_SUFFIX_SATORI = /Satori$/
@@ -377,19 +377,19 @@ export function useOgImage() {
   }
 
   const pageFile = computed(() => {
-    const component = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0]?.components?.default as { __file?: string } | undefined
+    const component = host.value?.route?.value?.matched?.[0]?.components?.default as { __file?: string } | undefined
     return component?.__file
   })
 
   function openCurrentPageFile() {
     if (pageFile.value)
-      devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
+      host.value?.openInEditor(pageFile.value)
   }
 
   function openCurrentComponent() {
     const component = componentNames.value.find(c => c.pascalName === activeComponentName.value)
     if (component?.path)
-      devtoolsClient.value?.devtools.rpc.openInEditor(component.path)
+      host.value?.openInEditor(component.path)
   }
 
   const isPageScreenshot = computed(() => {
@@ -412,7 +412,7 @@ export function useOgImage() {
   })
 
   const currentPageFile = computed(() => {
-    const component = devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0]?.components?.default as { __file?: string } | undefined
+    const component = host.value?.route?.value?.matched?.[0]?.components?.default as { __file?: string } | undefined
     const path = component?.__file
     return `pages/${path?.split('pages/')[1]}`
   })
@@ -424,7 +424,7 @@ export function useOgImage() {
     const v = await ogImageRpc.value!.ejectCommunityTemplate(`${dir}/${component}.vue`)
     refreshSources()
     if (v)
-      await devtoolsClient.value?.devtools.rpc.openInEditor(v)
+      await host.value?.openInEditor(v)
   }
 
   async function createComponent() {
@@ -438,14 +438,14 @@ export function useOgImage() {
     })
     refreshSources()
     if (v)
-      await devtoolsClient.value?.devtools.rpc.openInEditor(v)
+      await host.value?.openInEditor(v)
   }
 
   async function addExistingComponent(componentName: string) {
     await ogImageRpc.value!.addOgImageToPage(componentName, pageFile.value || '')
     refreshSources()
     if (pageFile.value)
-      await devtoolsClient.value?.devtools.rpc.openInEditor(pageFile.value)
+      await host.value?.openInEditor(pageFile.value)
   }
 
   async function resetProps(fetch = true) {

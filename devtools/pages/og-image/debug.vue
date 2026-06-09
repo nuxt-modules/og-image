@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useOgImage } from '../composables/og-image'
+import { useOgImage } from '../../lib/og-image/og-image'
 
 const {
   globalDebug,

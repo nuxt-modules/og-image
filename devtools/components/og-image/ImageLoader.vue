@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, toValue, watch } from '#imports'
-import { options } from '../util/logic'
+import { options } from '../../lib/og-image/util/logic'
 
 const props = defineProps<{
   src: string

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import type { GlobalDebugResponse } from '../composables/types'
+import type { GlobalDebugResponse } from '../../lib/og-image/types'
 import { computed, ref, watch } from 'vue'
 import { inject } from '#imports'
-import { GlobalDebugKey } from '../composables/keys'
-import { CreateOgImageDialogPromise } from '../composables/templates'
+import { GlobalDebugKey } from '../../lib/og-image/keys'
+import { CreateOgImageDialogPromise } from '../../lib/og-image/templates'
 
 function handleClose(_a: unknown, resolve: (value: string | false) => void) {
   resolve(false)
