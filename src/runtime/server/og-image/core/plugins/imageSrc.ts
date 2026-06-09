@@ -173,8 +173,8 @@ export default defineTransformer([
       let src: string = node.props.src!
       if (src.startsWith('data:'))
         return
-      if (src.endsWith('.webp')) {
-        logger.warn('Using WebP images with Satori is not supported. Please consider switching image format or use the chromium renderer.', src)
+      if (ctx.renderer.name === 'satori' && src.endsWith('.webp')) {
+        logger.warn('Using WebP images with Satori is not supported. Please consider switching image format or use the takumi or browser renderer.', src)
       }
       const isRelative = src.startsWith('/')
       if (!isRelative)
