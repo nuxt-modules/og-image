@@ -11,7 +11,6 @@
     "@iconify-json/noto": "catalog:",
     "@nuxt/fonts": "catalog:",
     "better-sqlite3": "catalog:",
-    "nuxt-og-image": "workspace:*",
-    "nuxt-og-image-devtools": "workspace:*"
+    "nuxt-og-image": "workspace:*"
   }
 }
