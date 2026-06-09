@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { AddComponentResult } from '../composables/templates'
+import type { AddComponentResult } from '../../lib/og-image/templates'
 import { computed, ref, watch } from 'vue'
-import { AddComponentDialogPromise } from '../composables/templates'
+import { AddComponentDialogPromise } from '../../lib/og-image/templates'
 
 function handleClose(_a: unknown, resolve: (value: AddComponentResult | false) => void) {
   resolve(false)

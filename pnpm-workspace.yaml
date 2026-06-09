@@ -32,6 +32,8 @@ minimumReleaseAgeExclude:
   - nuxt@4.4.6
   - oxc-parser@0.132.0
   - vue-tsc@3.3.0
+  - nuxtseo-layer-devtools@5.2.0
+  - nuxtseo-shared@5.2.0
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -46,7 +48,6 @@ trustPolicyExclude:
   - tinyexec@1.2.2
 packages:
   - playground
-  - devtools
   - '!examples/**'
 overrides:
   '@unhead/vue': ^3.1.3
@@ -95,7 +96,6 @@ catalog:
   '@vitejs/plugin-vue': ^6.0.7
   '@vue/compiler-core': ^3.5.35
   '@vue/compiler-sfc': ^3.5.35
-  '@vueuse/core': ^14.3.0
   '@vueuse/nuxt': ^14.3.0
   better-sqlite3: ^12.10.0
   birpc: ^4.0.0
@@ -121,8 +121,8 @@ catalog:
   nitropack: ^2.13.4
   nuxt: ^4.4.7
   nuxt-site-config: ^4.0.8
-  nuxtseo-layer-devtools: ^5.1.3
-  nuxtseo-shared: ^5.1.3
+  nuxtseo-layer-devtools: ^5.2.0
+  nuxtseo-shared: ^5.2.0
   nypm: ^0.6.6
   ofetch: ^1.5.1
   ohash: ^2.0.11
@@ -151,15 +151,10 @@ catalog:
   unplugin: ^3.0.0
   vitest: ^4.1.8
   vue: ^3.5.35
-  vue-router: ^5.1.0
   vue-tsc: ^3.3.3
   wrangler: ^4.98.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
-catalogs:
-  devtools:
-    '@iconify-json/simple-icons': ^1.2.85
-    shiki: ^4.2.0
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'

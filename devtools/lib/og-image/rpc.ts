@@ -1,11 +1,11 @@
-import type { NuxtDevtoolsIframeClient } from '@nuxt/devtools-kit/types'
 import type { BirpcReturn } from 'birpc'
-import type { ClientFunctions, ServerFunctions } from '../../src/rpc-types'
+import type { DevtoolsHost } from 'nuxtseo-layer-devtools/composables/host'
+import type { ClientFunctions, ServerFunctions } from './rpc-types'
 import { appFetch, useDevtoolsConnection } from 'nuxtseo-layer-devtools/composables/rpc'
-import { base, path, query, refreshSources } from 'nuxtseo-layer-devtools/composables/state'
+import { base, path, refreshSources } from 'nuxtseo-layer-devtools/composables/state'
 import { computed, ref } from 'vue'
 
-export const devtoolsClient = ref<NuxtDevtoolsIframeClient>()
+export const host = ref<DevtoolsHost>()
 
 export const ogImageRpc = ref<BirpcReturn<ServerFunctions>>()
 
@@ -50,18 +50,16 @@ onMounted(() => {
 })
 
 useDevtoolsConnection({
-  onConnected(client) {
+  onConnected(connectedHost) {
     if (timer) {
       clearTimeout(timer)
     }
     connectionState.value = 'connected'
-    base.value = client.host.nuxt.vueApp.config.globalProperties?.$router?.options?.history?.base || client.host.app.baseURL || '/'
-    devtoolsClient.value = client
-    // @ts-expect-error untyped
-    ogImageRpc.value = client.devtools.extendClientRpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
+    host.value = connectedHost
+    ogImageRpc.value = connectedHost.rpc<ServerFunctions, ClientFunctions>('nuxt-og-image', {
       refreshRouteData(path: string) {
-        // @ts-expect-error untyped
-        if (devtoolsClient.value?.host.nuxt.vueApp.config?.globalProperties?.$route.matched[0].components?.default.__file.includes(path) || path.endsWith('.md'))
+        const file = connectedHost.route?.value?.matched?.[0]?.components?.default?.__file as string | undefined
+        if (file?.includes(path) || path.endsWith('.md'))
           refreshSources()
       },
       refresh() {
@@ -71,10 +69,5 @@ useDevtoolsConnection({
         refreshSources()
       },
     })
-  },
-  onRouteChange(route) {
-    query.value = route.query
-    path.value = route.path || '/'
-    refreshSources()
   },
 })

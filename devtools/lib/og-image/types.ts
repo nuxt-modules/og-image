@@ -7,7 +7,7 @@ import type {
   OgImageOptions,
   OgImageRuntimeConfig,
   RuntimeCompatibilitySchema,
-} from '../../src/runtime/types'
+} from './runtime-types'
 
 export interface DevToolsPayload {
   options: OgImageOptions[]

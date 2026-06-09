@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { OgImageComponent } from '../../src/runtime/types'
+import type { OgImageComponent } from '../../lib/og-image/runtime-types'
 import { withQuery } from 'ufo'
 import { computed, ref } from 'vue'
-import { devtoolsClient } from '../composables/rpc'
+import { host } from '../../lib/og-image/rpc'
 
 const props = defineProps<{
   src: string
@@ -17,7 +17,7 @@ const props = defineProps<{
 const RE_CLOSING_ANGLE = />/g
 
 function openComponent() {
-  devtoolsClient.value?.devtools.rpc.openInEditor(props.component.path!)
+  host.value?.openInEditor(props.component.path!)
 }
 
 const isHtml = computed(() => {
