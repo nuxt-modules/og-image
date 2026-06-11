@@ -110,10 +110,10 @@ const currentTab = computed(() => {
 })
 
 const navItems = [
-  { value: 'design', to: '/og-image', icon: 'carbon:brush-freehand', label: 'Design' },
-  { value: 'templates', to: '/og-image/templates', icon: 'carbon:image', label: 'Templates' },
-  { value: 'debug', to: '/og-image/debug', icon: 'carbon:debug', label: 'Debug' },
-  { value: 'docs', to: '/og-image/docs', icon: 'carbon:book', label: 'Docs' },
+  { value: 'design', to: '/og-image', icon: 'carbon:brush-freehand', label: 'Design', devOnly: false },
+  { value: 'templates', to: '/og-image/templates', icon: 'carbon:image', label: 'Templates', devOnly: false },
+  { value: 'debug', to: '/og-image/debug', icon: 'carbon:debug', label: 'Debug', devOnly: true },
+  { value: 'docs', to: '/og-image/docs', icon: 'carbon:book', label: 'Docs', devOnly: false },
 ]
 
 const runtimeVersion = computed(() => {
