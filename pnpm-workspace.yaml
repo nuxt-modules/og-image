@@ -71,11 +71,11 @@ catalog:
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.2.3
   '@nuxt/image': ^2.0.0
-  '@nuxt/kit': ^4.4.7
+  '@nuxt/kit': ^4.4.8
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^4.0.3
   '@nuxt/ui': ^4.8.2
-  '@nuxtjs/color-mode': ^4.0.0
+  '@nuxtjs/color-mode': ^4.0.1
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.4.0
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
@@ -84,9 +84,9 @@ catalog:
   '@shikijs/langs': ^4.2.0
   '@shikijs/themes': ^4.2.0
   '@tailwindcss/vite': ^4.3.0
-  '@takumi-rs/core': ^1.7.0
-  '@takumi-rs/helpers': ^1.7.0
-  '@takumi-rs/wasm': ^1.7.0
+  '@takumi-rs/core': ^1.8.1
+  '@takumi-rs/helpers': ^1.8.1
+  '@takumi-rs/wasm': ^1.8.1
   '@unocss/config': ^66.7.0
   '@unocss/core': ^66.7.0
   '@unocss/nuxt': ^66.7.0
@@ -119,14 +119,14 @@ catalog:
   magicast: ^0.5.3
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
-  nuxt: ^4.4.7
+  nuxt: ^4.4.8
   nuxt-site-config: ^4.0.8
   nuxtseo-layer-devtools: ^5.2.6
   nuxtseo-shared: ^5.2.6
   nypm: ^0.6.6
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.134.0
+  oxc-parser: ^0.135.0
   oxc-walker: ^1.0.0
   pathe: ^2.0.3
   pkg-types: ^2.3.1
@@ -151,8 +151,8 @@ catalog:
   unplugin: ^3.0.0
   vitest: ^4.1.8
   vue: ^3.5.35
-  vue-tsc: ^3.3.3
-  wrangler: ^4.98.0
+  vue-tsc: ^3.3.4
+  wrangler: ^4.99.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
 onlyBuiltDependencies:
