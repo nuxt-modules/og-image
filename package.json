@@ -60,7 +60,7 @@
     "dev:build": "nuxt build playground",
     "prepack": "pnpm run build",
     "prepare:fixtures": "node scripts/prepare-fixtures.mjs",
-    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures && pnpm run build:client",
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
     "typecheck": "nuxt-module-build prepare && nuxt typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
