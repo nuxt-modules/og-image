@@ -121,8 +121,8 @@ catalog:
   nitropack: ^2.13.4
   nuxt: ^4.4.7
   nuxt-site-config: ^4.0.8
-  nuxtseo-layer-devtools: ^5.2.5
-  nuxtseo-shared: ^5.2.5
+  nuxtseo-layer-devtools: ^5.2.6
+  nuxtseo-shared: ^5.2.6
   nypm: ^0.6.6
   ofetch: ^1.5.1
   ohash: ^2.0.11
