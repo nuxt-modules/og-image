@@ -15,9 +15,6 @@ catalogs:
     '@fontsource/noto-sans-sc':
       specifier: ^5.2.9
       version: 5.2.9
-    '@iconify-json/carbon':
-      specifier: ^1.2.23
-      version: 1.2.23
     '@iconify-json/logos':
       specifier: ^1.2.11
       version: 1.2.11
@@ -84,12 +81,6 @@ catalogs:
     '@resvg/resvg-wasm':
       specifier: ^2.6.2
       version: 2.6.2
-    '@shikijs/langs':
-      specifier: ^4.2.0
-      version: 4.2.0
-    '@shikijs/themes':
-      specifier: ^4.2.0
-      version: 4.2.0
     '@tailwindcss/vite':
       specifier: ^4.3.0
       version: 4.3.0
@@ -426,9 +417,6 @@ importers:
       '@fontsource/noto-sans-sc':
         specifier: 'catalog:'
         version: 5.2.9
-      '@iconify-json/carbon':
-        specifier: 'catalog:'
-        version: 1.2.23
       '@iconify-json/logos':
         specifier: 'catalog:'
         version: 1.2.11
@@ -492,12 +480,6 @@ importers:
       '@resvg/resvg-wasm':
         specifier: 'catalog:'
         version: 2.6.2
-      '@shikijs/langs':
-        specifier: 'catalog:'
-        version: 4.2.0
-      '@shikijs/themes':
-        specifier: 'catalog:'
-        version: 4.2.0
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.0(vite@8.0.6)
