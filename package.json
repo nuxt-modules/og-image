@@ -216,7 +216,7 @@
     "unifont": "catalog:",
     "unocss": "catalog:",
     "vitest": "catalog:",
-    "vue": "catalog:",
+    "vue": "^3.5.38",
     "vue-tsc": "catalog:",
     "wrangler": "catalog:",
     "yoga-wasm-web": "catalog:",
