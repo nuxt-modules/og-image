@@ -15,6 +15,9 @@ catalogs:
     '@fontsource/noto-sans-sc':
       specifier: ^5.2.9
       version: 5.2.9
+    '@iconify-json/carbon':
+      specifier: ^1.2.23
+      version: 1.2.23
     '@iconify-json/logos':
       specifier: ^1.2.11
       version: 1.2.11
@@ -417,6 +420,9 @@ importers:
       '@fontsource/noto-sans-sc':
         specifier: 'catalog:'
         version: 5.2.9
+      '@iconify-json/carbon':
+        specifier: 'catalog:'
+        version: 1.2.23
       '@iconify-json/logos':
         specifier: 'catalog:'
         version: 1.2.11
