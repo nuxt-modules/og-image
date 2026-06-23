@@ -34,4 +34,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm dev:prepare
+
       - run: pnpm run test:takumi:e2e:matrix
