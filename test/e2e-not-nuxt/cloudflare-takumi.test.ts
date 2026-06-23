@@ -1,6 +1,7 @@
 import type { ChildProcess } from 'node:child_process'
 import { spawn } from 'node:child_process'
 import * as fs from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { createResolver } from '@nuxt/kit'
 import { globby } from 'globby'
 import { $fetch } from 'ofetch'
@@ -48,6 +49,28 @@ let wranglerProcess: ChildProcess | null = null
 let serverUrl = ''
 let skipWranglerRuntime = false
 
+async function getFreePort() {
+  return await new Promise<number>((resolve, reject) => {
+    const server = createServer()
+    server.unref()
+    server.on('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      if (!address || typeof address === 'string') {
+        server.close(() => reject(new Error('Unable to resolve free port for Wrangler test server.')))
+        return
+      }
+      const { port } = address
+      server.close((error) => {
+        if (error)
+          reject(error)
+        else
+          resolve(port)
+      })
+    })
+  })
+}
+
 async function buildFixture(retries = 2) {
   await ensureLocalModuleStub()
 
@@ -70,9 +93,10 @@ async function buildFixture(retries = 2) {
 }
 
 async function startWrangler(): Promise<string> {
+  const port = await getFreePort()
   return new Promise((resolve, reject) => {
     let settled = false
-    const proc = spawn('wrangler', ['dev', '--port', '8788'], {
+    const proc = spawn('wrangler', ['dev', '--port', String(port)], {
       cwd: fixtureDir,
       env: {
         ...getWranglerTestEnv(process.env, wranglerEnvName),
@@ -83,18 +107,24 @@ async function startWrangler(): Promise<string> {
 
     wranglerProcess = proc
     let output = ''
+    let startupTimer: ReturnType<typeof setTimeout>
+    const getOutput = () => output
     const finish = (value: string) => {
       if (settled)
         return
       settled = true
+      clearTimeout(startupTimer)
       resolve(value)
     }
-    const fail = (message: string) => {
+    const fail = (message: string | (() => string)) => {
       if (settled)
         return
       settled = true
-      reject(new Error(`Wrangler failed to start: ${message}`))
+      clearTimeout(startupTimer)
+      proc.kill()
+      reject(new Error(`Wrangler failed to start: ${typeof message === 'function' ? message() : message}`))
     }
+    startupTimer = setTimeout(fail, 30000, getOutput)
 
     proc.stdout?.on('data', (data) => {
       output += data.toString()
@@ -112,15 +142,29 @@ async function startWrangler(): Promise<string> {
       if (!settled && code)
         fail([output, await readLatestWranglerLog(wranglerEnvName)].filter(Boolean).join('\n'))
     })
-    setTimeout(fail, 30000, output)
   })
 }
 
-function stopWrangler() {
-  if (wranglerProcess) {
-    wranglerProcess.kill()
-    wranglerProcess = null
-  }
+async function stopWrangler() {
+  const proc = wranglerProcess
+  wranglerProcess = null
+  if (!proc || proc.exitCode !== null)
+    return
+
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(() => {
+      proc.kill('SIGKILL')
+      resolve()
+    }, 5000)
+    proc.once('close', () => {
+      clearTimeout(timer)
+      resolve()
+    })
+    if (!proc.kill()) {
+      clearTimeout(timer)
+      resolve()
+    }
+  })
 }
 
 describe('cloudflare-takumi', () => {
@@ -168,8 +212,8 @@ describe('cloudflare-takumi', () => {
       }
     }, 60000)
 
-    afterAll(() => {
-      stopWrangler()
+    afterAll(async () => {
+      await stopWrangler()
     })
 
     it('serves og images dynamically via wrangler', async () => {
@@ -216,20 +260,27 @@ describe('cloudflare-takumi', () => {
       }
     }
 
+    async function registerFont(renderer: any, font: { name: string, data: Uint8Array, weight: number, style: 'normal' }) {
+      const fn = renderer.registerFont || renderer.loadFont
+      if (typeof fn !== 'function')
+        throw new TypeError('Takumi renderer does not expose registerFont/loadFont')
+      await fn.call(renderer, font)
+    }
+
     it('renders text when all subsets share the same name', async () => {
       expect(fontSubsets.length).toBeGreaterThan(0)
 
       const renderer = new Renderer()
       for (const data of fontSubsets) {
         try {
-          renderer.loadFont({ name: 'Inter', data, weight: 400, style: 'normal' })
+          await registerFont(renderer, { name: 'Inter', data, weight: 400, style: 'normal' })
         }
         catch {
           // Some subsets may not contain standalone font metadata; later render assertions cover fallback behavior.
         }
       }
 
-      const buffer = renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
+      const buffer = await renderer.render(makeNodes('Inter'), { width: 400, height: 80, format: 'png' })
       expect(buffer.length).toBeLessThan(8000)
     })
 
@@ -241,7 +292,7 @@ describe('cloudflare-takumi', () => {
       for (let i = 0; i < fontSubsets.length; i++) {
         const name = `Inter__${i}`
         try {
-          renderer.loadFont({ name, data: fontSubsets[i], weight: 400, style: 'normal' })
+          await registerFont(renderer, { name, data: fontSubsets[i], weight: 400, style: 'normal' })
           names.push(name)
         }
         catch {
@@ -249,7 +300,7 @@ describe('cloudflare-takumi', () => {
         }
       }
 
-      const buffer = renderer.render(
+      const buffer = await renderer.render(
         makeNodes(names.join(', ')),
         { width: 400, height: 80, format: 'png' },
       )

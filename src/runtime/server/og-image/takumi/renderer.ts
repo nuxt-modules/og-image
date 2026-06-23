@@ -2,6 +2,7 @@ import type { Node } from '@takumi-rs/helpers'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
+import compatibility from '#og-image/compatibility'
 import { logger } from '../../../logger'
 import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
@@ -19,7 +20,7 @@ interface TakumiState {
   loadedFamilies: Set<string>
   // Serializes WASM-touching work on the shared Renderer. The renderer is
   // reused across requests in the same isolate (nitroApp is module-scope on
-  // CF Workers etc.) and concurrent loadFont/render calls share linear memory,
+  // CF Workers etc.) and concurrent font registration/render calls share linear memory,
   // which can corrupt state and burn CPU until the wall-clock fires.
   lock: Promise<unknown>
 }
@@ -111,6 +112,14 @@ interface DedupedFontLoad {
   weight: number | undefined
 }
 
+interface TakumiFontDescriptor {
+  key?: string
+  name: string
+  data: Uint8Array
+  weight?: number
+  style?: 'normal' | 'italic' | 'oblique'
+}
+
 /**
  * Collapse font entries that share a binary (same family, style, src) into a single load.
  * @nuxt/fonts produces per-weight entries all pointing to the same variable WOFF2 URL;
@@ -161,29 +170,58 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
   return result
 }
 
-async function loadFontsIntoRenderer(state: TakumiState, fonts: FontEntry[]) {
-  for (const entry of dedupeFontsByBinary(fonts)) {
+function toUint8Array(data: BufferSource): Uint8Array {
+  if (data instanceof Uint8Array)
+    return data
+  if (data instanceof ArrayBuffer)
+    return new Uint8Array(data)
+  return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+}
+
+function createFontDescriptor(entry: DedupedFontLoad, includeKey = false): TakumiFontDescriptor {
+  return {
+    ...(includeKey ? { key: entry.binaryKey } : {}),
+    name: entry.family,
+    data: toUint8Array(entry.data),
+    ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
+    ...(entry.style ? { style: entry.style as 'normal' | 'italic' | 'oblique' } : {}),
+  }
+}
+
+function addLoadedFamilies(state: TakumiState, entry: DedupedFontLoad, registeredFamilies?: unknown) {
+  if (Array.isArray(registeredFamilies) && registeredFamilies.length) {
+    for (const family of registeredFamilies) {
+      const name = (family as { name?: unknown } | null)?.name
+      if (typeof name === 'string')
+        state.loadedFamilies.add(name)
+    }
+  }
+  else {
+    state.loadedFamilies.add(entry.family)
+  }
+}
+
+async function loadFontsIntoRenderer(state: TakumiState, entries: DedupedFontLoad[]) {
+  for (const entry of entries) {
     if (state.loadedFontKeys.has(entry.binaryKey))
       continue
 
-    const fontData = entry.data instanceof ArrayBuffer
-      ? new Uint8Array(entry.data)
-      : Uint8Array.from(entry.data as Uint8Array)
-
     try {
-      await state.renderer.loadFont({
-        name: entry.family,
-        data: fontData,
-        ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
-        style: entry.style as 'normal' | 'italic' | 'oblique',
-      })
-      state.loadedFamilies.add(entry.family)
+      const registeredFamilies = await state.renderer.loadFont(createFontDescriptor(entry))
+      addLoadedFamilies(state, entry, registeredFamilies)
     }
     catch (err) {
-      logger.warn(`Failed to load font "${entry.family}" into takumi renderer: ${(err as Error).message}`)
+      logger.warn(`Failed to load font "${entry.family}" with takumi renderer: ${(err as Error).message}`)
     }
     state.loadedFontKeys.add(entry.binaryKey)
   }
+}
+
+function normalizeImageSources(images: Array<{ src: string, data: ArrayBuffer | Uint8Array }> | undefined): Array<{ src: string, data: Uint8Array }> {
+  return (images || []).map(image => ({
+    src: image.src,
+    data: image.data instanceof Uint8Array ? image.data : new Uint8Array(image.data),
+  }))
 }
 
 /**
@@ -234,11 +272,13 @@ function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>, subsetChai
 
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options, timings } = event
+  const isTakumiV2 = compatibility.takumiVersion === 2
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
   const codepoints = extractCodepoints(nodes)
   const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
+  const fontEntries = dedupeFontsByBinary(fonts)
 
   const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
   await withTimeout(
@@ -258,7 +298,12 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const baseURL = event.runtimeConfig.app.baseURL
 
-  const fetchedResources: Array<{ src: string, data: Uint8Array }> = []
+  const { images: optionImages, fetchedResources: optionFetchedResources, persistentImages, ...takumiOptions } = options.takumi || {}
+  const images: Array<{ src: string, data: Uint8Array }> = [
+    ...normalizeImageSources(optionImages),
+    ...normalizeImageSources(optionFetchedResources),
+    ...normalizeImageSources(persistentImages),
+  ]
   if (resourceUrls.length) {
     const fetchTimeout = getFetchTimeout(event.runtimeConfig)
     // Marker header lets downstream middleware short-circuit expensive work
@@ -298,7 +343,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
         })) ?? undefined
       }
       if (data)
-        fetchedResources.push({ src, data: new Uint8Array(data) })
+        images.push({ src, data: new Uint8Array(data) })
     })))
   }
 
@@ -307,15 +352,15 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const maxDpr = event.runtimeConfig.security?.maxDpr || 2
   const maxDim = event.runtimeConfig.security?.maxDimension || 2048
   const dpr = Math.min(Math.max(1, options.takumi?.devicePixelRatio ?? 1), maxDpr)
-  const renderOptions = defu(options.takumi, {
+  const renderOptions: Record<string, any> = defu(takumiOptions, {
     width: Math.min(Number(options.width) * dpr, maxDim),
     height: Math.min(Number(options.height) * dpr, maxDim),
     format,
-    fetchedResources,
+    ...(isTakumiV2 ? { images } : { fetchedResources: images }),
     devicePixelRatio: dpr,
   })
 
-  // WASM critical section: loadFont and render mutate the shared Renderer's
+  // WASM critical section: font registration and render mutate the shared Renderer's
   // linear memory. Serializing per isolate avoids cross-request corruption.
   // lock-wait captures queue time behind prior renders; render-takumi only
   // covers post-acquire work so the two are additive and attributable.
@@ -324,7 +369,15 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   return await withTakumiLock(state, lockTimeout, () => {
     endLockWait()
     return timings.measure('render-takumi', async () => {
-      await loadFontsIntoRenderer(state, fonts)
+      let loadedFamilies = state.loadedFamilies
+      if (isTakumiV2) {
+        loadedFamilies = new Set(fontEntries.map(entry => entry.family))
+        renderOptions.fonts = fontEntries.map(entry => createFontDescriptor(entry, true))
+        renderOptions.fontFamilies = [...loadedFamilies]
+      }
+      else {
+        await loadFontsIntoRenderer(state, fontEntries)
+      }
 
       const rootStyle = nodes.style ?? {}
       if (fontFamilyOverride) {
@@ -332,14 +385,14 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
         if (chain) {
           rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
         }
-        else if (state.loadedFamilies.has(fontFamilyOverride)) {
+        else if (loadedFamilies.has(fontFamilyOverride)) {
           rootStyle.fontFamily = fontFamilyOverride
         }
       }
       nodes.style = rootStyle
-      rewriteFontFamilies(nodes, state.loadedFamilies, subsetChains)
+      rewriteFontFamilies(nodes, loadedFamilies, subsetChains)
 
-      return state.renderer.render(nodes, renderOptions)
+      return await state.renderer.render(nodes, renderOptions)
     })
   }, endLockWait)
 }

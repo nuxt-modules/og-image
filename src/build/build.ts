@@ -1,7 +1,7 @@
 import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from '../module'
-import type { RendererType } from '../runtime/types'
+import type { RendererType, RuntimeCompatibilityMeta } from '../runtime/types'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
@@ -15,7 +15,7 @@ const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get
 const RE_WASM_IMPORT = /import\("(\.\/wasm\/[^"]+\.wasm)"\)/g
 
 // we need all of the runtime dependencies when using build
-export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {
+export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, getCompatibilityMeta: () => RuntimeCompatibilityMeta = () => ({}), nuxt: Nuxt = useNuxt()) {
   nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
   if (typeof config.runtimeCacheStorage === 'object')
     nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
@@ -43,7 +43,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     // Apply renderer compatibility based on detected component suffixes
     const renderers = getDetectedRenderers()
-    await applyNitroPresetCompatibility(nitro.options, { compatibility: config.compatibility?.runtime, resolve, detectedRenderers: renderers })
+    await applyNitroPresetCompatibility(nitro.options, { compatibility: config.compatibility?.runtime, resolve, detectedRenderers: renderers, metadata: getCompatibilityMeta() })
 
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed

@@ -108,7 +108,6 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     }
   }
   const fullPath = withBase(path, app.baseURL)
-  // @ts-expect-error excessive stack depth from Nuxt typed routes
   const arrayBuffer = await event.$fetch(fullPath, {
     responseType: 'arrayBuffer',
     timeout,
