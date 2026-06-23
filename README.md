@@ -47,6 +47,8 @@ npx nuxi@latest module add og-image
 > npx skilld add nuxt-og-image
 > ```
 
+💡 Built your OG images? Check how they render across Twitter, Facebook, LinkedIn and Slack with the free [Social Share Debugger](https://nuxtseo.com/tools/social-share-debugger), or monitor them site-wide with [Nuxt SEO Pro](https://nuxtseo.com/pro).
+
 ## Documentation
 
 [📖 Read the full documentation](https://nuxtseo.com/og-image/getting-started/installation) for more information.
