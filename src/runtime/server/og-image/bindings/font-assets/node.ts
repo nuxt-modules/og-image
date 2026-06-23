@@ -18,9 +18,10 @@ export async function resolve(event: H3Event, font: FontConfig) {
   }
   // Fallback to Nitro's internal handler when origin is unreachable
   // (behind a proxy, serverless, or server not fully started)
-  const arrayBuffer = await event.$fetch(fullPath, {
+  const fetchArrayBuffer = event.$fetch as unknown as (path: string, options: { responseType: 'arrayBuffer', timeout: number }) => Promise<ArrayBuffer>
+  const arrayBuffer = await fetchArrayBuffer(fullPath, {
     responseType: 'arrayBuffer',
     timeout,
-  }) as ArrayBuffer
+  })
   return Buffer.from(arrayBuffer)
 }

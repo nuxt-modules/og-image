@@ -108,9 +108,10 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     }
   }
   const fullPath = withBase(path, app.baseURL)
-  const arrayBuffer = await event.$fetch(fullPath, {
+  const fetchArrayBuffer = event.$fetch as unknown as (path: string, options: { responseType: 'arrayBuffer', timeout: number }) => Promise<ArrayBuffer>
+  const arrayBuffer = await fetchArrayBuffer(fullPath, {
     responseType: 'arrayBuffer',
     timeout,
-  }) as ArrayBuffer
+  })
   return Buffer.from(arrayBuffer)
 }
