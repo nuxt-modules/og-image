@@ -53,7 +53,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getRecommendedBinding, promptForRendererSelection } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_INSTALL_SPEC } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -1114,7 +1114,7 @@ export default defineNuxtModule<ModuleOptions>({
         // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
         // Warn so the choice is visible and the agent can pin a renderer explicitly.
         ogImageComponentCtx.detectedRenderers.add('takumi')
-        logger.warn('No OG image renderer dependency detected. Defaulting to `takumi` (non-interactive environment). Install `@takumi-rs/core`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.')
+        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_INSTALL_SPEC}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
       }
     }
 
@@ -1129,24 +1129,27 @@ export default defineNuxtModule<ModuleOptions>({
             availableRenderers.add(renderer)
           }
           else if (nuxt.options.dev && !nuxt.options._prepare) {
-            logger.warn(`${renderer} renderer requires: ${missing.join(', ')}`)
+            const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
+            logger.warn(`${renderer} renderer requires: ${installSpecs.join(', ')}`)
             const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
             if (success) {
               availableRenderers.add(renderer)
             }
             else if (isAgent) {
               // agents can't recover from a half-installed renderer — fail loud and actionable
-              throw new Error(`[nuxt-og-image] Failed to install ${renderer} dependencies: ${missing.join(', ')}. Install manually: npx nypm add ${missing.join(' ')}`)
+              throw new Error(`[nuxt-og-image] Failed to install ${renderer} dependencies: ${missing.join(', ')}. Install manually: npx nypm add ${installSpecs.join(' ')}`)
             }
             else {
               logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
             }
           }
           else if (isAgent) {
-            throw new Error(`[nuxt-og-image] ${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+            const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
+            throw new Error(`[nuxt-og-image] ${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${installSpecs.join(' ')}`)
           }
           else {
-            logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+            const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
+            logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${installSpecs.join(' ')}`)
           }
           // Set resvg WASM fallback compatibility when satori resolved to wasm binding
           if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
@@ -1307,9 +1310,11 @@ export default defineNuxtModule<ModuleOptions>({
         for (const renderer of ogImageComponentCtx.detectedRenderers) {
           if (!availableRenderers.has(renderer)) {
             const binding = getRecommendedBinding(renderer, targetCompatibility)
-            getMissingDependencies(renderer, binding).then((missing) => {
-              if (missing.length > 0)
-                logger.warn(`New ${renderer} component detected but dependencies missing: ${missing.join(', ')}. Install with: npx nypm add ${missing.join(' ')}`)
+            getMissingDependencies(renderer, binding).then(async (missing) => {
+              if (missing.length > 0) {
+                const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
+                logger.warn(`New ${renderer} component detected but dependencies missing: ${missing.join(', ')}. Install with: npx nypm add ${installSpecs.join(' ')}`)
+              }
             })
           }
         }
