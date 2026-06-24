@@ -298,6 +298,20 @@ export interface ModuleOptions {
      */
     restrictRuntimeImagesToOrigin?: boolean | string[]
     /**
+     * Hosts allowed for external (non-same-origin) font URLs passed via
+     * `defineOgImage({ fonts: [{ path }] })`.
+     *
+     * The `fonts` URL param is attacker-controlled, so external font hosts are
+     * default-denied to prevent the font loader being used as an SSRF relay
+     * (GHSA-q8hw-4fvp-9rwv). Same-origin font paths (e.g. `/_fonts/...` from
+     * `@nuxt/fonts`) are always allowed and unaffected. Add a host here only to
+     * permit fetching fonts from a specific external CDN, e.g.
+     * `['fonts.gstatic.com']`. Matched on URL host (hostname + optional port).
+     *
+     * @default []
+     */
+    fontHostAllowlist?: string[]
+    /**
      * Secret for URL signing. When set, all runtime OG image URLs include a
      * keyed hash signature and the handler rejects requests with missing or
      * invalid signatures.
@@ -1629,6 +1643,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
+          fontHostAllowlist: config.security?.fontHostAllowlist ?? [],
           secret: config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET || '',
         },
       }

@@ -6,12 +6,24 @@ import { getCloudflareAssets } from '../../../util/cloudflareAssets'
 import { fetchLocalAsset } from '../../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { useOgImageRuntimeConfig } from '../../../utils'
+import { fetchExternalFont, isExternalFontUrl } from './external-url'
 
 export async function resolve(event: H3Event, font: FontConfig) {
   const path = font.src || font.localPath
+  const runtimeConfig = useOgImageRuntimeConfig()
+  const timeout = getFetchTimeout(runtimeConfig)
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
-  const timeout = getFetchTimeout(useOgImageRuntimeConfig())
+
+  // External font URLs are attacker-reachable via the `fonts` URL param
+  // (GHSA-q8hw-4fvp-9rwv). fetchLocalAsset would otherwise fall back to an
+  // unvalidated $fetch against the absolute URL — route it through the SSRF
+  // guard (default-deny + allowlist) instead. Resolving against the sentinel
+  // origin canonicalizes crafted protocol-relative paths to a concrete host.
+  if (path && isExternalFontUrl(path)) {
+    const href = new URL(fullPath, 'http://font-asset.invalid/').href
+    return fetchExternalFont(href, timeout, runtimeConfig.security?.fontHostAllowlist ?? [])
+  }
 
   const ab = await fetchLocalAsset(event, fullPath, { fetchTimeout: timeout })
   if (ab)

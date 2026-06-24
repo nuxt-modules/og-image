@@ -73,6 +73,7 @@ export interface OgImageRuntimeConfig {
     imageFetchTimeout: number
     maxQueryParamSize: number | null
     restrictRuntimeImagesToOrigin: false | string[]
+    fontHostAllowlist: string[]
     secret: string
     strict: boolean
   }

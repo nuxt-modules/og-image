@@ -227,12 +227,22 @@ export interface SafeFetchOptions {
   timeout: number
   headers?: Record<string, string>
   signal?: AbortSignal
+  /**
+   * A host (hostname + optional port) that is exempt from `isBlockedUrl`. Used
+   * for same-origin asset fetches whose own origin may legitimately be loopback
+   * (dev) or otherwise "private" — the initial host is trusted, but any redirect
+   * that leaves it is still re-validated, closing the open-redirect SSRF where
+   * the app's own origin 30x's to an internal target.
+   */
+  trustedHost?: string
 }
 
 /**
  * Fetch a URL with manual redirect handling. Each hop (including the initial
  * URL) is run through `isBlockedUrl` before the request is dispatched, so an
  * allowed origin returning a 30x to an internal IP cannot complete the SSRF.
+ * A hop whose host matches `opts.trustedHost` skips the block check (see
+ * SafeFetchOptions.trustedHost).
  *
  * Returns `null` on any failure (block, network error, non-2xx, redirect
  * limit). The caller treats null as a soft failure and falls back to the
@@ -255,7 +265,18 @@ export async function fetchWithRedirectValidation(
   try {
     let url = initialUrl
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      if (isBlockedUrl(url))
+      // The trusted (same-origin) host is exempt; every other host — including
+      // any cross-origin redirect target — must clear the block classifier.
+      let isTrusted = false
+      if (opts.trustedHost) {
+        try {
+          isTrusted = new URL(url).host === opts.trustedHost
+        }
+        catch {
+          return null
+        }
+      }
+      if (!isTrusted && isBlockedUrl(url))
         return null
       const res = await fetch(url, {
         redirect: 'manual',
