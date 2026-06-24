@@ -13,6 +13,12 @@ export default defineNuxtConfig({
 
   ogImage: {
     debug: true,
+    // URLs are signed by default; these tests assert unsigned dynamic URLs and
+    // hand-construct /_og/d/ requests. Signing is covered by the url-signing unit
+    // tests and the cloudflare-runtime-config e2e.
+    security: {
+      secret: false,
+    },
   },
 
   routeRules: {

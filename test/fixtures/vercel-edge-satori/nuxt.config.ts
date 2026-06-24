@@ -16,6 +16,11 @@ export default defineNuxtConfig({
     defaults: {
       renderer: 'satori',
     },
+    // Signing is on by default; this test rewrites the static og:image URL to an
+    // unsigned /_og/d/ request. Disable signing here (covered elsewhere).
+    security: {
+      secret: false,
+    },
   },
 
   nitro: {
