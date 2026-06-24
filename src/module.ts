@@ -15,6 +15,7 @@ import type {
   RuntimeCompatibilityMeta,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
+import { randomBytes } from 'node:crypto'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -39,6 +40,7 @@ import {
 import { setupGenerateHandler } from './build/generate'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
+import { resolveSigningSecret } from './build/signing-secret'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
@@ -302,12 +304,14 @@ export interface ModuleOptions {
      * keyed hash signature and the handler rejects requests with missing or
      * invalid signatures.
      *
-     * Must be a stable string across deployments. Generate one with:
+     * Leave unset to auto-generate a per-build secret (signing on by default).
+     * Set an explicit, stable string for rolling or multi-instance deploys, or
+     * `false` to disable signing entirely. Generate one with:
      * `npx nuxt-og-image generate-secret`
      *
-     * Required when `strict` is enabled.
+     * Required (explicitly) when `strict` is enabled.
      */
-    secret?: string
+    secret?: string | false
     /**
      * Enable strict security mode. When enabled:
      * - `secret` is required (URL signing)
@@ -421,25 +425,41 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
     }
 
-    const hasSecret = !!(config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET)
+    // Resolve the URL-signing secret. No explicit secret → auto-generate one so
+    // signing is on by default; the value is random, server-only, and baked into
+    // the build (stable within a build artifact so runtime sign + verify agree).
+    const signing = resolveSigningSecret(
+      config.security?.secret,
+      process.env.NUXT_OG_IMAGE_SECRET,
+      () => randomBytes(32).toString('base64url'),
+    )
+    const resolvedSecret = signing.secret
 
-    if (config.security?.strict && !hasSecret) {
+    // Strict still requires an explicit, stable secret — the auto value's
+    // per-build rotation isn't a strong enough guarantee for strict mode.
+    if (config.security?.strict && !signing.hasExplicit) {
       throw new Error('[nuxt-og-image] `security.strict` requires a signing secret. Generate one with: npx nuxt-og-image generate-secret')
     }
 
-    if (nuxt.options.dev && !config.zeroRuntime && !hasSecret) {
-      logger.warn([
-        'OG image URLs are not signed. Anyone can craft arbitrary image generation requests.',
-        '',
-        'Set a signing secret via env variable:',
-        '  NUXT_OG_IMAGE_SECRET=<secret>',
-        '',
-        '  Generate one with: npx nuxt-og-image generate-secret',
-        '',
-        'Or enable zero-runtime mode to disable dynamic generation entirely:',
-        '  ogImage: { zeroRuntime: true }',
-      ].join('\n'))
-    }
+    // Signing only happens at runtime, so the secret warnings are irrelevant for
+    // pure SSG/static deploys (no server, images served as files). Defer them to
+    // nitro:init where `nitro.options.static` authoritatively reflects the preset.
+    nuxt.hook('nitro:init', (nitro) => {
+      const hasServerRuntime = !nitro.options.static && !(nuxt.options as any)._generate
+      if (!nuxt.options.dev || config.zeroRuntime || !hasServerRuntime)
+        return
+      if (signing.optOut) {
+        logger.warn('OG image URL signing is disabled (`security.secret: false`). Anyone can craft arbitrary image generation requests.')
+      }
+      else if (signing.generated) {
+        logger.warn([
+          'OG image URLs are signed with an auto-generated secret that changes every build.',
+          'This is fine for single-instance deploys; for rolling or multi-instance deploys set a stable secret:',
+          '  NUXT_OG_IMAGE_SECRET=<secret>',
+          '  Generate one with: npx nuxt-og-image generate-secret',
+        ].join('\n'))
+      }
+    })
 
     // Check for removed/deprecated config options
     const ogImageConfig = config as unknown as Record<string, unknown>
@@ -1629,7 +1649,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
-          secret: config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET || '',
+          secret: resolvedSecret,
         },
       }
       if (nuxt.options.dev) {
@@ -1647,10 +1667,15 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       // Read by useOgImageRuntimeConfig and prefers this value over security.secret
       // when set, allowing runtime overrides on platforms like Cloudflare Workers
       // where env bindings are surfaced through the event context.
+      // Only an EXPLICIT secret is baked into this override channel — never the
+      // auto-generated one. Leaving it empty when auto-generating keeps the
+      // `NUXT_OG_IMAGE_SECRET` runtime override (e.g. Cloudflare env bindings)
+      // reachable; the auto value lives solely in the build-time `security.secret`
+      // fallback below, which the runtime override still supersedes.
       const existingOgImageCfg = (nuxt.options.runtimeConfig as Record<string, any>).ogImage
       ;(nuxt.options.runtimeConfig as Record<string, any>).ogImage = {
         ...(existingOgImageCfg && typeof existingOgImageCfg === 'object' ? existingOgImageCfg : {}),
-        secret: (existingOgImageCfg as any)?.secret || config.security?.secret || process.env.NUXT_OG_IMAGE_SECRET || '',
+        secret: (existingOgImageCfg as any)?.secret || (signing.hasExplicit ? signing.secret : ''),
       }
 
       // Non-sensitive subset exposed to the browser so defineOgImage can refresh

@@ -24,6 +24,11 @@ export default defineNuxtConfig({
     defaults: {
       renderer: 'satori',
     },
+    // Signing is on by default; this fixture hand-constructs unsigned /_og/d/
+    // requests at runtime. Disable signing here (covered elsewhere).
+    security: {
+      secret: false,
+    },
   },
 
   nitro: {
