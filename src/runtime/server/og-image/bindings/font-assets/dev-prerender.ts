@@ -6,10 +6,11 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
 import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
+import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../../utils'
-import { fetchExternalFont, isExternalFontUrl } from './external-url'
+import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from './external-url'
 
 let fontUrlMapping: Record<string, string> | undefined
 
@@ -33,16 +34,13 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       return data
   }
 
-  // External font URLs are attacker-reachable via the `fonts` URL param
-  // (GHSA-q8hw-4fvp-9rwv). None of the relative-path branches below match an
-  // absolute URL, so without this gate it falls through to an unvalidated
-  // origin-anchored fetch / $fetch. Classification is canonicalized (crafted
-  // " //127.0.0.1" can't slip past as relative); the resolved URL goes through
-  // the SSRF guard (default-deny + allowlist).
-  if (path && isExternalFontUrl(path)) {
-    const href = new URL(path, 'http://font-asset.invalid/').href
-    return fetchExternalFont(href, timeout, runtimeConfig.security?.fontHostAllowlist ?? [])
-  }
+  // `data:` and external font URLs are attacker-reachable via the `fonts` URL
+  // param (GHSA-q8hw-4fvp-9rwv). None of the relative-path branches below match
+  // them, so without this gate they fall through to an unvalidated fetch/$fetch.
+  // `data:` is decoded inline; external URLs are unsupported (use @nuxt/fonts)
+  // except the site's own origin, fetched through the SSRF guard.
+  if (path && (isDataFontUrl(path) || isExternalFontUrl(path)))
+    return fetchSpecialFontUrl(path, getSiteConfig(event).url, timeout)
 
   if (import.meta.prerender) {
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)

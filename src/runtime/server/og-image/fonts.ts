@@ -251,9 +251,15 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
 // Defence-in-depth bounds for attacker-controlled `defineOgImage({ fonts })`
 // (the `fonts` param is decoded from the URL). Cap the count so a single request
 // can't trigger an unbounded fan-out of font fetches, and cap the path length so
-// an oversized URL can't be smuggled in.
+// an oversized URL can't be smuggled in. `data:` URIs carry the font inline so
+// they're legitimately long; they're exempt from the path cap and bounded by the
+// HTTP request-size limit instead (no network fetch happens for them).
 const MAX_DEFINED_FONTS = 10
 const MAX_FONT_PATH_LENGTH = 2048
+
+function isDataUri(path: string): boolean {
+  return path.trimStart().toLowerCase().startsWith('data:')
+}
 
 /** Coerce an attacker-supplied weight to a sane numeric CSS weight. */
 function normalizeFontWeight(weight: unknown): number {
@@ -282,7 +288,7 @@ export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDef
 
     const name = typeof def.name === 'string' ? def.name.trim() : ''
     const path = typeof def.path === 'string' ? def.path : ''
-    if (!name || !path || path.length > MAX_FONT_PATH_LENGTH)
+    if (!name || !path || (path.length > MAX_FONT_PATH_LENGTH && !isDataUri(path)))
       continue
 
     const weight = normalizeFontWeight(def.weight)

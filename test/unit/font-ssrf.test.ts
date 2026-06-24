@@ -1,6 +1,6 @@
 import http from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { fetchExternalFont, isExternalFontUrl } from '../../src/runtime/server/og-image/bindings/font-assets/external-url'
+import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl, resolveSameOriginFontUrl } from '../../src/runtime/server/og-image/bindings/font-assets/external-url'
 import { fetchWithRedirectValidation } from '../../src/runtime/server/util/ssrf'
 
 const FONT_DATA = Buffer.from('fake-font-data-ttf')
@@ -15,7 +15,7 @@ const BS = String.fromCharCode(92) // backslash
 // Loopback server standing in for any internal SSRF target (metadata service,
 // admin panel, etc.). It answers 2xx with non-font bytes — the exact shape the
 // GHSA-q8hw-4fvp-9rwv side channel relied on.
-function createLoopbackServer(): Promise<{ url: string, host: string, close: () => Promise<void> }> {
+function createLoopbackServer(): Promise<{ url: string, origin: string, close: () => Promise<void> }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer((_, res) => {
       res.writeHead(200, { 'Content-Type': 'application/octet-stream' })
@@ -27,12 +27,22 @@ function createLoopbackServer(): Promise<{ url: string, host: string, close: () 
         return reject(new Error('unexpected address'))
       resolve({
         url: `http://127.0.0.1:${addr.port}/internal-service`,
-        host: `127.0.0.1:${addr.port}`,
+        origin: `http://127.0.0.1:${addr.port}`,
         close: () => new Promise<void>(r => server.close(() => r())),
       })
     })
   })
 }
+
+describe('isDataFontUrl', () => {
+  it('detects inline data: URIs (incl. leading whitespace)', () => {
+    expect(isDataFontUrl('data:font/ttf;base64,AAAA')).toBe(true)
+    expect(isDataFontUrl(`${SP}data:font/ttf;base64,AAAA`)).toBe(true)
+    expect(isDataFontUrl('DATA:font/ttf;base64,AAAA')).toBe(true)
+    expect(isDataFontUrl('/fonts/x.ttf')).toBe(false)
+    expect(isDataFontUrl('https://x/f.ttf')).toBe(false)
+  })
+})
 
 describe('isExternalFontUrl', () => {
   it('classifies absolute and protocol-relative URLs as external', () => {
@@ -46,28 +56,47 @@ describe('isExternalFontUrl', () => {
     expect(isExternalFontUrl(`/${BS}evil.com/font.ttf`)).toBe(true)
   })
 
-  // Codex finding #1: leading C0 controls / space / tab before "//host" are
-  // stripped by the WHATWG URL parser, so the value resolves cross-origin even
-  // though a naive `hasProtocol` check reports it as relative.
+  // Leading C0 controls / space / tab before "//host" are stripped by the WHATWG
+  // URL parser, so the value resolves cross-origin even though a naive scheme
+  // check reports it as relative.
   it('classifies control/space/tab-prefixed network-path URLs as external', () => {
     expect(isExternalFontUrl(`${SP}//127.0.0.1:1234/a`)).toBe(true)
     expect(isExternalFontUrl(`${NUL}//169.254.169.254/latest/meta-data/`)).toBe(true)
     expect(isExternalFontUrl(`${TAB}//10.0.0.1/x`)).toBe(true)
   })
 
-  it('treats same-origin asset paths as internal (not external)', () => {
+  it('treats relative same-origin asset paths as not external', () => {
     expect(isExternalFontUrl('/_fonts/inter.ttf')).toBe(false)
     expect(isExternalFontUrl('/_og-static-fonts/inter.ttf')).toBe(false)
     expect(isExternalFontUrl('/fonts/local.ttf')).toBe(false)
     expect(isExternalFontUrl('fonts/local.ttf')).toBe(false)
   })
+})
 
-  it('treats inline data: font URIs as internal (no network)', () => {
-    expect(isExternalFontUrl('data:font/ttf;base64,AAAA')).toBe(false)
+describe('resolveSameOriginFontUrl', () => {
+  const site = 'https://mysite.com'
+
+  it('accepts an absolute URL on the site origin', () => {
+    expect(resolveSameOriginFontUrl('https://mysite.com/fonts/x.ttf', site)).toBe('https://mysite.com/fonts/x.ttf')
+  })
+
+  it('rejects a cross-origin URL', () => {
+    expect(resolveSameOriginFontUrl('https://evil.com/x.ttf', site)).toBeNull()
+    expect(resolveSameOriginFontUrl('//evil.com/x.ttf', site)).toBeNull()
+  })
+
+  it('rejects when no site URL is configured', () => {
+    expect(resolveSameOriginFontUrl('https://mysite.com/x.ttf', undefined)).toBeNull()
+    expect(resolveSameOriginFontUrl('https://mysite.com/x.ttf', '')).toBeNull()
+  })
+
+  it('rejects control/space-prefixed network-path URLs (resolve cross-origin)', () => {
+    expect(resolveSameOriginFontUrl(`${SP}//127.0.0.1/a`, site)).toBeNull()
+    expect(resolveSameOriginFontUrl(`${NUL}//169.254.169.254/`, site)).toBeNull()
   })
 })
 
-describe('fetchExternalFont — default-deny + allowlist', () => {
+describe('fetchSpecialFontUrl', () => {
   let server: Awaited<ReturnType<typeof createLoopbackServer>>
 
   beforeAll(async () => {
@@ -77,35 +106,29 @@ describe('fetchExternalFont — default-deny + allowlist', () => {
     await server.close()
   })
 
-  it('denies any external host by default (empty allowlist)', async () => {
-    // Sanity check: the server is genuinely reachable, so the rejection below
-    // proves the guard blocked it, not that the target was simply down.
-    const direct = await fetch(server.url)
-    expect(direct.ok).toBe(true)
-
-    await expect(fetchExternalFont(server.url, 3000, [])).rejects.toThrow(/not allowed/)
-    await expect(fetchExternalFont('https://fonts.gstatic.com/a.ttf', 3000, [])).rejects.toThrow(/not allowed/)
+  it('decodes an inline data: font URI (no network)', async () => {
+    const b64 = Buffer.from('REAL_FONT_BYTES').toString('base64')
+    const buf = await fetchSpecialFontUrl(`data:application/octet-stream;base64,${b64}`, undefined, 3000)
+    expect(buf.toString()).toBe('REAL_FONT_BYTES')
   })
 
-  it('blocks loopback even when the host IS allowlisted (defense in depth)', async () => {
-    // An allowlisted host that still points at loopback must be rejected by the
-    // isBlockedUrl layer, not fetched.
-    await expect(fetchExternalFont(server.url, 3000, [server.host])).rejects.toThrow(/blocked or unreachable/)
+  it('rejects a cross-origin external URL as unsupported', async () => {
+    await expect(fetchSpecialFontUrl('https://fonts.gstatic.com/a.ttf', 'https://mysite.com', 3000))
+      .rejects
+      .toThrow(/not supported/)
   })
 
-  it('blocks the AWS metadata endpoint even if allowlisted', async () => {
-    await expect(
-      fetchExternalFont('http://169.254.169.254/latest/meta-data/', 3000, ['169.254.169.254']),
-    ).rejects.toThrow(/blocked or unreachable/)
+  it('rejects an external URL when no site URL is configured', async () => {
+    await expect(fetchSpecialFontUrl(server.url, undefined, 3000)).rejects.toThrow(/not supported/)
   })
 
-  it('blocks RFC1918 private ranges even if allowlisted', async () => {
-    await expect(fetchExternalFont('http://10.0.0.1/font.ttf', 3000, ['10.0.0.1'])).rejects.toThrow()
-    await expect(fetchExternalFont('http://192.168.0.1/font.ttf', 3000, ['192.168.0.1'])).rejects.toThrow()
-  })
-
-  it('rejects an invalid URL', async () => {
-    await expect(fetchExternalFont('not a url', 3000, [])).rejects.toThrow(/Invalid external font URL/)
+  it('blocks a same-origin URL that resolves to loopback (SSRF guard still applies)', async () => {
+    // Sanity check: the server is genuinely reachable, so the rejection proves
+    // the guard blocked it, not that the target was simply down.
+    expect((await fetch(server.url)).ok).toBe(true)
+    // site URL == the loopback origin, so it is "same-origin" — but isBlockedUrl
+    // must still refuse to fetch a private/loopback address.
+    await expect(fetchSpecialFontUrl(server.url, server.origin, 3000)).rejects.toThrow(/blocked or unreachable/)
   })
 })
 
@@ -113,11 +136,10 @@ describe('fetchExternalFont — default-deny + allowlist', () => {
 // redirect on the app's own origin (e.g. /api/redirect?url=...). trustedHost
 // exempts the origin itself, but any redirect that leaves it is re-validated.
 describe('trustedHost redirect re-validation', () => {
-  let app: { url: string, host: string, redirectTo: (loc: string) => void, close: () => Promise<void> }
+  let app: { url: string, host: string, close: () => Promise<void> }
   let internalHits: number
 
   beforeAll(async () => {
-    let location = ''
     internalHits = 0
     const internal = http.createServer((_, res) => {
       internalHits++
@@ -134,7 +156,7 @@ describe('trustedHost redirect re-validation', () => {
         return
       }
       if (req.url?.startsWith('/redirect')) {
-        res.writeHead(302, { location: location || `http://127.0.0.1:${internalPort}/meta` })
+        res.writeHead(302, { location: `http://127.0.0.1:${internalPort}/meta` })
         res.end()
         return
       }
@@ -146,7 +168,6 @@ describe('trustedHost redirect re-validation', () => {
     app = {
       url: `http://127.0.0.1:${port}`,
       host: `127.0.0.1:${port}`,
-      redirectTo: (loc: string) => { location = loc },
       close: async () => {
         await new Promise<void>(r => server.close(() => r()))
         await new Promise<void>(r => internal.close(() => r()))

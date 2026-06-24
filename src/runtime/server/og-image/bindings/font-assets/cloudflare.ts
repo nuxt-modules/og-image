@@ -2,11 +2,12 @@ import type { H3Event } from 'h3'
 import type { FontConfig } from '../../../../types'
 import { useRuntimeConfig } from 'nitropack/runtime'
 import { withBase } from 'ufo'
+import { getSiteConfig } from '#site-config/server/composables'
 import { getCloudflareAssets } from '../../../util/cloudflareAssets'
 import { fetchLocalAsset } from '../../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { useOgImageRuntimeConfig } from '../../../utils'
-import { fetchExternalFont, isExternalFontUrl } from './external-url'
+import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from './external-url'
 
 export async function resolve(event: H3Event, font: FontConfig) {
   const path = font.src || font.localPath
@@ -15,15 +16,13 @@ export async function resolve(event: H3Event, font: FontConfig) {
   const { app } = useRuntimeConfig()
   const fullPath = withBase(path, app.baseURL)
 
-  // External font URLs are attacker-reachable via the `fonts` URL param
-  // (GHSA-q8hw-4fvp-9rwv). fetchLocalAsset would otherwise fall back to an
-  // unvalidated $fetch against the absolute URL — route it through the SSRF
-  // guard (default-deny + allowlist) instead. Resolving against the sentinel
-  // origin canonicalizes crafted protocol-relative paths to a concrete host.
-  if (path && isExternalFontUrl(path)) {
-    const href = new URL(fullPath, 'http://font-asset.invalid/').href
-    return fetchExternalFont(href, timeout, runtimeConfig.security?.fontHostAllowlist ?? [])
-  }
+  // `data:` and external font URLs are attacker-reachable via the `fonts` URL
+  // param (GHSA-q8hw-4fvp-9rwv). fetchLocalAsset would otherwise fall back to an
+  // unvalidated $fetch against the absolute URL. `data:` is decoded inline;
+  // external URLs are unsupported (use @nuxt/fonts) except the site's own origin,
+  // fetched through the SSRF guard.
+  if (path && (isDataFontUrl(path) || isExternalFontUrl(path)))
+    return fetchSpecialFontUrl(path, getSiteConfig(event).url, timeout)
 
   const ab = await fetchLocalAsset(event, fullPath, { fetchTimeout: timeout })
   if (ab)
