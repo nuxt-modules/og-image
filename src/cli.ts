@@ -9,6 +9,7 @@ import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
 import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
 import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
+import { TAKUMI_CORE_INSTALL_SPEC, TAKUMI_WASM_INSTALL_SPEC } from './utils/dependencies'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -245,13 +246,18 @@ const EDGE_PRESETS = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 've
 
 // Get dependencies based on renderer and deployment target
 // Edge targets need both node (for local dev) and wasm (for production) versions
-function getRendererDeps(renderer: RendererName, isEdge: boolean): string[] {
+function getRendererDeps(renderer: RendererName, isEdge: boolean, options: { installSpec?: boolean } = {}): string[] {
   switch (renderer) {
     case 'satori':
       return isEdge
         ? ['satori', '@resvg/resvg-js', '@resvg/resvg-wasm']
         : ['satori', '@resvg/resvg-js']
     case 'takumi':
+      if (options.installSpec) {
+        return isEdge
+          ? [TAKUMI_CORE_INSTALL_SPEC, TAKUMI_WASM_INSTALL_SPEC]
+          : [TAKUMI_CORE_INSTALL_SPEC]
+      }
       return isEdge
         ? ['@takumi-rs/core', '@takumi-rs/wasm']
         : ['@takumi-rs/core']
@@ -758,7 +764,7 @@ async function installRendererDeps(renderers: RendererName[], isEdge: boolean): 
 
   const allDeps: string[] = []
   for (const renderer of renderers) {
-    allDeps.push(...getRendererDeps(renderer, isEdge))
+    allDeps.push(...getRendererDeps(renderer, isEdge, { installSpec: true }))
   }
 
   // Dedupe

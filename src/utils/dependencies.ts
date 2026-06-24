@@ -12,6 +12,7 @@ export type BindingVariant = 'node' | 'wasm' | 'wasm-fs'
 export interface ProviderDependency {
   name: string
   description: string
+  installSpec?: string
   optional?: boolean
 }
 
@@ -24,6 +25,12 @@ export interface ProviderDefinition {
     'wasm-fs'?: ProviderDependency[]
   }
 }
+
+export const TAKUMI_INSTALL_TAG = 'beta'
+export const TAKUMI_CORE_PACKAGE = '@takumi-rs/core'
+export const TAKUMI_WASM_PACKAGE = '@takumi-rs/wasm'
+export const TAKUMI_CORE_INSTALL_SPEC = `${TAKUMI_CORE_PACKAGE}@${TAKUMI_INSTALL_TAG}`
+export const TAKUMI_WASM_INSTALL_SPEC = `${TAKUMI_WASM_PACKAGE}@${TAKUMI_INSTALL_TAG}`
 
 export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
   {
@@ -49,13 +56,13 @@ export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
     description: 'Rust-based high-performance renderer (recommended)',
     bindings: {
       'node': [
-        { name: '@takumi-rs/core', description: 'Native Takumi renderer' },
+        { name: TAKUMI_CORE_PACKAGE, installSpec: TAKUMI_CORE_INSTALL_SPEC, description: 'Native Takumi renderer' },
       ],
       'wasm': [
-        { name: '@takumi-rs/wasm', description: 'WASM Takumi renderer' },
+        { name: TAKUMI_WASM_PACKAGE, installSpec: TAKUMI_WASM_INSTALL_SPEC, description: 'WASM Takumi renderer' },
       ],
       'wasm-fs': [
-        { name: '@takumi-rs/wasm', description: 'WASM Takumi renderer' },
+        { name: TAKUMI_WASM_PACKAGE, installSpec: TAKUMI_WASM_INSTALL_SPEC, description: 'WASM Takumi renderer' },
       ],
     },
   },
@@ -106,31 +113,64 @@ export async function getMissingDependencies(
   provider: ProviderName,
   binding: BindingVariant = 'node',
 ): Promise<string[]> {
+  const missing = await getMissingProviderDependencyDefinitions(provider, binding)
+  return missing.map(d => d.name)
+}
+
+async function getMissingProviderDependencyDefinitions(
+  provider: ProviderName,
+  binding: BindingVariant = 'node',
+): Promise<ProviderDependency[]> {
   const providerDef = PROVIDER_DEPENDENCIES.find(p => p.name === provider)
   if (!providerDef)
     return []
 
   const deps = providerDef.bindings[binding] || providerDef.bindings.node || []
-  const missing: string[] = []
+  const missing: ProviderDependency[] = []
 
   for (const dep of deps) {
     if (!await hasResolvableDependency(dep.name))
-      missing.push(dep.name)
+      missing.push(dep)
   }
 
   return missing
+}
+
+function getDependencyDefinitions(
+  provider: ProviderName,
+  binding: BindingVariant = 'node',
+): ProviderDependency[] {
+  const providerDef = PROVIDER_DEPENDENCIES.find(p => p.name === provider)
+  if (!providerDef)
+    return []
+
+  return providerDef.bindings[binding] || providerDef.bindings.node || []
+}
+
+export function getDependencyInstallSpec(dep: ProviderDependency): string {
+  return dep.installSpec || dep.name
+}
+
+export async function getMissingDependencyInstallSpecs(
+  provider: ProviderName,
+  binding: BindingVariant = 'node',
+): Promise<string[]> {
+  const missing = await getMissingProviderDependencyDefinitions(provider, binding)
+  return missing.map(getDependencyInstallSpec)
 }
 
 export function getProviderDependencies(
   provider: ProviderName,
   binding: BindingVariant = 'node',
 ): string[] {
-  const providerDef = PROVIDER_DEPENDENCIES.find(p => p.name === provider)
-  if (!providerDef)
-    return []
+  return getDependencyDefinitions(provider, binding).map(d => d.name)
+}
 
-  const deps = providerDef.bindings[binding] || providerDef.bindings.node || []
-  return deps.map(d => d.name)
+export function getProviderDependencyInstallSpecs(
+  provider: ProviderName,
+  binding: BindingVariant = 'node',
+): string[] {
+  return getDependencyDefinitions(provider, binding).map(getDependencyInstallSpec)
 }
 
 export function getRecommendedBindingFromPreset(provider: ProviderName): BindingVariant {
@@ -170,28 +210,31 @@ export async function ensureProviderDependencies(
   binding: BindingVariant,
   nuxt: Nuxt,
 ): Promise<{ success: boolean, installed: string[] }> {
-  const missing = await getMissingDependencies(provider, binding)
+  const missingDeps = await getMissingProviderDependencyDefinitions(provider, binding)
 
-  if (missing.length === 0)
+  if (missingDeps.length === 0)
     return { success: true, installed: [] }
+
+  const missingInstallSpecs = missingDeps.map(getDependencyInstallSpec)
 
   const pm = await detectPackageManager(nuxt.options.rootDir)
   const pmName = pm?.name || 'npm'
 
-  logger.info(`Installing ${provider} dependencies: ${missing.join(', ')}`)
+  logger.info(`Installing ${provider} dependencies: ${missingInstallSpecs.join(', ')}`)
 
   const installed: string[] = []
-  for (const pkg of missing) {
-    const success = await addDependency(pkg, {
+  for (const dep of missingDeps) {
+    const installSpec = getDependencyInstallSpec(dep)
+    const success = await addDependency(installSpec, {
       cwd: nuxt.options.rootDir,
       dev: false,
     })
       .then(() => {
-        installed.push(pkg)
+        installed.push(installSpec)
         return true
       })
       .catch(() => {
-        logger.error(`Failed to install ${pkg}. Run manually: ${pmName} add ${pkg}`)
+        logger.error(`Failed to install ${installSpec}. Run manually: ${pmName} add ${installSpec}`)
         return false
       })
 
@@ -245,7 +288,7 @@ export async function validateProviderSetup(
 ): Promise<{ valid: boolean, issues: string[] }> {
   const issues: string[] = []
   const binding = getRecommendedBinding(renderer, compatibility)
-  const missing = await getMissingDependencies(renderer, binding)
+  const missing = await getMissingDependencyInstallSpecs(renderer, binding)
 
   if (missing.length > 0) {
     issues.push(`Missing ${renderer} dependencies: ${missing.join(', ')}`)

@@ -13,10 +13,11 @@ import {
   canPromptInteractively,
   ensureProviderDependencies,
   getInstalledProviders,
-  getMissingDependencies,
-  getProviderDependencies,
+  getMissingDependencyInstallSpecs,
+  getProviderDependencyInstallSpecs,
   getRecommendedBindingFromPreset,
   PROVIDER_DEPENDENCIES,
+  TAKUMI_CORE_INSTALL_SPEC,
   validateProviderSetup,
 } from './utils/dependencies'
 
@@ -69,6 +70,7 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
       throw new Error(
         '[nuxt-og-image] No OG image provider dependencies found. '
         + 'Install a provider before running in CI:\n'
+        + `  npm add ${TAKUMI_CORE_INSTALL_SPEC}                # for takumi\n`
         + '  npm add @resvg/resvg-js satori yoga-wasm-web  # for satori\n'
         + '  npm add playwright-core                       # for browser\n'
         + 'See: https://nuxtseo.com/og-image/getting-started',
@@ -169,11 +171,11 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
   }
 
   // check and install dependencies
-  const missing = await getMissingDependencies(state.selectedRenderer!, state.selectedBinding!)
+  const missingInstallSpecs = await getMissingDependencyInstallSpecs(state.selectedRenderer!, state.selectedBinding!)
 
-  if (missing.length > 0) {
+  if (missingInstallSpecs.length > 0) {
     logger.info(`Required dependencies for ${state.selectedRenderer} (${state.selectedBinding}):`)
-    for (const pkg of missing) {
+    for (const pkg of missingInstallSpecs) {
       logger.info(`  - ${pkg}`)
     }
 
@@ -194,12 +196,12 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
       }
       else {
         logger.error('Failed to install some dependencies. Install manually:')
-        const allDeps = getProviderDependencies(state.selectedRenderer!, state.selectedBinding!)
+        const allDeps = getProviderDependencyInstallSpecs(state.selectedRenderer!, state.selectedBinding!)
         logger.info(`  npm add ${allDeps.join(' ')}`)
       }
     }
     else {
-      const allDeps = getProviderDependencies(state.selectedRenderer!, state.selectedBinding!)
+      const allDeps = getProviderDependencyInstallSpecs(state.selectedRenderer!, state.selectedBinding!)
       logger.warn('Dependencies required. Install manually:')
       logger.info(`  npm add ${allDeps.join(' ')}`)
     }

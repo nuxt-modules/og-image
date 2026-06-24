@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canPromptInteractively } from '../../src/utils/dependencies'
+import { canPromptInteractively, getProviderDependencyInstallSpecs } from '../../src/utils/dependencies'
 
 describe('canPromptInteractively', () => {
   it('prompts only in a real interactive terminal', () => {
@@ -22,5 +22,12 @@ describe('canPromptInteractively', () => {
 
   it('does not prompt in CI', () => {
     expect(canPromptInteractively({ hasTTY: true, hasStdinTTY: true, isAgent: false, isCI: true })).toBe(false)
+  })
+})
+
+describe('provider install specs', () => {
+  it('points Takumi installs at the v2 beta tag', () => {
+    expect(getProviderDependencyInstallSpecs('takumi', 'node')).toEqual(['@takumi-rs/core@beta'])
+    expect(getProviderDependencyInstallSpecs('takumi', 'wasm')).toEqual(['@takumi-rs/wasm@beta'])
   })
 })
