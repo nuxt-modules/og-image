@@ -248,20 +248,51 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   return loaded
 }
 
+// Defence-in-depth bounds for attacker-controlled `defineOgImage({ fonts })`
+// (the `fonts` param is decoded from the URL). Cap the count so a single request
+// can't trigger an unbounded fan-out of font fetches, and cap the path length so
+// an oversized URL can't be smuggled in. `data:` URIs carry the font inline so
+// they're legitimately long; they're exempt from the path cap and bounded by the
+// HTTP request-size limit instead (no network fetch happens for them).
+const MAX_DEFINED_FONTS = 10
+const MAX_FONT_PATH_LENGTH = 2048
+
+function isDataUri(path: string): boolean {
+  return path.trimStart().toLowerCase().startsWith('data:')
+}
+
+/** Coerce an attacker-supplied weight to a sane numeric CSS weight. */
+function normalizeFontWeight(weight: unknown): number {
+  const n = typeof weight === 'number' ? weight : typeof weight === 'string' ? Number(weight) : Number.NaN
+  if (!Number.isFinite(n))
+    return 400
+  return Math.min(Math.max(Math.round(n), 1), 1000)
+}
+
 /**
  * Load additional fonts specified via defineOgImage({ fonts: [...] }).
  * Only object format ({ name, weight, path }) with a path is supported.
+ *
+ * Field values arrive from the attacker-controlled `fonts` URL param, so each is
+ * parsed at this boundary (require string name/path, coerce weight) and the
+ * array is bounded before any font is fetched.
  */
 export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDefs: any[]): Promise<RuntimeFontConfig[]> {
   const results: RuntimeFontConfig[] = []
-  for (const def of fontDefs) {
-    if (!def || typeof def !== 'object' || !def.path)
+  const defs = Array.isArray(fontDefs) ? fontDefs : []
+  if (import.meta.dev && defs.length > MAX_DEFINED_FONTS)
+    logger.warn(`defineOgImage fonts capped at ${MAX_DEFINED_FONTS}; ${defs.length - MAX_DEFINED_FONTS} ignored.`)
+  for (const def of defs.slice(0, MAX_DEFINED_FONTS)) {
+    if (!def || typeof def !== 'object')
       continue
 
-    const name: string = def.name
-    const weight: number = def.weight || 400
+    const name = typeof def.name === 'string' ? def.name.trim() : ''
+    const path = typeof def.path === 'string' ? def.path : ''
+    if (!name || !path || (path.length > MAX_FONT_PATH_LENGTH && !isDataUri(path)))
+      continue
+
+    const weight = normalizeFontWeight(def.weight)
     const style: 'normal' | 'italic' = def.style === 'italic' ? 'italic' : 'normal'
-    const path: string = def.path
 
     const fontConfig = { family: name, weight, style, src: path, localPath: path } satisfies FontConfig
     const data = await resolve(event.e, fontConfig).catch(() => null)

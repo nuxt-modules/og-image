@@ -6,8 +6,11 @@ import { useRuntimeConfig } from 'nitropack/runtime'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
 import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
+import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
+import { fetchWithRedirectValidation } from '../../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../../utils'
+import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from './external-url'
 
 let fontUrlMapping: Record<string, string> | undefined
 
@@ -21,7 +24,8 @@ async function loadFontUrlMapping(): Promise<Record<string, string>> {
 
 export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer> {
   const path = font.src || font.localPath
-  const timeout = getFetchTimeout(useOgImageRuntimeConfig())
+  const runtimeConfig = useOgImageRuntimeConfig()
+  const timeout = getFetchTimeout(runtimeConfig)
 
   // Static bundled fonts — read directly from absolute path
   if (font.absolutePath) {
@@ -29,6 +33,14 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     if (data?.length)
       return data
   }
+
+  // `data:` and external font URLs are attacker-reachable via the `fonts` URL
+  // param (GHSA-q8hw-4fvp-9rwv). None of the relative-path branches below match
+  // them, so without this gate they fall through to an unvalidated fetch/$fetch.
+  // `data:` is decoded inline; external URLs are unsupported (use @nuxt/fonts)
+  // except the site's own origin, fetched through the SSRF guard.
+  if (path && (isDataFontUrl(path) || isExternalFontUrl(path)))
+    return fetchSpecialFontUrl(path, getSiteConfig(event).url, timeout)
 
   if (import.meta.prerender) {
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)
@@ -101,10 +113,13 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   if (import.meta.dev) {
     const reqUrl = getRequestURL(event)
     const origin = `${reqUrl.protocol}//${reqUrl.host}`
-    const url = new URL(withBase(path, app.baseURL), origin).href
-    const res = await fetch(url, { signal: AbortSignal.timeout(timeout) }).catch(() => null)
-    if (res?.ok) {
-      return Buffer.from(await res.arrayBuffer())
+    const target = new URL(withBase(path, app.baseURL), origin)
+    // Same-origin dev fetch: trust our own (loopback) host but re-validate any
+    // redirect that leaves it, so an open redirect can't reach an internal
+    // target via the font path (GHSA-q8hw-4fvp-9rwv).
+    const ab = await fetchWithRedirectValidation(target.href, { timeout, trustedHost: target.host }).catch(() => null)
+    if (ab) {
+      return Buffer.from(ab)
     }
   }
   const fullPath = withBase(path, app.baseURL)
