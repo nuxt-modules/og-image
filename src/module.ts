@@ -1,3 +1,4 @@
+import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
@@ -11,6 +12,7 @@ import type {
   OgImageOptions,
   OgImageRuntimeConfig,
   RendererType,
+  RuntimeCompatibilityMeta,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
 import * as fs from 'node:fs'
@@ -21,7 +23,7 @@ import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandl
 import { defu } from 'defu'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { hash } from 'ohash'
-import { isAbsolute, join } from 'pathe'
+import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
@@ -66,6 +68,60 @@ const RE_PASCAL_TO_KEBAB = /([a-z])([A-Z])/g
 const RE_TILDE_PREFIX = /^~\//
 
 const IS_MODULE_DEVELOPMENT = import.meta.filename.endsWith('.ts')
+
+interface TakumiPackageVersion {
+  pkg: string
+  version: string
+  major: RuntimeCompatibilityMeta['takumiVersion']
+}
+
+async function findPackageVersionFromEntry(pkg: string, resolver: Resolver): Promise<string | undefined> {
+  const entry = await resolver.resolvePath(pkg, { fallbackToOriginal: false }).catch(() => null)
+  if (!entry || entry === pkg)
+    return
+
+  let dir = dirname(entry)
+  while (dir && dir !== dirname(dir)) {
+    const pkgPath = join(dir, 'package.json')
+    if (existsSync(pkgPath)) {
+      const pkgJson = await readPackageJSON(pkgPath).catch(() => null)
+      if (pkgJson?.name === pkg)
+        return pkgJson.version
+    }
+    dir = dirname(dir)
+  }
+}
+
+function normalizeTakumiVersion(version: string | undefined): RuntimeCompatibilityMeta['takumiVersion'] {
+  const major = version ? Number.parseInt(version.split('.')[0]!, 10) : Number.NaN
+  if (major >= 2)
+    return 2
+  if (major === 1)
+    return 1
+}
+
+async function detectTakumiVersion(resolver: Resolver, binding?: RuntimeCompatibilitySchema['takumi'] | 'wasm-fs'): Promise<RuntimeCompatibilityMeta['takumiVersion']> {
+  const packages = binding === 'wasm'
+    ? ['@takumi-rs/wasm', '@takumi-rs/core']
+    : ['@takumi-rs/core', '@takumi-rs/wasm']
+
+  const versions = (await Promise.all(packages.map(async (pkg): Promise<TakumiPackageVersion | undefined> => {
+    const version = await findPackageVersionFromEntry(pkg, resolver)
+    const major = normalizeTakumiVersion(version)
+    return version && major ? { pkg, version, major } : undefined
+  }))).filter(Boolean) as TakumiPackageVersion[]
+
+  const detectedMajors = new Set(versions.map(({ major }) => major))
+  if (detectedMajors.size > 1) {
+    const preferred = versions[0]!
+    logger.warn(
+      `Mismatched @takumi-rs package major versions detected (${versions.map(({ pkg, version }) => `${pkg}@${version}`).join(', ')}). `
+      + `Using ${preferred.pkg}@${preferred.version} for Takumi v${preferred.major} compatibility.`,
+    )
+  }
+
+  return versions[0]?.major
+}
 
 export interface ModuleOptions {
   /**
@@ -432,6 +488,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Resolve preset early to check compatibility settings
     const preset = resolveOgImagePreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
+    const runtimeCompatibilityMeta: RuntimeCompatibilityMeta = {}
 
     // Cloudflare Workers-specific checks
     const normalizedPreset = preset.replace(RE_LEGACY_SUFFIX, '')
@@ -1113,6 +1170,15 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
+    runtimeCompatibilityMeta.takumiVersion = await detectTakumiVersion(
+      resolver,
+      getRecommendedBinding('takumi', targetCompatibility),
+    )
+    if (ogImageComponentCtx.detectedRenderers.has('takumi') && !runtimeCompatibilityMeta.takumiVersion) {
+      logger.warn('Unable to detect @takumi-rs version. Falling back to Takumi v1 renderer compatibility.')
+      runtimeCompatibilityMeta.takumiVersion = 1
+    }
+
     // Register community templates for all renderers with available dependencies (dev only)
     // This allows users to use community templates for any renderer, not just ones they've created components for
     if (nuxt.options.dev) {
@@ -1619,8 +1685,9 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
 
     // Setup playground. Only available in development
     const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
+    const getCompatibilityMeta = () => runtimeCompatibilityMeta
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolver, getDetectedRenderers)
+      setupDevHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
       setupDevToolsUI(config, resolve, nuxt, cssFramework || 'none')
 
       // Capture Nitro for HMR reload (only needed for component add/remove)
@@ -1672,13 +1739,13 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       setupGenerateHandler(config, resolver, getDetectedRenderers)
     }
     else if (nuxt.options.build) {
-      await setupBuildHandler(config, resolver, getDetectedRenderers)
+      await setupBuildHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
     }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     // always call this as we may have routes only discovered at build time
-    setupPrerenderHandler(config, resolver, getDetectedRenderers)
+    setupPrerenderHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
 
     // Emit migration warnings at end of setup (dev only)
     if (nuxt.options.dev && hasWarnings()) {

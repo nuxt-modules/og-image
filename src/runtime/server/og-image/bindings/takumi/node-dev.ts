@@ -22,7 +22,10 @@ parentPort.on('message', async ({ id, type, newFonts, nodes, options }) => {
     const fontWarnings = []
     for (const font of (newFonts || [])) {
       try {
-        await renderer.loadFont({
+        const registerFont = renderer.registerFont || renderer.loadFont
+        if (typeof registerFont !== 'function')
+          throw new Error('renderer does not expose loadFont/registerFont')
+        await registerFont.call(renderer, {
           name: font.name,
           data: font.data,
           weight: font.weight,
@@ -162,6 +165,10 @@ class RendererWorkerProxy {
     this.allFontKeys.add(key)
     this.allFonts.push(font)
     this.pendingFonts.push(font)
+  }
+
+  registerFont(font: { name: string, data: Uint8Array, weight?: number, style?: 'normal' | 'italic' | 'oblique' }) {
+    this.loadFont(font)
   }
 
   render(nodes: any, options: RenderOptions): Promise<Buffer> {

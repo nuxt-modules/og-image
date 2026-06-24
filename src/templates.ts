@@ -150,8 +150,8 @@ declare module '#og-image-virtual/build-dir.mjs' {
 }
 
 declare module '#og-image/compatibility' {
-  import type { RuntimeCompatibilitySchema } from '${typesPath}'
-  const compatibility: Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>
+  import type { RuntimeCompatibilityPayload } from '${typesPath}'
+  const compatibility: RuntimeCompatibilityPayload
   export default compatibility
 }
 declare module '#og-image-virtual/tw4-theme.mjs' {
