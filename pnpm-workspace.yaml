@@ -71,13 +71,13 @@ packages:
   - playground
   - '!examples/**'
 overrides:
-  '@unhead/vue': ^3.1.4
-  unhead: ^3.1.4
+  '@unhead/vue': ^3.1.7
+  unhead: ^3.1.7
   vite: 8.0.6
   vitest-environment-nuxt: 2.0.0
-  vue: ^3.5.38
+  vue: ^3.5.39
 catalog:
-  '@antfu/eslint-config': ^9.0.0
+  '@antfu/eslint-config': ^9.1.0
   '@clack/prompts': ^1.6.0
   '@fontsource/noto-sans-sc': ^5.2.9
   '@iconify-json/carbon': ^1.2.23
@@ -86,12 +86,12 @@ catalog:
   '@iconify-json/ri': ^1.2.10
   '@iconify-json/tabler': ^1.2.35
   '@iconify/types': ^2.0.0
-  '@img/sharp-linux-x64': ^0.35.2
+  '@img/sharp-linux-x64': ^0.35.3
   '@nuxt/content': ^3.14.0
   '@nuxt/devtools': 4.0.0-alpha.7
   '@nuxt/devtools-kit': 4.0.0-alpha.7
   '@nuxt/fonts': ^0.14.0
-  '@nuxt/icon': ^2.2.3
+  '@nuxt/icon': ^2.2.5
   '@nuxt/image': ^2.0.0
   '@nuxt/kit': ^4.4.8
   '@nuxt/module-builder': ^1.0.2
@@ -103,22 +103,22 @@ catalog:
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
-  '@tailwindcss/vite': ^4.3.1
+  '@tailwindcss/vite': ^4.3.2
   '@takumi-rs/core': ^2.0.0-rc.5
   '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
   '@takumi-rs/helpers': ^2.0.0-rc.5
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
   '@takumi-rs/wasm': ^2.0.0-rc.5
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
-  '@unocss/config': ^66.7.2
-  '@unocss/core': ^66.7.2
-  '@unocss/nuxt': ^66.7.2
-  '@unocss/preset-icons': ^66.7.2
-  '@unocss/preset-wind': ^66.7.2
-  '@unocss/preset-wind4': ^66.7.2
+  '@unocss/config': ^66.7.4
+  '@unocss/core': ^66.7.4
+  '@unocss/nuxt': ^66.7.4
+  '@unocss/preset-icons': ^66.7.4
+  '@unocss/preset-wind': ^66.7.4
+  '@unocss/preset-wind4': ^66.7.4
   '@vitejs/plugin-vue': ^6.0.7
-  '@vue/compiler-core': ^3.5.38
-  '@vue/compiler-sfc': ^3.5.38
+  '@vue/compiler-core': ^3.5.39
+  '@vue/compiler-sfc': ^3.5.39
   '@vueuse/nuxt': ^14.3.0
   better-sqlite3: ^12.11.1
   birpc: ^4.0.0
@@ -128,7 +128,7 @@ catalog:
   culori: ^4.0.2
   defu: ^6.1.7
   devalue: ^5.8.1
-  eslint: ^10.5.0
+  eslint: ^10.6.0
   eslint-plugin-harlanzw: ^0.17.0
   exsolve: ^1.1.0
   fontless: ^0.2.1
@@ -143,26 +143,26 @@ catalog:
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
   nuxt: ^4.4.8
-  nuxt-site-config: ^4.1.0
-  nuxtseo-layer-devtools: ^5.3.0
-  nuxtseo-shared: ^5.3.0
-  nypm: ^0.6.7
+  nuxt-site-config: ^4.1.1
+  nuxtseo-layer-devtools: ^5.3.1
+  nuxtseo-shared: ^5.3.1
+  nypm: ^0.6.8
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.137.0
+  oxc-parser: ^0.138.0
   oxc-walker: ^1.0.0
   pathe: ^2.0.3
   pkg-types: ^2.3.1
-  playwright: ^1.61.0
-  playwright-core: ^1.61.0
+  playwright: ^1.61.1
+  playwright-core: ^1.61.1
   radix3: ^1.1.2
   sass: ^1.101.0
   satori: ^0.26.0
-  sharp: ^0.35.2
+  sharp: ^0.35.3
   sirv: ^3.0.2
   std-env: ^4.1.0
   strip-literal: ^3.1.0
-  tailwindcss: ^4.3.1
+  tailwindcss: ^4.3.2
   tinyexec: ^1.2.4
   tinyglobby: ^0.2.17
   typescript: ^6.0.3
@@ -170,12 +170,12 @@ catalog:
   ultrahtml: ^1.6.0
   unbuild: ^3.6.1
   unifont: ^0.7.4
-  unocss: ^66.7.2
-  unplugin: ^3.0.0
+  unocss: ^66.7.4
+  unplugin: ^3.3.0
   vitest: ^4.1.9
-  vue: ^3.5.38
-  vue-tsc: ^3.3.5
-  wrangler: ^4.103.0
+  vue: ^3.5.39
+  vue-tsc: ^3.3.6
+  wrangler: ^4.106.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
 onlyBuiltDependencies:

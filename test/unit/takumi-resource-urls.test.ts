@@ -27,6 +27,26 @@ describe('takumi resource URL extraction', () => {
     ])
   })
 
+  it('handles CSS url parser edge cases', () => {
+    expect(extractResourceUrls({
+      type: 'container',
+      style: {
+        backgroundImage: 'URL( \t "/upper.png" \n ) url(https://example.com/second.png)',
+        maskImage: 'url("https://example.com/with-paren).svg") url( /trimmed.svg )',
+        borderImage: 'url("https://broken.example/missing) url(/still-found.png)',
+      },
+      tw: 'bg-[url(\'/tw-quoted.png\')] after:bg-[url(/tw-second.png)]',
+    })).toEqual([
+      '/upper.png',
+      'https://example.com/second.png',
+      'https://example.com/with-paren).svg',
+      '/trimmed.svg',
+      '/still-found.png',
+      '/tw-quoted.png',
+      '/tw-second.png',
+    ])
+  })
+
   it('ignores embedded and internal URLs', () => {
     expect(extractResourceUrls({
       type: 'container',
