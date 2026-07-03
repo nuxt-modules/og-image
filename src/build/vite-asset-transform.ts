@@ -2,7 +2,6 @@ import type { IconifyJSON } from '@iconify/types'
 import type { ElementNode, Node } from 'ultrahtml'
 import type { CssProvider } from './css/css-provider'
 import { readFile } from 'node:fs/promises'
-import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { ofetch } from 'ofetch'
 import { dirname, isAbsolute, join, resolve } from 'pathe'
@@ -15,6 +14,7 @@ import { RE_WHITESPACE } from '../util'
 import { extractFontRequirementsFromVue } from './css/css-classes'
 import { stylesToArbitraryClass } from './css/css-provider'
 import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
+import { parseVueSfc } from './sfc-compiler'
 import { escapeAttrValue, transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -332,10 +332,10 @@ export interface AssetTransformOptions {
  * parser so nested `<template v-if>` / `<template #slot>` tags don't fool the
  * match.
  */
-function getOuterTemplateBounds(code: string): { templateStart: number, templateEnd: number } | undefined {
+async function getOuterTemplateBounds(code: string): Promise<{ templateStart: number, templateEnd: number } | undefined> {
   let descriptor
   try {
-    descriptor = parseSfc(code).descriptor
+    descriptor = (await parseVueSfc(code)).descriptor
   }
   catch {
     return undefined
@@ -375,7 +375,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       if (rawId.includes('?og-image'))
         options.onNestedTransform?.(id)
 
-      const bounds = getOuterTemplateBounds(code)
+      const bounds = await getOuterTemplateBounds(code)
       if (!bounds)
         return
 
@@ -637,7 +637,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           })
 
           if (result) {
-            const newBounds = getOuterTemplateBounds(result.code)
+            const newBounds = await getOuterTemplateBounds(result.code)
             if (newBounds) {
               template = result.code.slice(newBounds.templateStart, newBounds.templateEnd)
               hasChanges = true
@@ -803,7 +803,7 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
       // Inline <style> blocks into template elements at build time.
       // Both satori and takumi need inline styles — <style> blocks aren't applied at render time.
       {
-        const { descriptor } = parseSfc(code)
+        const { descriptor } = await parseVueSfc(code)
         if (descriptor.styles.length > 0) {
           for (const styleBlock of descriptor.styles) {
             const rawCss = styleBlock.content

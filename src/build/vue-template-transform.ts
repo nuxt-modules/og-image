@@ -1,9 +1,9 @@
 import type { ElementNode } from '@vue/compiler-core'
-import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { logger } from '../runtime/logger'
 import { RE_WHITESPACE } from '../util'
 import { evaluateCalc, walkTemplateAst } from './css/css-utils'
+import { parseVueSfc } from './sfc-compiler'
 
 export interface ClassToStyleOptions {
   /**
@@ -168,7 +168,7 @@ export async function transformVueTemplate(
   code: string,
   options: ClassToStyleOptions,
 ): Promise<{ code: string, map: ReturnType<MagicString['generateMap']> } | undefined> {
-  const { descriptor } = parseSfc(code)
+  const { descriptor } = await parseVueSfc(code)
   if (!descriptor.template?.ast)
     return undefined
 

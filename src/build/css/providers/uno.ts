@@ -1,11 +1,15 @@
-import type { UserConfig } from '@unocss/core'
 import type { CssProvider } from '../css-provider'
 import type { ExtractedCssVars } from '../css-utils'
 import { readFile } from 'node:fs/promises'
 import { defu } from 'defu'
 import { logger } from '../../../runtime/logger'
+import { importOptionalPeer } from '../../optional-module'
 import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
 import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
+
+type UserConfig = import('@unocss/core').UserConfig
+type UnoCoreModule = typeof import('@unocss/core')
+type UnoConfigModule = typeof import('@unocss/config')
 
 const RE_SVG_DATA_URL = /url\("data:image\/svg\+xml[;,]([^"]+)"\)/
 const RE_UTF8_PREFIX = /^utf8,/
@@ -15,12 +19,16 @@ const RE_HEIGHT_ATTR = /\bheight=['"](\d+)['"]/
 const RE_SVG_BODY = /<svg[^>]*>([\s\S]*)<\/svg>/
 
 export interface UnoProviderOptions {
+  unocssCorePath?: string
+  unocssConfigPath?: string
   resolveCssPath?: () => Promise<string | undefined>
 }
 
 // State
 let unoConfig: UserConfig | null = null
 let rootDir: string | null = null
+let unocssCorePath: string | undefined
+let unocssConfigPath: string | undefined
 type UnoGen = Awaited<ReturnType<typeof import('@unocss/core').createGenerator>>
 let generator: UnoGen | null = null
 let pendingGenerator: Promise<UnoGen> | null = null
@@ -57,6 +65,16 @@ export function clearUnoCache(): void {
   cachedExtracted = null
 }
 
+function setUnoModulePaths(options?: Pick<UnoProviderOptions, 'unocssCorePath' | 'unocssConfigPath'>): void {
+  const nextCorePath = options?.unocssCorePath
+  const nextConfigPath = options?.unocssConfigPath
+  if (nextCorePath === unocssCorePath && nextConfigPath === unocssConfigPath)
+    return
+  unocssCorePath = nextCorePath
+  unocssConfigPath = nextConfigPath
+  clearUnoCache()
+}
+
 async function getGenerator(): Promise<UnoGen> {
   if (generator)
     return generator
@@ -68,12 +86,13 @@ async function getGenerator(): Promise<UnoGen> {
   pendingGenerator = (async () => {
     let loadedConfig: UserConfig | undefined
     try {
-      const { loadConfig } = await import('@unocss/config')
+      const { loadConfig } = await importOptionalPeer<UnoConfigModule>('@unocss/config', unocssConfigPath, 'UnoCSS class extraction with OG images')
       const result = await loadConfig(rootDir || process.cwd())
       loadedConfig = result.config
     }
     catch (e) {
-      logger.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
+      if (!unoConfig)
+        logger.warn('[og-image UnoCSS] Failed to load uno.config.ts:', (e as Error).message)
     }
 
     const finalConfig = loadedConfig
@@ -84,7 +103,7 @@ async function getGenerator(): Promise<UnoGen> {
       throw new Error('UnoCSS config not found. Ensure uno.config.ts exists or @unocss/nuxt is loaded.')
     }
 
-    const { createGenerator } = await import('@unocss/core')
+    const { createGenerator } = await importOptionalPeer<UnoCoreModule>('@unocss/core', unocssCorePath, 'UnoCSS class extraction with OG images')
     generator = await createGenerator(finalConfig)
     return generator
   })()
@@ -130,6 +149,8 @@ function resolveUserVars(extracted: ExtractedCssVars, rootAttrs: Record<string, 
  * Create UnoCSS provider instance.
  */
 export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
+  setUnoModulePaths(options)
+
   return {
     name: 'unocss',
 
