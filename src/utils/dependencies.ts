@@ -26,7 +26,7 @@ export interface ProviderDefinition {
   }
 }
 
-export const TAKUMI_INSTALL_TAG = 'beta'
+export const TAKUMI_INSTALL_TAG = 'rc'
 export const TAKUMI_CORE_PACKAGE = '@takumi-rs/core'
 export const TAKUMI_WASM_PACKAGE = '@takumi-rs/wasm'
 export const TAKUMI_CORE_INSTALL_SPEC = `${TAKUMI_CORE_PACKAGE}@${TAKUMI_INSTALL_TAG}`

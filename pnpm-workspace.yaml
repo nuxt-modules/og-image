@@ -44,17 +44,17 @@ minimumReleaseAgeExclude:
   - '@vue/server-renderer@3.5.38'
   - '@vue/shared@3.5.38'
   - vue@3.5.38
-  - '@takumi-rs/core-darwin-arm64@2.0.0-beta.6'
-  - '@takumi-rs/core-darwin-x64@2.0.0-beta.6'
-  - '@takumi-rs/core-linux-arm64-gnu@2.0.0-beta.6'
-  - '@takumi-rs/core-linux-arm64-musl@2.0.0-beta.6'
-  - '@takumi-rs/core-linux-x64-gnu@2.0.0-beta.6'
-  - '@takumi-rs/core-linux-x64-musl@2.0.0-beta.6'
-  - '@takumi-rs/core-win32-arm64-msvc@2.0.0-beta.6'
-  - '@takumi-rs/core-win32-x64-msvc@2.0.0-beta.6'
-  - '@takumi-rs/core@2.0.0-beta.6'
-  - '@takumi-rs/helpers@2.0.0-beta.6'
-  - '@takumi-rs/wasm@2.0.0-beta.6'
+  - '@takumi-rs/core-darwin-arm64@2.0.0-rc.5'
+  - '@takumi-rs/core-darwin-x64@2.0.0-rc.5'
+  - '@takumi-rs/core-linux-arm64-gnu@2.0.0-rc.5'
+  - '@takumi-rs/core-linux-arm64-musl@2.0.0-rc.5'
+  - '@takumi-rs/core-linux-x64-gnu@2.0.0-rc.5'
+  - '@takumi-rs/core-linux-x64-musl@2.0.0-rc.5'
+  - '@takumi-rs/core-win32-arm64-msvc@2.0.0-rc.5'
+  - '@takumi-rs/core-win32-x64-msvc@2.0.0-rc.5'
+  - '@takumi-rs/core@2.0.0-rc.5'
+  - '@takumi-rs/helpers@2.0.0-rc.5'
+  - '@takumi-rs/wasm@2.0.0-rc.5'
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -104,11 +104,11 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.3.1
-  '@takumi-rs/core': ^2.0.0-beta.6
+  '@takumi-rs/core': ^2.0.0-rc.5
   '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
-  '@takumi-rs/helpers': ^2.0.0-beta.6
+  '@takumi-rs/helpers': ^2.0.0-rc.5
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
-  '@takumi-rs/wasm': ^2.0.0-beta.6
+  '@takumi-rs/wasm': ^2.0.0-rc.5
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
   '@unocss/config': ^66.7.2
   '@unocss/core': ^66.7.2

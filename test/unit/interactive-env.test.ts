@@ -26,8 +26,8 @@ describe('canPromptInteractively', () => {
 })
 
 describe('provider install specs', () => {
-  it('points Takumi installs at the v2 beta tag', () => {
-    expect(getProviderDependencyInstallSpecs('takumi', 'node')).toEqual(['@takumi-rs/core@beta'])
-    expect(getProviderDependencyInstallSpecs('takumi', 'wasm')).toEqual(['@takumi-rs/wasm@beta'])
+  it('points Takumi installs at the v2 rc tag', () => {
+    expect(getProviderDependencyInstallSpecs('takumi', 'node')).toEqual(['@takumi-rs/core@rc'])
+    expect(getProviderDependencyInstallSpecs('takumi', 'wasm')).toEqual(['@takumi-rs/wasm@rc'])
   })
 })

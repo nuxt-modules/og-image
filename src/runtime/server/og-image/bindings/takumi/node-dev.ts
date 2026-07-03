@@ -1,4 +1,5 @@
 import { Worker } from 'node:worker_threads'
+import { extractResourceUrls as extractTakumiResourceUrls } from './resource-urls'
 
 // Worker maintains a persistent Renderer instance. Fonts are loaded
 // incrementally — only new fonts are sent with each render request.
@@ -8,17 +9,12 @@ const workerCode = `
 const { createRequire } = require('node:module')
 const _require = createRequire(process.cwd() + '/')
 const { parentPort } = require('node:worker_threads')
-const { Renderer, extractResourceUrls } = _require('@takumi-rs/core')
+const { Renderer } = _require('@takumi-rs/core')
 
 let renderer = new Renderer()
 
 parentPort.on('message', async ({ id, type, newFonts, nodes, options }) => {
   try {
-    if (type === 'extractResourceUrls') {
-      const urls = extractResourceUrls(nodes)
-      parentPort.postMessage({ id, urls })
-      return
-    }
     const fontWarnings = []
     for (const font of (newFonts || [])) {
       try {
@@ -146,7 +142,7 @@ function postToWorker(msg: Record<string, any>, timeoutMs = 30_000): Promise<any
 }
 
 function extractResourceUrls(nodes: any): Promise<string[]> {
-  return postToWorker({ type: 'extractResourceUrls', nodes })
+  return Promise.resolve(extractTakumiResourceUrls(nodes))
 }
 
 // Proxy class matching Renderer interface but delegating to worker.
@@ -201,5 +197,5 @@ class RendererWorkerProxy {
 export default {
   initWasmPromise: Promise.resolve(),
   Renderer: RendererWorkerProxy as unknown as typeof import('@takumi-rs/core').Renderer,
-  extractResourceUrls: extractResourceUrls as unknown as typeof import('@takumi-rs/core').extractResourceUrls,
+  extractResourceUrls,
 }

@@ -72,8 +72,8 @@
   "peerDependencies": {
     "@resvg/resvg-js": "^2.6.0",
     "@resvg/resvg-wasm": "^2.6.0",
-    "@takumi-rs/core": "^1.0.0-beta.3 || ^2.0.0-beta.6",
-    "@takumi-rs/wasm": "^1.0.0-beta.3 || ^2.0.0-beta.6",
+    "@takumi-rs/core": "^1.0.0-beta.3 || ^2.0.0-rc.5",
+    "@takumi-rs/wasm": "^1.0.0-beta.3 || ^2.0.0-rc.5",
     "@unhead/vue": "^2.0.5 || ^3.0.0",
     "fontless": "^0.2.0",
     "nitropack": "catalog:",

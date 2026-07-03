@@ -1,4 +1,5 @@
-import { extractResourceUrls, Renderer } from '@takumi-rs/core'
+import { Renderer } from '@takumi-rs/core'
+import { extractResourceUrls } from './resource-urls'
 
 export default {
   initWasmPromise: Promise.resolve(),

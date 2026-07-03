@@ -1,6 +1,31 @@
 # Changelog
 
 
+## v6.6.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.6.0...main)
+
+### 🚀 Enhancements
+
+- Support Takumi v2 compatibility ([#635](https://github.com/nuxt-modules/og-image/pull/635))
+- Sign og image urls by default ([#638](https://github.com/nuxt-modules/og-image/pull/638))
+
+### 🩹 Fixes
+
+- Point Takumi installs at v2 beta ([#636](https://github.com/nuxt-modules/og-image/pull/636))
+- Prevent unauthenticated SSRF via font URL parameter ([#637](https://github.com/nuxt-modules/og-image/pull/637))
+
+### 🏡 Chore
+
+- **devtools:** Drop redundant shiki/carbon devDependencies ([#633](https://github.com/nuxt-modules/og-image/pull/633))
+- Bump deps ([f194c9a8](https://github.com/nuxt-modules/og-image/commit/f194c9a8))
+- Bump deps ([26183703](https://github.com/nuxt-modules/og-image/commit/26183703))
+- Bump deps ([9290ad7d](https://github.com/nuxt-modules/og-image/commit/9290ad7d))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.5.1...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.5.1...main)
