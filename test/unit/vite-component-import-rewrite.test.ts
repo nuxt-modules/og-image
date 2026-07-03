@@ -48,58 +48,58 @@ describe('component-import-rewrite plugin', () => {
   describe('transform', () => {
     const plugin = createPlugin()
 
-    it('injects ?og-image-depth=1 imports for top-level OG templates', () => {
+    it('injects ?og-image-depth=1 imports for top-level OG templates', async () => {
       const code = `<template>
   <div>
     <OgBase>Hello</OgBase>
   </div>
 </template>`
 
-      const result = plugin.transform?.(code, '/app/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/app/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain(`import OgBase from '/app/components/Og/OgBase.vue?og-image-depth=1'`)
     })
 
-    it('cascades imports with incremented depth for ?og-image files', () => {
+    it('cascades imports with incremented depth for ?og-image files', async () => {
       const code = `<template>
   <div>
     <OgTitle>Hello</OgTitle>
   </div>
 </template>`
 
-      const result = plugin.transform?.(code, '/app/components/Og/OgBase.vue?og-image-depth=1')
+      const result = await plugin.transform?.(code, '/app/components/Og/OgBase.vue?og-image-depth=1')
       expect(result).toBeDefined()
       expect(result?.code).toContain(`import OgTitle from '/app/components/Og/OgTitle.vue?og-image-depth=2'`)
     })
 
-    it('skips files without components', () => {
+    it('skips files without components', async () => {
       const code = `<template>
   <div class="text-red">Hello</div>
 </template>`
 
-      const result = plugin.transform?.(code, '/app/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/app/components/OgImage/Test.vue')
       expect(result).toBeUndefined()
     })
 
-    it('skips Icon/UIcon components', () => {
+    it('skips Icon/UIcon components', async () => {
       const code = `<template>
   <div>
     <Icon name="test" />
   </div>
 </template>`
 
-      const result = plugin.transform?.(code, '/app/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/app/components/OgImage/Test.vue')
       expect(result).toBeUndefined()
     })
 
-    it('creates script setup block when none exists', () => {
+    it('creates script setup block when none exists', async () => {
       const code = `<template>
   <div>
     <OgTitle>Hello</OgTitle>
   </div>
 </template>`
 
-      const result = plugin.transform?.(code, '/app/components/OgImage/Test.vue')
+      const result = await plugin.transform?.(code, '/app/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<script setup>')
       expect(result?.code).toContain(`import OgTitle from '/app/components/Og/OgTitle.vue?og-image-depth=1'`)
