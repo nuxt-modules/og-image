@@ -7,6 +7,15 @@ import { extractOgImageUrl, fetchOgImage } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
+let hasTakumi = false
+try {
+  await import('@takumi-rs/core')
+  hasTakumi = true
+}
+catch {
+  hasTakumi = false
+}
+
 await setup({
   rootDir: resolve('../fixtures/unocss'),
   server: true,
@@ -89,5 +98,26 @@ describe('unocss', () => {
   it('renders zinc themed og image snapshot', async () => {
     const image = await fetchOgImage('/themed-zinc')
     expect(image).toMatchImageSnapshot()
+  })
+
+  it.runIf(hasTakumi)('inlines custom unocss positioning for takumi components', async () => {
+    const html = await $fetch('/takumi-tree') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toBeTruthy()
+
+    const htmlPath = ogUrl!.replace(/\.png$/, '.html')
+    const htmlPreview = await $fetch(htmlPath) as string
+
+    expect(htmlPreview).toContain('takumi-js')
+    expect(htmlPreview).toMatch(/right:\s*2rem/)
+    expect(htmlPreview).toMatch(/width:\s*340px/)
+    expect(htmlPreview).not.toContain('force-right-8')
+  })
+
+  it.runIf(hasTakumi)('renders takumi absolute tree with unocss classes', async () => {
+    const image = await fetchOgImage('/takumi-tree')
+    expect(image).toMatchImageSnapshot({
+      customSnapshotIdentifier: 'unocss-takumi-absolute-tree',
+    })
   })
 }, 60000)

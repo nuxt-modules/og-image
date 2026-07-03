@@ -1,8 +1,16 @@
 import colors from 'tailwindcss/colors'
-import { defineConfig, presetUno } from 'unocss'
+import { defineConfig, presetIcons, presetUno } from 'unocss'
 
 export default defineConfig({
-  presets: [presetUno()],
+  presets: [presetUno(), presetIcons()],
+  rules: [
+    [
+      /^force-(left|right)-(\d+)$/,
+      ([, direction, size]) => ({
+        [direction!]: size === '0' ? '0px' : `${Number(size) / 4}rem`,
+      }),
+    ],
+  ],
   theme: {
     fontSize: {
       'mega-big': '100px',

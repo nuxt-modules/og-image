@@ -62,8 +62,14 @@ function extractFontSize(props: Record<string, any>, style: Record<string, any> 
   return undefined
 }
 
-async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number): Promise<Node> {
+function extractColor(style: Record<string, any> | undefined): string | undefined {
+  const color = style?.color
+  return typeof color === 'string' && color ? color : undefined
+}
+
+export async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number, inheritedColor?: string): Promise<Node> {
   const { style, children, class: cls, tw, src, ...rest } = vnode.props
+  const nodeColor = extractColor(style) ?? inheritedColor
 
   const baseMetadata = {
     tw: tw || cls || undefined,
@@ -81,7 +87,7 @@ async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number): Promi
     return {
       ...baseMetadata,
       type: 'image',
-      src: vnodeToHtmlString(vnode),
+      src: vnodeToHtmlString(vnode, nodeColor),
       // When em/rem + explicit parent font size → resolve to px.
       // When em/rem + default font size → leave undefined (takumi handles natively).
       // Otherwise → use standard resolution chain (numeric attrs → style → viewBox).
@@ -144,7 +150,7 @@ async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number): Promi
     const takumiChildren: Node[] = []
     for (const child of children) {
       if (child && typeof child === 'object')
-        takumiChildren.push(await vnodeToTakumiNode(child, childFontSize))
+        takumiChildren.push(await vnodeToTakumiNode(child, childFontSize, nodeColor))
       else if (typeof child === 'string' && child.trim())
         takumiChildren.push({ type: 'text', text: child.trim() })
     }
@@ -163,9 +169,16 @@ async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number): Promi
   } satisfies ContainerNode
 }
 
-function vnodeToHtmlString(vnode: VNode): string {
+function resolveCurrentColor(value: any, color: string | undefined): any {
+  return color && typeof value === 'string' && value.toLowerCase() === 'currentcolor'
+    ? color
+    : value
+}
+
+function vnodeToHtmlString(vnode: VNode, inheritedColor?: string): string {
   const { style, children, ...attrs } = vnode.props
   const attrParts: string[] = []
+  const nodeColor = extractColor(style) ?? inheritedColor
 
   const kebabCase = (str: string) => str.replace(RE_UPPERCASE, m => `-${m.toLowerCase()}`)
 
@@ -195,7 +208,7 @@ function vnodeToHtmlString(vnode: VNode): string {
   if (style && typeof style === 'object') {
     const styleStr = Object.entries(style)
       .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-      .map(([k, v]) => `${kebabCase(k)}:${resolveValue(v)}`)
+      .map(([k, v]) => `${kebabCase(k)}:${resolveValue(resolveCurrentColor(v, nodeColor))}`)
       .join(';')
     if (styleStr)
       attrParts.push(`style="${styleStr.replace(RE_DQUOTE, '&quot;')}"`)
@@ -209,7 +222,7 @@ function vnodeToHtmlString(vnode: VNode): string {
       continue
     // SVG attributes like viewBox, preserveAspectRatio must preserve their casing
     const finalKey = SVG_CAMEL_ATTR_VALUES.has(key) ? key : kebabCase(key)
-    attrParts.push(`${finalKey}="${String(resolveValue(val)).replace(RE_DQUOTE, '&quot;')}"`)
+    attrParts.push(`${finalKey}="${String(resolveValue(resolveCurrentColor(val, nodeColor))).replace(RE_DQUOTE, '&quot;')}"`)
   }
 
   const open = attrParts.length ? `<${vnode.type} ${attrParts.join(' ')}>` : `<${vnode.type}>`
@@ -219,7 +232,7 @@ function vnodeToHtmlString(vnode: VNode): string {
         if (typeof c === 'string')
           return c.replace(RE_AMP, '&amp;').replace(RE_LT, '&lt;').replace(RE_GT, '&gt;')
         if (c && typeof c === 'object')
-          return vnodeToHtmlString(c)
+          return vnodeToHtmlString(c, nodeColor)
         return ''
       }).join('')
     : (typeof children === 'string' ? children.replace(RE_AMP, '&amp;').replace(RE_LT, '&lt;').replace(RE_GT, '&gt;') : '')
