@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v6.7.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.0...main)
+
+### 🩹 Fixes
+
+- Support takumi v2 rc ([d74273de](https://github.com/nuxt-modules/og-image/commit/d74273de))
+
+### 🏡 Chore
+
+- Bump deps ([fe267f40](https://github.com/nuxt-modules/og-image/commit/fe267f40))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.6.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.6.0...main)
