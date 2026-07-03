@@ -62,9 +62,10 @@
     "prepare:fixtures": "node scripts/prepare-fixtures.mjs",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures && pnpm run build:client",
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
-    "typecheck": "nuxt-module-build prepare && nuxt typecheck",
+    "typecheck": "pnpm stub && nuxt typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
     "test:chrome": "HAS_CHROME=true vitest",
+    "test:packed-install": "node scripts/smoke-packed-install.mjs",
     "test:takumi:e2e": "node scripts/test-takumi-e2e.mjs",
     "test:takumi:e2e:matrix": "node scripts/test-takumi-e2e.mjs --matrix",
     "test:takumi:e2e:compare": "node scripts/test-takumi-e2e.mjs --compare"
@@ -75,7 +76,10 @@
     "@takumi-rs/core": "^1.0.0-beta.3 || ^2.0.0-rc.5",
     "@takumi-rs/wasm": "^1.0.0-beta.3 || ^2.0.0-rc.5",
     "@unhead/vue": "^2.0.5 || ^3.0.0",
+    "@unocss/config": "catalog:",
+    "@unocss/core": "catalog:",
     "fontless": "^0.2.0",
+    "lightningcss": "catalog:",
     "nitropack": "catalog:",
     "playwright-core": "^1.50.0",
     "satori": ">=0.19.2",
@@ -98,7 +102,16 @@
     "@takumi-rs/wasm": {
       "optional": true
     },
+    "@unocss/config": {
+      "optional": true
+    },
+    "@unocss/core": {
+      "optional": true
+    },
     "fontless": {
+      "optional": true
+    },
+    "lightningcss": {
       "optional": true
     },
     "nitropack": {
@@ -126,16 +139,11 @@
   "dependencies": {
     "@clack/prompts": "catalog:",
     "@nuxt/kit": "catalog:",
-    "@unocss/config": "catalog:",
-    "@unocss/core": "catalog:",
-    "@vue/compiler-sfc": "catalog:",
     "chrome-launcher": "catalog:",
     "consola": "catalog:",
-    "culori": "catalog:",
     "defu": "catalog:",
     "devalue": "catalog:",
     "exsolve": "catalog:",
-    "lightningcss": "catalog:",
     "magic-string": "catalog:",
     "magicast": "catalog:",
     "mocked-exports": "catalog:",
@@ -144,15 +152,12 @@
     "nypm": "catalog:",
     "ofetch": "catalog:",
     "ohash": "catalog:",
-    "oxc-parser": "catalog:",
-    "oxc-walker": "catalog:",
     "pathe": "catalog:",
     "pkg-types": "catalog:",
     "radix3": "catalog:",
     "std-env": "catalog:",
     "strip-literal": "catalog:",
     "tinyexec": "catalog:",
-    "tinyglobby": "catalog:",
     "ufo": "catalog:",
     "ultrahtml": "catalog:",
     "unplugin": "catalog:"
@@ -189,12 +194,15 @@
     "@takumi-rs/helpers-v1": "catalog:",
     "@takumi-rs/wasm": "catalog:",
     "@takumi-rs/wasm-v1": "catalog:",
+    "@unocss/config": "catalog:",
+    "@unocss/core": "catalog:",
     "@unocss/nuxt": "catalog:",
     "@unocss/preset-icons": "catalog:",
     "@unocss/preset-wind": "catalog:",
     "@unocss/preset-wind4": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vue/compiler-core": "catalog:",
+    "@vue/compiler-sfc": "catalog:",
     "@vueuse/nuxt": "catalog:",
     "birpc": "catalog:",
     "bumpp": "catalog:",
@@ -210,6 +218,7 @@
     "nitropack": "catalog:",
     "nuxt": "catalog:",
     "nuxtseo-layer-devtools": "catalog:",
+    "oxc-parser": "catalog:",
     "playwright": "catalog:",
     "playwright-core": "catalog:",
     "sass": "catalog:",

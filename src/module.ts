@@ -38,8 +38,11 @@ import {
   resolveFontFamilies,
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
+import { resolveOptionalModulePath } from './build/optional-module'
+import { resolveOxcParseSyncPath, setOxcParseSyncPath } from './build/oxc-parser'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
+import { setSfcCompilerPath } from './build/sfc-compiler'
 import { resolveSigningSecret } from './build/signing-secret'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
@@ -400,6 +403,12 @@ export default defineNuxtModule<ModuleOptions>({
     const { version } = await readPackageJSON(resolve('../package.json'))
     const userAppPkgJson = await readPackageJSON(nuxt.options.rootDir)
       .catch(() => ({ dependencies: {}, devDependencies: {} }))
+    const [sfcCompilerPath, oxcParseSyncPath] = await Promise.all([
+      resolveOptionalModulePath('@vue/compiler-sfc', nuxt.options.rootDir, ['vue']),
+      resolveOxcParseSyncPath(nuxt.options.rootDir),
+    ])
+    setSfcCompilerPath(sfcCompilerPath)
+    setOxcParseSyncPath(oxcParseSyncPath)
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
     if (config.enabled === false) {
       logger.info('The module is disabled, skipping setup.')
@@ -550,6 +559,13 @@ export default defineNuxtModule<ModuleOptions>({
     // CSS framework detection - supports UnoCSS and Tailwind
     const { detectCssProvider } = await import('./build/css/css-provider')
     const cssFramework = detectCssProvider(nuxt)
+    const { setLightningCssPath } = await import('./build/css/css-utils')
+    setLightningCssPath(await resolveOptionalModulePath('lightningcss', nuxt.options.rootDir, [
+      'vite',
+      '@nuxt/fonts',
+      'fontless',
+      '@unhead/bundler',
+    ]))
 
     // CSS provider for class resolution (UnoCSS or TW4)
     let cssProvider: CssProvider | undefined
@@ -558,6 +574,10 @@ export default defineNuxtModule<ModuleOptions>({
     if (cssFramework === 'unocss') {
       logger.debug('UnoCSS detected, using UnoCSS provider for OG image styling')
       const { setUnoConfig, setUnoRootDir, createUnoProvider } = await import('./build/css/providers/uno')
+      const [unocssCorePath, unocssConfigPath] = await Promise.all([
+        resolveOptionalModulePath('@unocss/core', nuxt.options.rootDir, ['@unocss/nuxt', 'unocss']),
+        resolveOptionalModulePath('@unocss/config', nuxt.options.rootDir, ['@unocss/nuxt', 'unocss']),
+      ])
 
       // Set root directory for loading uno.config.ts
       setUnoRootDir(nuxt.options.rootDir)
@@ -579,6 +599,8 @@ export default defineNuxtModule<ModuleOptions>({
 
       // Create the provider instance
       cssProvider = createUnoProvider({
+        unocssCorePath,
+        unocssConfigPath,
         async resolveCssPath() {
           for (const cssEntry of nuxt.options.css) {
             // @ts-expect-error untyped

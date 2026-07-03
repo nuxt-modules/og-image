@@ -2,6 +2,7 @@ import type { TemplateChildNode } from '@vue/compiler-core'
 import { logger } from '../../runtime/logger'
 import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css'
 import { RE_WHITESPACE } from '../../util'
+import { importOptionalPeer } from '../optional-module'
 
 const _warnedVars = new Set<string>()
 
@@ -39,21 +40,34 @@ const RE_COLOR_PROP = /color|fill|stroke|outline|border|background|caret|accent/
 // Lightning CSS lazy loading
 // ============================================================================
 
-let transform: typeof import('lightningcss').transform
-let Features: typeof import('lightningcss').Features
+let lightningCssPath: string | undefined
+let transform: typeof import('lightningcss').transform | undefined
+let Features: typeof import('lightningcss').Features | undefined
 
 const LEGACY_TARGETS = {
   chrome: 60 << 16,
   safari: 10 << 16,
 }
 
+export function setLightningCssPath(path?: string) {
+  if (path === lightningCssPath)
+    return
+  lightningCssPath = path
+  transform = undefined
+  Features = undefined
+}
+
 export async function loadLightningCss() {
-  if (!transform) {
-    const lcss = await import('lightningcss')
+  if (!transform || !Features) {
+    const lcss = await importOptionalPeer<typeof import('lightningcss')>(
+      'lightningcss',
+      lightningCssPath,
+      'advanced OG image CSS parsing, color downleveling, or @font-face extraction',
+    )
     transform = lcss.transform
     Features = lcss.Features
   }
-  return { transform, Features }
+  return { transform: transform!, Features: Features! }
 }
 
 /**
@@ -141,8 +155,13 @@ function walkClassRules(css: string, onRule: (className: string, body: string) =
  * Simplify CSS using Lightning CSS with minification.
  */
 export async function simplifyCss(css: string): Promise<string> {
-  const result = await transformWithLightningCss(css, { minify: true })
-  return result.code.toString()
+  try {
+    const result = await transformWithLightningCss(css, { minify: true })
+    return result.code.toString()
+  }
+  catch {
+    return css
+  }
 }
 
 /**

@@ -17,6 +17,25 @@ jobs:
   ci:
     uses: harlan-zw/nuxt-seo/.github/workflows/reusable-ci.yml@main
 
+  packed-install-smoke:
+    name: Packed install smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run test:packed-install
+
   takumi-e2e-matrix:
     name: Takumi e2e matrix
     runs-on: ubuntu-latest

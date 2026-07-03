@@ -1,30 +1,28 @@
 /**
  * Extract prop names from a Vue SFC's `defineProps` declaration.
  *
- * Uses `@vue/compiler-sfc` (already a dependency) to reliably parse all
+ * Uses the Nuxt app's `@vue/compiler-sfc` to reliably parse all
  * three defineProps syntaxes: TS generics, runtime objects, and arrays.
  * The `compileScript` API resolves bindings, so we just filter for "props".
  */
 import type { SFCDescriptor } from '@vue/compiler-sfc'
+import { loadSfcCompiler as loadCompiler } from './sfc-compiler'
 
-let _parse: typeof import('@vue/compiler-sfc').parse | undefined
-let _compileScript: typeof import('@vue/compiler-sfc').compileScript | undefined
+type SfcCompiler = Awaited<ReturnType<typeof loadCompiler>>
 
-export async function loadSfcCompiler() {
-  if (!_parse) {
-    const sfc = await import('@vue/compiler-sfc')
-    _parse = sfc.parse
-    _compileScript = sfc.compileScript
-  }
+let compiler: SfcCompiler | undefined
+
+export async function loadSfcCompiler(): Promise<void> {
+  compiler ||= await loadCompiler()
 }
 
 export function extractPropNamesFromVue(code: string): string[] {
-  if (!_parse || !_compileScript)
+  if (!compiler)
     return []
 
   let descriptor: SFCDescriptor
   try {
-    descriptor = _parse(code).descriptor
+    descriptor = compiler.parse(code).descriptor
   }
   catch {
     return []
@@ -34,7 +32,7 @@ export function extractPropNamesFromVue(code: string): string[] {
     return []
 
   try {
-    const compiled = _compileScript(descriptor, { id: 'prop-extract' })
+    const compiled = compiler.compileScript(descriptor, { id: 'prop-extract' })
     if (!compiled.bindings)
       return []
     return Object.entries(compiled.bindings)

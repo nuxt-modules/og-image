@@ -11,7 +11,6 @@ import {
   extractPerClassVars,
   extractUniversalVars,
   extractVarsFromCss,
-  loadLightningCss,
   postProcessStyles,
   resolveExtractedVars,
   resolveVarsDeep,
@@ -30,8 +29,7 @@ let twColors: Record<string, Record<number, string>>
 
 async function loadTw4Deps() {
   if (!compile) {
-    const [, tailwindModule, colorsModule] = await Promise.all([
-      loadLightningCss(),
+    const [tailwindModule, colorsModule] = await Promise.all([
       import('tailwindcss'),
       import('tailwindcss/colors'),
     ])
