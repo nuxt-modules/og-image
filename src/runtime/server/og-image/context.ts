@@ -10,7 +10,6 @@ import type TakumiRenderer from './takumi/renderer'
 import { defu } from 'defu'
 import { createError, getQuery } from 'h3'
 import { useNitroApp } from 'nitropack/runtime'
-import { hash } from 'ohash'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
 import { prerenderOptionsCache } from '#og-image-cache'
@@ -18,6 +17,7 @@ import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { logger } from '../../logger'
 import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps, verifyOgImageSignature } from '../../shared'
+import { hashKey } from '../../shared/hash'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
@@ -41,10 +41,10 @@ export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: 
   // Hash resolved options (not raw query string) so unknown/extra query params
   // cannot produce unique cache keys and bypass the cache.
   if (resolvedOptions)
-    hashParts.push(hash(resolvedOptions))
+    hashParts.push(hashKey(resolvedOptions))
   return [
     (!basePath || basePath === '/') ? 'index' : basePath,
-    hash(hashParts),
+    hashKey(hashParts),
   ].join(':')
 }
 

@@ -54,6 +54,15 @@ declare module '#og-image-virtual/unocss-config.mjs' {
   export const theme: Record<string, any>
 }
 
+declare module '#og-image/island-hash' {
+  export function getIslandHash(input: {
+    name: string
+    props?: Record<string, any> | string | null
+    context?: Record<string, any>
+    source?: string
+  }): string
+}
+
 declare module '#og-image/font-requirements' {
   export const fontRequirements: {
     weights: number[]
