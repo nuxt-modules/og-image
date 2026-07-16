@@ -168,6 +168,9 @@ catalogs:
     exsolve:
       specifier: ^1.1.0
       version: 1.1.0
+    fnv1a-64:
+      specifier: ^0.1.1
+      version: 0.1.1
     fontless:
       specifier: ^0.2.1
       version: 0.2.1
@@ -216,6 +219,9 @@ catalogs:
     nypm:
       specifier: ^0.6.8
       version: 0.6.8
+    object-identity:
+      specifier: ^0.2.3
+      version: 0.2.3
     ofetch:
       specifier: ^1.5.1
       version: 1.5.1
@@ -354,6 +360,9 @@ importers:
       exsolve:
         specifier: 'catalog:'
         version: 1.1.0
+      fnv1a-64:
+        specifier: 'catalog:'
+        version: 0.1.1
       lightningcss:
         specifier: 'catalog:'
         version: 1.32.0
@@ -375,6 +384,9 @@ importers:
       nypm:
         specifier: 'catalog:'
         version: 0.6.8
+      object-identity:
+        specifier: 'catalog:'
+        version: 0.2.3
       ofetch:
         specifier: 'catalog:'
         version: 1.5.1
@@ -7415,6 +7427,9 @@ packages:
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
 
+  fnv1a-64@0.1.1:
+    resolution: {integrity: sha512-qMpkqWyaiNxwYG7Dt40Bxtp2wV6KW/1woXVJOEvR1KA2ffsZf8pyvlNwJgFHha3teh8iC3d4arvrJ0qTcU445A==}
+
   fontaine@0.8.0:
     resolution: {integrity: sha512-eek1GbzOdWIj9FyQH/emqW1aEdfC3lYRCHepzwlFCm5T77fBSRSyNRKE6/antF1/B1M+SfJXVRQTY9GAr7lnDg==}
     engines: {node: '>=18.12.0'}
@@ -8883,6 +8898,9 @@ packages:
 
   object-deep-merge@2.0.1:
     resolution: {integrity: sha512-aKttDKcU3pyZqKcCkDhsMn70WmZFG2JGDQLP9EcLyTSIFQRCPWLAmBZRLJnrVUrhPG1jETEEbfdgbNtJf1LyMg==}
+
+  object-identity@0.2.3:
+    resolution: {integrity: sha512-2J8Joz2Tf7aaylhqFvIUJHNgpuGR38Hh75Voq9GzTbStBxJUaOtN0K1aOd3cV5qp+ij1pMqRbPrGCGMOyX303w==}
 
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
@@ -18253,6 +18271,8 @@ snapshots:
 
   flatted@3.4.2: {}
 
+  fnv1a-64@0.1.1: {}
+
   fontaine@0.8.0:
     dependencies:
       '@capsizecss/unpack': 4.0.0
@@ -20551,6 +20571,8 @@ snapshots:
   oauth-sign@0.9.0: {}
 
   object-deep-merge@2.0.1: {}
+
+  object-identity@0.2.3: {}
 
   object-inspect@1.13.4: {}
 

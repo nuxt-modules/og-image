@@ -20,10 +20,10 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
+import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
-import { hash } from 'ohash'
 import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isAgent } from 'std-env'
@@ -1270,7 +1270,7 @@ export default defineNuxtModule<ModuleOptions>({
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
           const propNames = extractPropNamesFromVue(componentFile)
           ogImageComponentCtx.components.push({
-            hash: hash(componentFile).replaceAll('_', '-'),
+            hash: fnv1a64Base36(componentFile),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
             path: component.filePath,
@@ -1370,6 +1370,27 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
+    }
+    // Island fetches embed a hash the server validates (400 on mismatch), so it must
+    // exactly match the installed Nuxt's algorithm. Prefer Nuxt's own implementation
+    // (nuxt/dist/app/island-hash.js) so Nuxt can change the algorithm without breaking us;
+    // the ohash replication is only for Nuxt versions predating that file.
+    nuxt.options.nitro.virtual['#og-image/island-hash'] = () => {
+      const islandHashFile = join(nuxt.options.appDir, 'island-hash.js')
+      const [nuxtMajor = 0, nuxtMinor = 0] = getNuxtVersion(nuxt).split('.').map(v => Number.parseInt(v))
+      if (nuxtMajor > 4 || (nuxtMajor === 4 && nuxtMinor >= 5))
+        return `export { getIslandHash } from '${islandHashFile}'`
+      // Nuxt 4.4.x exposes computeIslandHash(name, props, context, source) instead
+      if (existsSync(islandHashFile)) {
+        return `import { computeIslandHash } from '${islandHashFile}'
+export function getIslandHash({ name, props, context, source }) {
+  return computeIslandHash(name, props ?? {}, context ?? {}, source)
+}`
+      }
+      return `import { hash } from 'ohash'
+export function getIslandHash({ name, props, context, source }) {
+  return hash([name, props ?? {}, context ?? {}, source]).replace(/[-_]/g, '')
+}`
     }
     nuxt.options.nitro.publicAssets ||= []
     // Serve static font downloads (fontless-resolved + bundled Inter fallback)
