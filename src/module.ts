@@ -1377,7 +1377,7 @@ export default defineNuxtModule<ModuleOptions>({
     // the ohash replication is only for Nuxt versions predating that file.
     nuxt.options.nitro.virtual['#og-image/island-hash'] = () => {
       const islandHashFile = join(nuxt.options.appDir, 'island-hash.js')
-      const [nuxtMajor, nuxtMinor] = getNuxtVersion(nuxt).split('.').map(v => Number.parseInt(v))
+      const [nuxtMajor = 0, nuxtMinor = 0] = getNuxtVersion(nuxt).split('.').map(v => Number.parseInt(v))
       if (nuxtMajor > 4 || (nuxtMajor === 4 && nuxtMinor >= 5))
         return `export { getIslandHash } from '${islandHashFile}'`
       // Nuxt 4.4.x exposes computeIslandHash(name, props, context, source) instead
