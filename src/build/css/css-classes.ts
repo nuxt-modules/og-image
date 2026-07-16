@@ -1,10 +1,14 @@
 import type { ElementNode } from '@vue/compiler-core'
 import { RE_WHITESPACE } from '../../util'
-import { loadSfcCompiler } from '../sfc-compiler'
 import { extractCustomFontFamilies, walkTemplateAst } from './css-utils'
 
+// Lazy-loaded to reduce startup memory
+let parseSfc: typeof import('@vue/compiler-sfc').parse | undefined
+
 async function loadParser() {
-  return (await loadSfcCompiler()).parse
+  if (!parseSfc)
+    parseSfc = (await import('@vue/compiler-sfc')).parse
+  return parseSfc
 }
 
 // TW/UnoCSS font weight class mappings

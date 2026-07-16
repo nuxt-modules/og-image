@@ -1,9 +1,9 @@
 import type { Component } from '@nuxt/schema'
 import type { ElementNode } from '@vue/compiler-core'
+import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { createUnplugin } from 'unplugin'
 import { walkTemplateAst } from './css/css-utils'
-import { parseVueSfc } from './sfc-compiler'
 
 // Standard HTML elements — anything not in this set is a potential component
 const HTML_ELEMENTS = new Set([
@@ -226,12 +226,12 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
       return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
     },
 
-    async transform(code, rawId) {
+    transform(code, rawId) {
       // Parse current depth from ?og-image-depth=N
       const depthMatch = rawId.match(RE_OG_IMAGE_QUERY)
       const currentDepth = depthMatch?.[1] ? Number.parseInt(depthMatch[1]) : 0
       const nextQuery = `?og-image-depth=${currentDepth + 1}`
-      const { descriptor } = await parseVueSfc(code)
+      const { descriptor } = parseSfc(code)
       if (!descriptor.template?.ast) {
         return
       }

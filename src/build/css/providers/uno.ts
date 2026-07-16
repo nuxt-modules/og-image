@@ -7,6 +7,10 @@ import { importOptionalPeer } from '../../optional-module'
 import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
 import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
 
+// Re-exported so the packed-install smoke test can exercise the shipped
+// resolver against a real consumer app's node_modules.
+export { importResolvedModule, resolveOptionalModulePath } from '../../optional-module'
+
 type UserConfig = import('@unocss/core').UserConfig
 type UnoCoreModule = typeof import('@unocss/core')
 type UnoConfigModule = typeof import('@unocss/config')

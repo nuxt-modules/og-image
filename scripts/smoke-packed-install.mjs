@@ -17,11 +17,8 @@ const tempRoot = await mkdtemp(join(tmpdir(), 'og-image-packed-smoke-'))
 const optionalizedPackages = [
   '@unocss/config',
   '@unocss/core',
-  '@vue/compiler-sfc',
   'culori',
   'lightningcss',
-  'oxc-parser',
-  'oxc-walker',
   'tinyglobby',
 ]
 const RE_ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
@@ -178,7 +175,7 @@ async function readInstalledPackage(appDir) {
 }
 
 function assertPackageMetadata(pkg) {
-  for (const name of ['culori', 'tinyglobby', 'oxc-parser', 'oxc-walker', '@vue/compiler-sfc']) {
+  for (const name of ['culori', 'tinyglobby']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(!pkg.peerDependencies?.[name], `${name} should not be a peer dependency`)
   }
@@ -226,24 +223,13 @@ async function assertNuxtOnlyApp(pm, tarball) {
 }
 
 async function getSharedExports(appDir) {
-  const sharedDir = join(appDir, 'node_modules/nuxt-og-image/dist/shared')
-  for (const file of await readdir(sharedDir)) {
-    if (!file.endsWith('.mjs'))
-      continue
-    const path = join(sharedDir, file)
-    const source = await readFile(path, 'utf8')
-    if (!source.includes('function resolveOptionalModulePath') || !source.includes('function importResolvedModule'))
-      continue
-    const resolveAlias = source.match(/resolveOptionalModulePath as ([\w$]+)/)?.[1]
-    const importAlias = source.match(/importResolvedModule as ([\w$]+)/)?.[1]
-    assert(resolveAlias && importAlias, `could not locate shared export aliases in ${path}`)
-    const mod = await import(pathToFileURL(path).href)
-    return {
-      resolveOptionalModulePath: mod[resolveAlias],
-      importResolvedModule: mod[importAlias],
-    }
-  }
-  throw new Error('could not find built shared dependency resolver chunk')
+  const unoChunk = join(appDir, 'node_modules/nuxt-og-image/dist/chunks/uno.mjs')
+  const { resolveOptionalModulePath, importResolvedModule } = await import(pathToFileURL(unoChunk).href)
+  assert(
+    typeof resolveOptionalModulePath === 'function' && typeof importResolvedModule === 'function',
+    `expected optional-module resolvers to be exported from ${unoChunk}`,
+  )
+  return { resolveOptionalModulePath, importResolvedModule }
 }
 
 async function assertUnoApp(pm, tarball) {

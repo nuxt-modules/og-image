@@ -1,17 +1,14 @@
 #!/usr/bin/env node
-import type { OxcParseSync } from './build/oxc-parser'
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import { loadNuxtConfig } from '@nuxt/kit'
 import { addDependency, detectPackageManager, removeDependency } from 'nypm'
+import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
 import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
-import { parseAndWalk } from './build/ast-walker'
-import { loadOxcParseSync, resolveOxcParseSyncPath, setOxcParseSyncPath } from './build/oxc-parser'
 import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
-import { TAKUMI_CORE_INSTALL_SPEC, TAKUMI_WASM_INSTALL_SPEC } from './utils/dependencies'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -54,125 +51,122 @@ interface AstReplacement {
 }
 
 /**
- * Use OXC to collect AST-based replacements for JS/TS code.
+ * Use oxc-walker to collect AST-based replacements for JS/TS code.
  * Handles: composable renames, object syntax migration, import path migration.
  */
-function collectScriptReplacements(code: string, filename: string, parseSync: OxcParseSync): AstReplacement[] {
+function collectScriptReplacements(code: string, filename: string): AstReplacement[] {
   const replacements: AstReplacement[] = []
 
-  parseAndWalk(code, filename, {
-    parseSync,
-    enter(node: any) {
-      // Import path migrations
-      if (node.type === 'ImportDeclaration') {
-        const source = node.source
-        const sourceValue = source?.value
-        if (sourceValue === '#nuxt-og-image-utils') {
-          replacements.push({ start: source.start + 1, end: source.end - 1, text: '#og-image/shared' })
+  parseAndWalk(code, filename, (node: any) => {
+    // Import path migrations
+    if (node.type === 'ImportDeclaration') {
+      const source = node.source
+      const sourceValue = source?.value
+      if (sourceValue === '#nuxt-og-image-utils') {
+        replacements.push({ start: source.start + 1, end: source.end - 1, text: '#og-image/shared' })
+      }
+      else if (sourceValue === '#og-image/shared') {
+        const specifiers = node.specifiers || []
+        const hasRuntimeConfig = specifiers.some((s: any) => {
+          const imported = s.imported || s.local
+          return imported?.name === 'useOgImageRuntimeConfig'
+        })
+        if (hasRuntimeConfig) {
+          replacements.push({ start: source.start + 1, end: source.end - 1, text: '#og-image/app/utils' })
         }
-        else if (sourceValue === '#og-image/shared') {
-          const specifiers = node.specifiers || []
-          const hasRuntimeConfig = specifiers.some((s: any) => {
-            const imported = s.imported || s.local
-            return imported?.name === 'useOgImageRuntimeConfig'
-          })
-          if (hasRuntimeConfig) {
-            replacements.push({ start: source.start + 1, end: source.end - 1, text: '#og-image/app/utils' })
+      }
+      return
+    }
+
+    // CallExpression: composable renames + object syntax migration
+    if (node.type !== 'CallExpression')
+      return
+
+    const callee = node.callee
+    const calleeName: string | undefined = callee?.name
+    if (!calleeName || !ALL_OG_IMAGE_COMPOSABLES.has(calleeName))
+      return
+
+    const args = node.arguments || []
+
+    // Single object argument → check for url / component / renderer patterns
+    if (args.length === 1 && args[0]?.type === 'ObjectExpression') {
+      const objArg = args[0]
+      const properties = (objArg.properties || []).filter((p: any) =>
+        p.type === 'ObjectProperty' || p.type === 'Property',
+      )
+
+      const findProp = (name: string) => properties.find((p: any) =>
+        p.key?.name === name,
+      )
+
+      const urlProp = findProp('url')
+      const componentProp = findProp('component')
+      const rendererProp = findProp('renderer')
+      const propsProp = findProp('props')
+
+      // { url: '...' } → useSeoMeta({ ogImage: url, ... })
+      if (urlProp) {
+        const urlValue = code.slice(urlProp.value.start, urlProp.value.end)
+        // Map known OG properties to useSeoMeta equivalents
+        const ogPropMap: Record<string, string> = {
+          width: 'ogImageWidth',
+          height: 'ogImageHeight',
+          alt: 'ogImageAlt',
+          type: 'ogImageType',
+        }
+        const seoMetaProps = [`ogImage: ${urlValue}`]
+        for (const prop of properties) {
+          if (prop === urlProp)
+            continue
+          const keyName = prop.key?.name as string
+          const mappedName = ogPropMap[keyName]
+          if (mappedName) {
+            seoMetaProps.push(`${mappedName}: ${code.slice(prop.value.start, prop.value.end)}`)
           }
         }
+        const text = `useSeoMeta({ ${seoMetaProps.join(', ')} })`
+        replacements.push({ start: node.start, end: node.end, text })
         return
       }
 
-      // CallExpression: composable renames + object syntax migration
-      if (node.type !== 'CallExpression')
-        return
-
-      const callee = node.callee
-      const calleeName: string | undefined = callee?.name
-      if (!calleeName || !ALL_OG_IMAGE_COMPOSABLES.has(calleeName))
-        return
-
-      const args = node.arguments || []
-
-      // Single object argument → check for url / component / renderer patterns
-      if (args.length === 1 && args[0]?.type === 'ObjectExpression') {
-        const objArg = args[0]
-        const properties = (objArg.properties || []).filter((p: any) =>
-          p.type === 'ObjectProperty' || p.type === 'Property',
-        )
-
-        const findProp = (name: string) => properties.find((p: any) =>
-          p.key?.name === name,
-        )
-
-        const urlProp = findProp('url')
-        const componentProp = findProp('component')
-        const rendererProp = findProp('renderer')
-        const propsProp = findProp('props')
-
-        // { url: '...' } → useSeoMeta({ ogImage: url, ... })
-        if (urlProp) {
-          const urlValue = code.slice(urlProp.value.start, urlProp.value.end)
-          // Map known OG properties to useSeoMeta equivalents
-          const ogPropMap: Record<string, string> = {
-            width: 'ogImageWidth',
-            height: 'ogImageHeight',
-            alt: 'ogImageAlt',
-            type: 'ogImageType',
-          }
-          const seoMetaProps = [`ogImage: ${urlValue}`]
-          for (const prop of properties) {
-            if (prop === urlProp)
-              continue
-            const keyName = prop.key?.name as string
-            const mappedName = ogPropMap[keyName]
-            if (mappedName) {
-              seoMetaProps.push(`${mappedName}: ${code.slice(prop.value.start, prop.value.end)}`)
-            }
-          }
-          const text = `useSeoMeta({ ${seoMetaProps.join(', ')} })`
-          replacements.push({ start: node.start, end: node.end, text })
-          return
-        }
-
-        // { renderer: 'chromium' } (no component) → defineOgImageScreenshot()
-        if (!componentProp && rendererProp) {
-          const rendererValue = code.slice(rendererProp.value.start, rendererProp.value.end).trim()
-          if (rendererValue === '\'chromium\'' || rendererValue === '"chromium"') {
-            const otherProps = properties.filter((p: any) => p !== rendererProp)
-            const text = otherProps.length > 0
-              ? `defineOgImageScreenshot({ ${otherProps.map((p: any) => code.slice(p.start, p.end)).join(', ')} })`
-              : `defineOgImageScreenshot()`
-            replacements.push({ start: node.start, end: node.end, text })
-            return
-          }
-        }
-
-        // { component: 'Name', props: {...} } → defineOgImage('Name', props, { ...rest })
-        if (componentProp || rendererProp) {
-          const componentName = componentProp
-            ? code.slice(componentProp.value.start, componentProp.value.end)
-            : '\'NuxtSeo\''
-          const propsValue = propsProp
-            ? code.slice(propsProp.value.start, propsProp.value.end)
-            : '{}'
-          const otherProps = properties.filter((p: any) =>
-            p !== componentProp && p !== rendererProp && p !== propsProp,
-          )
-
+      // { renderer: 'chromium' } (no component) → defineOgImageScreenshot()
+      if (!componentProp && rendererProp) {
+        const rendererValue = code.slice(rendererProp.value.start, rendererProp.value.end).trim()
+        if (rendererValue === '\'chromium\'' || rendererValue === '"chromium"') {
+          const otherProps = properties.filter((p: any) => p !== rendererProp)
           const text = otherProps.length > 0
-            ? `defineOgImage(${componentName}, ${propsValue}, { ${otherProps.map((p: any) => code.slice(p.start, p.end)).join(', ')} })`
-            : `defineOgImage(${componentName}, ${propsValue})`
+            ? `defineOgImageScreenshot({ ${otherProps.map((p: any) => code.slice(p.start, p.end)).join(', ')} })`
+            : `defineOgImageScreenshot()`
           replacements.push({ start: node.start, end: node.end, text })
           return
         }
       }
 
-      // Fallback: just rename deprecated composable → defineOgImage
-      if (DEPRECATED_COMPOSABLE_NAMES.has(calleeName)) {
-        replacements.push({ start: callee.start, end: callee.end, text: 'defineOgImage' })
+      // { component: 'Name', props: {...} } → defineOgImage('Name', props, { ...rest })
+      if (componentProp || rendererProp) {
+        const componentName = componentProp
+          ? code.slice(componentProp.value.start, componentProp.value.end)
+          : '\'NuxtSeo\''
+        const propsValue = propsProp
+          ? code.slice(propsProp.value.start, propsProp.value.end)
+          : '{}'
+        const otherProps = properties.filter((p: any) =>
+          p !== componentProp && p !== rendererProp && p !== propsProp,
+        )
+
+        const text = otherProps.length > 0
+          ? `defineOgImage(${componentName}, ${propsValue}, { ${otherProps.map((p: any) => code.slice(p.start, p.end)).join(', ')} })`
+          : `defineOgImage(${componentName}, ${propsValue})`
+        replacements.push({ start: node.start, end: node.end, text })
+        return
       }
-    },
+    }
+
+    // Fallback: just rename deprecated composable → defineOgImage
+    if (DEPRECATED_COMPOSABLE_NAMES.has(calleeName)) {
+      replacements.push({ start: callee.start, end: callee.end, text: 'defineOgImage' })
+    }
   })
 
   return replacements
@@ -251,18 +245,13 @@ const EDGE_PRESETS = ['cloudflare', 'cloudflare-pages', 'cloudflare-module', 've
 
 // Get dependencies based on renderer and deployment target
 // Edge targets need both node (for local dev) and wasm (for production) versions
-function getRendererDeps(renderer: RendererName, isEdge: boolean, options: { installSpec?: boolean } = {}): string[] {
+function getRendererDeps(renderer: RendererName, isEdge: boolean): string[] {
   switch (renderer) {
     case 'satori':
       return isEdge
         ? ['satori', '@resvg/resvg-js', '@resvg/resvg-wasm']
         : ['satori', '@resvg/resvg-js']
     case 'takumi':
-      if (options.installSpec) {
-        return isEdge
-          ? [TAKUMI_CORE_INSTALL_SPEC, TAKUMI_WASM_INSTALL_SPEC]
-          : [TAKUMI_CORE_INSTALL_SPEC]
-      }
       return isEdge
         ? ['@takumi-rs/core', '@takumi-rs/wasm']
         : ['@takumi-rs/core']
@@ -649,10 +638,9 @@ function collectTemplateReplacements(templateHtml: string): AstReplacement[] {
 }
 
 // Migrate defineOgImage API
-async function migrateDefineOgImageApi(dryRun: boolean): Promise<{ changes: Array<{ file: string, count: number }> }> {
+function migrateDefineOgImageApi(dryRun: boolean): { changes: Array<{ file: string, count: number }> } {
   const cwd = process.cwd()
   const excludePatterns = [RE_EXCLUDE_NODE_MODULES, RE_EXCLUDE_NUXT, RE_EXCLUDE_OUTPUT, RE_EXCLUDE_DATA, RE_EXCLUDE_DIST]
-  const parseSync = await loadOxcParseSync()
 
   const files = globFiles(cwd, RE_VUE_OR_SCRIPT, excludePatterns)
   const changes: Array<{ file: string, count: number }> = []
@@ -696,7 +684,7 @@ async function migrateDefineOgImageApi(dryRun: boolean): Promise<{ changes: Arra
       // Collect all replacements across all script blocks, then apply once
       const allReplacements: AstReplacement[] = []
       for (const script of scripts) {
-        const replacements = collectScriptReplacements(script.content, file, parseSync)
+        const replacements = collectScriptReplacements(script.content, file)
         for (const r of replacements) {
           allReplacements.push({ start: r.start + script.offset, end: r.end + script.offset, text: r.text })
         }
@@ -709,7 +697,7 @@ async function migrateDefineOgImageApi(dryRun: boolean): Promise<{ changes: Arra
     }
     else {
       // Non-Vue file: parse as JS/TS directly
-      const replacements = collectScriptReplacements(content, file, parseSync)
+      const replacements = collectScriptReplacements(content, file)
       if (replacements.length > 0) {
         content = applyReplacements(content, replacements)
         modified = true
@@ -770,7 +758,7 @@ async function installRendererDeps(renderers: RendererName[], isEdge: boolean): 
 
   const allDeps: string[] = []
   for (const renderer of renderers) {
-    allDeps.push(...getRendererDeps(renderer, isEdge, { installSpec: true }))
+    allDeps.push(...getRendererDeps(renderer, isEdge))
   }
 
   // Dedupe
@@ -828,7 +816,6 @@ async function runMigrate(args: string[]): Promise<void> {
   p.intro('nuxt-og-image v6 Migration')
 
   const cwd = process.cwd()
-  setOxcParseSyncPath(await resolveOxcParseSyncPath(cwd))
 
   // Check what needs migration
   const migrationCheck = await checkMigrationNeeded(cwd)
@@ -962,7 +949,7 @@ async function runMigrate(args: string[]): Promise<void> {
 
   // Migrate API calls
   console.log('\nMigrating defineOgImage calls...')
-  const apiChanges = await migrateDefineOgImageApi(dryRun)
+  const apiChanges = migrateDefineOgImageApi(dryRun)
   if (apiChanges.changes.length > 0) {
     for (const { file, count } of apiChanges.changes) {
       const relPath = relative(cwd, file)

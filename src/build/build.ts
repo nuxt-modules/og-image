@@ -6,11 +6,10 @@ import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
+import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { RE_LEGACY_SUFFIX } from '../util'
-import { parseAndWalk } from './ast-walker'
-import { loadOxcParseSync } from './oxc-parser'
 
 const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g
 const RE_WASM_IMPORT = /import\("(\.\/wasm\/[^"]+\.wasm)"\)/g
@@ -135,7 +134,7 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
         // new WebAssembly.Instance(module, imports) synchronously instead.
         // TODO: remove once satori/resvg-wasm handles WebAssembly.Module natively
         if (isCloudflarePreset) {
-          contents = await patchWebAssemblyInstantiate(contents)
+          contents = patchWebAssemblyInstantiate(contents)
         }
         await writeFile(entry, contents, { encoding: 'utf-8' })
       }
@@ -153,79 +152,75 @@ function sha1(source: Buffer) {
 }
 
 /**
- * Use OXC to find all `WebAssembly.instantiate(wasm, imports)` calls and wrap them
+ * Use oxc-walker to find all `WebAssembly.instantiate(wasm, imports)` calls and wrap them
  * with an instanceof check so pre-compiled WebAssembly.Module uses `new WebAssembly.Instance()`
  * (synchronous) instead of the blocked `WebAssembly.instantiate()` on Cloudflare Workers.
  *
  * Handles both `await WebAssembly.instantiate(a, b)` and bare `WebAssembly.instantiate(a, b)`
  * (e.g. inside .then() callbacks from Emscripten glue code).
  */
-async function patchWebAssemblyInstantiate(code: string): Promise<string> {
+function patchWebAssemblyInstantiate(code: string): string {
   // Collect replacement ranges (process in reverse order to preserve offsets)
   const replacements: Array<{ start: number, end: number, arg1: string, arg2: string, isAwait: boolean }> = []
   // Track which CallExpression starts we've already captured via AwaitExpression
   const capturedCallStarts = new Set<number>()
-  const parseSync = await loadOxcParseSync()
 
-  parseAndWalk(code, 'chunk.mjs', {
-    parseSync,
-    enter(node) {
-      // Match: await WebAssembly.instantiate(arg1, arg2)
-      if (node.type === 'AwaitExpression') {
-        const arg = node.argument
-        if (arg.type !== 'CallExpression' || arg.arguments.length !== 2)
-          return
-        const callee = arg.callee
-        if (
-          callee.type !== 'MemberExpression'
-          || callee.object.type !== 'Identifier'
-          || callee.object.name !== 'WebAssembly'
-          || !('name' in callee.property) || callee.property.name !== 'instantiate'
-        ) {
-          return
-        }
-        const a1 = arg.arguments[0]
-        const a2 = arg.arguments[1]
-        if (!a1 || !a2)
-          return
-        capturedCallStarts.add(arg.start)
-        replacements.push({
-          start: node.start,
-          end: node.end,
-          arg1: code.slice(a1.start, a1.end),
-          arg2: code.slice(a2.start, a2.end),
-          isAwait: true,
-        })
+  parseAndWalk(code, 'chunk.mjs', (node) => {
+    // Match: await WebAssembly.instantiate(arg1, arg2)
+    if (node.type === 'AwaitExpression') {
+      const arg = node.argument
+      if (arg.type !== 'CallExpression' || arg.arguments.length !== 2)
+        return
+      const callee = arg.callee
+      if (
+        callee.type !== 'MemberExpression'
+        || callee.object.type !== 'Identifier'
+        || callee.object.name !== 'WebAssembly'
+        || !('name' in callee.property) || callee.property.name !== 'instantiate'
+      ) {
         return
       }
+      const a1 = arg.arguments[0]
+      const a2 = arg.arguments[1]
+      if (!a1 || !a2)
+        return
+      capturedCallStarts.add(arg.start)
+      replacements.push({
+        start: node.start,
+        end: node.end,
+        arg1: code.slice(a1.start, a1.end),
+        arg2: code.slice(a2.start, a2.end),
+        isAwait: true,
+      })
+      return
+    }
 
-      // Match: bare WebAssembly.instantiate(arg1, arg2) (no await)
-      if (node.type === 'CallExpression' && node.arguments.length === 2) {
-        const callee = node.callee
-        if (
-          callee.type !== 'MemberExpression'
-          || callee.object.type !== 'Identifier'
-          || callee.object.name !== 'WebAssembly'
-          || !('name' in callee.property) || callee.property.name !== 'instantiate'
-        ) {
-          return
-        }
-        // Skip if already captured as part of an AwaitExpression
-        if (capturedCallStarts.has(node.start))
-          return
-        const a1 = node.arguments[0]
-        const a2 = node.arguments[1]
-        if (!a1 || !a2)
-          return
-        replacements.push({
-          start: node.start,
-          end: node.end,
-          arg1: code.slice(a1.start, a1.end),
-          arg2: code.slice(a2.start, a2.end),
-          isAwait: false,
-        })
+    // Match: bare WebAssembly.instantiate(arg1, arg2) (no await)
+    if (node.type === 'CallExpression' && node.arguments.length === 2) {
+      const callee = node.callee
+      if (
+        callee.type !== 'MemberExpression'
+        || callee.object.type !== 'Identifier'
+        || callee.object.name !== 'WebAssembly'
+        || !('name' in callee.property) || callee.property.name !== 'instantiate'
+      ) {
+        return
       }
-    },
+      // Skip if already captured as part of an AwaitExpression
+      if (capturedCallStarts.has(node.start))
+        return
+      const a1 = node.arguments[0]
+      const a2 = node.arguments[1]
+      if (!a1 || !a2)
+        return
+      replacements.push({
+        start: node.start,
+        end: node.end,
+        arg1: code.slice(a1.start, a1.end),
+        arg2: code.slice(a2.start, a2.end),
+        isAwait: false,
+      })
+    }
   })
 
   // Apply in reverse so earlier offsets stay valid
