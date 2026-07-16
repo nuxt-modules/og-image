@@ -55,7 +55,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_INSTALL_SPEC } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -1134,7 +1134,7 @@ export default defineNuxtModule<ModuleOptions>({
         // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
         // Warn so the choice is visible and the agent can pin a renderer explicitly.
         ogImageComponentCtx.detectedRenderers.add('takumi')
-        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_INSTALL_SPEC}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
       }
     }
 
