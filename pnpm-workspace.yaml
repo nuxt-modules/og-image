@@ -3,10 +3,10 @@ cleanupUnusedCatalogs: true
 minimumReleaseAgeExclude:
   - '@iconify-json/simple-icons@1.2.83'
   - '@nuxt/content@3.14.0'
-  - '@nuxt/kit@4.4.6'
-  - '@nuxt/nitro-server@4.4.6'
-  - '@nuxt/schema@4.4.6'
-  - '@nuxt/vite-builder@4.4.6'
+  - '@nuxt/kit@4.4.6 || 4.5.0'
+  - '@nuxt/nitro-server@4.4.6 || 4.5.0'
+  - '@nuxt/schema@4.4.6 || 4.5.0'
+  - '@nuxt/vite-builder@4.4.6 || 4.5.0'
   - '@oxc-parser/binding-android-arm-eabi@0.132.0'
   - '@oxc-parser/binding-android-arm64@0.132.0'
   - '@oxc-parser/binding-darwin-arm64@0.132.0'
@@ -29,7 +29,7 @@ minimumReleaseAgeExclude:
   - '@oxc-parser/binding-win32-x64-msvc@0.132.0'
   - '@oxc-project/types@0.132.0'
   - '@vue/language-core@3.3.0'
-  - nuxt@4.4.6
+  - nuxt@4.4.6 || 4.5.0
   - oxc-parser@0.132.0
   - vue-tsc@3.3.0
   - nuxtseo-layer-devtools
@@ -55,6 +55,9 @@ minimumReleaseAgeExclude:
   - '@takumi-rs/core@2.2.0'
   - '@takumi-rs/helpers@2.2.0'
   - '@takumi-rs/wasm@2.2.0'
+  - '@unhead/bundler@3.2.1'
+  - '@unhead/vue@3.2.1'
+  - unhead@3.2.1
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -71,11 +74,11 @@ packages:
   - playground
   - '!examples/**'
 overrides:
-  '@unhead/vue': ^3.1.7
-  unhead: ^3.1.7
-  vite: 8.0.6
+  '@unhead/vue': ^3.2.1
+  unhead: ^3.2.1
+  vite: 8.1.5
   vitest-environment-nuxt: 2.0.0
-  vue: ^3.5.39
+  vue: ^3.5.40
 catalog:
   '@antfu/eslint-config': ^9.1.0
   '@clack/prompts': ^1.7.0
@@ -84,7 +87,7 @@ catalog:
   '@iconify-json/logos': ^1.2.11
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.35
+  '@iconify-json/tabler': ^1.2.36
   '@iconify/types': ^2.0.0
   '@img/sharp-linux-x64': ^0.35.3
   '@nuxt/content': ^3.15.0
@@ -93,22 +96,22 @@ catalog:
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.3.1
   '@nuxt/image': ^2.0.0
-  '@nuxt/kit': ^4.4.8
+  '@nuxt/kit': ^4.5.0
   '@nuxt/module-builder': ^1.0.2
   '@nuxt/test-utils': ^4.0.3
-  '@nuxt/ui': ^4.9.0
+  '@nuxt/ui': ^4.10.0
   '@nuxtjs/color-mode': ^4.0.1
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.4.1
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
-  '@tailwindcss/vite': ^4.3.2
-  '@takumi-rs/core': ^2.2.0
+  '@tailwindcss/vite': ^4.3.3
+  '@takumi-rs/core': ^2.3.0
   '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
-  '@takumi-rs/helpers': ^2.2.0
+  '@takumi-rs/helpers': ^2.3.0
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
-  '@takumi-rs/wasm': ^2.2.0
+  '@takumi-rs/wasm': ^2.3.0
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
   '@unocss/config': ^66.7.5
   '@unocss/core': ^66.7.5
@@ -117,8 +120,8 @@ catalog:
   '@unocss/preset-wind': ^66.7.5
   '@unocss/preset-wind4': ^66.7.5
   '@vitejs/plugin-vue': ^6.0.8
-  '@vue/compiler-core': ^3.5.39
-  '@vue/compiler-sfc': ^3.5.39
+  '@vue/compiler-core': ^3.5.40
+  '@vue/compiler-sfc': ^3.5.40
   '@vueuse/nuxt': ^14.3.0
   better-sqlite3: ^12.11.1
   birpc: ^4.0.0
@@ -134,16 +137,16 @@ catalog:
   fnv1a-64: ^0.1.1
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
-  globby: ^16.2.1
+  globby: ^16.2.2
   happy-dom: ^20.10.6
   hookable: ^6.1.1
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.32.0
-  magic-string: ^0.30.21
+  magic-string: ^1.0.0
   magicast: ^0.5.3
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
-  nuxt: ^4.4.8
+  nuxt: ^4.5.0
   nuxt-site-config: ^4.1.1
   nuxtseo-layer-devtools: ^5.3.2
   nuxtseo-shared: ^5.3.2
@@ -164,10 +167,10 @@ catalog:
   sirv: ^3.0.2
   std-env: ^4.2.0
   strip-literal: ^3.1.0
-  tailwindcss: ^4.3.2
+  tailwindcss: ^4.3.3
   tinyexec: ^1.2.4
   tinyglobby: ^0.2.17
-  typescript: ^6.0.3
+  typescript: 6.0.3
   ufo: ^1.6.4
   ultrahtml: ^1.7.0
   unbuild: ^3.6.1
@@ -175,9 +178,9 @@ catalog:
   unocss: ^66.7.5
   unplugin: ^3.3.0
   vitest: ^4.1.10
-  vue: ^3.5.39
+  vue: ^3.5.40
   vue-tsc: ^3.3.7
-  wrangler: ^4.110.0
+  wrangler: ^4.112.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
 onlyBuiltDependencies:
