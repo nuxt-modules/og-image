@@ -1,8 +1,1 @@
-import { defineNuxtPlugin } from '#app'
-import { ogImageCanonicalUrls as setup } from '../utils/plugins'
-
-export default defineNuxtPlugin({
-  setup(nuxtApp) {
-    setup(nuxtApp)
-  },
-})
+export { ogImageCanonicalUrls as default } from '../utils/plugins'

@@ -1,8 +1,1 @@
-import { defineNuxtPlugin } from '#app'
-import { routeRuleOgImage as setup } from '../utils/plugins'
-
-export default defineNuxtPlugin({
-  setup(nuxtApp) {
-    setup(nuxtApp)
-  },
-})
+export { routeRuleOgImage as default } from '../utils/plugins'

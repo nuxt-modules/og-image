@@ -1,19 +1,18 @@
 import type { NitroRouteRules } from 'nitropack'
-import type { NuxtSSRContext } from '#app/nuxt'
 import type { OgImageOptions } from '../../types'
 import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
 import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { parseURL, withoutBase } from 'ufo'
 import { toValue } from 'vue'
-import { useRequestEvent } from '#app'
+import { defineNuxtPlugin, useRequestEvent } from '#app'
 import { withSiteUrl } from '#site-config/app/composables'
 import { createOgImageMeta, getOgImagePath } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
 const RE_COMMA = /,/g
 
-export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
+export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
@@ -70,9 +69,9 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
       },
     })
   })
-}
+})
 
-export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
+export const routeRuleOgImage = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
@@ -117,4 +116,4 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
       prerenderPaths.set(ogKey, prerenderPath)
     }
   })
-}
+})
