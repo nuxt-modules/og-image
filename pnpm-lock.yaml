@@ -87,6 +87,9 @@ catalogs:
     '@tailwindcss/vite':
       specifier: ^4.3.3
       version: 4.3.3
+    '@takumi-rs/core':
+      specifier: ^2.3.0
+      version: 2.3.0
     '@takumi-rs/core-v1':
       specifier: npm:@takumi-rs/core@1.8.7
       version: 1.8.7
@@ -96,6 +99,9 @@ catalogs:
     '@takumi-rs/helpers-v1':
       specifier: npm:@takumi-rs/helpers@1.8.7
       version: 1.8.7
+    '@takumi-rs/wasm':
+      specifier: ^2.3.0
+      version: 2.3.0
     '@takumi-rs/wasm-v1':
       specifier: npm:@takumi-rs/wasm@1.8.7
       version: 1.8.7
@@ -503,7 +509,7 @@ importers:
         specifier: 'catalog:'
         version: 4.3.3(vite@8.1.5)
       '@takumi-rs/core':
-        specifier: ^2.3.0
+        specifier: 'catalog:'
         version: 2.3.0(csstype@3.2.3)
       '@takumi-rs/core-v1':
         specifier: 'catalog:'
@@ -515,7 +521,7 @@ importers:
         specifier: 'catalog:'
         version: '@takumi-rs/helpers@1.8.7'
       '@takumi-rs/wasm':
-        specifier: ^2.3.0
+        specifier: 'catalog:'
         version: 2.3.0(csstype@3.2.3)
       '@takumi-rs/wasm-v1':
         specifier: 'catalog:'
