@@ -82,7 +82,7 @@ overrides:
 catalog:
   '@antfu/eslint-config': ^9.1.0
   '@clack/prompts': ^1.7.0
-  '@fontsource/noto-sans-sc': ^5.2.9
+  '@fontsource/noto-sans-sc': ^5.3.0
   '@iconify-json/carbon': ^1.2.24
   '@iconify-json/logos': ^1.2.11
   '@iconify-json/noto': ^1.2.7
@@ -107,11 +107,11 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.3.3
-  '@takumi-rs/core': ^2.3.0
+  '@takumi-rs/core': ^2.3.2
   '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
-  '@takumi-rs/helpers': ^2.3.0
+  '@takumi-rs/helpers': ^2.3.2
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
-  '@takumi-rs/wasm': ^2.3.0
+  '@takumi-rs/wasm': ^2.3.2
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
   '@unocss/config': ^66.7.5
   '@unocss/core': ^66.7.5
@@ -138,7 +138,7 @@ catalog:
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
   globby: ^16.2.2
-  happy-dom: ^20.10.6
+  happy-dom: ^20.11.0
   hookable: ^6.1.1
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.32.0
@@ -147,9 +147,9 @@ catalog:
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
   nuxt: ^4.5.0
-  nuxt-site-config: ^4.1.1
-  nuxtseo-layer-devtools: ^5.3.2
-  nuxtseo-shared: ^5.3.2
+  nuxt-site-config: ^4.1.2
+  nuxtseo-layer-devtools: ^5.3.3
+  nuxtseo-shared: ^5.3.3
   nypm: ^0.6.8
   object-identity: ^0.2.3
   ofetch: ^1.5.1

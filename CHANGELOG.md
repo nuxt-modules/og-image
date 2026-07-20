@@ -1,6 +1,31 @@
 # Changelog
 
 
+## v6.7.2...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.2...main)
+
+### 🩹 Fixes
+
+- Takumi v2 stable ([e9c55d28](https://github.com/nuxt-modules/og-image/commit/e9c55d28))
+- Source island hash from Nuxt ([#641](https://github.com/nuxt-modules/og-image/pull/641))
+
+### 📖 Documentation
+
+- Content audit sweep (grammar, links, structure) ([#640](https://github.com/nuxt-modules/og-image/pull/640))
+
+### 🏡 Chore
+
+- Bump ([2e25076b](https://github.com/nuxt-modules/og-image/commit/2e25076b))
+- Sync pnpm lockfile ([085d4dfc](https://github.com/nuxt-modules/og-image/commit/085d4dfc))
+- Bump deps ([2c311a2a](https://github.com/nuxt-modules/og-image/commit/2c311a2a))
+- Bump deps ([bd24d920](https://github.com/nuxt-modules/og-image/commit/bd24d920))
+- Ts issue ([69ae0368](https://github.com/nuxt-modules/og-image/commit/69ae0368))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.7.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.0...main)

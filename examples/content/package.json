@@ -13,9 +13,9 @@
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "fontless": "^0.2.1",
-    "nuxt": "^4.4.8",
+    "nuxt": "^4.5.0",
     "nuxt-og-image": "latest",
-    "nuxt-site-config": "^4.1.1",
+    "nuxt-site-config": "^4.1.2",
     "satori": "^0.28.0",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.40"
