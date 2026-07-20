@@ -1,8 +1,9 @@
 import type { H3Event } from 'h3'
-import { createError, defineEventHandler, getQuery, getRequestHost, sendRedirect } from 'h3'
+import { createError, defineEventHandler, getRequestHost, sendRedirect } from 'h3'
 import { parseURL, withLeadingSlash, withQuery } from 'ufo'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { isInternalRoute } from '../../shared'
+import { getEventQuery } from '../util/query'
 import { useOgImageRuntimeConfig } from '../utils'
 
 // Matches a single <meta> tag and captures property/name and content attributes
@@ -133,7 +134,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const query = getQuery(event)
+  const query = getEventQuery(event)
   // Pull out resolver-controlled params (prefixed `_og_`) before forwarding the
   // rest to the page fetch, so they don't leak into the rendered page's query.
   // `_og_key` selects which meta tag to redirect to; accepted case-insensitively

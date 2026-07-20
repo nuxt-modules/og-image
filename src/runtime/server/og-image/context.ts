@@ -8,7 +8,7 @@ import type BrowserRenderer from './browser/renderer'
 import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { defu } from 'defu'
-import { createError, getQuery } from 'h3'
+import { createError } from 'h3'
 import { useNitroApp } from 'nitropack/runtime'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
@@ -21,6 +21,7 @@ import { hashKey } from '../../shared/hash'
 import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
+import { getEventQuery } from '../util/query'
 import { createTimings, TIMING_CTX_KEY } from '../util/timings'
 import { withTimeout } from '../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../utils'
@@ -140,7 +141,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // In production they're ignored since all options are encoded in the URL path.
   let queryParams: Record<string, any> = {}
   if (import.meta.dev || import.meta.prerender) {
-    const query = getQuery(e)
+    const query = getEventQuery(e)
     for (const k in query) {
       const v = String(query[k])
       if (!v)
