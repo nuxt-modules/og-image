@@ -1,11 +1,12 @@
 import type { H3Error } from 'h3'
 import type { OgImageRenderEventContext } from '../../types'
 import { fnv1a64Base36 } from 'fnv1a-64'
-import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
+import { createError, handleCacheHeaders, setHeader, setHeaders } from 'h3'
 import { useStorage } from 'nitropack/runtime'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
 import { logger } from '../../logger'
+import { getEventQuery } from './query'
 
 /**
  * Constant-time string comparison to prevent timing attacks on secret values.
@@ -76,7 +77,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       : null
     if (entry) {
       const { value, expiresAt, headers } = entry
-      const purgeValue = getQuery(ctx.e).purge
+      const purgeValue = getEventQuery(ctx.e).purge
       if (typeof purgeValue !== 'undefined') {
         // When URL signing is enabled, require the secret as the purge value
         if (options.secret && !safeCompare(String(purgeValue), options.secret)) {
