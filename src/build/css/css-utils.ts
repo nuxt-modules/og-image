@@ -29,7 +29,7 @@ const RE_QUOTES = /^['"]|['"]$/g
 const RE_WIDTH_VALUE = /width:([^;}]+)/
 const RE_CALC_VAR_MULTIPLY = /calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/
 const RE_NUMERIC_WITH_UNIT = /([\d.]+)(rem|px|em|%)/
-const RE_EXTREME_VALUE = /^(-?[\d.]+e\+?\d+)(px|rem|em|%)$/
+const RE_EXTREME_VALUE = /^(-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(px|rem|em|%)$/i
 const RE_CSS_KEYWORD = /^(?:initial|inherit|unset|revert|revert-layer)$/
 const RE_UNRESOLVED_VAR = /var\((--[\w-]+)/g
 const RE_INVALID_CALC = /calc\(\s*[*/]/
@@ -871,12 +871,11 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
 
 /**
  * Clamp extreme CSS values that cause renderer issues.
- * e.g. lightningcss evaluates calc(infinity * 1px) → 3.40282e+38px which hangs takumi.
+ * Lightning CSS may evaluate calc(infinity * 1px) to either 3.40282e+38px
+ * or 2147483647px, both of which hang Takumi.
  */
 function clampExtremeValues(styles: Record<string, string>): void {
   for (const [prop, value] of Object.entries(styles)) {
-    if (!value.includes('e+') && !value.includes('e38'))
-      continue
     const match = value.match(RE_EXTREME_VALUE)
     if (match?.[1] && match?.[2]) {
       const num = Number.parseFloat(match[1])
