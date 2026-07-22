@@ -131,7 +131,6 @@
     "@vue/compiler-sfc": "catalog:",
     "chrome-launcher": "catalog:",
     "consola": "catalog:",
-    "culori": "catalog:",
     "defu": "catalog:",
     "devalue": "catalog:",
     "exsolve": "catalog:",
@@ -154,7 +153,6 @@
     "std-env": "catalog:",
     "strip-literal": "catalog:",
     "tinyexec": "catalog:",
-    "tinyglobby": "catalog:",
     "ufo": "catalog:",
     "ultrahtml": "catalog:",
     "unplugin": "catalog:"

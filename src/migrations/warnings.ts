@@ -2,7 +2,7 @@ import { basename } from 'pathe'
 import { logger } from '../runtime/logger'
 
 export interface MigrationWarning {
-  type: 'config' | 'composable' | 'component'
+  type: 'config' | 'component'
   code: string
   message: string
   replacement?: string
@@ -11,14 +11,12 @@ export interface MigrationWarning {
 
 interface WarningCounts {
   config: Map<string, number>
-  composable: Map<string, number>
   component: Map<string, number>
 }
 
 const warnings: MigrationWarning[] = []
 const counts: WarningCounts = {
   config: new Map(),
-  composable: new Map(),
   component: new Map(),
 }
 let hasEmitted = false
@@ -43,18 +41,6 @@ export const REMOVED_CONFIG: Record<string, string> = {
   'defaults.component': 'Removed (rename component to OgImage/Default.{renderer}.vue)',
 }
 
-// Deprecated composables
-export const DEPRECATED_COMPOSABLES: Record<string, string> = {
-  defineOgImageComponent: 'defineOgImage()',
-  defineOgImageStatic: 'defineOgImage()',
-  defineOgImageDynamic: 'defineOgImage()',
-  defineOgImageCached: 'defineOgImage()',
-  defineOgImageWithoutCache: 'defineOgImage()',
-}
-
-// browser: 'node' is deprecated
-export const DEPRECATED_BROWSER_NODE = 'browser: \'node\' binding removed, use \'playwright\''
-
 export function addWarning(warning: MigrationWarning): void {
   const countMap = counts[warning.type]
   const current = countMap.get(warning.code) || 0
@@ -78,19 +64,6 @@ export function addConfigWarning(key: string): void {
   }
 }
 
-export function addComposableWarning(name: string, file?: string): void {
-  const replacement = DEPRECATED_COMPOSABLES[name]
-  if (replacement) {
-    addWarning({
-      type: 'composable',
-      code: name,
-      message: `${name}() is deprecated`,
-      replacement,
-      file,
-    })
-  }
-}
-
 export function addComponentWarning(componentPath: string): void {
   addWarning({
     type: 'component',
@@ -104,7 +77,6 @@ export function addComponentWarning(componentPath: string): void {
 export function hasWarnings(): boolean {
   return warnings.length > 0
     || counts.config.size > 0
-    || counts.composable.size > 0
     || counts.component.size > 0
 }
 
@@ -115,7 +87,6 @@ export function emitWarnings(): void {
   hasEmitted = true
 
   const totalIssues = [...counts.config.values()].reduce((a, b) => a + b, 0)
-    + [...counts.composable.values()].reduce((a, b) => a + b, 0)
     + [...counts.component.values()].reduce((a, b) => a + b, 0)
 
   const body = [
@@ -159,19 +130,6 @@ function formatWarnings(): string {
     lines.push('')
   }
 
-  // Composable warnings
-  if (counts.composable.size > 0) {
-    lines.push('Deprecated composables:')
-    for (const [name, count] of counts.composable) {
-      const replacement = DEPRECATED_COMPOSABLES[name]
-      const suffix = count > 1 ? ` (×${count})` : ''
-      lines.push(`  • ${name}()${suffix}`)
-      if (replacement)
-        lines.push(`    → Use: ${replacement}`)
-    }
-    lines.push('')
-  }
-
   // Component warnings
   if (counts.component.size > 0) {
     const componentCount = [...counts.component.values()].reduce((a, b) => a + b, 0)
@@ -188,12 +146,4 @@ function formatWarnings(): string {
   }
 
   return lines.join('\n')
-}
-
-export function resetWarnings(): void {
-  warnings.length = 0
-  counts.config.clear()
-  counts.composable.clear()
-  counts.component.clear()
-  hasEmitted = false
 }
