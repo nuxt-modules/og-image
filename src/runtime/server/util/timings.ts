@@ -106,7 +106,3 @@ export function createTimings(): Timings {
 }
 
 export const TIMING_CTX_KEY = '_ogImageTimings'
-
-export function getTimingsFromEvent(e: { context: Record<string, any> }): Timings | undefined {
-  return e.context[TIMING_CTX_KEY]
-}

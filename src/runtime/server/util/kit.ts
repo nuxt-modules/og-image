@@ -7,8 +7,6 @@ import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
 import { withoutBase, withoutTrailingSlash } from 'ufo'
 import { getIslandHash } from '#og-image/island-hash'
 
-export { withoutQuery } from 'nuxtseo-shared/utils'
-
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>, timeout?: number): Promise<NuxtIslandResponse> {
   // The server rejects hash mismatches with `400 Invalid island request hash`, so the
   // hash comes from the installed Nuxt's own implementation (see the

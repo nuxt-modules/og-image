@@ -78,9 +78,3 @@ export function toBase64Image(data: string | ArrayBuffer) {
 export function withoutQuery(path: string) {
   return path.split('?')[0]
 }
-
-export function getExtension(path: string) {
-  path = withoutQuery(path)!
-  const lastSegment = (path.split('/').pop() || path)
-  return lastSegment.split('.').pop() || lastSegment
-}

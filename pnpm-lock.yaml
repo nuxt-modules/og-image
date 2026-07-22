@@ -150,9 +150,6 @@ catalogs:
     consola:
       specifier: ^3.4.2
       version: 3.4.2
-    culori:
-      specifier: ^4.0.2
-      version: 4.0.2
     defu:
       specifier: ^6.1.7
       version: 6.1.7
@@ -273,9 +270,6 @@ catalogs:
     tinyexec:
       specifier: ^1.2.4
       version: 1.2.4
-    tinyglobby:
-      specifier: ^0.2.17
-      version: 0.2.17
     typescript:
       specifier: 6.0.3
       version: 6.0.3
@@ -348,9 +342,6 @@ importers:
       consola:
         specifier: 'catalog:'
         version: 3.4.2
-      culori:
-        specifier: 'catalog:'
-        version: 4.0.2
       defu:
         specifier: 'catalog:'
         version: 6.1.7
@@ -417,9 +408,6 @@ importers:
       tinyexec:
         specifier: 'catalog:'
         version: 1.2.4
-      tinyglobby:
-        specifier: 'catalog:'
-        version: 0.2.17
       ufo:
         specifier: 'catalog:'
         version: 1.6.4
@@ -6081,10 +6069,6 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
-
-  culori@4.0.2:
-    resolution: {integrity: sha512-1+BhOB8ahCn4O0cep0Sh2l9KCOfOdY+BXJnKMHFFzDEouSr/el18QwXEMRlOj9UY5nCeA8UN3a/82rUWRBeyBw==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   cwise-compiler@1.1.3:
     resolution: {integrity: sha512-WXlK/m+Di8DMMcCjcWr4i+XzcQra9eCdXIJrgh4TUgh0pIS/yJduLxS9JgefsHJ/YVLdgPtXm9r62W92MvanEQ==}
@@ -16721,8 +16705,6 @@ snapshots:
       css-tree: 2.2.1
 
   csstype@3.2.3: {}
-
-  culori@4.0.2: {}
 
   cwise-compiler@1.1.3:
     dependencies:

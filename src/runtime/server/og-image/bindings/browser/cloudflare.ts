@@ -80,13 +80,3 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
   browserPromise = null
   return browser
 }
-
-export async function disposeBrowser(): Promise<void> {
-  if (browser) {
-    await browser.close().catch((err) => {
-      // Browser disposal is best-effort during worker cleanup.
-      void err
-    })
-    browser = null
-  }
-}
