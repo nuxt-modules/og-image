@@ -1,7 +1,3 @@
-import { createConsola } from 'consola'
+import { createModuleLogger } from 'nuxtseo-shared/utils'
 
-export const logger = createConsola({
-  defaults: {
-    tag: 'Nuxt OG Image',
-  },
-})
+export const logger = createModuleLogger('Nuxt OG Image')

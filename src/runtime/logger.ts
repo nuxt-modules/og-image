@@ -1,10 +1,6 @@
-import { createConsola } from 'consola'
 import { colorize } from 'consola/utils'
+import { createModuleLogger } from 'nuxtseo-shared/utils'
 
-export const logger = createConsola({
-  defaults: {
-    tag: '@nuxtjs/og-image',
-  },
-})
+export const logger = createModuleLogger('@nuxtjs/og-image')
 
 export const gray = (s: string) => colorize('gray', s)
