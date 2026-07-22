@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v6.7.3...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.3...main)
+
+### 🩹 Fixes
+
+- Parse queries from event paths ([#642](https://github.com/nuxt-modules/og-image/pull/642))
+
+### 🏡 Chore
+
+- Bump deps ([5bd2bdb3](https://github.com/nuxt-modules/og-image/commit/5bd2bdb3))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.7.2...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.2...main)

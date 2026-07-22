@@ -449,7 +449,13 @@ export default defineNuxtModule<ModuleOptions>({
       if (!nuxt.options.dev || config.zeroRuntime || !hasServerRuntime)
         return
       if (signing.optOut) {
-        logger.warn('OG image URL signing is disabled (`security.secret: false`). Anyone can craft arbitrary image generation requests.')
+        logger.warn([
+          'OG image URL signing is disabled (`security.secret: false`).',
+          'Attackers can craft image requests and poison the cache so your real OG image URLs serve attacker-controlled content (content spoofing).',
+          'Signing will be required in v7 whenever runtime image generation is enabled. Leave signing on, or set an explicit secret:',
+          '  NUXT_OG_IMAGE_SECRET=<secret>',
+          '  Generate one with: npx nuxt-og-image generate-secret',
+        ].join('\n'))
       }
       else if (signing.generated) {
         logger.warn([
