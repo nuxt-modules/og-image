@@ -221,16 +221,25 @@ describe('css-utils', () => {
   })
 
   describe('postProcessStyles', () => {
-    it('normalizes calc(infinity * 1px) via Lightning CSS', async () => {
-      const raw = { 'border-radius': 'calc(infinity * 1px)' }
+    it.each([
+      'calc(infinity * 1px)',
+      'calc(infinity)',
+    ])('normalizes %s without clamping the result', async (value) => {
+      const raw = { 'border-radius': value }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('9999px')
+      const radius = result?.['border-radius']
+      expect(radius).not.toContain('calc(')
+      expect(Number.parseFloat(radius!)).toBeGreaterThan(9999)
     })
 
-    it('normalizes calc(infinity) via Lightning CSS', async () => {
-      const raw = { 'border-radius': 'calc(infinity)' }
+    it.each([
+      '2147483647px',
+      '3.40282e+38px',
+      '-2147483647px',
+    ])('preserves renderer-safe extreme value %s', async (value) => {
+      const raw = { width: value }
       const result = await postProcessStyles(raw, new Map())
-      expect(result?.['border-radius']).toBe('9999px')
+      expect(result?.width).toBe(value)
     })
 
     it('passes through opacity (normalization handled by simplifyCss)', async () => {
@@ -706,10 +715,12 @@ describe('tw4 class resolution', () => {
       }
     })
 
-    it('normalizes rounded-full calc(infinity) via Lightning CSS', async () => {
+    it('normalizes rounded-full calc(infinity) without clamping it', async () => {
       const result = await resolve(['rounded-full'])
       expect(result['rounded-full'], 'rounded-full should resolve').toBeDefined()
-      expect(result['rounded-full']?.['border-radius']).toBe('9999px')
+      const radius = result['rounded-full']?.['border-radius']
+      expect(radius).not.toContain('calc(')
+      expect(Number.parseFloat(radius!)).toBeGreaterThan(9999)
     })
 
     it('resolves tracking utilities', async () => {
