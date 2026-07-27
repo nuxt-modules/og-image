@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { join } from 'pathe'
 import { parseAndWalk } from 'oxc-walker'
+import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
 
 const pluginPaths = [
