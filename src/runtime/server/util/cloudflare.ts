@@ -9,7 +9,11 @@ function toRecord(value: unknown): Record<string, unknown> | undefined {
 }
 
 export function getCloudflareEnv(event?: H3Event): CloudflareEnv | undefined {
-  const runtimeEnv = toRecord(event?.runtime?.cloudflare?.env)
+  const runtime = event && 'runtime' in event
+    ? toRecord(event.runtime)
+    : undefined
+  const runtimeCloudflare = toRecord(runtime?.cloudflare)
+  const runtimeEnv = toRecord(runtimeCloudflare?.env)
   if (runtimeEnv)
     return runtimeEnv
 
