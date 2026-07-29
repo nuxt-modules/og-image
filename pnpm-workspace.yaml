@@ -75,13 +75,13 @@ packages:
   - playground
   - '!examples/**'
 overrides:
-  '@unhead/vue': ^3.2.1
-  unhead: ^3.2.1
+  '@unhead/vue': ^3.2.3
+  unhead: ^3.2.3
   vite: 8.1.5
   vitest-environment-nuxt: 2.0.0
   vue: ^3.5.40
 catalog:
-  '@antfu/eslint-config': ^9.1.0
+  '@antfu/eslint-config': ^9.2.0
   '@clack/prompts': ^1.7.0
   '@fontsource/noto-sans-sc': ^5.3.0
   '@iconify-json/carbon': ^1.2.24
@@ -91,28 +91,28 @@ catalog:
   '@iconify-json/tabler': ^1.2.37
   '@iconify/types': ^2.0.0
   '@img/sharp-linux-x64': ^0.35.3
-  '@nuxt/content': ^3.15.0
-  '@nuxt/devtools': 4.0.0-alpha.7
-  '@nuxt/devtools-kit': 4.0.0-alpha.7
+  '@nuxt/content': ^3.15.2
+  '@nuxt/devtools': 4.0.0-alpha.9
+  '@nuxt/devtools-kit': 4.0.0-alpha.9
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.3.1
   '@nuxt/image': ^2.0.0
-  '@nuxt/kit': ^4.5.0
-  '@nuxt/module-builder': ^1.0.2
-  '@nuxt/test-utils': ^4.0.3
+  '@nuxt/kit': ^4.5.1
+  '@nuxt/module-builder': ^1.0.3
+  '@nuxt/test-utils': ^4.1.0
   '@nuxt/ui': ^4.10.0
   '@nuxtjs/color-mode': ^4.0.1
   '@nuxtjs/eslint-config-typescript': ^12.1.0
-  '@nuxtjs/i18n': ^10.4.1
+  '@nuxtjs/i18n': ^10.5.0
   '@nuxtjs/tailwindcss': 7.0.0-beta.1
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.3.3
-  '@takumi-rs/core': ^2.4.1
+  '@takumi-rs/core': ^2.5.2
   '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
-  '@takumi-rs/helpers': ^2.4.1
+  '@takumi-rs/helpers': ^2.5.2
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
-  '@takumi-rs/wasm': ^2.4.1
+  '@takumi-rs/wasm': ^2.5.2
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
   '@unocss/config': ^66.7.5
   '@unocss/core': ^66.7.5
@@ -131,38 +131,38 @@ catalog:
   consola: ^3.4.2
   defu: ^6.1.7
   devalue: ^5.8.2
-  eslint: ^10.7.0
-  eslint-plugin-harlanzw: ^0.17.0
-  exsolve: ^1.1.0
-  fnv1a-64: ^0.1.1
+  eslint: ^10.8.0
+  eslint-plugin-harlanzw: ^0.17.1
+  exsolve: ^1.1.1
+  fnv1a-64: ^0.1.2
   fontless: ^0.2.1
   get-image-colors: ^4.0.1
   globby: ^16.2.2
-  happy-dom: ^20.11.0
+  happy-dom: ^20.11.1
   hookable: ^6.1.1
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.33.0
-  magic-string: ^1.0.0
+  magic-string: ^1.1.0
   magicast: ^0.5.3
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
-  nuxt: ^4.5.0
+  nuxt: ^4.5.1
   nuxt-site-config: ^4.1.2
-  nuxtseo-layer-devtools: ^5.3.3
-  nuxtseo-shared: ^5.3.4
+  nuxtseo-layer-devtools: ^5.3.6
+  nuxtseo-shared: ^5.3.6
   nypm: ^0.6.8
   object-identity: ^0.2.3
   ofetch: ^1.5.1
   ohash: ^2.0.11
-  oxc-parser: ^0.140.0
+  oxc-parser: ^0.142.0
   oxc-walker: ^1.0.0
   pathe: ^2.0.3
   pkg-types: ^2.3.1
-  playwright: ^1.61.1
-  playwright-core: ^1.61.1
+  playwright: ^1.62.0
+  playwright-core: ^1.62.0
   radix3: ^1.1.2
-  sass: ^1.101.3
-  satori: ^0.28.2
+  sass: ^1.102.0
+  satori: ^0.29.0
   sharp: ^0.35.3
   sirv: ^3.0.2
   std-env: ^4.2.0
@@ -178,8 +178,8 @@ catalog:
   unplugin: ^3.3.0
   vitest: ^4.1.10
   vue: ^3.5.40
-  vue-tsc: ^3.3.7
-  wrangler: ^4.112.0
+  vue-tsc: ^3.3.8
+  wrangler: ^4.114.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
 onlyBuiltDependencies:
