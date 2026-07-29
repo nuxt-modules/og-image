@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
-import { getRequestHost } from 'h3'
+import { getRequestURL } from 'h3'
+import { getCloudflareEnv } from './cloudflare'
 
 interface AssetsBinding {
   fetch: (request: string | Request, init?: RequestInit) => Promise<Response>
@@ -13,8 +14,13 @@ interface AssetsBinding {
  * - A wrangler.toml/json with `[assets]` configured
  */
 export function getCloudflareAssets(event: H3Event): AssetsBinding | undefined {
-  const assets = event.context.cloudflare?.env?.ASSETS || (event.context as any).ASSETS
-  return assets && typeof assets.fetch === 'function' ? assets as AssetsBinding : undefined
+  const assets = getCloudflareEnv(event)?.ASSETS || event.context.ASSETS
+  return typeof assets === 'object'
+    && assets !== null
+    && 'fetch' in assets
+    && typeof assets.fetch === 'function'
+    ? assets as AssetsBinding
+    : undefined
 }
 
 /**
@@ -35,10 +41,12 @@ export async function tryCloudflareAssetsFetch(
   const assets = getCloudflareAssets(event)
   if (!assets)
     return
-  const origin = event.context.cloudflare?.request?.url
-    || `https://${getRequestHost(event) || 'localhost'}`
+  const origin = getRequestURL(event).origin
   const url = new URL(path, origin).href
-  const res = await assets.fetch(url, signal ? { signal } : undefined).catch(() => null)
+  const res = await assets.fetch(url, signal ? { signal } : undefined).catch(() => {
+    // Binding failures fall through to the caller's other asset sources.
+    return null
+  })
   if (!res || !res.ok)
     return
   return res.arrayBuffer()

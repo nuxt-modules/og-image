@@ -101,7 +101,7 @@ export const routeRuleOgImage = defineNuxtPlugin((nuxtApp) => {
         e?.context._ogImagePrerenderPaths?.clear()
       return
     }
-    routeRules = defu((nuxtApp.ssrContext?.event as any)?.context._nitro?.routeRules?.ogImage, routeRules)
+    routeRules = defu(nuxtApp.ssrContext?.event?.context._nitro?.routeRules?.ogImage, routeRules)
     const { path: src, hash } = getOgImagePath(ssrContext!.url, routeRules as OgImageOptions)
     // Include hash in options if hash mode was used (for prerender cache lookup)
     if (hash) {

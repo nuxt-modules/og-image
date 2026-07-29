@@ -295,7 +295,10 @@ export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDef
     const style: 'normal' | 'italic' = def.style === 'italic' ? 'italic' : 'normal'
 
     const fontConfig = { family: name, weight, style, src: path, localPath: path } satisfies FontConfig
-    const data = await resolve(event.e, fontConfig).catch(() => null)
+    const data = await resolve(event.e, fontConfig).catch(() => {
+      // Invalid user-defined fonts are skipped so bundled fallbacks can render.
+      return null
+    })
     if (data) {
       results.push({
         ...fontConfig,

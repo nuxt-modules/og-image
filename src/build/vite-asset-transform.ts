@@ -118,7 +118,10 @@ async function loadIconSet(prefix: string): Promise<IconifyJSON | null> {
 
   const icons = await import(`@iconify-json/${prefix}/icons.json`, {
     with: { type: 'json' },
-  }).then(m => m.default).catch(() => null)
+  }).then(m => m.default).catch(() => {
+    // Missing optional icon packages fall back to remote icon resolution.
+    return null
+  })
 
   iconCache.set(prefix, icons)
   if (iconCache.size > 20)
@@ -390,7 +393,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
         if (!emojiIcons) {
           emojiIcons = options.emojiIcons ?? await import(`@iconify-json/${options.emojiSet}/icons.json`, {
             with: { type: 'json' },
-          }).then(m => m.default).catch(() => null)
+          }).then(m => m.default).catch(() => {
+            // Missing optional emoji packages fall back to remote icon resolution.
+            return null
+          })
         }
 
         // Collect all unique emojis in template
@@ -775,7 +781,10 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
               continue
             }
 
-            const fileBuffer = await readFile(resolvedPath).catch(() => null)
+            const fileBuffer = await readFile(resolvedPath).catch(() => {
+              // Missing component assets remain unchanged in the transformed template.
+              return null
+            })
             if (!fileBuffer)
               continue
 

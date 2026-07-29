@@ -478,7 +478,10 @@ async function checkNuxtConfig(rootDir: string): Promise<{
     hasNuxtFontsInPkg = !!(pkg.dependencies?.['@nuxt/fonts'] || pkg.devDependencies?.['@nuxt/fonts'])
   }
 
-  const config = await loadNuxtConfig({ cwd: rootDir }).catch(() => null)
+  const config = await loadNuxtConfig({ cwd: rootDir }).catch((error: Error) => {
+    p.log.warn(`Could not inspect Nuxt config: ${error.message}`)
+    return null
+  })
   if (!config)
     return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, hasDefaultsComponent: false, defaultComponentName: null, nitroPreset: null, deprecatedConfigKeys: [] }
 
@@ -746,7 +749,10 @@ function migrateV6Components(
 
 // Detect deployment target from nuxt.config
 async function detectDeploymentTarget(rootDir: string): Promise<string | null> {
-  const config = await loadNuxtConfig({ cwd: rootDir }).catch(() => null)
+  const config = await loadNuxtConfig({ cwd: rootDir }).catch((error: Error) => {
+    p.log.warn(`Could not detect deployment target: ${error.message}`)
+    return null
+  })
   return config?.nitro?.preset || null
 }
 

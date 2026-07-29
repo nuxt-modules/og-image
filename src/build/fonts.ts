@@ -495,7 +495,10 @@ export async function parseFontsFromTemplate(
 export async function downloadFontFile(url: string, destPath: string): Promise<boolean> {
   if (existsSync(destPath))
     return true
-  const res = await fetch(url).catch(() => null)
+  const res = await fetch(url).catch(() => {
+    // Network failures are represented by the function's false result.
+    return null
+  })
   if (!res?.ok)
     return false
   await writeFile(destPath, Buffer.from(await res.arrayBuffer()))

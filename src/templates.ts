@@ -245,6 +245,12 @@ declare module '#og-image-cache' {
 import type { OgImageOptions, OgImageRenderEventContext, VNode } from '${typesPath}'
 
 declare module 'nitropack' {
+  interface NitroRuntimeConfig {
+    'nuxt-og-image': OgImageRuntimeConfig
+    ogImage?: {
+      secret?: string
+    }
+  }
   interface NitroRouteRules {
     ogImage?: false | OgImageOptions & Record<string, any>
   }
@@ -258,6 +264,12 @@ declare module 'nitropack' {
 }
 
 declare module 'nitropack/types' {
+  interface NitroRuntimeConfig {
+    'nuxt-og-image': OgImageRuntimeConfig
+    ogImage?: {
+      secret?: string
+    }
+  }
   interface NitroRouteRules {
     ogImage?: false | OgImageOptions & Record<string, any>
   }
@@ -267,6 +279,15 @@ declare module 'nitropack/types' {
   interface NitroRuntimeHooks {
     'nuxt-og-image:context': (ctx: OgImageRenderEventContext) => void | Promise<void>
     'nuxt-og-image:satori:vnodes': (vnodes: VNode, ctx: OgImageRenderEventContext) => void | Promise<void>
+  }
+}
+
+declare module 'h3' {
+  interface H3EventContext {
+    _nitro?: {
+      routeRules?: import('nitropack').NitroRouteRules
+    }
+    _ogImagePrerenderPaths?: Map<string, string>
   }
 }
 

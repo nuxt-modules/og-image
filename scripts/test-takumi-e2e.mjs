@@ -74,7 +74,11 @@ function run(command, args, env = {}) {
 
 async function assertPnpmSymlink(name) {
   const pkgPath = join(scopeDir, name)
-  const stat = await lstat(pkgPath).catch(() => null)
+  const stat = await lstat(pkgPath).catch((error) => {
+    if (error.code === 'ENOENT')
+      return null
+    throw error
+  })
   if (!stat)
     throw new Error(`Missing ${pkgPath}. Run pnpm install first.`)
   if (!stat.isSymbolicLink())

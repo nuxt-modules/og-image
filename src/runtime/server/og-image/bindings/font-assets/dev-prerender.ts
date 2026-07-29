@@ -14,11 +14,26 @@ import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from './externa
 
 let fontUrlMapping: Record<string, string> | undefined
 
+async function readOptionalFile(path: string): Promise<Buffer | null> {
+  return readFile(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT')
+      return null
+    throw error
+  })
+}
+
+async function fetchOptionalFont(url: string, timeout: number): Promise<Response | null> {
+  return fetch(url, { signal: AbortSignal.timeout(timeout) }).catch(() => {
+    // A failed candidate fetch falls through to the next font source.
+    return null
+  })
+}
+
 async function loadFontUrlMapping(): Promise<Record<string, string>> {
   if (fontUrlMapping)
     return fontUrlMapping
-  const content = await readFile(join(buildDir, 'cache', 'og-image', 'font-urls.json'), 'utf-8').catch(() => null)
-  fontUrlMapping = content ? JSON.parse(content) : {}
+  const content = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'font-urls.json'))
+  fontUrlMapping = content ? JSON.parse(content.toString('utf-8')) : {}
   return fontUrlMapping!
 }
 
@@ -29,7 +44,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
 
   // Static bundled fonts — read directly from absolute path
   if (font.absolutePath) {
-    const data = await readFile(font.absolutePath).catch(() => null)
+    const data = await readOptionalFile(font.absolutePath)
     if (data?.length)
       return data
   }
@@ -46,8 +61,8 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)
     if (path.startsWith('/_og-static-fonts/')) {
       const filename = path.slice('/_og-static-fonts/'.length)
-      const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
-        || await readFile(join(rootDir, '.output', 'public', '_og-static-fonts', filename)).catch(() => null)
+      const cached = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename))
+        || await readOptionalFile(join(rootDir, '.output', 'public', '_og-static-fonts', filename))
       if (cached?.length)
         return cached
     }
@@ -57,13 +72,13 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       const filename = path.slice('/_fonts/'.length)
 
       // Try .output/public/_fonts (WOFF/WOFF2 files from @nuxt/fonts)
-      const cached = await readFile(join(rootDir, '.output', 'public', '_fonts', filename)).catch(() => null)
+      const cached = await readOptionalFile(join(rootDir, '.output', 'public', '_fonts', filename))
       if (cached?.length)
         return cached
 
       const mapping = await loadFontUrlMapping()
       if (mapping[filename]) {
-        const res = await fetch(mapping[filename], { signal: AbortSignal.timeout(timeout) }).catch(() => null)
+        const res = await fetchOptionalFont(mapping[filename], timeout)
         if (res?.ok)
           return Buffer.from(await res.arrayBuffer())
       }
@@ -71,8 +86,8 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     }
 
     const filename = path.slice(1)
-    const data = await readFile(join(rootDir, 'public', filename)).catch(() => null)
-      || await readFile(join(rootDir, '.output', 'public', filename)).catch(() => null)
+    const data = await readOptionalFile(join(rootDir, 'public', filename))
+      || await readOptionalFile(join(rootDir, '.output', 'public', filename))
     if (data?.length)
       return data
     // Fall through to event.$fetch which resolves via Nitro's asset server
@@ -81,7 +96,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   // Static fonts — try og-image's cache first (dev mode)
   if (path.startsWith('/_og-static-fonts/')) {
     const filename = path.slice('/_og-static-fonts/'.length)
-    const cached = await readFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename)).catch(() => null)
+    const cached = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename))
     if (cached?.length)
       return cached
   }
@@ -93,7 +108,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     const filename = path.slice('/_fonts/'.length)
     const mapping = await loadFontUrlMapping()
     if (mapping[filename]) {
-      const res = await fetch(mapping[filename], { signal: AbortSignal.timeout(timeout) }).catch(() => null)
+      const res = await fetchOptionalFont(mapping[filename], timeout)
       if (res?.ok)
         return Buffer.from(await res.arrayBuffer())
     }
@@ -104,7 +119,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   // Vite's static file middleware, returning HTML instead of font data.
   if (import.meta.dev) {
     const filename = path.slice(1)
-    const data = await readFile(join(rootDir, 'public', filename)).catch(() => null)
+    const data = await readOptionalFile(join(rootDir, 'public', filename))
     if (data?.length)
       return data
   }
@@ -117,7 +132,10 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     // Same-origin dev fetch: trust our own (loopback) host but re-validate any
     // redirect that leaves it, so an open redirect can't reach an internal
     // target via the font path (GHSA-q8hw-4fvp-9rwv).
-    const ab = await fetchWithRedirectValidation(target.href, { timeout, trustedHost: target.host }).catch(() => null)
+    const ab = await fetchWithRedirectValidation(target.href, { timeout, trustedHost: target.host }).catch(() => {
+      // An unreachable dev origin falls through to Nitro's internal fetch.
+      return null
+    })
     if (ab) {
       return Buffer.from(ab)
     }

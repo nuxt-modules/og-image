@@ -78,7 +78,10 @@ interface TakumiPackageVersion {
 }
 
 async function findPackageVersionFromEntry(pkg: string, resolver: Resolver): Promise<string | undefined> {
-  const entry = await resolver.resolvePath(pkg, { fallbackToOriginal: false }).catch(() => null)
+  const entry = await resolver.resolvePath(pkg, { fallbackToOriginal: false }).catch(() => {
+    // Resolution failure means the optional package is not installed.
+    return null
+  })
   if (!entry || entry === pkg)
     return
 
@@ -86,7 +89,7 @@ async function findPackageVersionFromEntry(pkg: string, resolver: Resolver): Pro
   while (dir && dir !== dirname(dir)) {
     const pkgPath = join(dir, 'package.json')
     if (existsSync(pkgPath)) {
-      const pkgJson = await readPackageJSON(pkgPath).catch(() => null)
+      const pkgJson = await readPackageJSON(pkgPath)
       if (pkgJson?.name === pkg)
         return pkgJson.version
     }
@@ -591,7 +594,10 @@ export default defineNuxtModule<ModuleOptions>({
             const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
             if (!cssPath || !cssPath.endsWith('.css'))
               continue
-            const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+            const resolved = await resolver.resolvePath(cssPath).catch(() => {
+              // Unresolvable CSS entries are skipped while scanning later entries.
+              return null
+            })
             if (!resolved || !existsSync(resolved))
               continue
             return resolved
@@ -700,7 +706,10 @@ export default defineNuxtModule<ModuleOptions>({
             const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
             if (!cssPath || !cssPath.endsWith('.css'))
               continue
-            const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+            const resolved = await resolver.resolvePath(cssPath).catch(() => {
+              // Unresolvable CSS entries are skipped while scanning later entries.
+              return null
+            })
             if (!resolved || !existsSync(resolved))
               continue
             const content = await readFile(resolved, 'utf-8')

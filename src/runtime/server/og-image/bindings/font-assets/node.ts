@@ -29,7 +29,10 @@ export async function resolve(event: H3Event, font: FontConfig) {
   // re-validating any redirect that leaves the origin — so an open redirect on
   // the app can't bounce the font fetch to an internal target (GHSA-q8hw-4fvp-9rwv).
   const target = new URL(fullPath, origin)
-  const ab = await fetchWithRedirectValidation(target.href, { timeout, trustedHost: target.host }).catch(() => null)
+  const ab = await fetchWithRedirectValidation(target.href, { timeout, trustedHost: target.host }).catch(() => {
+    // An unreachable origin falls through to Nitro's internal fetch.
+    return null
+  })
   if (ab) {
     return Buffer.from(ab)
   }
