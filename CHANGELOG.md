@@ -1,6 +1,31 @@
 # Changelog
 
 
+## v6.7.4...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.4...main)
+
+### 🩹 Fixes
+
+- Warn when secure signing is disabled ([3db1f129](https://github.com/nuxt-modules/og-image/commit/3db1f129))
+- Clamp Lightning CSS integer infinity ([#644](https://github.com/nuxt-modules/og-image/pull/644))
+- Remove obsolete extreme value clamp ([#647](https://github.com/nuxt-modules/og-image/pull/647))
+- Wrap plugin entrypoints ([#650](https://github.com/nuxt-modules/og-image/pull/650))
+
+### 🏡 Chore
+
+- Code cleanup sweep ([#643](https://github.com/nuxt-modules/og-image/pull/643))
+- Bump ([5af3de4a](https://github.com/nuxt-modules/og-image/commit/5af3de4a))
+- Adopt nuxtseo-shared 5.3.4 APIs ([5fcfcfbb](https://github.com/nuxt-modules/og-image/commit/5fcfcfbb))
+- Adopt nuxtseo-shared 5.3.4 APIs ([#646](https://github.com/nuxt-modules/og-image/pull/646))
+- Bump ([5ab6d4cd](https://github.com/nuxt-modules/og-image/commit/5ab6d4cd))
+- Types ([a3aa0a7a](https://github.com/nuxt-modules/og-image/commit/a3aa0a7a))
+- Types ([cbcbdb9f](https://github.com/nuxt-modules/og-image/commit/cbcbdb9f))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.7.3...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.3...main)
