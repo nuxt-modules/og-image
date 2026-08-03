@@ -16,4 +16,17 @@ describe('preset compatibility', () => {
     const normalized = 'node_cluster'.replace('_', '-')
     expect(RuntimeCompatibility[normalized]).toBe(NodeRuntime)
   })
+
+  it.each([
+    'cloudflare',
+    'cloudflare-pages',
+    'cloudflare-pages-static',
+    'cloudflare-module',
+    'cloudflare-durable',
+    'vercel-edge',
+    'netlify-edge',
+  ] as const)('%s excludes worker thread bindings', (preset) => {
+    expect(RuntimeCompatibility[preset]?.resvg).not.toBe('node-dev')
+    expect(RuntimeCompatibility[preset]?.takumi).not.toBe('node-dev')
+  })
 })

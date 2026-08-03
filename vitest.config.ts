@@ -14,7 +14,7 @@ export default defineConfig({
             './test/e2e/**/*.test.ts',
             './test/e2e-not-nuxt/**/*.test.ts',
             './test/unit/resvg-worker-queue.test.ts',
-            './test/unit/resvg-worker-backlog.test.ts',
+            './test/unit/takumi-worker-queue.test.ts',
             '**/.claude/**',
             '**/node_modules/**',
           ],
@@ -32,7 +32,7 @@ export default defineConfig({
           pool: 'forks',
           include: [
             './test/unit/resvg-worker-queue.test.ts',
-            './test/unit/resvg-worker-backlog.test.ts',
+            './test/unit/takumi-worker-queue.test.ts',
           ],
           testTimeout: 30_000,
         },

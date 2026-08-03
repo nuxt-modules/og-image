@@ -17,6 +17,12 @@ async function render(svg: string): Promise<Buffer> {
   return await instance.render().asPng()
 }
 
+async function renderWithOptions(svg: string, options: Record<string, unknown>): Promise<Buffer> {
+  const { Resvg } = ResvgBinding
+  const instance = new Resvg(svg, options as any) as any
+  return await instance.render().asPng()
+}
+
 describe('resvg node-dev worker binding', () => {
   it('drains a deep queue of concurrent renders', async () => {
     const results = await Promise.all(
@@ -46,5 +52,14 @@ describe('resvg node-dev worker binding', () => {
       'rejected',
       'fulfilled',
     ])
+  })
+
+  it('rejects an undispatchable job without stalling its queued neighbour', async () => {
+    const settled = await Promise.allSettled([
+      renderWithOptions(svgRect(1), { undispatchable: () => undefined }),
+      render(svgRect(2)),
+    ])
+
+    expect(settled.map(r => r.status)).toEqual(['rejected', 'fulfilled'])
   })
 })
