@@ -1,5 +1,5 @@
-import type { H3Event } from 'h3'
-import { getRequestURL } from 'h3'
+import type { H3Event } from '#nuxtseo/h3'
+import { getRequestURL } from '#nuxtseo/h3'
 import { getCloudflareEnv } from './cloudflare'
 
 interface AssetsBinding {

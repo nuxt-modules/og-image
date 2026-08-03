@@ -20,31 +20,32 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   if (typeof config.runtimeCacheStorage === 'object')
     nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
 
-  nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
-    // stub packages that aren't available or used on edge runtimes
-    const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
-    nitroConfig.virtual = nitroConfig.virtual || {}
-    // playwright-core has many deep imports - stub the package and its deps entirely
-    nitroConfig.virtual['playwright-core'] = mockCode
-    nitroConfig.virtual.electron = mockCode
-    nitroConfig.virtual['electron/index'] = mockCode
-    nitroConfig.virtual['electron/index.js'] = mockCode
-    nitroConfig.virtual.bufferutil = mockCode
-    nitroConfig.virtual['utf-8-validate'] = mockCode
-    nitroConfig.virtual['chromium-bidi'] = mockCode
-    // stub deep imports from chromium-bidi
-    nitroConfig.virtual['chromium-bidi/lib/cjs/bidiMapper/BidiMapper'] = mockCode
-    nitroConfig.virtual['chromium-bidi/lib/cjs/bidiMapper/BidiMapper.js'] = mockCode
-    // image-size dep
-    nitroConfig.virtual.queue = mockCode
+  const nitroConfig = nuxt.options.nitro
+  // stub packages that aren't available or used on edge runtimes
+  const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
+  nitroConfig.virtual = nitroConfig.virtual || {}
+  // playwright-core has many deep imports - stub the package and its deps entirely
+  nitroConfig.virtual['playwright-core'] = mockCode
+  nitroConfig.virtual.electron = mockCode
+  nitroConfig.virtual['electron/index'] = mockCode
+  nitroConfig.virtual['electron/index.js'] = mockCode
+  nitroConfig.virtual.bufferutil = mockCode
+  nitroConfig.virtual['utf-8-validate'] = mockCode
+  nitroConfig.virtual['chromium-bidi'] = mockCode
+  // stub deep imports from chromium-bidi
+  nitroConfig.virtual['chromium-bidi/lib/cjs/bidiMapper/BidiMapper'] = mockCode
+  nitroConfig.virtual['chromium-bidi/lib/cjs/bidiMapper/BidiMapper.js'] = mockCode
+  // image-size dep
+  nitroConfig.virtual.queue = mockCode
+  await applyNitroPresetCompatibility(nitroConfig, {
+    compatibility: config.compatibility?.runtime,
+    resolve,
+    detectedRenderers: getDetectedRenderers(),
+    metadata: getCompatibilityMeta(),
   })
 
-  // Apply renderer compatibility and WASM patching in nitro:init
+  // Apply output patching once Nitro is initialized.
   nuxt.hooks.hook('nitro:init', async (nitro) => {
-    // Apply renderer compatibility based on detected component suffixes
-    const renderers = getDetectedRenderers()
-    await applyNitroPresetCompatibility(nitro.options, { compatibility: config.compatibility?.runtime, resolve, detectedRenderers: renderers, metadata: getCompatibilityMeta() })
-
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed
     const target = resolveOgImagePreset(nitro.options)

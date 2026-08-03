@@ -1,10 +1,10 @@
-import type { H3Error } from 'h3'
+import type { H3Error } from '#nuxtseo/h3'
 import type { OgImageRenderEventContext } from '../../types'
 import { fnv1a64Base36 } from 'fnv1a-64'
-import { createError, handleCacheHeaders, setHeader, setHeaders } from 'h3'
-import { useStorage } from 'nitropack/runtime'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+import { createError, handleCacheHeaders, setHeader, setHeaders } from '#nuxtseo/h3'
+import { useStorage } from '#nuxtseo/nitro'
 import { logger } from '../../logger'
 import { getEventQuery } from './query'
 
@@ -19,12 +19,6 @@ function safeCompare(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++)
     mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
   return mismatch === 0
-}
-
-declare module 'nitropack/types' {
-  interface NitroApp {
-    _ogImageCacheBackendWarned?: boolean
-  }
 }
 
 /**

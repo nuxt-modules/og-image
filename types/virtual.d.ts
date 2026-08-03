@@ -1,3 +1,11 @@
+declare module '#nuxtseo/h3' {
+  export * from 'h3'
+}
+
+declare module '#nuxtseo/nitro' {
+  export * from 'nitropack/runtime'
+}
+
 declare module '#og-image/components' {
   import type { Component } from 'vue'
 

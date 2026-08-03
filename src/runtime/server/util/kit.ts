@@ -1,11 +1,13 @@
-import type { H3Event } from 'h3'
-import type { NitroRouteRules } from 'nitropack'
 import type { NuxtIslandResponse } from 'nuxt/app'
-import { defu } from 'defu'
-import { useRuntimeConfig } from 'nitropack/runtime'
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { withoutBase, withoutTrailingSlash } from 'ufo'
+import type { H3Event } from '#nuxtseo/h3'
+import type { OgImageOptions } from '../../types'
+import { createNitroRouteRuleMatcher as createRouteRuleMatcher } from 'nuxtseo-shared/server'
+import { useRuntimeConfig } from '#nuxtseo/nitro'
 import { getIslandHash } from '#og-image/island-hash'
+
+interface OgImageRouteRules {
+  ogImage?: false | OgImageOptions & Record<string, any>
+}
 
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>, timeout?: number): Promise<NuxtIslandResponse> {
   // The server rejects hash mismatches with `400 Invalid island request hash`, so the
@@ -24,19 +26,6 @@ export function fetchIsland(e: H3Event, component: string, props: Record<string,
   })
 }
 
-export function createNitroRouteRuleMatcher(): ((path: string) => NitroRouteRules) {
-  const { nitro, app } = useRuntimeConfig()
-  const _routeRulesMatcher = toRouteMatcher(
-    createRadixRouter({
-      routes: Object.fromEntries(
-        Object.entries(nitro?.routeRules || {})
-          .map(([path, rules]) => [withoutTrailingSlash(path), rules]),
-      ),
-    }),
-  )
-  return (path: string) => {
-    return defu({}, ..._routeRulesMatcher.matchAll(
-      withoutBase(withoutTrailingSlash(path.split('?')[0]), app.baseURL),
-    ).reverse()) as NitroRouteRules
-  }
+export function createNitroRouteRuleMatcher(): ((path: string) => OgImageRouteRules) {
+  return createRouteRuleMatcher<OgImageRouteRules>(useRuntimeConfig())
 }

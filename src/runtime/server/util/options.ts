@@ -1,5 +1,5 @@
 import type { DefineOgImageInput, OgImageComponent, OgImageOptionsInternal, OgImagePrebuilt, RendererType } from '../../types'
-import { createError } from 'h3'
+import { createError } from '#nuxtseo/h3'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 
 export interface NormalisedOptions {

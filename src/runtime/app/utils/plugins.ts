@@ -1,9 +1,8 @@
-import type { NitroRouteRules } from 'nitropack'
 import type { OgImageOptions } from '../../types'
 import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { parseURL, withoutBase } from 'ufo'
+import { createNitroRouteRuleMatcher } from 'nuxtseo-shared/server'
+import { parseURL } from 'ufo'
 import { toValue } from 'vue'
 import { defineNuxtPlugin, useRequestEvent } from '#app'
 import { withSiteUrl } from '#site-config/app/composables'
@@ -11,6 +10,10 @@ import { createOgImageMeta, getOgImagePath } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
 const RE_COMMA = /,/g
+
+interface OgImageRouteRules {
+  ogImage?: false | OgImageOptions & Record<string, any>
+}
 
 export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
@@ -80,14 +83,8 @@ export const routeRuleOgImage = defineNuxtPlugin((nuxtApp) => {
     if (isInternalRoute(path))
       return
 
-    const _routeRulesMatcher = toRouteMatcher(
-      createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
-    )
-    const matchedRules = _routeRulesMatcher.matchAll(
-      withoutBase(path.split('?')?.[0] || '', ssrContext?.runtimeConfig?.app.baseURL || ''),
-    ).reverse()
-    const combinedRules = defu({}, ...matchedRules) as any
-    let routeRules = combinedRules?.ogImage as NitroRouteRules['ogImage']
+    const matchRouteRules = createNitroRouteRuleMatcher<OgImageRouteRules>(ssrContext?.runtimeConfig || {})
+    let routeRules = matchRouteRules(path).ogImage
     if (typeof routeRules === 'undefined')
       return
 

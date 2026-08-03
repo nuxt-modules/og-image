@@ -1,4 +1,4 @@
-import type { H3Error, H3Event } from 'h3'
+import type { H3Error, H3Event } from '#nuxtseo/h3'
 import type {
   OgImageOptionsInternal,
   OgImageRenderEventContext,
@@ -8,10 +8,10 @@ import type BrowserRenderer from './browser/renderer'
 import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { defu } from 'defu'
-import { createError } from 'h3'
-import { useNitroApp } from 'nitropack/runtime'
 import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
 import { normalizeKey } from 'unstorage'
+import { createError } from '#nuxtseo/h3'
+import { useNitroApp } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
@@ -273,7 +273,6 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     basePath,
     options: normalised.options,
     timings,
-    // @ts-expect-error hookable v6
     _nitro: useNitroApp(),
   }
   // call the nitro hook — bound by renderTimeout so a hung user hook can't

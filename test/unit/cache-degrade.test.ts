@@ -11,12 +11,12 @@ const storage = {
   removeItem: vi.fn(async () => {}),
 }
 
-vi.mock('nitropack/runtime', () => ({
+vi.mock('#nuxtseo/nitro', () => ({
   useStorage: () => storage,
 }))
 
 // h3 helpers operate on a real event; record header writes on a plain object instead.
-vi.mock('h3', () => ({
+vi.mock('#nuxtseo/h3', () => ({
   getQuery: () => ({}),
   setHeader: (e: any, k: string, v: string) => {
     e._headers[k] = v
