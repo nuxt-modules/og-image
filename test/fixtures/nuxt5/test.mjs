@@ -83,6 +83,12 @@ async function main() {
     assert.ok(imageUrl, 'Rendered page is missing its og:image meta tag')
 
     const parsedImageUrl = new URL(imageUrl)
+    const resolverResponse = await fetch(`${origin}/_og/r/`, {
+      redirect: 'manual',
+    })
+    assert.equal(resolverResponse.status, 302)
+    assert.equal(resolverResponse.headers.get('location'), `${parsedImageUrl.pathname}${parsedImageUrl.search}`)
+
     const imageResponse = await fetch(`${origin}${parsedImageUrl.pathname}${parsedImageUrl.search}`, {
       headers: {
         'x-og-image-test': 'forwarded',

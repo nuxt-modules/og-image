@@ -12,7 +12,6 @@
     "nuxt": "catalog:",
     "nuxt-og-image": "file:./nuxt-og-image.tgz",
     "nuxt-site-config": "catalog:",
-    "nuxtseo-shared": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },

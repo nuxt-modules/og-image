@@ -3,6 +3,7 @@ import type { Browser, Page, PageScreenshotOptions } from 'playwright-core'
 import type { OgImageRenderEventContext } from '../../../types'
 import { withQuery } from 'ufo'
 import { toValue } from 'vue'
+import { fetchWithEvent } from '#nuxtseo/nitro'
 import { getNitroOrigin } from '#site-config/server/composables'
 import { buildOgImageUrl } from '../../../shared'
 import { getFetchTimeout } from '../../util/fetchTimeout'
@@ -113,7 +114,7 @@ export async function createScreenshot({ basePath, e, options, extension, timing
     if (import.meta.prerender && !options.html) {
       // we need to do a nitro fetch for the HTML instead of rendering with browser
       options.html = await timings.measure('html-fetch', () =>
-        e.$fetch(path, { timeout: getFetchTimeout(runtimeConfig) }).catch((err) => {
+        fetchWithEvent(e, path, { timeout: getFetchTimeout(runtimeConfig) }).catch((err) => {
           // Browser rendering can continue without prerendered HTML.
           void err
           return undefined
