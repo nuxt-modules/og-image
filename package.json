@@ -62,11 +62,12 @@
     "prepare:fixtures": "node scripts/prepare-fixtures.mjs",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures && pnpm run build:client",
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
-    "typecheck": "nuxt-module-build prepare && nuxt typecheck",
+    "typecheck": "pnpm stub && nuxt typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
     "test:run": "pnpm test -- --run && pnpm test:nuxt5",
     "test:nuxt5": "pnpm pack --out test/fixtures/nuxt5/nuxt-og-image.tgz && pnpm --dir test/fixtures/nuxt5 install --frozen-lockfile && pnpm --dir test/fixtures/nuxt5 test",
     "test:chrome": "HAS_CHROME=true vitest",
+    "test:packed-install": "node scripts/smoke-packed-install.mjs",
     "test:takumi:e2e": "node scripts/test-takumi-e2e.mjs",
     "test:takumi:e2e:matrix": "node scripts/test-takumi-e2e.mjs --matrix",
     "test:takumi:e2e:compare": "node scripts/test-takumi-e2e.mjs --compare"
@@ -77,6 +78,8 @@
     "@takumi-rs/core": "^1.0.0-beta.3 || ^2.0.0",
     "@takumi-rs/wasm": "^1.0.0-beta.3 || ^2.0.0",
     "@unhead/vue": "^2.0.5 || ^3.0.0",
+    "@unocss/config": "catalog:",
+    "@unocss/core": "catalog:",
     "fontless": "^0.2.0",
     "nitropack": "catalog:",
     "playwright-core": "^1.50.0",
@@ -98,6 +101,12 @@
       "optional": true
     },
     "@takumi-rs/wasm": {
+      "optional": true
+    },
+    "@unocss/config": {
+      "optional": true
+    },
+    "@unocss/core": {
       "optional": true
     },
     "fontless": {
@@ -128,8 +137,6 @@
   "dependencies": {
     "@clack/prompts": "catalog:",
     "@nuxt/kit": "catalog:",
-    "@unocss/config": "catalog:",
-    "@unocss/core": "catalog:",
     "@vue/compiler-sfc": "catalog:",
     "chrome-launcher": "catalog:",
     "consola": "catalog:",
@@ -191,6 +198,8 @@
     "@takumi-rs/helpers-v1": "catalog:",
     "@takumi-rs/wasm": "catalog:",
     "@takumi-rs/wasm-v1": "catalog:",
+    "@unocss/config": "catalog:",
+    "@unocss/core": "catalog:",
     "@unocss/nuxt": "catalog:",
     "@unocss/preset-icons": "catalog:",
     "@unocss/preset-wind": "catalog:",

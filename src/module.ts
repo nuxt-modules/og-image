@@ -39,6 +39,7 @@ import {
   resolveFontFamilies,
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
+import { resolveOptionalModulePath } from './build/optional-module'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { resolveSigningSecret } from './build/signing-secret'
@@ -573,6 +574,10 @@ export default defineNuxtModule<ModuleOptions>({
     if (cssFramework === 'unocss') {
       logger.debug('UnoCSS detected, using UnoCSS provider for OG image styling')
       const { setUnoConfig, setUnoRootDir, createUnoProvider } = await import('./build/css/providers/uno')
+      const [unocssCorePath, unocssConfigPath] = await Promise.all([
+        resolveOptionalModulePath('@unocss/core', nuxt.options.rootDir, ['@unocss/nuxt', 'unocss']),
+        resolveOptionalModulePath('@unocss/config', nuxt.options.rootDir, ['@unocss/nuxt', 'unocss']),
+      ])
 
       // Set root directory for loading uno.config.ts
       setUnoRootDir(nuxt.options.rootDir)
@@ -594,6 +599,8 @@ export default defineNuxtModule<ModuleOptions>({
 
       // Create the provider instance
       cssProvider = createUnoProvider({
+        unocssCorePath,
+        unocssConfigPath,
         async resolveCssPath() {
           for (const cssEntry of nuxt.options.css) {
             // @ts-expect-error untyped

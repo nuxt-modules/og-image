@@ -327,12 +327,6 @@ importers:
       '@unhead/vue':
         specifier: ^3.2.3
         version: 3.2.3(@oxc-project/types@0.142.0)(cac@7.0.0)(esbuild@0.28.1)(lightningcss@1.33.0)(rolldown@1.2.1)(rollup@4.62.4)(srvx@0.11.22)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(yaml@2.9.0))(vue@3.5.40(typescript@6.0.3))(webpack@5.109.2(cssnano@8.0.2(postcss@8.5.25))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.33.0)(postcss@8.5.25))
-      '@unocss/config':
-        specifier: 'catalog:'
-        version: 66.7.5
-      '@unocss/core':
-        specifier: 'catalog:'
-        version: 66.7.5
       '@vue/compiler-sfc':
         specifier: 'catalog:'
         version: 3.5.40
@@ -514,6 +508,12 @@ importers:
       '@takumi-rs/wasm-v1':
         specifier: 'catalog:'
         version: '@takumi-rs/wasm@1.8.7'
+      '@unocss/config':
+        specifier: 'catalog:'
+        version: 66.7.5
+      '@unocss/core':
+        specifier: 'catalog:'
+        version: 66.7.5
       '@unocss/nuxt':
         specifier: 'catalog:'
         version: 66.7.5(esbuild@0.28.1)(magic-string@1.1.0)(magicast@0.5.4)(oxc-parser@0.142.0)(rolldown@1.2.1)(rollup@4.62.4)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.1)(rollup@4.62.4)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(yaml@2.9.0))(webpack@5.109.2(cssnano@8.0.2(postcss@8.5.25))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.33.0)(postcss@8.5.25)))(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.102.0)(terser@5.49.0)(yaml@2.9.0))(webpack@5.109.2(cssnano@8.0.2(postcss@8.5.25))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.33.0)(postcss@8.5.25))
