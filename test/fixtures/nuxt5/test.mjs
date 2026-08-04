@@ -1,10 +1,33 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
+import pixelmatch from 'pixelmatch'
+import { PNG } from 'pngjs'
 
 const fixtureDir = import.meta.dirname
+const imageSnapshotUrl = new URL('__snapshots__/og-image.png', import.meta.url)
+
+async function assertImageSnapshot(imageBuffer) {
+  if (process.env.UPDATE_OG_IMAGE_SNAPSHOT === 'true') {
+    await mkdir(new URL('__snapshots__/', import.meta.url), { recursive: true })
+    await writeFile(imageSnapshotUrl, imageBuffer)
+    return
+  }
+
+  const actual = PNG.sync.read(imageBuffer)
+  const expected = PNG.sync.read(await readFile(imageSnapshotUrl))
+  assert.equal(actual.width, expected.width, 'Rendered OG image width changed')
+  assert.equal(actual.height, expected.height, 'Rendered OG image height changed')
+
+  const mismatchedPixels = pixelmatch(actual.data, expected.data, null, actual.width, actual.height, {
+    includeAA: false,
+    threshold: 0.1,
+  })
+  const mismatchRatio = mismatchedPixels / (actual.width * actual.height)
+  assert.ok(mismatchRatio <= 0.001, `Rendered OG image differs from its snapshot by ${(mismatchRatio * 100).toFixed(3)}%`)
+}
 
 async function run(command, args) {
   const child = spawn(command, args, {
@@ -96,7 +119,9 @@ async function main() {
     })
     assert.equal(imageResponse.status, 200)
     assert.equal(imageResponse.headers.get('content-type'), 'image/png')
-    assert.ok((await imageResponse.arrayBuffer()).byteLength > 1_000, 'Rendered OG image is unexpectedly small')
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
+    assert.ok(imageBuffer.byteLength > 1_000, 'Rendered OG image is unexpectedly small')
+    await assertImageSnapshot(imageBuffer)
   }
   finally {
     server.kill()

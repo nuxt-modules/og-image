@@ -65,7 +65,7 @@
     "typecheck": "pnpm stub && nuxt typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
     "test:run": "pnpm test -- --run && pnpm test:nuxt5",
-    "test:nuxt5": "pnpm pack --out test/fixtures/nuxt5/nuxt-og-image.tgz && pnpm --dir test/fixtures/nuxt5 install --no-frozen-lockfile --force --update-checksums && pnpm --dir test/fixtures/nuxt5 test",
+    "test:nuxt5": "pnpm pack --out test/fixtures/nuxt5/nuxt-og-image.tgz && pnpm install --dir test/fixtures/nuxt5 --no-frozen-lockfile --force --update-checksums && pnpm --dir test/fixtures/nuxt5 test",
     "test:chrome": "HAS_CHROME=true vitest",
     "test:packed-install": "node scripts/smoke-packed-install.mjs",
     "test:takumi:e2e": "node scripts/test-takumi-e2e.mjs",
