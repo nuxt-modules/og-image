@@ -9,13 +9,13 @@
   },
   "dependencies": {
     "@nuxt/fonts": "^0.14.0",
-    "@nuxtjs/i18n": "^10.5.0",
+    "@nuxtjs/i18n": "^10.6.0",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "fontless": "^0.2.1",
     "nuxt": "^4.5.1",
     "nuxt-og-image": "latest",
-    "nuxt-site-config": "^4.1.2",
+    "nuxt-site-config": "^4.1.4",
     "satori": "^0.29.0",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.40"
