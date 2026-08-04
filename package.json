@@ -24,7 +24,11 @@
       "types": "./dist/types.d.mts",
       "import": "./dist/module.mjs"
     },
-    "./content": "./dist/content.mjs"
+    "./content": "./dist/content.mjs",
+    "./cli-support": {
+      "types": "./dist/cli-support.d.mts",
+      "import": "./dist/cli-support.mjs"
+    }
   },
   "main": "./dist/module.mjs",
   "typesVersions": {
@@ -34,14 +38,13 @@
       ],
       "content": [
         "./dist/content.d.mts"
+      ],
+      "cli-support": [
+        "./dist/cli-support.d.mts"
       ]
     }
   },
-  "bin": {
-    "nuxt-og-image": "./bin/cli.mjs"
-  },
   "files": [
-    "bin",
     "dist",
     "types/virtual.d.ts"
   ],
@@ -51,8 +54,9 @@
   "scripts": {
     "snapshots": "node --import jiti/register scripts/generate-template-snapshots.ts",
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
-    "build": "pnpm stub && nuxt-module-build build && pnpm run build:client",
+    "build": "pnpm stub && nuxt-module-build build && pnpm run build:client && pnpm run build:cli",
     "build:client": "node -e \"require('fs').cpSync('devtools','dist/devtools',{recursive:true})\"",
+    "build:cli": "pnpm --filter nuxt-og-image-cli build",
     "build:module": "nuxt-build-module build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -60,9 +64,9 @@
     "dev:build": "nuxt build playground",
     "prepack": "pnpm run build",
     "prepare:fixtures": "node scripts/prepare-fixtures.mjs",
-    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures && pnpm run build:client",
-    "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
-    "typecheck": "pnpm stub && nuxt typecheck",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground && nuxt prepare client && pnpm run prepare:fixtures && pnpm run build:client && pnpm run build:cli",
+    "release": "pnpm build && bumpp package.json packages/cli/package.json -x \"npx changelogen --output=CHANGELOG.md\"",
+    "typecheck": "pnpm stub && nuxt typecheck && pnpm --filter nuxt-og-image-cli typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
     "test:run": "pnpm test -- --run && pnpm test:nuxt5",
     "test:nuxt5": "pnpm pack --out test/fixtures/nuxt5/nuxt-og-image.tgz && pnpm --dir test/fixtures/nuxt5 install --frozen-lockfile && pnpm --dir test/fixtures/nuxt5 test",
@@ -135,7 +139,6 @@
     }
   },
   "dependencies": {
-    "@clack/prompts": "catalog:",
     "@nuxt/kit": "catalog:",
     "@vue/compiler-sfc": "catalog:",
     "chrome-launcher": "catalog:",
