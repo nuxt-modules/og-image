@@ -71,6 +71,13 @@ declare module '#og-image/island-hash' {
   }): string
 }
 
+declare module '#og-image/nitro-fetch' {
+  import type { FetchOptions, FetchRequest } from 'ofetch'
+  import type { H3Event } from '#nuxtseo/h3'
+
+  export function fetchWithEvent<T>(event: H3Event, request: FetchRequest, options?: FetchOptions): Promise<T>
+}
+
 declare module '#og-image/font-requirements' {
   export const fontRequirements: {
     weights: number[]

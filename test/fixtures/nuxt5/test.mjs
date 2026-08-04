@@ -4,7 +4,31 @@ import { once } from 'node:events'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 
+const fixtureDir = import.meta.dirname
+
+async function run(command, args) {
+  const child = spawn(command, args, {
+    cwd: fixtureDir,
+    env: process.env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let output = ''
+  for (const stream of [child.stdout, child.stderr]) {
+    stream.on('data', (chunk) => {
+      const text = chunk.toString()
+      output += text
+      process.stdout.write(text)
+    })
+  }
+  const [exitCode] = await once(child, 'exit')
+  assert.equal(exitCode, 0, `${command} ${args.join(' ')} exited with code ${exitCode}`)
+  return output
+}
+
 async function main() {
+  const buildOutput = await run('nuxt', ['build'])
+  assert.doesNotMatch(buildOutput, /\[UNRESOLVED_IMPORT\]|Could not resolve ['"](?:nitropack\/runtime|h3)['"]/, 'Nuxt 5 build emitted a legacy Nitro import warning')
+
   const portServer = createServer()
   portServer.listen(0, '127.0.0.1')
   await once(portServer, 'listening')
@@ -14,6 +38,7 @@ async function main() {
 
   const origin = `http://127.0.0.1:${port}`
   const nitroManifest = JSON.parse(await readFile(new URL('.output/nitro.json', import.meta.url), 'utf8'))
+  const moduleManifest = JSON.parse(await readFile(new URL('node_modules/nuxt-og-image/package.json', import.meta.url), 'utf8'))
   assert.equal(nitroManifest.versions.nitro, '3.0.260610-beta')
 
   const server = spawn(process.execPath, ['.output/server/index.mjs'], {
@@ -49,7 +74,19 @@ async function main() {
     const response = await waitForServer()
     const body = await response.json()
     assert.equal(body.siteConfigUrl, 'https://og-image.example.com')
-    assert.equal(body.runtimeConfig.version, '6.7.5')
+    assert.equal(body.runtimeConfig.version, moduleManifest.version)
+
+    const pageResponse = await fetch(origin)
+    assert.equal(pageResponse.status, 200)
+    const html = await pageResponse.text()
+    const imageUrl = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)?.[1]
+    assert.ok(imageUrl, 'Rendered page is missing its og:image meta tag')
+
+    const parsedImageUrl = new URL(imageUrl)
+    const imageResponse = await fetch(`${origin}${parsedImageUrl.pathname}${parsedImageUrl.search}`)
+    assert.equal(imageResponse.status, 200)
+    assert.equal(imageResponse.headers.get('content-type'), 'image/png')
+    assert.ok((await imageResponse.arrayBuffer()).byteLength > 1_000, 'Rendered OG image is unexpectedly small')
   }
   finally {
     server.kill()

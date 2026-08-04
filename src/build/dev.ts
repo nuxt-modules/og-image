@@ -8,17 +8,22 @@ import { getMissingDependencies, getRecommendedBinding } from '../utils/dependen
 
 // we need all of the runtime dependencies when using build
 export async function setupDevHandler(options: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, getCompatibilityMeta: () => RuntimeCompatibilityMeta = () => ({}), nuxt: Nuxt = useNuxt()) {
-  // In dev, expand detected renderers to include any with installed dependencies
-  // This allows community templates to work for any renderer the user has deps for
-  const detectedRenderers = new Set(getDetectedRenderers())
-  const targetCompatibility = getPresetNitroPresetCompatibility(resolveOgImagePreset(nuxt.options.nitro))
-  for (const renderer of (['satori', 'takumi', 'browser'] as const)) {
-    if (!detectedRenderers.has(renderer)) {
-      const binding = getRecommendedBinding(renderer, targetCompatibility)
-      const missing = await getMissingDependencies(renderer, binding)
-      if (missing.length === 0)
-        detectedRenderers.add(renderer)
+  const applyCompatibility = async (nitroConfig: Nuxt['options']['nitro']) => {
+    // In dev, expand detected renderers to include any with installed dependencies.
+    // This allows community templates to work for any renderer the user has deps for.
+    const detectedRenderers = new Set(getDetectedRenderers())
+    const targetCompatibility = getPresetNitroPresetCompatibility(resolveOgImagePreset(nitroConfig))
+    for (const renderer of (['satori', 'takumi', 'browser'] as const)) {
+      if (!detectedRenderers.has(renderer)) {
+        const binding = getRecommendedBinding(renderer, targetCompatibility)
+        const missing = await getMissingDependencies(renderer, binding)
+        if (missing.length === 0)
+          detectedRenderers.add(renderer)
+      }
     }
+    await applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.dev, resolve, detectedRenderers, metadata: getCompatibilityMeta() })
   }
-  await applyNitroPresetCompatibility(nuxt.options.nitro, { compatibility: options.compatibility?.dev, resolve, detectedRenderers, metadata: getCompatibilityMeta() })
+
+  await applyCompatibility(nuxt.options.nitro)
+  nuxt.hooks.hook('nitro:init', nitro => applyCompatibility(nitro.options))
 }

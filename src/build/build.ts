@@ -44,8 +44,16 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     metadata: getCompatibilityMeta(),
   })
 
-  // Apply output patching once Nitro is initialized.
+  // Reapply after component discovery. The initial pass is required by Nitro 3,
+  // while this pass includes nested components and module hook additions.
   nuxt.hooks.hook('nitro:init', async (nitro) => {
+    await applyNitroPresetCompatibility(nitro.options, {
+      compatibility: config.compatibility?.runtime,
+      resolve,
+      detectedRenderers: getDetectedRenderers(),
+      metadata: getCompatibilityMeta(),
+    })
+
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed
     const target = resolveOgImagePreset(nitro.options)

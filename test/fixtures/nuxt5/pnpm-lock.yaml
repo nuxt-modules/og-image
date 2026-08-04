@@ -48,8 +48,8 @@ importers:
         specifier: 'catalog:'
         version: nuxt-nightly@5.0.0-29762711.192612c7(@oxc-project/types@0.142.0)(@types/node@26.1.2)(@vitejs/devtools@0.4.10)(@vue/compiler-sfc@3.5.40)(cac@7.0.0)(crossws@0.4.10(srvx@0.11.22))(db0@0.3.4)(devframe@0.7.16(cac@7.0.0)(srvx@0.11.22)(typescript@6.0.3))(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(magicast@0.5.4)(mlly@1.8.2)(nuxt-nightly@5.0.0-29762711.192612c7)(oxc-parser@0.142.0)(rolldown@1.2.1)(srvx@0.11.22)(typescript@6.0.3)(valibot@1.4.2(typescript@6.0.3))(vite@8.2.0)(vue-tsc@3.3.9(typescript@6.0.3))(yaml@2.9.0)
       nuxt-og-image:
-        specifier: file:./nuxt-og-image-6.7.5.tgz
-        version: file:nuxt-og-image-6.7.5.tgz(@nuxt/schema@4.5.1)(@oxc-project/types@0.142.0)(@unhead/vue@3.2.3(@oxc-project/types@0.142.0)(cac@7.0.0)(lightningcss@1.33.0)(rolldown@1.2.1)(srvx@0.11.22)(typescript@6.0.3)(vite@8.2.0)(vue@3.5.40(typescript@6.0.3)))(nitro@3.0.260610-beta(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lru-cache@11.5.2)(vite@8.2.0))(nuxt-nightly@5.0.0-29762711.192612c7)(rolldown@1.2.1)(unstorage@1.17.5(db0@0.3.4))(vite@8.2.0)(vue@3.5.40(typescript@6.0.3))(zod@4.4.3)
+        specifier: file:./nuxt-og-image.tgz
+        version: file:nuxt-og-image.tgz(@nuxt/schema@4.5.1)(@oxc-project/types@0.142.0)(@unhead/vue@3.2.3(@oxc-project/types@0.142.0)(cac@7.0.0)(lightningcss@1.33.0)(rolldown@1.2.1)(srvx@0.11.22)(typescript@6.0.3)(vite@8.2.0)(vue@3.5.40(typescript@6.0.3)))(nitro@3.0.260610-beta(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lru-cache@11.5.2)(vite@8.2.0))(nuxt-nightly@5.0.0-29762711.192612c7)(rolldown@1.2.1)(unstorage@1.17.5(db0@0.3.4))(vite@8.2.0)(vue@3.5.40(typescript@6.0.3))(zod@4.4.3)
       nuxt-site-config:
         specifier: 'catalog:'
         version: 4.1.4(@nuxt/schema@4.5.1)(magic-string@1.1.0)(magicast@0.5.4)(nuxt-nightly@5.0.0-29762711.192612c7)(oxc-parser@0.142.0)(rolldown@1.2.1)(unplugin@3.3.0(rolldown@1.2.1)(vite@8.2.0))(vite@8.2.0)(vue@3.5.40(typescript@6.0.3))(zod@4.4.3)
@@ -1482,8 +1482,8 @@ packages:
       jiti:
         optional: true
 
-  nuxt-og-image@file:nuxt-og-image-6.7.5.tgz:
-    resolution: {integrity: sha512-TDnZnbfuddTjtiffVSjMN8+Ijb0VH3jcKcZK6zHtapXQ4xciWGBF2eBvxZQHw1KoNhP3F2M2uewBQS/Z7z+fNw==, tarball: file:nuxt-og-image-6.7.5.tgz}
+  nuxt-og-image@file:nuxt-og-image.tgz:
+    resolution: {integrity: sha512-XZv3lw91LVL6Ix7xyOj0MCU1QiyHVZcYODW4WlOUcDHpesebIF948bNCqi1Vnmdk+B7D4T3lT0Wi0mGJqLxgKg==, tarball: file:nuxt-og-image.tgz}
     version: 6.7.5
     engines: {node: '>=18.0.0'}
     hasBin: true
@@ -3857,7 +3857,7 @@ snapshots:
       - yaml
       - zephyr-agent
 
-  nuxt-og-image@file:nuxt-og-image-6.7.5.tgz(@nuxt/schema@4.5.1)(@oxc-project/types@0.142.0)(@unhead/vue@3.2.3(@oxc-project/types@0.142.0)(cac@7.0.0)(lightningcss@1.33.0)(rolldown@1.2.1)(srvx@0.11.22)(typescript@6.0.3)(vite@8.2.0)(vue@3.5.40(typescript@6.0.3)))(nitro@3.0.260610-beta(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lru-cache@11.5.2)(vite@8.2.0))(nuxt-nightly@5.0.0-29762711.192612c7)(rolldown@1.2.1)(unstorage@1.17.5(db0@0.3.4))(vite@8.2.0)(vue@3.5.40(typescript@6.0.3))(zod@4.4.3):
+  nuxt-og-image@file:nuxt-og-image.tgz(@nuxt/schema@4.5.1)(@oxc-project/types@0.142.0)(@unhead/vue@3.2.3(@oxc-project/types@0.142.0)(cac@7.0.0)(lightningcss@1.33.0)(rolldown@1.2.1)(srvx@0.11.22)(typescript@6.0.3)(vite@8.2.0)(vue@3.5.40(typescript@6.0.3)))(nitro@3.0.260610-beta(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lru-cache@11.5.2)(vite@8.2.0))(nuxt-nightly@5.0.0-29762711.192612c7)(rolldown@1.2.1)(unstorage@1.17.5(db0@0.3.4))(vite@8.2.0)(vue@3.5.40(typescript@6.0.3))(zod@4.4.3):
     dependencies:
       '@clack/prompts': 1.7.0
       '@nuxt/kit': 4.5.1(magic-string@1.1.0)(magicast@0.5.4)(oxc-parser@0.142.0)(rolldown@1.2.1)(unplugin@3.3.0(rolldown@1.2.1)(vite@8.2.0))
