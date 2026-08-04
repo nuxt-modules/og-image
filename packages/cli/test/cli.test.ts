@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join } from 'pathe'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-const cliPath = join(__dirname, '../../dist/cli.mjs')
+const cliPath = join(__dirname, '../dist/cli.mjs')
 const tmpDir = join(__dirname, '../.tmp-cli-test')
 
 function runCli(args: string, cwd = tmpDir) {

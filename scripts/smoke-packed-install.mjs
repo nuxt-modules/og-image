@@ -115,6 +115,15 @@ async function packModule() {
   return join(tempRoot, tarball)
 }
 
+async function packCli() {
+  log('packing nuxt-og-image-cli')
+  await run(join(root, 'packages/cli'), 'pnpm', ['pack', '--json', '--pack-destination', tempRoot], { capture: true })
+  const files = await readdir(tempRoot)
+  const tarball = files.find(file => /^nuxt-og-image-cli-.+\.tgz$/.test(file))
+  assert(tarball, 'pnpm pack did not produce a nuxt-og-image-cli tarball')
+  return join(tempRoot, tarball)
+}
+
 async function getPackageManagerField(pm) {
   if (pm === 'pnpm')
     return rootPackage.packageManager
@@ -174,6 +183,9 @@ async function readInstalledPackage(appDir) {
 }
 
 function assertPackageMetadata(pkg) {
+  assert(!pkg.bin, 'nuxt-og-image should not publish a CLI binary')
+  assert(!pkg.dependencies?.['@clack/prompts'], 'nuxt-og-image should not depend on @clack/prompts')
+
   for (const name of ['culori', 'tinyglobby']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(!pkg.peerDependencies?.[name], `${name} should not be a peer dependency`)
@@ -189,10 +201,19 @@ function assertPackageMetadata(pkg) {
   assert(!pkg.peerDependencies?.lightningcss, 'lightningcss should not be a peer dependency')
 }
 
+function assertCliPackageMetadata(pkg) {
+  assert(pkg.name === 'nuxt-og-image-cli', 'expected the CLI package name')
+  assert(pkg.bin?.['nuxt-og-image'] === './bin/cli.mjs', 'expected the nuxt-og-image executable')
+  assert(pkg.dependencies?.['@clack/prompts'], 'CLI should depend on @clack/prompts')
+  assert(pkg.peerDependencies?.['nuxt-og-image'], 'CLI should declare nuxt-og-image as a peer')
+}
+
 async function assertNoDirectDistImports(appDir) {
   const distDir = join(appDir, 'node_modules/nuxt-og-image/dist')
   const files = (await listFiles(distDir))
     .filter(file => /\.(?:cjs|mjs|js)$/.test(file))
+
+  assert(!files.some(file => /[/\\]cli\.(?:cjs|mjs|js)$/.test(file)), 'nuxt-og-image should not publish CLI output')
 
   for (const file of files) {
     const source = await readFile(file, 'utf8')
@@ -221,6 +242,23 @@ async function assertNuxtOnlyApp(pm, tarball) {
   assertPackageMetadata(await readInstalledPackage(appDir))
   await assertNoDirectDistImports(appDir)
   await execPackage(pm, appDir, ['nuxi', 'prepare'], `${pm} nuxi prepare`)
+}
+
+async function assertCliApp(pm, moduleTarball, cliTarball) {
+  log(`checking CLI package with ${pm}`)
+  const appDir = await createApp(pm, `${pm}-cli`, {
+    'nuxt': '4.4.8',
+    'nuxt-og-image': `file:${moduleTarball}`,
+    'nuxt-og-image-cli': `file:${cliTarball}`,
+  }, `
+    export default defineNuxtConfig({
+      modules: ['nuxt-og-image'],
+    })
+  `)
+
+  await install(pm, appDir)
+  const pkg = JSON.parse(await readFile(join(appDir, 'node_modules/nuxt-og-image-cli/package.json'), 'utf8'))
+  assertCliPackageMetadata(pkg)
   await execPackage(pm, appDir, ['nuxt-og-image', 'migrate', 'v6', '--dry-run', '--yes'], `${pm} nuxt-og-image migrate`)
 }
 
@@ -276,10 +314,12 @@ async function assertUnoApp(pm, tarball) {
 }
 
 try {
-  const tarball = await packModule()
+  const moduleTarball = await packModule()
+  const cliTarball = await packCli()
   for (const pm of packageManagers) {
-    await assertNuxtOnlyApp(pm, tarball)
-    await assertUnoApp(pm, tarball)
+    await assertNuxtOnlyApp(pm, moduleTarball)
+    await assertCliApp(pm, moduleTarball, cliTarball)
+    await assertUnoApp(pm, moduleTarball)
   }
   log('passed')
 }

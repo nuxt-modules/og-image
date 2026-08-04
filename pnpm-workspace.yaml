@@ -1,5 +1,6 @@
 catalogMode: prefer
 cleanupUnusedCatalogs: true
+includeWorkspaceRoot: true
 minimumReleaseAgeExclude:
   - nuxt-site-config@4.1.4
   - nuxt-site-config-kit@4.1.4
@@ -75,6 +76,7 @@ trustPolicyExclude:
   - '@nuxtjs/tailwindcss@7.0.0-beta.1'
   - tinyexec@1.2.2
 packages:
+  - packages/*
   - playground
   - '!examples/**'
 overrides:
@@ -117,6 +119,7 @@ catalog:
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
   '@takumi-rs/wasm': ^2.5.4
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
+  '@types/node': ^26.0.0
   '@unocss/config': ^66.7.5
   '@unocss/core': ^66.7.5
   '@unocss/nuxt': ^66.7.5

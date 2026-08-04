@@ -96,11 +96,11 @@ export function emitWarnings(): void {
     '',
     'Run the migration command to fix automatically:',
     '',
-    '  npx nuxt-og-image migrate v6',
+    '  npx nuxt-og-image-cli migrate v6',
     '',
     'Or preview changes first:',
     '',
-    '  npx nuxt-og-image migrate v6 --dry-run',
+    '  npx nuxt-og-image-cli migrate v6 --dry-run',
     '',
     `Migration guide: https://nuxtseo.com/og-image/migration-guide/v6`,
   ].join('\n')

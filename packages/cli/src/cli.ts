@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import { loadNuxtConfig } from '@nuxt/kit'
+import { loadFile, writeFile } from 'magicast'
+import { migrateDefaultsComponent, migrateFontsConfig, resolveCommunityTemplateDir } from 'nuxt-og-image/cli-support'
 import { addDependency, detectPackageManager, removeDependency } from 'nypm'
 import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
+import { exec } from 'tinyexec'
 import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
-import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
-const communityDir = resolve(__dirname, 'runtime/app/components/Templates/Community')
+const communityDir = resolveCommunityTemplateDir()
 
 // Module-scope regex constants
 const RE_RENDERER_SUFFIX = /\.(satori|browser|takumi)\.vue$/
@@ -48,6 +47,23 @@ interface AstReplacement {
   start: number
   end: number
   text: string
+}
+
+interface CliOgImageConfig {
+  defaults?: {
+    component?: unknown
+    renderer?: unknown
+  }
+  fonts?: unknown
+  [key: string]: unknown
+}
+
+interface CliNuxtConfig {
+  modules?: Array<string | [string, ...unknown[]]>
+  nitro?: {
+    preset?: string
+  }
+  ogImage?: CliOgImageConfig
 }
 
 /**
@@ -282,7 +298,7 @@ function listTemplates() {
   )]
   p.intro('Community Templates')
   p.note(templates.map(t => `• ${t}`).join('\n'), 'Available')
-  p.log.info('Usage: npx nuxt-og-image eject <template-name>')
+  p.log.info('Usage: npx nuxt-og-image-cli eject <template-name>')
   p.outro('')
 }
 
@@ -398,7 +414,6 @@ async function removeDeprecatedConfigKeys(rootDir: string, keys: Array<{ key: st
   if (!configPath)
     return { removed: [], failed: keys.map(k => k.key) }
 
-  const { loadFile, writeFile } = await import('magicast')
   const mod = await loadFile(configPath)
   const config = mod.exports.default
   const ogImageConfig = config?.ogImage as any
@@ -478,20 +493,21 @@ async function checkNuxtConfig(rootDir: string): Promise<{
     hasNuxtFontsInPkg = !!(pkg.dependencies?.['@nuxt/fonts'] || pkg.devDependencies?.['@nuxt/fonts'])
   }
 
-  const config = await loadNuxtConfig({ cwd: rootDir }).catch((error: Error) => {
-    p.log.warn(`Could not inspect Nuxt config: ${error.message}`)
-    return null
-  })
+  const config: CliNuxtConfig | null = await loadNuxtConfig({ cwd: rootDir })
+    .then(config => config as CliNuxtConfig)
+    .catch((error: Error) => {
+      p.log.warn(`Could not inspect Nuxt config: ${error.message}`)
+      return null
+    })
   if (!config)
     return { hasDeprecatedFonts: false, hasNuxtFonts: hasNuxtFontsInPkg, hasDefaultsComponent: false, defaultComponentName: null, nitroPreset: null, deprecatedConfigKeys: [] }
 
-  const ogImageConfig = config.ogImage as any
+  const ogImageConfig = config.ogImage
   const hasDeprecatedFonts = !!ogImageConfig?.fonts
   const hasDefaultsComponent = !!ogImageConfig?.defaults?.component
-  const defaultComponentName = hasDefaultsComponent ? String(ogImageConfig.defaults.component) : null
+  const defaultComponentName = hasDefaultsComponent ? String(ogImageConfig?.defaults?.component) : null
   const modules = config.modules || []
-  // @ts-expect-error untyped
-  const hasNuxtFontsInConfig = modules.some((m: string | string[]) =>
+  const hasNuxtFontsInConfig = modules.some(m =>
     (typeof m === 'string' && m === '@nuxt/fonts')
     || (Array.isArray(m) && m[0] === '@nuxt/fonts'),
   )
@@ -576,7 +592,7 @@ async function checkMigrationNeeded(rootDir: string): Promise<MigrationCheck> {
   // Check config
   const configCheck = await checkNuxtConfig(rootDir)
   result.needsFontsMigration = configCheck.hasDeprecatedFonts
-  result.needsNuxtFonts = !configCheck.hasNuxtFonts
+  result.needsNuxtFonts = configCheck.hasDeprecatedFonts && !configCheck.hasNuxtFonts
   result.needsDefaultsComponentMigration = configCheck.hasDefaultsComponent
   result.defaultComponentName = configCheck.defaultComponentName
   // Exclude 'fonts' from deprecated keys since it's handled by needsFontsMigration
@@ -749,10 +765,12 @@ function migrateV6Components(
 
 // Detect deployment target from nuxt.config
 async function detectDeploymentTarget(rootDir: string): Promise<string | null> {
-  const config = await loadNuxtConfig({ cwd: rootDir }).catch((error: Error) => {
-    p.log.warn(`Could not detect deployment target: ${error.message}`)
-    return null
-  })
+  const config: CliNuxtConfig | null = await loadNuxtConfig({ cwd: rootDir })
+    .then(config => config as CliNuxtConfig)
+    .catch((error: Error) => {
+      p.log.warn(`Could not detect deployment target: ${error.message}`)
+      return null
+    })
   return config?.nitro?.preset || null
 }
 
@@ -795,12 +813,12 @@ async function installNuxtFonts(): Promise<void> {
   spinner.start('Adding @nuxt/fonts module...')
 
   // Use nuxi module add
-  const { exec } = await import('tinyexec')
-  try {
-    await exec('npx', ['nuxi', 'module', 'add', '@nuxt/fonts'], { nodeOptions: { cwd } })
+  const installed = await exec('npx', ['nuxi', 'module', 'add', '@nuxt/fonts'], { nodeOptions: { cwd } })
+    .then(() => true, () => false)
+  if (installed) {
     spinner.stop('@nuxt/fonts module added')
   }
-  catch {
+  else {
     spinner.stop('Failed to add @nuxt/fonts')
     p.log.warn('Run manually: npx nuxi module add @nuxt/fonts')
   }
@@ -825,19 +843,6 @@ async function runMigrate(args: string[]): Promise<void> {
 
   // Check what needs migration
   const migrationCheck = await checkMigrationNeeded(cwd)
-
-  // When nothing needs migration
-  const noComponentWork = !migrationCheck.needsComponentRename
-  const noFontsWork = !migrationCheck.needsFontsMigration && !migrationCheck.needsNuxtFonts
-  const noDefaultsWork = !migrationCheck.needsDefaultsComponentMigration
-  const noConfigWork = migrationCheck.deprecatedConfigKeys.length === 0
-  const noCommunityWork = migrationCheck.usedCommunityTemplates.length === 0
-
-  if (noComponentWork && noFontsWork && noDefaultsWork && noConfigWork && noCommunityWork) {
-    console.log('✓ All OG Image components already have renderer suffixes.')
-    p.outro('Done')
-    return
-  }
 
   // Show what will be migrated
   const tasks: string[] = []
@@ -972,7 +977,7 @@ async function runMigrate(args: string[]): Promise<void> {
       p.log.info(`Would remove defaults.component: '${migrationCheck.defaultComponentName}'`)
     }
     else {
-      const result = await migrateDefaultsComponent(cwd).catch((err) => {
+      const result = await migrateDefaultsComponent(cwd).catch((err: Error) => {
         p.log.warn(`Failed to migrate defaults.component: ${err.message}`)
         return { migrated: false, componentName: null, message: err.message }
       })
@@ -989,7 +994,7 @@ async function runMigrate(args: string[]): Promise<void> {
       p.log.info('Would migrate ogImage.fonts to @nuxt/fonts config')
     }
     else {
-      const result = await migrateFontsConfig(cwd).catch((err) => {
+      const result = await migrateFontsConfig(cwd).catch((err: Error) => {
         p.log.warn(`Failed to migrate fonts config: ${err.message}`)
         return { migrated: false, message: err.message }
       })
@@ -1048,7 +1053,7 @@ async function runMigrate(args: string[]): Promise<void> {
       else {
         p.log.info('Run manually before building for production:')
         for (const name of migrationCheck.usedCommunityTemplates) {
-          p.log.info(`  npx nuxt-og-image eject ${name}`)
+          p.log.info(`  npx nuxt-og-image-cli eject ${name}`)
         }
       }
     }
@@ -1081,12 +1086,12 @@ async function runMigrate(args: string[]): Promise<void> {
   else {
     const spinner = p.spinner()
     spinner.start('Running nuxt prepare to update types...')
-    const { exec } = await import('tinyexec')
-    try {
-      await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+    const prepared = await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+      .then(() => true, () => false)
+    if (prepared) {
       spinner.stop('Types updated')
     }
-    catch {
+    else {
       spinner.stop('Failed to run nuxt prepare')
       p.log.warn('Run manually: npx nuxt prepare')
     }
@@ -1307,12 +1312,12 @@ async function runSwitch(args: string[]): Promise<void> {
     // Run nuxt prepare
     const spinner = p.spinner()
     spinner.start('Running nuxt prepare to update types...')
-    const { exec } = await import('tinyexec')
-    try {
-      await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+    const prepared = await exec('npx', ['nuxi', 'prepare'], { nodeOptions: { cwd } })
+      .then(() => true, () => false)
+    if (prepared) {
       spinner.stop('Types updated')
     }
-    catch {
+    else {
       spinner.stop('Failed to run nuxt prepare')
       p.log.warn('Run manually: npx nuxt prepare')
     }
@@ -1328,7 +1333,8 @@ function readPackageJson(cwd: string): Record<string, any> | null {
   try {
     return JSON.parse(readFileSync(pkgPath, 'utf-8'))
   }
-  catch {
+  catch (error) {
+    p.log.warn(`Could not parse ${pkgPath}: ${error instanceof Error ? error.message : String(error)}`)
     return null
   }
 }
@@ -1726,7 +1732,7 @@ else if (command === 'list') {
 else if (command === 'migrate') {
   const version = args[1]
   if (version !== 'v6') {
-    p.log.error('Usage: npx nuxt-og-image migrate v6 [--dry-run] [--yes] [--renderer <satori|browser|takumi>]')
+    p.log.error('Usage: npx nuxt-og-image-cli migrate v6 [--dry-run] [--yes] [--renderer <satori|browser|takumi>]')
     process.exit(1)
   }
   runMigrate(args)
@@ -1740,7 +1746,7 @@ else if (command === 'generate-secret') {
 else if (command === 'enable') {
   const renderer = args[1]
   if (!renderer) {
-    p.log.error('Usage: npx nuxt-og-image enable <renderer> [--edge]')
+    p.log.error('Usage: npx nuxt-og-image-cli enable <renderer> [--edge]')
     p.log.info(`Available: ${RENDERERS.map(r => r.name).join(', ')}`)
     process.exit(1)
   }
