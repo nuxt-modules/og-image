@@ -1,5 +1,6 @@
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import { Worker } from 'node:worker_threads'
+import { createWorkerQueue, parseWorkerTimeout } from '../worker-queue'
 
 const workerCode = `
 const { createRequire } = require('node:module')
@@ -14,27 +15,40 @@ parentPort.on('message', ({ id, svg, options }) => {
     // Always slice to create a standard ArrayBuffer — native addon buffers
     // use external memory that can't be transferred via postMessage
     const ab = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength)
-    parentPort.postMessage({ id, png: ab }, [ab])
+    parentPort.postMessage({ _tag: 'response', id, payload: { _tag: 'success', png: ab } }, [ab])
   } catch (err) {
-    parentPort.postMessage({ id, error: err?.message || String(err) })
+    parentPort.postMessage({ _tag: 'response', id, payload: { _tag: 'failure', error: err?.message || String(err) } })
   }
 })
+parentPort.postMessage({ _tag: 'ready' })
 `
 
-let worker: Worker | null = null
-let requestId = 0
-const pending = new Map<number, { resolve: (png: Buffer) => void, reject: (err: Error) => void, timer: ReturnType<typeof setTimeout> }>()
+interface RenderMessage {
+  id: number
+  svg: string
+  options?: ResvgRenderOptions
+}
 
-function killWorker() {
-  if (!worker)
-    return
-  worker.terminate()
-  worker = null
-  for (const [id, p] of pending) {
-    clearTimeout(p.timer)
-    pending.delete(id)
-    p.reject(new Error('Resvg worker terminated'))
-  }
+type RenderResponse
+  = { _tag: 'success', png: ArrayBuffer }
+    | { _tag: 'failure', error: string }
+
+// Queue wait does not consume the per-render budget. Worker startup has its
+// own bound so native addon load failures cannot leave prerendering hung.
+const workerTimeout = parseWorkerTimeout(process.env.NUXT_OG_IMAGE_WORKER_TIMEOUT)
+const workerQueue = createWorkerQueue<RenderMessage, RenderResponse>({
+  createWorker: () => new Worker(workerCode, { eval: true }),
+  executionTimeout: workerTimeout,
+  startupTimeout: workerTimeout,
+  label: 'resvg',
+})
+
+function renderPng(svg: string, options?: ResvgRenderOptions): Promise<Buffer> {
+  return workerQueue.enqueue(({ id }) => ({ id, svg, options })).then((result) => {
+    if (result._tag === 'failure')
+      throw new Error(result.error)
+    return Buffer.from(result.png)
+  })
 }
 
 // Clean up worker on process exit — avoid SIGINT/SIGTERM signal handlers because
@@ -43,60 +57,7 @@ function killWorker() {
 const signalKey = Symbol.for('og-image:resvg-worker-cleanup')
 if (!(globalThis as any)[signalKey]) {
   (globalThis as any)[signalKey] = true
-  process.on('exit', killWorker)
-}
-
-function createWorker() {
-  const w = new Worker(workerCode, { eval: true })
-  w.on('message', ({ id, png, error }) => {
-    const p = pending.get(id)
-    if (p) {
-      clearTimeout(p.timer)
-      pending.delete(id)
-      if (error)
-        p.reject(new Error(error))
-      else
-        p.resolve(Buffer.from(png))
-    }
-  })
-  w.on('error', (err: Error) => {
-    for (const [id, p] of pending) {
-      clearTimeout(p.timer)
-      pending.delete(id)
-      p.reject(err)
-    }
-    worker = null
-  })
-  w.on('exit', (code) => {
-    if (code !== 0) {
-      for (const [id, p] of pending) {
-        clearTimeout(p.timer)
-        pending.delete(id)
-        p.reject(new Error(`Resvg worker exited with code ${code}`))
-      }
-    }
-    worker = null
-  })
-  // Allow process to exit even if the worker is still alive (e.g. after prerendering).
-  // Must be called AFTER adding event listeners — listeners internally ref() the port.
-  w.unref()
-  return w
-}
-
-function renderPng(svg: string, options?: ResvgRenderOptions): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    if (!worker)
-      worker = createWorker()
-
-    const id = ++requestId
-    const timer = setTimeout(() => {
-      pending.delete(id)
-      reject(new Error('resvg worker timed out — killing worker'))
-      killWorker()
-    }, 30_000)
-    pending.set(id, { resolve, reject, timer })
-    worker.postMessage({ id, svg, options })
-  })
+  process.on('exit', workerQueue.shutdown)
 }
 
 // Proxy class matching Resvg interface but delegating to worker
