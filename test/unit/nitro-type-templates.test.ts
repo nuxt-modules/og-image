@@ -78,9 +78,13 @@ describe('nitro type templates', () => {
   it('keeps runtime types behind shared compatibility interfaces', () => {
     const runtimeTypes = readFileSync(join(import.meta.dirname, '../../src/runtime/types.ts'), 'utf8')
     const routeRulesPlugin = readFileSync(join(import.meta.dirname, '../../src/runtime/app/utils/plugins.ts'), 'utf8')
+    const runtimeKit = readFileSync(join(import.meta.dirname, '../../src/runtime/server/util/kit.ts'), 'utf8')
+    const module = readFileSync(join(import.meta.dirname, '../../src/module.ts'), 'utf8')
 
     expect(runtimeTypes).not.toMatch(/from ['"](?:nitropack|h3)/)
     expect(routeRulesPlugin).not.toMatch(/from ['"]nitropack/)
     expect(routeRulesPlugin).toContain('createNitroRouteRuleMatcher')
+    expect(runtimeKit).toContain('import { fetchWithEvent, useRuntimeConfig } from \'#nuxtseo/nitro\'')
+    expect(module).not.toContain('\'#og-image/nitro-fetch\'')
   })
 })

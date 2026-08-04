@@ -152,7 +152,7 @@ catalog:
   nuxt: ^4.5.1
   nuxt-site-config: ^4.1.4
   nuxtseo-layer-devtools: ^5.3.6
-  nuxtseo-shared: ^5.3.7
+  nuxtseo-shared: ^5.3.8
   nypm: ^0.6.8
   object-identity: ^0.2.3
   ofetch: ^1.5.1

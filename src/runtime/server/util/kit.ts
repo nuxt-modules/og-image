@@ -2,9 +2,8 @@ import type { NuxtIslandResponse } from 'nuxt/app'
 import type { H3Event } from '#nuxtseo/h3'
 import type { OgImageOptions } from '../../types'
 import { createNitroRouteRuleMatcher as createRouteRuleMatcher } from 'nuxtseo-shared/server'
-import { useRuntimeConfig } from '#nuxtseo/nitro'
+import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
 import { getIslandHash } from '#og-image/island-hash'
-import { fetchWithEvent } from '#og-image/nitro-fetch'
 
 interface OgImageRouteRules {
   ogImage?: false | OgImageOptions & Record<string, any>
