@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getStaticInterFonts } from '../../src/build/fonts'
 
@@ -10,7 +13,7 @@ vi.mock('../../src/build/fonts', async (importOriginal) => {
   }
 })
 
-const { resolveOgImageFonts } = await import('../../src/build/fontless')
+const { convertWoff2ToTtf, resolveOgImageFonts } = await import('../../src/build/fontless')
 const { parseFontsFromTemplate } = await import('../../src/build/fonts')
 
 const baseFontReqs = { weights: [400, 700], styles: ['normal' as const], families: [] as string[], hasDynamicBindings: false, componentMap: {} }
@@ -90,5 +93,52 @@ describe('resolveOgImageFonts', () => {
     const opts = createOpts({ fontRequirements: { ...baseFontReqs, hasDynamicBindings: true } })
     const result = await resolveOgImageFonts(opts)
     expect(result).toEqual([fonts400, fonts300])
+  })
+})
+
+describe('convertWoff2ToTtf', () => {
+  it('suppresses unresolved fallback warnings when static fonts are optional', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-fontless-'))
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
+    const nuxt = {
+      options: {
+        buildDir: join(rootDir, '.nuxt'),
+        rootDir,
+        fonts: {
+          families: [
+            { name: 'Raleway Variable', provider: 'npm', global: true },
+          ],
+        },
+      },
+      _ogImageFontless: {
+        resolver,
+        renderedFontURLs: new Map(),
+        providerNames: ['google', 'bunny', 'fontsource'],
+      },
+    } as any
+
+    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([
+      { family: 'Raleway Variable', src: '/_fonts/raleway-variable.woff2', weight: 400, style: 'normal' },
+    ])
+
+    try {
+      await convertWoff2ToTtf({
+        nuxt,
+        logger,
+        fontRequirements: baseFontReqs,
+        convertedWoff2Files: new Map(),
+        warnOnMissingStaticFonts: false,
+      })
+
+      expect(resolver).toHaveBeenCalledWith(
+        'Raleway Variable',
+        expect.objectContaining({ name: 'Raleway Variable' }),
+      )
+      expect(logger.warn).not.toHaveBeenCalled()
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
   })
 })

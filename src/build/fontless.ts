@@ -32,6 +32,7 @@ export interface ProcessFontsOptions {
   fontRequirements: FontRequirementsState
   convertedWoff2Files: Map<string, string>
   fontSubsets?: string[]
+  /** Warn when no static fallback is available. Satori requires one; Takumi can use WOFF2. */
   warnOnMissingStaticFonts?: boolean
 }
 
@@ -222,6 +223,7 @@ async function downloadStaticFonts(options: {
   nuxt: Nuxt
   logger: ConsolaInstance
   fontSubsets?: string[]
+  warnOnMissingStaticFonts?: boolean
 }): Promise<DownloadedFont[]> {
   if (options.families.length === 0)
     return []
@@ -310,7 +312,7 @@ async function downloadStaticFonts(options: {
     }
   }
 
-  if (unresolvedFamilies.length > 0) {
+  if (options.warnOnMissingStaticFonts !== false && unresolvedFamilies.length > 0) {
     const providerList = fontlessCtx.providerNames.join(', ') || 'none'
     const localFonts = await listLocalPublicFontFiles(options.nuxt).catch(() => [] as string[])
     const matchedLocal = unresolvedFamilies
@@ -501,6 +503,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
       nuxt,
       logger,
       fontSubsets,
+      warnOnMissingStaticFonts,
     })
 
     for (const font of downloaded) {
