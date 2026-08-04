@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
 import { getRequestURL } from '#nuxtseo/h3'
-import { useRuntimeConfig } from '#nuxtseo/nitro'
+import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
 import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
 import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
@@ -90,7 +90,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       || await readOptionalFile(join(rootDir, '.output', 'public', filename))
     if (data?.length)
       return data
-    // Fall through to event.$fetch which resolves via Nitro's asset server
+    // Fall through to Nitro's event-aware fetch, which resolves via the asset server.
   }
 
   // Static fonts — try og-image's cache first (dev mode)
@@ -102,7 +102,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   }
 
   // @nuxt/fonts managed fonts — in dev mode, /_fonts/ is served by a Nuxt dev server handler
-  // (addDevServerHandler) which isn't reachable via event.$fetch (Nitro-internal only).
+  // (addDevServerHandler) which isn't reachable via Nitro's internal fetch.
   // Use the persisted font URL mapping to download directly from the CDN.
   if (import.meta.dev && path.startsWith('/_fonts/')) {
     const filename = path.slice('/_fonts/'.length)
@@ -141,8 +141,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     }
   }
   const fullPath = withBase(path, app.baseURL)
-  const fetchArrayBuffer = event.$fetch as unknown as (path: string, options: { responseType: 'arrayBuffer', timeout: number }) => Promise<ArrayBuffer>
-  const arrayBuffer = await fetchArrayBuffer(fullPath, {
+  const arrayBuffer = await fetchWithEvent<ArrayBuffer>(event, fullPath, {
     responseType: 'arrayBuffer',
     timeout,
   })

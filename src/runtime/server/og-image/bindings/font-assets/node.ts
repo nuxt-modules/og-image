@@ -1,7 +1,7 @@
 import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig } from '../../../../types'
 import { withBase } from 'ufo'
-import { useRuntimeConfig } from '#nuxtseo/nitro'
+import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
 import { getNitroOrigin, getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
@@ -38,8 +38,7 @@ export async function resolve(event: H3Event, font: FontConfig) {
   }
   // Fallback to Nitro's internal handler when origin is unreachable
   // (behind a proxy, serverless, or server not fully started)
-  const fetchArrayBuffer = event.$fetch as unknown as (path: string, options: { responseType: 'arrayBuffer', timeout: number }) => Promise<ArrayBuffer>
-  const arrayBuffer = await fetchArrayBuffer(fullPath, {
+  const arrayBuffer = await fetchWithEvent<ArrayBuffer>(event, fullPath, {
     responseType: 'arrayBuffer',
     timeout,
   })

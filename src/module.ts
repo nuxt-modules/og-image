@@ -1472,7 +1472,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       await loadCssMetadata()
       // Persist font URL mapping for dev/prerender font resolution.
       // In dev mode, /_fonts/ is served by a Nuxt dev server handler (addDevServerHandler)
-      // which isn't reachable via Nitro's event.$fetch. The mapping lets the resolver
+      // which isn't reachable via Nitro's internal fetch. The mapping lets the resolver
       // download fonts directly from the CDN instead.
       if (hasNuxtFonts && fontContext) {
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })

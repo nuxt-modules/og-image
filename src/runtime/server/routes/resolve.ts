@@ -1,6 +1,7 @@
 import type { H3Event } from '#nuxtseo/h3'
 import { parseURL, withLeadingSlash, withQuery } from 'ufo'
 import { createError, defineEventHandler, getRequestHost, sendRedirect } from '#nuxtseo/h3'
+import { fetchWithEvent } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { isInternalRoute } from '../../shared'
 import { getEventQuery } from '../util/query'
@@ -149,7 +150,7 @@ export default defineEventHandler(async (event) => {
 
   const fetchPath = withQuery(withLeadingSlash(targetPath), forwardQuery)
 
-  const html = await event.$fetch<string>(fetchPath, {
+  const html = await fetchWithEvent<string>(event, fetchPath, {
     headers: { accept: 'text/html' },
     responseType: 'text',
   }).catch((err: unknown) => {

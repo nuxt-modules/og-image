@@ -2,7 +2,7 @@
   "name": "nuxt-og-image-nuxt5-fixture",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@11.17.0",
+  "packageManager": "pnpm@11.19.0",
   "scripts": {
     "test": "nuxt prepare && vue-tsc --noEmit -p .nuxt/tsconfig.server.json && node test.mjs"
   },
@@ -12,11 +12,12 @@
     "nuxt": "catalog:",
     "nuxt-og-image": "file:./nuxt-og-image.tgz",
     "nuxt-site-config": "catalog:",
-    "nuxtseo-shared": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },
   "devDependencies": {
+    "pixelmatch": "catalog:",
+    "pngjs": "catalog:",
     "typescript": "catalog:",
     "vue-tsc": "catalog:"
   }

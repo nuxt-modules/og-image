@@ -1,5 +1,6 @@
 import type { H3Event } from '#nuxtseo/h3'
 import { $fetch } from 'ofetch'
+import { fetchWithEvent } from '#nuxtseo/nitro'
 import { getNitroOrigin } from '#site-config/server/composables'
 import { tryCloudflareAssetsFetch } from './cloudflareAssets'
 
@@ -19,7 +20,7 @@ export interface FetchLocalAssetOptions {
 /**
  * Resolve a same-origin asset path to bytes, trying (in order):
  *   1. Cloudflare Workers ASSETS binding
- *   2. Nitro localFetch (`event.$fetch`) — resolves dynamic routes too
+ *   2. Nitro localFetch through the event-aware bridge, which resolves dynamic routes too
  *   3. External `$fetch` to the Nitro origin (opt-in)
  *
  * All steps share a single `AbortSignal.timeout(fetchTimeout)` so a broken
@@ -36,7 +37,7 @@ export async function fetchLocalAsset(
   const deadline = AbortSignal.timeout(fetchTimeout)
 
   // Caller-side timeout enforcement: some transports (notably Nitro's
-  // event.$fetch on Cloudflare Workers) don't propagate AbortSignal to the
+  // internal fetch on Cloudflare Workers) don't propagate AbortSignal to the
   // in-process handler, so a hung upstream blocks beyond fetchTimeout. Race
   // each step against a shared timer so the deadline is enforced regardless.
   let expired = false
@@ -55,7 +56,7 @@ export async function fetchLocalAsset(
   if (result || expired)
     return result
 
-  result = await race(event.$fetch(path, {
+  result = await race(fetchWithEvent<ArrayBuffer>(event, path, {
     responseType: 'arrayBuffer',
     signal: deadline,
     timeout: fetchTimeout,
