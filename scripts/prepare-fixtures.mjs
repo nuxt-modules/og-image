@@ -14,6 +14,7 @@ const selfBuildFixtures = new Set([
   'app-dir',
   'cloudflare-satori',
   'cloudflare-takumi',
+  'nuxt5',
   'vercel-edge-satori',
   'zero-runtime',
 ])

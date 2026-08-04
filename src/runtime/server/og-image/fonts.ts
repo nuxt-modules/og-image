@@ -1,4 +1,4 @@
-import type { H3Event } from 'h3'
+import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig, OgImageRenderEventContext, RuntimeFontConfig } from '../../types'
 import type { FontFormat } from './font-source'
 import { resolve } from '#og-image-virtual/public-assets.mjs'

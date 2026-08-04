@@ -24,6 +24,7 @@ import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandl
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
+import { setupNitroRuntimeCompatibility } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isAgent } from 'std-env'
@@ -413,6 +414,12 @@ export default defineNuxtModule<ModuleOptions>({
         })
       return
     }
+    const nitroCompatibility = setupNitroRuntimeCompatibility(nuxt)
+    const setRuntimeAlias = (id: string, path: string) => {
+      nuxt.options.alias[id] = path
+      nuxt.options.nitro.alias ||= {}
+      nuxt.options.nitro.alias[id] = path
+    }
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
@@ -511,8 +518,7 @@ export default defineNuxtModule<ModuleOptions>({
         break
       }
     }
-    nuxt.options.alias['#og-image'] = resolve('./runtime')
-    nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
+    setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/lru'))
 
     // Resolve preset early to check compatibility settings
     const preset = resolveOgImagePreset(nuxt.options.nitro)
@@ -545,7 +551,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Check if emojis are disabled
     if (config.defaults.emojis === false) {
       logger.debug('Emoji support disabled.')
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/core/transforms/emojis/noop')
+      setRuntimeAlias('#og-image/emoji-transform', resolve('./runtime/server/og-image/core/transforms/emojis/noop'))
       buildEmojiSet = undefined
     }
     else {
@@ -553,7 +559,7 @@ export default defineNuxtModule<ModuleOptions>({
       buildEmojiSet = config.defaults.emojis || 'noto'
 
       // Runtime: always use fetch to avoid 24MB bundle (only needed for dynamic emojis)
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/core/transforms/emojis/fetch')
+      setRuntimeAlias('#og-image/emoji-transform', resolve('./runtime/server/og-image/core/transforms/emojis/fetch'))
     }
 
     // CSS framework detection - supports UnoCSS and Tailwind
@@ -850,7 +856,7 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (!nuxt.options.dev) {
         addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
-        nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/mock')
+        setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
       }
     }
     const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
@@ -1592,6 +1598,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt,
       config,
       componentCtx: ogImageComponentCtx,
+      nitroCompatibility,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
@@ -1753,7 +1760,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
     const getCompatibilityMeta = () => runtimeCompatibilityMeta
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
+      await setupDevHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
       setupDevToolsUI(config, resolve, nuxt, cssFramework || 'none')
 
       // Capture Nitro for HMR reload (only needed for component add/remove)
@@ -1807,6 +1814,11 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     else if (nuxt.options.build) {
       await setupBuildHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
     }
+    // Keep public aliases specific. A bare #og-image prefix shadows Nitro's
+    // renderer and binding aliases under Nitro 3's insertion-order resolver.
+    setRuntimeAlias('#og-image/app', resolve('./runtime/app'))
+    setRuntimeAlias('#og-image/shared', resolve('./runtime/shared'))
+    setRuntimeAlias('#og-image/types', resolve('./runtime/types'))
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))

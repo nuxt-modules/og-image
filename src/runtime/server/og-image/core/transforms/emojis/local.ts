@@ -1,17 +1,9 @@
-import type { OgImageRenderEventContext } from '../../../../../types'
-import { useNitroApp } from 'nitropack/runtime'
+import type { OgImageIconsData, OgImageRenderEventContext } from '../../../../../types'
+import { useNitroApp } from '#nuxtseo/nitro'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 
-interface IconsData { icons: Record<string, { body: string, width?: number, height?: number }>, width: number, height: number }
-
 declare module '#og-image-virtual/iconify-json-icons.mjs' {
-  export function loadIcons(): Promise<IconsData>
-}
-
-declare module 'nitropack/types' {
-  interface NitroApp {
-    _ogImageIconsData?: IconsData
-  }
+  export function loadIcons(): Promise<OgImageIconsData>
 }
 
 /**

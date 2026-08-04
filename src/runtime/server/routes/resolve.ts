@@ -1,6 +1,6 @@
-import type { H3Event } from 'h3'
-import { createError, defineEventHandler, getRequestHost, sendRedirect } from 'h3'
+import type { H3Event } from '#nuxtseo/h3'
 import { parseURL, withLeadingSlash, withQuery } from 'ufo'
+import { createError, defineEventHandler, getRequestHost, sendRedirect } from '#nuxtseo/h3'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { isInternalRoute } from '../../shared'
 import { getEventQuery } from '../util/query'

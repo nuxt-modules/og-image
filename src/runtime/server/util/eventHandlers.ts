@@ -1,5 +1,5 @@
-import type { H3Event } from 'h3'
-import { createError, getRequestHost, H3Error, setHeader } from 'h3'
+import type { H3Event } from '#nuxtseo/h3'
+import { createError, getRequestHost, H3Error, setHeader } from '#nuxtseo/h3'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'

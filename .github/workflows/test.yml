@@ -16,6 +16,8 @@ permissions:
 jobs:
   ci:
     uses: harlan-zw/nuxt-seo/.github/workflows/reusable-ci.yml@main
+    with:
+      test-command: pnpm test:run
 
   takumi-e2e-matrix:
     name: Takumi e2e matrix

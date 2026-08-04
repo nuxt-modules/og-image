@@ -1,5 +1,5 @@
-import type { H3Event } from 'h3'
 import type { Browser } from 'playwright-core'
+import type { H3Event } from '#nuxtseo/h3'
 import playwright from 'playwright'
 
 // Playwright's launch can hang waiting for the browser process to start
