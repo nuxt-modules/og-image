@@ -417,9 +417,11 @@ export default defineNuxtModule<ModuleOptions>({
     const nitroCompatibility = setupNitroRuntimeCompatibility(nuxt)
     nuxt.options.nitro.virtual!['#og-image/nitro-fetch'] = nitroCompatibility._tag === 'nitro-v3'
       ? `import { createFetch } from 'ofetch'
-import { fetch } from 'nitro/app'
-const localFetch = createFetch({ fetch })
-export function fetchWithEvent(_event, request, options) {
+import { fetchWithEvent as fetchRawWithEvent } from 'nitro/h3'
+export function fetchWithEvent(event, request, options) {
+  const localFetch = createFetch({
+    fetch: (input, init) => fetchRawWithEvent(event, input, init),
+  })
   return localFetch(request, options)
 }
 `

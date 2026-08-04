@@ -83,7 +83,11 @@ async function main() {
     assert.ok(imageUrl, 'Rendered page is missing its og:image meta tag')
 
     const parsedImageUrl = new URL(imageUrl)
-    const imageResponse = await fetch(`${origin}${parsedImageUrl.pathname}${parsedImageUrl.search}`)
+    const imageResponse = await fetch(`${origin}${parsedImageUrl.pathname}${parsedImageUrl.search}`, {
+      headers: {
+        'x-og-image-test': 'forwarded',
+      },
+    })
     assert.equal(imageResponse.status, 200)
     assert.equal(imageResponse.headers.get('content-type'), 'image/png')
     assert.ok((await imageResponse.arrayBuffer()).byteLength > 1_000, 'Rendered OG image is unexpectedly small')

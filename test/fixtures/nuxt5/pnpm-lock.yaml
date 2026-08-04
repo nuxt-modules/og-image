@@ -1483,7 +1483,7 @@ packages:
         optional: true
 
   nuxt-og-image@file:nuxt-og-image.tgz:
-    resolution: {integrity: sha512-XZv3lw91LVL6Ix7xyOj0MCU1QiyHVZcYODW4WlOUcDHpesebIF948bNCqi1Vnmdk+B7D4T3lT0Wi0mGJqLxgKg==, tarball: file:nuxt-og-image.tgz}
+    resolution: {integrity: sha512-eEsOYJ3xhZc2U8P2egdsTs18/IiuzdzIxOJ21NGBTWKY7t56wf67lJl2DnbThj616ZXr2wFyS0v2c2joZSYkww==, tarball: file:nuxt-og-image.tgz}
     version: 6.7.5
     engines: {node: '>=18.0.0'}
     hasBin: true

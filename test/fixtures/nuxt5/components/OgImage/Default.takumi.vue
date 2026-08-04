@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import { useRequestHeader } from '#imports'
+
 withDefaults(defineProps<{
   title?: string
 }>(), {
   title: 'Nuxt 5 OG Image',
 })
+
+if (useRequestHeader('x-og-image-test') !== 'forwarded')
+  throw new Error('OG image island request did not preserve request headers')
 </script>
 
 <template>
