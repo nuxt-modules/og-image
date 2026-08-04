@@ -38,11 +38,3 @@ export function decodeHtml(html: string) {
     })
     .replace(RE_AMP, '&')
 }
-export function decodeObjectHtmlEntities(obj: Record<string, string | any>) {
-  Object.entries(obj).forEach(([key, value]) => {
-    // unescape all html tokens
-    if (typeof value === 'string')
-      obj[key] = decodeHtml(value)
-  })
-  return obj
-}

@@ -1,4 +1,5 @@
-import type { H3Event } from 'h3'
+import type { H3Event } from '#nuxtseo/h3'
+import { getCloudflareEnv } from '../../../util/cloudflare'
 import { withTimeout } from '../../../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../../../utils'
 
@@ -11,9 +12,9 @@ interface Browser {
 }
 
 interface CloudflarePuppeteer {
-  sessions: (binding: any) => Promise<Array<{ id: string, connected: boolean }>>
-  connect: (binding: any, sessionId: string) => Promise<Browser>
-  launch: (binding: any) => Promise<Browser>
+  sessions: (binding: unknown) => Promise<Array<{ id: string, connected: boolean }>>
+  connect: (binding: unknown, sessionId: string) => Promise<Browser>
+  launch: (binding: unknown) => Promise<Browser>
 }
 
 let puppeteer: CloudflarePuppeteer
@@ -44,7 +45,7 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
     )
   }
 
-  const binding = event?.context?.cloudflare?.env?.[bindingName]
+  const binding = getCloudflareEnv(event)?.[bindingName]
   if (!binding) {
     throw new Error(
       `[Nuxt OG Image] Cloudflare browser binding "${bindingName}" not found. `
@@ -79,14 +80,4 @@ export async function createBrowser(event?: H3Event): Promise<Browser> {
   browser = await browserPromise
   browserPromise = null
   return browser
-}
-
-export async function disposeBrowser(): Promise<void> {
-  if (browser) {
-    await browser.close().catch((err) => {
-      // Browser disposal is best-effort during worker cleanup.
-      void err
-    })
-    browser = null
-  }
 }

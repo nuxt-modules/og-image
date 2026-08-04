@@ -17,7 +17,7 @@ import {
   getProviderDependencyInstallSpecs,
   getRecommendedBindingFromPreset,
   PROVIDER_DEPENDENCIES,
-  TAKUMI_CORE_INSTALL_SPEC,
+  TAKUMI_CORE_PACKAGE,
   validateProviderSetup,
 } from './utils/dependencies'
 
@@ -70,7 +70,7 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
       throw new Error(
         '[nuxt-og-image] No OG image provider dependencies found. '
         + 'Install a provider before running in CI:\n'
-        + `  npm add ${TAKUMI_CORE_INSTALL_SPEC}                # for takumi\n`
+        + `  npm add ${TAKUMI_CORE_PACKAGE}                # for takumi\n`
         + '  npm add @resvg/resvg-js satori yoga-wasm-web  # for satori\n'
         + '  npm add playwright-core                       # for browser\n'
         + 'See: https://nuxtseo.com/og-image/getting-started',

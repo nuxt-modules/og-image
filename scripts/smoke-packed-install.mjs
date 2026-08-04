@@ -18,7 +18,6 @@ const optionalizedPackages = [
   '@unocss/config',
   '@unocss/core',
   'culori',
-  'lightningcss',
   'tinyglobby',
 ]
 const RE_ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
@@ -180,11 +179,14 @@ function assertPackageMetadata(pkg) {
     assert(!pkg.peerDependencies?.[name], `${name} should not be a peer dependency`)
   }
 
-  for (const name of ['@unocss/core', '@unocss/config', 'lightningcss']) {
+  for (const name of ['@unocss/core', '@unocss/config']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(pkg.peerDependencies?.[name], `${name} should be declared as an optional peer`)
     assert(pkg.peerDependenciesMeta?.[name]?.optional === true, `${name} peer should be optional`)
   }
+
+  assert(pkg.dependencies?.lightningcss, 'lightningcss should remain a runtime dependency')
+  assert(!pkg.peerDependencies?.lightningcss, 'lightningcss should not be a peer dependency')
 }
 
 async function assertNoDirectDistImports(appDir) {
@@ -233,7 +235,7 @@ async function getSharedExports(appDir) {
 }
 
 async function assertUnoApp(pm, tarball) {
-  log(`checking Uno app with ${pm} without direct Uno core/config or lightningcss deps`)
+  log(`checking Uno app with ${pm} without direct Uno core/config deps`)
   const appDir = await createApp(pm, `${pm}-unocss`, {
     'nuxt': '4.4.8',
     '@unocss/nuxt': '66.7.4',
@@ -249,23 +251,19 @@ async function assertUnoApp(pm, tarball) {
   await execPackage(pm, appDir, ['nuxi', 'prepare'], `${pm} nuxi prepare with UnoCSS`)
 
   const pkg = JSON.parse(await readFile(join(appDir, 'package.json'), 'utf8'))
-  for (const name of ['@unocss/core', '@unocss/config', 'lightningcss'])
+  for (const name of ['@unocss/core', '@unocss/config'])
     assert(!pkg.dependencies?.[name], `${name} should not be installed directly in the smoke app`)
 
   const { resolveOptionalModulePath, importResolvedModule } = await getSharedExports(appDir)
   const rootDir = appDir
-  const [corePath, configPath, presetPath, lightningPath] = await Promise.all([
+  const [corePath, configPath, presetPath] = await Promise.all([
     resolveOptionalModulePath('@unocss/core', rootDir, ['@unocss/nuxt', 'unocss']),
     resolveOptionalModulePath('@unocss/config', rootDir, ['@unocss/nuxt', 'unocss']),
     resolveOptionalModulePath('@unocss/preset-wind', rootDir, ['@unocss/nuxt', 'unocss']),
-    resolveOptionalModulePath('lightningcss', rootDir, ['vite', '@nuxt/fonts', 'fontless', '@unhead/bundler']),
   ])
   assert(corePath, 'expected @unocss/core to resolve through @unocss/nuxt')
   assert(configPath, 'expected @unocss/config to resolve through @unocss/nuxt')
   assert(presetPath, 'expected @unocss/preset-wind to resolve through @unocss/nuxt')
-  if (pm === 'pnpm')
-    assert(!lightningPath, 'pnpm smoke app unexpectedly resolved lightningcss')
-
   const { createUnoProvider, setUnoConfig, setUnoRootDir } = await import(pathToFileURL(join(appDir, 'node_modules/nuxt-og-image/dist/chunks/uno.mjs')).href)
   const { presetWind } = await importResolvedModule('@unocss/preset-wind', presetPath)
 

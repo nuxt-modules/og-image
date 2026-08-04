@@ -26,11 +26,8 @@ export interface ProviderDefinition {
   }
 }
 
-export const TAKUMI_INSTALL_TAG = 'rc'
 export const TAKUMI_CORE_PACKAGE = '@takumi-rs/core'
 export const TAKUMI_WASM_PACKAGE = '@takumi-rs/wasm'
-export const TAKUMI_CORE_INSTALL_SPEC = `${TAKUMI_CORE_PACKAGE}@${TAKUMI_INSTALL_TAG}`
-export const TAKUMI_WASM_INSTALL_SPEC = `${TAKUMI_WASM_PACKAGE}@${TAKUMI_INSTALL_TAG}`
 
 export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
   {
@@ -56,13 +53,13 @@ export const PROVIDER_DEPENDENCIES: ProviderDefinition[] = [
     description: 'Rust-based high-performance renderer (recommended)',
     bindings: {
       'node': [
-        { name: TAKUMI_CORE_PACKAGE, installSpec: TAKUMI_CORE_INSTALL_SPEC, description: 'Native Takumi renderer' },
+        { name: TAKUMI_CORE_PACKAGE, description: 'Native Takumi renderer' },
       ],
       'wasm': [
-        { name: TAKUMI_WASM_PACKAGE, installSpec: TAKUMI_WASM_INSTALL_SPEC, description: 'WASM Takumi renderer' },
+        { name: TAKUMI_WASM_PACKAGE, description: 'WASM Takumi renderer' },
       ],
       'wasm-fs': [
-        { name: TAKUMI_WASM_PACKAGE, installSpec: TAKUMI_WASM_INSTALL_SPEC, description: 'WASM Takumi renderer' },
+        { name: TAKUMI_WASM_PACKAGE, description: 'WASM Takumi renderer' },
       ],
     },
   },

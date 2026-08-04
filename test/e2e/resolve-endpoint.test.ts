@@ -34,6 +34,19 @@ describe('/_og/r resolver endpoint', () => {
     expect(res.headers.get('location')).toBeTruthy()
   }, 60000)
 
+  it('forwards query parameters to the resolved page', async () => {
+    const pagePath = '/satori/query-param?title=Resolver%20Query'
+    const pageHtml = await $fetch(pagePath) as string
+    const expected = extractOgImageUrl(pageHtml)
+
+    const res = await fetch(`/_og/r${pagePath}`, { redirect: 'manual' })
+    expect(res.status).toBe(302)
+    const location = res.headers.get('location')
+    expect(location).toBeTruthy()
+    expect(new URL(location!, 'https://nuxtseo.com').pathname)
+      .toBe(new URL(expected!, 'https://nuxtseo.com').pathname)
+  }, 60000)
+
   // The core user-facing scenario from issue #571: a blog/listing page needs
   // stable URLs pointing at the og:image of other pages so it can render
   // image cards without knowing each page's encoded image URL.

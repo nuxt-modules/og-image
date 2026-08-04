@@ -1,4 +1,4 @@
-import { defineEventHandler, setHeader } from 'h3'
+import { defineEventHandler, setHeader } from '#nuxtseo/h3'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import compatibility from '#og-image/compatibility'
 import { fontRequirements } from '#og-image/font-requirements'

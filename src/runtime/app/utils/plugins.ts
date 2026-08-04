@@ -1,19 +1,21 @@
-import type { NitroRouteRules } from 'nitropack'
-import type { NuxtSSRContext } from '#app/nuxt'
 import type { OgImageOptions } from '../../types'
 import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
-import { createRouter as createRadixRouter, toRouteMatcher } from 'radix3'
-import { parseURL, withoutBase } from 'ufo'
+import { createNitroRouteRuleMatcher } from 'nuxtseo-shared/server'
+import { parseURL } from 'ufo'
 import { toValue } from 'vue'
-import { useRequestEvent } from '#app'
+import { defineNuxtPlugin, useRequestEvent } from '#app'
 import { withSiteUrl } from '#site-config/app/composables'
 import { createOgImageMeta, getOgImagePath } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
 const RE_COMMA = /,/g
 
-export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
+interface OgImageRouteRules {
+  ogImage?: false | OgImageOptions & Record<string, any>
+}
+
+export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
@@ -70,9 +72,9 @@ export function ogImageCanonicalUrls(nuxtApp: NuxtSSRContext['nuxt']) {
       },
     })
   })
-}
+})
 
-export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
+export const routeRuleOgImage = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
@@ -81,14 +83,8 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
     if (isInternalRoute(path))
       return
 
-    const _routeRulesMatcher = toRouteMatcher(
-      createRadixRouter({ routes: ssrContext?.runtimeConfig?.nitro?.routeRules }),
-    )
-    const matchedRules = _routeRulesMatcher.matchAll(
-      withoutBase(path.split('?')?.[0] || '', ssrContext?.runtimeConfig?.app.baseURL || ''),
-    ).reverse()
-    const combinedRules = defu({}, ...matchedRules) as any
-    let routeRules = combinedRules?.ogImage as NitroRouteRules['ogImage']
+    const matchRouteRules = createNitroRouteRuleMatcher<OgImageRouteRules>(ssrContext?.runtimeConfig || {})
+    let routeRules = matchRouteRules(path).ogImage
     if (typeof routeRules === 'undefined')
       return
 
@@ -102,7 +98,7 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
         e?.context._ogImagePrerenderPaths?.clear()
       return
     }
-    routeRules = defu((nuxtApp.ssrContext?.event as any)?.context._nitro?.routeRules?.ogImage, routeRules)
+    routeRules = defu(nuxtApp.ssrContext?.event?.context._nitro?.routeRules?.ogImage, routeRules)
     const { path: src, hash } = getOgImagePath(ssrContext!.url, routeRules as OgImageOptions)
     // Include hash in options if hash mode was used (for prerender cache lookup)
     if (hash) {
@@ -117,4 +113,4 @@ export function routeRuleOgImage(nuxtApp: NuxtSSRContext['nuxt']) {
       prerenderPaths.set(ogKey, prerenderPath)
     }
   })
-}
+})

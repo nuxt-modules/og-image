@@ -78,7 +78,10 @@ export function resolveSameOriginFontUrl(path: string, siteUrl: string | undefin
  */
 export async function fetchSpecialFontUrl(path: string, siteUrl: string | undefined, timeout: number): Promise<Buffer> {
   if (isDataFontUrl(path)) {
-    const res = await fetch(path.trimStart(), { signal: AbortSignal.timeout(timeout) }).catch(() => null)
+    const res = await fetch(path.trimStart(), { signal: AbortSignal.timeout(timeout) }).catch(() => {
+      // Invalid inline font data is reported through the contextual error below.
+      return null
+    })
     if (res?.ok)
       return Buffer.from(await res.arrayBuffer())
     throw new Error('[Nuxt OG Image] Invalid data: font URL.')

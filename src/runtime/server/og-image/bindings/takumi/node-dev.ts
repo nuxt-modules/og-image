@@ -1,4 +1,5 @@
 import { Worker } from 'node:worker_threads'
+import { createWorkerQueue, parseWorkerTimeout } from '../worker-queue'
 import { extractResourceUrls as extractTakumiResourceUrls } from './resource-urls'
 
 // Worker maintains a persistent Renderer instance. Fonts are loaded
@@ -35,29 +36,41 @@ parentPort.on('message', async ({ id, type, newFonts, nodes, options }) => {
     // Always slice to create a standard ArrayBuffer — native addon buffers
     // use external memory that can't be transferred via postMessage
     const ab = image.buffer.slice(image.byteOffset, image.byteOffset + image.byteLength)
-    parentPort.postMessage({ id, image: ab, fontWarnings }, [ab])
+    parentPort.postMessage({ _tag: 'response', id, payload: { _tag: 'success', image: ab, fontWarnings } }, [ab])
   } catch (err) {
-    parentPort.postMessage({ id, error: err?.message || String(err) })
+    parentPort.postMessage({ _tag: 'response', id, payload: { _tag: 'failure', error: err?.message || String(err) } })
   }
 })
+parentPort.postMessage({ _tag: 'ready' })
 `
 
-let worker: Worker | null = null
-let workerGeneration = 0
-let requestId = 0
-const pending = new Map<number, { resolve: (value: any) => void, reject: (err: Error) => void, timer: ReturnType<typeof setTimeout> }>()
-
-function killWorker() {
-  if (!worker)
-    return
-  worker.terminate()
-  worker = null
-  for (const [id, p] of pending) {
-    clearTimeout(p.timer)
-    pending.delete(id)
-    p.reject(new Error('Takumi worker terminated'))
-  }
+interface RenderMessage {
+  id: number
+  type: 'render'
+  newFonts: Font[]
+  nodes: any
+  options: RenderOptions
 }
+
+interface FontWarning {
+  error: string
+  name: string
+  weight?: number
+}
+
+type RenderResponse
+  = { _tag: 'success', image: ArrayBuffer, fontWarnings: FontWarning[] }
+    | { _tag: 'failure', error: string }
+
+// Queue wait does not consume the per-render budget. Worker startup has its
+// own bound so native addon load failures cannot leave prerendering hung.
+const workerTimeout = parseWorkerTimeout(process.env.NUXT_OG_IMAGE_WORKER_TIMEOUT)
+const workerQueue = createWorkerQueue<RenderMessage, RenderResponse>({
+  createWorker: () => new Worker(workerCode, { eval: true }),
+  executionTimeout: workerTimeout,
+  startupTimeout: workerTimeout,
+  label: 'takumi',
+})
 
 // Clean up worker on process exit — avoid SIGINT/SIGTERM signal handlers because
 // they keep the event loop alive and prevent exit after prerendering completes.
@@ -65,47 +78,7 @@ function killWorker() {
 const signalKey = Symbol.for('og-image:takumi-worker-cleanup')
 if (!(globalThis as any)[signalKey]) {
   (globalThis as any)[signalKey] = true
-  process.on('exit', killWorker)
-}
-
-function createWorker() {
-  workerGeneration++
-  const w = new Worker(workerCode, { eval: true })
-  w.on('message', ({ id, image, urls, error, fontWarnings }) => {
-    const p = pending.get(id)
-    if (p) {
-      clearTimeout(p.timer)
-      pending.delete(id)
-      if (error)
-        p.reject(new Error(error))
-      else if (urls !== undefined)
-        p.resolve(urls)
-      else
-        p.resolve({ image: Buffer.from(image), fontWarnings })
-    }
-  })
-  w.on('error', (err: Error) => {
-    for (const [id, p] of pending) {
-      clearTimeout(p.timer)
-      pending.delete(id)
-      p.reject(err)
-    }
-    worker = null
-  })
-  w.on('exit', (code) => {
-    if (code !== 0) {
-      for (const [id, p] of pending) {
-        clearTimeout(p.timer)
-        pending.delete(id)
-        p.reject(new Error(`Takumi worker exited with code ${code}`))
-      }
-    }
-    worker = null
-  })
-  // Allow process to exit even if the worker is still alive (e.g. after prerendering).
-  // Must be called AFTER adding event listeners — listeners internally ref() the port.
-  w.unref()
-  return w
+  process.on('exit', workerQueue.shutdown)
 }
 
 interface Font {
@@ -119,26 +92,6 @@ interface RenderOptions {
   width: number
   height: number
   format: 'png' | 'jpeg' | 'webp'
-}
-
-function ensureWorker() {
-  if (!worker)
-    worker = createWorker()
-}
-
-function postToWorker(msg: Record<string, any>, timeoutMs = 30_000): Promise<any> {
-  return new Promise((resolve, reject) => {
-    ensureWorker()
-
-    const id = ++requestId
-    const timer = setTimeout(() => {
-      pending.delete(id)
-      reject(new Error('takumi worker timed out — killing worker'))
-      killWorker()
-    }, timeoutMs)
-    pending.set(id, { resolve, reject, timer })
-    worker!.postMessage({ id, ...msg })
-  })
 }
 
 function extractResourceUrls(nodes: any): Promise<string[]> {
@@ -168,28 +121,30 @@ class RendererWorkerProxy {
   }
 
   render(nodes: any, options: RenderOptions): Promise<Buffer> {
-    // Ensure worker exists BEFORE checking generation — createWorker()
-    // increments workerGeneration, so we need the final value to decide
-    // whether to replay all fonts (crash recovery) or send only new ones
-    ensureWorker()
-
-    let fontsToSend: Font[]
-    if (this.syncedGeneration !== workerGeneration) {
-      // Worker was recreated — replay all fonts into the new Renderer
-      fontsToSend = [...this.allFonts]
-      this.pendingFonts = []
-    }
-    else {
-      fontsToSend = this.pendingFonts.splice(0)
-    }
-    this.syncedGeneration = workerGeneration
-    return postToWorker({ type: 'render', newFonts: fontsToSend, nodes, options }).then((result: any) => {
+    // Fonts are resolved when the job actually reaches the worker: by then
+    // the queue has created the worker and assigned its generation. A crash
+    // while this job was queued therefore triggers a full font replay.
+    return workerQueue.enqueue(({ id, generation }) => {
+      let fontsToSend: Font[]
+      if (this.syncedGeneration !== generation) {
+        // Worker was recreated — replay all fonts into the new Renderer
+        fontsToSend = [...this.allFonts]
+        this.pendingFonts = []
+      }
+      else {
+        fontsToSend = this.pendingFonts.splice(0)
+      }
+      this.syncedGeneration = generation
+      return { id, type: 'render', newFonts: fontsToSend, nodes, options }
+    }).then((result) => {
+      if (result._tag === 'failure')
+        throw new Error(result.error)
       // Surface font loading warnings from the worker
       if (result.fontWarnings?.length) {
         for (const w of result.fontWarnings)
           console.warn(`[nuxt-og-image] Failed to load font "${w.name}" (weight: ${w.weight}) into takumi renderer: ${w.error}`)
       }
-      return result.image
+      return Buffer.from(result.image)
     })
   }
 }

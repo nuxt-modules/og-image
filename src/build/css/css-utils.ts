@@ -2,7 +2,6 @@ import type { TemplateChildNode } from '@vue/compiler-core'
 import { logger } from '../../runtime/logger'
 import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css'
 import { RE_WHITESPACE } from '../../util'
-import { importOptionalPeer } from '../optional-module'
 
 const _warnedVars = new Set<string>()
 
@@ -30,7 +29,6 @@ const RE_QUOTES = /^['"]|['"]$/g
 const RE_WIDTH_VALUE = /width:([^;}]+)/
 const RE_CALC_VAR_MULTIPLY = /calc\(var\((--[\w-]+)\)\s*\*\s*([\d.]+)\)/
 const RE_NUMERIC_WITH_UNIT = /([\d.]+)(rem|px|em|%)/
-const RE_EXTREME_VALUE = /^(-?[\d.]+e\+?\d+)(px|rem|em|%)$/
 const RE_CSS_KEYWORD = /^(?:initial|inherit|unset|revert|revert-layer)$/
 const RE_UNRESOLVED_VAR = /var\((--[\w-]+)/g
 const RE_INVALID_CALC = /calc\(\s*[*/]/
@@ -40,34 +38,21 @@ const RE_COLOR_PROP = /color|fill|stroke|outline|border|background|caret|accent/
 // Lightning CSS lazy loading
 // ============================================================================
 
-let lightningCssPath: string | undefined
-let transform: typeof import('lightningcss').transform | undefined
-let Features: typeof import('lightningcss').Features | undefined
+let transform: typeof import('lightningcss').transform
+let Features: typeof import('lightningcss').Features
 
 const LEGACY_TARGETS = {
   chrome: 60 << 16,
   safari: 10 << 16,
 }
 
-export function setLightningCssPath(path?: string) {
-  if (path === lightningCssPath)
-    return
-  lightningCssPath = path
-  transform = undefined
-  Features = undefined
-}
-
 export async function loadLightningCss() {
-  if (!transform || !Features) {
-    const lcss = await importOptionalPeer<typeof import('lightningcss')>(
-      'lightningcss',
-      lightningCssPath,
-      'advanced OG image CSS parsing, color downleveling, or @font-face extraction',
-    )
+  if (!transform) {
+    const lcss = await import('lightningcss')
     transform = lcss.transform
     Features = lcss.Features
   }
-  return { transform: transform!, Features: Features! }
+  return { transform, Features }
 }
 
 /**
@@ -155,13 +140,8 @@ function walkClassRules(css: string, onRule: (className: string, body: string) =
  * Simplify CSS using Lightning CSS with minification.
  */
 export async function simplifyCss(css: string): Promise<string> {
-  try {
-    const result = await transformWithLightningCss(css, { minify: true })
-    return result.code.toString()
-  }
-  catch {
-    return css
-  }
+  const result = await transformWithLightningCss(css, { minify: true })
+  return result.code.toString()
 }
 
 /**
@@ -888,23 +868,6 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
   }
 }
 
-/**
- * Clamp extreme CSS values that cause renderer issues.
- * e.g. lightningcss evaluates calc(infinity * 1px) → 3.40282e+38px which hangs takumi.
- */
-function clampExtremeValues(styles: Record<string, string>): void {
-  for (const [prop, value] of Object.entries(styles)) {
-    if (!value.includes('e+') && !value.includes('e38'))
-      continue
-    const match = value.match(RE_EXTREME_VALUE)
-    if (match?.[1] && match?.[2]) {
-      const num = Number.parseFloat(match[1])
-      if (Math.abs(num) > 9999)
-        styles[prop] = `9999${match[2]}`
-    }
-  }
-}
-
 function stripGradientColorSpace(value: string): string {
   return value.replace(GRADIENT_COLOR_SPACE_RE, '')
 }
@@ -980,7 +943,6 @@ export async function postProcessStyles(
 
   convertIndividualTransforms(styles)
   convertLogicalProperties(styles)
-  clampExtremeValues(styles)
 
   return Object.keys(styles).length ? styles : null
 }

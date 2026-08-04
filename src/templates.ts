@@ -1,7 +1,9 @@
 import type { Nuxt } from '@nuxt/schema'
+import type { NitroRuntimeCompatibility } from 'nuxtseo-shared/kit'
 import type { ModuleOptions } from './module'
 import type { OgImageComponent } from './runtime/types'
 import { addTemplate, addTypeTemplate } from '@nuxt/kit'
+import { renderNitroTypeAugmentations } from 'nuxtseo-shared/kit'
 import { relative, resolve } from 'pathe'
 import { getRegisteredBaseNames } from './util'
 
@@ -9,6 +11,7 @@ interface TemplateContext {
   nuxt: Nuxt
   config: ModuleOptions
   componentCtx: { components: OgImageComponent[] }
+  nitroCompatibility: NitroRuntimeCompatibility
 }
 
 /**
@@ -29,7 +32,7 @@ function getComponentTypeExpression(component: OgImageComponent, nuxt: Nuxt): st
 }
 
 export function registerTypeTemplates(ctx: TemplateContext) {
-  const { nuxt, config, componentCtx } = ctx
+  const { nuxt, config, componentCtx, nitroCompatibility } = ctx
 
   // Component types — uses `typeof import('component.vue')['default']` for full type safety.
   // NOT referenced from nuxt.d.ts ({ nuxt: false }) to avoid circular type resolution:
@@ -97,7 +100,7 @@ ${lines.join('\n')}
     getContents: (data) => {
       const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'types'), resolve('runtime/types'))
       return `declare module '#og-image-virtual/public-assets.mjs' {
-  import type { H3Event } from 'h3'
+  import type { H3Event } from '#nuxtseo/h3'
   import type { FontConfig } from '${typesPath}'
   export function resolve(event: H3Event, font: FontConfig): Promise<BufferSource>
 }
@@ -128,6 +131,15 @@ declare module '#og-image/font-requirements' {
     category?: 'app' | 'community' | 'pro'
   }>
   export const hasNuxtFonts: boolean
+}
+
+declare module '#og-image/island-hash' {
+  export function getIslandHash(input: {
+    name: string
+    props?: Record<string, any> | string | null
+    context?: Record<string, any>
+    source?: string
+  }): string
 }
 
 declare module '#og-image-virtual/unocss-config.mjs' {
@@ -169,7 +181,7 @@ declare module '#og-image-virtual/tw4-theme.mjs' {
     getContents: (data) => {
       const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'types'), resolve('runtime/types'))
       return `declare module '#og-image/bindings/browser' {
-  import type { H3Event } from 'h3'
+  import type { H3Event } from '#nuxtseo/h3'
   export function createBrowser(event?: H3Event): Promise<any>
 }
 
@@ -231,38 +243,32 @@ declare module '#og-image-cache' {
     filename: 'types/og-image-augments.d.ts',
     getContents: (data) => {
       const typesPath = relative(resolve(data.nuxt!.options.rootDir, data.nuxt!.options.buildDir, 'types'), resolve('runtime/types'))
+      const nitroAugmentations = renderNitroTypeAugmentations(nitroCompatibility, {
+        nitroInterfaces: {
+          NitroApp: `_ogImageCacheBackendWarned?: boolean
+_ogImageIconsData?: OgImageIconsData`,
+          NitroRuntimeConfig: `'nuxt-og-image': OgImageRuntimeConfig
+ogImage?: {
+  secret?: string
+}`,
+        },
+        routeRules: 'ogImage?: false | OgImageOptions & Record<string, any>',
+        routeConfig: 'ogImage?: false | OgImageOptions & Record<string, any>',
+        runtimeHooks: `'nuxt-og-image:context': (ctx: OgImageRenderEventContext) => void | Promise<void>
+'nuxt-og-image:satori:vnodes': (vnodes: VNode, ctx: OgImageRenderEventContext) => void | Promise<void>`,
+        eventContext: `_nitro?: {
+  routeRules?: import('${nitroCompatibility.nitroTypesModule}').NitroRouteRules
+}
+_ogImagePrerenderPaths?: Map<string, string>`,
+      })
       return `/// <reference path="./og-image-virtual.d.ts" />
 /// <reference path="./og-image-bindings.d.ts" />
-import type { OgImageOptions, OgImageRenderEventContext, VNode } from '${typesPath}'
+import type { OgImageIconsData, OgImageOptions, OgImageRenderEventContext, OgImageRuntimeConfig, VNode } from '${typesPath}'
 
-declare module 'nitropack' {
-  interface NitroRouteRules {
-    ogImage?: false | OgImageOptions & Record<string, any>
-  }
-  interface NitroRouteConfig {
-    ogImage?: false | OgImageOptions & Record<string, any>
-  }
-  interface NitroRuntimeHooks {
-    'nuxt-og-image:context': (ctx: OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: VNode, ctx: OgImageRenderEventContext) => void | Promise<void>
-  }
-}
-
-declare module 'nitropack/types' {
-  interface NitroRouteRules {
-    ogImage?: false | OgImageOptions & Record<string, any>
-  }
-  interface NitroRouteConfig {
-    ogImage?: false | OgImageOptions & Record<string, any>
-  }
-  interface NitroRuntimeHooks {
-    'nuxt-og-image:context': (ctx: OgImageRenderEventContext) => void | Promise<void>
-    'nuxt-og-image:satori:vnodes': (vnodes: VNode, ctx: OgImageRenderEventContext) => void | Promise<void>
-  }
-}
+${nitroAugmentations}
 
 export {}
 `
     },
-  })
+  }, { nitro: true, nuxt: true })
 }

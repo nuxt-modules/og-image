@@ -1,11 +1,12 @@
-import type { H3Error } from 'h3'
+import type { H3Error } from '#nuxtseo/h3'
 import type { OgImageRenderEventContext } from '../../types'
-import { createError, getQuery, handleCacheHeaders, setHeader, setHeaders } from 'h3'
-import { useStorage } from 'nitropack/runtime'
-import { digest } from 'ohash'
+import { fnv1a64Base36 } from 'fnv1a-64'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
+import { createError, handleCacheHeaders, setHeader, setHeaders } from '#nuxtseo/h3'
+import { useStorage } from '#nuxtseo/nitro'
 import { logger } from '../../logger'
+import { getEventQuery } from './query'
 
 /**
  * Constant-time string comparison to prevent timing attacks on secret values.
@@ -18,12 +19,6 @@ function safeCompare(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++)
     mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
   return mismatch === 0
-}
-
-declare module 'nitropack/types' {
-  interface NitroApp {
-    _ogImageCacheBackendWarned?: boolean
-  }
 }
 
 /**
@@ -76,7 +71,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       : null
     if (entry) {
       const { value, expiresAt, headers } = entry
-      const purgeValue = getQuery(ctx.e).purge
+      const purgeValue = getEventQuery(ctx.e).purge
       if (typeof purgeValue !== 'undefined') {
         // When URL signing is enabled, require the secret as the purge value
         if (options.secret && !safeCompare(String(purgeValue), options.secret)) {
@@ -135,7 +130,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       const headers = {
         // avoid multi-tenancy cache issues
         'Vary': 'accept-encoding, host',
-        'etag': `W/"${digest(value)}"`,
+        'etag': `W/"${fnv1a64Base36(value)}"`,
         'last-modified': new Date().toUTCString(),
         'cache-control': `public, max-age=${maxAge}, s-maxage=${maxAge}, immutable`,
       }

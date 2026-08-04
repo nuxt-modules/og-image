@@ -142,7 +142,10 @@ interface SnapshotResult { renderer: string, name: string, dimension: string, mo
  * Extract the og:image URL from a page's HTML
  */
 async function extractOgImageUrl(pageUrl: string): Promise<string | null> {
-  const response = await fetch(pageUrl).catch(() => null)
+  const response = await fetch(pageUrl).catch(() => {
+    // The caller reports an unavailable page as a missing snapshot.
+    return null
+  })
   if (!response?.ok)
     return null
   const html = await response.text()

@@ -1,4 +1,4 @@
-import { hash } from 'ohash'
+import { digest } from 'ohash/crypto'
 
 /**
  * URL encoding for OG image options (Cloudinary/IPX style)
@@ -421,11 +421,12 @@ export function buildOgImageUrl(
 }
 
 /**
- * Sign encoded params using a keyed hash (ohash, cross-runtime compatible).
- * Returns first 16 chars of the base64url hash for URL brevity.
+ * Sign encoded params using a keyed SHA-256 digest (cross-runtime, sync).
+ * Returns first 16 chars of the base64url digest for URL brevity.
+ * Must stay cryptographic — a fast hash here would make signatures forgeable.
  */
 export function signEncodedParams(encoded: string, secret: string): string {
-  return hash(`${secret}:${encoded}`).slice(0, 16)
+  return digest(`${secret}:${encoded}`).slice(0, 16)
 }
 
 /**

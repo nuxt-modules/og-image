@@ -1,6 +1,72 @@
 # Changelog
 
 
+## v6.7.4...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.4...main)
+
+### 🩹 Fixes
+
+- Warn when secure signing is disabled ([3db1f129](https://github.com/nuxt-modules/og-image/commit/3db1f129))
+- Clamp Lightning CSS integer infinity ([#644](https://github.com/nuxt-modules/og-image/pull/644))
+- Remove obsolete extreme value clamp ([#647](https://github.com/nuxt-modules/og-image/pull/647))
+- Wrap plugin entrypoints ([#650](https://github.com/nuxt-modules/og-image/pull/650))
+
+### 🏡 Chore
+
+- Code cleanup sweep ([#643](https://github.com/nuxt-modules/og-image/pull/643))
+- Bump ([5af3de4a](https://github.com/nuxt-modules/og-image/commit/5af3de4a))
+- Adopt nuxtseo-shared 5.3.4 APIs ([5fcfcfbb](https://github.com/nuxt-modules/og-image/commit/5fcfcfbb))
+- Adopt nuxtseo-shared 5.3.4 APIs ([#646](https://github.com/nuxt-modules/og-image/pull/646))
+- Bump ([5ab6d4cd](https://github.com/nuxt-modules/og-image/commit/5ab6d4cd))
+- Types ([a3aa0a7a](https://github.com/nuxt-modules/og-image/commit/a3aa0a7a))
+- Types ([cbcbdb9f](https://github.com/nuxt-modules/og-image/commit/cbcbdb9f))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
+## v6.7.3...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.3...main)
+
+### 🩹 Fixes
+
+- Parse queries from event paths ([#642](https://github.com/nuxt-modules/og-image/pull/642))
+
+### 🏡 Chore
+
+- Bump deps ([5bd2bdb3](https://github.com/nuxt-modules/og-image/commit/5bd2bdb3))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
+## v6.7.2...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.2...main)
+
+### 🩹 Fixes
+
+- Takumi v2 stable ([e9c55d28](https://github.com/nuxt-modules/og-image/commit/e9c55d28))
+- Source island hash from Nuxt ([#641](https://github.com/nuxt-modules/og-image/pull/641))
+
+### 📖 Documentation
+
+- Content audit sweep (grammar, links, structure) ([#640](https://github.com/nuxt-modules/og-image/pull/640))
+
+### 🏡 Chore
+
+- Bump ([2e25076b](https://github.com/nuxt-modules/og-image/commit/2e25076b))
+- Sync pnpm lockfile ([085d4dfc](https://github.com/nuxt-modules/og-image/commit/085d4dfc))
+- Bump deps ([2c311a2a](https://github.com/nuxt-modules/og-image/commit/2c311a2a))
+- Bump deps ([bd24d920](https://github.com/nuxt-modules/og-image/commit/bd24d920))
+- Ts issue ([69ae0368](https://github.com/nuxt-modules/og-image/commit/69ae0368))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.7.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.0...main)

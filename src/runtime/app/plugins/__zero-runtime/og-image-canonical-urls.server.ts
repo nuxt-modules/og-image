@@ -1,10 +1,8 @@
 import { defineNuxtPlugin } from '#app'
-import { ogImageCanonicalUrls as setup } from '../../utils/plugins'
+import { ogImageCanonicalUrls } from '../../utils/plugins'
 
-export default defineNuxtPlugin({
-  setup(nuxtApp) {
-    if (import.meta.dev || import.meta.prerender) {
-      setup(nuxtApp)
-    }
-  },
+export default defineNuxtPlugin((nuxtApp) => {
+  if (import.meta.dev || import.meta.prerender) {
+    return ogImageCanonicalUrls(nuxtApp)
+  }
 })

@@ -69,13 +69,8 @@ export const TreeShakeComposablesPlugin = createUnplugin(() => {
     },
     transform(code, id) {
       const s = new MagicString(code)
-      if (id.endsWith('components.islands.mjs')) {
-        // TODO re-implement
-        // for (const match of code.matchAll(/"OgImage.*": defineAsyncComponent\(.*\),?/g)) {
-        //   s.overwrite(match.index!, match.index! + match[0].length, '')
-        // }
-      }
-      else {
+      // @todo re-implement composable tree-shaking for island files
+      if (!id.endsWith('components.islands.mjs')) {
         const strippedCode = stripLiteral(code)
         if (!COMPOSABLE_RE.test(code)) {
           return

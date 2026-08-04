@@ -20,10 +20,11 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
+import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
-import { hash } from 'ohash'
+import { setupNitroRuntimeCompatibility } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isAgent } from 'std-env'
@@ -56,7 +57,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_INSTALL_SPEC } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -79,7 +80,10 @@ interface TakumiPackageVersion {
 }
 
 async function findPackageVersionFromEntry(pkg: string, resolver: Resolver): Promise<string | undefined> {
-  const entry = await resolver.resolvePath(pkg, { fallbackToOriginal: false }).catch(() => null)
+  const entry = await resolver.resolvePath(pkg, { fallbackToOriginal: false }).catch(() => {
+    // Resolution failure means the optional package is not installed.
+    return null
+  })
   if (!entry || entry === pkg)
     return
 
@@ -87,7 +91,7 @@ async function findPackageVersionFromEntry(pkg: string, resolver: Resolver): Pro
   while (dir && dir !== dirname(dir)) {
     const pkgPath = join(dir, 'package.json')
     if (existsSync(pkgPath)) {
-      const pkgJson = await readPackageJSON(pkgPath).catch(() => null)
+      const pkgJson = await readPackageJSON(pkgPath)
       if (pkgJson?.name === pkg)
         return pkgJson.version
     }
@@ -411,6 +415,12 @@ export default defineNuxtModule<ModuleOptions>({
         })
       return
     }
+    const nitroCompatibility = setupNitroRuntimeCompatibility(nuxt)
+    const setRuntimeAlias = (id: string, path: string) => {
+      nuxt.options.alias[id] = path
+      nuxt.options.nitro.alias ||= {}
+      nuxt.options.nitro.alias[id] = path
+    }
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
@@ -450,7 +460,13 @@ export default defineNuxtModule<ModuleOptions>({
       if (!nuxt.options.dev || config.zeroRuntime || !hasServerRuntime)
         return
       if (signing.optOut) {
-        logger.warn('OG image URL signing is disabled (`security.secret: false`). Anyone can craft arbitrary image generation requests.')
+        logger.warn([
+          'OG image URL signing is disabled (`security.secret: false`).',
+          'Attackers can craft image requests and poison the cache so your real OG image URLs serve attacker-controlled content (content spoofing).',
+          'Signing will be required in v7 whenever runtime image generation is enabled. Leave signing on, or set an explicit secret:',
+          '  NUXT_OG_IMAGE_SECRET=<secret>',
+          '  Generate one with: npx nuxt-og-image generate-secret',
+        ].join('\n'))
       }
       else if (signing.generated) {
         logger.warn([
@@ -503,8 +519,7 @@ export default defineNuxtModule<ModuleOptions>({
         break
       }
     }
-    nuxt.options.alias['#og-image'] = resolve('./runtime')
-    nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/lru')
+    setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/lru'))
 
     // Resolve preset early to check compatibility settings
     const preset = resolveOgImagePreset(nuxt.options.nitro)
@@ -537,7 +552,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Check if emojis are disabled
     if (config.defaults.emojis === false) {
       logger.debug('Emoji support disabled.')
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/core/transforms/emojis/noop')
+      setRuntimeAlias('#og-image/emoji-transform', resolve('./runtime/server/og-image/core/transforms/emojis/noop'))
       buildEmojiSet = undefined
     }
     else {
@@ -545,19 +560,12 @@ export default defineNuxtModule<ModuleOptions>({
       buildEmojiSet = config.defaults.emojis || 'noto'
 
       // Runtime: always use fetch to avoid 24MB bundle (only needed for dynamic emojis)
-      nuxt.options.alias['#og-image/emoji-transform'] = resolve('./runtime/server/og-image/core/transforms/emojis/fetch')
+      setRuntimeAlias('#og-image/emoji-transform', resolve('./runtime/server/og-image/core/transforms/emojis/fetch'))
     }
 
     // CSS framework detection - supports UnoCSS and Tailwind
     const { detectCssProvider } = await import('./build/css/css-provider')
     const cssFramework = detectCssProvider(nuxt)
-    const { setLightningCssPath } = await import('./build/css/css-utils')
-    setLightningCssPath(await resolveOptionalModulePath('lightningcss', nuxt.options.rootDir, [
-      'vite',
-      '@nuxt/fonts',
-      'fontless',
-      '@unhead/bundler',
-    ]))
 
     // CSS provider for class resolution (UnoCSS or TW4)
     let cssProvider: CssProvider | undefined
@@ -599,7 +607,10 @@ export default defineNuxtModule<ModuleOptions>({
             const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
             if (!cssPath || !cssPath.endsWith('.css'))
               continue
-            const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+            const resolved = await resolver.resolvePath(cssPath).catch(() => {
+              // Unresolvable CSS entries are skipped while scanning later entries.
+              return null
+            })
             if (!resolved || !existsSync(resolved))
               continue
             return resolved
@@ -708,7 +719,10 @@ export default defineNuxtModule<ModuleOptions>({
             const cssPath = typeof cssEntry === 'string' ? cssEntry : cssEntry?.src
             if (!cssPath || !cssPath.endsWith('.css'))
               continue
-            const resolved = await resolver.resolvePath(cssPath).catch(() => null)
+            const resolved = await resolver.resolvePath(cssPath).catch(() => {
+              // Unresolvable CSS entries are skipped while scanning later entries.
+              return null
+            })
             if (!resolved || !existsSync(resolved))
               continue
             const content = await readFile(resolved, 'utf-8')
@@ -849,7 +863,7 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (!nuxt.options.dev) {
         addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
-        nuxt.options.alias['#og-image-cache'] = resolve('./runtime/server/og-image/cache/mock')
+        setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
       }
     }
     const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
@@ -1148,7 +1162,7 @@ export default defineNuxtModule<ModuleOptions>({
         // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
         // Warn so the choice is visible and the agent can pin a renderer explicitly.
         ogImageComponentCtx.detectedRenderers.add('takumi')
-        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_INSTALL_SPEC}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
       }
     }
 
@@ -1284,7 +1298,7 @@ export default defineNuxtModule<ModuleOptions>({
           const credits = componentFile.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
           const propNames = extractPropNamesFromVue(componentFile)
           ogImageComponentCtx.components.push({
-            hash: hash(componentFile).replaceAll('_', '-'),
+            hash: fnv1a64Base36(componentFile),
             pascalName: component.pascalName,
             kebabName: component.kebabName,
             path: component.filePath,
@@ -1384,6 +1398,27 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
+    }
+    // Island fetches embed a hash the server validates (400 on mismatch), so it must
+    // exactly match the installed Nuxt's algorithm. Prefer Nuxt's own implementation
+    // (nuxt/dist/app/island-hash.js) so Nuxt can change the algorithm without breaking us;
+    // the ohash replication is only for Nuxt versions predating that file.
+    nuxt.options.nitro.virtual['#og-image/island-hash'] = () => {
+      const islandHashFile = join(nuxt.options.appDir, 'island-hash.js')
+      const [nuxtMajor = 0, nuxtMinor = 0] = getNuxtVersion(nuxt).split('.').map(v => Number.parseInt(v))
+      if (nuxtMajor > 4 || (nuxtMajor === 4 && nuxtMinor >= 5))
+        return `export { getIslandHash } from '${islandHashFile}'`
+      // Nuxt 4.4.x exposes computeIslandHash(name, props, context, source) instead
+      if (existsSync(islandHashFile)) {
+        return `import { computeIslandHash } from '${islandHashFile}'
+export function getIslandHash({ name, props, context, source }) {
+  return computeIslandHash(name, props ?? {}, context ?? {}, source)
+}`
+      }
+      return `import { hash } from 'ohash'
+export function getIslandHash({ name, props, context, source }) {
+  return hash([name, props ?? {}, context ?? {}, source]).replace(/[-_]/g, '')
+}`
     }
     nuxt.options.nitro.publicAssets ||= []
     // Serve static font downloads (fontless-resolved + bundled Inter fallback)
@@ -1570,6 +1605,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
       nuxt,
       config,
       componentCtx: ogImageComponentCtx,
+      nitroCompatibility,
     })
 
     const cacheEnabled = typeof config.runtimeCacheStorage !== 'undefined' && config.runtimeCacheStorage !== false
@@ -1731,7 +1767,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
     const getCompatibilityMeta = () => runtimeCompatibilityMeta
     if (nuxt.options.dev) {
-      setupDevHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
+      await setupDevHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
       setupDevToolsUI(config, resolve, nuxt, cssFramework || 'none')
 
       // Capture Nitro for HMR reload (only needed for component add/remove)
@@ -1785,6 +1821,11 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
     else if (nuxt.options.build) {
       await setupBuildHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
     }
+    // Keep public aliases specific. A bare #og-image prefix shadows Nitro's
+    // renderer and binding aliases under Nitro 3's insertion-order resolver.
+    setRuntimeAlias('#og-image/app', resolve('./runtime/app'))
+    setRuntimeAlias('#og-image/shared', resolve('./runtime/shared'))
+    setRuntimeAlias('#og-image/types', resolve('./runtime/types'))
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))

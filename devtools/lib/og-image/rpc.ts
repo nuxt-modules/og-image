@@ -17,7 +17,10 @@ export const isFallbackMode = computed(() => connectionState.value === 'fallback
 // Fallback fetch for localhost:3000
 async function tryFallbackConnection() {
   const fallbackUrl = 'http://localhost:3000'
-  const res = await fetch(`${fallbackUrl}/_og/debug.json`).catch(() => null)
+  const res = await fetch(`${fallbackUrl}/_og/debug.json`).catch(() => {
+    // An unreachable fallback host means the devtools connection has failed.
+    return null
+  })
   if (res?.ok) {
     appFetch.value = ((url: string, opts?: any) => fetch(`${fallbackUrl}${url}`, opts).then(r => r.json())) as any
     base.value = '/'

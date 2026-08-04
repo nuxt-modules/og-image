@@ -1,17 +1,10 @@
 import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { AllowedComponentProps, Component, ComponentCustomProps, VNodeProps } from '@vue/runtime-core'
-import type { H3Error, H3Event } from 'h3'
-import type { Hookable } from 'hookable'
-import type { NitroRuntimeHooks } from 'nitropack/types'
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions, SharpOptions } from 'sharp'
 import type { MaybeRefOrGetter, Ref } from 'vue'
+import type { H3Error, H3Event } from '#nuxtseo/h3'
 import type { Timings } from './server/util/timings'
-
-interface NitroApp {
-  hooks: Hookable<NitroRuntimeHooks>
-  [key: string]: any
-}
 
 export interface OgImageRenderEventContext {
   e: H3Event
@@ -24,12 +17,18 @@ export interface OgImageRenderEventContext {
   publicStoragePath: string
   runtimeConfig: OgImageRuntimeConfig
   timings: Timings
-  _nitro: NitroApp
+  _nitro: ReturnType<typeof import('#nuxtseo/nitro').useNitroApp>
 }
 
 export type IconifyEmojiIconSets = 'twemoji' | 'noto' | 'fluent-emoji' | 'fluent-emoji-flat' | 'fluent-emoji-high-contrast' | 'noto-v1' | 'emojione' | 'emojione-monotone' | 'emojione-v1' | 'streamline-emojis' | 'openmoji'
 
 export type EmojiStrategy = 'auto' | 'local' | 'fetch'
+
+export interface OgImageIconsData {
+  icons: Record<string, { body: string, width?: number, height?: number }>
+  width: number
+  height: number
+}
 
 export interface OgImageRuntimeConfig {
   version: string

@@ -22,7 +22,10 @@ export function checkLocalChrome() {
 
 export async function hasResolvableDependency(dep: string) {
   return await resolvePath(dep, { fallbackToOriginal: true })
-    .catch(() => null)
+    .catch(() => {
+      // Resolution failure means the optional dependency is unavailable.
+      return null
+    })
     .then(r => r && r !== dep)
 }
 
