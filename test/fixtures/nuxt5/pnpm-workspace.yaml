@@ -7,7 +7,7 @@ minimumReleaseAgeExclude:
   - '@nuxt/schema-nightly@5.0.0-29762711.192612c7'
   - '@nuxt/vite-builder-nightly@5.0.0-29762711.192612c7'
   - nuxt-nightly@5.0.0-29762711.192612c7
-  - nuxtseo-shared@5.3.8 || 5.3.9
+  - nuxtseo-shared@5.3.8 || 5.3.9 || 5.3.11
 catalog:
   nitro: 3.0.260610-beta
   nitropack: npm:nitro@3.0.260610-beta
