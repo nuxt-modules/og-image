@@ -209,7 +209,7 @@ async function assertNoDirectDistImports(appDir) {
 async function assertNuxtOnlyApp(pm, tarball) {
   log(`checking clean Nuxt-only app with ${pm}`)
   const appDir = await createApp(pm, `${pm}-nuxt-only`, {
-    'nuxt': '4.4.8',
+    'nuxt': '4.5.2',
     'nuxt-og-image': `file:${tarball}`,
   }, `
     export default defineNuxtConfig({
@@ -237,7 +237,7 @@ async function getSharedExports(appDir) {
 async function assertUnoApp(pm, tarball) {
   log(`checking Uno app with ${pm} without direct Uno core/config deps`)
   const appDir = await createApp(pm, `${pm}-unocss`, {
-    'nuxt': '4.4.8',
+    'nuxt': '4.5.2',
     '@unocss/nuxt': '66.7.4',
     'nuxt-og-image': `file:${tarball}`,
   }, `

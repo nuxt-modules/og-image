@@ -110,7 +110,7 @@ async function main() {
       redirect: 'manual',
     })
     assert.equal(resolverResponse.status, 302)
-    assert.equal(resolverResponse.headers.get('location'), `${parsedImageUrl.pathname}${parsedImageUrl.search}`)
+    assert.equal(resolverResponse.headers.get('location'), imageUrl)
 
     const imageResponse = await fetch(`${origin}${parsedImageUrl.pathname}${parsedImageUrl.search}`, {
       headers: {
