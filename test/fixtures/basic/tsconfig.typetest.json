@@ -3,6 +3,7 @@
   "include": [
     ".nuxt/nuxt.d.ts",
     ".nuxt/module/nuxt-og-image-components.d.ts",
+    "runtime-config-type-test.ts",
     "type-test.ts"
   ]
 }

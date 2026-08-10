@@ -72,7 +72,7 @@ describe.skipIf(!fixtureReady)('generated component types (basic fixture)', () =
     expect(readFileSync(tsconfig, 'utf-8')).toContain('nuxt-og-image-components.d.ts')
   })
 
-  it('type-checks valid defineOgImage calls via vue-tsc', () => {
+  it('type-checks valid fixture usage via vue-tsc', () => {
     const result = execSync(
       `pnpm vue-tsc --noEmit --project ${TYPETEST_TSCONFIG}`,
       { encoding: 'utf-8', stdio: 'pipe', cwd: resolve(__dirname, '../..') },

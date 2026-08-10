@@ -75,6 +75,12 @@ describe('nitro type templates', () => {
     expect(contents).toContain('declare module \'nitro/types\'')
   })
 
+  it('keeps the Nitro runtime secret compatible with Nuxt runtime config', () => {
+    const contents = renderAugmentations(nitroV2)
+
+    expect(contents.match(/ogImage: \{\n\s+secret: string\n\s+\}/g)).toHaveLength(2)
+  })
+
   it('keeps runtime types behind shared compatibility interfaces', () => {
     const runtimeTypes = readFileSync(join(import.meta.dirname, '../../src/runtime/types.ts'), 'utf8')
     const routeRulesPlugin = readFileSync(join(import.meta.dirname, '../../src/runtime/app/utils/plugins.ts'), 'utf8')
