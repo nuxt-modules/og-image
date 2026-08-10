@@ -24,13 +24,16 @@ const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
   .map(d => `test/fixtures/${d.name}`)
 
 const templates = readdirSync(communityDir).filter(f => f.endsWith('.vue'))
-const fixturesWithoutCommunityTemplates = new Set(['test/fixtures/takumi-only-fonts'])
+const fixturesWithoutCommunityTemplates = new Set([
+  'test/fixtures/takumi-only-fonts',
+  'test/fixtures/woff2-conversion',
+])
 
 const cjkSubsetDir = join(fixturesDir, 'woff2-conversion/public/fonts')
 mkdirSync(cjkSubsetDir, { recursive: true })
 cpSync(
-  join(root, 'node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-97-400-normal.woff2'),
-  join(cjkSubsetDir, 'noto-sans-sc-97-400-normal.woff2'),
+  join(root, 'node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-100-400-normal.woff2'),
+  join(cjkSubsetDir, 'noto-sans-sc-100-400-normal.woff2'),
 )
 
 // Eject community templates (fast, run sequentially)

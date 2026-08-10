@@ -297,9 +297,6 @@ catalogs:
     vue-tsc:
       specifier: ^3.3.9
       version: 3.3.9
-    woff-lib:
-      specifier: ^0.0.3
-      version: 0.0.3
     wrangler:
       specifier: ^4.118.0
       version: 4.118.0
@@ -619,9 +616,6 @@ importers:
       vue-tsc:
         specifier: 'catalog:'
         version: 3.3.9(typescript@6.0.3)
-      woff-lib:
-        specifier: 'catalog:'
-        version: 0.0.3
       wrangler:
         specifier: 'catalog:'
         version: 4.118.0
@@ -5418,10 +5412,6 @@ packages:
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
-
-  brotli-lib@0.0.7:
-    resolution: {integrity: sha512-ph4vAFd0gGa9nl94BeFLnjsWt3XfpRD6dPoUWPLrj3GO6qcx2pb7S/2O2zwxt2+a4Co5+cMBuPgj/N0zUo+pvw==}
-    engines: {node: '>=12'}
 
   browserslist@4.28.7:
     resolution: {integrity: sha512-JxV13hNrFxqjOc8alRbq9dK1MM79NEXYpma2B2J4wAtpWS5zIEIKqWPGCl7N4o7Uc7B7itylh7SuDujATRyyTw==}
@@ -10510,10 +10500,6 @@ packages:
     resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
     engines: {node: '>=8'}
     hasBin: true
-
-  woff-lib@0.0.3:
-    resolution: {integrity: sha512-GHPHOEUL7A8EXRID4LWiMvEHc7Mag6SN43ly0+QIlrtHxslI09LOOPDAnenN19fO8mv1iguYDKsoGMzJmYMtNQ==}
-    engines: {node: '>=16'}
 
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
@@ -15760,8 +15746,6 @@ snapshots:
   braces@3.0.3:
     dependencies:
       fill-range: 7.1.1
-
-  brotli-lib@0.0.7: {}
 
   browserslist@4.28.7:
     dependencies:
@@ -22316,10 +22300,6 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
-
-  woff-lib@0.0.3:
-    dependencies:
-      brotli-lib: 0.0.7
 
   word-wrap@1.2.5: {}
 

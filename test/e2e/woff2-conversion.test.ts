@@ -3,7 +3,7 @@ import { createResolver } from '@nuxt/kit'
 import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
-import { fetchOgImage } from '../utils'
+import { extractOgImageUrl, fetchOgImages, setupImageSnapshots, SNAPSHOT_STRICT } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -13,8 +13,10 @@ await setup({
   build: true,
 })
 
+setupImageSnapshots(SNAPSHOT_STRICT)
+
 describe('nuxt Fonts WOFF2 conversion', () => {
-  const convertedFilename = 'noto-sans-sc-97-400-normal.ttf'
+  const convertedFilename = 'noto-sans-sc-100-400-normal.ttf'
 
   it('reuses the configured CJK subset without downloading a full fallback', () => {
     const ctx = useTestContext()
@@ -31,8 +33,12 @@ describe('nuxt Fonts WOFF2 conversion', () => {
     expect(Buffer.from(font).subarray(0, 4)).toEqual(Buffer.from([0, 1, 0, 0]))
   })
 
-  it('renders the converted font with Satori', async () => {
-    const image = await fetchOgImage('/')
-    expect(image.byteLength).toBeGreaterThan(1000)
+  it('renders the configured CJK subset with both renderers', async () => {
+    const pages = await Promise.all([$fetch('/') as Promise<string>, $fetch('/takumi') as Promise<string>])
+    expect(extractOgImageUrl(pages[0])).not.toBe(extractOgImageUrl(pages[1]))
+
+    const images = await fetchOgImages('/', '/takumi')
+    expect(images.get('/')).toMatchImageSnapshot({ customSnapshotIdentifier: 'woff2-subset-satori' })
+    expect(images.get('/takumi')).toMatchImageSnapshot({ customSnapshotIdentifier: 'woff2-subset-takumi' })
   })
 })

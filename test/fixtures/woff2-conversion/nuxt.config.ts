@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     families: [
       {
         name: 'Noto Sans SC',
-        src: '/fonts/noto-sans-sc-97-400-normal.woff2',
+        src: '/fonts/noto-sans-sc-100-400-normal.woff2',
         weight: 400,
         style: 'normal',
         global: true,

@@ -1,0 +1,83 @@
+export const KNOWN_TAGS: readonly number[] = [
+  0x636D6170,
+  0x68656164,
+  0x68686561,
+  0x686D7478,
+  0x6D617870,
+  0x6E616D65,
+  0x4F532F32,
+  0x706F7374,
+  0x63767420,
+  0x6670676D,
+  0x676C7966,
+  0x6C6F6361,
+  0x70726570,
+  0x43464620,
+  0x564F5247,
+  0x45424454,
+  0x45424C43,
+  0x67617370,
+  0x68646D78,
+  0x6B65726E,
+  0x4C545348,
+  0x50434C54,
+  0x56444D58,
+  0x76686561,
+  0x766D7478,
+  0x42415345,
+  0x47444546,
+  0x47504F53,
+  0x47535542,
+  0x45425343,
+  0x4A535446,
+  0x4D415448,
+  0x43424454,
+  0x43424C43,
+  0x434F4C52,
+  0x4350414C,
+  0x53564720,
+  0x73626978,
+  0x61636E74,
+  0x61766172,
+  0x62646174,
+  0x626C6F63,
+  0x62736C6E,
+  0x63766172,
+  0x66647363,
+  0x66656174,
+  0x666D7478,
+  0x66766172,
+  0x67766172,
+  0x68737479,
+  0x6A757374,
+  0x6C636172,
+  0x6D6F7274,
+  0x6D6F7278,
+  0x6F706264,
+  0x70726F70,
+  0x7472616B,
+  0x5A617066,
+  0x53696C66,
+  0x476C6174,
+  0x476C6F63,
+  0x46656174,
+  0x53696C6C,
+] as const
+
+export const TAG_GLYF = 0x676C7966
+export const TAG_LOCA = 0x6C6F6361
+export const TAG_HMTX = 0x686D7478
+export const TAG_HHEA = 0x68686561
+export const TAG_HEAD = 0x68656164
+export const TTC_FLAVOR = 0x74746366
+export const WOFF2_SIGNATURE = 0x774F4632
+export const WOFF2_FLAGS_TRANSFORM = 1 << 5
+
+export function tagToString(tag: number): string {
+  return String.fromCharCode(
+    (tag >> 24) & 0xFF,
+    (tag >> 16) & 0xFF,
+    (tag >> 8) & 0xFF,
+    tag & 0xFF,
+  )
+}

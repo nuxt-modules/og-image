@@ -47,11 +47,7 @@ import { resolveSigningSecret } from './build/signing-secret'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
-import {
-  ensureDependencies,
-  getPresetNitroPresetCompatibility,
-  resolveOgImagePreset,
-} from './compatibility'
+import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
@@ -1220,16 +1216,6 @@ export default defineNuxtModule<ModuleOptions>({
         // zeroRuntime — all detected renderers considered available
         for (const renderer of ogImageComponentCtx.detectedRenderers)
           availableRenderers.add(renderer)
-      }
-    }
-
-    if (!nuxt.options._prepare && hasNuxtFonts && ogImageComponentCtx.detectedRenderers.has('satori')) {
-      const decoderPath = await resolveOptionalModulePath('woff-lib/woff2/decode', nuxt.options.rootDir)
-      if (!decoderPath) {
-        if (!nuxt.options.dev)
-          throw new Error('[nuxt-og-image] Nuxt Fonts conversion requires the optional "woff-lib" build dependency. Install it with your package manager.')
-        logger.info('Installing woff-lib for Nuxt Fonts conversion')
-        await ensureDependencies(['woff-lib'], nuxt)
       }
     }
 

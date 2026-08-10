@@ -5,7 +5,7 @@
  * (backed by unifont providers: Fontsource, Google, Bunny) to download
  * static TTF/WOFF alternatives.
  *
- * `fontless`, `unifont`, and `woff-lib` are optional peer dependencies.
+ * `fontless` and `unifont` are optional peer dependencies.
  */
 
 import type { ConsolaInstance } from 'consola'
@@ -20,7 +20,6 @@ import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
-import { importOptionalPeer, resolveOptionalModulePath } from './optional-module'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -568,10 +567,8 @@ async function convertNuxtWoff2Sources(options: {
   if (mappedSources.length === 0)
     return
 
-  const decoderPath = await resolveOptionalModulePath('woff-lib/woff2/decode', options.nuxt.options.rootDir)
-  const { woff2Decode } = await importOptionalPeer<{
-    woff2Decode: (data: Uint8Array) => Promise<Uint8Array>
-  }>('woff-lib/woff2/decode', decoderPath, 'Nuxt Fonts WOFF2 conversion')
+  // Keep the decoder out of the main module chunk for apps that do not need conversion.
+  const { woff2Decode } = await import('./woff2/decode')
 
   for (const { fontSrc, font, originalSource } of mappedSources) {
     const asset = await readNuxtFontAsset(options.nuxt, originalSource)
@@ -580,7 +577,7 @@ async function convertNuxtWoff2Sources(options: {
       continue
     }
 
-    const decoded = await woff2Decode(asset.data).catch((error: Error) => {
+    const decoded = await Promise.resolve().then(() => woff2Decode(asset.data)).catch((error: Error) => {
       options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)
       return null
     })

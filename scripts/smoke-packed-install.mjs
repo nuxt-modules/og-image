@@ -19,7 +19,6 @@ const optionalizedPackages = [
   '@unocss/core',
   'culori',
   'tinyglobby',
-  'woff-lib',
 ]
 const RE_ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
 
@@ -175,12 +174,12 @@ async function readInstalledPackage(appDir) {
 }
 
 function assertPackageMetadata(pkg) {
-  for (const name of ['culori', 'tinyglobby']) {
+  for (const name of ['culori', 'tinyglobby', 'woff-lib']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(!pkg.peerDependencies?.[name], `${name} should not be a peer dependency`)
   }
 
-  for (const name of ['@unocss/core', '@unocss/config', 'woff-lib']) {
+  for (const name of ['@unocss/core', '@unocss/config']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(pkg.peerDependencies?.[name], `${name} should be declared as an optional peer`)
     assert(pkg.peerDependenciesMeta?.[name]?.optional === true, `${name} peer should be optional`)
@@ -194,6 +193,8 @@ async function assertNoDirectDistImports(appDir) {
   const distDir = join(appDir, 'node_modules/nuxt-og-image/dist')
   const files = (await listFiles(distDir))
     .filter(file => /\.(?:cjs|mjs|js)$/.test(file))
+  const cjsFiles = files.filter(file => file.endsWith('.cjs'))
+  assert(cjsFiles.length === 0, `ESM-only package should not contain CJS output:\n${cjsFiles.join('\n')}`)
 
   for (const file of files) {
     const source = await readFile(file, 'utf8')

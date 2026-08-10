@@ -182,7 +182,6 @@ catalog:
   vitest: ^4.1.10
   vue: ^3.5.40
   vue-tsc: ^3.3.9
-  woff-lib: ^0.0.3
   wrangler: ^4.118.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.4.3
