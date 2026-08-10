@@ -47,11 +47,8 @@ defineProps<{
       <span :style="{ fontSize: '28px', fontWeight: 700, color: '#888', fontFamily: 'Inter' }">
         Inter 700: The quick brown fox
       </span>
-      <span :style="{ fontSize: '28px', fontWeight: 400, color: '#888', fontFamily: 'Roboto' }">
-        Roboto 400: The quick brown fox
-      </span>
-      <span :style="{ fontSize: '28px', fontWeight: 700, color: '#888', fontFamily: 'Roboto' }">
-        Roboto 700: The quick brown fox
+      <span :style="{ fontSize: '28px', fontWeight: 400, color: '#888', fontFamily: 'Lobster' }">
+        Lobster 400: The quick brown fox
       </span>
     </div>
   </div>

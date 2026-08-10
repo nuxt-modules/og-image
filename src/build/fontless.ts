@@ -11,14 +11,15 @@
 import type { ConsolaInstance } from 'consola'
 import type { FontFamilyProviderOverride, FontlessOptions, Resolver } from 'fontless'
 import type { Nuxt } from 'nuxt/schema'
-import type { FontRequirementsState, ParsedFont } from './fonts'
+import type { FontProcessingState, FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
-import { join } from 'pathe'
+import { fileURLToPath } from 'node:url'
+import { isAbsolute, join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -26,14 +27,20 @@ const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 // Types
 // ============================================================================
 
-export interface ProcessFontsOptions {
+interface ProcessFontsOptions {
   nuxt: Nuxt
   logger: ConsolaInstance
   fontRequirements: FontRequirementsState
-  convertedWoff2Files: Map<string, string>
+  fontState: FontProcessingState
+  nuxtFontsContext?: NuxtFontsAssetContext | null
   fontSubsets?: string[]
   /** Warn when no static fallback is available. Satori requires one; Takumi can use WOFF2. */
   warnOnMissingStaticFonts?: boolean
+}
+
+interface NuxtFontsAssetContext {
+  assetsBaseURL: string
+  renderedFontURLs: Map<string, string>
 }
 
 interface DownloadedFont {
@@ -69,7 +76,28 @@ function isConfiguredLocalFontFamily(nuxt: Nuxt, family: string): boolean {
   return !!config && config.global === true && (config.provider === 'local' || typeof config.src === 'string')
 }
 
-export async function initFontless(options: {
+function getFamilyRequirements(fontRequirements: FontRequirementsState, family: string): {
+  weights: number[]
+  styles: Array<'normal' | 'italic'>
+} {
+  const familyName = family.toLowerCase()
+  const matchingComponents = Object.values(fontRequirements.componentMap)
+    .filter(component => component.families.some(candidate => candidate.toLowerCase() === familyName))
+
+  if (matchingComponents.length === 0 || matchingComponents.some(component => component.hasDynamicBindings)) {
+    return {
+      weights: fontRequirements.weights,
+      styles: fontRequirements.styles,
+    }
+  }
+
+  return {
+    weights: [...new Set(matchingComponents.flatMap(component => component.weights))],
+    styles: [...new Set(matchingComponents.flatMap(component => component.styles))],
+  }
+}
+
+async function initFontless(options: {
   nuxt: Nuxt
   logger?: ConsolaInstance
   fontSubsets?: string[]
@@ -228,8 +256,8 @@ async function downloadStaticFonts(options: {
   if (options.families.length === 0)
     return []
 
-  const ttfDir = join(options.nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
-  fs.mkdirSync(ttfDir, { recursive: true })
+  const staticFontDir = getStaticFontCacheDir(options.nuxt.options.buildDir)
+  fs.mkdirSync(staticFontDir, { recursive: true })
 
   await initFontless({ nuxt: options.nuxt, logger: options.logger, fontSubsets: options.fontSubsets })
   const fontlessCtx = getFontlessContext(options.nuxt)
@@ -249,7 +277,7 @@ async function downloadStaticFonts(options: {
       family,
       weights,
       styles,
-      ttfDir,
+      staticFontDir,
       resolver: fontlessCtx.resolver,
       logger: options.logger,
     })
@@ -267,7 +295,7 @@ async function downloadStaticFonts(options: {
       options.logger.debug(`${family}: provider returned variable font binary, retrying with alternative providers`)
       // Delete the variable font files so fallback providers can re-download with static binaries
       for (const r of familyResults) {
-        const filePath = join(ttfDir, r.filename)
+        const filePath = join(staticFontDir, r.filename)
         if (fs.existsSync(filePath))
           fs.unlinkSync(filePath)
       }
@@ -278,7 +306,7 @@ async function downloadStaticFonts(options: {
           family,
           weights,
           styles,
-          ttfDir,
+          staticFontDir,
           logger: options.logger,
           resolver: fontlessCtx.resolver,
           provider,
@@ -290,7 +318,7 @@ async function downloadStaticFonts(options: {
         if ([...altUrls.values()].some(ws => ws.length > 1)) {
           // Still variable — clean up before trying next provider
           for (const r of altResults) {
-            const filePath = join(ttfDir, r.filename)
+            const filePath = join(staticFontDir, r.filename)
             if (fs.existsSync(filePath))
               fs.unlinkSync(filePath)
           }
@@ -302,7 +330,7 @@ async function downloadStaticFonts(options: {
       }
       // If no static alternative found, don't push the (deleted) variable font results.
       // Variable fonts crash Satori's opentype.js parser, and the files were already
-      // deleted above. Leaving convertedWoff2Files empty means satoriSrc won't be set,
+      // deleted above. Leaving fallbackMap empty means satoriSrc won't be set,
       // so Satori skips this family naturally and Inter fallback takes over.
       if (!resolved)
         options.logger.debug(`${family}: no static font alternative found from any provider`)
@@ -389,12 +417,12 @@ async function resolveAndDownloadFamily(options: {
   family: string
   weights: number[]
   styles: Array<'normal' | 'italic'>
-  ttfDir: string
+  staticFontDir: string
   resolver: FontlessContext['resolver']
   logger: ConsolaInstance
   provider?: string
 }): Promise<(DownloadedFont & { url: string })[]> {
-  const { family, weights, styles, ttfDir, logger } = options
+  const { family, weights, styles, staticFontDir, logger } = options
   const results: (DownloadedFont & { url: string })[] = []
 
   try {
@@ -426,7 +454,7 @@ async function resolveAndDownloadFamily(options: {
         const ext = isTtf ? 'ttf' : 'woff'
         for (const weight of resolvedWeights) {
           const filename = `${family.replace(RE_NON_ALPHANUMERIC, '_')}-${weight}-${style}.${ext}`
-          const destPath = join(ttfDir, filename)
+          const destPath = join(staticFontDir, filename)
           if (!await downloadFontFile(url, destPath))
             continue
 
@@ -444,83 +472,247 @@ async function resolveAndDownloadFamily(options: {
 }
 
 // ============================================================================
-// WOFF2 → TTF Conversion (Satori Compat)
+// WOFF2 Preparation (Satori Compat)
 // ============================================================================
 
+type FontAssetResult
+  = | { _tag: 'Ok', data: Uint8Array }
+    | { _tag: 'Err', reason: string }
+
+function hasOpenTypeTable(data: Uint8Array, expectedTag: string): boolean {
+  if (data.byteLength < 12)
+    return false
+
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  const tableCount = view.getUint16(4)
+  for (let index = 0; index < tableCount; index++) {
+    const offset = 12 + index * 16
+    if (offset + 4 > data.byteLength)
+      return false
+    const tag = String.fromCharCode(
+      view.getUint8(offset),
+      view.getUint8(offset + 1),
+      view.getUint8(offset + 2),
+      view.getUint8(offset + 3),
+    )
+    if (tag === expectedTag)
+      return true
+  }
+  return false
+}
+
+function getNuxtFontOriginalSource(fontSrc: string, context?: NuxtFontsAssetContext | null): string | undefined {
+  if (!context)
+    return
+  const prefix = `${context.assetsBaseURL.replace(/\/$/, '')}/`
+  if (!fontSrc.startsWith(prefix))
+    return
+  return context.renderedFontURLs.get(fontSrc.slice(prefix.length))
+}
+
+async function readNuxtFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetResult> {
+  if (source.startsWith('/')) {
+    const configuredPublicDir = nuxt.options.dir.public || 'public'
+    const publicDir = isAbsolute(configuredPublicDir)
+      ? configuredPublicDir
+      : join(nuxt.options.srcDir, configuredPublicDir)
+    const path = join(publicDir, source.slice(1).split(/[?#]/, 1)[0]!)
+    return fs.promises.readFile(path)
+      .then(data => ({ _tag: 'Ok' as const, data }))
+      .catch((error: NodeJS.ErrnoException) => ({
+        _tag: 'Err' as const,
+        reason: error.code === 'ENOENT' ? `local source not found: ${path}` : error.message,
+      }))
+  }
+
+  if (source.startsWith('file:')) {
+    const path = fileURLToPath(source)
+    return fs.promises.readFile(path)
+      .then(data => ({ _tag: 'Ok' as const, data }))
+      .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
+  }
+
+  return fetch(source)
+    .then(async response => response.ok
+      ? { _tag: 'Ok' as const, data: new Uint8Array(await response.arrayBuffer()) }
+      : { _tag: 'Err' as const, reason: `source returned HTTP ${response.status}` })
+    .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
+}
+
+async function convertNuxtWoff2Sources(options: {
+  fonts: ParsedFont[]
+  nuxt: Nuxt
+  context?: NuxtFontsAssetContext | null
+  fontState: FontProcessingState
+  logger: ConsolaInstance
+}): Promise<void> {
+  const staticFontDir = getStaticFontCacheDir(options.nuxt.options.buildDir)
+  fs.mkdirSync(staticFontDir, { recursive: true })
+
+  const fontsBySource = new Map<string, ParsedFont>()
+  for (const font of options.fonts) {
+    if (!font.weightRange && !fontsBySource.has(font.src))
+      fontsBySource.set(font.src, font)
+  }
+
+  const mappedSources: Array<{ font: ParsedFont, fontSrc: string, originalSource: string }> = []
+  for (const [fontSrc, font] of fontsBySource) {
+    const originalSource = getNuxtFontOriginalSource(fontSrc, options.context)
+    if (originalSource)
+      mappedSources.push({ font, fontSrc, originalSource })
+    else
+      options.logger.debug(`Could not map Nuxt Fonts asset to its original source: ${fontSrc}`)
+  }
+  if (mappedSources.length === 0)
+    return
+
+  const [{ woff2Decode }, { woffEncode }] = await Promise.all([
+    import('woff-lib/woff2/decode'),
+    import('woff-lib/woff/encode'),
+  ])
+
+  for (const { fontSrc, font, originalSource } of mappedSources) {
+    const asset = await readNuxtFontAsset(options.nuxt, originalSource)
+    if (asset._tag === 'Err') {
+      options.logger.debug(`Could not read Nuxt Fonts asset ${fontSrc}: ${asset.reason}`)
+      continue
+    }
+
+    const decoded = await woff2Decode(asset.data).catch((error: Error) => {
+      options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)
+      return null
+    })
+    if (!decoded)
+      continue
+
+    if (hasOpenTypeTable(decoded, 'fvar')) {
+      options.logger.debug(`${font.family}: ${fontSrc} is variable; a static Satori fallback is required`)
+      continue
+    }
+
+    const woff = await woffEncode(decoded).catch((error: Error) => {
+      options.logger.warn(`Failed to encode Nuxt Fonts asset ${fontSrc} as WOFF: ${error.message}`)
+      return null
+    })
+    if (!woff)
+      continue
+
+    const sourceFilename = fontSrc.split('/').pop()!
+    const filename = sourceFilename.replace(/\.woff2$/i, '.woff')
+    await fs.promises.writeFile(join(staticFontDir, filename), woff)
+    options.fontState.sourceMap.set(fontSrc, `${STATIC_FONTS_PREFIX}/${filename}`)
+  }
+
+  if (options.fontState.sourceMap.size > 0)
+    options.logger.debug(`Converted ${options.fontState.sourceMap.size} Nuxt Fonts WOFF2 assets to WOFF`)
+}
+
 /**
- * Process WOFF2 fonts for Satori compatibility.
- * Satori can't use WOFF2 directly — uses fontless to download static TTF/WOFF alternatives.
+ * Prepare WOFF2 fonts for Satori and Takumi. Static Nuxt Fonts assets are
+ * converted directly to WOFF, preserving every user-selected subset. Only
+ * variable or unreadable assets need provider-resolved static fallbacks.
  */
-export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<void> {
-  const { nuxt, logger, fontRequirements, convertedWoff2Files, fontSubsets, warnOnMissingStaticFonts = true } = options
-
-  const parsedFonts = await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
-
-  // Filter to WOFF2 fonts that need processing (no WOFF/TTF alternative available)
+export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<void> {
+  const { nuxt, logger, fontRequirements, fontState, nuxtFontsContext, fontSubsets, warnOnMissingStaticFonts = true } = options
+  const parsedFonts = await parseFontsFromTemplate(nuxt, { fontState })
+  const requirementsByFamily = new Map<string, ReturnType<typeof getFamilyRequirements>>()
+  for (const font of parsedFonts) {
+    if (!requirementsByFamily.has(font.family))
+      requirementsByFamily.set(font.family, getFamilyRequirements(fontRequirements, font.family))
+  }
   const hasNonWoff2 = new Set(
     parsedFonts
       .filter(f => !f.src.endsWith('.woff2'))
       .map(f => fontKey(f)),
   )
 
-  // Don't filter by family — @nuxt/fonts fonts are explicitly configured by the user
-  // and may not appear in fontRequirements.families (which only tracks CSS class usage)
-  const woff2Fonts = parsedFonts.filter(f =>
-    f.src.endsWith('.woff2')
-    && !hasNonWoff2.has(fontKey(f))
-    && !isConfiguredLocalFontFamily(nuxt, f.family)
-    && fontRequirements.weights.includes(f.weight)
-    && fontRequirements.styles.includes(f.style as 'normal' | 'italic'),
-  )
+  const woff2Fonts = parsedFonts.filter((font) => {
+    const requirements = requirementsByFamily.get(font.family)!
+    return font.src.endsWith('.woff2')
+      && !hasNonWoff2.has(fontKey(font))
+      && requirements.weights.includes(font.weight)
+      && requirements.styles.includes(font.style as 'normal' | 'italic')
+  })
 
   if (woff2Fonts.length === 0) {
     logger.debug('No WOFF2 fonts to process')
     return
   }
 
-  // Group WOFF2 fonts by family, requesting ALL fontRequirements.weights for each family.
-  // @nuxt/fonts may serve variable fonts with a single weight entry (e.g. 400), but the
-  // underlying font supports a full weight range. By requesting all needed weights from
-  // fontless, we get static alternatives for every weight the templates actually use.
-  const familyMap = new Map<string, { weights: Set<number>, styles: Set<'normal' | 'italic'> }>()
-  for (const font of woff2Fonts) {
-    const existing = familyMap.get(font.family) || { weights: new Set(fontRequirements.weights), styles: new Set() }
-    existing.styles.add(font.style as 'normal' | 'italic')
-    familyMap.set(font.family, existing)
+  await convertNuxtWoff2Sources({
+    fonts: woff2Fonts,
+    nuxt,
+    context: nuxtFontsContext,
+    fontState,
+    logger,
+  })
+
+  if (!warnOnMissingStaticFonts)
+    return
+
+  const configuredLocalFamilies = new Set(
+    woff2Fonts
+      .filter(font => isConfiguredLocalFontFamily(nuxt, font.family))
+      .map(font => font.family),
+  )
+  const unresolvedLocalFamilies = new Set(
+    woff2Fonts
+      .filter(font => configuredLocalFamilies.has(font.family) && !fontState.sourceMap.has(font.src))
+      .map(font => font.family),
+  )
+  for (const family of unresolvedLocalFamilies) {
+    logger.warn(`Configured Nuxt Fonts assets for "${family}" could not be converted for Satori. Satori does not support WOFF2 or variable fonts; use static WOFF/TTF sources or the Takumi renderer.`)
   }
 
-  const families = Array.from(familyMap.entries(), ([family, { weights, styles }]) => ({
+  const availableStaticFonts = new Set(
+    parsedFonts
+      .filter(font => !font.src.endsWith('.woff2') || fontState.sourceMap.has(font.src))
+      .map(font => `${font.family}-${font.weight}-${font.style}`),
+  )
+  const fallbackRequests = new Map<string, { family: string, weights: Set<number>, style: 'normal' | 'italic' }>()
+  for (const font of woff2Fonts) {
+    if (configuredLocalFamilies.has(font.family))
+      continue
+    const style = font.style as 'normal' | 'italic'
+    const requirements = requirementsByFamily.get(font.family)!
+    const key = `${font.family}\0${style}`
+    const request = fallbackRequests.get(key) || { family: font.family, weights: new Set<number>(), style }
+    for (const weight of requirements.weights) {
+      if (!availableStaticFonts.has(`${font.family}-${weight}-${style}`))
+        request.weights.add(weight)
+    }
+    fallbackRequests.set(key, request)
+  }
+
+  const families = Array.from(fallbackRequests.values(), ({ family, weights, style }) => ({
     family,
     weights: [...weights],
-    styles: [...styles],
-  }))
+    styles: [style],
+  })).filter(family => family.weights.length > 0)
+  if (families.length === 0)
+    return
 
-  logger.debug(`Resolving static fonts for: ${families.map(f => f.family).join(', ')}`)
+  logger.debug(`Resolving static font fallbacks for: ${families.map(f => f.family).join(', ')}`)
+  const downloaded = await downloadStaticFonts({
+    families,
+    nuxt,
+    logger,
+    fontSubsets,
+    warnOnMissingStaticFonts,
+  }).catch((error: Error) => {
+    logger.debug('fontless resolution failed:', error)
+    return []
+  })
 
-  try {
-    const downloaded = await downloadStaticFonts({
-      families,
-      nuxt,
-      logger,
-      fontSubsets,
-      warnOnMissingStaticFonts,
-    })
-
-    for (const font of downloaded) {
-      const key = `${font.family}-${font.weight}-${font.style}`
-      convertedWoff2Files.set(key, `${STATIC_FONTS_PREFIX}/${font.filename}`)
-    }
-
-    if (convertedWoff2Files.size > 0) {
-      logger.debug(`Resolved ${convertedWoff2Files.size} static font files via fontless`)
-    }
-    else if (warnOnMissingStaticFonts) {
-      logger.warn(`No static fonts available for Satori. Falling back to bundled Inter font. Consider using 'takumi' renderer for variable font support.`)
-    }
+  for (const font of downloaded) {
+    const key = `${font.family}-${font.weight}-${font.style}`
+    fontState.fallbackMap.set(key, `${STATIC_FONTS_PREFIX}/${font.filename}`)
   }
-  catch (err) {
-    logger.debug('fontless resolution failed:', err)
-  }
+
+  if (fontState.fallbackMap.size > 0)
+    logger.debug(`Resolved ${fontState.fallbackMap.size} static font fallbacks via fontless`)
+  else if (fontState.sourceMap.size === 0)
+    logger.warn(`No static fonts available for Satori. Falling back to bundled Inter font. Consider using the Takumi renderer for variable font support.`)
 }
 
 // ============================================================================
@@ -531,7 +723,7 @@ export async function convertWoff2ToTtf(options: ProcessFontsOptions): Promise<v
  * Resolve font families not available from @nuxt/fonts global CSS.
  * Downloads static font files via fontless (Fontsource, Google, Bunny).
  */
-export async function resolveMissingFontFamilies(options: {
+async function resolveMissingFontFamilies(options: {
   missingFamilies: string[]
   weights: number[]
   styles: Array<'normal' | 'italic'>
@@ -572,7 +764,7 @@ export async function resolveOgImageFonts(options: {
   hasNuxtFonts: boolean
   hasSatoriRenderer: boolean
   hasTakumiRenderer: boolean
-  convertedWoff2Files: Map<string, string>
+  fontState: FontProcessingState
   fontSubsets?: string[]
   fontRequirements: FontRequirementsState
   tw4FontVars: Record<string, string>
@@ -580,12 +772,12 @@ export async function resolveOgImageFonts(options: {
   /** Absolute path to bundled _og-fonts directory for direct filesystem reads during prerender */
   ogFontsDir?: string
 }): Promise<ParsedFont[]> {
-  const { nuxt, hasNuxtFonts, hasSatoriRenderer, hasTakumiRenderer, convertedWoff2Files, fontSubsets, fontRequirements, tw4FontVars, logger, ogFontsDir } = options
+  const { nuxt, hasNuxtFonts, hasSatoriRenderer, hasTakumiRenderer, fontState, fontSubsets, fontRequirements, tw4FontVars, logger, ogFontsDir } = options
   const staticInterFonts = getStaticInterFonts(ogFontsDir)
 
   // 1. Extract fonts from @nuxt/fonts global CSS (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
-    ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirements.weights })
+    ? await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirements.weights })
     : []
 
   if (hasNuxtFonts) {
@@ -665,7 +857,7 @@ export async function resolveOgImageFonts(options: {
   // not the actual @nuxt/fonts families (e.g. Inter).
   const nuxtFontFamilies = new Set(
     hasNuxtFonts
-      ? (await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirements.weights })).map(f => f.family)
+      ? (await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
       : [],
   )
   const fonts = !fontRequirements.hasDynamicBindings

@@ -1,9 +1,8 @@
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createResolver } from '@nuxt/kit'
-import { setup, useTestContext } from '@nuxt/test-utils/e2e'
+import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
-import { fetchOgImage, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -13,57 +12,34 @@ await setup({
   build: true,
 })
 
-setupImageSnapshots(SNAPSHOT_LOOSE)
-
-function findFontsCacheDir(baseDir: string): string | null {
-  const cacheDir = join(baseDir, 'cache', 'fonts')
-  return existsSync(cacheDir) ? cacheDir : null
+function getConvertedFontFiles(): string[] {
+  const ctx = useTestContext()
+  const buildDir = ctx.nuxt!.options.buildDir
+  const mappingPath = join(buildDir, 'cache', 'og-image', 'font-urls.json')
+  const staticFontDir = join(buildDir, 'cache', 'og-image', 'static-fonts')
+  const mapping = JSON.parse(readFileSync(mappingPath, 'utf8')) as Record<string, string>
+  return Object.keys(mapping)
+    .filter(filename => filename.endsWith('.woff2'))
+    .map(filename => filename.replace(/\.woff2$/, '.woff'))
+    .filter(filename => existsSync(join(staticFontDir, filename)))
 }
 
-describe('woff2 to ttf conversion', () => {
-  it('prefers WOFF over WOFF2 for Satori compatibility', () => {
+describe('nuxt Fonts WOFF2 conversion', () => {
+  it('preserves Nuxt Fonts assets as valid WOFF files', () => {
     const ctx = useTestContext()
-    const rootDir = ctx.nuxt!.options.rootDir
-    const fontsDir = findFontsCacheDir(join(rootDir, '.nuxt'))
+    const staticFontDir = join(ctx.nuxt!.options.buildDir, 'cache', 'og-image', 'static-fonts')
+    const convertedFonts = getConvertedFontFiles()
 
-    if (fontsDir) {
-      const ttfFiles = readdirSync(fontsDir).filter(f => f.endsWith('.ttf') && !f.includes('-base'))
-      expect(ttfFiles.length).toBeGreaterThanOrEqual(0)
+    expect(convertedFonts.length).toBeGreaterThan(0)
+    for (const filename of convertedFonts) {
+      const font = readFileSync(join(staticFontDir, filename))
+      expect(font.subarray(0, 4)).toEqual(Buffer.from('wOFF'))
     }
   })
 
-  it('converts WOFF2 fonts only when no WOFF fallback exists', () => {
-    const ctx = useTestContext()
-    const rootDir = ctx.nuxt!.options.rootDir
-    const fontsDir = findFontsCacheDir(join(rootDir, '.nuxt'))
-
-    if (fontsDir) {
-      const ttfFiles = readdirSync(fontsDir).filter(f => f.endsWith('.ttf') && !f.includes('-base'))
-      for (const file of ttfFiles) {
-        const stat = statSync(join(fontsDir, file))
-        expect(stat.size).toBeGreaterThan(1000)
-      }
-    }
-  })
-
-  it('uses satoriSrc pointing to WOFF or converted TTF', async () => {
-    const ctx = useTestContext()
-    expect(ctx.nuxt).toBeTruthy()
-  })
-
-  it('outputs TTF fonts via @nuxt/fonts publicAssets', () => {
-    const ctx = useTestContext()
-    const rootDir = ctx.nuxt!.options.rootDir
-    const outputDir = join(rootDir, '.output', 'public', '_fonts')
-
-    if (existsSync(outputDir)) {
-      const ttfFiles = readdirSync(outputDir).filter(f => f.endsWith('.ttf'))
-      expect(ttfFiles.length).toBeGreaterThanOrEqual(0)
-    }
-  })
-
-  it('renders OG image with fonts (WOFF or converted TTF)', async () => {
-    const image = await fetchOgImage('/')
-    expect(image).toMatchImageSnapshot()
+  it('serves converted assets from the static font route', async () => {
+    const filename = getConvertedFontFiles()[0]!
+    const font = await $fetch(`/_og-static-fonts/${filename}`, { responseType: 'arrayBuffer' }) as ArrayBuffer
+    expect(Buffer.from(font).subarray(0, 4)).toEqual(Buffer.from('wOFF'))
   })
 })

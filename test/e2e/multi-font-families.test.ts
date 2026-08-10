@@ -56,12 +56,8 @@ describe('multi-font-families', () => {
     }
   })
 
-  it('downloads static font files for variable font weights', async () => {
-    const [font400, font700] = await Promise.all([
-      $fetch('/_og-static-fonts/Nunito_Sans-400-normal.woff', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
-      $fetch('/_og-static-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
-    ])
-    expect(font400.byteLength).toBeGreaterThan(1000)
+  it('downloads a static fallback for a missing font weight', async () => {
+    const font700 = await $fetch('/_og-static-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' }) as ArrayBuffer
     expect(font700.byteLength).toBeGreaterThan(1000)
   })
 

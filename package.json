@@ -164,7 +164,8 @@
     "tinyexec": "catalog:",
     "ufo": "catalog:",
     "ultrahtml": "catalog:",
-    "unplugin": "catalog:"
+    "unplugin": "catalog:",
+    "woff-lib": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",

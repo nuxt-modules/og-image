@@ -4,14 +4,15 @@ export default defineNuxtConfig({
   extends: ['../.base'],
 
   modules: [
+    '@nuxt/fonts',
     Module,
   ],
 
   fonts: {
     families: [
       {
-        name: 'Roboto',
-        weights: [400, 700],
+        name: 'Lobster',
+        weights: [400],
         styles: ['normal'],
         global: true,
       },
