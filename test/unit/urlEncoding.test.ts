@@ -54,6 +54,29 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({ props: { title: 'Hello, World' } })
     })
 
+    it('b64 encodes Win32-reserved filename characters', () => {
+      const reservedCharacters = [
+        '<',
+        '>',
+        ':',
+        '"',
+        '/',
+        '\\',
+        '|',
+        '?',
+        '*',
+        ...Array.from({ length: 32 }, (_, charCode) => String.fromCharCode(charCode)),
+      ]
+
+      for (const character of reservedCharacters) {
+        const description = `before${character}after`
+        const encoded = encodeOgImageParams({ props: { description } })
+
+        expect(encoded, JSON.stringify(character)).toMatch(/^description_~/)
+        expect(decodeOgImageParams(encoded)).toEqual({ props: { description } })
+      }
+    })
+
     it('base64 encodes complex objects', () => {
       const encoded = encodeOgImageParams({
         satori: { fonts: [] },
