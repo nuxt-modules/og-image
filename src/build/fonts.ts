@@ -45,7 +45,7 @@ export const FONTS_URL_PREFIX = '/_fonts'
 export const STATIC_FONTS_PREFIX = '/_og-static-fonts'
 
 export interface FontProcessingState {
-  /** Exact @nuxt/fonts WOFF2 URL → locally converted WOFF path. */
+  /** Exact @nuxt/fonts WOFF2 URL → locally decoded TTF path. */
   sourceMap: Map<string, string>
   /** Font identity (family+weight+style) → provider-resolved static fallback path. */
   fallbackMap: Map<string, string>

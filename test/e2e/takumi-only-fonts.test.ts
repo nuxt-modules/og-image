@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
-import { fetchOgImage, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
+import { fetchOgImage, getConvertedFontFiles, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -27,16 +27,15 @@ await setup({
 setupImageSnapshots(SNAPSHOT_LOOSE)
 
 describe('takumi-only fonts', () => {
-  it.runIf(hasTakumi)('downloads static fallback fonts for takumi-only apps', async () => {
-    // Direct check on the build output: pre-v6.2.0 emitted these for takumi too; v6.2.0
-    // narrowed the gate so a takumi-only app got no static TTFs at all and non-latin
-    // scripts had nothing to fall back to.
-    const [devanagari, poppins] = await Promise.all([
-      $fetch('/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
-      $fetch('/_og-static-fonts/Poppins-400-normal.ttf', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
-    ])
-    expect(devanagari.byteLength).toBeGreaterThan(10_000)
-    expect(poppins.byteLength).toBeGreaterThan(10_000)
+  it.runIf(hasTakumi)('prepares static fonts for takumi-only apps', async () => {
+    const convertedFonts = getConvertedFontFiles(useTestContext().nuxt!.options.buildDir)
+    expect(convertedFonts.length).toBeGreaterThan(0)
+
+    const fonts = await Promise.all(convertedFonts.map(filename =>
+      $fetch(`/_og-static-fonts/${filename}`, { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
+    ))
+    for (const font of fonts)
+      expect(Buffer.from(font).subarray(0, 4)).toEqual(Buffer.from([0, 1, 0, 0]))
   })
 
   it.runIf(hasTakumi)('renders devanagari glyphs through takumi', async () => {

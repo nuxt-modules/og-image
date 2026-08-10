@@ -1561,7 +1561,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}
 export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.options.buildDir))}`
     }
 
-    // Convert static Nuxt Fonts WOFF2 assets to WOFF for Satori and Takumi.
+    // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori and Takumi.
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
       // Hook into @nuxt/fonts to persist font URL mapping for prerender

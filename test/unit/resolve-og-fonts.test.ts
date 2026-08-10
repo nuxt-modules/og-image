@@ -167,9 +167,10 @@ describe('prepareWoff2Fonts', () => {
       expect(fontState.fallbackMap.size).toBe(0)
       let outputBytes = 0
       for (const outputSrc of fontState.sourceMap.values()) {
+        expect(outputSrc).toMatch(/\.ttf$/)
         const output = readFileSync(join(getStaticFontCacheDir(nuxt.options.buildDir), outputSrc.split('/').pop()!))
         outputBytes += output.byteLength
-        expect(output.subarray(0, 4)).toEqual(Buffer.from('wOFF'))
+        expect(output.subarray(0, 4)).toEqual(Buffer.from([0, 1, 0, 0]))
       }
       expect(outputBytes).toBeLessThan(20_000)
     }
@@ -190,7 +191,7 @@ describe('prepareWoff2Fonts', () => {
     })
     const fontState = {
       fallbackMap: new Map<string, string>(),
-      sourceMap: new Map([['/_fonts/nunito.woff2', '/_og-static-fonts/nunito.woff']]),
+      sourceMap: new Map([['/_fonts/nunito.woff2', '/_og-static-fonts/nunito.ttf']]),
     }
     const nuxt = {
       options: {
@@ -236,7 +237,7 @@ describe('prepareWoff2Fonts', () => {
     }
   })
 
-  it('does not resolve provider fallbacks when static fonts are optional', async () => {
+  it('suppresses warnings when a static fallback is optional', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'og-image-fontless-'))
     const resolver = vi.fn().mockResolvedValue(undefined)
     const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
@@ -270,7 +271,10 @@ describe('prepareWoff2Fonts', () => {
         warnOnMissingStaticFonts: false,
       })
 
-      expect(resolver).not.toHaveBeenCalled()
+      expect(resolver).toHaveBeenCalledWith(
+        'Raleway Variable',
+        expect.objectContaining({ name: 'Raleway Variable' }),
+      )
       expect(logger.warn).not.toHaveBeenCalled()
     }
     finally {

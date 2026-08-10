@@ -225,7 +225,7 @@ export interface FontConfig {
   weight: number
   style: 'normal' | 'italic'
   src: string
-  /** TTF path for Satori (converted from WOFF2 if needed). Falls back to src if not set. */
+  /** Static source for renderers that cannot use the primary font. Falls back to src if not set. */
   satoriSrc?: string
   localPath: string
   /** Absolute filesystem path for statically bundled fonts. */

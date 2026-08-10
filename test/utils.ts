@@ -1,4 +1,5 @@
 import type { MatchImageSnapshotOptions } from 'jest-image-snapshot'
+import { existsSync, readFileSync } from 'node:fs'
 import * as fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { createResolver } from '@nuxt/kit'
@@ -125,6 +126,15 @@ export async function fetchOgImage(pagePath: string): Promise<Buffer> {
   expect(ogUrl).toBeTruthy()
   const image: ArrayBuffer = await $fetch(ogUrl!, { responseType: 'arrayBuffer' })
   return Buffer.from(image)
+}
+
+export function getConvertedFontFiles(buildDir: string): string[] {
+  const staticFontDir = join(buildDir, 'cache', 'og-image', 'static-fonts')
+  const mapping = JSON.parse(readFileSync(join(buildDir, 'cache', 'og-image', 'font-urls.json'), 'utf8')) as Record<string, string>
+  return Object.keys(mapping)
+    .filter(filename => filename.endsWith('.woff2'))
+    .map(filename => filename.replace(/\.woff2$/, '.ttf'))
+    .filter(filename => existsSync(join(staticFontDir, filename)))
 }
 
 /**

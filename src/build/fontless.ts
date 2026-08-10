@@ -566,10 +566,7 @@ async function convertNuxtWoff2Sources(options: {
   if (mappedSources.length === 0)
     return
 
-  const [{ woff2Decode }, { woffEncode }] = await Promise.all([
-    import('woff-lib/woff2/decode'),
-    import('woff-lib/woff/encode'),
-  ])
+  const { woff2Decode } = await import('woff-lib/woff2/decode')
 
   for (const { fontSrc, font, originalSource } of mappedSources) {
     const asset = await readNuxtFontAsset(options.nuxt, originalSource)
@@ -590,26 +587,19 @@ async function convertNuxtWoff2Sources(options: {
       continue
     }
 
-    const woff = await woffEncode(decoded).catch((error: Error) => {
-      options.logger.warn(`Failed to encode Nuxt Fonts asset ${fontSrc} as WOFF: ${error.message}`)
-      return null
-    })
-    if (!woff)
-      continue
-
     const sourceFilename = fontSrc.split('/').pop()!
-    const filename = sourceFilename.replace(/\.woff2$/i, '.woff')
-    await fs.promises.writeFile(join(staticFontDir, filename), woff)
+    const filename = sourceFilename.replace(/\.woff2$/i, '.ttf')
+    await fs.promises.writeFile(join(staticFontDir, filename), decoded)
     options.fontState.sourceMap.set(fontSrc, `${STATIC_FONTS_PREFIX}/${filename}`)
   }
 
   if (options.fontState.sourceMap.size > 0)
-    options.logger.debug(`Converted ${options.fontState.sourceMap.size} Nuxt Fonts WOFF2 assets to WOFF`)
+    options.logger.debug(`Converted ${options.fontState.sourceMap.size} Nuxt Fonts WOFF2 assets to TTF`)
 }
 
 /**
  * Prepare WOFF2 fonts for Satori and Takumi. Static Nuxt Fonts assets are
- * converted directly to WOFF, preserving every user-selected subset. Only
+ * decoded directly to TTF, preserving every user-selected subset. Only
  * variable or unreadable assets need provider-resolved static fallbacks.
  */
 export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<void> {
@@ -647,9 +637,6 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
     logger,
   })
 
-  if (!warnOnMissingStaticFonts)
-    return
-
   const configuredLocalFamilies = new Set(
     woff2Fonts
       .filter(font => isConfiguredLocalFontFamily(nuxt, font.family))
@@ -660,8 +647,9 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
       .filter(font => configuredLocalFamilies.has(font.family) && !fontState.sourceMap.has(font.src))
       .map(font => font.family),
   )
-  for (const family of unresolvedLocalFamilies) {
-    logger.warn(`Configured Nuxt Fonts assets for "${family}" could not be converted for Satori. Satori does not support WOFF2 or variable fonts; use static WOFF/TTF sources or the Takumi renderer.`)
+  if (warnOnMissingStaticFonts) {
+    for (const family of unresolvedLocalFamilies)
+      logger.warn(`Configured Nuxt Fonts assets for "${family}" could not be converted for Satori. Satori does not support WOFF2 or variable fonts; use static WOFF/TTF sources or the Takumi renderer.`)
   }
 
   const availableStaticFonts = new Set(
@@ -711,7 +699,7 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
 
   if (fontState.fallbackMap.size > 0)
     logger.debug(`Resolved ${fontState.fallbackMap.size} static font fallbacks via fontless`)
-  else if (fontState.sourceMap.size === 0)
+  else if (warnOnMissingStaticFonts && fontState.sourceMap.size === 0)
     logger.warn(`No static fonts available for Satori. Falling back to bundled Inter font. Consider using the Takumi renderer for variable font support.`)
 }
 
