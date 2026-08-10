@@ -234,11 +234,12 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
         // ASCII-safe value: try URL encoding first, then check for problematic percent-encoding.
         // Characters like #, ?, /, \, =, & produce %XX sequences that get decoded by
         // proxies, CDNs, and prerender crawlers in unpredictable ways (#528, #529).
-        // If percent-encoding is needed, use b64 instead to avoid these issues entirely.
+        // encodeURIComponent leaves * unescaped, but it is invalid in Windows and
+        // GitHub Artifact filenames. Use b64 for either case.
         const escaped = str.startsWith('~') ? `~${str}` : str
         const encoded = encodeURIComponent(escaped.replace(RE_UNDERSCORE, '__'))
           .replace(RE_PERCENT20, '+') // spaces as +
-        if (encoded.includes('%')) {
+        if (encoded.includes('%') || encoded.includes('*')) {
           // Value contains URL-sensitive chars; b64 encode to prevent intermediary decoding
           parts.push(`${alias}_~${b64Encode(str)}`)
         }
