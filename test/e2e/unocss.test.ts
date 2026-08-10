@@ -1,9 +1,8 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import getColors from 'get-image-colors'
 import { toMatchImageSnapshot } from 'jest-image-snapshot'
 import { describe, expect, it } from 'vitest'
-import { extractOgImageUrl, fetchOgImage } from '../utils'
+import { extractOgImageUrl, fetchOgImage, imageHasColor } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -49,17 +48,10 @@ describe('unocss', () => {
 
   it('extracts expected colors from og image', async () => {
     const image = await fetchOgImage('/')
-    const colors = await getColors(image, 'image/png')
-    const hexColors = colors.map(c => c.hex())
-
-    expect(hexColors.length).toBeGreaterThanOrEqual(3)
-
-    const hasChroma = hexColors.some((hex) => {
-      const r = Number.parseInt(hex.slice(1, 3), 16)
-      const g = Number.parseInt(hex.slice(3, 5), 16)
-      const b = Number.parseInt(hex.slice(5, 7), 16)
-      return Math.abs(r - g) > 30 || Math.abs(g - b) > 30 || Math.abs(r - b) > 30
-    })
+    const hasChroma = await imageHasColor(
+      image,
+      ({ r, g, b }) => Math.abs(r - g) > 30 || Math.abs(g - b) > 30 || Math.abs(r - b) > 30,
+    )
     expect(hasChroma).toBe(true)
   })
 

@@ -1,6 +1,28 @@
 # Changelog
 
 
+## v6.7.5...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.5...main)
+
+### 🩹 Fixes
+
+- **docs:** Remove redirected compatibility route ([67a6ece7](https://github.com/nuxt-modules/og-image/commit/67a6ece7))
+- Isolate worker render failures under concurrent prerendering ([#652](https://github.com/nuxt-modules/og-image/pull/652))
+- Support Nitro 3 runtime imports ([#653](https://github.com/nuxt-modules/og-image/pull/653))
+- **fonts:** Suppress Takumi fallback warning ([#654](https://github.com/nuxt-modules/og-image/pull/654))
+
+### 🏡 Chore
+
+- Trim runtime dependency footprint ([#639](https://github.com/nuxt-modules/og-image/pull/639))
+- Broken lock ([63692b19](https://github.com/nuxt-modules/og-image/commit/63692b19))
+- Bump deps ([82e97e85](https://github.com/nuxt-modules/og-image/commit/82e97e85))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+- Matthias Amon <matthias@lupinum.com>
+
 ## v6.7.4...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.4...main)

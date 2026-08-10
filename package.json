@@ -2,7 +2,7 @@
   "name": "nuxt-og-image",
   "type": "module",
   "version": "6.7.6",
-  "packageManager": "pnpm@11.19.0",
+  "packageManager": "pnpm@11.20.0",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
     "website": "https://harlanzw.com",
@@ -212,7 +212,6 @@
     "eslint": "catalog:",
     "eslint-plugin-harlanzw": "catalog:",
     "fontless": "catalog:",
-    "get-image-colors": "catalog:",
     "globby": "catalog:",
     "happy-dom": "catalog:",
     "hookable": "catalog:",

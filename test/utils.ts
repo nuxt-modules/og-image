@@ -5,6 +5,7 @@ import { createResolver } from '@nuxt/kit'
 import { $fetch } from '@nuxt/test-utils/e2e'
 import { configureToMatchImageSnapshot } from 'jest-image-snapshot'
 import { join } from 'pathe'
+import sharp from 'sharp'
 import { exec } from 'tinyexec'
 import { expect } from 'vitest'
 
@@ -151,6 +152,26 @@ export function getImageDimensions(buffer: Buffer): { width: number, height: num
     }
   }
   throw new Error('Not a valid PNG')
+}
+
+export interface RgbColor { r: number, g: number, b: number }
+
+export async function getImagePixels(image: Buffer): Promise<Buffer> {
+  return await sharp(image).ensureAlpha().raw().toBuffer()
+}
+
+export async function imageHasColor(image: Buffer, predicate: (color: RgbColor) => boolean): Promise<boolean> {
+  const pixels = await getImagePixels(image)
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    if (pixels[offset + 3] !== 0 && predicate({
+      r: pixels[offset]!,
+      g: pixels[offset + 1]!,
+      b: pixels[offset + 2]!,
+    })) {
+      return true
+    }
+  }
+  return false
 }
 
 // Snapshot threshold presets
