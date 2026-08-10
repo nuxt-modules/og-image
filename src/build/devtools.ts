@@ -214,19 +214,19 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       if (isCssChange || normalizedPath.includes('uno.config')) {
         clearTimeout(cssRefreshTimer)
         cssRefreshTimer = setTimeout(() => {
-          safeBroadcast(() => rpc.broadcast.refresh())
+          safeBroadcast(() => rpc.broadcast.refresh.asEvent())
         }, 200)
         return
       }
 
       if ((e === 'change' || e.includes('link')) && (normalizedPath.startsWith('pages') || normalizedPath.startsWith('content'))) {
-        safeBroadcast(() => rpc.broadcast.refreshRouteData(normalizedPath))
+        safeBroadcast(() => rpc.broadcast.refreshRouteData.asEvent(normalizedPath))
       }
       if (options.componentDirs.some(dir => normalizedPath.includes(dir))) {
         if (e === 'change')
-          safeBroadcast(() => rpc.broadcast.refresh())
+          safeBroadcast(() => rpc.broadcast.refresh.asEvent())
         else
-          safeBroadcast(() => rpc.broadcast.refreshGlobalData())
+          safeBroadcast(() => rpc.broadcast.refreshGlobalData.asEvent())
       }
     })
   })
