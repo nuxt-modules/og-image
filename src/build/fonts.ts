@@ -472,7 +472,6 @@ export async function parseFontsFromTemplate(
     }
   }
 
-  const defaultUnicodeRange = 'U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
   const result = expandedFonts.map((font) => {
     // Look up fontless static download by font identity (family+weight+style, no unicodeRange)
     const fKey = `${font.family}-${font.weight}-${font.style}`
@@ -488,7 +487,7 @@ export async function parseFontsFromTemplate(
       weight: font.weight,
       style: font.style,
       satoriSrc,
-      unicodeRange: font.unicodeRange || defaultUnicodeRange,
+      unicodeRange: font.unicodeRange,
       subset: font.subset,
       weightRange: font.weightRange,
     }

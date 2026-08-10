@@ -177,7 +177,7 @@ async function initFontless(options: {
         weights: [400, 700],
         styles: ['normal', 'italic'],
         subsets: options.fontSubsets || ['latin'],
-        // Satori/Takumi can't reliably use WOFF2 subsets — request static formats
+        // Static fallbacks must use formats supported by both renderers.
         formats: ['woff', 'ttf'],
       },
     },
@@ -603,7 +603,7 @@ async function convertNuxtWoff2Sources(options: {
 }
 
 /**
- * Prepare WOFF2 fonts for Satori and Takumi. Static Nuxt Fonts assets are
+ * Prepare WOFF2 fonts for Satori. Static Nuxt Fonts assets are
  * decoded directly to TTF, preserving every user-selected subset. Only
  * variable or unreadable assets need provider-resolved static fallbacks.
  */
@@ -813,7 +813,6 @@ export async function resolveOgImageFonts(options: {
   }
 
   // 2. Satori/Takumi: resolve missing font families via fontless
-  // Takumi needs static fonts to work around WOFF2 subset decompression bugs
   // Skip when @nuxt/fonts is not installed — fontless can't resolve system/fallback fonts
   // from TW4 font stacks (e.g. Menlo, Apple Color Emoji), just use bundled Inter instead
   if ((hasSatoriRenderer || hasTakumiRenderer) && hasNuxtFonts) {
@@ -887,7 +886,7 @@ export async function resolveOgImageFonts(options: {
 
   // 5. Always include bundled Inter as a guaranteed last-resort fallback.
   // Static TTF files work with all renderers. Without this, if all user fonts
-  // fail to load at runtime (e.g. WOFF2 subset bugs in Takumi, 404 on satoriSrc),
+  // fail to load at runtime (e.g. an unavailable Nuxt Fonts asset or satoriSrc),
   // text becomes invisible because there's no system font fallback.
   const existingInterKeys = new Set(fonts.filter(f => f.family === 'Inter').map(f => fontKey(f)))
   for (const interFont of staticInterFonts) {

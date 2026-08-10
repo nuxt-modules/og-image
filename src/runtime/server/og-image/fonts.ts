@@ -27,13 +27,6 @@ export interface LoadFontsOptions {
   fontFamilyOverride?: string
   /** Codepoints present in the template — fonts whose unicodeRange doesn't intersect are skipped */
   codepoints?: Set<number>
-  /**
-   * Prefer the static satoriSrc (full TTF/WOFF from fontless) over the primary src
-   * (subset WOFF2 from @nuxt/fonts) when both are usable. Takumi uses this so non-Latin
-   * glyphs (devanagari, CJK, etc.) render — @nuxt/fonts CSS often only ships latin
-   * subsets for a family, but the fontless static file contains the full glyph set.
-   */
-  preferStatic?: boolean
 }
 
 async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<BufferSource | null> {
@@ -149,12 +142,9 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   }
 
   // Resolve the effective src per font up-front: primary src when supported, else satoriSrc.
-  // Takumi opts into preferStatic so the full static TTF is used instead of the subset WOFF2 —
-  // @nuxt/fonts CSS may only include latin subsets, and using the subset would hide non-latin
-  // glyphs (devanagari, CJK) that the full static file covers.
   const resolved: Array<{ font: FontConfig, src: string, isStaticFallback: boolean }> = []
   for (const f of fonts) {
-    const selection = selectFontSource(f, options.supportedFormats, options.preferStatic ?? false)
+    const selection = selectFontSource(f, options.supportedFormats)
     if (selection)
       resolved.push({ font: f, ...selection })
   }

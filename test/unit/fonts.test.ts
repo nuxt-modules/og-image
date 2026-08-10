@@ -665,29 +665,16 @@ describe('buildSubsetFamilyChain', () => {
 })
 
 describe('selectFontSource', () => {
-  // Regression: https://github.com/nuxt-modules/og-image/issues/586
-  // @nuxt/fonts CSS often only ships the latin subset WOFF2 for a family. With preferStatic=true,
-  // takumi should pick the full static TTF (fontless-downloaded satoriSrc) so non-latin glyphs render.
-  it('prefers static satoriSrc for takumi when both primary and satoriSrc are supported', () => {
+  it('uses primary WOFF2 for Takumi when a static alternative exists', () => {
     const result = selectFontSource(
-      { src: '/_fonts/devanagari-latin-subset.woff2', satoriSrc: '/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf' },
+      { src: '/_fonts/devanagari.woff2', satoriSrc: '/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf' },
       TAKUMI_FORMATS,
-      true,
     )
-    expect(result).toEqual({ src: '/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf', isStaticFallback: true })
+    expect(result).toEqual({ src: '/_fonts/devanagari.woff2', isStaticFallback: false })
   })
 
   it('uses primary WOFF2 for takumi when no satoriSrc exists', () => {
-    const result = selectFontSource({ src: '/_fonts/inter.woff2' }, TAKUMI_FORMATS, true)
-    expect(result).toEqual({ src: '/_fonts/inter.woff2', isStaticFallback: false })
-  })
-
-  it('uses primary src for takumi when preferStatic=false', () => {
-    const result = selectFontSource(
-      { src: '/_fonts/inter.woff2', satoriSrc: '/_og-static-fonts/inter.ttf' },
-      TAKUMI_FORMATS,
-      false,
-    )
+    const result = selectFontSource({ src: '/_fonts/inter.woff2' }, TAKUMI_FORMATS)
     expect(result).toEqual({ src: '/_fonts/inter.woff2', isStaticFallback: false })
   })
 
@@ -695,7 +682,6 @@ describe('selectFontSource', () => {
     const result = selectFontSource(
       { src: '/_og-static-fonts/inter.ttf', satoriSrc: '/_og-static-fonts/inter.ttf' },
       TAKUMI_FORMATS,
-      true,
     )
     expect(result).toEqual({ src: '/_og-static-fonts/inter.ttf', isStaticFallback: false })
   })
@@ -704,46 +690,12 @@ describe('selectFontSource', () => {
     const result = selectFontSource(
       { src: '/_fonts/inter.woff2', satoriSrc: '/_og-static-fonts/inter.ttf' },
       SATORI_FORMATS,
-      false,
     )
     expect(result).toEqual({ src: '/_og-static-fonts/inter.ttf', isStaticFallback: true })
   })
 
   it('returns null when no supported src is available (satori + WOFF2 only)', () => {
-    const result = selectFontSource({ src: '/_fonts/inter.woff2' }, SATORI_FORMATS, false)
+    const result = selectFontSource({ src: '/_fonts/inter.woff2' }, SATORI_FORMATS)
     expect(result).toBeNull()
-  })
-
-  // Regression: with a variable font + per-weight static fallbacks, preferStatic
-  // would pick the static TTF and lose the wght axis. The runtime would then
-  // stair-step requested weights through `findClosestWeight` against whatever
-  // weights fontless happened to download (e.g. 400 → 100, 700 → 700 with a
-  // jump in between). Keep the variable WOFF2 so takumi varies the axis.
-  it('keeps the variable WOFF2 over per-weight satoriSrc when entry has weightRange', () => {
-    const result = selectFontSource(
-      {
-        src: '/_fonts/raleway-variable.woff2',
-        satoriSrc: '/_og-static-fonts/Raleway-400-normal.ttf',
-        weightRange: [100, 900],
-      },
-      TAKUMI_FORMATS,
-      true,
-    )
-    expect(result).toEqual({ src: '/_fonts/raleway-variable.woff2', isStaticFallback: false })
-  })
-
-  it('still falls back to satoriSrc for a variable font when primary format is unsupported', () => {
-    // Defensive: if primary src isn't parseable by the renderer, the static is still
-    // better than rendering tofu — we accept the axis loss in that case.
-    const result = selectFontSource(
-      {
-        src: '/_fonts/raleway-variable.woff2',
-        satoriSrc: '/_og-static-fonts/Raleway-400-normal.ttf',
-        weightRange: [100, 900],
-      },
-      SATORI_FORMATS,
-      false,
-    )
-    expect(result).toEqual({ src: '/_og-static-fonts/Raleway-400-normal.ttf', isStaticFallback: true })
   })
 })

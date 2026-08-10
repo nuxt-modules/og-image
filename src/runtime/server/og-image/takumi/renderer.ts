@@ -277,7 +277,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
   const codepoints = extractCodepoints(nodes)
-  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), preferStatic: true, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
+  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
   const fontEntries = dedupeFontsByBinary(fonts)
 
   const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
@@ -416,7 +416,7 @@ const TakumiRenderer: Renderer = {
   async debug(e) {
     const [vnodes, fonts] = await Promise.all([
       createTakumiNodes(e),
-      loadFontsForRenderer(e, { supportedFormats: new Set(['ttf', 'woff2'] as const), preferStatic: true, component: e.options.component }),
+      loadFontsForRenderer(e, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: e.options.component }),
     ])
     return {
       vnodes,

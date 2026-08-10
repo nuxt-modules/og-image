@@ -1223,8 +1223,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    const needsWoff2Decoder = ogImageComponentCtx.detectedRenderers.has('satori') || ogImageComponentCtx.detectedRenderers.has('takumi')
-    if (!nuxt.options._prepare && hasNuxtFonts && needsWoff2Decoder) {
+    if (!nuxt.options._prepare && hasNuxtFonts && ogImageComponentCtx.detectedRenderers.has('satori')) {
       const decoderPath = await resolveOptionalModulePath('woff-lib/woff2/decode', nuxt.options.rootDir)
       if (!decoderPath) {
         if (!nuxt.options.dev)
@@ -1492,7 +1491,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       }
       // Dev mode: WOFF2 preparation may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
-      if (!fontProcessingDone && (hasSatoriRenderer() || hasTakumiRenderer()) && hasNuxtFonts) {
+      if (!fontProcessingDone && hasSatoriRenderer() && hasNuxtFonts) {
         if (pendingFontRequirements.length > 0)
           await Promise.all(pendingFontRequirements)
         await prepareWoff2Fonts({
@@ -1574,7 +1573,7 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}
 export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.options.buildDir))}`
     }
 
-    // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori and Takumi.
+    // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori.
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
       // Hook into @nuxt/fonts to persist font URL mapping for prerender
@@ -1585,7 +1584,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       nuxt.hook('vite:compiled', async () => {
         // Always persist font URL mapping (needed by all renderers for prerender/dev font resolution)
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
-        if (fontProcessingDone || (!hasSatoriRenderer() && !hasTakumiRenderer()))
+        if (fontProcessingDone || !hasSatoriRenderer())
           return
         // Skip until font requirements are populated (OG components are server-side,
         // so onFontRequirements runs during the server Vite build, not the client build)
