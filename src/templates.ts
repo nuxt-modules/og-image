@@ -248,8 +248,8 @@ declare module '#og-image-cache' {
           NitroApp: `_ogImageCacheBackendWarned?: boolean
 _ogImageIconsData?: OgImageIconsData`,
           NitroRuntimeConfig: `'nuxt-og-image': OgImageRuntimeConfig
-ogImage?: {
-  secret?: string
+ogImage: {
+  secret: string
 }`,
         },
         routeRules: 'ogImage?: false | OgImageOptions & Record<string, any>',
