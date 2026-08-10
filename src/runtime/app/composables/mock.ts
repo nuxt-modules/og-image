@@ -14,7 +14,7 @@ export function defineOgImage<T extends keyof OgImageComponents>(_component: T, 
  */
 export function defineOgImageComponent<T extends keyof OgImageComponents>(_component: T, _props: ReactiveComponentProps<OgImageComponents[T]> = {}, _options: OgImageOptions = {}) {
   if (import.meta.dev) {
-    logger.warn('`defineOgImageComponent()` is deprecated. Use `defineOgImage()` instead. Run `npx nuxt-og-image migrate v6` to auto-migrate.')
+    logger.warn('`defineOgImageComponent()` is deprecated. Use `defineOgImage()` instead. Run `npx nuxt-og-image-cli migrate v6` to auto-migrate.')
   }
 }
 

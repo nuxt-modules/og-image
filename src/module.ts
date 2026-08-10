@@ -312,7 +312,7 @@ export interface ModuleOptions {
      * Leave unset to auto-generate a per-build secret (signing on by default).
      * Set an explicit, stable string for rolling or multi-instance deploys, or
      * `false` to disable signing entirely. Generate one with:
-     * `npx nuxt-og-image generate-secret`
+     * `npx nuxt-og-image-cli generate-secret`
      *
      * Required (explicitly) when `strict` is enabled.
      */
@@ -449,7 +449,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Strict still requires an explicit, stable secret — the auto value's
     // per-build rotation isn't a strong enough guarantee for strict mode.
     if (config.security?.strict && !signing.hasExplicit) {
-      throw new Error('[nuxt-og-image] `security.strict` requires a signing secret. Generate one with: npx nuxt-og-image generate-secret')
+      throw new Error('[nuxt-og-image] `security.strict` requires a signing secret. Generate one with: npx nuxt-og-image-cli generate-secret')
     }
 
     // Signing only happens at runtime, so the secret warnings are irrelevant for
@@ -465,7 +465,7 @@ export default defineNuxtModule<ModuleOptions>({
           'Attackers can craft image requests and poison the cache so your real OG image URLs serve attacker-controlled content (content spoofing).',
           'Signing will be required in v7 whenever runtime image generation is enabled. Leave signing on, or set an explicit secret:',
           '  NUXT_OG_IMAGE_SECRET=<secret>',
-          '  Generate one with: npx nuxt-og-image generate-secret',
+          '  Generate one with: npx nuxt-og-image-cli generate-secret',
         ].join('\n'))
       }
       else if (signing.generated) {
@@ -473,7 +473,7 @@ export default defineNuxtModule<ModuleOptions>({
           'OG image URLs are signed with an auto-generated secret that changes every build.',
           'This is fine for single-instance deploys; for rolling or multi-instance deploys set a stable secret:',
           '  NUXT_OG_IMAGE_SECRET=<secret>',
-          '  Generate one with: npx nuxt-og-image generate-secret',
+          '  Generate one with: npx nuxt-og-image-cli generate-secret',
         ].join('\n'))
       }
     })
@@ -1380,7 +1380,7 @@ export default defineNuxtModule<ModuleOptions>({
         else if (!nuxt.options._prepare) {
           const message = `OG Image components missing renderer suffix (.satori.vue, .browser.vue, .takumi.vue):\n${
             invalidComponents.map(c => `  ${c}`).join('\n')
-          }\n\nRun: npx nuxt-og-image migrate v6`
+          }\n\nRun: npx nuxt-og-image-cli migrate v6`
           throw new Error(message)
         }
       }

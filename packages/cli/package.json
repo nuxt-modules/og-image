@@ -1,0 +1,60 @@
+{
+  "name": "nuxt-og-image-cli",
+  "type": "module",
+  "version": "6.7.6",
+  "description": "Command-line tools for Nuxt OG Image.",
+  "author": {
+    "website": "https://harlanzw.com",
+    "name": "Harlan Wilton",
+    "url": "harlan@harlanzw.com"
+  },
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/harlan-zw",
+  "homepage": "https://nuxtseo.com/og-image/guides/cli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nuxt-modules/og-image.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/nuxt-modules/og-image/issues"
+  },
+  "bin": {
+    "nuxt-og-image": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "lint": "eslint .",
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "nuxt-og-image": "workspace:^"
+  },
+  "dependencies": {
+    "@clack/prompts": "catalog:",
+    "@nuxt/kit": "catalog:",
+    "magicast": "catalog:",
+    "nypm": "catalog:",
+    "oxc-walker": "catalog:",
+    "pathe": "catalog:",
+    "tinyexec": "catalog:",
+    "ultrahtml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "nuxt-og-image": "workspace:^",
+    "typescript": "catalog:",
+    "unbuild": "catalog:",
+    "vitest": "catalog:"
+  }
+}

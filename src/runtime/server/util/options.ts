@@ -195,7 +195,7 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
       else {
         throw createError({
           statusCode: 500,
-          message: `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image eject ${resolved.pascalName}\n  No app components found — create one in components/OgImage/`,
+          message: `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image-cli eject ${resolved.pascalName}\n  No app components found — create one in components/OgImage/`,
         })
       }
     }
