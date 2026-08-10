@@ -173,6 +173,12 @@ async function readInstalledPackage(appDir) {
   return JSON.parse(await readFile(join(appDir, 'node_modules/nuxt-og-image/package.json'), 'utf8'))
 }
 
+async function assertLicenseAttribution(appDir) {
+  const license = await readFile(join(appDir, 'node_modules/nuxt-og-image/LICENSE.md'), 'utf8')
+  assert(license.includes('Copyright (c) 2013-2017 by the WOFF2 Authors'), 'packed license should retain the WOFF2 attribution')
+  assert(license.includes('Copyright (c) 2026 Jeremy Tribby, Countertype LLC'), 'packed license should retain the woff-lib attribution')
+}
+
 function assertPackageMetadata(pkg) {
   for (const name of ['culori', 'tinyglobby', 'woff-lib']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
@@ -221,6 +227,7 @@ async function assertNuxtOnlyApp(pm, tarball) {
 
   await install(pm, appDir)
   assertPackageMetadata(await readInstalledPackage(appDir))
+  await assertLicenseAttribution(appDir)
   await assertNoDirectDistImports(appDir)
   await execPackage(pm, appDir, ['nuxi', 'prepare'], `${pm} nuxi prepare`)
   await execPackage(pm, appDir, ['nuxt-og-image', 'migrate', 'v6', '--dry-run', '--yes'], `${pm} nuxt-og-image migrate`)

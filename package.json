@@ -41,7 +41,6 @@
     "nuxt-og-image": "./bin/cli.mjs"
   },
   "files": [
-    "THIRD_PARTY_NOTICES.md",
     "bin",
     "dist",
     "types/virtual.d.ts"

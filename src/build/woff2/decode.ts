@@ -6,7 +6,7 @@
  *
  * Copyright (c) 2013-2017 by the WOFF2 Authors
  * Copyright (c) 2026 Jeremy Tribby, Countertype LLC
- * MIT licensed. See THIRD_PARTY_NOTICES.md.
+ * MIT licensed. See LICENSE.md.
  * Bounds checks are explicit; TypeScript cannot narrow typed-array indexing.
  */
 
