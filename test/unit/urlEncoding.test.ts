@@ -54,12 +54,27 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({ props: { title: 'Hello, World' } })
     })
 
-    it('b64 encodes filesystem-unsafe characters', () => {
-      const description = 'whoopsies *deletes public folder*'
-      const encoded = encodeOgImageParams({ props: { description } })
+    it('b64 encodes Win32-reserved filename characters', () => {
+      const reservedCharacters = [
+        '<',
+        '>',
+        ':',
+        '"',
+        '/',
+        '\\',
+        '|',
+        '?',
+        '*',
+        ...Array.from({ length: 32 }, (_, charCode) => String.fromCharCode(charCode)),
+      ]
 
-      expect(encoded).not.toContain('*')
-      expect(decodeOgImageParams(encoded)).toEqual({ props: { description } })
+      for (const character of reservedCharacters) {
+        const description = `before${character}after`
+        const encoded = encodeOgImageParams({ props: { description } })
+
+        expect(encoded, JSON.stringify(character)).toMatch(/^description_~/)
+        expect(decodeOgImageParams(encoded)).toEqual({ props: { description } })
+      }
     })
 
     it('base64 encodes complex objects', () => {

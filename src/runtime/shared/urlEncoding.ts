@@ -36,6 +36,8 @@ const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
 const RE_SIGNATURE_SUFFIX = /,s_[^,]+$/
 // eslint-disable-next-line no-control-regex
 const RE_NON_ASCII = /[^\u0000-\u007F]/
+// eslint-disable-next-line no-control-regex
+const RE_WINDOWS_RESERVED_FILENAME_CHARACTERS = /[<>:"/\\|?*\u0000-\u001F]/
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -234,12 +236,11 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
         // ASCII-safe value: try URL encoding first, then check for problematic percent-encoding.
         // Characters like #, ?, /, \, =, & produce %XX sequences that get decoded by
         // proxies, CDNs, and prerender crawlers in unpredictable ways (#528, #529).
-        // encodeURIComponent leaves * unescaped, but it is invalid in Windows and
-        // GitHub Artifact filenames. Use b64 for either case.
+        // Win32 also reserves < > : " / \ | ? *, NUL, and ASCII controls in filenames.
         const escaped = str.startsWith('~') ? `~${str}` : str
         const encoded = encodeURIComponent(escaped.replace(RE_UNDERSCORE, '__'))
           .replace(RE_PERCENT20, '+') // spaces as +
-        if (encoded.includes('%') || encoded.includes('*')) {
+        if (encoded.includes('%') || RE_WINDOWS_RESERVED_FILENAME_CHARACTERS.test(str)) {
           // Value contains URL-sensitive chars; b64 encode to prevent intermediary decoding
           parts.push(`${alias}_~${b64Encode(str)}`)
         }
