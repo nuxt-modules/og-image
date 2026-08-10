@@ -51,13 +51,6 @@ export interface FontProcessingState {
   fallbackMap: Map<string, string>
 }
 
-export function createFontProcessingState(): FontProcessingState {
-  return {
-    sourceMap: new Map(),
-    fallbackMap: new Map(),
-  }
-}
-
 export function getStaticFontCacheDir(buildDir: string): string {
   return join(buildDir, 'cache', 'og-image', 'static-fonts')
 }

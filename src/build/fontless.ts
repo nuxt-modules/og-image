@@ -5,7 +5,7 @@
  * (backed by unifont providers: Fontsource, Google, Bunny) to download
  * static TTF/WOFF alternatives.
  *
- * Both `fontless` and `unifont` are optional peer dependencies.
+ * `fontless`, `unifont`, and `woff-lib` are optional peer dependencies.
  */
 
 import type { ConsolaInstance } from 'consola'
@@ -20,6 +20,7 @@ import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
+import { importOptionalPeer, resolveOptionalModulePath } from './optional-module'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -566,7 +567,10 @@ async function convertNuxtWoff2Sources(options: {
   if (mappedSources.length === 0)
     return
 
-  const { woff2Decode } = await import('woff-lib/woff2/decode')
+  const decoderPath = await resolveOptionalModulePath('woff-lib/woff2/decode', options.nuxt.options.rootDir)
+  const { woff2Decode } = await importOptionalPeer<{
+    woff2Decode: (data: Uint8Array) => Promise<Uint8Array>
+  }>('woff-lib/woff2/decode', decoderPath, 'Nuxt Fonts WOFF2 conversion')
 
   for (const { fontSrc, font, originalSource } of mappedSources) {
     const asset = await readNuxtFontAsset(options.nuxt, originalSource)
@@ -652,8 +656,14 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
       logger.warn(`Configured Nuxt Fonts assets for "${family}" could not be converted for Satori. Satori does not support WOFF2 or variable fonts; use static WOFF/TTF sources or the Takumi renderer.`)
   }
 
+  const unavailableStaticFonts = new Set(
+    woff2Fonts
+      .filter(font => !fontState.sourceMap.has(font.src))
+      .map(font => `${font.family}-${font.weight}-${font.style}`),
+  )
   const availableStaticFonts = new Set(
     parsedFonts
+      .filter(font => !unavailableStaticFonts.has(`${font.family}-${font.weight}-${font.style}`))
       .filter(font => !font.src.endsWith('.woff2') || fontState.sourceMap.has(font.src))
       .map(font => `${font.family}-${font.weight}-${font.style}`),
   )

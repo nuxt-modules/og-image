@@ -179,6 +179,79 @@ describe('prepareWoff2Fonts', () => {
     }
   })
 
+  it('resolves a fallback when any subset cannot be decoded', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-partial-font-'))
+    const publicFontsDir = join(rootDir, 'public', 'fonts')
+    mkdirSync(publicFontsDir, { recursive: true })
+    copyFileSync(
+      join(process.cwd(), 'node_modules', '@fontsource', 'noto-sans-sc', 'files', 'noto-sans-sc-97-400-normal.woff2'),
+      join(publicFontsDir, 'subset-97.woff2'),
+    )
+
+    const subsets = ['subset-97.woff2', 'missing-subset.woff2']
+    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce(subsets.map(src => ({
+      family: 'Noto Sans SC',
+      src: `/_fonts/${src}`,
+      weight: 400,
+      style: 'normal',
+    })))
+
+    const fallbackUrl = 'data:font/woff;base64,d09GRgAAAAA='
+    const resolver = vi.fn().mockResolvedValue({
+      fonts: [{
+        weight: 400,
+        style: 'normal',
+        src: [{ url: fallbackUrl, originalURL: fallbackUrl, format: 'woff' }],
+      }],
+    })
+    const fontState = {
+      fallbackMap: new Map<string, string>(),
+      sourceMap: new Map<string, string>(),
+    }
+    const nuxt = {
+      options: {
+        buildDir: join(rootDir, '.nuxt'),
+        dir: { public: 'public' },
+        fonts: { families: [{ name: 'Noto Sans SC', provider: 'google', global: true }] },
+        rootDir,
+        srcDir: rootDir,
+      },
+      _ogImageFontless: {
+        resolver,
+        renderedFontURLs: new Map(),
+        providerNames: ['google'],
+      },
+    } as any
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
+        fontRequirements: {
+          ...baseFontReqs,
+          componentMap: {
+            CjkCard: { weights: [400], styles: ['normal'], families: ['Noto Sans SC'], hasDynamicBindings: false },
+          },
+        },
+        fontState,
+        nuxtFontsContext: {
+          assetsBaseURL: '/_fonts',
+          renderedFontURLs: new Map(subsets.map(filename => [filename, `/fonts/${filename}`])),
+        },
+      } as any)
+
+      expect(resolver).toHaveBeenCalledWith('Noto Sans SC', {
+        name: 'Noto Sans SC',
+        styles: ['normal'],
+        weights: [400],
+      })
+      expect(fontState.fallbackMap.has('Noto Sans SC-400-normal')).toBe(true)
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it('resolves only missing weights used with a provider font', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
     const fallbackUrl = 'data:font/woff;base64,d09GRgAAAAA='

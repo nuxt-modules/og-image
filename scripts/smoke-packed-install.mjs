@@ -19,6 +19,7 @@ const optionalizedPackages = [
   '@unocss/core',
   'culori',
   'tinyglobby',
+  'woff-lib',
 ]
 const RE_ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
 
@@ -179,7 +180,7 @@ function assertPackageMetadata(pkg) {
     assert(!pkg.peerDependencies?.[name], `${name} should not be a peer dependency`)
   }
 
-  for (const name of ['@unocss/core', '@unocss/config']) {
+  for (const name of ['@unocss/core', '@unocss/config', 'woff-lib']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(pkg.peerDependencies?.[name], `${name} should be declared as an optional peer`)
     assert(pkg.peerDependenciesMeta?.[name]?.optional === true, `${name} peer should be optional`)

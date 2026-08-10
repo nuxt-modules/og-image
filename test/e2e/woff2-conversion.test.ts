@@ -3,7 +3,7 @@ import { createResolver } from '@nuxt/kit'
 import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
-import { getConvertedFontFiles } from '../utils'
+import { fetchOgImage, getConvertedFontFiles } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -30,5 +30,10 @@ describe('nuxt Fonts WOFF2 conversion', () => {
     const filename = getConvertedFontFiles(useTestContext().nuxt!.options.buildDir)[0]!
     const font = await $fetch(`/_og-static-fonts/${filename}`, { responseType: 'arrayBuffer' }) as ArrayBuffer
     expect(Buffer.from(font).subarray(0, 4)).toEqual(Buffer.from([0, 1, 0, 0]))
+  })
+
+  it('renders the converted font with Satori', async () => {
+    const image = await fetchOgImage('/')
+    expect(image.byteLength).toBeGreaterThan(1000)
   })
 })

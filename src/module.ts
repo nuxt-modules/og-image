@@ -35,7 +35,6 @@ import { persistFontUrlMapping, prepareWoff2Fonts, resolveOgImageFonts } from '.
 import {
   buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
-  createFontProcessingState,
   getStaticFontCacheDir,
   parseFontsFromTemplate,
   resolveFontFamilies,
@@ -781,7 +780,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Used by builder:watch to detect when a nested component changes and trigger a Nitro reload.
     const ogImageTransformedFiles = new Set<string>()
 
-    const fontState = createFontProcessingState()
+    const fontState = {
+      sourceMap: new Map<string, string>(),
+      fallbackMap: new Map<string, string>(),
+    }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
@@ -1221,6 +1223,17 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
+    const needsWoff2Decoder = ogImageComponentCtx.detectedRenderers.has('satori') || ogImageComponentCtx.detectedRenderers.has('takumi')
+    if (!nuxt.options._prepare && hasNuxtFonts && needsWoff2Decoder) {
+      const decoderPath = await resolveOptionalModulePath('woff-lib/woff2/decode', nuxt.options.rootDir)
+      if (!decoderPath) {
+        if (!nuxt.options.dev)
+          throw new Error('[nuxt-og-image] Nuxt Fonts conversion requires the optional "woff-lib" build dependency. Install it with your package manager.')
+        logger.info('Installing woff-lib for Nuxt Fonts conversion')
+        await ensureDependencies(['woff-lib'], nuxt)
+      }
+    }
+
     runtimeCompatibilityMeta.takumiVersion = await detectTakumiVersion(
       resolver,
       getRecommendedBinding('takumi', targetCompatibility),
@@ -1459,7 +1472,7 @@ import { resolve as nodeResolve } from '${nodeBinding}'
 export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : nodeResolve
 `
     }
-    // Whether satori/takumi are detected renderers — gates WOFF2 conversion and fontless logic
+    // Renderer detection gates font conversion and shared fontless logic.
     // Browser renderer handles WOFF2 and variable fonts natively
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
     const hasTakumiRenderer = () => ogImageComponentCtx.detectedRenderers.has('takumi')

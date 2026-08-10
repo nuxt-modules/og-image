@@ -417,9 +417,6 @@ importers:
       unstorage:
         specifier: ^1.15.0
         version: 1.17.5(db0@0.3.4(better-sqlite3@13.0.2))(ioredis@5.11.1(supports-color@10.2.2))
-      woff-lib:
-        specifier: 'catalog:'
-        version: 0.0.3
     devDependencies:
       '@antfu/eslint-config':
         specifier: 'catalog:'
@@ -622,6 +619,9 @@ importers:
       vue-tsc:
         specifier: 'catalog:'
         version: 3.3.9(typescript@6.0.3)
+      woff-lib:
+        specifier: 'catalog:'
+        version: 0.0.3
       wrangler:
         specifier: 'catalog:'
         version: 4.118.0
