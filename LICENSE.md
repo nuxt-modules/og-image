@@ -2,6 +2,12 @@ MIT License
 
 Copyright (c) 2024 Harlan Wilton
 
+The WOFF2 decoder is adapted from woff-lib 0.0.3:
+https://github.com/countertype/woff-lib/tree/e14e442dc8aa4dcf856ab8a03f847709400a68db
+
+Copyright (c) 2013-2017 by the WOFF2 Authors
+Copyright (c) 2026 Jeremy Tribby, Countertype LLC
+
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.

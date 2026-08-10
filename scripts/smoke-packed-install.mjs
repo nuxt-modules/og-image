@@ -173,8 +173,14 @@ async function readInstalledPackage(appDir) {
   return JSON.parse(await readFile(join(appDir, 'node_modules/nuxt-og-image/package.json'), 'utf8'))
 }
 
+async function assertLicenseAttribution(appDir) {
+  const license = await readFile(join(appDir, 'node_modules/nuxt-og-image/LICENSE.md'), 'utf8')
+  assert(license.includes('Copyright (c) 2013-2017 by the WOFF2 Authors'), 'packed license should retain the WOFF2 attribution')
+  assert(license.includes('Copyright (c) 2026 Jeremy Tribby, Countertype LLC'), 'packed license should retain the woff-lib attribution')
+}
+
 function assertPackageMetadata(pkg) {
-  for (const name of ['culori', 'tinyglobby']) {
+  for (const name of ['culori', 'tinyglobby', 'woff-lib']) {
     assert(!pkg.dependencies?.[name], `${name} should not be a runtime dependency`)
     assert(!pkg.peerDependencies?.[name], `${name} should not be a peer dependency`)
   }
@@ -193,6 +199,8 @@ async function assertNoDirectDistImports(appDir) {
   const distDir = join(appDir, 'node_modules/nuxt-og-image/dist')
   const files = (await listFiles(distDir))
     .filter(file => /\.(?:cjs|mjs|js)$/.test(file))
+  const cjsFiles = files.filter(file => file.endsWith('.cjs'))
+  assert(cjsFiles.length === 0, `ESM-only package should not contain CJS output:\n${cjsFiles.join('\n')}`)
 
   for (const file of files) {
     const source = await readFile(file, 'utf8')
@@ -219,6 +227,7 @@ async function assertNuxtOnlyApp(pm, tarball) {
 
   await install(pm, appDir)
   assertPackageMetadata(await readInstalledPackage(appDir))
+  await assertLicenseAttribution(appDir)
   await assertNoDirectDistImports(appDir)
   await execPackage(pm, appDir, ['nuxi', 'prepare'], `${pm} nuxi prepare`)
   await execPackage(pm, appDir, ['nuxt-og-image', 'migrate', 'v6', '--dry-run', '--yes'], `${pm} nuxt-og-image migrate`)

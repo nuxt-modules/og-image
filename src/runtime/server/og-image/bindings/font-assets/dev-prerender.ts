@@ -5,7 +5,7 @@ import { join } from 'pathe'
 import { withBase } from 'ufo'
 import { getRequestURL } from '#nuxtseo/h3'
 import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
-import { buildDir, rootDir } from '#og-image-virtual/build-dir.mjs'
+import { buildDir, rootDir, staticFontCacheDir } from '#og-image-virtual/build-dir.mjs'
 import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
@@ -61,7 +61,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)
     if (path.startsWith('/_og-static-fonts/')) {
       const filename = path.slice('/_og-static-fonts/'.length)
-      const cached = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename))
+      const cached = await readOptionalFile(join(staticFontCacheDir, filename))
         || await readOptionalFile(join(rootDir, '.output', 'public', '_og-static-fonts', filename))
       if (cached?.length)
         return cached
@@ -96,7 +96,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   // Static fonts — try og-image's cache first (dev mode)
   if (path.startsWith('/_og-static-fonts/')) {
     const filename = path.slice('/_og-static-fonts/'.length)
-    const cached = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'fonts-ttf', filename))
+    const cached = await readOptionalFile(join(staticFontCacheDir, filename))
     if (cached?.length)
       return cached
   }

@@ -3,13 +3,13 @@ import { defineOgImage } from '#imports'
 
 defineOgImage('OgImageDefault', {
   title: '優兒區',
-  renderer: 'satori',
+  renderer: 'takumi',
 })
 </script>
 
 <template>
   <div>
-    <h1>Nuxt Fonts WOFF2 Conversion Test</h1>
-    <p>This page tests that WOFF2 fonts from @nuxt/fonts are decoded to TTF for Satori rendering.</p>
+    <h1>Nuxt Fonts WOFF2 Takumi Test</h1>
+    <p>This page tests direct rendering from the configured WOFF2 subset.</p>
   </div>
 </template>

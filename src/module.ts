@@ -31,10 +31,11 @@ import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
-import { convertWoff2ToTtf, persistFontUrlMapping, resolveOgImageFonts } from './build/fontless'
+import { persistFontUrlMapping, prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
+  getStaticFontCacheDir,
   parseFontsFromTemplate,
   resolveFontFamilies,
 } from './build/fonts'
@@ -46,11 +47,7 @@ import { resolveSigningSecret } from './build/signing-secret'
 import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
-import {
-  ensureDependencies,
-  getPresetNitroPresetCompatibility,
-  resolveOgImagePreset,
-} from './compatibility'
+import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
@@ -779,9 +776,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Used by builder:watch to detect when a nested component changes and trigger a Nitro reload.
     const ogImageTransformedFiles = new Set<string>()
 
-    // Track fontless-downloaded static fonts by font identity (family+weight+style → download path)
-    // Used to set satoriSrc on @nuxt/fonts entries, bypassing variable font WOFF files
-    const convertedWoff2Files = new Map<string, string>()
+    const fontState = {
+      sourceMap: new Map<string, string>(),
+      fallbackMap: new Map<string, string>(),
+    }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
     const ogImageComponentCtx: { components: OgImageComponent[], detectedRenderers: Set<RendererType> } = { components: [], detectedRenderers: new Set() }
@@ -812,13 +810,13 @@ export default defineNuxtModule<ModuleOptions>({
             return
 
           // Lazy-load CSS metadata for font var resolution.
-          // Track pending promise so convertWoff2ToTtf can await all resolutions.
+          // Track pending promise so WOFF2 preparation can await all resolutions.
           const p = loadCssMetadata().then(async () => {
             // Build canonical font family map from resolved @nuxt/fonts families.
             // Normalizes template names to match @nuxt/fonts casing (e.g. 'Biz UDPGothic' → 'BIZ UDPGothic').
             let knownFamilies: Map<string, string> | undefined
             if (hasNuxtFonts) {
-              const resolvedFonts = await parseFontsFromTemplate(nuxt, { convertedWoff2Files })
+              const resolvedFonts = await parseFontsFromTemplate(nuxt, { fontState })
               knownFamilies = buildFontFamilyCanonicalMap(resolvedFonts.map(f => f.family))
             }
             const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars, knownFamilies)
@@ -1423,9 +1421,9 @@ export function getIslandHash({ name, props, context, source }) {
     nuxt.options.nitro.publicAssets ||= []
     // Serve static font downloads (fontless-resolved + bundled Inter fallback)
     // All static fonts are served under /_og-static-fonts/ (separate from @nuxt/fonts /_fonts/)
-    const staticFontsTtfDir = join(nuxt.options.buildDir, 'cache', 'og-image', 'fonts-ttf')
+    const staticFontCacheDir = getStaticFontCacheDir(nuxt.options.buildDir)
     nuxt.options.nitro.publicAssets.push({
-      dir: staticFontsTtfDir,
+      dir: staticFontCacheDir,
       baseURL: '/_og-static-fonts',
       maxAge: 60 * 60 * 24 * 365,
     })
@@ -1459,13 +1457,13 @@ import { resolve as nodeResolve } from '${nodeBinding}'
 export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : nodeResolve
 `
     }
-    // Whether satori/takumi are detected renderers — gates WOFF2 conversion and fontless logic
+    // Renderer detection gates font conversion and shared fontless logic.
     // Browser renderer handles WOFF2 and variable fonts natively
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
     const hasTakumiRenderer = () => ogImageComponentCtx.detectedRenderers.has('takumi')
 
     // Hoisted from `if (hasNuxtFonts)` so the virtual module factory can access them
-    let fontContext: { renderedFontURLs: Map<string, string> } | null = null
+    let fontContext: { assetsBaseURL: string, renderedFontURLs: Map<string, string> } | null = null
     let fontProcessingDone = false
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
@@ -1477,26 +1475,28 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       if (hasNuxtFonts && fontContext) {
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
       }
-      // Dev mode: convertWoff2ToTtf() may not have run via vite:compiled
+      // Dev mode: WOFF2 preparation may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
-      if (!fontProcessingDone && convertedWoff2Files.size === 0 && (hasSatoriRenderer() || hasTakumiRenderer()) && hasNuxtFonts) {
+      if (!fontProcessingDone && hasSatoriRenderer() && hasNuxtFonts) {
         if (pendingFontRequirements.length > 0)
           await Promise.all(pendingFontRequirements)
-        await convertWoff2ToTtf({
+        await prepareWoff2Fonts({
           nuxt,
           logger,
           fontRequirements: fontRequirementsState,
-          convertedWoff2Files,
+          fontState,
+          nuxtFontsContext: fontContext,
           fontSubsets: config.fontSubsets,
           warnOnMissingStaticFonts: hasSatoriRenderer(),
         })
+        fontProcessingDone = true
       }
       const fonts = await resolveOgImageFonts({
         nuxt,
         hasNuxtFonts,
         hasSatoriRenderer: hasSatoriRenderer(),
         hasTakumiRenderer: hasTakumiRenderer(),
-        convertedWoff2Files,
+        fontState,
         fontSubsets: config.fontSubsets,
         fontRequirements: fontRequirementsState,
         tw4FontVars: cssMetadata.fontVars,
@@ -1509,7 +1509,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
       const fonts = hasNuxtFonts
-        ? await parseFontsFromTemplate(nuxt, { convertedWoff2Files, requiredWeights: fontRequirementsState.weights })
+        ? await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
         : []
       return `export default ${JSON.stringify(fonts)}`
     }
@@ -1555,21 +1555,22 @@ export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}
-export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
+export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}
+export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.options.buildDir))}`
     }
 
-    // @nuxt/fonts + satori font processing — convert WOFF2 to static TTF/WOFF via fontless.
-    // Only needed for Satori which can't parse WOFF2. Takumi handles WOFF2 natively.
+    // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori.
+    // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
       // Hook into @nuxt/fonts to persist font URL mapping for prerender
-      nuxt.hook('fonts:public-asset-context' as any, (ctx: { renderedFontURLs: Map<string, string> }) => {
+      nuxt.hook('fonts:public-asset-context' as any, (ctx: { assetsBaseURL: string, renderedFontURLs: Map<string, string> }) => {
         fontContext = ctx
       })
 
       nuxt.hook('vite:compiled', async () => {
         // Always persist font URL mapping (needed by all renderers for prerender/dev font resolution)
         persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
-        if (fontProcessingDone || (!hasSatoriRenderer() && !hasTakumiRenderer()))
+        if (fontProcessingDone || !hasSatoriRenderer())
           return
         // Skip until font requirements are populated (OG components are server-side,
         // so onFontRequirements runs during the server Vite build, not the client build)
@@ -1577,11 +1578,12 @@ export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}`
           return
         // Wait for all async font requirement resolutions to complete
         await Promise.all(pendingFontRequirements)
-        await convertWoff2ToTtf({
+        await prepareWoff2Fonts({
           nuxt,
           logger,
           fontRequirements: fontRequirementsState,
-          convertedWoff2Files,
+          fontState,
+          nuxtFontsContext: fontContext,
           fontSubsets: config.fontSubsets,
           warnOnMissingStaticFonts: hasSatoriRenderer(),
         })

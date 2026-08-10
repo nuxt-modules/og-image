@@ -4,15 +4,17 @@ export default defineNuxtConfig({
   extends: ['../.base'],
 
   modules: [
+    '@nuxt/fonts',
     Module,
   ],
 
   fonts: {
     families: [
       {
-        name: 'Roboto',
-        weights: [400, 700],
-        styles: ['normal'],
+        name: 'Noto Sans SC',
+        src: '/fonts/noto-sans-sc-100-400-normal.woff2',
+        weight: 400,
+        style: 'normal',
         global: true,
       },
     ],

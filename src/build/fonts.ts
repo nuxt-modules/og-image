@@ -45,10 +45,14 @@ export const FONTS_URL_PREFIX = '/_fonts'
 export const STATIC_FONTS_PREFIX = '/_og-static-fonts'
 
 export interface FontProcessingState {
-  /** Map of font identity (family+weight+style) → fontless-downloaded static font path */
-  convertedWoff2Files: Map<string, string>
-  /** Whether font processing has completed */
-  done: boolean
+  /** Exact @nuxt/fonts WOFF2 URL → locally decoded TTF path. */
+  sourceMap: Map<string, string>
+  /** Font identity (family+weight+style) → provider-resolved static fallback path. */
+  fallbackMap: Map<string, string>
+}
+
+export function getStaticFontCacheDir(buildDir: string): string {
+  return join(buildDir, 'cache', 'og-image', 'static-fonts')
 }
 
 export interface FontRequirementsState {
@@ -367,14 +371,16 @@ export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
 export async function parseFontsFromTemplate(
   nuxt: Nuxt,
   options: {
-    convertedWoff2Files: Map<string, string>
+    fontState: FontProcessingState
     /** Required font weights from component analysis — used to expand variable fonts */
     requiredWeights?: number[]
   },
 ): Promise<ParsedFont[]> {
-  // Cache on nuxt instance keyed by convertedWoff2Files state + requiredWeights
+  // Cache on nuxt instance keyed by font processing state + requiredWeights
   const weightsKey = options.requiredWeights?.toSorted((a, b) => a - b).join(',') || ''
-  const cacheKey = `${options.convertedWoff2Files.size}:${[...options.convertedWoff2Files.keys()].toSorted().join(',')}:${weightsKey}`
+  const sourceKey = [...options.fontState.sourceMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
+  const fallbackKey = [...options.fontState.fallbackMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
+  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}`
   const cache: Map<string, ParsedFont[]> = (nuxt as any)._ogImageParsedFontsCache ||= new Map()
   const cached = cache.get(cacheKey)
   if (cached)
@@ -410,7 +416,7 @@ export async function parseFontsFromTemplate(
   // only use fontless paths as satoriSrc (don't trust @nuxt/fonts WOFF files which may be variable)
   const fontlessFamilies = new Set(
     [...fontMap.values()]
-      .filter(f => options.convertedWoff2Files.has(`${f.family}-${f.weight}-${f.style}`))
+      .filter(f => options.fontState.fallbackMap.has(`${f.family}-${f.weight}-${f.style}`))
       .map(f => f.family),
   )
 
@@ -422,7 +428,7 @@ export async function parseFontsFromTemplate(
   // at runtime doesn't drop the font for the wrong subset.
   const expandedFonts = [...fontMap.values()]
   const existingKeys = new Set(expandedFonts.map(f => `${f.family}-${f.weight}-${f.style}`))
-  for (const [key] of options.convertedWoff2Files) {
+  for (const [key] of options.fontState.fallbackMap) {
     if (existingKeys.has(key))
       continue
     const match = key.match(RE_FONT_KEY)
@@ -443,7 +449,7 @@ export async function parseFontsFromTemplate(
   // Variable fonts (with weightRange) support a range of weights in a single file.
   // Create entries for each required weight within the range so renderers like Takumi
   // (which load WOFF2 natively) can match the correct weight at render time.
-  // This is independent of convertedWoff2Files — that handles Satori's static font downloads.
+  // This is independent of fallbackMap, which handles Satori's static font downloads.
   if (options.requiredWeights && options.requiredWeights.length > 0) {
     // Collect variable fonts by their weight range
     const variableFonts = expandedFonts.filter(f => f.weightRange)
@@ -466,14 +472,14 @@ export async function parseFontsFromTemplate(
     }
   }
 
-  const defaultUnicodeRange = 'U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
   const result = expandedFonts.map((font) => {
     // Look up fontless static download by font identity (family+weight+style, no unicodeRange)
     const fKey = `${font.family}-${font.weight}-${font.style}`
-    const fontlessPath = options.convertedWoff2Files.get(fKey)
-    // Use fontless path if available. For families with fontless coverage, don't fall back
-    // to @nuxt/fonts WOFF (may be variable fonts). For other families, use non-WOFF2 src.
-    const satoriSrc = fontlessPath
+    const convertedSource = options.fontState.sourceMap.get(font.src)
+    const fontlessPath = options.fontState.fallbackMap.get(fKey)
+    // Prefer the exact converted @nuxt/fonts source. For families with provider
+    // fallbacks, don't trust an @nuxt/fonts WOFF because it may be variable.
+    const satoriSrc = convertedSource || fontlessPath
       || (font.isWoff2 ? undefined : (fontlessFamilies.has(font.family) ? undefined : font.src))
     return {
       family: font.family,
@@ -481,7 +487,7 @@ export async function parseFontsFromTemplate(
       weight: font.weight,
       style: font.style,
       satoriSrc,
-      unicodeRange: font.unicodeRange || defaultUnicodeRange,
+      unicodeRange: font.unicodeRange,
       subset: font.subset,
       weightRange: font.weightRange,
     }
@@ -561,10 +567,10 @@ export function copyStaticFontsToOutput(options: {
   }
 
   // Copy fontless-downloaded static fonts
-  const ttfSourceDir = join(buildDir, 'cache', 'og-image', 'fonts-ttf')
-  if (existsSync(ttfSourceDir)) {
-    for (const file of fs.readdirSync(ttfSourceDir).filter(f => f.endsWith('.ttf') || f.endsWith('.woff'))) {
-      fs.copyFileSync(join(ttfSourceDir, file), join(outputDir, file))
+  const staticFontDir = getStaticFontCacheDir(buildDir)
+  if (existsSync(staticFontDir)) {
+    for (const file of fs.readdirSync(staticFontDir).filter(f => f.endsWith('.ttf') || f.endsWith('.woff'))) {
+      fs.copyFileSync(join(staticFontDir, file), join(outputDir, file))
       count++
     }
   }
