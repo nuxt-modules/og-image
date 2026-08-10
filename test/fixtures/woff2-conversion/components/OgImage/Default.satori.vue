@@ -47,8 +47,8 @@ defineProps<{
       <span :style="{ fontSize: '28px', fontWeight: 700, color: '#888', fontFamily: 'Inter' }">
         Inter 700: The quick brown fox
       </span>
-      <span :style="{ fontSize: '28px', fontWeight: 400, color: '#888', fontFamily: 'Lobster' }">
-        Lobster 400: The quick brown fox
+      <span :style="{ fontSize: '28px', fontWeight: 400, color: '#888', fontFamily: 'Noto Sans SC' }">
+        Noto Sans SC 400: 一丁七万三上下不与
       </span>
     </div>
   </div>

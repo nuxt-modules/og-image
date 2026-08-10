@@ -559,6 +559,7 @@ async function convertNuxtWoff2Sources(options: {
   const mappedSources: Array<{ font: ParsedFont, fontSrc: string, originalSource: string }> = []
   for (const [fontSrc, font] of fontsBySource) {
     const originalSource = getNuxtFontOriginalSource(fontSrc, options.context)
+      || (isConfiguredLocalFontFamily(options.nuxt, font.family) ? fontSrc : undefined)
     if (originalSource)
       mappedSources.push({ font, fontSrc, originalSource })
     else

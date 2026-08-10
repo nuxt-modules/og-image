@@ -25,6 +25,13 @@ const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
 
 const templates = readdirSync(communityDir).filter(f => f.endsWith('.vue'))
 
+const cjkSubsetDir = join(fixturesDir, 'woff2-conversion/public/fonts')
+mkdirSync(cjkSubsetDir, { recursive: true })
+cpSync(
+  join(root, 'node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-97-400-normal.woff2'),
+  join(cjkSubsetDir, 'noto-sans-sc-97-400-normal.woff2'),
+)
+
 // Eject community templates (fast, run sequentially)
 for (const fixture of fixtures) {
   const targetDir = join(root, fixture, 'components/OgImageCommunity')

@@ -2,8 +2,8 @@
 import { defineOgImage } from '#imports'
 
 defineOgImage('OgImageDefault', {
-  title: 'Nuxt Fonts Conversion Test',
-  description: 'Testing that exact WOFF2 assets are decoded to TTF for Satori',
+  title: '一丁七万三上下不与',
+  description: 'Subsetted Noto Sans SC',
 })
 </script>
 
