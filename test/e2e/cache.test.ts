@@ -60,6 +60,25 @@ describe('page query params in OG image URLs', () => {
 })
 
 describe('cache headers', () => {
+  it('does not trust unsigned cache keys from image URLs', async () => {
+    const html = await $fetch('/satori/cache-key') as string
+    const ogUrl = extractOgImageUrl(html)
+    expect(ogUrl).toContain('cacheKey_shared-cache-key')
+    expect(ogUrl).toContain('title_Trusted')
+
+    const trustedResponse = await fetch(ogUrl!)
+    const trustedImage = Buffer.from(await trustedResponse.arrayBuffer())
+
+    const poisonedUrl = ogUrl!.replace('title_Trusted', 'title_Poisoned')
+    const poisonedResponse = await fetch(`${poisonedUrl}?purge`)
+    const poisonedImage = Buffer.from(await poisonedResponse.arrayBuffer())
+    expect(poisonedImage).not.toEqual(trustedImage)
+
+    const cachedResponse = await fetch(ogUrl!)
+    const cachedImage = Buffer.from(await cachedResponse.arrayBuffer())
+    expect(cachedImage).toEqual(trustedImage)
+  }, 60000)
+
   it('dynamic OG image sets correct cache headers on miss', async () => {
     const html = await $fetch('/satori/query-param?title=CacheTest') as string
     const ogUrl = extractOgImageUrl(html)
