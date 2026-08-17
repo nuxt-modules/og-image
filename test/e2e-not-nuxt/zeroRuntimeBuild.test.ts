@@ -28,7 +28,7 @@ describe('zeroRuntime', () => {
     await exec('nuxt', ['build'], { nodeOptions: { cwd: fixtureDir } })
     const serverOutputPath = resolve('../fixtures/zero-runtime/.output/server')
     const { stdout } = await exec('du', ['-sh', serverOutputPath])
-    // eslint-disable-next-line no-console,style/no-tabs
+    // eslint-disable-next-line style/no-tabs
     console.log(`Size: ${stdout.split('	')[0]}`)
     const imagePath = resolve('../fixtures/zero-runtime/.output/public/_og')
     const images = await globby('**/*.png', { cwd: imagePath }).then((r: string[]) => r.sort())
