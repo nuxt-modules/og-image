@@ -29,7 +29,7 @@ describe('multi-font-families', () => {
       '/font-black-takumi',
     )
 
-    const snapshotIds: Record<string, string> = {
+    const snapshotIds = {
       '/': 'multi-font-lobster',
       '/playfair': 'multi-font-playfair',
       '/roboto': 'multi-font-jetbrains',
@@ -43,7 +43,7 @@ describe('multi-font-families', () => {
       '/biz-udp-bold': 'multi-font-biz-udp-bold-takumi',
       '/font-black': 'multi-font-font-black',
       '/font-black-takumi': 'multi-font-font-black-takumi',
-    }
+    } satisfies Record<string, string>
 
     for (const [path, id] of Object.entries(snapshotIds)) {
       // Use tighter threshold for biz-udp-bold: the font-weight regression

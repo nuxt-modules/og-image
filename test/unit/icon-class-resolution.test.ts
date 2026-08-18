@@ -7,10 +7,10 @@ import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
 // ============================================================================
 
 describe('unoCSS resolveIcon', () => {
-  const customIcons: Record<string, string> = {
+  const customIcons = {
     'agent-skills': '<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 0.5L29.4234 8.25V23.75L16 31.5L2.57661 23.75V8.25L16 0.5Z" fill="currentColor"/></svg>',
     'star': '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" fill="currentColor"/></svg>',
-  }
+  } satisfies Record<string, string>
 
   let resolveIcon: (prefix: string, name: string) => Promise<{ body: string, width: number, height: number } | null>
 

@@ -445,7 +445,7 @@ async function removeDeprecatedConfigKeys(rootDir: string, keys: Array<{ key: st
 }
 
 // Deprecated ogImage config keys and their replacements
-const DEPRECATED_CONFIG_KEYS: Record<string, string> = {
+const DEPRECATED_CONFIG_KEYS = {
   fonts: '@nuxt/fonts module (migrated automatically)',
   strictNuxtContentPaths: 'Removed (no effect in Content v3)',
   playground: 'Removed (use Nuxt DevTools)',
@@ -459,7 +459,7 @@ const DEPRECATED_CONFIG_KEYS: Record<string, string> = {
   cacheKey: 'Removed',
   static: 'zeroRuntime',
   componentOptions: 'Removed (use defineOgImage())',
-}
+} satisfies Record<string, string>
 
 // Check if nuxt config has deprecated options
 async function checkNuxtConfig(rootDir: string): Promise<{
