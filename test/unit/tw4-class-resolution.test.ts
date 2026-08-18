@@ -736,7 +736,7 @@ describe('tw4 class resolution', () => {
   // ============================================================================
 
   describe('community template classes', () => {
-    const templateClasses: Record<string, string[]> = {
+    const templateClasses = {
       Brutalist: [
         'h-full',
         'w-full',
@@ -829,7 +829,7 @@ describe('tw4 class resolution', () => {
         // Note: from-[#3b82f6] is a gradient color modifier — doesn't resolve standalone
         // (sets --tw-gradient-from which is a CSS var skipped by postProcessStyles)
       ],
-    }
+    } satisfies Record<string, string[]>
 
     for (const [template, classes] of Object.entries(templateClasses)) {
       it(`${template}: all classes resolve`, async () => {

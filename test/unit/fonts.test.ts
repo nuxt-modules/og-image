@@ -82,11 +82,11 @@ describe('extractCustomFontFamilies', () => {
 })
 
 describe('resolveFontFamilies', () => {
-  const fontVars: Record<string, string> = {
+  const fontVars = {
     'font-sans': 'Inter, sans-serif',
     'font-serif': '\'Playfair Display\', Georgia, serif',
     'font-mono': '\'JetBrains Mono\', monospace',
-  }
+  } satisfies Record<string, string>
 
   it('returns empty when no classes or names', () => {
     expect(resolveFontFamilies([], [], fontVars)).toEqual([])
