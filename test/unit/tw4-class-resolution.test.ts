@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { decodeCssClassName, extractClassStyles, isSimpleClassSelector, postProcessStyles, resolveCssVars } from '../../src/build/css/css-utils'
 import { clearTw4Cache, createTw4Provider, resolveClassesToStyles } from '../../src/build/css/providers/tw4'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
+import { runTransform } from '../unplugin'
 
 // Minimal TW4 CSS entrypoint for the test compiler
 const CSS_CONTENT = '@import "tailwindcss";'
@@ -953,7 +954,7 @@ describe('assetTransformPlugin with TW4', () => {
     )
 
     const id = join(tmpDir, 'components', 'Brutalist.satori.vue')
-    const result = await plugin.transform?.(code, id)
+    const result = await runTransform(plugin, code, id)
 
     expect(result, 'transform should produce output').toBeDefined()
     expect(result!.code).toContain('rotate(45deg)')
@@ -977,7 +978,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
     const id = join(tmpDir, 'components', 'Test.vue')
-    const result = await plugin.transform?.(code, id)
+    const result = await runTransform(plugin, code, id)
 
     expect(result, 'transform should produce output').toBeDefined()
     // rotate-45 should be resolved to transform: rotate(45deg) in style
@@ -1003,7 +1004,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
     const id = join(tmpDir, 'components', 'ArbitraryValues.vue')
-    const result = await plugin.transform?.(code, id)
+    const result = await runTransform(plugin, code, id)
 
     expect(result, 'transform should produce output').toBeDefined()
     // Arbitrary values should be resolved and removed from class
@@ -1033,7 +1034,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
       const id = join(tmpDir, 'components', 'ResponsiveKeep.vue')
-      const result = await plugin.transform?.(code, id)
+      const result = await runTransform(plugin, code, id)
 
       expect(result, 'transform should produce output').toBeDefined()
       // Responsive-prefixed classes must remain in class attribute
@@ -1056,7 +1057,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
       const id = join(tmpDir, 'components', 'ResponsiveMixed.vue')
-      const result = await plugin.transform?.(code, id)
+      const result = await runTransform(plugin, code, id)
 
       expect(result, 'transform should produce output').toBeDefined()
       // Base classes stay in class (not inlined) since responsive variants override the same props
@@ -1082,7 +1083,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
       const id = join(tmpDir, 'components', 'AllBreakpoints.vue')
-      const result = await plugin.transform?.(code, id)
+      const result = await runTransform(plugin, code, id)
 
       expect(result, 'transform should produce output').toBeDefined()
       // All responsive-prefixed classes must remain
@@ -1109,7 +1110,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
       const id = join(tmpDir, 'components', 'ResponsiveResolved.vue')
-      const result = await plugin.transform?.(code, id)
+      const result = await runTransform(plugin, code, id)
 
       expect(result, 'transform should produce output').toBeDefined()
       // Base classes rewritten to arbitrary values (not inlined) due to responsive conflicts
@@ -1155,7 +1156,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
       const id = join(tmpDir, 'components', 'NpmxDefault.takumi.vue')
-      const result = await plugin.transform?.(code, id)
+      const result = await runTransform(plugin, code, id)
 
       expect(result, 'transform should produce output').toBeDefined()
       // Must not contain "in oklab" — Takumi can't parse it
@@ -1179,7 +1180,7 @@ describe('assetTransformPlugin with TW4', () => {
 </template>`
 
       const id = join(tmpDir, 'components', 'DarkMode.vue')
-      const result = await plugin.transform?.(code, id)
+      const result = await runTransform(plugin, code, id)
 
       expect(result, 'transform should produce output').toBeDefined()
       // dark: prefixed classes should remain for runtime colorMode handling

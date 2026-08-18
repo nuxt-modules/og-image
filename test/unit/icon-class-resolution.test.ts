@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { clearUnoCache, createUnoProvider, setUnoConfig, setUnoRootDir } from '../../src/build/css/providers/uno'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
+import { runTransform } from '../unplugin'
 
 // ============================================================================
 // resolveIcon: UnoCSS presetIcons custom collections
@@ -133,7 +134,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).toContain('viewBox')
@@ -147,7 +148,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).not.toContain('i-custom-star')
@@ -166,7 +167,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     // Vue directives must be preserved (not mangled by ultrahtml)
@@ -181,7 +182,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).toContain('v-if="hasIcon"')
@@ -194,7 +195,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).not.toContain('i-custom-star')
@@ -207,7 +208,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     // buildIconSvg merges existing style with display:flex
@@ -222,7 +223,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     // No replacement possible, no other transforms → undefined
     expect(result).toBeUndefined()
   })
@@ -234,7 +235,7 @@ describe('asset-transform icon class replacement', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+    const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
     // "italic" and "inline" start with "i" but don't match i-{prefix}-{name} pattern.
     // CSS provider may still resolve them as utilities, but they must NOT become SVGs.
     if (result) {

@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'pathe'
 import { describe, expect, it } from 'vitest'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
+import { runTransform } from '../unplugin'
 
 // Minimal mock emoji icon set (real @iconify-json/noto is 25MB)
 const mockNotoIcons = {
@@ -33,19 +34,29 @@ describe('asset-transform plugin', () => {
       publicDir: '/test/public',
     }, { framework: 'vite' })
 
-    it('should include OgImage components', () => {
-      expect(plugin.transformInclude?.('/test/components/OgImage/Test.vue')).toBe(true)
-      expect(plugin.transformInclude?.('/test/components/og-image/Test.vue')).toBe(true)
-      expect(plugin.transformInclude?.('/test/components/OgImageTemplate/Test.vue')).toBe(true)
+    const emojiTemplate = `<template>
+  <div>Hello \u{1F44B}</div>
+</template>`
+
+    it.each([
+      '/test/components/OgImage/Test.vue',
+      '/test/components/og-image/Test.vue',
+      '/test/components/OgImageTemplate/Test.vue',
+      // Nested components carry the query added by ComponentImportRewritePlugin.
+      '/test/components/Shared/Badge.vue?og-image-depth=1',
+    ])('should transform %s', async (id) => {
+      expect(await runTransform(plugin, emojiTemplate, id)).toBeDefined()
     })
 
-    it('should exclude non-OgImage components', () => {
-      expect(plugin.transformInclude?.('/test/components/Header.vue')).toBe(false)
-      expect(plugin.transformInclude?.('/test/pages/index.vue')).toBe(false)
-    })
-
-    it('should exclude node_modules', () => {
-      expect(plugin.transformInclude?.('node_modules/some-pkg/OgImage.vue')).toBe(false)
+    it.each([
+      '/test/components/Header.vue',
+      '/test/pages/index.vue',
+      'node_modules/some-pkg/OgImage.vue',
+      // SFC blocks never carry the ?og-image query, so they are not ours.
+      '/test/components/OgImage/Test.vue?vue&type=style&index=0&lang.css',
+      '/test/components/OgImage/Test.vue?nuxt_component=async',
+    ])('should leave %s alone', async (id) => {
+      expect(await runTransform(plugin, emojiTemplate, id)).toBeUndefined()
     })
 
     it('should transform emojis in text content', async () => {
@@ -55,7 +66,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).not.toContain('👋')
@@ -69,7 +80,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Emoji in alt attribute should be preserved
       expect(result?.code).toContain('alt="👋 Wave emoji"')
@@ -85,7 +96,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Dynamic bindings should be preserved
       expect(result?.code).toContain('{{ emoji }}')
@@ -101,7 +112,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeUndefined()
     })
 
@@ -110,7 +121,7 @@ describe('asset-transform plugin', () => {
 const msg = '👋'
 </script>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeUndefined()
     })
 
@@ -121,7 +132,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Should have at least 1 SVG (some emojis may not be in icon set)
       const svgCount = (result?.code.match(/<svg/g) || []).length
@@ -144,7 +155,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).toContain('viewBox')
@@ -158,7 +169,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<svg')
       expect(result?.code).not.toContain('<UIcon')
@@ -171,7 +182,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('class="text-yellow-500"')
       expect(result?.code).toContain('style="')
@@ -184,7 +195,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       // Should return undefined since no static icons to transform
       expect(result).toBeUndefined()
     })
@@ -197,7 +208,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       // Static icon should be transformed
       expect(result?.code).toContain('<svg')
@@ -225,7 +236,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('caption-{{ x }}')
       expect(result?.code).toContain('<footer>sibling</footer>')
@@ -249,7 +260,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<span>A</span>')
       expect(result?.code).toContain('<span>B</span>')
@@ -268,7 +279,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       expect(result?.code).toContain('<template lang="html">')
       expect(result?.code).toContain('<footer>sibling</footer>')
@@ -294,7 +305,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       expect(result).toBeDefined()
       expect(result?.code).toContain('data:image/png;base64,')
       expect(result?.code).not.toContain('src="/images/test.png"')
@@ -307,7 +318,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       expect(result).toBeDefined()
       expect(result?.code).toContain('data:image/png;base64,')
       expect(result?.code).not.toContain('src="~/assets/logo.png"')
@@ -320,7 +331,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       expect(result).toBeDefined()
       expect(result?.code).toContain('data:image/png;base64,')
       expect(result?.code).not.toContain('src="@/assets/logo.png"')
@@ -333,7 +344,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       // Should return undefined since transform is skipped
       expect(result).toBeUndefined()
     })
@@ -345,7 +356,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       // Should return undefined since no local images to transform
       expect(result).toBeUndefined()
     })
@@ -357,7 +368,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       // Should return undefined since :src is a binding
       expect(result).toBeUndefined()
     })
@@ -370,7 +381,7 @@ const msg = '👋'
   </div>
 </template>`
 
-      const result = await plugin.transform?.(code, testVuePath)
+      const result = await runTransform(plugin, code, testVuePath)
       expect(result).toBeDefined()
       // Should have 2 base64 images
       const base64Count = (result?.code.match(/data:image\/png;base64,/g) || []).length
@@ -397,7 +408,7 @@ const msg = '👋'
 }
 </style>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
       const out = result!.code
 
@@ -420,7 +431,7 @@ const msg = '👋'
 }
 </style>`
 
-      const result = await plugin.transform?.(code, '/test/components/OgImage/Test.vue')
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
       expect(result).toBeDefined()
 
       const styleAttrMatch = result!.code.match(/style="([^"]*)"/)

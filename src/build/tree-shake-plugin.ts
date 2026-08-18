@@ -37,13 +37,16 @@ export function isVue(id: string, opts: { type?: Array<'template' | 'script' | '
   return true
 }
 
-const JS_RE = /\.(?:[cm]?j|t)sx?$/
-
-export function isJS(id: string) {
-  // JavaScript files
-  const { pathname } = parseURL(decodeURIComponent(pathToFileURL(id).href))
-  return JS_RE.test(pathname)
-}
+// Ids carry a query in dev and for SFC blocks, so every extension match allows one.
+const VUE_RE = /\.vue(?:\?|$)/
+const JS_RE = /\.[cm]?[jt]sx?(?:\?|$)/
+// Nuxt's island component registry re-exports every island component. Rewriting a call
+// there would break the manifest, so the plugin has always skipped the file.
+const ISLANDS_RE = /components\.islands\.mjs(?:\?|$)/
+// Every composable this plugin rewrites starts with `defineOgImage`, so a module without
+// that substring can never need the transform. unplugin hands the test to the bundler
+// natively where supported, so the hook is not called at all for the rest of the graph.
+const COMPOSABLE_CODE_MARKER = 'defineOgImage'
 
 export const TreeShakeComposablesPlugin = createUnplugin(() => {
   /**
@@ -64,29 +67,35 @@ export const TreeShakeComposablesPlugin = createUnplugin(() => {
   return {
     name: 'nuxt-og-image:zero-runtime:transform',
     enforce: 'pre',
-    transformInclude(id) {
-      return isVue(id, { type: ['script'] }) || isJS(id)
-    },
-    transform(code, id) {
-      const s = new MagicString(code)
-      // @todo re-implement composable tree-shaking for island files
-      if (!id.endsWith('components.islands.mjs')) {
-        const strippedCode = stripLiteral(code)
+    transform: {
+      filter: {
+        // @todo re-implement composable tree-shaking for island files
+        id: { include: [VUE_RE, JS_RE], exclude: [ISLANDS_RE] },
+        code: COMPOSABLE_CODE_MARKER,
+      },
+      handler(code, id) {
+        // A `.vue` id reaches us once per SFC block. Only the script block is ours.
+        if (VUE_RE.test(id) && !isVue(id, { type: ['script'] })) {
+          return
+        }
+        // `stripLiteral` parses the whole module, so run the cheap test first.
         if (!COMPOSABLE_RE.test(code)) {
           return
         }
 
-        for (const match of strippedCode.matchAll(COMPOSABLE_RE_GLOBAL)) {
+        const s = new MagicString(code)
+        for (const match of stripLiteral(code).matchAll(COMPOSABLE_RE_GLOBAL)) {
           s.overwrite(match.index!, match.index! + match[0].length, `${match[1]} import.meta.prerender && ${match[2]}`)
         }
-      }
 
-      if (s.hasChanged()) {
+        if (!s.hasChanged()) {
+          return
+        }
         return {
           code: s.toString(),
           map: s.generateMap({ hires: true }),
         }
-      }
+      },
     },
   }
 })
