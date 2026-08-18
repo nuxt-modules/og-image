@@ -97,8 +97,8 @@ catalogs:
       specifier: ^2.5.11
       version: 2.5.11
     '@takumi-rs/helpers-v1':
-      specifier: npm:@takumi-rs/helpers@1.8.7
-      version: 1.8.7
+      specifier: npm:@takumi-rs/helpers@2.10.0
+      version: 2.10.0
     '@takumi-rs/wasm':
       specifier: ^2.5.11
       version: 2.5.11
@@ -498,7 +498,7 @@ importers:
         version: 2.5.11
       '@takumi-rs/helpers-v1':
         specifier: 'catalog:'
-        version: '@takumi-rs/helpers@1.8.7'
+        version: '@takumi-rs/helpers@2.10.0'
       '@takumi-rs/wasm':
         specifier: 'catalog:'
         version: 2.5.11(csstype@3.2.3)
@@ -4167,6 +4167,18 @@ packages:
       react:
         optional: true
       react-dom:
+        optional: true
+
+  '@takumi-rs/helpers@2.10.0':
+    resolution: {integrity: sha512-cPQNj/16DASgMaIA07ZrjNQ14Z+7lWiVPZQVz5S1kLAhVlCf9qg2D2vge/+yglHrdaL556U22wDWNUyFId5a+A==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      preact: ^10.0.0
+      react: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      preact:
+        optional: true
+      react:
         optional: true
 
   '@takumi-rs/helpers@2.5.11':
@@ -14038,6 +14050,8 @@ snapshots:
       - react
 
   '@takumi-rs/helpers@1.8.7': {}
+
+  '@takumi-rs/helpers@2.10.0': {}
 
   '@takumi-rs/helpers@2.5.11': {}
 
