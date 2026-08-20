@@ -860,7 +860,10 @@ export default defineNuxtModule<ModuleOptions>({
       })
 
       if (!nuxt.options.dev) {
-        addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
+        // `addBuildPlugin`'s `build` option cannot express "build only": kit skips a plugin
+        // on `build: false`, and `nuxt.options.build` is always truthy. The `nuxt.options.dev`
+        // guard above is the real switch.
+        addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true })
         setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
       }
     }

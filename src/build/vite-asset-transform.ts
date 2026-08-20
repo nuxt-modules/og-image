@@ -24,6 +24,9 @@ const RE_SVG_ID_ATTR = /\bid="([^"]+)"/g
 const RE_SVG_VIEWBOX = /viewBox="([^"]*)"/
 const RE_SVG_BODY = /<svg[^>]*>([\s\S]*)<\/svg>/
 const RE_OG_IMAGE_QUERY = /\?og-image(?:-depth=\d+)?$/
+// Ids carry a query in dev and for SFC blocks, so the extension match allows one. The
+// bundler applies this before the hook runs, which keeps the rest of the graph out.
+const RE_VUE_ID = /\.vue(?:\?|$)/
 const RE_TEXT_BETWEEN_TAGS = />([^<]*)</g
 const RE_SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/g
 const RE_WRAPPER_DIV_START = /^<div>/
@@ -359,568 +362,576 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
     name: 'nuxt-og-image:asset-transform',
     enforce: 'pre',
 
-    transformInclude(id) {
-      // Accept ?og-image query param (nested components rewritten by ComponentImportRewritePlugin)
-      if (id.includes('?og-image'))
-        return true
-      if (!id.endsWith('.vue'))
-        return false
-      // Check if file is inside any of the resolved OG component directories
-      // Note: don't exclude node_modules - built-in community templates live there when installed as a dependency
-      return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
-    },
-
-    async transform(code, rawId) {
-      // Strip ?og-image query param for path operations (nested component imports)
-      const id = rawId.replace(RE_OG_IMAGE_QUERY, '')
-
-      // Track nested component files for HMR
-      if (rawId.includes('?og-image'))
-        options.onNestedTransform?.(id)
-
-      const bounds = getOuterTemplateBounds(code)
-      if (!bounds)
-        return
-
-      const s = new MagicString(code)
-      const { templateStart, templateEnd } = bounds
-      let template = code.slice(templateStart, templateEnd)
-      let hasChanges = false
-
-      // Transform emojis in text content
-      if (options.emojiSet && RE_MATCH_EMOJIS.test(template)) {
-        // Try local icons first, fallback to fetch
-        if (!emojiIcons) {
-          emojiIcons = options.emojiIcons ?? await import(`@iconify-json/${options.emojiSet}/icons.json`, {
-            with: { type: 'json' },
-          }).then(m => m.default).catch(() => {
-            // Missing optional emoji packages fall back to remote icon resolution.
-            return null
-          })
+    transform: {
+      filter: {
+        id: RE_VUE_ID,
+      },
+      async handler(code, rawId) {
+        // Accept the ?og-image query param (nested components rewritten by
+        // ComponentImportRewritePlugin). Anchored, so the id the handler strips below is
+        // always the file path.
+        const isNested = RE_OG_IMAGE_QUERY.test(rawId)
+        if (!isNested) {
+          // `RE_VUE_ID` also admits SFC block ids, which are not files we own.
+          if (!rawId.endsWith('.vue'))
+            return
+          // Check if file is inside any of the resolved OG component directories
+          // Note: don't exclude node_modules - built-in community templates live there when installed as a dependency
+          if (!options.ogComponentPaths.some(dir => rawId.startsWith(`${dir}/`) || rawId.startsWith(`${dir}\\`)))
+            return
         }
 
-        // Collect all unique emojis in template
-        RE_MATCH_EMOJIS.lastIndex = 0
-        const allEmojis = new Set<string>()
-        for (const match of template.matchAll(RE_MATCH_EMOJIS)) {
-          allEmojis.add(match[0])
-        }
+        // Strip ?og-image query param for path operations (nested component imports)
+        const id = rawId.replace(RE_OG_IMAGE_QUERY, '')
 
-        // Resolve emoji SVGs in parallel (local first, fetch fallback)
-        const emojiSvgMap = new Map<string, string>()
-        await Promise.all(Array.from(allEmojis, async (emoji) => {
-          let svg: string | null = null
-          if (emojiIcons) {
-            svg = buildEmojiSvg(emoji, emojiIcons, options.emojiSet!)
-          }
-          if (!svg) {
-            svg = await fetchEmojiSvg(emoji, options.emojiSet!)
-          }
-          if (svg) {
-            emojiSvgMap.set(emoji, svg)
-          }
-        }))
+        // Track nested component files for HMR
+        if (isNested)
+          options.onNestedTransform?.(id)
 
-        // Replace emojis with resolved SVGs
-        if (emojiSvgMap.size > 0) {
-          RE_TEXT_BETWEEN_TAGS.lastIndex = 0
-          template = template.replace(RE_TEXT_BETWEEN_TAGS, (fullMatch, textContent) => {
-            if (!textContent)
-              return fullMatch
+        const bounds = getOuterTemplateBounds(code)
+        if (!bounds)
+          return
 
-            RE_MATCH_EMOJIS.lastIndex = 0
-            const emojiMatches = [...textContent.matchAll(RE_MATCH_EMOJIS)]
-            if (!emojiMatches.length)
-              return fullMatch
+        const s = new MagicString(code)
+        const { templateStart, templateEnd } = bounds
+        let template = code.slice(templateStart, templateEnd)
+        let hasChanges = false
 
-            let newTextContent = textContent
-            for (const match of emojiMatches) {
-              const emoji = match[0]
-              const svg = emojiSvgMap.get(emoji)
-              if (svg) {
-                hasChanges = true
-                const escaped = emoji.replace(RE_SPECIAL_REGEX_CHARS, '\\$&')
-                newTextContent = newTextContent.replace(new RegExp(escaped, 'g'), svg)
-              }
-            }
-            return `>${newTextContent}<`
-          })
-        }
-      }
-
-      // Transform icons: <Icon name="..." /> or <UIcon name="..." />
-      // Use ultrahtml to parse and transform - avoids complex regex patterns
-      if (template.includes('<Icon') || template.includes('<UIcon')) {
-        // First pass: collect icon prefixes from AST
-        const prefixes = new Set<string>()
-        const iconElements: Array<{ node: ElementNode, parent: Node, index: number }> = []
-
-        // Wrap in div for parsing (ultrahtml needs a root)
-        const wrappedTemplate = `<div>${template}</div>`
-        const doc = parseHtml(wrappedTemplate)
-
-        walkSync(doc, (node, parent, index) => {
-          if (node.type === ELEMENT_NODE) {
-            const el = node as ElementNode
-            if (el.name === 'Icon' || el.name === 'UIcon') {
-              const iconName = el.attributes.name
-              if (iconName && !iconName.includes('{')) {
-                const [prefix] = iconName.split(':')
-                if (prefix)
-                  prefixes.add(prefix)
-                iconElements.push({ node: el, parent: parent!, index: index! })
-              }
-            }
-          }
-        })
-
-        // Load icon sets
-        const iconSets = new Map<string, IconifyJSON>()
-        for (const prefix of prefixes) {
-          const icons = await loadIconSet(prefix)
-          if (icons)
-            iconSets.set(prefix, icons)
-        }
-
-        // Second pass: replace icon elements with SVG
-        if (iconElements.length > 0) {
-          let anyReplaced = false
-          for (const { node: el, parent, index } of iconElements) {
-            const iconName = el.attributes.name
-            if (!iconName)
-              continue
-
-            const [prefix, name] = iconName.split(':')
-            if (!prefix || !name)
-              continue
-
-            // Try @iconify-json package first
-            const icons = iconSets.get(prefix)
-            const iconData = icons?.icons?.[name]
-
-            let svgHtml: string | undefined
-            if (iconData) {
-              svgHtml = buildIconSvg(iconData, icons!.width || 24, icons!.height || 24, el.attributes)
-            }
-            // Fallback: resolve from CSS provider (e.g. UnoCSS presetIcons custom collections)
-            else if (options.cssProvider?.resolveIcon) {
-              const resolved = await options.cssProvider.resolveIcon(prefix, name)
-              if (resolved)
-                svgHtml = buildIconSvg(resolved, resolved.width, resolved.height, el.attributes)
-            }
-
-            if (!svgHtml)
-              continue
-
-            anyReplaced = true
-            hasChanges = true
-            const svgDoc = parseHtml(svgHtml)
-            if ('children' in parent && Array.isArray(parent.children)) {
-              parent.children[index] = svgDoc.children[0]
-            }
-          }
-
-          if (anyReplaced) {
-            // Render back to HTML, removing the wrapper div
-            const rendered = renderSync(doc)
-            // Remove wrapper div
-            template = rendered.replace(RE_WRAPPER_DIV_START, '').replace(RE_WRAPPER_DIV_END, '')
-          }
-        }
-      }
-
-      // Transform UnoCSS icon classes (i-{collection}-{name}) to inline SVGs
-      // Uses targeted string replacement (not ultrahtml renderSync) to preserve Vue directives like v-if
-      if (options.cssProvider?.resolveIcon) {
-        // Match elements with icon classes — self-closing or empty paired tags only
-        const replacements: Array<{ from: string, to: string }> = []
-
-        RE_ICON_ELEMENT.lastIndex = 0
-        let elMatch
-        // eslint-disable-next-line no-cond-assign
-        while ((elMatch = RE_ICON_ELEMENT.exec(template)) !== null) {
-          const [fullMatch, , attrsStr, classValue] = elMatch
-          if (!classValue)
-            continue
-
-          // Check if class contains an icon pattern
-          const classes = classValue.split(RE_WHITESPACE).filter(Boolean)
-          let iconPrefix: string | undefined
-          let iconName: string | undefined
-          for (const cls of classes) {
-            const im = cls.match(ICON_CLASS_RE)
-            if (im?.[1] && im[2]) {
-              iconPrefix = im[1]
-              iconName = im[2]
-              break
-            }
-          }
-          if (!iconPrefix || !iconName)
-            continue
-
-          const resolved = await options.cssProvider.resolveIcon!(iconPrefix, iconName)
-          if (!resolved)
-            continue
-
-          // Parse attributes from raw string, excluding class (rebuilt below), name,
-          // and Vue dynamic bindings for style (:style/v-bind:style — the element is
-          // replaced with a static SVG wrapper so dynamic bindings can't be evaluated)
-          const attrs: Record<string, string> = {}
-          RE_HTML_ATTR.lastIndex = 0
-          let am
-          // eslint-disable-next-line no-cond-assign
-          while ((am = RE_HTML_ATTR.exec(attrsStr!)) !== null) {
-            if (am[1] && am[1] !== 'class' && am[1] !== ':style' && am[1] !== 'v-bind:style')
-              attrs[am[1]] = am[2] ?? ''
-          }
-
-          // Keep non-icon classes
-          const otherClasses = classes.filter(c => !isIconClass(c))
-          if (otherClasses.length > 0)
-            attrs.class = otherClasses.join(' ')
-
-          const svgHtml = buildIconSvg(resolved, resolved.width, resolved.height, attrs)
-          replacements.push({ from: fullMatch, to: svgHtml })
-        }
-
-        for (const { from, to } of replacements) {
-          template = template.replace(from, to)
-          hasChanges = true
-        }
-      }
-
-      // Extract data-* attrs from the template root element for CSS var resolution
-      const rootAttrs: Record<string, string> = {}
-      const rootAttrMatch = template.match(RE_ROOT_ELEMENT)
-      if (rootAttrMatch?.[2]) {
-        RE_DATA_ATTR.lastIndex = 0
-        for (const m of rootAttrMatch[2].matchAll(RE_DATA_ATTR)) {
-          if (m[1] && m[2])
-            rootAttrs[`data-${m[1]}`] = m[2]
-        }
-      }
-      // Fallback: if no data-theme on root, use colorPreference from module config
-      if (!rootAttrs['data-theme'] && options.colorPreference)
-        rootAttrs['data-theme'] = options.colorPreference
-
-      // Detect dynamic :data-theme="<expr>" binding on root element. When present,
-      // resolve classes for both light and dark themes and emit paired rewrites so
-      // the runtime styleDirectives plugin can swap based on the colorMode prop.
-      const hasDynamicDataTheme = !!(rootAttrMatch?.[2] && RE_DYNAMIC_DATA_THEME.test(` ${rootAttrMatch[2]}`))
-
-      // Transform CSS utility classes to inline styles
-      if (options.cssProvider) {
-        options.beforeCssResolve?.()
-        try {
-          // Wrap current template back into full SFC for AST parsing
-          const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
-
-          const result = await transformVueTemplate(fullCode, {
-            resolveStyles: async (classes) => {
-              // Filter unsupported classes and icon classes (handled via SVG replacement)
-              const supported = classes.filter(cls => !isUnsupportedClass(cls) && !isIconClass(cls))
-              const unsupported = classes.filter(cls => isUnsupportedClass(cls))
-
-              if (unsupported.length > 0) {
-                const componentName = id.split('/').pop()
-                logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported classes: ${unsupported.join(', ')}`)
-              }
-
-              const componentName = id.split('/').pop()?.replace(RE_FILE_EXTENSION, '')
-
-              if (hasDynamicDataTheme) {
-                const lightAttrs = { ...rootAttrs, 'data-theme': 'light' }
-                const darkAttrs = { ...rootAttrs, 'data-theme': 'dark' }
-                const [lightResolved, darkResolved] = await Promise.all([
-                  options.cssProvider!.resolveClassesToStyles(supported, componentName, lightAttrs),
-                  options.cssProvider!.resolveClassesToStyles(supported, componentName, darkAttrs),
-                ])
-                return mergeThemePairs(supported, lightResolved, darkResolved)
-              }
-
-              return options.cssProvider!.resolveClassesToStyles(supported, componentName, rootAttrs)
-            },
-          })
-
-          if (result) {
-            const newBounds = getOuterTemplateBounds(result.code)
-            if (newBounds) {
-              template = result.code.slice(newBounds.templateStart, newBounds.templateEnd)
-              hasChanges = true
-            }
-          }
-        }
-        catch (err) {
-          const componentName = id.split('/').pop()
-          logger.warn(`[nuxt-og-image] ${componentName}: CSS template transform failed, using original template`, (err as Error).message)
-          // Continue without CSS transforms - Satori will try to handle classes via tw prop
-        }
-      }
-
-      // Resolve var() in HTML attributes and inline styles
-      if (template.includes('var(')) {
-        const vars = options.cssProvider?.getVars
-          ? await options.cssProvider.getVars(rootAttrs)
-          : new Map<string, string>()
-
-        // Extract inline CSS custom property definitions from static style attributes
-        RE_INLINE_STYLE.lastIndex = 0
-        for (const m of template.matchAll(RE_INLINE_STYLE)) {
-          RE_CSS_VAR_DEF.lastIndex = 0
-          for (const def of m[1]!.matchAll(RE_CSS_VAR_DEF)) {
-            const name = `--${def[1]}`
-            if (!vars.has(name))
-              vars.set(name, def[2]!.trim())
-          }
-        }
-
-        if (vars.size > 0) {
-          // Non-style, non-class attributes (e.g., SVG fill="var(--bg)").
-          // Track resolved values unescaped so downlevelColor can parse them; escape
-          // for HTML only at the final write.
-          const replacements: Array<{ from: string, to: string, attr: string, value: string }> = []
-          RE_NON_STYLE_VAR_ATTR.lastIndex = 0
-          template.replace(RE_NON_STYLE_VAR_ATTR, (match, attr, value) => {
-            const resolved = resolveCssVars(value, vars)
-            if (resolved !== value) {
-              replacements.push({ from: match, to: '', attr, value: resolved })
-            }
-            return match
-          })
-          // Downlevel modern colors (oklch, etc.) in color-related attributes
-          for (const r of replacements) {
-            let value = r.value
-            if (RE_COLOR_ATTR_NAME.test(r.attr)) {
-              value = await downlevelColor(r.attr, value)
-            }
-            r.to = `${r.attr}="${escapeAttrValue(value)}"`
-            template = template.replace(r.from, r.to)
-            hasChanges = true
-          }
-
-          // Inline style attributes: resolve var() and downlevel colors per-declaration.
-          // Hold resolved style content unescaped so downlevelColor / resolveColorMix can
-          // parse it; escape for HTML only when writing the attribute.
-          const styleReplacements: Array<{ from: string, content: string }> = []
-          RE_STYLE_VAR_ATTR.lastIndex = 0
-          template.replace(RE_STYLE_VAR_ATTR, (match, styleValue) => {
-            const resolved = resolveCssVars(styleValue, vars)
-            if (resolved !== styleValue)
-              styleReplacements.push({ from: match, content: resolved })
-            return match
-          })
-          for (const r of styleReplacements) {
-            const declarations = r.content.split(';').filter(Boolean)
-            const downleveled: string[] = []
-            for (const decl of declarations) {
-              const colonIdx = decl.indexOf(':')
-              if (colonIdx === -1) {
-                downleveled.push(decl)
-                continue
-              }
-              const prop = decl.slice(0, colonIdx).trim()
-              let value = decl.slice(colonIdx + 1).trim()
-              if (RE_COLOR_PROP_NAME.test(prop) && !value.includes('var(')) {
-                value = await downlevelColor(prop, value)
-                if (value.includes('color-mix('))
-                  value = resolveColorMix(value)
-              }
-              downleveled.push(`${prop}: ${value}`)
-            }
-            const to = `style="${escapeAttrValue(downleveled.join('; '))}"`
-            template = template.replace(r.from, to)
-            hasChanges = true
-          }
-
-          // Dynamic :style bindings: resolve var() in Vue :style="..." attributes
-          RE_DYNAMIC_STYLE_VAR.lastIndex = 0
-          const dynamicReplacements: Array<{ from: string, to: string }> = []
-          template.replace(RE_DYNAMIC_STYLE_VAR, (match, styleExpr) => {
-            const resolved = resolveCssVars(styleExpr, vars)
-            if (resolved !== styleExpr)
-              dynamicReplacements.push({ from: match, to: `:style="${resolved}"` })
-            return match
-          })
-          for (const r of dynamicReplacements) {
-            template = template.replace(r.from, r.to)
-            hasChanges = true
-          }
-        }
-      }
-
-      // Transform images: src="/path" or src="~/path" or src="@/path"
-      if (!template.includes('data-no-inline')) {
-        RE_IMAGE_SRC.lastIndex = 0
-        if (RE_IMAGE_SRC.test(template)) {
-          RE_IMAGE_SRC.lastIndex = 0
-
-          const componentDir = dirname(id)
-          const replacements: Array<{ from: string, to: string }> = []
-
-          let match
-          // eslint-disable-next-line no-cond-assign
-          while ((match = RE_IMAGE_SRC.exec(template)) !== null) {
-            const [fullMatch, srcPath, ext] = match
-            if (!srcPath || !ext)
-              continue
-
-            if (srcPath.startsWith('data:') || srcPath.startsWith('http'))
-              continue
-
-            let resolvedPath: string
-            if (srcPath.startsWith('/')) {
-              resolvedPath = join(options.publicDir, srcPath)
-            }
-            else if (srcPath.startsWith('~/') || srcPath.startsWith('@/')) {
-              resolvedPath = join(options.srcDir, srcPath.slice(2))
-            }
-            else if (!isAbsolute(srcPath)) {
-              resolvedPath = resolve(componentDir, srcPath)
-            }
-            else {
-              continue
-            }
-
-            const fileBuffer = await readFile(resolvedPath).catch(() => {
-              // Missing component assets remain unchanged in the transformed template.
+        // Transform emojis in text content
+        if (options.emojiSet && RE_MATCH_EMOJIS.test(template)) {
+          // Try local icons first, fallback to fetch
+          if (!emojiIcons) {
+            emojiIcons = options.emojiIcons ?? await import(`@iconify-json/${options.emojiSet}/icons.json`, {
+              with: { type: 'json' },
+            }).then(m => m.default).catch(() => {
+              // Missing optional emoji packages fall back to remote icon resolution.
               return null
             })
-            if (!fileBuffer)
+          }
+
+          // Collect all unique emojis in template
+          RE_MATCH_EMOJIS.lastIndex = 0
+          const allEmojis = new Set<string>()
+          for (const match of template.matchAll(RE_MATCH_EMOJIS)) {
+            allEmojis.add(match[0])
+          }
+
+          // Resolve emoji SVGs in parallel (local first, fetch fallback)
+          const emojiSvgMap = new Map<string, string>()
+          await Promise.all(Array.from(allEmojis, async (emoji) => {
+            let svg: string | null = null
+            if (emojiIcons) {
+              svg = buildEmojiSvg(emoji, emojiIcons, options.emojiSet!)
+            }
+            if (!svg) {
+              svg = await fetchEmojiSvg(emoji, options.emojiSet!)
+            }
+            if (svg) {
+              emojiSvgMap.set(emoji, svg)
+            }
+          }))
+
+          // Replace emojis with resolved SVGs
+          if (emojiSvgMap.size > 0) {
+            RE_TEXT_BETWEEN_TAGS.lastIndex = 0
+            template = template.replace(RE_TEXT_BETWEEN_TAGS, (fullMatch, textContent) => {
+              if (!textContent)
+                return fullMatch
+
+              RE_MATCH_EMOJIS.lastIndex = 0
+              const emojiMatches = [...textContent.matchAll(RE_MATCH_EMOJIS)]
+              if (!emojiMatches.length)
+                return fullMatch
+
+              let newTextContent = textContent
+              for (const match of emojiMatches) {
+                const emoji = match[0]
+                const svg = emojiSvgMap.get(emoji)
+                if (svg) {
+                  hasChanges = true
+                  const escaped = emoji.replace(RE_SPECIAL_REGEX_CHARS, '\\$&')
+                  newTextContent = newTextContent.replace(new RegExp(escaped, 'g'), svg)
+                }
+              }
+              return `>${newTextContent}<`
+            })
+          }
+        }
+
+        // Transform icons: <Icon name="..." /> or <UIcon name="..." />
+        // Use ultrahtml to parse and transform - avoids complex regex patterns
+        if (template.includes('<Icon') || template.includes('<UIcon')) {
+          // First pass: collect icon prefixes from AST
+          const prefixes = new Set<string>()
+          const iconElements: Array<{ node: ElementNode, parent: Node, index: number }> = []
+
+          // Wrap in div for parsing (ultrahtml needs a root)
+          const wrappedTemplate = `<div>${template}</div>`
+          const doc = parseHtml(wrappedTemplate)
+
+          walkSync(doc, (node, parent, index) => {
+            if (node.type === ELEMENT_NODE) {
+              const el = node as ElementNode
+              if (el.name === 'Icon' || el.name === 'UIcon') {
+                const iconName = el.attributes.name
+                if (iconName && !iconName.includes('{')) {
+                  const [prefix] = iconName.split(':')
+                  if (prefix)
+                    prefixes.add(prefix)
+                  iconElements.push({ node: el, parent: parent!, index: index! })
+                }
+              }
+            }
+          })
+
+          // Load icon sets
+          const iconSets = new Map<string, IconifyJSON>()
+          for (const prefix of prefixes) {
+            const icons = await loadIconSet(prefix)
+            if (icons)
+              iconSets.set(prefix, icons)
+          }
+
+          // Second pass: replace icon elements with SVG
+          if (iconElements.length > 0) {
+            let anyReplaced = false
+            for (const { node: el, parent, index } of iconElements) {
+              const iconName = el.attributes.name
+              if (!iconName)
+                continue
+
+              const [prefix, name] = iconName.split(':')
+              if (!prefix || !name)
+                continue
+
+              // Try @iconify-json package first
+              const icons = iconSets.get(prefix)
+              const iconData = icons?.icons?.[name]
+
+              let svgHtml: string | undefined
+              if (iconData) {
+                svgHtml = buildIconSvg(iconData, icons!.width || 24, icons!.height || 24, el.attributes)
+              }
+              // Fallback: resolve from CSS provider (e.g. UnoCSS presetIcons custom collections)
+              else if (options.cssProvider?.resolveIcon) {
+                const resolved = await options.cssProvider.resolveIcon(prefix, name)
+                if (resolved)
+                  svgHtml = buildIconSvg(resolved, resolved.width, resolved.height, el.attributes)
+              }
+
+              if (!svgHtml)
+                continue
+
+              anyReplaced = true
+              hasChanges = true
+              const svgDoc = parseHtml(svgHtml)
+              if ('children' in parent && Array.isArray(parent.children)) {
+                parent.children[index] = svgDoc.children[0]
+              }
+            }
+
+            if (anyReplaced) {
+              // Render back to HTML, removing the wrapper div
+              const rendered = renderSync(doc)
+              // Remove wrapper div
+              template = rendered.replace(RE_WRAPPER_DIV_START, '').replace(RE_WRAPPER_DIV_END, '')
+            }
+          }
+        }
+
+        // Transform UnoCSS icon classes (i-{collection}-{name}) to inline SVGs
+        // Uses targeted string replacement (not ultrahtml renderSync) to preserve Vue directives like v-if
+        if (options.cssProvider?.resolveIcon) {
+          // Match elements with icon classes — self-closing or empty paired tags only
+          const replacements: Array<{ from: string, to: string }> = []
+
+          RE_ICON_ELEMENT.lastIndex = 0
+          let elMatch
+          // eslint-disable-next-line no-cond-assign
+          while ((elMatch = RE_ICON_ELEMENT.exec(template)) !== null) {
+            const [fullMatch, , attrsStr, classValue] = elMatch
+            if (!classValue)
               continue
 
-            const mimeType = getMimeType(ext)
-            let dataUri: string
-            if (ext === 'svg') {
-              const svgContent = fileBuffer.toString('utf-8')
-              dataUri = `data:${mimeType},${encodeURIComponent(svgContent)}`
+            // Check if class contains an icon pattern
+            const classes = classValue.split(RE_WHITESPACE).filter(Boolean)
+            let iconPrefix: string | undefined
+            let iconName: string | undefined
+            for (const cls of classes) {
+              const im = cls.match(ICON_CLASS_RE)
+              if (im?.[1] && im[2]) {
+                iconPrefix = im[1]
+                iconName = im[2]
+                break
+              }
             }
-            else {
-              const base64 = fileBuffer.toString('base64')
-              dataUri = `data:${mimeType};base64,${base64}`
+            if (!iconPrefix || !iconName)
+              continue
+
+            const resolved = await options.cssProvider.resolveIcon!(iconPrefix, iconName)
+            if (!resolved)
+              continue
+
+            // Parse attributes from raw string, excluding class (rebuilt below), name,
+            // and Vue dynamic bindings for style (:style/v-bind:style — the element is
+            // replaced with a static SVG wrapper so dynamic bindings can't be evaluated)
+            const attrs: Record<string, string> = {}
+            RE_HTML_ATTR.lastIndex = 0
+            let am
+            // eslint-disable-next-line no-cond-assign
+            while ((am = RE_HTML_ATTR.exec(attrsStr!)) !== null) {
+              if (am[1] && am[1] !== 'class' && am[1] !== ':style' && am[1] !== 'v-bind:style')
+                attrs[am[1]] = am[2] ?? ''
             }
 
-            replacements.push({ from: fullMatch, to: `src="${dataUri}"` })
-            hasChanges = true
+            // Keep non-icon classes
+            const otherClasses = classes.filter(c => !isIconClass(c))
+            if (otherClasses.length > 0)
+              attrs.class = otherClasses.join(' ')
+
+            const svgHtml = buildIconSvg(resolved, resolved.width, resolved.height, attrs)
+            replacements.push({ from: fullMatch, to: svgHtml })
           }
 
           for (const { from, to } of replacements) {
             template = template.replace(from, to)
+            hasChanges = true
           }
         }
-      }
 
-      // Inline <style> blocks into template elements at build time.
-      // Both satori and takumi need inline styles — <style> blocks aren't applied at render time.
-      {
-        const { descriptor } = parseSfc(code)
-        if (descriptor.styles.length > 0) {
-          for (const styleBlock of descriptor.styles) {
-            const rawCss = styleBlock.content
-            // Strip scoped data-v attribute selectors so we can match by class name alone
-            const scopeId = styleBlock.scoped
-              ? (rawCss.match(RE_SCOPED_DATA_V)?.[0] ?? null)
-              : null
-            const cleanCss = scopeId ? rawCss.replaceAll(scopeId, '') : rawCss
+        // Extract data-* attrs from the template root element for CSS var resolution
+        const rootAttrs: Record<string, string> = {}
+        const rootAttrMatch = template.match(RE_ROOT_ELEMENT)
+        if (rootAttrMatch?.[2]) {
+          RE_DATA_ATTR.lastIndex = 0
+          for (const m of rootAttrMatch[2].matchAll(RE_DATA_ATTR)) {
+            if (m[1] && m[2])
+              rootAttrs[`data-${m[1]}`] = m[2]
+          }
+        }
+        // Fallback: if no data-theme on root, use colorPreference from module config
+        if (!rootAttrs['data-theme'] && options.colorPreference)
+          rootAttrs['data-theme'] = options.colorPreference
 
-            const simplified = await simplifyCss(cleanCss)
-            const classMap = extractClassStyles(simplified, { skipPrefixes: [] })
+        // Detect dynamic :data-theme="<expr>" binding on root element. When present,
+        // resolve classes for both light and dark themes and emit paired rewrites so
+        // the runtime styleDirectives plugin can swap based on the colorMode prop.
+        const hasDynamicDataTheme = !!(rootAttrMatch?.[2] && RE_DYNAMIC_DATA_THEME.test(` ${rootAttrMatch[2]}`))
 
-            if (classMap.size > 0) {
-              // Walk template elements and merge matching styles
-              const wrappedTemplate = `<div>${template}</div>`
-              const doc = parseHtml(wrappedTemplate)
+        // Transform CSS utility classes to inline styles
+        if (options.cssProvider) {
+          options.beforeCssResolve?.()
+          try {
+            // Wrap current template back into full SFC for AST parsing
+            const fullCode = code.slice(0, templateStart) + template + code.slice(templateEnd)
 
-              walkSync(doc, (node) => {
-                if (node.type !== ELEMENT_NODE)
-                  return
-                const el = node as ElementNode
-                const classAttr = el.attributes?.class
-                if (!classAttr)
-                  return
+            const result = await transformVueTemplate(fullCode, {
+              resolveStyles: async (classes) => {
+                // Filter unsupported classes and icon classes (handled via SVG replacement)
+                const supported = classes.filter(cls => !isUnsupportedClass(cls) && !isIconClass(cls))
+                const unsupported = classes.filter(cls => isUnsupportedClass(cls))
 
-                const elClasses = classAttr.split(RE_WHITESPACE).filter(Boolean)
-                const matchedStyles: Record<string, string> = {}
-                const consumedClasses = new Set<string>()
-
-                for (const cls of elClasses) {
-                  const styles = classMap.get(cls)
-                  if (styles) {
-                    Object.assign(matchedStyles, styles)
-                    consumedClasses.add(cls)
-                  }
+                if (unsupported.length > 0) {
+                  const componentName = id.split('/').pop()
+                  logger.warn(`[nuxt-og-image] ${componentName}: Filtered unsupported classes: ${unsupported.join(', ')}`)
                 }
 
-                if (Object.keys(matchedStyles).length === 0)
-                  return
+                const componentName = id.split('/').pop()?.replace(RE_FILE_EXTENSION, '')
 
-                // Merge into existing inline style (inline style takes precedence)
-                const existingStyle = el.attributes?.style || ''
-                const existingProps: Record<string, string> = {}
-                for (const decl of splitCssDeclarations(existingStyle)) {
-                  const [prop, ...valParts] = decl.split(':')
-                  const value = valParts.join(':').trim()
-                  if (prop?.trim() && value)
-                    existingProps[prop.trim()] = value
+                if (hasDynamicDataTheme) {
+                  const lightAttrs = { ...rootAttrs, 'data-theme': 'light' }
+                  const darkAttrs = { ...rootAttrs, 'data-theme': 'dark' }
+                  const [lightResolved, darkResolved] = await Promise.all([
+                    options.cssProvider!.resolveClassesToStyles(supported, componentName, lightAttrs),
+                    options.cssProvider!.resolveClassesToStyles(supported, componentName, darkAttrs),
+                  ])
+                  return mergeThemePairs(supported, lightResolved, darkResolved)
                 }
 
-                const merged = { ...matchedStyles, ...existingProps }
-                // ultrahtml's serializer does not escape attribute values, so any literal
-                // `"` in a CSS value (e.g. `background-image: url("data:...")`) would close
-                // the `style="..."` attribute early and produce invalid HTML.
-                el.attributes.style = escapeAttrValue(
-                  Object.entries(merged)
-                    .map(([p, v]) => `${p}:${v}`)
-                    .join(';'),
-                )
+                return options.cssProvider!.resolveClassesToStyles(supported, componentName, rootAttrs)
+              },
+            })
 
-                // Remove consumed classes
-                const remaining = elClasses.filter(c => !consumedClasses.has(c))
-                if (remaining.length > 0)
-                  el.attributes.class = remaining.join(' ')
-                else
-                  delete el.attributes.class
+            if (result) {
+              const newBounds = getOuterTemplateBounds(result.code)
+              if (newBounds) {
+                template = result.code.slice(newBounds.templateStart, newBounds.templateEnd)
+                hasChanges = true
+              }
+            }
+          }
+          catch (err) {
+            const componentName = id.split('/').pop()
+            logger.warn(`[nuxt-og-image] ${componentName}: CSS template transform failed, using original template`, (err as Error).message)
+            // Continue without CSS transforms - Satori will try to handle classes via tw prop
+          }
+        }
 
-                // viewBox must be preserved (not kebab-cased)
-                if (el.attributes.viewbox) {
-                  el.attributes.viewBox = el.attributes.viewbox
-                  delete el.attributes.viewbox
+        // Resolve var() in HTML attributes and inline styles
+        if (template.includes('var(')) {
+          const vars = options.cssProvider?.getVars
+            ? await options.cssProvider.getVars(rootAttrs)
+            : new Map<string, string>()
+
+          // Extract inline CSS custom property definitions from static style attributes
+          RE_INLINE_STYLE.lastIndex = 0
+          for (const m of template.matchAll(RE_INLINE_STYLE)) {
+            RE_CSS_VAR_DEF.lastIndex = 0
+            for (const def of m[1]!.matchAll(RE_CSS_VAR_DEF)) {
+              const name = `--${def[1]}`
+              if (!vars.has(name))
+                vars.set(name, def[2]!.trim())
+            }
+          }
+
+          if (vars.size > 0) {
+            // Non-style, non-class attributes (e.g., SVG fill="var(--bg)").
+            // Track resolved values unescaped so downlevelColor can parse them; escape
+            // for HTML only at the final write.
+            const replacements: Array<{ from: string, to: string, attr: string, value: string }> = []
+            RE_NON_STYLE_VAR_ATTR.lastIndex = 0
+            template.replace(RE_NON_STYLE_VAR_ATTR, (match, attr, value) => {
+              const resolved = resolveCssVars(value, vars)
+              if (resolved !== value) {
+                replacements.push({ from: match, to: '', attr, value: resolved })
+              }
+              return match
+            })
+            // Downlevel modern colors (oklch, etc.) in color-related attributes
+            for (const r of replacements) {
+              let value = r.value
+              if (RE_COLOR_ATTR_NAME.test(r.attr)) {
+                value = await downlevelColor(r.attr, value)
+              }
+              r.to = `${r.attr}="${escapeAttrValue(value)}"`
+              template = template.replace(r.from, r.to)
+              hasChanges = true
+            }
+
+            // Inline style attributes: resolve var() and downlevel colors per-declaration.
+            // Hold resolved style content unescaped so downlevelColor / resolveColorMix can
+            // parse it; escape for HTML only when writing the attribute.
+            const styleReplacements: Array<{ from: string, content: string }> = []
+            RE_STYLE_VAR_ATTR.lastIndex = 0
+            template.replace(RE_STYLE_VAR_ATTR, (match, styleValue) => {
+              const resolved = resolveCssVars(styleValue, vars)
+              if (resolved !== styleValue)
+                styleReplacements.push({ from: match, content: resolved })
+              return match
+            })
+            for (const r of styleReplacements) {
+              const declarations = r.content.split(';').filter(Boolean)
+              const downleveled: string[] = []
+              for (const decl of declarations) {
+                const colonIdx = decl.indexOf(':')
+                if (colonIdx === -1) {
+                  downleveled.push(decl)
+                  continue
                 }
-              })
+                const prop = decl.slice(0, colonIdx).trim()
+                let value = decl.slice(colonIdx + 1).trim()
+                if (RE_COLOR_PROP_NAME.test(prop) && !value.includes('var(')) {
+                  value = await downlevelColor(prop, value)
+                  if (value.includes('color-mix('))
+                    value = resolveColorMix(value)
+                }
+                downleveled.push(`${prop}: ${value}`)
+              }
+              const to = `style="${escapeAttrValue(downleveled.join('; '))}"`
+              template = template.replace(r.from, to)
+              hasChanges = true
+            }
 
-              template = renderSync(doc).replace(RE_WRAPPER_DIV_START, '').replace(RE_WRAPPER_DIV_END, '')
+            // Dynamic :style bindings: resolve var() in Vue :style="..." attributes
+            RE_DYNAMIC_STYLE_VAR.lastIndex = 0
+            const dynamicReplacements: Array<{ from: string, to: string }> = []
+            template.replace(RE_DYNAMIC_STYLE_VAR, (match, styleExpr) => {
+              const resolved = resolveCssVars(styleExpr, vars)
+              if (resolved !== styleExpr)
+                dynamicReplacements.push({ from: match, to: `:style="${resolved}"` })
+              return match
+            })
+            for (const r of dynamicReplacements) {
+              template = template.replace(r.from, r.to)
               hasChanges = true
             }
           }
+        }
 
-          // Remove all <style> blocks from the SFC — styles are now inlined
-          for (const styleBlock of descriptor.styles) {
-            const styleStart = code.indexOf(styleBlock.loc.source) - '<style'.length
-            // Find the full <style...>...</style> tag
-            const fullTagStart = code.lastIndexOf('<style', styleStart + '<style'.length)
-            const fullTagEnd = code.indexOf('</style>', styleStart) + '</style>'.length
-            if (fullTagStart >= 0 && fullTagEnd > fullTagStart) {
-              s.remove(fullTagStart, fullTagEnd)
+        // Transform images: src="/path" or src="~/path" or src="@/path"
+        if (!template.includes('data-no-inline')) {
+          RE_IMAGE_SRC.lastIndex = 0
+          if (RE_IMAGE_SRC.test(template)) {
+            RE_IMAGE_SRC.lastIndex = 0
+
+            const componentDir = dirname(id)
+            const replacements: Array<{ from: string, to: string }> = []
+
+            let match
+            // eslint-disable-next-line no-cond-assign
+            while ((match = RE_IMAGE_SRC.exec(template)) !== null) {
+              const [fullMatch, srcPath, ext] = match
+              if (!srcPath || !ext)
+                continue
+
+              if (srcPath.startsWith('data:') || srcPath.startsWith('http'))
+                continue
+
+              let resolvedPath: string
+              if (srcPath.startsWith('/')) {
+                resolvedPath = join(options.publicDir, srcPath)
+              }
+              else if (srcPath.startsWith('~/') || srcPath.startsWith('@/')) {
+                resolvedPath = join(options.srcDir, srcPath.slice(2))
+              }
+              else if (!isAbsolute(srcPath)) {
+                resolvedPath = resolve(componentDir, srcPath)
+              }
+              else {
+                continue
+              }
+
+              const fileBuffer = await readFile(resolvedPath).catch(() => {
+                // Missing component assets remain unchanged in the transformed template.
+                return null
+              })
+              if (!fileBuffer)
+                continue
+
+              const mimeType = getMimeType(ext)
+              let dataUri: string
+              if (ext === 'svg') {
+                const svgContent = fileBuffer.toString('utf-8')
+                dataUri = `data:${mimeType},${encodeURIComponent(svgContent)}`
+              }
+              else {
+                const base64 = fileBuffer.toString('base64')
+                dataUri = `data:${mimeType};base64,${base64}`
+              }
+
+              replacements.push({ from: fullMatch, to: `src="${dataUri}"` })
+              hasChanges = true
+            }
+
+            for (const { from, to } of replacements) {
+              template = template.replace(from, to)
             }
           }
         }
-      }
 
-      // Extract font requirements from the original code (before transforms)
-      if (options.onFontRequirements) {
-        extractFontRequirementsFromVue(code).then((reqs) => {
-          options.onFontRequirements!(id, reqs)
-        })
-      }
+        // Inline <style> blocks into template elements at build time.
+        // Both satori and takumi need inline styles — <style> blocks aren't applied at render time.
+        {
+          const { descriptor } = parseSfc(code)
+          if (descriptor.styles.length > 0) {
+            for (const styleBlock of descriptor.styles) {
+              const rawCss = styleBlock.content
+              // Strip scoped data-v attribute selectors so we can match by class name alone
+              const scopeId = styleBlock.scoped
+                ? (rawCss.match(RE_SCOPED_DATA_V)?.[0] ?? null)
+                : null
+              const cleanCss = scopeId ? rawCss.replaceAll(scopeId, '') : rawCss
 
-      if (!hasChanges)
-        return
+              const simplified = await simplifyCss(cleanCss)
+              const classMap = extractClassStyles(simplified, { skipPrefixes: [] })
 
-      s.overwrite(templateStart, templateEnd, template)
+              if (classMap.size > 0) {
+                // Walk template elements and merge matching styles
+                const wrappedTemplate = `<div>${template}</div>`
+                const doc = parseHtml(wrappedTemplate)
 
-      return {
-        code: s.toString(),
-        map: s.generateMap({ hires: true }),
-      }
+                walkSync(doc, (node) => {
+                  if (node.type !== ELEMENT_NODE)
+                    return
+                  const el = node as ElementNode
+                  const classAttr = el.attributes?.class
+                  if (!classAttr)
+                    return
+
+                  const elClasses = classAttr.split(RE_WHITESPACE).filter(Boolean)
+                  const matchedStyles: Record<string, string> = {}
+                  const consumedClasses = new Set<string>()
+
+                  for (const cls of elClasses) {
+                    const styles = classMap.get(cls)
+                    if (styles) {
+                      Object.assign(matchedStyles, styles)
+                      consumedClasses.add(cls)
+                    }
+                  }
+
+                  if (Object.keys(matchedStyles).length === 0)
+                    return
+
+                  // Merge into existing inline style (inline style takes precedence)
+                  const existingStyle = el.attributes?.style || ''
+                  const existingProps: Record<string, string> = {}
+                  for (const decl of splitCssDeclarations(existingStyle)) {
+                    const [prop, ...valParts] = decl.split(':')
+                    const value = valParts.join(':').trim()
+                    if (prop?.trim() && value)
+                      existingProps[prop.trim()] = value
+                  }
+
+                  const merged = { ...matchedStyles, ...existingProps }
+                  // ultrahtml's serializer does not escape attribute values, so any literal
+                  // `"` in a CSS value (e.g. `background-image: url("data:...")`) would close
+                  // the `style="..."` attribute early and produce invalid HTML.
+                  el.attributes.style = escapeAttrValue(
+                    Object.entries(merged)
+                      .map(([p, v]) => `${p}:${v}`)
+                      .join(';'),
+                  )
+
+                  // Remove consumed classes
+                  const remaining = elClasses.filter(c => !consumedClasses.has(c))
+                  if (remaining.length > 0)
+                    el.attributes.class = remaining.join(' ')
+                  else
+                    delete el.attributes.class
+
+                  // viewBox must be preserved (not kebab-cased)
+                  if (el.attributes.viewbox) {
+                    el.attributes.viewBox = el.attributes.viewbox
+                    delete el.attributes.viewbox
+                  }
+                })
+
+                template = renderSync(doc).replace(RE_WRAPPER_DIV_START, '').replace(RE_WRAPPER_DIV_END, '')
+                hasChanges = true
+              }
+            }
+
+            // Remove all <style> blocks from the SFC — styles are now inlined
+            for (const styleBlock of descriptor.styles) {
+              const styleStart = code.indexOf(styleBlock.loc.source) - '<style'.length
+              // Find the full <style...>...</style> tag
+              const fullTagStart = code.lastIndexOf('<style', styleStart + '<style'.length)
+              const fullTagEnd = code.indexOf('</style>', styleStart) + '</style>'.length
+              if (fullTagStart >= 0 && fullTagEnd > fullTagStart) {
+                s.remove(fullTagStart, fullTagEnd)
+              }
+            }
+          }
+        }
+
+        // Extract font requirements from the original code (before transforms)
+        if (options.onFontRequirements) {
+          extractFontRequirementsFromVue(code).then((reqs) => {
+            options.onFontRequirements!(id, reqs)
+          })
+        }
+
+        if (!hasChanges)
+          return
+
+        s.overwrite(templateStart, templateEnd, template)
+
+        return {
+          code: s.toString(),
+          map: s.generateMap({ hires: true }),
+        }
+      },
     },
   }
 })
