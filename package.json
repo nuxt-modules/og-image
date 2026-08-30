@@ -88,7 +88,7 @@
     "tailwindcss": "^4.0.0",
     "unifont": "^0.7.0",
     "unstorage": "^1.15.0",
-    "zod": ">=3"
+    "zod": ">=4.5.4"
   },
   "peerDependenciesMeta": {
     "@resvg/resvg-js": {
