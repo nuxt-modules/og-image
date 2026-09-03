@@ -103,8 +103,8 @@ catalogs:
       specifier: ^2.5.11
       version: 2.5.11
     '@takumi-rs/wasm-v1':
-      specifier: npm:@takumi-rs/wasm@1.8.7
-      version: 1.8.7
+      specifier: npm:@takumi-rs/wasm@2.13.5
+      version: 2.13.5
     '@unocss/config':
       specifier: ^66.7.5
       version: 66.7.5
@@ -504,7 +504,7 @@ importers:
         version: 2.5.11(csstype@3.2.3)
       '@takumi-rs/wasm-v1':
         specifier: 'catalog:'
-        version: '@takumi-rs/wasm@1.8.7'
+        version: '@takumi-rs/wasm@2.13.5(csstype@3.2.3)'
       '@unocss/config':
         specifier: 'catalog:'
         version: 66.7.5
@@ -4169,6 +4169,18 @@ packages:
       react-dom:
         optional: true
 
+  '@takumi-rs/helpers@2.13.5':
+    resolution: {integrity: sha512-ZuIVNJ258DocE8Wd05gC69vQJoArVpdpYMj+kp9/8pWyci6oyTFtKSrR50zDDTVwpObRHEU3uB9OHeSDHYUVQQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      preact: ^10.0.0
+      react: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      preact:
+        optional: true
+      react:
+        optional: true
+
   '@takumi-rs/helpers@2.5.11':
     resolution: {integrity: sha512-J6Fl3QMDfV/zKdiTUzJ16VJSUX778imyoVkU90uoqe0Fc9lK1/DVCmTpXq87jTjnkokAb9w2Y1hCT1XnyxqnAg==}
     engines: {node: '>=18'}
@@ -4181,8 +4193,14 @@ packages:
       react:
         optional: true
 
-  '@takumi-rs/wasm@1.8.7':
-    resolution: {integrity: sha512-LVBBMcYdvA0a+w1DRCwjYhFPTFVWd+oYW7kY8jMeBYEX+l0HF8PHbjWCOMDbW8iA80489UGx4fG2frLE+MKcMg==}
+  '@takumi-rs/wasm@2.13.5':
+    resolution: {integrity: sha512-ZyIgbJJUqCtqyrH6/g6MpXrubUd63QMlUeeWS1dP1mxx4OtqZKHB8zipE5LZPERT+68ldQHqKnifFoLlIV0lfw==}
+    engines: {node: '>=20.19'}
+    peerDependencies:
+      csstype: '*'
+    peerDependenciesMeta:
+      csstype:
+        optional: true
 
   '@takumi-rs/wasm@2.5.11':
     resolution: {integrity: sha512-a1811+kj/6zLpTsza8dTLvhzMWf3hTYPO6rt2rHkxXLxUOKqeE1LUspsUNmYX0h1BQoCxQebxt7+MZP8B0zeZw==}
@@ -14039,14 +14057,18 @@ snapshots:
 
   '@takumi-rs/helpers@1.8.7': {}
 
+  '@takumi-rs/helpers@2.13.5': {}
+
   '@takumi-rs/helpers@2.5.11': {}
 
-  '@takumi-rs/wasm@1.8.7':
+  '@takumi-rs/wasm@2.13.5(csstype@3.2.3)':
     dependencies:
-      '@takumi-rs/helpers': 1.8.7
+      '@takumi-rs/helpers': 2.13.5
+    optionalDependencies:
+      csstype: 3.2.3
     transitivePeerDependencies:
+      - preact
       - react
-      - react-dom
 
   '@takumi-rs/wasm@2.5.11(csstype@3.2.3)':
     dependencies:

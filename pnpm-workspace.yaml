@@ -117,7 +117,7 @@ catalog:
   '@takumi-rs/helpers': ^2.5.11
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
   '@takumi-rs/wasm': ^2.5.11
-  '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
+  '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@2.13.5
   '@unocss/config': ^66.7.5
   '@unocss/core': ^66.7.5
   '@unocss/nuxt': ^66.7.5
