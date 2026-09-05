@@ -79,32 +79,32 @@ packages:
   - playground
   - '!examples/**'
 overrides:
-  '@unhead/vue': ^3.3.1
-  unhead: ^3.3.1
-  vite: 8.1.5
+  '@unhead/vue': ^3.4.0
+  unhead: ^3.4.0
+  vite: 8.2.2
   vitest-environment-nuxt: 2.0.0
-  vue: ^3.5.41
+  vue: ^3.5.42
 catalog:
-  '@antfu/eslint-config': ^9.3.0
+  '@antfu/eslint-config': ^9.5.1
   '@clack/prompts': ^1.7.0
   '@fontsource/noto-sans-sc': ^5.3.0
-  '@iconify-json/carbon': ^1.2.25
-  '@iconify-json/logos': ^1.2.12
+  '@iconify-json/carbon': ^1.2.26
+  '@iconify-json/logos': ^1.2.13
   '@iconify-json/noto': ^1.2.7
   '@iconify-json/ri': ^1.2.10
   '@iconify-json/tabler': ^1.2.38
   '@iconify/types': ^2.0.0
-  '@img/sharp-linux-x64': ^0.35.3
-  '@nuxt/content': ^3.15.2
-  '@nuxt/devtools': 4.0.0-alpha.9
-  '@nuxt/devtools-kit': 4.0.0-alpha.9
+  '@img/sharp-linux-x64': ^0.35.4
+  '@nuxt/content': ^3.16.0
+  '@nuxt/devtools': 4.0.0-alpha.17
+  '@nuxt/devtools-kit': 4.0.0-alpha.17
   '@nuxt/fonts': ^0.14.0
-  '@nuxt/icon': ^2.4.1
+  '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
   '@nuxt/kit': ^4.5.2
   '@nuxt/module-builder': ^1.0.3
-  '@nuxt/test-utils': ^4.1.0
-  '@nuxt/ui': ^4.10.0
+  '@nuxt/test-utils': ^4.2.0
+  '@nuxt/ui': ^4.11.0
   '@nuxtjs/color-mode': ^4.0.1
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.6.0
@@ -112,79 +112,79 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.3.3
-  '@takumi-rs/core': ^2.5.11
+  '@takumi-rs/core': ^2.13.5
   '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
-  '@takumi-rs/helpers': ^2.5.11
+  '@takumi-rs/helpers': ^2.13.5
   '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
-  '@takumi-rs/wasm': ^2.5.11
+  '@takumi-rs/wasm': ^2.13.5
   '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
-  '@unocss/config': ^66.7.5
-  '@unocss/core': ^66.7.5
-  '@unocss/nuxt': ^66.7.5
-  '@unocss/preset-icons': ^66.7.5
-  '@unocss/preset-wind': ^66.7.5
-  '@unocss/preset-wind4': ^66.7.5
+  '@unocss/config': ^66.10.0
+  '@unocss/core': ^66.10.0
+  '@unocss/nuxt': ^66.10.0
+  '@unocss/preset-icons': ^66.10.0
+  '@unocss/preset-wind': ^66.10.0
+  '@unocss/preset-wind4': ^66.10.0
   '@vitejs/plugin-vue': ^6.0.8
-  '@vue/compiler-core': ^3.5.41
-  '@vue/compiler-sfc': ^3.5.41
+  '@vue/compiler-core': ^3.5.42
+  '@vue/compiler-sfc': ^3.5.42
   '@vueuse/nuxt': ^14.4.0
   better-sqlite3: ^13.0.3
-  birpc: ^4.0.0
-  bumpp: ^12.2.0
+  birpc: ^4.2.0
+  bumpp: ^12.3.0
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   defu: ^6.1.7
-  devalue: ^5.9.0
-  eslint: ^10.8.1
-  eslint-plugin-harlanzw: ^0.19.2
+  devalue: ^5.9.2
+  eslint: ^10.10.0
+  eslint-plugin-harlanzw: ^0.21.1
   exsolve: ^1.1.1
   fnv1a-64: ^0.1.2
-  fontless: ^0.2.1
-  globby: ^16.2.3
-  happy-dom: ^20.11.2
+  fontless: ^0.4.3
+  globby: ^16.2.4
+  happy-dom: ^20.14.0
   hookable: ^6.1.1
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.33.0
-  magic-string: ^1.1.0
+  magic-string: ^1.2.3
   magicast: ^0.5.4
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
   nuxt: ^4.5.2
-  nuxt-site-config: ^4.2.0
-  nuxtseo-layer-devtools: ^5.3.12
-  nuxtseo-shared: ^5.3.12
+  nuxt-site-config: ^4.2.3
+  nuxtseo-layer-devtools: ^5.3.14
+  nuxtseo-shared: ^5.3.14
   nypm: ^0.6.9
   object-identity: ^0.2.3
   ofetch: ^1.5.1
-  ohash: ^2.0.11
-  oxc-parser: ^0.143.0
+  ohash: ^2.0.12
+  oxc-parser: ^0.148.0
   oxc-walker: ^1.1.1
   pathe: ^2.0.3
-  pkg-types: ^2.3.1
+  pkg-types: ^2.3.2
   playwright: ^1.62.1
   playwright-core: ^1.62.1
   radix3: ^1.1.2
-  sass: ^1.102.0
-  satori: ^0.29.0
-  sharp: ^0.35.3
+  sass: ^1.104.0
+  satori: ^0.33.4
+  sharp: ^0.35.4
   sirv: ^3.0.2
   std-env: ^4.2.0
   strip-literal: ^4.0.0
   tailwindcss: ^4.3.3
-  tinyexec: ^1.3.0
+  tinyexec: ^1.3.1
   typescript: 6.0.3
   ufo: ^1.6.4
   ultrahtml: ^1.7.0
   unbuild: ^3.6.1
-  unifont: ^0.7.4
-  unocss: ^66.7.5
+  unifont: ^0.8.3
+  unocss: ^66.10.0
   unplugin: ^3.3.0
-  vitest: ^4.1.10
-  vue: ^3.5.41
-  vue-tsc: ^3.3.9
-  wrangler: ^4.120.0
+  vitest: ^4.1.11
+  vue: ^3.5.42
+  vue-tsc: ^3.3.11
+  wrangler: ^4.129.0
   yoga-wasm-web: ^0.3.3
-  zod: ^4.4.3
+  zod: ^4.5.4
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
