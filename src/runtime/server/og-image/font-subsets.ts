@@ -31,9 +31,14 @@ export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig
   const result: RuntimeFontConfig[] = []
   let changed = false
   for (const members of groups.values()) {
-    // Only rename when multiple distinct data blobs exist (subset fonts)
-    const needsRename = members.length > 1
-      && new Set(members.map(f => f.cacheKey)).size > 1
+    // Rename when the group carries unicode-range subsets, even a single one.
+    // The codepoint filter can leave exactly one subset per render, and a bare
+    // family name that flips binaries between renders would render stale
+    // glyphs (renderers keep the first registration per name). Also rename
+    // when multiple distinct binaries share a family identity. Bare names are
+    // kept only for non-subset fonts.
+    const needsRename = members.some(f => f.unicodeRange)
+      || (members.length > 1 && new Set(members.map(f => f.cacheKey)).size > 1)
     if (!needsRename) {
       result.push(...members)
       continue
