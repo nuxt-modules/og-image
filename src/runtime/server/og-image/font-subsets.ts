@@ -9,8 +9,12 @@ import type { RuntimeFontConfig } from '../../types'
  * fontsource, each covering ~200 characters, this means only one subset's
  * glyphs render while the rest show as .notdef boxes.
  *
- * Fix: rename each subset to "Family__N" and use font-family fallback chains
- * so renderers try each subset in order per character.
+ * Fix: rename each subset to "Family__<stable suffix>" and use font-family
+ * fallback chains so renderers try each subset in order per character. The
+ * suffix is derived from the font's src so a given subset binary resolves to
+ * the same name in every render of a process. Renderers keep the first
+ * registration per name, so a name that flips binaries between renders
+ * would silently render against the stale binary.
  */
 export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig[] {
   // Group by family+weight+style identity
@@ -40,7 +44,7 @@ export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig
       result.push({
         ...f,
         originalFamily: f.originalFamily || f.family,
-        family: `${f.family}__${i}`,
+        family: `${f.family}__${stableSubsetSuffix(f) ?? i}`,
       })
     }
   }
@@ -48,8 +52,26 @@ export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig
 }
 
 /**
+ * Deterministic suffix identifying a subset binary by its source. Returns
+ * undefined only when the font carries no src or localPath to derive from.
+ */
+function stableSubsetSuffix(f: RuntimeFontConfig): string | undefined {
+  const s = f.src || f.localPath
+  if (!s)
+    return undefined
+  let h1 = 5381
+  let h2 = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i)
+    h1 = (((h1 << 5) + h1) ^ c) >>> 0
+    h2 = Math.imul(h2 ^ c, 16777619) >>> 0
+  }
+  return (BigInt(h1) << 32n | BigInt(h2)).toString(36)
+}
+
+/**
  * Build a mapping from original family names to their renamed subset chain.
- * E.g., "Noto Sans SC" → ["Noto Sans SC__0", "Noto Sans SC__1", ...]
+ * E.g., "Noto Sans SC" → ["Noto Sans SC__<hash-a>", "Noto Sans SC__<hash-b>", ...]
  */
 export function buildSubsetFamilyChain(fonts: RuntimeFontConfig[]): Map<string, string[]> {
   const chains = new Map<string, string[]>()
