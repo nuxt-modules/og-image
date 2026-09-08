@@ -8,10 +8,20 @@ export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, extractEncod
 
 const RE_KEBAB_CASE = /-([a-z])/g
 
-export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt): ResolvableMeta[] {
+export interface GenerateMetaOptions {
+  /**
+   * Emit Twitter card meta tags (`twitter:card`, `twitter:image`, etc) alongside
+   * the Open Graph image tags.
+   *
+   * @default true
+   */
+  includeTwitter?: boolean
+}
+
+export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptions: OgImageOptions | OgImagePrebuilt, metaOptions: GenerateMetaOptions = {}): ResolvableMeta[] {
   const key = resolvedOptions.key || 'og'
   const isTwitterOnly = key === 'twitter'
-  const includeTwitter = key === 'og' || key === 'twitter'
+  const includeTwitter = (key === 'og' || key === 'twitter') && metaOptions.includeTwitter !== false
 
   const meta: ResolvableMeta[] = []
 

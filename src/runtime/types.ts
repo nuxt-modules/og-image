@@ -40,6 +40,8 @@ export interface OgImageRuntimeConfig {
 
   defaults: Omit<OgImageOptions, 'component' | 'renderer' | 'props' | 'url' | 'html' | 'key' | 'cacheKey' | '_query' | '_hash' | 'socialPreview'>
   debug: boolean
+  /** Whether twitter:* meta tags are emitted alongside og:image tags */
+  includeTwitter: boolean
   baseCacheKey: string
   hasNuxtIcon: boolean
   hasNuxtContent?: boolean

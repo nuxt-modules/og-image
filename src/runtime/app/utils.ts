@@ -93,7 +93,8 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   const url = input.url
   if (!url)
     return
-  const meta = generateMeta(url, input)
+  const { includeTwitter } = useOgImageRuntimeConfig()
+  const meta = generateMeta(url, input, { includeTwitter })
   useHead({ meta }, { tagPriority: 'high' })
 }
 
@@ -187,7 +188,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
           }
         }
-        return generateMeta(finalUrl, opts)
+        return generateMeta(finalUrl, opts, { includeTwitter: ogImageConfig.includeTwitter })
       })
     },
   }, {
