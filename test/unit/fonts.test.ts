@@ -572,7 +572,7 @@ describe('extractCodepoints', () => {
 })
 
 describe('renameSubsetFonts', () => {
-  function makeFontConfig(overrides: Partial<{ family: string, weight: number, style: string, cacheKey: string, data: ArrayBuffer }>): any {
+  function makeFontConfig(overrides: Partial<{ family: string, weight: number, style: string, src: string, cacheKey: string, data: ArrayBuffer, unicodeRange: string }>): any {
     return {
       family: 'Inter',
       weight: 400,
@@ -599,19 +599,59 @@ describe('renameSubsetFonts', () => {
 
   it('renames subset fonts with unique suffixes', () => {
     const fonts = [
-      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-chunk0', data: new ArrayBuffer(10) }),
-      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-chunk1', data: new ArrayBuffer(20) }),
-      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-chunk2', data: new ArrayBuffer(30) }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-0.woff2', cacheKey: 'noto-chunk0', data: new ArrayBuffer(10) }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-1.woff2', cacheKey: 'noto-chunk1', data: new ArrayBuffer(20) }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-2.woff2', cacheKey: 'noto-chunk2', data: new ArrayBuffer(30) }),
     ]
     const result = renameSubsetFonts(fonts)
     expect(result).toHaveLength(3)
-    expect(result[0].family).toBe('Noto Sans SC__0')
-    expect(result[1].family).toBe('Noto Sans SC__1')
-    expect(result[2].family).toBe('Noto Sans SC__2')
+    const names = result.map(f => f.family)
+    expect(new Set(names).size).toBe(3)
+    for (const name of names)
+      expect(name.startsWith('Noto Sans SC__')).toBe(true)
     // All preserve original family name
     expect(result[0].originalFamily).toBe('Noto Sans SC')
     expect(result[1].originalFamily).toBe('Noto Sans SC')
     expect(result[2].originalFamily).toBe('Noto Sans SC')
+  })
+
+  it('gives the same subset binary the same name across renders with different filtered lists', () => {
+    // Render 1's codepoint filter keeps subsets A and B; B lands at index 1
+    const renderA = [
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-a.woff2', cacheKey: 'noto-a', data: new ArrayBuffer(10) }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-b.woff2', cacheKey: 'noto-b', data: new ArrayBuffer(20) }),
+    ]
+    // Render 2's codepoint filter keeps subsets B and C; B now lands at index 0
+    const renderB = [
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-b.woff2', cacheKey: 'noto-b', data: new ArrayBuffer(20) }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-c.woff2', cacheKey: 'noto-c', data: new ArrayBuffer(30) }),
+    ]
+    const a = renameSubsetFonts(renderA)
+    const b = renameSubsetFonts(renderB)
+    // Renderers keep the first registration per family name, so a name that
+    // flips binaries between renders renders stale glyphs as .notdef
+    expect(b[0].family).toBe(a[1].family)
+  })
+
+  it('renames a singleton subset font so its name stays bound to its binary', () => {
+    // The codepoint filter can leave exactly one subset loaded per render.
+    // Renderers keep the first registration per family name, so a bare name
+    // that flips binaries between renders renders stale glyphs as .notdef
+    const renderA = [
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-a.woff2', cacheKey: 'noto-a', unicodeRange: 'U+4E00-4EFF', data: new ArrayBuffer(10) }),
+    ]
+    const renderB = [
+      makeFontConfig({ family: 'Noto Sans SC', src: '/chunk-b.woff2', cacheKey: 'noto-b', unicodeRange: 'U+4F00-4FFF', data: new ArrayBuffer(20) }),
+    ]
+    const a1 = renameSubsetFonts(renderA)
+    const b1 = renameSubsetFonts(renderB)
+    expect(a1[0].family).not.toBe('Noto Sans SC')
+    expect(a1[0].family).not.toBe(b1[0].family)
+    expect(a1[0].originalFamily).toBe('Noto Sans SC')
+    expect(b1[0].originalFamily).toBe('Noto Sans SC')
+    // Repeat renders keep the same name per binary
+    expect(renameSubsetFonts(renderA)[0].family).toBe(a1[0].family)
+    expect(renameSubsetFonts(renderB)[0].family).toBe(b1[0].family)
   })
 
   it('does not rename when all fonts in a group have the same cacheKey', () => {
@@ -629,8 +669,8 @@ describe('renameSubsetFonts', () => {
   it('only renames the group that has multiple distinct fonts', () => {
     const fonts = [
       makeFontConfig({ family: 'Inter', cacheKey: 'inter-400' }),
-      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-0' }),
-      makeFontConfig({ family: 'Noto Sans SC', cacheKey: 'noto-1' }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/noto-0.woff2', cacheKey: 'noto-0' }),
+      makeFontConfig({ family: 'Noto Sans SC', src: '/noto-1.woff2', cacheKey: 'noto-1' }),
     ]
     const result = renameSubsetFonts(fonts)
     expect(result).toHaveLength(3)
@@ -638,8 +678,9 @@ describe('renameSubsetFonts', () => {
     expect(result[0].family).toBe('Inter')
     expect(result[0].originalFamily).toBeUndefined()
     // Noto gets renamed
-    expect(result[1].family).toBe('Noto Sans SC__0')
-    expect(result[2].family).toBe('Noto Sans SC__1')
+    expect(result[1].family.startsWith('Noto Sans SC__')).toBe(true)
+    expect(result[2].family.startsWith('Noto Sans SC__')).toBe(true)
+    expect(result[1].family).not.toBe(result[2].family)
   })
 })
 
