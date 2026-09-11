@@ -27,7 +27,7 @@ export async function imageEventHandler(e: H3Event) {
   finally {
     timings.record('total', performance.now() - reqStart)
     const header = timings.header()
-    if (header)
+    if (header && !e.handled && !e.node.res.headersSent)
       setHeader(e, 'Server-Timing', header)
   }
 }
