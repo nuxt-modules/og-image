@@ -9,16 +9,31 @@ const wrapHarfBuzz = satoriRequire('harfbuzzjs/hbjs.js')
 const wasmBytes = readFileSync(satoriRequire.resolve('harfbuzzjs/hb.wasm'))
 const fontBytes = readFileSync(new URL('../../src/runtime/public/_og-fonts/inter-400-latin.ttf', import.meta.url))
 
-async function loadBinding(wasm: unknown) {
+async function importBinding(wasm: unknown) {
   vi.resetModules()
   vi.doMock('#og-image/harfbuzz-factory', () => ({ default: createHarfBuzz }))
   vi.doMock('#og-image/harfbuzz-callbacks', () => ({ default: undefined }))
   vi.doMock('#og-image/harfbuzz-adapter', () => ({ default: wrapHarfBuzz }))
   vi.doMock('#og-image/harfbuzz-wasm', () => ({ default: wasm }))
-  return (await import('../../src/runtime/server/og-image/bindings/satori/harfbuzz')).default as any
+  return import('../../src/runtime/server/og-image/bindings/satori/harfbuzz')
+}
+
+async function loadBinding(wasm: unknown) {
+  return (await importBinding(wasm)).default as any
 }
 
 describe('harfBuzz binding', () => {
+  it('initializes once on first use, without starting WASM during import', async () => {
+    const module = await WebAssembly.compile(wasmBytes)
+    const factory = vi.fn((imports: WebAssembly.Imports) => WebAssembly.instantiate(module, imports))
+    const binding = await importBinding(factory)
+    await new Promise(resolve => setImmediate(resolve))
+    expect(factory).not.toHaveBeenCalled()
+    const [first, second] = await Promise.all([binding.default, binding.default])
+    expect(first).toBe(second)
+    expect(factory).toHaveBeenCalledTimes(1)
+  })
+
   it.each(['module', 'factory', 'promised module', 'promised factory'])('shapes text with a WASM %s', async (kind) => {
     const module = await WebAssembly.compile(wasmBytes)
     const wasm = kind.includes('factory') ? (imports: WebAssembly.Imports) => WebAssembly.instantiate(module, imports) : module
