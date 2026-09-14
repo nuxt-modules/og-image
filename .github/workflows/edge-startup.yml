@@ -8,6 +8,7 @@ on:
       - .github/workflows/edge-startup.yml
       - .github/workflows/edge-startup-comment.yml
       - bench/**/*.mjs
+      - bench/**/*.json
       - bench/**/*.ts
       - bench/**/*.vue
       - package.json
