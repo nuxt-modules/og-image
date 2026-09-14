@@ -1,5 +1,5 @@
 import type { H3Event } from '#nuxtseo/h3'
-import { createError, getRequestHost, H3Error, setHeader } from '#nuxtseo/h3'
+import { appendResponseHeader, createError, getRequestHost, H3Error, setHeader } from '#nuxtseo/h3'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
@@ -27,8 +27,9 @@ export async function imageEventHandler(e: H3Event) {
   finally {
     timings.record('total', performance.now() - reqStart)
     const header = timings.header()
-    if (header)
-      setHeader(e, 'Server-Timing', header)
+    // h3 v1 can send cached 304s early; h3 v2 prepares headers until the handler returns.
+    if (header && !e.node?.res?.headersSent)
+      appendResponseHeader(e, 'Server-Timing', header)
   }
 }
 
