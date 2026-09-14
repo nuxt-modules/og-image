@@ -12,6 +12,15 @@ const { resolveContext, useOgImageBufferCache } = vi.hoisted(() => ({
 
 // Model both adapter header APIs while retaining Node's real sent-header errors.
 vi.mock('#nuxtseo/h3', () => ({
+  appendResponseHeader: (event: H3Event, name: string, value: string) => {
+    if (event.node?.res) {
+      const current = event.node.res.getHeader(name)
+      event.node.res.setHeader(name, current ? [...(Array.isArray(current) ? current : [current.toString()]), value] : value)
+    }
+    else {
+      (event as unknown as { res: { headers: Headers } }).res.headers.append(name, value)
+    }
+  },
   H3Error: Error,
   createError: (input: object) => Object.assign(new Error('HTTP error'), input),
   getRequestHost: () => 'localhost',
@@ -63,6 +72,31 @@ describe('imageEventHandler response timing', () => {
 
     expect(await imageEventHandler(event)).toBe(image)
     expect(event.node.res.getHeader('Server-Timing')).toContain('total;dur=')
+  })
+
+  it.each([
+    { existing: 'app;dur=12' },
+    { existing: ['app;dur=12', 'db;dur=4'] },
+  ])('preserves existing Node timing $existing', async ({ existing }) => {
+    const event = nodeEvent()
+    event.node.res.setHeader('Server-Timing', existing)
+
+    expect(await imageEventHandler(event)).toBe(image)
+    const timing = event.node.res.getHeader('Server-Timing')
+    const value = Array.isArray(timing) ? timing.join(', ') : String(timing)
+    for (const metric of [existing].flat())
+      expect(value).toContain(metric)
+    expect(value).toContain('total;dur=')
+  })
+
+  it('preserves existing web timing', async () => {
+    const event = webEvent()
+    event.res.headers.set('Server-Timing', 'app;dur=12, db;dur=4')
+
+    expect(await imageEventHandler(event as unknown as H3Event)).toBe(image)
+    const timing = event.res.headers.get('Server-Timing')
+    expect(timing).toContain('app;dur=12, db;dur=4')
+    expect(timing).toContain('total;dur=')
   })
 
   it('preserves a committed 304 response', async () => {
