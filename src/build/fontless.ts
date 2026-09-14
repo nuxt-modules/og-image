@@ -9,7 +9,7 @@
  */
 
 import type { ConsolaInstance } from 'consola'
-import type { FontFamilyProviderOverride, FontlessOptions, Resolver } from 'fontless'
+import type { FontFamilyProviderOverride, FontlessOptions, RenderedFont, Resolver } from 'fontless'
 import type { Nuxt } from 'nuxt/schema'
 import type { FontProcessingState, FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
@@ -57,7 +57,7 @@ interface DownloadedFont {
 
 interface FontlessContext {
   resolver: Resolver
-  renderedFontURLs: Map<string, string>
+  renderedFontURLs: Map<string, RenderedFont>
   /** Providers the resolver will consult, in priority order. Used for diagnostics. */
   providerNames: string[]
 }
@@ -111,7 +111,7 @@ async function initFontless(options: {
     import('unifont'),
   ])
 
-  const renderedFontURLs = new Map<string, string>()
+  const renderedFontURLs = new Map<string, RenderedFont>()
 
   const providers = {
     fontsource: unifontProviders.fontsource,
@@ -159,7 +159,6 @@ async function initFontless(options: {
         dev: false,
         renderedFontURLs,
         assetsBaseURL: FONTS_URL_PREFIX,
-        callback: (filename, url) => renderedFontURLs.set(filename, url),
       },
       faces,
     ),

@@ -9,13 +9,13 @@ minimumReleaseAgeExclude:
   - nuxt-nightly@5.0.0-29762711.192612c7
   - nuxtseo-shared@5.3.8 || 5.3.9 || 5.3.11
 catalog:
-  nitro: 3.0.260610-beta
-  nitropack: npm:nitro@3.0.260610-beta
-  nuxt: npm:nuxt-nightly@5.0.0-29762711.192612c7
-  nuxt-site-config: ^4.1.4
-  pixelmatch: 5.3.0
-  pngjs: 6.0.0
+  nitro: 3.0.260903-beta
+  nitropack: npm:nitro@3.0.260903-beta
+  nuxt: npm:nuxt-nightly@5.0.0-29819633.9319fd64
+  nuxt-site-config: ^4.2.3
+  pixelmatch: 7.2.0
+  pngjs: 7.0.0
   typescript: 6.0.3
-  vue: ^3.5.40
-  vue-router: ^5.2.0
-  vue-tsc: ^3.3.7
+  vue: ^3.5.42
+  vue-router: ^5.3.1
+  vue-tsc: ^3.3.11
