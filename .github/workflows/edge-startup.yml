@@ -92,7 +92,6 @@ jobs:
           cp "${{ runner.temp }}/edge-startup-head.json" "$REPORT_DIR/head.json"
           status=0
           node bench/edge-startup.mjs --compare "$REPORT_DIR/base.json" "$REPORT_DIR/head.json" > "$REPORT_DIR/report.md" || status=$?
-          printf '\nBase: `%s`  PR: `%s`\n' "$BASE_SHA" "$HEAD_SHA" >> "$REPORT_DIR/report.md"
           cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
