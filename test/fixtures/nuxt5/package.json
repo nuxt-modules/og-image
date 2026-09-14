@@ -7,11 +7,13 @@
     "test": "nuxt prepare && vue-tsc --noEmit -p .nuxt/tsconfig.server.json && node test.mjs"
   },
   "dependencies": {
+    "@resvg/resvg-js": "catalog:",
     "nitro": "catalog:",
     "nitropack": "catalog:",
     "nuxt": "catalog:",
     "nuxt-og-image": "file:./nuxt-og-image.tgz",
     "nuxt-site-config": "catalog:",
+    "satori": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },

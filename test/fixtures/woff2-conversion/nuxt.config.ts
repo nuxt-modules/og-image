@@ -22,6 +22,7 @@ export default defineNuxtConfig({
 
   ogImage: {
     debug: true,
+    sharpOptions: true,
   },
 
   site: {

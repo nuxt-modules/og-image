@@ -423,6 +423,9 @@ export default defineNuxtModule<ModuleOptions>({
       return
     }
     const nitroCompatibility = setupNitroRuntimeCompatibility(nuxt)
+    // Nitro 2 uses a boolean here. Keep DevTools from assigning Nitro 3's array option.
+    if (nuxt.options.dev && nitroCompatibility._tag === 'nitro-v2')
+      nuxt.options.nitro.noExternals ??= false
     const setRuntimeAlias = (id: string, path: string) => {
       nuxt.options.alias[id] = path
       nuxt.options.nitro.alias ||= {}
