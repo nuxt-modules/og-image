@@ -124,6 +124,13 @@ function bytes(value) {
   return `${(value / 1024 / 1024).toFixed(1)} MiB`
 }
 
+function countChange(base, head) {
+  const difference = head - base
+  if (difference === 0)
+    return '✅ 0'
+  return `${difference > 0 ? '🔴 +' : '🟢 '}${difference}`
+}
+
 function compare(basePath, headPath) {
   const base = JSON.parse(readFileSync(basePath, 'utf8'))
   const head = JSON.parse(readFileSync(headPath, 'utf8'))
@@ -135,33 +142,52 @@ function compare(basePath, headPath) {
   const fullyLazy = headModules === 0 && headInstantiates === 0
   const improved = headModules < baseModules || headInstantiates < baseInstantiates
 
-  let verdict = 'No structural startup change.'
+  let verdict = '✅ **No structural startup change**'
   if (regressed)
-    verdict = 'WASM startup work increased.'
+    verdict = '⚠️ **WASM startup work increased**'
   else if (fullyLazy)
-    verdict = 'Lazy route boundary preserved. No WASM work runs during cold import.'
+    verdict = '✅ **No WASM work during cold import**'
   else if (improved)
-    verdict = `Partial improvement. Cold import still constructs ${headModules} WASM module${headModules === 1 ? '' : 's'} and starts ${headInstantiates} instantiation${headInstantiates === 1 ? '' : 's'}.`
+    verdict = '✅ **WASM startup work decreased**'
 
   const rows = [
     ['Cold import CPU', milliseconds(base.startup.cpuMs.mean, base.startup.cpuMs.rme), milliseconds(head.startup.cpuMs.mean, head.startup.cpuMs.rme), percent(base.startup.cpuMs.mean, head.startup.cpuMs.mean)],
     ['Cold import wall', milliseconds(base.startup.wallMs.mean, base.startup.wallMs.rme), milliseconds(head.startup.wallMs.mean, head.startup.wallMs.rme), percent(base.startup.wallMs.mean, head.startup.wallMs.mean)],
     ['Cold import RSS', bytes(base.startup.rssBytes.median), bytes(head.startup.rssBytes.median), percent(base.startup.rssBytes.median, head.startup.rssBytes.median)],
-    ['WASM modules constructed', String(baseModules), String(headModules), String(headModules - baseModules)],
+    ['WASM modules constructed', String(baseModules), String(headModules), countChange(baseModules, headModules)],
     ['WASM module bytes compiled', bytes(base.wasm.moduleBytes.median), bytes(head.wasm.moduleBytes.median), percent(base.wasm.moduleBytes.median, head.wasm.moduleBytes.median)],
-    ['WASM instantiations started', String(baseInstantiates), String(headInstantiates), String(headInstantiates - baseInstantiates)],
+    ['WASM instantiations started', String(baseInstantiates), String(headInstantiates), countChange(baseInstantiates, headInstantiates)],
     ['Server entry', bytes(base.entryBytes), bytes(head.entryBytes), percent(base.entryBytes, head.entryBytes)],
   ]
+  const changedCounters = [
+    ['WASM modules constructed', baseModules, headModules],
+    ['WASM instantiations started', baseInstantiates, headInstantiates],
+  ].filter(([, base, head]) => base !== head)
+  const baseline = process.env.BASE_SHA ? `Baseline: ${process.env.BASE_SHA.slice(0, 8)} · ` : ''
+  const revision = process.env.HEAD_SHA ? `PR: ${process.env.HEAD_SHA.slice(0, 8)} · ` : ''
   const report = [
+    // This heading identifies the artifact format. The comment workflow styles it.
     '### Edge startup benchmark',
     '',
     verdict,
     '',
-    '| Metric | base | PR | change |',
-    '|---|---:|---:|---:|',
-    ...rows.map(row => `| ${row.join(' | ')} |`),
+    ...(changedCounters.length > 0
+      ? [
+          '| Metric | Base → PR | Δ |',
+          '|---|---:|---:|',
+          ...changedCounters.map(([label, base, head]) => `| **${label}** | ${base} → ${head} | ${countChange(base, head)} |`),
+          '',
+        ]
+      : []),
+    `<details><summary>All startup metrics (${rows.length})</summary>`,
     '',
-    `Each timing uses ${head.samples} fresh Node processes. WASM counters are deterministic and drive the verdict.`,
+    '| Metric | Base → PR | Δ |',
+    '|---|---:|---:|',
+    ...rows.map(([label, base, head, change]) => `| ${label} | ${base} → ${head} | ${change} |`),
+    '',
+    '</details>',
+    '',
+    `<sub>${baseline}${revision}${head.samples} fresh Node processes · timings are informational · WASM counters determine the verdict</sub>`,
   ].join('\n')
 
   process.stdout.write(`${report}\n`)

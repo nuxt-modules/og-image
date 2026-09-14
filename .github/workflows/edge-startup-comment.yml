@@ -128,7 +128,7 @@ jobs:
             echo "::error::Refusing to overwrite the validated comment path"
             exit 1
           fi
-          sed 's/@/@<!-- -->/g' "$report" > "$COMMENT_PATH"
+          sed -e '1s/^### Edge startup benchmark$/### ⚡ Edge Startup/' -e 's/@/@<!-- -->/g' "$report" > "$COMMENT_PATH"
           if [ "$(wc -c < "$COMMENT_PATH")" -gt 60000 ]; then
             echo "::error::The comment exceeds 60000 bytes"
             exit 1
