@@ -84,7 +84,7 @@
     "nitropack": "catalog:",
     "playwright-core": "^1.50.0",
     "satori": ">=0.19.2",
-    "sharp": "^0.34.0",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4.0.0",
     "unifont": "^0.7.0",
     "unstorage": "^1.15.0",
