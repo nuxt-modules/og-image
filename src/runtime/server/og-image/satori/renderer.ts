@@ -159,7 +159,7 @@ async function createJpeg(event: OgImageRenderEventContext) {
 
 /**
  * Walk the satori VNode tree and rewrite fontFamily values to use subset chains.
- * E.g., `fontFamily: "Noto Sans SC"` → `fontFamily: "Noto Sans SC__0, Noto Sans SC__1, ..."`
+ * E.g., `fontFamily: "Noto Sans SC"` → `fontFamily: "Noto Sans SC__<hash-a>, Noto Sans SC__<hash-b>, ..."`
  */
 function rewriteVNodeFontFamilies(node: any, subsetChains: Map<string, string[]>) {
   const style = node.props?.style

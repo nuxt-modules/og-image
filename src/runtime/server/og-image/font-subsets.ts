@@ -1,67 +1,87 @@
 import type { RuntimeFontConfig } from '../../types'
+import { fnv1a64Base36 } from 'fnv1a-64'
 
 /**
- * Rename unicode-range subset fonts so renderers can fall back between them.
- *
- * Both Satori and Takumi pick the first loaded font file for a given family
- * name and don't fall back to other font files for missing glyphs. When CJK
- * fonts like "Noto Sans SC" are split into 100+ unicode-range subsets by
- * fontsource, each covering ~200 characters, this means only one subset's
- * glyphs render while the rest show as .notdef boxes.
- *
- * Fix: rename each subset to "Family__N" and use font-family fallback chains
- * so renderers try each subset in order per character.
+ * Give subsets stable names so renderers can fall back between their glyphs.
+ * Renderers cache registrations by name across renders with different filtered subsets.
  */
 export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig[] {
-  // Group by family+weight+style identity
   const groups = new Map<string, RuntimeFontConfig[]>()
-  for (const f of fonts) {
-    const key = `${f.family}\0${f.weight}\0${f.style}`
-    const arr = groups.get(key)
-    if (arr)
-      arr.push(f)
+  for (const font of fonts) {
+    const members = groups.get(font.family)
+    if (members)
+      members.push(font)
     else
-      groups.set(key, [f])
+      groups.set(font.family, [font])
   }
 
-  const result: RuntimeFontConfig[] = []
-  let changed = false
+  const aliases = new Map<RuntimeFontConfig, string>()
   for (const members of groups.values()) {
-    // Only rename when multiple distinct data blobs exist (subset fonts)
-    const needsRename = members.length > 1
-      && new Set(members.map(f => f.cacheKey)).size > 1
-    if (!needsRename) {
-      result.push(...members)
-      continue
+    const faces = new Map<string, RuntimeFontConfig[]>()
+    for (const font of members) {
+      const face = `${font.weight}\0${font.style}`
+      const subsets = faces.get(face)
+      if (subsets)
+        subsets.push(font)
+      else
+        faces.set(face, [font])
     }
-    changed = true
-    for (let i = 0; i < members.length; i++) {
-      const f = members[i]!
-      result.push({
-        ...f,
-        originalFamily: f.originalFamily || f.family,
-        family: `${f.family}__${i}`,
+    const needsRename = members.some(font => font.unicodeRange)
+      || [...faces.values()].some(subsets => new Set(subsets.map(font => font.cacheKey)).size > 1)
+    if (!needsRename)
+      continue
+
+    // Align subset faces so renderers can select the requested weight and style.
+    // Include every registration in the alias to prevent stale cross-render caches.
+    const slots: RuntimeFontConfig[][] = []
+    for (const subsets of faces.values()) {
+      const binaries = new Map<string, RuntimeFontConfig[]>()
+      for (const font of subsets) {
+        const source = font.src || font.localPath || font.cacheKey
+        const entries = binaries.get(source)
+        if (entries)
+          entries.push(font)
+        else
+          binaries.set(source, [font])
+      }
+      const ordered = [...binaries.values()].sort((a, b) => {
+        const left = `${a[0]!.unicodeRange || ''}\0${a[0]!.src || a[0]!.localPath || a[0]!.cacheKey}`
+        const right = `${b[0]!.unicodeRange || ''}\0${b[0]!.src || b[0]!.localPath || b[0]!.cacheKey}`
+        return left < right ? -1 : left > right ? 1 : 0
       })
+      for (const [index, entries] of ordered.entries())
+        (slots[index] ||= []).push(...entries)
+    }
+    for (const slot of slots) {
+      const identities = [...new Set(slot.map(font => JSON.stringify([
+        font.weight,
+        font.style,
+        font.src || font.localPath || font.cacheKey,
+      ])))].sort()
+      const alias = `${slot[0]!.family}__${fnv1a64Base36(JSON.stringify(identities))}`
+      for (const font of slot)
+        aliases.set(font, alias)
     }
   }
-  return changed ? result : fonts
+  return aliases.size
+    ? fonts.map(font => aliases.has(font)
+        ? { ...font, originalFamily: font.originalFamily || font.family, family: aliases.get(font)! }
+        : font)
+    : fonts
 }
 
 /**
  * Build a mapping from original family names to their renamed subset chain.
- * E.g., "Noto Sans SC" → ["Noto Sans SC__0", "Noto Sans SC__1", ...]
+ * E.g., "Noto Sans SC" → ["Noto Sans SC__<hash-a>", "Noto Sans SC__<hash-b>", ...]
  */
 export function buildSubsetFamilyChain(fonts: RuntimeFontConfig[]): Map<string, string[]> {
   const chains = new Map<string, string[]>()
   for (const f of fonts) {
-    if (!f.originalFamily)
-      continue
-    const arr = chains.get(f.originalFamily)
-    if (arr)
-      arr.push(f.family)
-    else
-      chains.set(f.originalFamily, [f.family])
+    if (f.originalFamily)
+      chains.set(f.originalFamily, [])
   }
+  for (const f of fonts)
+    chains.get(f.originalFamily || f.family)?.push(f.family)
   return chains
 }
 

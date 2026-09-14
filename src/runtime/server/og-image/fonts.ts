@@ -311,7 +311,7 @@ export interface LoadFontsForRendererOptions extends LoadFontsOptions {
  *
  * When a font family has multiple unicode-range subsets loaded (e.g., CJK fonts
  * split into many small chunks), renames each subset to a unique family name
- * (e.g., "Noto Sans SC__0", "Noto Sans SC__1") so renderers use font-family
+ * (e.g., "Noto Sans SC__<stable hash per binary>") so renderers use font-family
  * fallback chains for per-character glyph coverage. Without this, both Satori
  * and Takumi pick the first font file and show .notdef for characters in other subsets.
  */
