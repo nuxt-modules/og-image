@@ -1,6 +1,42 @@
 # Changelog
 
 
+## v6.7.7...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.7...main)
+
+### 🩹 Fixes
+
+- Encode asterisks in OG image URLs ([#672](https://github.com/nuxt-modules/og-image/pull/672))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
+## v6.7.6...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.6...main)
+
+### 🚀 Enhancements
+
+- **ci:** Add package size reporting ([#655](https://github.com/nuxt-modules/og-image/pull/655))
+
+### 🩹 Fixes
+
+- Use Nitro 3 internal fetch bridge ([#656](https://github.com/nuxt-modules/og-image/pull/656))
+- **types:** Require Nitro runtime config secret ([#668](https://github.com/nuxt-modules/og-image/pull/668))
+- Reuse Nuxt Fonts assets for Satori and Takumi ([#664](https://github.com/nuxt-modules/og-image/pull/664))
+- **devtools:** Send refresh broadcasts as events ([#671](https://github.com/nuxt-modules/og-image/pull/671))
+
+### 🏡 Chore
+
+- Adopt nuxtseo-shared 5.3.11 ([#661](https://github.com/nuxt-modules/og-image/pull/661))
+- Bump ([d000ae71](https://github.com/nuxt-modules/og-image/commit/d000ae71))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.7.5...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.5...main)
