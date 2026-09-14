@@ -239,6 +239,16 @@ export interface ModuleOptions {
    */
   cacheMaxAgeSeconds?: number
   /**
+   * Include Twitter card meta tags (`twitter:card`, `twitter:image`, etc)
+   * alongside the Open Graph image tags.
+   *
+   * Set to `false` to only emit `og:image` tags. When unset, the module respects
+   * `seo.automaticTwitterTags` (nuxt-seo-kit) before defaulting to `true`.
+   *
+   * @default true
+   */
+  includeTwitter?: boolean
+  /**
    * Font subsets to download when resolving missing font families via fontless.
    *
    * Fonts from @nuxt/fonts are always included with all their subsets (devanagari,
@@ -860,7 +870,10 @@ export default defineNuxtModule<ModuleOptions>({
       })
 
       if (!nuxt.options.dev) {
-        addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true, build: true })
+        // `addBuildPlugin`'s `build` option cannot express "build only": kit skips a plugin
+        // on `build: false`, and `nuxt.options.build` is always truthy. The `nuxt.options.dev`
+        // guard above is the real switch.
+        addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true })
         setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
       }
     }
@@ -1665,6 +1678,11 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         colorPreference = colorModeOptions.fallback
       if (!colorPreference || colorPreference === 'system')
         colorPreference = 'light'
+      // Precedence: explicit `ogImage.includeTwitter`, then `seo.automaticTwitterTags`
+      // (nuxt-seo-kit), then `true` to preserve the historic behavior.
+      const includeTwitter = config.includeTwitter
+        ?? (nuxt.options as { seo?: { automaticTwitterTags?: boolean } }).seo?.automaticTwitterTags
+        ?? true
       const runtimeConfig = <OgImageRuntimeConfig>{
         version,
         // binding options
@@ -1675,6 +1693,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
 
         defaults: config.defaults,
         debug: config.debug,
+        includeTwitter,
         // avoid adding credentials
         baseCacheKey,
         buildCacheDir,
@@ -1743,6 +1762,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         ...nuxt.options.runtimeConfig.public,
         'nuxt-og-image': {
           defaults: runtimeConfig.defaults,
+          includeTwitter: runtimeConfig.includeTwitter,
           hasServerRuntime: !(nuxt.options as any)._generate && !nuxt.options.nitro?.static,
         },
       } as any
@@ -1755,7 +1775,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // from their preset definition rather than user config. Overwriting here
     // before nitro/client bundling catches those cases.
     nuxt.hook('nitro:init', (nitro) => {
-      const pub = (nuxt.options.runtimeConfig.public['nuxt-og-image'] as { defaults?: any, hasServerRuntime?: boolean }) || {}
+      const pub = (nuxt.options.runtimeConfig.public['nuxt-og-image'] as { defaults?: any, includeTwitter?: boolean, hasServerRuntime?: boolean }) || {}
       nuxt.options.runtimeConfig.public = {
         ...nuxt.options.runtimeConfig.public,
         'nuxt-og-image': {

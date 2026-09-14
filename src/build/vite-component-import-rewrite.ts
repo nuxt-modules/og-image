@@ -203,6 +203,9 @@ const MAX_IMPORT_REWRITE_DEPTH = 5
 
 const RE_OG_IMAGE_QUERY = /\?og-image(?:-depth=(\d+))?$/
 const RE_VUE_IMPORT = /import\s+(\w+)\s+from\s+(['"])(.+?\.vue)\2/g
+// Ids carry a query in dev and for SFC blocks, so the extension match allows one. The
+// bundler applies this before the hook runs, which keeps the rest of the graph out.
+const RE_VUE_ID = /\.vue(?:\?|$)/
 
 /**
  * Injects explicit imports with ?og-image for nested components used in OG templates.
@@ -214,118 +217,124 @@ export const ComponentImportRewritePlugin = createUnplugin((options: ComponentIm
     name: 'nuxt-og-image:component-import-rewrite',
     enforce: 'pre',
 
-    transformInclude(id) {
-      // Allow cascading through ?og-image files up to a depth limit
-      const depthMatch = id.match(RE_OG_IMAGE_QUERY)
-      if (depthMatch) {
-        const depth = depthMatch[1] ? Number.parseInt(depthMatch[1]) : 0
-        return depth < MAX_IMPORT_REWRITE_DEPTH
-      }
-      if (!id.endsWith('.vue'))
-        return false
-      return options.ogComponentPaths.some(dir => id.startsWith(`${dir}/`) || id.startsWith(`${dir}\\`))
-    },
-
-    transform(code, rawId) {
-      // Parse current depth from ?og-image-depth=N
-      const depthMatch = rawId.match(RE_OG_IMAGE_QUERY)
-      const currentDepth = depthMatch?.[1] ? Number.parseInt(depthMatch[1]) : 0
-      const nextQuery = `?og-image-depth=${currentDepth + 1}`
-      const { descriptor } = parseSfc(code)
-      if (!descriptor.template?.ast) {
-        return
-      }
-
-      // Collect component tag names used in the template
-      const usedComponents = new Set<string>()
-      walkTemplateAst(descriptor.template.ast.children, (node) => {
-        // type 1 = NodeTypes.ELEMENT
-        if (node.type === 1 && !HTML_ELEMENTS.has((node as ElementNode).tag) && !BUILTIN_COMPONENTS.has((node as ElementNode).tag)) {
-          usedComponents.add((node as ElementNode).tag)
+    transform: {
+      filter: {
+        id: RE_VUE_ID,
+      },
+      handler(code, rawId) {
+        // Parse current depth from ?og-image-depth=N
+        const depthMatch = rawId.match(RE_OG_IMAGE_QUERY)
+        const currentDepth = depthMatch?.[1] ? Number.parseInt(depthMatch[1]) : 0
+        if (depthMatch) {
+          // Allow cascading through ?og-image files up to a depth limit
+          if (currentDepth >= MAX_IMPORT_REWRITE_DEPTH)
+            return
         }
-      })
-
-      if (usedComponents.size === 0) {
-        return
-      }
-
-      // Resolve component tags against the Nuxt component registry
-      const components = options.getComponents()
-      const newImports: Array<{ name: string, filePath: string }> = []
-
-      for (const tag of usedComponents) {
-        // Already handled by asset transform (Icon/UIcon → inline SVG)
-        if (tag === 'Icon' || tag === 'UIcon')
-          continue
-
-        const match = components.find(c => c.pascalName === tag || c.kebabName === tag)
-        if (match?.filePath && match.filePath.endsWith('.vue')) {
-          newImports.push({ name: tag, filePath: match.filePath })
+        else {
+          // Only a top-level OG template seeds the cascade. `RE_VUE_ID` also admits SFC
+          // block ids, which never carry the query and are not files we own.
+          if (!rawId.endsWith('.vue'))
+            return
+          if (!options.ogComponentPaths.some(dir => rawId.startsWith(`${dir}/`) || rawId.startsWith(`${dir}\\`)))
+            return
         }
-      }
+        const nextQuery = `?og-image-depth=${currentDepth + 1}`
+        const { descriptor } = parseSfc(code)
+        if (!descriptor.template?.ast) {
+          return
+        }
 
-      if (newImports.length === 0) {
-        return
-      }
+        // Collect component tag names used in the template
+        const usedComponents = new Set<string>()
+        walkTemplateAst(descriptor.template.ast.children, (node) => {
+          // type 1 = NodeTypes.ELEMENT
+          if (node.type === 1 && !HTML_ELEMENTS.has((node as ElementNode).tag) && !BUILTIN_COMPONENTS.has((node as ElementNode).tag)) {
+            usedComponents.add((node as ElementNode).tag)
+          }
+        })
 
-      const s = new MagicString(code)
+        if (usedComponents.size === 0) {
+          return
+        }
 
-      // Rewrite existing .vue imports to add ?og-image, collect which ones we handled
-      const rewritten = new Set<string>()
-      const scriptBlock = descriptor.scriptSetup || descriptor.script
-      if (scriptBlock) {
-        const scriptStart = scriptBlock.loc.start.offset
-        const scriptContent = scriptBlock.content
-        // Match: import Foo from './path.vue' or "path.vue"
-        for (const m of scriptContent.matchAll(RE_VUE_IMPORT)) {
-          const importName = m[1]
-          if (newImports.some(i => i.name === importName)) {
-            const source = m[3]!
-            // Replace the source path with ?og-image appended
-            const matchStart = scriptStart + m.index! + m[0].indexOf(source)
-            s.overwrite(matchStart, matchStart + source.length, `${source}${nextQuery}`)
-            rewritten.add(importName!)
+        // Resolve component tags against the Nuxt component registry
+        const components = options.getComponents()
+        const newImports: Array<{ name: string, filePath: string }> = []
+
+        for (const tag of usedComponents) {
+          // Already handled by asset transform (Icon/UIcon → inline SVG)
+          if (tag === 'Icon' || tag === 'UIcon')
+            continue
+
+          const match = components.find(c => c.pascalName === tag || c.kebabName === tag)
+          if (match?.filePath && match.filePath.endsWith('.vue')) {
+            newImports.push({ name: tag, filePath: match.filePath })
           }
         }
-      }
 
-      // Filter to only imports not already rewritten
-      const imports = newImports.filter(i => !rewritten.has(i.name))
+        if (newImports.length === 0) {
+          return
+        }
 
-      if (imports.length === 0) {
+        const s = new MagicString(code)
+
+        // Rewrite existing .vue imports to add ?og-image, collect which ones we handled
+        const rewritten = new Set<string>()
+        const scriptBlock = descriptor.scriptSetup || descriptor.script
+        if (scriptBlock) {
+          const scriptStart = scriptBlock.loc.start.offset
+          const scriptContent = scriptBlock.content
+          // Match: import Foo from './path.vue' or "path.vue"
+          for (const m of scriptContent.matchAll(RE_VUE_IMPORT)) {
+            const importName = m[1]
+            if (newImports.some(i => i.name === importName)) {
+              const source = m[3]!
+              // Replace the source path with ?og-image appended
+              const matchStart = scriptStart + m.index! + m[0].indexOf(source)
+              s.overwrite(matchStart, matchStart + source.length, `${source}${nextQuery}`)
+              rewritten.add(importName!)
+            }
+          }
+        }
+
+        // Filter to only imports not already rewritten
+        const imports = newImports.filter(i => !rewritten.has(i.name))
+
+        if (imports.length === 0) {
+          return {
+            code: s.toString(),
+            map: s.generateMap({ hires: true }),
+          }
+        }
+
+        // Build import statements for new imports
+        const importStatements = imports
+          .map(i => `import ${i.name} from '${i.filePath}${nextQuery}'`)
+          .join('\n')
+
+        // Inject into existing <script setup> or create one
+        if (descriptor.scriptSetup) {
+          // Insert after the opening <script setup> tag
+          const scriptSetupStart = code.indexOf('<script setup')
+          const tagEnd = code.indexOf('>', scriptSetupStart) + 1
+          s.appendRight(tagEnd, `\n${importStatements}`)
+        }
+        else if (descriptor.script) {
+          // Insert after the opening <script> tag
+          const scriptStart = code.indexOf('<script')
+          const tagEnd = code.indexOf('>', scriptStart) + 1
+          s.appendRight(tagEnd, `\n${importStatements}`)
+        }
+        else {
+          // No script block — add one
+          s.prepend(`<script setup>\n${importStatements}\n</script>\n`)
+        }
+
         return {
           code: s.toString(),
           map: s.generateMap({ hires: true }),
         }
-      }
-
-      // Build import statements for new imports
-      const importStatements = imports
-        .map(i => `import ${i.name} from '${i.filePath}${nextQuery}'`)
-        .join('\n')
-
-      // Inject into existing <script setup> or create one
-      if (descriptor.scriptSetup) {
-        // Insert after the opening <script setup> tag
-        const scriptSetupStart = code.indexOf('<script setup')
-        const tagEnd = code.indexOf('>', scriptSetupStart) + 1
-        s.appendRight(tagEnd, `\n${importStatements}`)
-      }
-      else if (descriptor.script) {
-        // Insert after the opening <script> tag
-        const scriptStart = code.indexOf('<script')
-        const tagEnd = code.indexOf('>', scriptStart) + 1
-        s.appendRight(tagEnd, `\n${importStatements}`)
-      }
-      else {
-        // No script block — add one
-        s.prepend(`<script setup>\n${importStatements}\n</script>\n`)
-      }
-
-      return {
-        code: s.toString(),
-        map: s.generateMap({ hires: true }),
-      }
+      },
     },
   }
 })

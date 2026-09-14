@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'pathe'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AssetTransformPlugin } from '../../src/build/vite-asset-transform'
+import { runTransform } from '../unplugin'
 
 const testDir = join(__dirname, '__fixtures__')
 const publicDir = join(testDir, 'public')
@@ -36,20 +37,31 @@ describe('asset-transform plugin', () => {
       rmSync(testDir, { recursive: true })
   })
 
-  // Transform include tests
-  it('should include OgImage components', () => {
-    expect(plugin.transformInclude?.(join(srcDir, 'components', 'OgImage', 'Test.vue'))).toBe(true)
-    expect(plugin.transformInclude?.(join(srcDir, 'components', 'og-image', 'Test.vue'))).toBe(true)
-    expect(plugin.transformInclude?.(join(srcDir, 'components', 'OgImageTemplate', 'Test.vue'))).toBe(true)
+  // Module scope tests
+  const imageTemplate = `<template>
+  <div>
+    <img src="/logo.png" alt="Logo" />
+  </div>
+</template>`
+
+  it('should transform OgImage components', async () => {
+    for (const id of [
+      join(srcDir, 'components', 'OgImage', 'Test.vue'),
+      join(srcDir, 'components', 'og-image', 'Test.vue'),
+      join(srcDir, 'components', 'OgImageTemplate', 'Test.vue'),
+    ]) {
+      expect(await runTransform(plugin, imageTemplate, id)).toBeDefined()
+    }
   })
 
-  it('should exclude non-OgImage components', () => {
-    expect(plugin.transformInclude?.(join(srcDir, 'components', 'Header.vue'))).toBe(false)
-    expect(plugin.transformInclude?.(join(srcDir, 'pages', 'index.vue'))).toBe(false)
-  })
-
-  it('should exclude node_modules', () => {
-    expect(plugin.transformInclude?.('node_modules/some-pkg/OgImage.vue')).toBe(false)
+  it('should leave non-OgImage components alone', async () => {
+    for (const id of [
+      join(srcDir, 'components', 'Header.vue'),
+      join(srcDir, 'pages', 'index.vue'),
+      'node_modules/some-pkg/OgImage.vue',
+    ]) {
+      expect(await runTransform(plugin, imageTemplate, id)).toBeUndefined()
+    }
   })
 
   // Icon transform tests
@@ -60,7 +72,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).not.toContain('<Icon')
@@ -73,7 +85,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).not.toContain('<UIcon')
@@ -86,7 +98,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('class="text-xl text-blue-500"')
     // Style is merged with display:flex for Satori compatibility
@@ -101,7 +113,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('<Icon :name="dynamicIcon"')
     expect(result?.code).toContain('<svg')
@@ -116,7 +128,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     const svgCount = (result?.code.match(/<svg/g) || []).length
     expect(svgCount).toBe(3)
@@ -130,7 +142,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('data:image/png;base64,')
     expect(result?.code).not.toContain('src="/logo.png"')
@@ -143,7 +155,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('data:image/svg+xml,')
     expect(result?.code).not.toContain('src="/icon.svg"')
@@ -156,7 +168,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('data:image/svg+xml,')
   })
@@ -168,7 +180,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('data:image/svg+xml,')
   })
@@ -181,7 +193,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain(':src="dynamicSrc"')
     expect(result?.code).toContain('data:image/png;base64,')
@@ -194,7 +206,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeUndefined()
   })
 
@@ -207,7 +219,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeDefined()
     expect(result?.code).toContain('<svg')
     expect(result?.code).toContain('data:image/png;base64,')
@@ -220,7 +232,7 @@ describe('asset-transform plugin', () => {
   </div>
 </template>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeUndefined()
   })
 
@@ -229,7 +241,7 @@ describe('asset-transform plugin', () => {
 const icon = 'carbon:home'
 </script>`
 
-    const result = await plugin.transform?.(code, join(componentDir, 'Test.vue'))
+    const result = await runTransform(plugin, code, join(componentDir, 'Test.vue'))
     expect(result).toBeUndefined()
   })
 })

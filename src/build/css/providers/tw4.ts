@@ -485,7 +485,7 @@ function buildThemeVars(
     buildNuxtUiVars(vars, nuxtUiColors, theme)
 
   if (extracted) {
-    const themeRootAttrs: Record<string, string> = { 'data-theme': theme }
+    const themeRootAttrs = { 'data-theme': theme } satisfies Record<string, string>
     const themeVars = resolveExtractedVars(extracted, themeRootAttrs)
     for (const [n, v] of themeVars)
       vars.set(n, v)

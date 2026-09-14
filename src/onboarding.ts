@@ -21,7 +21,7 @@ import {
   validateProviderSetup,
 } from './utils/dependencies'
 
-const DEPRECATED_CONFIG: Record<string, string> = {
+const DEPRECATED_CONFIG = {
   playground: 'Removed - use Nuxt DevTools',
   host: 'Use site.url or NUXT_SITE_URL',
   siteUrl: 'Use site.url or NUXT_SITE_URL',
@@ -33,7 +33,7 @@ const DEPRECATED_CONFIG: Record<string, string> = {
   cacheKey: 'Removed',
   static: 'Removed - use zeroRuntime',
   fonts: 'Use @nuxt/fonts module instead',
-}
+} satisfies Record<string, string>
 
 const DEPRECATED_COMPOSABLES = [
   'defineOgImageStatic',

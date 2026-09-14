@@ -9,7 +9,7 @@ describe('font-requirements', () => {
   })
 
   describe('font weight class mapping', () => {
-    const FONT_WEIGHT_CLASSES: Record<string, number> = {
+    const FONT_WEIGHT_CLASSES = {
       'font-thin': 100,
       'font-extralight': 200,
       'font-light': 300,
@@ -19,7 +19,7 @@ describe('font-requirements', () => {
       'font-bold': 700,
       'font-extrabold': 800,
       'font-black': 900,
-    }
+    } satisfies Record<string, number>
 
     it('should have correct weight mappings', () => {
       expect(FONT_WEIGHT_CLASSES['font-thin']).toBe(100)
