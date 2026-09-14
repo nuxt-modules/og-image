@@ -49,6 +49,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "bench:edge-startup": "nuxt build bench/fixtures/edge-startup && node bench/edge-startup.mjs bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js",
     "snapshots": "node --import jiti/register scripts/generate-template-snapshots.ts",
     "stub": "nuxt-build-module build --stub && nuxt-module-build prepare",
     "build": "pnpm stub && nuxt-module-build build && pnpm run build:client",
