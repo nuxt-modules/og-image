@@ -572,7 +572,7 @@ describe('extractCodepoints', () => {
 })
 
 describe('renameSubsetFonts', () => {
-  function makeFontConfig(overrides: Partial<{ family: string, weight: number, style: string, src: string, cacheKey: string, data: ArrayBuffer, unicodeRange: string }>): any {
+  function makeFontConfig(overrides: Partial<{ family: string, weight: number, style: string, src: string, localPath: string, cacheKey: string, data: ArrayBuffer, unicodeRange: string }>): any {
     return {
       family: 'Inter',
       weight: 400,
@@ -652,6 +652,52 @@ describe('renameSubsetFonts', () => {
     // Repeat renders keep the same name per binary
     expect(renameSubsetFonts(renderA)[0].family).toBe(a1[0].family)
     expect(renameSubsetFonts(renderB)[0].family).toBe(b1[0].family)
+  })
+
+  it.each([undefined, ''])('keeps cache-key subset names stable when source paths are %s', (path) => {
+    const fonts = ['a', 'b', 'c'].map(key => makeFontConfig({
+      family: 'Noto Sans SC',
+      src: path,
+      localPath: path,
+      cacheKey: `noto-${key}`,
+      unicodeRange: 'U+4E00-4EFF',
+    }))
+    const singletonNames = fonts.map(font => renameSubsetFonts([font])[0].family)
+    const filteredNames = renameSubsetFonts([fonts[2], fonts[0]]).map(font => font.family)
+
+    expect(new Set(singletonNames).size).toBe(3)
+    expect(filteredNames).toEqual([singletonNames[2], singletonNames[0]])
+  })
+
+  it('uses the local path when the source is empty', () => {
+    const fonts = ['a', 'b'].map(key => makeFontConfig({
+      src: '',
+      localPath: `/chunk-${key}.woff2`,
+      unicodeRange: 'U+4E00-4EFF',
+    }))
+    const names = renameSubsetFonts(fonts).map(font => font.family)
+
+    expect(names[0]).not.toBe(names[1])
+    expect(renameSubsetFonts([fonts[1]])[0].family).toBe(names[1])
+  })
+
+  it('keeps the source identity when local paths or cache keys change', () => {
+    const font = makeFontConfig({ unicodeRange: 'U+4E00-4EFF' })
+    const renamed = renameSubsetFonts([font])[0]
+    const relocated = renameSubsetFonts([{ ...font, localPath: '/another.woff2', cacheKey: 'another-key' }])[0]
+
+    expect(relocated.family).toBe(renamed.family)
+  })
+
+  it('keeps complete fonts in a family chain with renamed subsets', () => {
+    const fonts = [
+      makeFontConfig({ weight: 700, src: '/bold.woff2', cacheKey: 'bold' }),
+      makeFontConfig({ unicodeRange: 'U+4E00-4EFF' }),
+    ]
+    const renamed = renameSubsetFonts(fonts)
+    const chain = buildSubsetFamilyChain(renamed).get('Inter')
+
+    expect(chain).toEqual(renamed.map(font => font.family))
   })
 
   it('does not rename when all fonts in a group have the same cacheKey', () => {

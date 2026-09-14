@@ -1,20 +1,9 @@
 import type { RuntimeFontConfig } from '../../types'
+import { fnv1a64Base36 } from 'fnv1a-64'
 
 /**
- * Rename unicode-range subset fonts so renderers can fall back between them.
- *
- * Both Satori and Takumi pick the first loaded font file for a given family
- * name and don't fall back to other font files for missing glyphs. When CJK
- * fonts like "Noto Sans SC" are split into 100+ unicode-range subsets by
- * fontsource, each covering ~200 characters, this means only one subset's
- * glyphs render while the rest show as .notdef boxes.
- *
- * Fix: rename each subset to "Family__<stable suffix>" and use font-family
- * fallback chains so renderers try each subset in order per character. The
- * suffix is derived from the font's src so a given subset binary resolves to
- * the same name in every render of a process. Renderers keep the first
- * registration per name, so a name that flips binaries between renders
- * would silently render against the stale binary.
+ * Give subsets stable names so renderers can fall back between their glyphs.
+ * Renderers cache registrations by name across renders with different filtered subsets.
  */
 export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig[] {
   // Group by family+weight+style identity
@@ -31,12 +20,7 @@ export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig
   const result: RuntimeFontConfig[] = []
   let changed = false
   for (const members of groups.values()) {
-    // Rename when the group carries unicode-range subsets, even a single one.
-    // The codepoint filter can leave exactly one subset per render, and a bare
-    // family name that flips binaries between renders would render stale
-    // glyphs (renderers keep the first registration per name). Also rename
-    // when multiple distinct binaries share a family identity. Bare names are
-    // kept only for non-subset fonts.
+    // A filtered render can contain only one unicode-range subset.
     const needsRename = members.some(f => f.unicodeRange)
       || (members.length > 1 && new Set(members.map(f => f.cacheKey)).size > 1)
     if (!needsRename) {
@@ -44,34 +28,15 @@ export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig
       continue
     }
     changed = true
-    for (let i = 0; i < members.length; i++) {
-      const f = members[i]!
+    for (const f of members) {
       result.push({
         ...f,
         originalFamily: f.originalFamily || f.family,
-        family: `${f.family}__${stableSubsetSuffix(f) ?? i}`,
+        family: `${f.family}__${fnv1a64Base36(f.src || f.localPath || f.cacheKey)}`,
       })
     }
   }
   return changed ? result : fonts
-}
-
-/**
- * Deterministic suffix identifying a subset binary by its source. Returns
- * undefined only when the font carries no src or localPath to derive from.
- */
-function stableSubsetSuffix(f: RuntimeFontConfig): string | undefined {
-  const s = f.src || f.localPath
-  if (!s)
-    return undefined
-  let h1 = 5381
-  let h2 = 2166136261
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i)
-    h1 = (((h1 << 5) + h1) ^ c) >>> 0
-    h2 = Math.imul(h2 ^ c, 16777619) >>> 0
-  }
-  return (BigInt(h1) << 32n | BigInt(h2)).toString(36)
 }
 
 /**
@@ -81,14 +46,11 @@ function stableSubsetSuffix(f: RuntimeFontConfig): string | undefined {
 export function buildSubsetFamilyChain(fonts: RuntimeFontConfig[]): Map<string, string[]> {
   const chains = new Map<string, string[]>()
   for (const f of fonts) {
-    if (!f.originalFamily)
-      continue
-    const arr = chains.get(f.originalFamily)
-    if (arr)
-      arr.push(f.family)
-    else
-      chains.set(f.originalFamily, [f.family])
+    if (f.originalFamily)
+      chains.set(f.originalFamily, [])
   }
+  for (const f of fonts)
+    chains.get(f.originalFamily || f.family)?.push(f.family)
   return chains
 }
 
