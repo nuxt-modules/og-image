@@ -1,0 +1,109 @@
+name: Edge Startup Benchmark
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/edge-startup.yml
+      - .github/workflows/edge-startup-comment.yml
+      - bench/**/*.mjs
+      - bench/**/*.ts
+      - bench/**/*.vue
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - src/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Check out base commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: .benchmark/base
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.x
+          cache: pnpm
+
+      - name: Build base branch fixture
+        env:
+          BASE_DIR: ${{ github.workspace }}/.benchmark/base
+          NUXT_OG_IMAGE_SKIP_ONBOARDING: '1'
+        run: |
+          mkdir -p "$BASE_DIR/bench/fixtures/edge-startup"
+          cp -R bench/fixtures/edge-startup/. "$BASE_DIR/bench/fixtures/edge-startup/"
+          pnpm --dir "$BASE_DIR" install --frozen-lockfile
+          pnpm --dir "$BASE_DIR" stub
+          pnpm --dir "$BASE_DIR" exec nuxt build bench/fixtures/edge-startup
+
+      - name: Build pull request fixture
+        env:
+          NUXT_OG_IMAGE_SKIP_ONBOARDING: '1'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm stub
+          pnpm exec nuxt build bench/fixtures/edge-startup
+
+      - name: Measure cold imports
+        env:
+          BASE_DIR: ${{ github.workspace }}/.benchmark/base
+          BENCH_SAMPLES: '12'
+        run: |
+          node bench/edge-startup.mjs "$BASE_DIR/bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js" > "${{ runner.temp }}/edge-startup-base.json"
+          node bench/edge-startup.mjs bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js > "${{ runner.temp }}/edge-startup-head.json"
+
+      - name: Report benchmark
+        id: report
+        continue-on-error: true
+        env:
+          REPORT_DIR: ${{ runner.temp }}/edge-startup-report
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p "$REPORT_DIR"
+          printf '%s\n' "$PR_NUMBER" > "$REPORT_DIR/pr-number.txt"
+          printf '%s\n' "$HEAD_SHA" > "$REPORT_DIR/head-sha.txt"
+          cp "${{ runner.temp }}/edge-startup-base.json" "$REPORT_DIR/base.json"
+          cp "${{ runner.temp }}/edge-startup-head.json" "$REPORT_DIR/head.json"
+          status=0
+          node bench/edge-startup.mjs --compare "$REPORT_DIR/base.json" "$REPORT_DIR/head.json" > "$REPORT_DIR/report.md" || status=$?
+          printf '\nBase: `%s`  PR: `%s`\n' "$BASE_SHA" "$HEAD_SHA" >> "$REPORT_DIR/report.md"
+          cat "$REPORT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Upload benchmark report
+        if: ${{ !cancelled() && steps.report.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: edge-startup-report
+          path: ${{ runner.temp }}/edge-startup-report
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Fail on startup regression
+        if: ${{ steps.report.outcome == 'failure' }}
+        run: exit 1
