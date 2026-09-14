@@ -1,6 +1,7 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'pathe'
+import satori from 'satori'
 import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
 import { extractFontFacesWithSubsets } from '../../src/build/css/font-face'
@@ -689,15 +690,84 @@ describe('renameSubsetFonts', () => {
     expect(relocated.family).toBe(renamed.family)
   })
 
-  it('keeps complete fonts in a family chain with renamed subsets', () => {
-    const fonts = [
-      makeFontConfig({ weight: 700, src: '/bold.woff2', cacheKey: 'bold' }),
-      makeFontConfig({ unicodeRange: 'U+4E00-4EFF' }),
-    ]
-    const renamed = renameSubsetFonts(fonts)
-    const chain = buildSubsetFamilyChain(renamed).get('Inter')
+  it('keeps cached face registrations bound to their source across filtered renders', () => {
+    const fonts = ['a', 'b', 'c'].flatMap(subset => [400, 700].map(weight => makeFontConfig({
+      src: `/${subset}-${weight}.ttf`,
+      cacheKey: `${subset}-${weight}`,
+      weight,
+      unicodeRange: 'U+0000-00FF',
+    })))
+    const registered = new Map<string, string>()
+    // Filtering changes which regular and bold subsets share a fallback slot.
+    for (const selection of [[0, 1, 2, 3], [2, 3, 4, 5], [0, 3, 4, 5]]) {
+      for (const font of renameSubsetFonts(selection.map(index => fonts[index]!))) {
+        const key = `${font.family}:${font.weight}:${font.style}`
+        if (registered.has(key))
+          expect(font.src).toBe(registered.get(key))
+        else
+          registered.set(key, font.src!)
+      }
+    }
+  })
 
-    expect(chain).toEqual(renamed.map(font => font.family))
+  it('changes shared aliases when a registered face changes', () => {
+    const regular = makeFontConfig({ src: '/regular.ttf', unicodeRange: 'U+0000-00FF' })
+    const bold = makeFontConfig({ src: '/bold.ttf', weight: 700, unicodeRange: 'U+0000-00FF' })
+    const initial = renameSubsetFonts([regular, bold])
+    const reordered = renameSubsetFonts([bold, regular])
+    const replaced = renameSubsetFonts([regular, { ...bold, src: '/replacement-bold.ttf' }])
+
+    expect(initial[0].family).toBe(initial[1].family)
+    expect(reordered.map(font => font.family)).toEqual(initial.map(font => font.family))
+    expect(replaced[0].family).not.toBe(initial[0].family)
+    expect(replaced[0].family).toBe(replaced[1].family)
+  })
+
+  it.each([
+    { completeBold: false, multipleSubsets: false, italic: false },
+    { completeBold: true, multipleSubsets: false, italic: false },
+    { completeBold: false, multipleSubsets: true, italic: false },
+    { completeBold: false, multipleSubsets: false, italic: true },
+  ])('preserves face matching across subsets: %j', async ({ completeBold, multipleSubsets, italic }) => {
+    const fonts = [
+      makeFontConfig({
+        src: '/regular.ttf',
+        unicodeRange: 'U+0000-00FF',
+        data: readFileSync(new URL('../fixtures/multi-font-families/public/fonts/LocalSans-Regular.ttf', import.meta.url)),
+      }),
+      makeFontConfig({
+        weight: italic ? 400 : 700,
+        style: italic ? 'italic' : 'normal',
+        src: '/bold.ttf',
+        unicodeRange: completeBold ? undefined : 'U+0000-00FF',
+        data: readFileSync(new URL('../fixtures/multi-font-families/public/fonts/LocalSans-Bold.ttf', import.meta.url)),
+      }),
+    ]
+    // Distinct fixture outlines expose incorrect face selection, including style matching.
+    if (multipleSubsets) {
+      fonts.push(...fonts.map(font => ({
+        ...font,
+        src: `/second${font.src}`,
+        unicodeRange: 'U+0100-017F',
+      })))
+    }
+    for (const order of [fonts, [...fonts].reverse()]) {
+      const renamed = renameSubsetFonts(order)
+      const family = buildSubsetFamilyChain(renamed).get('Inter')!.join(', ')
+      for (const face of fonts.slice(0, 2)) {
+        const render = (fontFamily: string, entries: typeof renamed) => satori({
+          type: 'div',
+          props: { style: { fontFamily, fontWeight: face.weight, fontStyle: face.style, fontSize: 40 }, children: 'Hello World' },
+        }, {
+          width: 400,
+          height: 100,
+          fonts: entries.map(font => ({ name: font.family, data: font.data, weight: font.weight, style: font.style })) as any,
+        })
+        const actual = await render(family, renamed)
+        const expected = await render('Inter', [face])
+        expect(actual).toBe(expected)
+      }
+    }
   })
 
   it('does not rename when all fonts in a group have the same cacheKey', () => {

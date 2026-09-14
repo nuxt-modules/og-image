@@ -6,37 +6,68 @@ import { fnv1a64Base36 } from 'fnv1a-64'
  * Renderers cache registrations by name across renders with different filtered subsets.
  */
 export function renameSubsetFonts(fonts: RuntimeFontConfig[]): RuntimeFontConfig[] {
-  // Group by family+weight+style identity
   const groups = new Map<string, RuntimeFontConfig[]>()
-  for (const f of fonts) {
-    const key = `${f.family}\0${f.weight}\0${f.style}`
-    const arr = groups.get(key)
-    if (arr)
-      arr.push(f)
+  for (const font of fonts) {
+    const members = groups.get(font.family)
+    if (members)
+      members.push(font)
     else
-      groups.set(key, [f])
+      groups.set(font.family, [font])
   }
 
-  const result: RuntimeFontConfig[] = []
-  let changed = false
+  const aliases = new Map<RuntimeFontConfig, string>()
   for (const members of groups.values()) {
-    // A filtered render can contain only one unicode-range subset.
-    const needsRename = members.some(f => f.unicodeRange)
-      || (members.length > 1 && new Set(members.map(f => f.cacheKey)).size > 1)
-    if (!needsRename) {
-      result.push(...members)
-      continue
+    const faces = new Map<string, RuntimeFontConfig[]>()
+    for (const font of members) {
+      const face = `${font.weight}\0${font.style}`
+      const subsets = faces.get(face)
+      if (subsets)
+        subsets.push(font)
+      else
+        faces.set(face, [font])
     }
-    changed = true
-    for (const f of members) {
-      result.push({
-        ...f,
-        originalFamily: f.originalFamily || f.family,
-        family: `${f.family}__${fnv1a64Base36(f.src || f.localPath || f.cacheKey)}`,
+    const needsRename = members.some(font => font.unicodeRange)
+      || [...faces.values()].some(subsets => new Set(subsets.map(font => font.cacheKey)).size > 1)
+    if (!needsRename)
+      continue
+
+    // Align subset faces so renderers can select the requested weight and style.
+    // Include every registration in the alias to prevent stale cross-render caches.
+    const slots: RuntimeFontConfig[][] = []
+    for (const subsets of faces.values()) {
+      const binaries = new Map<string, RuntimeFontConfig[]>()
+      for (const font of subsets) {
+        const source = font.src || font.localPath || font.cacheKey
+        const entries = binaries.get(source)
+        if (entries)
+          entries.push(font)
+        else
+          binaries.set(source, [font])
+      }
+      const ordered = [...binaries.values()].sort((a, b) => {
+        const left = `${a[0]!.unicodeRange || ''}\0${a[0]!.src || a[0]!.localPath || a[0]!.cacheKey}`
+        const right = `${b[0]!.unicodeRange || ''}\0${b[0]!.src || b[0]!.localPath || b[0]!.cacheKey}`
+        return left < right ? -1 : left > right ? 1 : 0
       })
+      for (const [index, entries] of ordered.entries())
+        (slots[index] ||= []).push(...entries)
+    }
+    for (const slot of slots) {
+      const identities = [...new Set(slot.map(font => JSON.stringify([
+        font.weight,
+        font.style,
+        font.src || font.localPath || font.cacheKey,
+      ])))].sort()
+      const alias = `${slot[0]!.family}__${fnv1a64Base36(JSON.stringify(identities))}`
+      for (const font of slot)
+        aliases.set(font, alias)
     }
   }
-  return changed ? result : fonts
+  return aliases.size
+    ? fonts.map(font => aliases.has(font)
+        ? { ...font, originalFamily: font.originalFamily || font.family, family: aliases.get(font)! }
+        : font)
+    : fonts
 }
 
 /**
