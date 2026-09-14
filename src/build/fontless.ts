@@ -57,7 +57,6 @@ interface DownloadedFont {
 
 interface FontlessContext {
   resolver: Resolver
-  renderedFontURLs: Map<string, string>
   /** Providers the resolver will consult, in priority order. Used for diagnostics. */
   providerNames: string[]
 }
@@ -111,7 +110,8 @@ async function initFontless(options: {
     import('unifont'),
   ])
 
-  const renderedFontURLs = new Map<string, string>()
+  // Each fontless version owns its map values: URLs in 0.2, metadata in 0.4.
+  const renderedFontURLs: Parameters<typeof normalizeFontData>[0]['renderedFontURLs'] = new Map()
 
   const providers = {
     fontsource: unifontProviders.fontsource,
@@ -159,7 +159,6 @@ async function initFontless(options: {
         dev: false,
         renderedFontURLs,
         assetsBaseURL: FONTS_URL_PREFIX,
-        callback: (filename, url) => renderedFontURLs.set(filename, url),
       },
       faces,
     ),
@@ -185,7 +184,7 @@ async function initFontless(options: {
 
   options.logger?.debug(`fontless initialized with formats: ['woff', 'ttf'], subsets: ${JSON.stringify(options.fontSubsets || ['latin'])}, priority: ${JSON.stringify(nuxtFontsConfig?.priority || ['google', 'bunny', 'fontsource'])}`)
 
-  ;(options.nuxt as any)._ogImageFontless = { resolver, renderedFontURLs, providerNames: priority } satisfies FontlessContext
+  ;(options.nuxt as any)._ogImageFontless = { resolver, providerNames: priority } satisfies FontlessContext
 }
 
 // ============================================================================

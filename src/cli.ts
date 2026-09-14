@@ -1610,7 +1610,7 @@ async function runCreate(name: string | undefined, args: string[]): Promise<void
       message: 'Add defineOgImage to a page? (relative path from pages/, leave empty to skip)',
       placeholder: 'index.vue',
     })
-    if (!p.isCancel(pageInput) && pageInput && pageInput.trim()) {
+    if (typeof pageInput === 'string' && pageInput.trim()) {
       let pagePath = pageInput.trim()
       if (!pagePath.endsWith('.vue'))
         pagePath += '.vue'

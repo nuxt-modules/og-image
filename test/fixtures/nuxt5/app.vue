@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { defineOgImage } from '#imports'
+import { defineOgImage, useRoute } from '#imports'
 
-defineOgImage('Default', {
+defineOgImage(useRoute().query.renderer === 'satori' ? 'DefaultSatori' : 'DefaultTakumi', {
   title: 'Nuxt 5 runtime compatibility',
 })
 </script>

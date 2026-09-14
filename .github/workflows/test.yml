@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     paths-ignore:
-      - '**/README.md'
+      - '**/*.md'
       - 'docs/**'
 
 concurrency:
@@ -58,3 +58,22 @@ jobs:
       - run: pnpm dev:prepare
 
       - run: pnpm run test:takumi:e2e:matrix
+
+  peer-compatibility:
+    name: Peer compatibility (${{ matrix.profile }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [minimum, before-harfbuzz, current]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm dev:prepare
+      - run: pnpm run test:peers ${{ matrix.profile }}

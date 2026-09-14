@@ -62,7 +62,7 @@ async function main() {
   const origin = `http://127.0.0.1:${port}`
   const nitroManifest = JSON.parse(await readFile(new URL('.output/nitro.json', import.meta.url), 'utf8'))
   const moduleManifest = JSON.parse(await readFile(new URL('node_modules/nuxt-og-image/package.json', import.meta.url), 'utf8'))
-  assert.equal(nitroManifest.versions.nitro, '3.0.260610-beta')
+  assert.equal(nitroManifest.versions.nitro, '3.0.260903-beta')
 
   const server = spawn(process.execPath, ['.output/server/index.mjs'], {
     cwd: import.meta.dirname,
@@ -122,6 +122,17 @@ async function main() {
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
     assert.ok(imageBuffer.byteLength > 1_000, 'Rendered OG image is unexpectedly small')
     await assertImageSnapshot(imageBuffer)
+
+    const satoriPage = await fetch(`${origin}/?renderer=satori`)
+    const satoriHtml = await satoriPage.text()
+    const satoriUrl = satoriHtml.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)?.[1]
+    assert.ok(satoriUrl, 'Satori page is missing its og:image meta tag')
+    const satoriResponse = await fetch(`${origin}${new URL(satoriUrl).pathname}`)
+    assert.equal(satoriResponse.status, 200)
+    assert.equal(satoriResponse.headers.get('content-type'), 'image/png')
+    const satoriImage = PNG.sync.read(Buffer.from(await satoriResponse.arrayBuffer()))
+    assert.equal(satoriImage.width, 1200)
+    assert.equal(satoriImage.height, 600)
   }
   finally {
     server.kill()

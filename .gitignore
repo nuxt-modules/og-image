@@ -68,3 +68,6 @@ docs/public
 # Skilld references (recreated by `skilld install`)
 .skilld
 .claude/
+
+# PR Lens writes its previews here. They are rebuilt on demand.
+.pr-lens/

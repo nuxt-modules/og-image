@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolvePath, useNuxt } from '@nuxt/kit'
+import MagicString from 'magic-string'
 import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
@@ -53,6 +54,32 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
       detectedRenderers: getDetectedRenderers(),
       metadata: getCompatibilityMeta(),
     })
+
+    const rollupConfig = nitro.options.rollupConfig ||= { output: {} }
+    rollupConfig.plugins = [rollupConfig.plugins, {
+      name: 'og-image-harfbuzz-worker',
+      transform(code: string, id: string) {
+        if (!nitro.options.alias['#og-image/harfbuzz-factory'] || !id.endsWith('/harfbuzzjs/hb.js'))
+          return
+        // Our WASM import replaces Emscripten's filesystem and browser URL loaders.
+        const transformed = new MagicString(code)
+        parseAndWalk(code, id, {
+          enter(node) {
+            if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier'
+              && node.id.name === 'convertJsFunctionToWasm' && node.init) {
+              transformed.prependLeft(node.init.start, 'Module["convertJsFunctionToWasm"] || (')
+              transformed.appendRight(node.init.end, ')')
+            }
+            if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier'
+              && ['ENVIRONMENT_IS_NODE', 'ENVIRONMENT_IS_WEB', 'ENVIRONMENT_IS_WORKER'].includes(node.id.name)
+              && node.init) {
+              transformed.overwrite(node.init.start, node.init.end, 'false')
+            }
+          },
+        })
+        return { code: transformed.toString(), map: transformed.generateMap({ hires: true }).toString() }
+      },
+    }]
 
     // HACK: we need to patch the compiled output to fix the wasm resolutions using esmImport
     // TODO replace this once upstream is fixed

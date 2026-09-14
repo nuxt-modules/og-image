@@ -3,8 +3,13 @@ import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack/config'
 import type { PresetName } from 'nitropack/presets'
 import type { CompatibilityFlags, RendererType, RuntimeCompatibilityMeta, RuntimeCompatibilityPayload, RuntimeCompatibilitySchema } from './runtime/types'
-import { addTemplate, useNuxt } from '@nuxt/kit'
+import { readFile } from 'node:fs/promises'
+import { addTemplate, getNuxtVersion, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
+import { resolveModulePath } from 'exsolve'
+import { join } from 'pathe'
+import { readPackageJSON } from 'pkg-types'
+import { prepareHarfBuzzCallbacks } from './build/harfbuzz'
 import { resolveNitroPreset } from './kit'
 import { logger } from './runtime/logger'
 import { RE_LEGACY_SUFFIX } from './util'
@@ -213,6 +218,45 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     await applyBinding('sharp'),
     nitroConfig.alias || {},
   )
+  if (resolvedCompatibility.satori) {
+    const satoriPackage = await readPackageJSON(`${satoriPkgDir}/package.json`)
+    // Older Satori versions keep their existing bindings and need no HarfBuzz assets.
+    if (satoriPackage.dependencies?.harfbuzzjs) {
+      const harfbuzzWasmPath = resolveModulePath('harfbuzzjs/hb.wasm', { from: `${satoriPkgDir}/package.json` })
+      // Satori 0.33 loads HarfBuzz separately from its bundled Yoga runtime.
+      if (resolvedCompatibility.satori === 'wasm' || target.replace(RE_LEGACY_SUFFIX, '') === 'netlify-edge') {
+        const harfbuzzDir = harfbuzzWasmPath.slice(0, -'hb.wasm'.length)
+        nitroConfig.virtual!['#og-image/harfbuzz-callbacks'] = resolvedCompatibility.satori === 'wasm'
+          ? await prepareHarfBuzzCallbacks(`${harfbuzzDir}hbjs.js`, join(useNuxt().options.buildDir, 'cache/og-image/harfbuzz'))
+          : 'export default undefined'
+        Object.assign(nitroConfig.alias, {
+          'harfbuzzjs': await resolve.resolvePath('./runtime/server/og-image/bindings/satori/harfbuzz'),
+          '#og-image/harfbuzz-factory': `${harfbuzzDir}hb.js`,
+          '#og-image/harfbuzz-adapter': `${harfbuzzDir}hbjs.js`,
+        })
+        if (resolvedCompatibility.satori === 'wasm') {
+          nitroConfig.alias['#og-image/harfbuzz-wasm'] = `${harfbuzzWasmPath}?module`
+        }
+        else {
+          // Netlify permits runtime compilation. Decode and instantiate only on first use.
+          const base64 = (await readFile(harfbuzzWasmPath)).toString('base64')
+          nitroConfig.virtual!['#og-image/harfbuzz-wasm'] = `export default imports => WebAssembly.instantiate(Uint8Array.from(atob(${JSON.stringify(base64)}), c => c.charCodeAt(0)), imports)`
+        }
+      }
+      else if (Number.parseInt(getNuxtVersion(useNuxt()), 10) >= 5) {
+        // Nitro 3 bundles JS by default. Preserve HarfBuzz's CJS loader and sibling WASM file.
+        const config = nitroConfig as NitroConfig & { traceDeps?: (string | RegExp)[] }
+        config.traceDeps = [...new Set([...config.traceDeps || [], 'harfbuzzjs*'])]
+      }
+      else {
+        nitroConfig.externals = nitroConfig.externals || {}
+        nitroConfig.externals.traceInclude = [...new Set([
+          ...nitroConfig.externals.traceInclude || [],
+          harfbuzzWasmPath,
+        ])]
+      }
+    }
+  }
   // if we're using any wasm modules we need to enable the wasm runtime
   // Check resolvedCompatibility (includes user overrides), not just the preset defaults
   if (Object.values(resolvedCompatibility).includes('wasm')) {

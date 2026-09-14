@@ -107,3 +107,21 @@ declare module '#og-image-cache' {
 
   export const emojiCache: Storage<string>
 }
+
+declare module '#og-image/harfbuzz-factory' {
+  const createHarfBuzz: (options: {
+    convertJsFunctionToWasm?: (callback: WebAssembly.ImportValue, signature: string) => WebAssembly.ExportValue
+    instantiateWasm: (imports: WebAssembly.Imports, receiveInstance: (instance: WebAssembly.Instance) => void) => object
+  }) => Promise<unknown>
+  export default createHarfBuzz
+}
+
+declare module '#og-image/harfbuzz-adapter' {
+  const wrapHarfBuzz: (instance: unknown) => unknown
+  export default wrapHarfBuzz
+}
+
+declare module '#og-image/harfbuzz-callbacks' {
+  const callbacks: Record<string, WebAssembly.Module | Promise<WebAssembly.Module>> | undefined
+  export default callbacks
+}
