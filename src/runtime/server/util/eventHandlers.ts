@@ -27,6 +27,7 @@ export async function imageEventHandler(e: H3Event) {
   finally {
     timings.record('total', performance.now() - reqStart)
     const header = timings.header()
+    // h3 v1 can send cached 304s early; h3 v2 prepares headers until the handler returns.
     if (header && !e.node?.res?.headersSent)
       setHeader(e, 'Server-Timing', header)
   }
