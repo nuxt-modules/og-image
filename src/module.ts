@@ -20,7 +20,7 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -1098,6 +1098,11 @@ export default defineNuxtModule<ModuleOptions>({
       name: 'getOgImagePath',
       from: resolve('./runtime/app/utils'),
     })
+
+    addServerImports([
+      { name: 'getOgImageUrl', from: resolve('./runtime/server/nitro') },
+      { name: 'getOgImagePath', from: resolve('./runtime/server/utils') },
+    ])
 
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage

@@ -11,9 +11,9 @@ export interface GetOgImagePathResult {
   hash?: string
 }
 
-export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
-  const baseURL = useRuntimeConfig().app.baseURL
-  const { defaults, security } = useOgImageRuntimeConfig()
+export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptionsInternal>, event?: H3Event): GetOgImagePathResult {
+  const baseURL = useRuntimeConfig(event).app.baseURL
+  const { defaults, security } = useOgImageRuntimeConfig(event)
   const extension = _options?.extension || defaults.extension
   // Force dynamic+signed URLs even during prerender when strict+secret are set.
   // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
