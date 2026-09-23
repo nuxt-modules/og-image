@@ -408,14 +408,8 @@ catalogs:
       specifier: ^1.104.1
       version: 1.104.1
     satori:
-      specifier: ^0.33.4
-      version: 0.33.4
-    satori-v0-19:
-      specifier: npm:satori@0.19.2
-      version: 0.19.2
-    satori-v0-32:
-      specifier: npm:satori@0.32.0
-      version: 0.32.0
+      specifier: ^0.33.5
+      version: 0.33.5
     sharp:
       specifier: ^0.35.4
       version: 0.35.4
@@ -755,13 +749,7 @@ importers:
         version: 1.104.1
       satori:
         specifier: 'catalog:'
-        version: 0.33.4
-      satori-v0-19:
-        specifier: 'catalog:'
-        version: satori@0.19.2
-      satori-v0-32:
-        specifier: 'catalog:'
-        version: satori@0.32.0
+        version: 0.33.5
       sharp:
         specifier: 'catalog:'
         version: 0.35.4(@types/node@26.5.1)
@@ -9449,16 +9437,8 @@ packages:
     engines: {node: '>=20.19.0'}
     hasBin: true
 
-  satori@0.19.2:
-    resolution: {integrity: sha512-71plFHWcq6WJBM5sf/n0eHOmTBiKLUB/G8du7SmLTTLHKEKrV3TPHGKcEVIoyjnbhnjvu9HhLyF9MATB/zzL7g==}
-    engines: {node: '>=16'}
-
-  satori@0.32.0:
-    resolution: {integrity: sha512-WwYeCWKjxfXvk7SsLSLTJhcPOrB2HCxbptqGIiYor0yqaPu3xA5uMTQ/4Dan5mxClhhk2Wn9ZE1pLGIlGdUxFQ==}
-    engines: {node: '>=16'}
-
-  satori@0.33.4:
-    resolution: {integrity: sha512-dCnaW6D/tkCJxG5UvpZPWnnvfTdGTVVSAq1tzH6xC5MeOhAeeswRcSq5zT7C6lRCdTGow9PRGus7PCzdp5JJYw==}
+  satori@0.33.5:
+    resolution: {integrity: sha512-PNW6ktrQ8SM6kk7u4aOuTkkUewkzyTOrj+QeEzXSsnNMAdff4ire9CAqIz8+4C3rCiBtK8QTELv52AZEd1PbRw==}
     engines: {node: '>=16'}
 
   sax@1.6.1:
@@ -20975,35 +20955,7 @@ snapshots:
     optionalDependencies:
       '@parcel/watcher': 2.6.0
 
-  satori@0.19.2:
-    dependencies:
-      '@shuding/opentype.js': 1.4.0-beta.0
-      css-background-parser: 0.1.0
-      css-box-shadow: 1.0.0-3
-      css-gradient-parser: 0.0.17
-      css-to-react-native: 3.2.0
-      emoji-regex-xs: 2.0.1
-      escape-html: 1.0.3
-      linebreak: 1.1.0
-      parse-css-color: 0.2.1
-      postcss-value-parser: 4.2.0
-      yoga-layout: 3.2.1
-
-  satori@0.32.0:
-    dependencies:
-      '@shuding/opentype.js': 1.4.0-beta.0
-      css-background-parser: 0.1.0
-      css-box-shadow: 1.0.0-3
-      css-gradient-parser: 0.0.17
-      css-to-react-native: 3.2.0
-      emoji-regex-xs: 2.0.1
-      escape-html: 1.0.3
-      linebreak: 1.1.0
-      parse-css-color: 0.2.1
-      postcss-value-parser: 4.2.0
-      yoga-layout: 3.2.1
-
-  satori@0.33.4:
+  satori@0.33.5:
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
       css-background-parser: 0.1.0

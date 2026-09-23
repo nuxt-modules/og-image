@@ -8,6 +8,7 @@ minimumReleaseAgeExclude:
   - '@nuxt/vite-builder-nightly@5.0.0-29762711.192612c7'
   - nuxt-nightly@5.0.0-29762711.192612c7
   - nuxtseo-shared@5.3.8 || 5.3.9 || 5.3.11
+  - satori@0.33.5
 catalog:
   '@resvg/resvg-js': ^2.6.2
   nitro: 3.0.260903-beta
@@ -16,7 +17,7 @@ catalog:
   nuxt-site-config: ^4.2.3
   pixelmatch: 7.2.0
   pngjs: 7.0.0
-  satori: ^0.33.4
+  satori: ^0.33.5
   typescript: 6.0.3
   vue: ^3.5.42
   vue-router: ^5.3.1
