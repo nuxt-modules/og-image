@@ -135,7 +135,6 @@ catalog:
   sass: ^1.104.1
   satori: ^0.33.5
   sharp: ^0.35.4
-  sharp-v0-34: npm:sharp@0.34.0
   sirv: ^3.0.2
   std-env: ^4.2.0
   strip-literal: ^4.0.0
