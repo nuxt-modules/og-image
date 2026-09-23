@@ -29,6 +29,19 @@ export async function hasResolvableDependency(dep: string) {
     .then(r => r && r !== dep)
 }
 
+// Satori 0.33.5 escapes SVG output. See GHSA-wx4j-mvgx-mqwp.
+export const MIN_SATORI_VERSION = '0.33.5'
+
+export function isSupportedSatoriVersion(version?: string): boolean {
+  const current = (version || '').split('.').map(part => Number.parseInt(part, 10) || 0)
+  const minimum = MIN_SATORI_VERSION.split('.').map(Number)
+  for (let i = 0; i < minimum.length; i++) {
+    if ((current[i] ?? 0) !== minimum[i]!)
+      return (current[i] ?? 0) > minimum[i]!
+  }
+  return true
+}
+
 const VALID_RENDERER_SUFFIXES = ['satori', 'browser', 'takumi'] as const
 
 export const RE_RENDERER_SUFFIX_CI = /\.?(satori|browser|takumi)$/i
