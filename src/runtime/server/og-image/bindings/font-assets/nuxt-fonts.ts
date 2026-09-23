@@ -1,3 +1,5 @@
+import { joinURL, withTrailingSlash } from 'ufo'
+
 /**
  * A `renderedFontURLs` entry from the `fonts:public-asset-context` hook.
  *
@@ -19,6 +21,8 @@ export interface NuxtFontSource {
  */
 export interface NuxtFontsManifest {
   assetsBaseURL: string
+  /** `app.baseURL`, which prefixes every font URL. */
+  baseURL: string
   /** Original source of each font, keyed by its served filename. */
   urls: Record<string, NuxtFontSource>
 }
@@ -33,9 +37,9 @@ export function toNuxtFontSource(entry: RenderedFontURL): NuxtFontSource {
 }
 
 /** Return the served filename when `path` is a `@nuxt/fonts` asset, else `undefined`. */
-export function nuxtFontFilename(path: string, assetsBaseURL: string): string | undefined {
-  const prefix = `${assetsBaseURL.replace(/\/$/, '')}/`
-  if (!path.startsWith(prefix))
+export function nuxtFontFilename(path: string, assetsBaseURL: string, baseURL = '/'): string | undefined {
+  const prefix = [joinURL(baseURL, assetsBaseURL), assetsBaseURL].map(p => withTrailingSlash(p)).find(prefix => path.startsWith(prefix))
+  if (!prefix)
     return
   const filename = path.slice(prefix.length)
   if (!filename || filename.includes('/') || filename.includes('\\'))

@@ -368,6 +368,22 @@ export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
  * Parse fonts from @nuxt/fonts CSS template.
  * Returns font configs with family, src, weight, style, and optional satoriSrc.
  */
+/**
+ * `@nuxt/fonts` registers the global stylesheet as a template for Vite. With webpack and
+ * rspack, v1 writes it to the buildDir on `build:before` instead.
+ */
+async function readNuxtFontsGlobalCss(nuxt: Nuxt): Promise<string | undefined> {
+  const template = nuxt.options.build.templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
+  if (template?.getContents)
+    return template.getContents({} as any)
+  return fs.promises.readFile(join(nuxt.options.buildDir, 'nuxt-fonts-global.css'), 'utf-8')
+    .catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT')
+        return undefined
+      throw error
+    })
+}
+
 export async function parseFontsFromTemplate(
   nuxt: Nuxt,
   options: {
@@ -386,12 +402,9 @@ export async function parseFontsFromTemplate(
   if (cached)
     return cached
 
-  const templates = nuxt.options.build.templates
-  const nuxtFontsTemplate = templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
-  if (!nuxtFontsTemplate?.getContents) {
+  const contents = await readNuxtFontsGlobalCss(nuxt)
+  if (contents === undefined)
     return []
-  }
-  const contents = await nuxtFontsTemplate.getContents({} as any)
 
   // Include all @nuxt/fonts subsets — these are user-configured fonts and shouldn't be
   // filtered. Non-Latin subsets (devanagari, cyrillic, etc.) need to be available for

@@ -1497,7 +1497,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       // which isn't reachable via Nitro's internal fetch. The mapping lets the resolver
       // download fonts directly from the CDN instead.
       if (hasNuxtFonts && fontContext) {
-        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
+        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, baseURL: nuxt.options.app.baseURL, logger })
       }
       // Dev mode: WOFF2 preparation may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
@@ -1593,7 +1593,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
 
       nuxt.hook('vite:compiled', async () => {
         // Always persist font URL mapping (needed by all renderers for prerender/dev font resolution)
-        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
+        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, baseURL: nuxt.options.app.baseURL, logger })
         if (fontProcessingDone || !hasSatoriRenderer())
           return
         // Skip until font requirements are populated (OG components are server-side,

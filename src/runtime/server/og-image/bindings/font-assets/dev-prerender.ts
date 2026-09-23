@@ -37,7 +37,7 @@ async function loadNuxtFontsManifest(): Promise<NuxtFontsManifest> {
   const content = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'font-urls.json'))
   nuxtFontsManifest = content
     ? JSON.parse(content.toString('utf-8')) as NuxtFontsManifest
-    : { assetsBaseURL: DEFAULT_NUXT_FONTS_ASSETS_BASE_URL, urls: {} }
+    : { assetsBaseURL: DEFAULT_NUXT_FONTS_ASSETS_BASE_URL, baseURL: '/', urls: {} }
   return nuxtFontsManifest
 }
 
@@ -81,7 +81,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
 
     // @nuxt/fonts managed fonts: `/_fonts` in v0, `<buildAssetsDir>/fonts` in v1 Vite builds
     const manifest = await loadNuxtFontsManifest()
-    const filename = nuxtFontFilename(path, manifest.assetsBaseURL)
+    const filename = nuxtFontFilename(path, manifest.assetsBaseURL, manifest.baseURL)
     if (filename) {
       // v1 Vite builds copy fonts to .output only after prerender; @nuxt/fonts keeps its download cache in the buildDir
       const cached = await readOptionalFile(join(rootDir, '.output', 'public', manifest.assetsBaseURL, filename))
@@ -115,7 +115,7 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   // Use the persisted font URL mapping to download directly from the CDN.
   if (import.meta.dev) {
     const manifest = await loadNuxtFontsManifest()
-    const filename = nuxtFontFilename(path, manifest.assetsBaseURL)
+    const filename = nuxtFontFilename(path, manifest.assetsBaseURL, manifest.baseURL)
     const fetched = filename && await fetchMappedFont(manifest, filename, timeout)
     if (fetched)
       return fetched
