@@ -1,6 +1,38 @@
 # Changelog
 
 
+## v6.7.8...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.8...main)
+
+### 🚀 Enhancements
+
+- Option to disable automatic twitter tags ([#681](https://github.com/nuxt-modules/og-image/pull/681))
+
+### 🔥 Performance
+
+- Let the bundler filter the build plugins ([#676](https://github.com/nuxt-modules/og-image/pull/676))
+
+### 🩹 Fixes
+
+- **devtools:** Replace `__dirname` with `import.meta.url` in layer config ([#674](https://github.com/nuxt-modules/og-image/pull/674))
+- **fonts:** Keep subset family names stable across renders ([#682](https://github.com/nuxt-modules/og-image/pull/682))
+- Do not set headers on a finished response ([#685](https://github.com/nuxt-modules/og-image/pull/685))
+
+### 🏡 Chore
+
+- **lint:** Adopt shared eslint base config ([#675](https://github.com/nuxt-modules/og-image/pull/675))
+- Bump ([e5e7a7a1](https://github.com/nuxt-modules/og-image/commit/e5e7a7a1))
+- **ci:** Report edge startup benchmarks on pull requests ([#686](https://github.com/nuxt-modules/og-image/pull/686))
+- **ci:** Benchmark the merged pull request checkout ([#687](https://github.com/nuxt-modules/og-image/pull/687))
+- **ci:** Match benchmark comments to package size reports ([#689](https://github.com/nuxt-modules/og-image/pull/689))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+- Yves-riot <yves@tryriot.com>
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
 ## v6.7.7...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.7...main)

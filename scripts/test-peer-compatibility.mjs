@@ -5,9 +5,8 @@ import { exec } from 'tinyexec'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const profiles = {
-  'minimum': { satori: 'satori-v0-19', fontless: 'fontless-v0-2', unifont: 'unifont-v0-7', sharp: 'sharp-v0-34' },
-  'before-harfbuzz': { satori: 'satori-v0-32' },
-  'current': {},
+  minimum: { fontless: 'fontless-v0-2', unifont: 'unifont-v0-7', sharp: 'sharp-v0-34' },
+  current: {},
 }
 const selected = process.argv[2]
 if (selected && !(selected in profiles))
