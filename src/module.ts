@@ -54,7 +54,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, detectScreenshotPageUsage, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, resolveAutoDetectedProvider, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -1168,6 +1168,8 @@ export default defineNuxtModule<ModuleOptions>({
     }
     // Screenshot pages render through the browser renderer without any `.browser.vue`
     // component, so filename detection can't see them — scan page files as well.
+    // This must never suppress provider renderer detection below: a site mixing
+    // screenshot pages with defineOgImage() pages still needs its satori/takumi renderer.
     const pageDirs = new Set<string>()
     const defaultPagesDir = nuxt.options.dir.pages || 'pages'
     for (const layer of (nuxt.options._layers || [])) {
@@ -1180,28 +1182,32 @@ export default defineNuxtModule<ModuleOptions>({
         pageDirs.add(join(layerSrcDir, layerPagesDir))
       }
     }
-    if (await detectScreenshotPageUsage([...pageDirs])) {
+    const hasScreenshotPages = await detectScreenshotPageUsage([...pageDirs])
+    if (hasScreenshotPages)
       ogImageComponentCtx.detectedRenderers.add('browser')
-      hasUserComponents = true
-    }
     // No user components — auto-detect from installed deps, prompt only if none installed
     if (!nuxt.options._prepare && !hasUserComponents) {
-      const installedProviders = await getInstalledProviders()
-      const preferred = installedProviders.find(p => p.provider === 'takumi') || installedProviders[0]
+      const { preferred, fallbackToDefault } = resolveAutoDetectedProvider({
+        hasUserComponents,
+        hasScreenshotPages,
+        installedProviders: (await getInstalledProviders()).map(p => p.provider),
+      })
       if (preferred) {
-        ogImageComponentCtx.detectedRenderers.add(preferred.provider)
-        logger.debug(`Using ${preferred.provider} renderer`)
+        ogImageComponentCtx.detectedRenderers.add(preferred)
+        logger.debug(`Using ${preferred} renderer`)
       }
-      else if (nuxt.options.dev && !nuxt.options._prepare && canPromptInteractively()) {
-        const renderer = await promptForRendererSelection()
-        ogImageComponentCtx.detectedRenderers.add(renderer)
-        logger.debug(`Using ${renderer} renderer`)
-      }
-      else {
-        // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
-        // Warn so the choice is visible and the agent can pin a renderer explicitly.
-        ogImageComponentCtx.detectedRenderers.add('takumi')
-        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+      else if (fallbackToDefault) {
+        if (nuxt.options.dev && !nuxt.options._prepare && canPromptInteractively()) {
+          const renderer = await promptForRendererSelection()
+          ogImageComponentCtx.detectedRenderers.add(renderer)
+          logger.debug(`Using ${renderer} renderer`)
+        }
+        else {
+          // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
+          // Warn so the choice is visible and the agent can pin a renderer explicitly.
+          ogImageComponentCtx.detectedRenderers.add('takumi')
+          logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+        }
       }
     }
 

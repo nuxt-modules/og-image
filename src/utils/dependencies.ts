@@ -78,6 +78,41 @@ export const OPTIONAL_DEPENDENCIES: ProviderDependency[] = [
   { name: 'sharp', description: 'JPEG image output support', optional: true },
 ]
 
+export interface AutoDetectProviderInput {
+  /** a renderer-suffix component (e.g. Default.satori.vue) was found on disk */
+  hasUserComponents: boolean
+  /** at least one page calls defineOgImageScreenshot() */
+  hasScreenshotPages: boolean
+  /** providers with all dependencies installed, from getInstalledProviders() */
+  installedProviders: ProviderName[]
+}
+
+export interface AutoDetectProviderDecision {
+  /** provider renderer to bundle alongside the already-detected renderers */
+  preferred: ProviderName | null
+  /** run the interactive prompt, or default to takumi when non-interactive */
+  fallbackToDefault: boolean
+}
+
+/**
+ * Decide which provider renderer to auto-detect when no user component drove
+ * renderer detection. Screenshot pages must never suppress provider detection:
+ * they only add the browser renderer, and a site mixing them with defineOgImage()
+ * pages still needs its installed satori/takumi renderer.
+ */
+export function resolveAutoDetectedProvider(input: AutoDetectProviderInput): AutoDetectProviderDecision {
+  if (input.hasUserComponents)
+    return { preferred: null, fallbackToDefault: false }
+  const preferred = (input.installedProviders.find(p => p === 'takumi') ?? input.installedProviders[0]) ?? null
+  if (preferred)
+    return { preferred, fallbackToDefault: false }
+  // Screenshot pages render through the browser renderer and don't need a
+  // provider renderer — don't prompt or force the takumi default for them.
+  if (input.hasScreenshotPages)
+    return { preferred: null, fallbackToDefault: false }
+  return { preferred: null, fallbackToDefault: true }
+}
+
 export async function getInstalledProviders(): Promise<{ provider: ProviderName, binding: BindingVariant }[]> {
   const installed: { provider: ProviderName, binding: BindingVariant }[] = []
 
