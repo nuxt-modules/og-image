@@ -1,6 +1,7 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolvePath } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
-import { basename } from 'pathe'
+import { basename, join } from 'pathe'
 import { isCI } from 'std-env'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
@@ -65,6 +66,34 @@ export function stripRendererSuffix(name: string): string {
       return name.replace(new RegExp(`[.]?${suffix}$`, 'i'), '')
   }
   return name
+}
+
+const SCREENSHOT_COMPOSABLE_CALL = 'defineOgImageScreenshot('
+
+/**
+ * Scans directories recursively for `.vue` files calling `defineOgImageScreenshot()`.
+ * Screenshot pages render through the browser renderer without any `.browser.vue`
+ * component, so filename-based renderer detection can't see them.
+ */
+export function detectScreenshotPageUsage(dirs: string[]): boolean {
+  for (const dir of dirs) {
+    if (!existsSync(dir))
+      continue
+    const stack = [dir]
+    while (stack.length > 0) {
+      const current = stack.pop()!
+      for (const entry of readdirSync(current, { withFileTypes: true })) {
+        const path = join(current, entry.name)
+        if (entry.isDirectory()) {
+          stack.push(path)
+        }
+        else if (entry.name.endsWith('.vue') && readFileSync(path, 'utf-8').includes(SCREENSHOT_COMPOSABLE_CALL)) {
+          return true
+        }
+      }
+    }
+  }
+  return false
 }
 
 export type RendererSuffix = typeof VALID_RENDERER_SUFFIXES[number]

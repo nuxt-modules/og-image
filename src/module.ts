@@ -53,7 +53,7 @@ import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOV
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
+import { checkLocalChrome, detectScreenshotPageUsage, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
 
 export type {
@@ -1165,6 +1165,24 @@ export default defineNuxtModule<ModuleOptions>({
           }
         }
       }
+    }
+    // Screenshot pages render through the browser renderer without any `.browser.vue`
+    // component, so filename detection can't see them — scan page files as well.
+    const pageDirs = new Set<string>()
+    const defaultPagesDir = nuxt.options.dir.pages || 'pages'
+    for (const layer of (nuxt.options._layers || [])) {
+      const layerPagesDir = (typeof layer.config?.dir === 'object' ? layer.config.dir?.pages : undefined) || defaultPagesDir
+      pageDirs.add(join(nuxt.options.srcDir, defaultPagesDir))
+      pageDirs.add(join(layer.cwd, layerPagesDir))
+      pageDirs.add(join(layer.cwd, 'app', layerPagesDir))
+      if (layer.config?.srcDir) {
+        const layerSrcDir = isAbsolute(layer.config.srcDir) ? layer.config.srcDir : join(layer.cwd, layer.config.srcDir)
+        pageDirs.add(join(layerSrcDir, layerPagesDir))
+      }
+    }
+    if (detectScreenshotPageUsage([...pageDirs])) {
+      ogImageComponentCtx.detectedRenderers.add('browser')
+      hasUserComponents = true
     }
     // No user components — auto-detect from installed deps, prompt only if none installed
     if (!nuxt.options._prepare && !hasUserComponents) {

@@ -59,6 +59,35 @@ jobs:
 
       - run: pnpm run test:takumi:e2e:matrix
 
+  browser-prerender:
+    name: Browser prerender (screenshot pages)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm dev:prepare
+
+      # The container ships browsers for playwright 1.58; install the revision
+      # matching the repo's playwright-core so the prerender launch finds it.
+      - run: pnpm exec playwright-core install chromium
+
+      - run: pnpm exec vitest run test/e2e-not-nuxt/browser-prerender.test.ts
+        env:
+          HAS_CHROME: true
+
   peer-compatibility:
     name: Peer compatibility (${{ matrix.profile }})
     runs-on: ubuntu-latest
