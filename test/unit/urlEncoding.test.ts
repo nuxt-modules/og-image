@@ -430,6 +430,37 @@ describe('urlEncoding', () => {
       expect(hash1).toBe(hash2)
     })
 
+    // The server path (getOgImagePath) keeps props in insertion order while the
+    // pure-SSG client path (clientProcessOgImageOptions -> separateProps)
+    // appends props after internal keys. Both must hash identically or the
+    // client URL misses the prerendered file and og:image 404s.
+    it('hashes server and client key orders identically', () => {
+      const serverShape = { component: 'Card', props: { title: 'Shared card' }, _query: {}, _componentHash: 'x' }
+      const clientShape = { component: 'Card', _query: {}, props: { title: 'Shared card' }, _componentHash: 'x' }
+      expect(hashOgImageOptions(serverShape)).toBe(hashOgImageOptions(clientShape))
+    })
+
+    it('hashes nested object key orders identically', () => {
+      const a = hashOgImageOptions({ props: { title: 'T', description: 'D' }, width: 1200 })
+      const b = hashOgImageOptions({ width: 1200, props: { description: 'D', title: 'T' } })
+      expect(a).toBe(b)
+    })
+
+    // simpleHash was a 32-bit rolling hash. Hash mode is the default for most
+    // prerendered images now, so two distinct pages could collide on the same
+    // o_<hash>.png and the second would silently publish the first's image.
+    it('produces unique hashes for 200,000 distinct option sets', () => {
+      const hashes = new Set<string>()
+      for (let i = 0; i < 200_000; i++) {
+        hashes.add(hashOgImageOptions({
+          component: 'Card',
+          props: { title: `How to ship feature ${i} without breaking prod`, index: i },
+          _query: { utm: `campaign-${i}` },
+        }))
+      }
+      expect(hashes.size).toBe(200_000)
+    })
+
     it('excludes _path from hash', () => {
       const hash1 = hashOgImageOptions({ width: 1200, _path: '/page1' })
       const hash2 = hashOgImageOptions({ width: 1200, _path: '/page2' })

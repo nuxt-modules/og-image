@@ -123,18 +123,44 @@ function b64Decode(str: string): string {
 }
 
 /**
- * Simple hash function for creating short deterministic hashes
- * Works in both browser and Node environments
+ * JSON.stringify with object keys recursively sorted, so serialization is
+ * insertion-order independent. The server and the pure-SSG client build the
+ * same options in different key orders (separateProps appends props at the
+ * end) and must produce the same hash.
  */
-function simpleHash(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object')
+    return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value))
+    return `[${value.map(item => canonicalJson(item)).join(',')}]`
+  const record = value as Record<string, unknown>
+  const entries = Object.keys(record)
+    .sort()
+    .filter(key => record[key] !== undefined)
+    .map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+  return `{${entries.join(',')}}`
+}
+
+// Both ohash crypto runtimes (node + js) emit base64url
+const B64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+
+/**
+ * Decode a base64url string (no padding) into lowercase hex, so hash segments
+ * stay within [a-z0-9] for the o_<hash> path/filename parsing.
+ */
+function base64UrlToHex(input: string): string {
+  let hex = ''
+  let buffer = 0
+  let bits = 0
+  for (const char of input) {
+    buffer = (buffer << 6) | B64URL_ALPHABET.indexOf(char)
+    bits += 6
+    if (bits >= 8) {
+      bits -= 8
+      hex += ((buffer >> bits) & 0xFF).toString(16).padStart(2, '0')
+    }
   }
-  // Convert to base36 for shorter string, ensure positive
-  return Math.abs(hash).toString(36)
+  return hex
 }
 
 /**
@@ -142,6 +168,10 @@ function simpleHash(str: string): string {
  * Excludes _path so images with same options can be cached across pages,
  * except for PageScreenshot, which renders the page itself.
  * Optionally includes componentHash and version for cache busting
+ *
+ * Uses the first 64 bits of a SHA-256 digest over a canonical (key-sorted)
+ * serialization. The previous 32-bit rolling hash collided on large sites,
+ * silently overwriting other pages' prerendered images.
  */
 export function hashOgImageOptions(
   options: Record<string, any>,
@@ -153,7 +183,7 @@ export function hashOgImageOptions(
   const hashInput = componentHash || version
     ? [hashableOptions, componentHash || '', version || '']
     : hashableOptions
-  return simpleHash(JSON.stringify(hashInput))
+  return base64UrlToHex(digest(canonicalJson(hashInput))).slice(0, 16)
 }
 
 /**
