@@ -1,6 +1,7 @@
 import { createResolver } from '@nuxt/kit'
-import { $fetch, fetch, setup, url } from '@nuxt/test-utils/e2e'
+import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
+import { signEncodedParams } from '../../src/runtime/shared'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -15,27 +16,33 @@ await setup({
     ogImage: {
       security: {
         strict: true,
-        secret: 'e2e-nitro-secret',
+        secret: 'build-secret',
       },
     },
+  },
+  // Runtime override must win over the build-time secret.
+  env: {
+    NUXT_OG_IMAGE_SECRET: 'runtime-secret',
   },
 })
 
 interface OgUrlResponse {
-  relative: string
-  absolute: string
+  url: string
   path: string
 }
 
 describe('getOgImageUrl in a Nitro handler', () => {
-  it('builds a signed URL that renders', async () => {
+  it('builds an absolute URL signed with the runtime secret that renders', async () => {
     const res = await $fetch<OgUrlResponse>('/prefix/og-url')
 
-    expect(res.relative).toMatch(/^\/prefix\/_og\/d\/.+,s_[\w-]+\.png$/)
-    expect(res.path).toBe(res.relative)
-    expect(res.absolute).toBe(new URL(res.relative, url('/')).href)
+    expect(res.path).toMatch(/^\/prefix\/_og\/d\/.+,s_[\w-]+\.png$/)
+    // fixture site.url, same origin the app side uses for og:image
+    expect(res.url).toBe(`https://nuxtseo.com${res.path}`)
 
-    const image = await fetch(res.relative)
+    const [, params, signature] = res.path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, 'runtime-secret'))
+
+    const image = await fetch(res.path)
     expect(image.status).toBe(200)
     expect(image.headers.get('content-type')).toContain('image/png')
     const bytes = new Uint8Array(await image.arrayBuffer())
@@ -44,17 +51,9 @@ describe('getOgImageUrl in a Nitro handler', () => {
   }, 60000)
 
   it('rejects a tampered signature', async () => {
-    const { relative } = await $fetch<OgUrlResponse>('/prefix/og-url')
-    const tampered = relative.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
+    const { path } = await $fetch<OgUrlResponse>('/prefix/og-url')
+    const tampered = path.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
     const res = await fetch(tampered)
     expect(res.status).toBe(403)
-  })
-
-  it('uses x-forwarded-host for the absolute origin', async () => {
-    const res = await $fetch<OgUrlResponse>('/prefix/og-url', {
-      headers: { 'x-forwarded-host': 'og.example.com' },
-    })
-    expect(new URL(res.absolute).host).toBe('og.example.com')
-    expect(new URL(res.absolute).pathname).toBe(res.relative)
   })
 })

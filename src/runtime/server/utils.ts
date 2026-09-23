@@ -11,7 +11,8 @@ export interface GetOgImagePathResult {
   hash?: string
 }
 
-export function getOgImagePath(_pagePath: string, _options?: Partial<OgImageOptionsInternal>, event?: H3Event): GetOgImagePathResult {
+// The event is required: runtime secrets (e.g. Cloudflare env bindings) only resolve with it.
+export function getOgImagePath(event: H3Event, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
   const baseURL = useRuntimeConfig(event).app.baseURL
   const { defaults, security } = useOgImageRuntimeConfig(event)
   const extension = _options?.extension || defaults.extension

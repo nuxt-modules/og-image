@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url'
 import { createResolver } from '@nuxt/kit'
 import { exec } from 'tinyexec'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { signEncodedParams } from '../../src/runtime/shared'
 import { ensureLocalModuleStub, extractOgImageUrl } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
@@ -54,5 +55,26 @@ describe('cloudflare runtime config', () => {
     const ogImageUrl = extractOgImageUrl(html)
 
     expect(ogImageUrl).toContain(',s_')
+  })
+
+  it('signs getOgImageUrl with the Cloudflare runtime secret', async () => {
+    const env = { NUXT_OG_IMAGE_SECRET: 'cf-secret' }
+    const response = await fetchWorker('/api/og-url', env)
+    const { url } = await response.json() as { url: string }
+
+    const parsed = new URL(url)
+    // Same origin the app side uses for the page's og:image.
+    const html = await (await fetchWorker('/', env)).text()
+    const ogImage = html.match(/property="og:image" content="([^"]+)"/)?.[1]
+    expect(parsed.origin).toBe(new URL(ogImage!).origin)
+    const [, params, signature] = parsed.pathname.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, 'cf-secret'))
+
+    // satori is not bundled in this fixture, so rendering fails after
+    // verification. Only the signature check matters here.
+    const image = await fetchWorker(parsed.pathname, env)
+    expect(image.status).not.toBe(403)
+    const tampered = await fetchWorker(parsed.pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png'), env)
+    expect(tampered.status).toBe(403)
   })
 })

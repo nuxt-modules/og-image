@@ -1,13 +1,10 @@
 import type { H3Event } from '#nuxtseo/h3'
 import type { OgImageOptionsInternal } from '../types'
-import { joinURL } from 'ufo'
-import { getRequestURL } from '#nuxtseo/h3'
+import { withSiteUrl } from '#site-config/server/composables/utils'
 import { getOgImagePath } from './utils'
 
-export function getOgImageUrl(_pagePath: string, _options?: Partial<OgImageOptionsInternal>, event?: H3Event): string {
-  const { path } = getOgImagePath(_pagePath, _options, event)
-  if (!event)
-    return path
-  const origin = getRequestURL(event, { xForwardedHost: true }).origin
-  return joinURL(origin, path)
+export function getOgImageUrl(event: H3Event, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): string {
+  const { path } = getOgImagePath(event, _pagePath, _options)
+  // Match the app side og:image: canonical site URL, request origin as fallback.
+  return withSiteUrl(event, path, { canonical: !import.meta.dev })
 }
