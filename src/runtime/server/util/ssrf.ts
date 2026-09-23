@@ -14,7 +14,10 @@
 // (IPv6 prefix gaps + redirect bypass) for the bypass classes this is sized
 // to defeat.
 
+import { guardedFetch } from '#og-image/bindings/fetch'
+
 const RE_IPV6_BRACKETS = /^\[|\]$/g
+const RE_TRAILING_DOTS = /\.+$/
 const RE_DIGIT_ONLY = /^\d+$/
 const RE_INT_IP = /^(?:0x[\da-f]+|\d+)$/i
 const RE_HEX_GROUP = /^[0-9a-f]{1,4}$/i
@@ -36,6 +39,12 @@ function isPrivateIPv4(a: number, b: number): boolean {
     return true // link-local
   if (a === 0)
     return true // 0.0.0.0/8 — also catches the unspecified address
+  if (a === 100 && b >= 64 && b <= 127)
+    return true // 100.64.0.0/10 carrier-grade NAT (Alibaba Cloud metadata)
+  if (a === 198 && (b === 18 || b === 19))
+    return true // 198.18.0.0/15 benchmarking
+  if (a >= 224)
+    return true // multicast, reserved, broadcast
   return false
 }
 
@@ -140,6 +149,14 @@ function isPrivateIPv6(groups: number[]): boolean {
   if (g0 === 0x64 && g1 === 0xFF9B && g2 === 1)
     return true
 
+  // 100::/64 discard-only (RFC 6666)
+  if (g0 === 0x100 && g1 === 0 && g2 === 0 && g3 === 0)
+    return true
+
+  // 2001::/32 Teredo — tunnels to an IPv4 endpoint the classifier cannot see
+  if (g0 === 0x2001 && g1 === 0)
+    return true
+
   // fc00::/7 unique local
   if ((g0 & 0xFE00) === 0xFC00)
     return true
@@ -188,7 +205,8 @@ export function isBlockedUrl(url: string): boolean {
     return true
 
   const hostname = parsed.hostname.toLowerCase()
-  const bare = hostname.replace(RE_IPV6_BRACKETS, '')
+  // `localhost.` is the fully qualified form of `localhost`.
+  const bare = hostname.replace(RE_IPV6_BRACKETS, '').replace(RE_TRAILING_DOTS, '')
 
   if (bare === 'localhost' || bare.endsWith('.localhost'))
     return true
@@ -221,6 +239,11 @@ export function isBlockedUrl(url: string): boolean {
   }
 
   return false
+}
+
+/** True when a resolved IP address is internal, reserved, or unparseable. */
+export function isBlockedAddress(address: string): boolean {
+  return isBlockedUrl(`http://${address.includes(':') ? `[${address}]` : address}/`)
 }
 
 declare const sameOriginPathBrand: unique symbol
@@ -354,12 +377,15 @@ export async function fetchWithRedirectValidation(
       }
       if (!isTrusted && isBlockedUrl(url))
         return null
-      const res = await fetch(url, {
-        redirect: 'manual',
+      // A name passes `isBlockedUrl`, so the Node transport also checks every
+      // address it resolves to before connecting.
+      const res = await guardedFetch(url, {
         signal: controller.signal,
         headers: opts.headers,
+        isBlockedAddress: isTrusted ? undefined : isBlockedAddress,
       })
       if (res.status >= 300 && res.status < 400) {
+        await res.body?.cancel()
         const loc = res.headers.get('location')
         if (!loc)
           return null
@@ -367,8 +393,10 @@ export async function fetchWithRedirectValidation(
         url = new URL(loc, url).toString()
         continue
       }
-      if (!res.ok)
+      if (!res.ok) {
+        await res.body?.cancel()
         return null
+      }
       return await res.arrayBuffer()
     }
     return null

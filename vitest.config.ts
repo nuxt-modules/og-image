@@ -1,9 +1,16 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig, defineProject } from 'vitest/config'
+
+// Nitro sets this alias per preset. Unit tests run on Node.
+const runtimeAlias = {
+  '#og-image/bindings/fetch': fileURLToPath(new URL('./src/runtime/server/og-image/bindings/fetch/node.ts', import.meta.url)),
+}
 
 export default defineConfig({
   test: {
     projects: [
       defineProject({
+        resolve: { alias: runtimeAlias },
         test: {
           name: 'unit',
           environment: 'node',

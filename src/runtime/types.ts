@@ -256,6 +256,8 @@ export interface RuntimeCompatibilitySchema {
   sharp: 'node' | false
   // emoji strategy: 'local' bundles icons (24MB), 'fetch' uses iconify API at runtime
   emoji?: 'local' | 'fetch'
+  // SSRF guard transport: 'node' checks resolved addresses, 'web' has no DNS API
+  fetch?: 'node' | 'web'
   wasm?: any
 }
 

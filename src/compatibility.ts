@@ -43,6 +43,7 @@ const cloudflare: RuntimeCompatibilitySchema = {
   takumi: 'wasm',
   sharp: false,
   emoji: 'fetch', // edge size limits - use API instead of bundling 24MB icons
+  fetch: 'web', // no DNS API
   wasm: {
     esmImport: true,
     // Do NOT set lazy here — Nitro's cloudflare preset uses lazy: false because
@@ -65,6 +66,7 @@ export const WebContainer: RuntimeCompatibilitySchema = {
   takumi: 'wasm',
   sharp: false,
   emoji: 'fetch', // webcontainer has size constraints
+  fetch: 'web',
 }
 
 export const RuntimeCompatibility: Partial<Record<PresetName | 'stackblitz' | 'codesandbox', RuntimeCompatibilitySchema>> = {
@@ -105,6 +107,7 @@ export const RuntimeCompatibility: Partial<Record<PresetName | 'stackblitz' | 'c
     takumi: 'wasm',
     sharp: false,
     emoji: 'fetch', // edge size limits
+    fetch: 'web',
     wasm: {
       rollup: {
         targetEnv: 'auto-inline',
@@ -124,6 +127,7 @@ export const RuntimeCompatibility: Partial<Record<PresetName | 'stackblitz' | 'c
     takumi: 'wasm',
     sharp: false,
     emoji: 'fetch', // edge size limits - bundling 24MB icons not viable
+    fetch: 'web',
     wasm: {
       // lowers workers kb size
       esmImport: true,

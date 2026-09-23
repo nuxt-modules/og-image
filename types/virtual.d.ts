@@ -29,6 +29,14 @@ declare module '#og-image/renderers/browser' {
   export default renderer
 }
 
+declare module '#og-image/bindings/fetch' {
+  export function guardedFetch(url: string, init: {
+    headers?: Record<string, string>
+    signal: AbortSignal
+    isBlockedAddress?: (address: string) => boolean
+  }): Promise<Response>
+}
+
 declare module '#og-image/bindings/satori' {
   const satori: typeof import('satori').satori
   export default satori

@@ -227,6 +227,10 @@ declare module '#og-image/renderers/takumi' {
   export default _default
 }
 
+declare module '#og-image/bindings/fetch' {
+  export { guardedFetch } from '${typesPath.replace('/types', '')}/server/og-image/bindings/fetch/web'
+}
+
 declare module '#og-image/emoji-transform' {
   import type { OgImageRenderEventContext } from '${typesPath}'
   export function getEmojiSvg(ctx: OgImageRenderEventContext, emoji: string): Promise<string | null>

@@ -534,6 +534,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Resolve preset early to check compatibility settings
     const preset = resolveOgImagePreset(nuxt.options.nitro)
     const targetCompatibility = getPresetNitroPresetCompatibility(preset)
+    setRuntimeAlias('#og-image/bindings/fetch', resolve(`./runtime/server/og-image/bindings/fetch/${targetCompatibility.fetch ?? 'node'}`))
     const runtimeCompatibilityMeta: RuntimeCompatibilityMeta = {}
 
     // Cloudflare Workers-specific checks
