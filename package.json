@@ -82,7 +82,7 @@
     "@unhead/vue": "^2.0.5 || ^3.0.0",
     "@unocss/config": "catalog:",
     "@unocss/core": "catalog:",
-    "fontless": "^0.2.0 || ^0.4.3",
+    "fontless": "^0.2.0 || ^0.4.3 || ^1.0.0",
     "nitropack": "catalog:",
     "playwright-core": "^1.50.0",
     "satori": ">=0.33.5",
