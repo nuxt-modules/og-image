@@ -11,12 +11,14 @@
 import type { ConsolaInstance } from 'consola'
 import type { FontFamilyProviderOverride, FontlessOptions, Resolver } from 'fontless'
 import type { Nuxt } from 'nuxt/schema'
+import type { NuxtFontsManifest, NuxtFontSource, RenderedFontURL } from '../runtime/server/og-image/bindings/font-assets/nuxt-fonts'
 import type { FontProcessingState, FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { isAbsolute, join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
+import { toNuxtFontSource } from '../runtime/server/og-image/bindings/font-assets/nuxt-fonts'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
@@ -38,9 +40,9 @@ interface ProcessFontsOptions {
   warnOnMissingStaticFonts?: boolean
 }
 
-interface NuxtFontsAssetContext {
+export interface NuxtFontsAssetContext {
   assetsBaseURL: string
-  renderedFontURLs: Map<string, string>
+  renderedFontURLs: Map<string, RenderedFontURL>
 }
 
 interface DownloadedFont {
@@ -193,7 +195,7 @@ async function initFontless(options: {
 
 /** Persist @nuxt/fonts URL mapping to disk for prerender. */
 export function persistFontUrlMapping(options: {
-  fontContext: { renderedFontURLs: Map<string, string> } | null
+  fontContext: NuxtFontsAssetContext | null
   buildDir: string
   logger: ConsolaInstance
 }): void {
@@ -201,8 +203,11 @@ export function persistFontUrlMapping(options: {
     return
   const cacheDir = join(options.buildDir, 'cache', 'og-image')
   fs.mkdirSync(cacheDir, { recursive: true })
-  const mapping = Object.fromEntries(options.fontContext.renderedFontURLs)
-  fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(mapping))
+  const manifest: NuxtFontsManifest = {
+    assetsBaseURL: options.fontContext.assetsBaseURL,
+    urls: Object.fromEntries([...options.fontContext.renderedFontURLs].map(([filename, entry]) => [filename, toNuxtFontSource(entry)])),
+  }
+  fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(manifest))
   options.logger.debug(`Persisted ${options.fontContext.renderedFontURLs.size} font URLs for prerender`)
 }
 
@@ -500,16 +505,17 @@ function hasOpenTypeTable(data: Uint8Array, expectedTag: string): boolean {
   return false
 }
 
-function getNuxtFontOriginalSource(fontSrc: string, context?: NuxtFontsAssetContext | null): string | undefined {
+function getNuxtFontOriginalSource(fontSrc: string, context?: NuxtFontsAssetContext | null): NuxtFontSource | undefined {
   if (!context)
     return
   const prefix = `${context.assetsBaseURL.replace(/\/$/, '')}/`
   if (!fontSrc.startsWith(prefix))
     return
-  return context.renderedFontURLs.get(fontSrc.slice(prefix.length))
+  const entry = context.renderedFontURLs.get(fontSrc.slice(prefix.length))
+  return entry === undefined ? undefined : toNuxtFontSource(entry)
 }
 
-async function readNuxtFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetResult> {
+async function readNuxtFontAsset(nuxt: Nuxt, { url: source, headers }: NuxtFontSource): Promise<FontAssetResult> {
   if (source.startsWith('/')) {
     const configuredPublicDir = nuxt.options.dir.public || 'public'
     const publicDir = isAbsolute(configuredPublicDir)
@@ -531,7 +537,7 @@ async function readNuxtFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetR
       .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
   }
 
-  return fetch(source)
+  return fetch(source, { headers })
     .then(async response => response.ok
       ? { _tag: 'Ok' as const, data: new Uint8Array(await response.arrayBuffer()) }
       : { _tag: 'Err' as const, reason: `source returned HTTP ${response.status}` })
@@ -554,10 +560,10 @@ async function convertNuxtWoff2Sources(options: {
       fontsBySource.set(font.src, font)
   }
 
-  const mappedSources: Array<{ font: ParsedFont, fontSrc: string, originalSource: string }> = []
+  const mappedSources: Array<{ font: ParsedFont, fontSrc: string, originalSource: NuxtFontSource }> = []
   for (const [fontSrc, font] of fontsBySource) {
     const originalSource = getNuxtFontOriginalSource(fontSrc, options.context)
-      || (isConfiguredLocalFontFamily(options.nuxt, font.family) ? fontSrc : undefined)
+      || (isConfiguredLocalFontFamily(options.nuxt, font.family) ? { url: fontSrc } : undefined)
     if (originalSource)
       mappedSources.push({ font, fontSrc, originalSource })
     else

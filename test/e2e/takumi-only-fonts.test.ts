@@ -30,14 +30,14 @@ setupImageSnapshots(SNAPSHOT_LOOSE)
 describe('takumi-only fonts', () => {
   it.runIf(hasTakumi)('uses Nuxt Fonts WOFF2 assets directly', async () => {
     const buildDir = useTestContext().nuxt!.options.buildDir
-    const mapping = JSON.parse(readFileSync(join(buildDir, 'cache', 'og-image', 'font-urls.json'), 'utf8')) as Record<string, string>
+    const { assetsBaseURL, urls: mapping } = JSON.parse(readFileSync(join(buildDir, 'cache', 'og-image', 'font-urls.json'), 'utf8')) as { assetsBaseURL: string, urls: Record<string, { url: string }> }
     const staticFontDir = join(buildDir, 'cache', 'og-image', 'static-fonts')
     const hasConvertedFont = Object.keys(mapping).some(filename => existsSync(join(staticFontDir, filename.replace(/\.woff2$/, '.ttf'))))
     expect(hasConvertedFont).toBe(false)
 
-    const filename = Object.entries(mapping).find(([, source]) => source.includes('/notosansdevanagari/'))?.[0]
+    const filename = Object.entries(mapping).find(([, source]) => source.url.includes('/notosansdevanagari/'))?.[0]
     expect(filename).toBeDefined()
-    const font = await $fetch(`/_fonts/${filename}`, { responseType: 'arrayBuffer' }) as ArrayBuffer
+    const font = await $fetch(`${assetsBaseURL}/${filename}`, { responseType: 'arrayBuffer' }) as ArrayBuffer
     expect(Buffer.from(font).subarray(0, 4).toString()).toBe('wOF2')
   })
 
