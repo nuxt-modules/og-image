@@ -74,6 +74,24 @@ function getNuxtFontsFamilyConfig(nuxt: Nuxt, family: string): Record<string, un
   return families?.find(f => typeof f?.name === 'string' && f.name.toLowerCase() === family.toLowerCase())
 }
 
+type Glyphs = string | string[] | undefined
+
+interface NuxtFontsGlyphOptions {
+  defaults?: { glyphs?: Glyphs }
+  families?: Array<{ name?: unknown, glyphs?: Glyphs }>
+}
+
+/**
+ * `@nuxt/fonts` v1 subsets a family to `glyphs`, and Google applies it server side, so neither
+ * the served file nor its source can render arbitrary OG text. Mirrors fontless: a truthy
+ * family value wins, otherwise `defaults.glyphs` applies.
+ */
+export function isGlyphSubsetFamily(fonts: NuxtFontsGlyphOptions | undefined, family: string): boolean {
+  const config = fonts?.families?.find(f => typeof f.name === 'string' && f.name.toLowerCase() === family.toLowerCase())
+  const glyphs = config?.glyphs || fonts?.defaults?.glyphs
+  return !!glyphs?.length
+}
+
 function isConfiguredLocalFontFamily(nuxt: Nuxt, family: string): boolean {
   const config = getNuxtFontsFamilyConfig(nuxt, family)
   return !!config && config.global === true && (config.provider === 'local' || typeof config.src === 'string')
@@ -820,6 +838,15 @@ export async function resolveOgImageFonts(options: {
   // Skip when @nuxt/fonts is not installed — fontless can't resolve system/fallback fonts
   // from TW4 font stacks (e.g. Menlo, Apple Color Emoji), just use bundled Inter instead
   if ((hasSatoriRenderer || hasTakumiRenderer) && hasNuxtFonts) {
+    // Families subset to `glyphs` only hold the site's characters; OG text is arbitrary.
+    // Re-resolve them in full, and keep the subset faces only if that fails.
+    const nuxtFontsOptions = (nuxt.options as { fonts?: NuxtFontsGlyphOptions }).fonts
+    const glyphSubsetFamilies = [...new Set(allFonts.map(f => f.family))]
+      .filter(family => isGlyphSubsetFamily(nuxtFontsOptions, family))
+    const glyphSubsetFaces = allFonts.filter(f => glyphSubsetFamilies.includes(f.family))
+    if (glyphSubsetFaces.length > 0)
+      allFonts.splice(0, allFonts.length, ...allFonts.filter(f => !glyphSubsetFaces.includes(f)))
+
     const coveredFamilies = new Set(allFonts.map(f => f.family))
     let missingFamilies: string[] = []
 
@@ -835,6 +862,7 @@ export async function resolveOgImageFonts(options: {
       if (defaultVar)
         missingFamilies = extractCustomFontFamilies(defaultVar).filter(f => !coveredFamilies.has(f) && !isFontaineFallback(f))
     }
+    missingFamilies = [...new Set([...missingFamilies, ...glyphSubsetFamilies])]
 
     if (missingFamilies.length > 0) {
       const additionalFonts = await resolveMissingFontFamilies({
@@ -849,6 +877,13 @@ export async function resolveOgImageFonts(options: {
         return []
       })
       allFonts.push(...additionalFonts)
+    }
+
+    const resolvedFamilies = new Set(allFonts.map(f => f.family))
+    const unresolvedSubsetFaces = glyphSubsetFaces.filter(f => !resolvedFamilies.has(f.family))
+    if (unresolvedSubsetFaces.length > 0) {
+      logger.warn(`Could not resolve ${[...new Set(unresolvedSubsetFaces.map(f => f.family))].join(', ')} without \`glyphs\` subsetting. OG images may miss characters outside the configured glyphs.`)
+      allFonts.push(...unresolvedSubsetFaces)
     }
   }
 
