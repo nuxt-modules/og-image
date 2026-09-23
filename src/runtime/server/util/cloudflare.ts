@@ -17,12 +17,12 @@ export function getCloudflareEnv(event?: H3Event): CloudflareEnv | undefined {
   if (runtimeEnv)
     return runtimeEnv
 
-  const contextCloudflare = toRecord(event?.context.cloudflare)
+  const contextCloudflare = toRecord(event?.context?.cloudflare)
   const contextEnv = toRecord(contextCloudflare?.env)
   if (contextEnv)
     return contextEnv
 
-  const platform = toRecord(event?.context._platform)
+  const platform = toRecord(event?.context?._platform)
   const platformCloudflare = toRecord(platform?.cloudflare)
   return toRecord(platformCloudflare?.env)
 }
