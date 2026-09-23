@@ -20,6 +20,11 @@ describe('nuxtFontFilename', () => {
     expect(nuxtFontFilename('/_nuxt/fontsx/a.woff2', '/_nuxt/fonts')).toBeUndefined()
   })
 
+  it('matches a path prefixed with app.baseURL', () => {
+    expect(nuxtFontFilename('/docs/_nuxt/fonts/a.woff2', '/_nuxt/fonts', '/docs/')).toBe('a.woff2')
+    expect(nuxtFontFilename('/_nuxt/fonts/a.woff2', '/_nuxt/fonts', '/docs/')).toBe('a.woff2')
+  })
+
   it('rejects nested paths', () => {
     expect(nuxtFontFilename('/_nuxt/fonts/../../secret', '/_nuxt/fonts')).toBeUndefined()
   })

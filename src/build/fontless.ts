@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { isAbsolute, join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
-import { toNuxtFontSource } from '../runtime/server/og-image/bindings/font-assets/nuxt-fonts'
+import { nuxtFontFilename, toNuxtFontSource } from '../runtime/server/og-image/bindings/font-assets/nuxt-fonts'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
@@ -42,6 +42,8 @@ interface ProcessFontsOptions {
 
 export interface NuxtFontsAssetContext {
   assetsBaseURL: string
+  /** Set by `@nuxt/fonts` v1. */
+  baseURL?: string
   renderedFontURLs: Map<string, RenderedFontURL>
 }
 
@@ -197,6 +199,7 @@ async function initFontless(options: {
 export function persistFontUrlMapping(options: {
   fontContext: NuxtFontsAssetContext | null
   buildDir: string
+  baseURL: string
   logger: ConsolaInstance
 }): void {
   if (!options.fontContext?.renderedFontURLs.size)
@@ -205,6 +208,7 @@ export function persistFontUrlMapping(options: {
   fs.mkdirSync(cacheDir, { recursive: true })
   const manifest: NuxtFontsManifest = {
     assetsBaseURL: options.fontContext.assetsBaseURL,
+    baseURL: options.fontContext.baseURL || options.baseURL,
     urls: Object.fromEntries([...options.fontContext.renderedFontURLs].map(([filename, entry]) => [filename, toNuxtFontSource(entry)])),
   }
   fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(manifest))
@@ -508,11 +512,9 @@ function hasOpenTypeTable(data: Uint8Array, expectedTag: string): boolean {
 function getNuxtFontOriginalSource(fontSrc: string, context?: NuxtFontsAssetContext | null): NuxtFontSource | undefined {
   if (!context)
     return
-  const prefix = `${context.assetsBaseURL.replace(/\/$/, '')}/`
-  if (!fontSrc.startsWith(prefix))
-    return
-  const entry = context.renderedFontURLs.get(fontSrc.slice(prefix.length))
-  return entry === undefined ? undefined : toNuxtFontSource(entry)
+  const filename = nuxtFontFilename(fontSrc, context.assetsBaseURL, context.baseURL)
+  const entry = filename && context.renderedFontURLs.get(filename)
+  return entry ? toNuxtFontSource(entry) : undefined
 }
 
 async function readNuxtFontAsset(nuxt: Nuxt, { url: source, headers }: NuxtFontSource): Promise<FontAssetResult> {
