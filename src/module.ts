@@ -1180,7 +1180,7 @@ export default defineNuxtModule<ModuleOptions>({
         pageDirs.add(join(layerSrcDir, layerPagesDir))
       }
     }
-    if (detectScreenshotPageUsage([...pageDirs])) {
+    if (await detectScreenshotPageUsage([...pageDirs])) {
       ogImageComponentCtx.detectedRenderers.add('browser')
       hasUserComponents = true
     }

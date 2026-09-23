@@ -3,6 +3,7 @@ import { resolvePath } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
 import { basename, join } from 'pathe'
 import { isCI } from 'std-env'
+import { stripLiteral } from 'strip-literal'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
 
@@ -68,14 +69,48 @@ export function stripRendererSuffix(name: string): string {
   return name
 }
 
-const SCREENSHOT_COMPOSABLE_CALL = 'defineOgImageScreenshot('
+// Same call shape the tree-shake plugin matches: a statement starting the line.
+// Runs on `stripLiteral` output so comments and string literals can't produce a match.
+const RE_SCREENSHOT_COMPOSABLE_CALL = /^[\t ]*defineOgImageScreenshot(?=\()/m
+
+let parseSfc: typeof import('@vue/compiler-sfc').parse | undefined
+
+async function loadSfcParser() {
+  if (!parseSfc)
+    parseSfc = (await import('@vue/compiler-sfc')).parse
+  return parseSfc
+}
+
+function scriptCallsScreenshotComposable(
+  parse: NonNullable<typeof parseSfc>,
+  code: string,
+): boolean {
+  let descriptor
+  try {
+    descriptor = parse(code).descriptor
+  }
+  catch {
+    // An unparseable SFC can't render either; don't enable the browser renderer for it.
+    return false
+  }
+  for (const block of [descriptor.script, descriptor.scriptSetup]) {
+    if (block && RE_SCREENSHOT_COMPOSABLE_CALL.test(stripLiteral(block.content)))
+      return true
+  }
+  return false
+}
 
 /**
- * Scans directories recursively for `.vue` files calling `defineOgImageScreenshot()`.
+ * Scans directories recursively for `.vue` pages calling `defineOgImageScreenshot()`.
  * Screenshot pages render through the browser renderer without any `.browser.vue`
  * component, so filename-based renderer detection can't see them.
+ *
+ * Only executable calls inside `<script>` blocks count: mentions in HTML comments,
+ * template code samples, commented-out lines, or strings must not enable the
+ * browser renderer.
  */
-export function detectScreenshotPageUsage(dirs: string[]): boolean {
+export async function detectScreenshotPageUsage(dirs: string[]): Promise<boolean> {
+  const parse = await loadSfcParser()
   for (const dir of dirs) {
     if (!existsSync(dir))
       continue
@@ -87,7 +122,7 @@ export function detectScreenshotPageUsage(dirs: string[]): boolean {
         if (entry.isDirectory()) {
           stack.push(path)
         }
-        else if (entry.name.endsWith('.vue') && readFileSync(path, 'utf-8').includes(SCREENSHOT_COMPOSABLE_CALL)) {
+        else if (entry.name.endsWith('.vue') && scriptCallsScreenshotComposable(parse, readFileSync(path, 'utf-8'))) {
           return true
         }
       }
