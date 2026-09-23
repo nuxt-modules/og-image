@@ -4,13 +4,14 @@ import type { SatoriOptions } from 'satori'
 import type { JpegOptions, SharpOptions } from 'sharp'
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { H3Error, H3Event } from '#nuxtseo/h3'
+import type { SameOriginPath } from './server/util/ssrf'
 import type { Timings } from './server/util/timings'
 
 export interface OgImageRenderEventContext {
   e: H3Event
   extension: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html' | 'json'
   key: string
-  basePath: string
+  basePath: SameOriginPath
   renderer: Renderer
   options: OgImageOptionsInternal
   isDevToolsContextRequest: boolean

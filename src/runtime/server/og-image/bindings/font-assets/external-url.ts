@@ -1,4 +1,4 @@
-import { fetchWithRedirectValidation } from '../../../util/ssrf'
+import { fetchWithRedirectValidation, resolveSameOriginUrl } from '../../../util/ssrf'
 
 // Sentinel origin used purely to canonicalize + classify a font path with the
 // same WHATWG parser `fetch` uses. `.invalid` is reserved (RFC 2606) and never
@@ -37,36 +37,6 @@ export function isExternalFontUrl(path: string): boolean {
 }
 
 /**
- * Resolve an authority-bearing font URL to the href to fetch, but only when it
- * is same-origin with the configured site URL. Returns null otherwise.
- *
- * Runtime external font URLs are unsupported — `@nuxt/fonts` is the only
- * supported way to load custom fonts, and it serves them same-origin. The single
- * allowed exception is the site's own origin, gated on an explicitly configured
- * site URL. Resolving against that origin also collapses canonicalization
- * bypasses (a crafted " //127.0.0.1" resolves cross-origin → rejected).
- */
-export function resolveSameOriginFontUrl(path: string, siteUrl: string | undefined): string | null {
-  if (!siteUrl)
-    return null
-  let siteOrigin: string
-  try {
-    siteOrigin = new URL(siteUrl).origin
-  }
-  catch {
-    return null
-  }
-  let target: URL
-  try {
-    target = new URL(path, siteOrigin)
-  }
-  catch {
-    return null
-  }
-  return target.origin === siteOrigin ? target.href : null
-}
-
-/**
  * Fetch a `data:` or authority-bearing font URL. `data:` is decoded directly
  * (no network). An external URL is fetched only when same-origin with the site
  * URL, and always through the SSRF guard (scheme allowlist, private-network
@@ -87,7 +57,7 @@ export async function fetchSpecialFontUrl(path: string, siteUrl: string | undefi
     throw new Error('[Nuxt OG Image] Invalid data: font URL.')
   }
 
-  const href = resolveSameOriginFontUrl(path, siteUrl)
+  const href = resolveSameOriginUrl(path, siteUrl)
   if (!href)
     throw new Error('[Nuxt OG Image] External font URLs are not supported. Load custom fonts via @nuxt/fonts.')
 

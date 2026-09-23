@@ -8,6 +8,7 @@ import { getNitroOrigin } from '#site-config/server/composables'
 import { buildOgImageUrl } from '../../../shared'
 import { getFetchTimeout } from '../../util/fetchTimeout'
 import { logger } from '../../util/logger'
+import { resolveSameOriginUrl } from '../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../utils'
 
 // Detect if we're using Playwright or Puppeteer
@@ -144,9 +145,10 @@ export async function createScreenshot({ basePath, e, options, extension, timing
     }
     else {
       // avoid another fetch to the base path to resolve options
-      const url = isPlaywrightPage(page)
-        ? withQuery(path, options.props || {})
-        : `${getNitroOrigin(e)}${withQuery(path, options.props || {})}`
+      // The headless browser must never leave the site origin, on either engine.
+      const url = resolveSameOriginUrl(withQuery(path, options.props || {}), getNitroOrigin(e))
+      if (!url)
+        throw new Error('[Nuxt OG Image] The browser renderer can only navigate to a same-origin path.')
       await gotoWithIdle(page, url, 10000)
     }
 

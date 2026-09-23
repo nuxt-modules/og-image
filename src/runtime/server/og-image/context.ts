@@ -22,6 +22,7 @@ import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { getEventQuery } from '../util/query'
+import { parseSameOriginPath } from '../util/ssrf'
 import { createTimings, TIMING_CTX_KEY } from '../util/timings'
 import { withTimeout } from '../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../utils'
@@ -163,8 +164,16 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     queryParams = separateProps(queryParams)
   }
 
-  // basePath is used for route rules matching - can be provided via _path param
-  const basePath = withoutTrailingSlash(urlOptions._path || '/')
+  // basePath drives route rules, the page HTML fetch, and the browser renderer's
+  // navigation. Parse it once here: only a same-origin path may pass inward.
+  const rawPath = urlOptions._path ?? '/'
+  const basePath = parseSameOriginPath(typeof rawPath === 'string' ? withoutTrailingSlash(rawPath) : rawPath)
+  if (!basePath) {
+    return createError({
+      statusCode: 400,
+      statusMessage: '[Nuxt OG Image] The _path option must be a same-origin path.',
+    })
+  }
   const componentHash = urlOptions._componentHash || ''
   delete urlOptions._path
   delete urlOptions._hash // Remove internal hash field

@@ -223,6 +223,82 @@ export function isBlockedUrl(url: string): boolean {
   return false
 }
 
+declare const sameOriginPathBrand: unique symbol
+
+/**
+ * A path that stays on the current origin when resolved against any base URL.
+ * Only `parseSameOriginPath` creates one, so a value of this type is safe to
+ * pass to a same-origin fetch or a headless browser navigation.
+ */
+export type SameOriginPath = string & { readonly [sameOriginPathBrand]: true }
+
+const PROBE_ORIGIN = 'http://og-image.invalid'
+
+function hasUnsafePathChar(input: string): boolean {
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i)
+    // C0 controls and DEL: URL parsers strip tabs and newlines, so `/\t/host`
+    // becomes `//host`. Backslash: browsers read `\` as `/` in http(s) URLs.
+    if (code <= 0x1F || code === 0x7F || code === 0x5C)
+      return true
+  }
+  return false
+}
+
+/**
+ * Parse an untrusted path (for example the `_path` URL option) into a
+ * same-origin path. Returns `undefined` for anything that could leave the
+ * origin: absolute URLs, other schemes, protocol-relative `//host`,
+ * backslash variants, control characters, and paths without a leading `/`
+ * (which a string concatenation with the origin turns into `origin@host`).
+ *
+ * GHSA-h5qf-97cw-2h86: an absolute `_path` navigated the browser renderer to
+ * an internal host and reflected the response into the image.
+ */
+export function parseSameOriginPath(input: unknown): SameOriginPath | undefined {
+  if (typeof input !== 'string' || input[0] !== '/' || input[1] === '/')
+    return undefined
+  if (hasUnsafePathChar(input))
+    return undefined
+  let resolved: URL
+  try {
+    resolved = new URL(input, PROBE_ORIGIN)
+  }
+  catch {
+    return undefined
+  }
+  if (resolved.origin !== PROBE_ORIGIN)
+    return undefined
+  return input as SameOriginPath
+}
+
+/**
+ * Resolve `path` against `origin` and return the href, but only when the result
+ * stays on that origin. Returns null for a missing or unparseable origin, and for
+ * anything that resolves elsewhere. The WHATWG parser normalizes leading
+ * controls, tabs, and backslashes first, so " //127.0.0.1" resolves cross-origin
+ * and is rejected (GHSA-q8hw-4fvp-9rwv).
+ */
+export function resolveSameOriginUrl(path: string, origin: string | undefined): string | null {
+  if (!origin)
+    return null
+  let base: string
+  try {
+    base = new URL(origin).origin
+  }
+  catch {
+    return null
+  }
+  let target: URL
+  try {
+    target = new URL(path, base)
+  }
+  catch {
+    return null
+  }
+  return target.origin === base ? target.href : null
+}
+
 export interface SafeFetchOptions {
   timeout: number
   headers?: Record<string, string>

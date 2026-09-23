@@ -1,7 +1,7 @@
 import http from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl, resolveSameOriginFontUrl } from '../../src/runtime/server/og-image/bindings/font-assets/external-url'
-import { fetchWithRedirectValidation } from '../../src/runtime/server/util/ssrf'
+import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from '../../src/runtime/server/og-image/bindings/font-assets/external-url'
+import { fetchWithRedirectValidation, resolveSameOriginUrl } from '../../src/runtime/server/util/ssrf'
 
 const FONT_DATA = Buffer.from('fake-font-data-ttf')
 
@@ -73,26 +73,26 @@ describe('isExternalFontUrl', () => {
   })
 })
 
-describe('resolveSameOriginFontUrl', () => {
+describe('resolveSameOriginUrl', () => {
   const site = 'https://mysite.com'
 
   it('accepts an absolute URL on the site origin', () => {
-    expect(resolveSameOriginFontUrl('https://mysite.com/fonts/x.ttf', site)).toBe('https://mysite.com/fonts/x.ttf')
+    expect(resolveSameOriginUrl('https://mysite.com/fonts/x.ttf', site)).toBe('https://mysite.com/fonts/x.ttf')
   })
 
   it('rejects a cross-origin URL', () => {
-    expect(resolveSameOriginFontUrl('https://evil.com/x.ttf', site)).toBeNull()
-    expect(resolveSameOriginFontUrl('//evil.com/x.ttf', site)).toBeNull()
+    expect(resolveSameOriginUrl('https://evil.com/x.ttf', site)).toBeNull()
+    expect(resolveSameOriginUrl('//evil.com/x.ttf', site)).toBeNull()
   })
 
   it('rejects when no site URL is configured', () => {
-    expect(resolveSameOriginFontUrl('https://mysite.com/x.ttf', undefined)).toBeNull()
-    expect(resolveSameOriginFontUrl('https://mysite.com/x.ttf', '')).toBeNull()
+    expect(resolveSameOriginUrl('https://mysite.com/x.ttf', undefined)).toBeNull()
+    expect(resolveSameOriginUrl('https://mysite.com/x.ttf', '')).toBeNull()
   })
 
   it('rejects control/space-prefixed network-path URLs (resolve cross-origin)', () => {
-    expect(resolveSameOriginFontUrl(`${SP}//127.0.0.1/a`, site)).toBeNull()
-    expect(resolveSameOriginFontUrl(`${NUL}//169.254.169.254/`, site)).toBeNull()
+    expect(resolveSameOriginUrl(`${SP}//127.0.0.1/a`, site)).toBeNull()
+    expect(resolveSameOriginUrl(`${NUL}//169.254.169.254/`, site)).toBeNull()
   })
 })
 

@@ -5,6 +5,7 @@ import { fetchWithEvent } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { isInternalRoute } from '../../shared'
 import { getEventQuery } from '../util/query'
+import { parseSameOriginPath } from '../util/ssrf'
 import { useOgImageRuntimeConfig } from '../utils'
 
 // Matches a single <meta> tag and captures property/name and content attributes
@@ -26,9 +27,6 @@ const RE_STRIP_PREFIX = /^.*?\/_og\/r/
 // Allow `/_og/r/blog/post.png` as an alias for `/_og/r/blog/post` so the URL
 // can be used in contexts expecting an image extension.
 const RE_IMAGE_EXT = /\.(?:png|jpe?g|webp|svg)$/i
-// Matches protocol-relative prefixes (`//evil.com/...`) after leading-slash
-// normalisation.
-const RE_DOUBLE_LEADING_SLASH = /^\/{2,}/
 
 function extractMeta(html: string, key: string): string | undefined {
   for (const tagMatch of html.matchAll(RE_META_TAG)) {
@@ -118,10 +116,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Reject protocol-relative or scheme-prefixed paths (e.g. `/_og/r//evil.com/x`
-  // or `/_og/r/http://evil.com/x`). A safe same-origin path has exactly one
-  // leading slash followed by a non-slash character; a scheme contains `://`.
-  if (targetPath.includes('://') || RE_DOUBLE_LEADING_SLASH.test(targetPath)) {
+  // Reject anything that could leave the origin (e.g. `/_og/r//evil.com/x` or
+  // backslash variants), and any embedded scheme (`/_og/r/http://evil.com/x`).
+  if (targetPath.includes('://') || !parseSameOriginPath(targetPath)) {
     throw createError({
       statusCode: 400,
       statusMessage: '[Nuxt OG Image] Target path must be a same-origin path.',
