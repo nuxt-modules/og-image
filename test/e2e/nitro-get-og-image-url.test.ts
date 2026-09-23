@@ -28,21 +28,19 @@ await setup({
 
 interface OgUrlResponse {
   url: string
-  path: string
 }
 
 describe('getOgImageUrl in a Nitro handler', () => {
   it('builds an absolute URL signed with the runtime secret that renders', async () => {
-    const res = await $fetch<OgUrlResponse>('/prefix/og-url')
-
-    expect(res.path).toMatch(/^\/prefix\/_og\/d\/.+,s_[\w-]+\.png$/)
+    const { url } = await $fetch<OgUrlResponse>('/prefix/og-url')
     // fixture site.url, same origin the app side uses for og:image
-    expect(res.url).toBe(`https://nuxtseo.com${res.path}`)
+    expect(url).toMatch(/^https:\/\/nuxtseo\.com\/prefix\/_og\/d\/.+,s_[\w-]+\.png$/)
+    const path = new URL(url).pathname
 
-    const [, params, signature] = res.path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    const [, params, signature] = path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, 'runtime-secret'))
 
-    const image = await fetch(res.path)
+    const image = await fetch(path)
     expect(image.status).toBe(200)
     expect(image.headers.get('content-type')).toContain('image/png')
     const bytes = new Uint8Array(await image.arrayBuffer())
@@ -51,8 +49,8 @@ describe('getOgImageUrl in a Nitro handler', () => {
   }, 60000)
 
   it('rejects a tampered signature', async () => {
-    const { path } = await $fetch<OgUrlResponse>('/prefix/og-url')
-    const tampered = path.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
+    const { url } = await $fetch<OgUrlResponse>('/prefix/og-url')
+    const tampered = new URL(url).pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
     const res = await fetch(tampered)
     expect(res.status).toBe(403)
   })

@@ -1099,9 +1099,10 @@ export default defineNuxtModule<ModuleOptions>({
       from: resolve('./runtime/app/utils'),
     })
 
+    // getOgImagePath stays app-only: a Nitro global with a different signature
+    // collides with the app one in tsconfigs that include both.
     addServerImports([
       { name: 'getOgImageUrl', from: resolve('./runtime/server/nitro') },
-      { name: 'getOgImagePath', from: resolve('./runtime/server/utils') },
     ])
 
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
