@@ -1,7 +1,7 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
-import { signEncodedParams } from '../../src/runtime/shared'
+import { decodeOgImageParams, signEncodedParams } from '../../src/runtime/shared'
 
 const { resolve } = createResolver(import.meta.url)
 
@@ -28,6 +28,7 @@ await setup({
 
 interface OgUrlResponse {
   url: string
+  current: string
 }
 
 describe('getOgImageUrl in a Nitro handler', () => {
@@ -53,5 +54,12 @@ describe('getOgImageUrl in a Nitro handler', () => {
     const tampered = new URL(url).pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
     const res = await fetch(tampered)
     expect(res.status).toBe(403)
+  })
+
+  it('defaults to the request path without the baseURL', async () => {
+    const { current } = await $fetch<OgUrlResponse>('/prefix/og-url?foo=bar')
+    const [, params, signature] = new URL(current).pathname.match(/^\/prefix\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, 'runtime-secret'))
+    expect(decodeOgImageParams(params)._path).toBe('/og-url')
   })
 })
