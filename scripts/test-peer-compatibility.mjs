@@ -5,7 +5,7 @@ import { exec } from 'tinyexec'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const profiles = {
-  minimum: { fontless: 'fontless-v0-2', unifont: 'unifont-v0-7', sharp: 'sharp-v0-34' },
+  minimum: { fontless: 'fontless-v0-2', unifont: 'unifont-v0-7' },
   current: {},
 }
 const selected = process.argv[2]
