@@ -328,8 +328,24 @@ describe('urlEncoding', () => {
         height: 600,
         component: 'Test',
         props: { title: 'Hello' },
-      }, 'png', true, defaults)
-      expect(result.url).toBe('/_og/s/c_Test,title_Hello.png')
+      }, 'png', false, defaults)
+      expect(result.url).toBe('/_og/d/c_Test,title_Hello.png')
+    })
+
+    // Cloudflare static assets answer a path holding `,` or `+` with a 307 to
+    // its percent-encoded twin. Social crawlers often do not follow it.
+    it.each([
+      ['comma', { component: 'Test', props: { title: 'Hello' } }],
+      ['plus', { props: { title: 'Hello World' } }],
+    ])('uses hash mode for a static segment holding a %s', (_, options) => {
+      const result = buildOgImageUrl(options, 'png', true)
+      expect(result.url).toMatch(/^\/_og\/s\/o_[a-z0-9]+\.png$/)
+      expect(result.hash).toBeDefined()
+    })
+
+    it('keeps a static segment of unreserved characters readable', () => {
+      const result = buildOgImageUrl({ component: 'NuxtSeo.satori' }, 'png', true)
+      expect(result.url).toBe('/_og/s/c_NuxtSeo.satori.png')
     })
 
     // These tests lock in the contract that callers rely on when strict+secret
