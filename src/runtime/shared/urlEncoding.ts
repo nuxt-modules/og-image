@@ -139,7 +139,8 @@ function simpleHash(str: string): string {
 
 /**
  * Generate a deterministic hash from options object
- * Excludes _path so images with same options can be cached across pages
+ * Excludes _path so images with same options can be cached across pages,
+ * except for PageScreenshot, which renders the page itself.
  * Optionally includes componentHash and version for cache busting
  */
 export function hashOgImageOptions(
@@ -147,7 +148,8 @@ export function hashOgImageOptions(
   componentHash?: string,
   version?: string,
 ): string {
-  const { _path, _hash, ...hashableOptions } = options
+  const { _path, _hash, ...rest } = options
+  const hashableOptions = rest.component === 'PageScreenshot' ? { ...rest, _path } : rest
   const hashInput = componentHash || version
     ? [hashableOptions, componentHash || '', version || '']
     : hashableOptions

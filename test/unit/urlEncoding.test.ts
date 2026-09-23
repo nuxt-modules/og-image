@@ -436,6 +436,13 @@ describe('urlEncoding', () => {
       expect(hash1).toBe(hash2)
     })
 
+    // A page screenshot renders the page itself, so each page needs its own image.
+    it('includes _path for PageScreenshot', () => {
+      const hash1 = hashOgImageOptions({ component: 'PageScreenshot', _path: '/page1' })
+      const hash2 = hashOgImageOptions({ component: 'PageScreenshot', _path: '/page2' })
+      expect(hash1).not.toBe(hash2)
+    })
+
     it('excludes _hash from hash', () => {
       const hash1 = hashOgImageOptions({ width: 1200, _hash: 'abc123' })
       const hash2 = hashOgImageOptions({ width: 1200, _hash: 'def456' })
