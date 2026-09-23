@@ -1,6 +1,27 @@
 # Changelog
 
 
+## v6.8.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.8.0...main)
+
+### 🚀 Enhancements
+
+- **nitro:** Expose getOgImageUrl for server handlers ([#691](https://github.com/nuxt-modules/og-image/pull/691))
+
+### 🩹 Fixes
+
+- **satori:** Require satori 0.33.5 or later ([#692](https://github.com/nuxt-modules/og-image/pull/692))
+- **sharp:** Require sharp 0.35.4 or later ([#694](https://github.com/nuxt-modules/og-image/pull/694))
+
+### 🏡 Chore
+
+- Bump ([1f7f6f40](https://github.com/nuxt-modules/og-image/commit/1f7f6f40))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.7.8...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.7.8...main)
