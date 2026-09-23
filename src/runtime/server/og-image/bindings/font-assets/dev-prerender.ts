@@ -1,5 +1,6 @@
 import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig } from '../../../../types'
+import type { NuxtFontsManifest } from './nuxt-fonts'
 import { readFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { withBase } from 'ufo'
@@ -11,8 +12,9 @@ import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../../utils'
 import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from './external-url'
+import { DEFAULT_NUXT_FONTS_ASSETS_BASE_URL, nuxtFontFilename } from './nuxt-fonts'
 
-let fontUrlMapping: Record<string, string> | undefined
+let nuxtFontsManifest: NuxtFontsManifest | undefined
 
 async function readOptionalFile(path: string): Promise<Buffer | null> {
   return readFile(path).catch((error: NodeJS.ErrnoException) => {
@@ -22,19 +24,29 @@ async function readOptionalFile(path: string): Promise<Buffer | null> {
   })
 }
 
-async function fetchOptionalFont(url: string, timeout: number): Promise<Response | null> {
-  return fetch(url, { signal: AbortSignal.timeout(timeout) }).catch(() => {
+async function fetchOptionalFont(url: string, timeout: number, headers?: Record<string, string>): Promise<Response | null> {
+  return fetch(url, { headers, signal: AbortSignal.timeout(timeout) }).catch(() => {
     // A failed candidate fetch falls through to the next font source.
     return null
   })
 }
 
-async function loadFontUrlMapping(): Promise<Record<string, string>> {
-  if (fontUrlMapping)
-    return fontUrlMapping
+async function loadNuxtFontsManifest(): Promise<NuxtFontsManifest> {
+  if (nuxtFontsManifest)
+    return nuxtFontsManifest
   const content = await readOptionalFile(join(buildDir, 'cache', 'og-image', 'font-urls.json'))
-  fontUrlMapping = content ? JSON.parse(content.toString('utf-8')) : {}
-  return fontUrlMapping!
+  nuxtFontsManifest = content
+    ? JSON.parse(content.toString('utf-8')) as NuxtFontsManifest
+    : { assetsBaseURL: DEFAULT_NUXT_FONTS_ASSETS_BASE_URL, urls: {} }
+  return nuxtFontsManifest
+}
+
+async function fetchMappedFont(manifest: NuxtFontsManifest, filename: string, timeout: number): Promise<Buffer | null> {
+  const source = manifest.urls[filename]
+  if (!source)
+    return null
+  const res = await fetchOptionalFont(source.url, timeout, source.headers)
+  return res?.ok ? Buffer.from(await res.arrayBuffer()) : null
 }
 
 export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer> {
@@ -67,27 +79,24 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
         return cached
     }
 
-    // @nuxt/fonts managed fonts
-    if (path.startsWith('/_fonts/')) {
-      const filename = path.slice('/_fonts/'.length)
-
-      // Try .output/public/_fonts (WOFF/WOFF2 files from @nuxt/fonts)
-      const cached = await readOptionalFile(join(rootDir, '.output', 'public', '_fonts', filename))
+    // @nuxt/fonts managed fonts: `/_fonts` in v0, `<buildAssetsDir>/fonts` in v1 Vite builds
+    const manifest = await loadNuxtFontsManifest()
+    const filename = nuxtFontFilename(path, manifest.assetsBaseURL)
+    if (filename) {
+      // v1 Vite builds copy fonts to .output only after prerender; @nuxt/fonts keeps its download cache in the buildDir
+      const cached = await readOptionalFile(join(rootDir, '.output', 'public', manifest.assetsBaseURL, filename))
+        || await readOptionalFile(join(buildDir, 'cache', 'fonts', filename))
       if (cached?.length)
         return cached
-
-      const mapping = await loadFontUrlMapping()
-      if (mapping[filename]) {
-        const res = await fetchOptionalFont(mapping[filename], timeout)
-        if (res?.ok)
-          return Buffer.from(await res.arrayBuffer())
-      }
+      const fetched = await fetchMappedFont(manifest, filename, timeout)
+      if (fetched)
+        return fetched
       throw new Error(`Font ${filename} not found in mapping or cache`)
     }
 
-    const filename = path.slice(1)
-    const data = await readOptionalFile(join(rootDir, 'public', filename))
-      || await readOptionalFile(join(rootDir, '.output', 'public', filename))
+    const publicPath = path.slice(1)
+    const data = await readOptionalFile(join(rootDir, 'public', publicPath))
+      || await readOptionalFile(join(rootDir, '.output', 'public', publicPath))
     if (data?.length)
       return data
     // Fall through to Nitro's event-aware fetch, which resolves via the asset server.
@@ -101,17 +110,15 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
       return cached
   }
 
-  // @nuxt/fonts managed fonts — in dev mode, /_fonts/ is served by a Nuxt dev server handler
+  // @nuxt/fonts managed fonts — in dev mode, they are served by a Nuxt dev server handler
   // (addDevServerHandler) which isn't reachable via Nitro's internal fetch.
   // Use the persisted font URL mapping to download directly from the CDN.
-  if (import.meta.dev && path.startsWith('/_fonts/')) {
-    const filename = path.slice('/_fonts/'.length)
-    const mapping = await loadFontUrlMapping()
-    if (mapping[filename]) {
-      const res = await fetchOptionalFont(mapping[filename], timeout)
-      if (res?.ok)
-        return Buffer.from(await res.arrayBuffer())
-    }
+  if (import.meta.dev) {
+    const manifest = await loadNuxtFontsManifest()
+    const filename = nuxtFontFilename(path, manifest.assetsBaseURL)
+    const fetched = filename && await fetchMappedFont(manifest, filename, timeout)
+    if (fetched)
+      return fetched
   }
 
   // In dev, try reading public/ files directly from the filesystem first.

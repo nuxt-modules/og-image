@@ -4,6 +4,7 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type { CssProvider } from './build/css/css-provider'
+import type { NuxtFontsAssetContext } from './build/fontless'
 import type {
   BrowserConfig,
   CompatibilityFlagEnvOverrides,
@@ -1486,7 +1487,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     const hasTakumiRenderer = () => ogImageComponentCtx.detectedRenderers.has('takumi')
 
     // Hoisted from `if (hasNuxtFonts)` so the virtual module factory can access them
-    let fontContext: { assetsBaseURL: string, renderedFontURLs: Map<string, string> } | null = null
+    let fontContext: NuxtFontsAssetContext | null = null
     let fontProcessingDone = false
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
@@ -1586,7 +1587,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
       // Hook into @nuxt/fonts to persist font URL mapping for prerender
-      nuxt.hook('fonts:public-asset-context' as any, (ctx: { assetsBaseURL: string, renderedFontURLs: Map<string, string> }) => {
+      nuxt.hook('fonts:public-asset-context' as any, (ctx: NuxtFontsAssetContext) => {
         fontContext = ctx
       })
 
