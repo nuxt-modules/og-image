@@ -34,7 +34,7 @@ import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
-import { attachNuxtFontFiles, prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
+import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
@@ -1526,8 +1526,6 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         logger,
         ogFontsDir: resolve('./runtime/public/_og-fonts'),
       })
-      if (fontContext)
-        await attachNuxtFontFiles({ fonts, context: fontContext, buildDir: nuxt.options.buildDir })
       return `export default ${JSON.stringify(fonts)}`
     }
 
