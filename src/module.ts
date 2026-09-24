@@ -1489,8 +1489,11 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
     const hasTakumiRenderer = () => ogImageComponentCtx.detectedRenderers.has('takumi')
 
-    // Hoisted from `if (hasNuxtFonts)` so the virtual module factory can access them
-    let fontContext: NuxtFontsAssetContext | null = null
+    // Loaders for the files @nuxt/fonts serves, collected from `fonts:resolved` below
+    const nuxtFontFiles = new Map<string, () => Promise<Buffer>>()
+    const fontContext: NuxtFontsAssetContext | null = hasNuxtFonts
+      ? { readFont: async url => nuxtFontFiles.get(url)?.() }
+      : null
     let fontProcessingDone = false
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
@@ -1584,13 +1587,11 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori.
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
-      // Read the font files @nuxt/fonts serves, for dev, prerender and Satori conversion
-      nuxt.hook('fonts:public-asset-context' as any, (ctx: NuxtFontsAssetContext) => {
-        fontContext = ctx
-      })
       // @nuxt/fonts v1+: every resolved family, including ones only used in CSS
-      nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[] }) => {
+      nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[], files: Array<{ url: string, getContents: () => Promise<Buffer> }> }) => {
         fontState.resolvedFaces!.set(font.fontFamily, font.fonts)
+        for (const file of font.files)
+          nuxtFontFiles.set(file.url, file.getContents)
       })
       const globalFamilies = new Set(((nuxt.options as { fonts?: { families?: Array<{ name: string, global?: boolean }> } }).fonts?.families || [])
         .filter(f => f.global)
