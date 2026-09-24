@@ -314,6 +314,69 @@ describe('prepareWoff2Fonts', () => {
     }
   })
 
+  it('does not report a Nuxt Fonts family as unknown when a provider lacks a weight', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
+    // Lobster only ships 400, so a provider returns nothing for 700
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google', 'bunny', 'fontsource'] },
+    } as any
+
+    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([
+      { family: 'Lobster', src: '/_fonts/lobster.woff2', weight: 400, style: 'normal' },
+    ])
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger,
+        fontRequirements: baseFontReqs,
+        fontState: {
+          fallbackMap: new Map<string, string>(),
+          sourceMap: new Map([['/_fonts/lobster.woff2', '/_og-static-fonts/lobster.ttf']]),
+        },
+      })
+
+      expect(resolver).toHaveBeenCalledWith('Lobster', expect.objectContaining({ weights: [700] }))
+      expect(logger.warn).not.toHaveBeenCalled()
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('warns when Satori has no usable weight of a Nuxt Fonts family', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+    } as any
+
+    // a variable WOFF2 that could not be converted, and no static file from any provider
+    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([
+      { family: 'Lobster', src: '/_fonts/lobster.woff2', weight: 400, style: 'normal' },
+    ])
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger,
+        fontRequirements: baseFontReqs,
+        fontState: { fallbackMap: new Map<string, string>(), sourceMap: new Map<string, string>() },
+      })
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('"Lobster"'))
+      expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('Not a known'))
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it('suppresses warnings when a static fallback is optional', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'og-image-fontless-'))
     const resolver = vi.fn().mockResolvedValue(undefined)

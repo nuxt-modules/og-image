@@ -679,12 +679,14 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
     return
 
   logger.debug(`Resolving static font fallbacks for: ${families.map(f => f.family).join(', ')}`)
+  // Every family here came from @nuxt/fonts, so a provider without a file only lacks that
+  // weight (Lobster ships 400 alone); the unknown-family warning would mislead
   const downloaded = await downloadStaticFonts({
     families,
     nuxt,
     logger,
     fontSubsets,
-    warnOnMissingStaticFonts,
+    warnOnMissingStaticFonts: false,
   }).catch((error: Error) => {
     logger.debug('fontless resolution failed:', error)
     return []
@@ -693,6 +695,17 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
   for (const font of downloaded) {
     const key = `${font.family}-${font.weight}-${font.style}`
     fontState.fallbackMap.set(key, `${STATIC_FONTS_PREFIX}/${font.filename}`)
+  }
+
+  if (warnOnMissingStaticFonts) {
+    const usableFamilies = new Set([
+      ...parsedFonts.filter(font => !font.src.endsWith('.woff2') || fontState.sourceMap.has(font.src)).map(font => font.family),
+      ...downloaded.map(font => font.family),
+    ])
+    for (const family of new Set(families.map(f => f.family))) {
+      if (!usableFamilies.has(family))
+        logger.warn(`Satori cannot use the Nuxt Fonts files for "${family}", and no provider has static files for it. Satori renders "${family}" text with the bundled Inter font. Use the Takumi renderer for WOFF2 and variable fonts.`)
+    }
   }
 
   if (fontState.fallbackMap.size > 0)
