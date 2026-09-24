@@ -4,6 +4,9 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type { CssProvider } from './build/css/css-provider'
+import type { ResolvedFontFace } from './build/css/font-face'
+import type { NuxtFontsAssetContext } from './build/fontless'
+import type { FontProcessingState } from './build/fonts'
 import type {
   BrowserConfig,
   CompatibilityFlagEnvOverrides,
@@ -29,14 +32,16 @@ import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
+import { extractCustomFontFamilies } from './build/css/css-utils'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
-import { persistFontUrlMapping, prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
+import { fontFamiliesFromCssEntries, fontsResolvedHookAvailable, warnWhenFontsUnreported } from './build/font-compat'
+import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
+  getResolvedNuxtFonts,
   getStaticFontCacheDir,
-  parseFontsFromTemplate,
   resolveFontFamilies,
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
@@ -790,9 +795,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Used by builder:watch to detect when a nested component changes and trigger a Nitro reload.
     const ogImageTransformedFiles = new Set<string>()
 
-    const fontState = {
+    const fontState: FontProcessingState = {
       sourceMap: new Map<string, string>(),
       fallbackMap: new Map<string, string>(),
+      resolvedFaces: new Map(),
     }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
@@ -830,7 +836,7 @@ export default defineNuxtModule<ModuleOptions>({
             // Normalizes template names to match @nuxt/fonts casing (e.g. 'Biz UDPGothic' → 'BIZ UDPGothic').
             let knownFamilies: Map<string, string> | undefined
             if (hasNuxtFonts) {
-              const resolvedFonts = await parseFontsFromTemplate(nuxt, { fontState })
+              const resolvedFonts = await getResolvedNuxtFonts(nuxt, { fontState })
               knownFamilies = buildFontFamilyCanonicalMap(resolvedFonts.map(f => f.family))
             }
             const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars, knownFamilies)
@@ -847,6 +853,7 @@ export default defineNuxtModule<ModuleOptions>({
             }
 
             recomputeFontRequirements()
+            refreshDevFonts()
 
             // Persist component font map to disk so Nitro runtime can read it in dev mode
             // (virtual modules are cached on first import, before any components are transformed)
@@ -1492,19 +1499,45 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
     const hasTakumiRenderer = () => ogImageComponentCtx.detectedRenderers.has('takumi')
 
-    // Hoisted from `if (hasNuxtFonts)` so the virtual module factory can access them
-    let fontContext: { assetsBaseURL: string, renderedFontURLs: Map<string, string> } | null = null
+    // Loaders for the files @nuxt/fonts serves, collected from `fonts:resolved` below
+    const nuxtFontFiles = new Map<string, () => Promise<Buffer>>()
+    const fontContext: NuxtFontsAssetContext | null = hasNuxtFonts
+      ? { readFont: async url => nuxtFontFiles.get(url)?.() }
+      : null
     let fontProcessingDone = false
+    // What the font list was last built from: the resolved families OG images need, and the
+    // weights and styles components use. Undefined before the first build.
+    let builtFontKey: string | undefined
+    const currentFontKey = () => JSON.stringify([
+      [...fontState.resolvedFaces?.keys() || []].filter(family => fontState.isOgFamily?.(family) ?? true).toSorted(),
+      fontRequirementsState.weights,
+      fontRequirementsState.styles,
+    ])
+    // In dev, a family can resolve (Vite transforms CSS lazily), and components can turn out to
+    // use a family or weight (they are analysed lazily), after Nitro built the font list
+    let reloadNitro: (() => Promise<void>) | undefined
+    function refreshDevFonts() {
+      if (!reloadNitro || builtFontKey === undefined || builtFontKey === currentFontKey())
+        return
+      // not awaited: callers run inside Vite transforms
+      reloadNitro().catch((error: Error) => {
+        logger.warn(`Could not rebuild the OG image font list: ${error.message}`)
+      })
+    }
+    if (nuxt.options.dev) {
+      nuxt.hook('nitro:init', (nitro) => {
+        let pending: Promise<void> | undefined
+        reloadNitro = () => pending ||= Promise.resolve().then(async () => {
+          pending = undefined
+          fontProcessingDone = false
+          await nitro.hooks.callHook('rollup:reload')
+        })
+      })
+    }
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
+      builtFontKey = currentFontKey()
       await loadCssMetadata()
-      // Persist font URL mapping for dev/prerender font resolution.
-      // In dev mode, /_fonts/ is served by a Nuxt dev server handler (addDevServerHandler)
-      // which isn't reachable via Nitro's internal fetch. The mapping lets the resolver
-      // download fonts directly from the CDN instead.
-      if (hasNuxtFonts && fontContext) {
-        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
-      }
       // Dev mode: WOFF2 preparation may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
       if (!fontProcessingDone && hasSatoriRenderer() && hasNuxtFonts) {
@@ -1539,7 +1572,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
       const fonts = hasNuxtFonts
-        ? await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
+        ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
         : []
       return `export default ${JSON.stringify(fonts)}`
     }
@@ -1554,7 +1587,8 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         weights: fontRequirementsState.weights,
         styles: fontRequirementsState.styles,
         families: fontRequirementsState.families,
-        hasDynamicBindings: fontRequirementsState.hasDynamicBindings,
+        // Unanalysed components (webpack, rspack) may use any font, like dynamic bindings
+        hasDynamicBindings: fontRequirementsState.hasDynamicBindings || !fontRequirementsState.scanned,
       })}
 export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
       // In dev mode, componentFontMap must be read from disk on each access because
@@ -1592,14 +1626,43 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori.
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
-      // Hook into @nuxt/fonts to persist font URL mapping for prerender
-      nuxt.hook('fonts:public-asset-context' as any, (ctx: { assetsBaseURL: string, renderedFontURLs: Map<string, string> }) => {
-        fontContext = ctx
+      // @nuxt/fonts v1+: every resolved family, including ones only used in CSS
+      nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[], files: Array<{ url: string, readFont: () => Promise<Buffer> }> }) => {
+        // A family is reported once per resolution (per bundler environment, and again for
+        // global families), so faces are merged rather than replaced
+        const faces = fontState.resolvedFaces!.get(font.fontFamily) || []
+        const known = new Set(faces.map(face => JSON.stringify(face.src)))
+        const added = font.fonts.filter(face => !known.has(JSON.stringify(face.src)))
+        fontState.resolvedFaces!.set(font.fontFamily, [...faces, ...added])
+        for (const file of font.files)
+          nuxtFontFiles.set(file.url, file.readFont)
+        if (added.length > 0)
+          refreshDevFonts()
       })
+      // @nuxt/fonts reports every family before Nitro builds. Versions without the hook report
+      // none, and OG images would silently fall back to Inter.
+      const fontsModulePath = await resolveOptionalModulePath('@nuxt/fonts', nuxt.options.rootDir)
+      warnWhenFontsUnreported({
+        nuxt,
+        logger,
+        fontState,
+        loadCssMetadata,
+        fontsResolvedHook: !!fontsModulePath && fontsResolvedHookAvailable(fontsModulePath),
+        expectedFamilies: () => [
+          ...fontRequirementsState.families,
+          ...Object.values(cssMetadata.fontVars).flatMap(value => extractCustomFontFamilies(value)),
+          ...fontFamiliesFromCssEntries(nuxt.options.css, nuxt.options.srcDir, nuxt.options.rootDir),
+        ],
+      })
+      const globalFamilies = new Set(((nuxt.options as { fonts?: { families?: Array<{ name: string, global?: boolean }> } }).fonts?.families || [])
+        .filter(f => f.global)
+        .map(f => f.name.toLowerCase()))
+      // Component analysis only runs on Vite; without it, any family may be used
+      fontState.isOgFamily = family => globalFamilies.has(family.toLowerCase())
+        || !fontRequirementsState.scanned
+        || fontRequirementsState.families.some(f => f.toLowerCase() === family.toLowerCase())
 
       nuxt.hook('vite:compiled', async () => {
-        // Always persist font URL mapping (needed by all renderers for prerender/dev font resolution)
-        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, logger })
         if (fontProcessingDone || !hasSatoriRenderer())
           return
         // Skip until font requirements are populated (OG components are server-side,

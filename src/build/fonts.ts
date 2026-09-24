@@ -5,12 +5,13 @@
 
 import type { ConsolaInstance } from 'consola'
 import type { Nuxt } from 'nuxt/schema'
+import type { ResolvedFontFace } from './css/font-face'
 import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join, relative } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { extractFontFacesWithSubsets } from './css/font-face'
+import { fontFacesFromResolved } from './css/font-face'
 
 const RE_FONT_FACE_BLOCK = /@font-face\s*\{[^}]+\}/g
 const RE_FONT_KEY = /^(.+)-(\d+)-(.+)$/
@@ -49,6 +50,10 @@ export interface FontProcessingState {
   sourceMap: Map<string, string>
   /** Font identity (family+weight+style) → provider-resolved static fallback path. */
   fallbackMap: Map<string, string>
+  /** Faces from the `@nuxt/fonts` `fonts:resolved` hook, by family. Empty before v1. */
+  resolvedFaces?: Map<string, ResolvedFontFace[]>
+  /** Whether OG images need a resolved family: global, or used by an OG component. */
+  isOgFamily?: (family: string) => boolean
 }
 
 export function getStaticFontCacheDir(buildDir: string): string {
@@ -62,6 +67,8 @@ export interface FontRequirementsState {
   families: string[]
   hasDynamicBindings: boolean
   componentMap: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], hasDynamicBindings: boolean, category?: 'app' | 'community' | 'pro' }>
+  /** Whether any OG component was analysed. Only Vite builds analyse them. */
+  scanned?: boolean
 }
 
 // ============================================================================
@@ -158,6 +165,21 @@ export function resolveFontFamilies(
 // ============================================================================
 
 /**
+ * Resolve a Nuxt CSS entry path to an absolute filesystem path using the
+ * default Nuxt aliases: `~`/`@` point at srcDir, `~~`/`@@` at rootDir.
+ * Root-absolute paths pass through; anything else is srcDir-relative.
+ */
+export function resolveAppCssPath(cssPath: string, srcDir: string, rootDir: string = srcDir): string {
+  if (cssPath.startsWith('~~/') || cssPath.startsWith('@@/'))
+    return join(rootDir, cssPath.slice(3))
+  if (cssPath.startsWith('~/') || cssPath.startsWith('@/'))
+    return join(srcDir, cssPath.slice(2))
+  if (cssPath.startsWith('/'))
+    return cssPath
+  return join(srcDir, cssPath)
+}
+
+/**
  * Parse manual @font-face declarations from the app's CSS entry files.
  * These are user-declared local fonts (not managed by @nuxt/fonts).
  * Uses lightningcss with errorRecovery to handle @import/@tailwind directives.
@@ -176,12 +198,7 @@ export async function parseAppCssFontFaces(nuxt: Nuxt): Promise<ParsedFont[]> {
     if (!cssPath)
       continue
 
-    // Resolve path relative to srcDir
-    const resolved = cssPath.startsWith('~/')
-      ? join(nuxt.options.srcDir, cssPath.slice(2))
-      : cssPath.startsWith('/')
-        ? cssPath
-        : join(nuxt.options.srcDir, cssPath)
+    const resolved = resolveAppCssPath(cssPath, nuxt.options.srcDir, nuxt.options.rootDir)
 
     if (!existsSync(resolved))
       continue
@@ -365,10 +382,10 @@ export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
 // ============================================================================
 
 /**
- * Parse fonts from @nuxt/fonts CSS template.
+ * Fonts from the `@nuxt/fonts` `fonts:resolved` hook that OG images need.
  * Returns font configs with family, src, weight, style, and optional satoriSrc.
  */
-export async function parseFontsFromTemplate(
+export async function getResolvedNuxtFonts(
   nuxt: Nuxt,
   options: {
     fontState: FontProcessingState
@@ -380,24 +397,18 @@ export async function parseFontsFromTemplate(
   const weightsKey = options.requiredWeights?.toSorted((a, b) => a - b).join(',') || ''
   const sourceKey = [...options.fontState.sourceMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
   const fallbackKey = [...options.fontState.fallbackMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
-  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}`
+  const resolvedFamilies = [...options.fontState.resolvedFaces?.keys() || []].filter(f => options.fontState.isOgFamily?.(f) ?? true)
+  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}:${resolvedFamilies.join(',')}`
   const cache: Map<string, ParsedFont[]> = (nuxt as any)._ogImageParsedFontsCache ||= new Map()
   const cached = cache.get(cacheKey)
   if (cached)
     return cached
 
-  const templates = nuxt.options.build.templates
-  const nuxtFontsTemplate = templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
-  if (!nuxtFontsTemplate?.getContents) {
-    return []
-  }
-  const contents = await nuxtFontsTemplate.getContents({} as any)
-
   // Include all @nuxt/fonts subsets — these are user-configured fonts and shouldn't be
   // filtered. Non-Latin subsets (devanagari, cyrillic, etc.) need to be available for
   // renderers like Takumi that support them natively. The fontSubsets config only controls
   // fontless downloads (Satori fallback path) to limit download size.
-  const allFonts = await extractFontFacesWithSubsets(contents)
+  const allFonts = resolvedFamilies.flatMap(family => fontFacesFromResolved(family, options.fontState.resolvedFaces!.get(family)!))
 
   // Dedupe: for each (family, weight, style, unicodeRange), prefer WOFF over WOFF2
   const fontMap = new Map<string, typeof allFonts[0]>()
