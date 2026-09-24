@@ -1644,7 +1644,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         expectedFamilies: () => [
           ...fontRequirementsState.families,
           ...Object.values(cssMetadata.fontVars).flatMap(value => extractCustomFontFamilies(value)),
-          ...fontFamiliesFromCssEntries(nuxt.options.css, nuxt.options.srcDir),
+          ...fontFamiliesFromCssEntries(nuxt.options.css, nuxt.options.srcDir, nuxt.options.rootDir),
         ],
       })
       const globalFamilies = new Set(((nuxt.options as { fonts?: { families?: Array<{ name: string, global?: boolean }> } }).fonts?.families || [])

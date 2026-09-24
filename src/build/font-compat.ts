@@ -5,6 +5,7 @@ import type { FontProcessingState } from './fonts'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
+import { resolveAppCssPath } from './fonts'
 
 const RE_IMPLEMENTATION_FILE = /\.[cm]?js$/
 const FONTS_RESOLVED_HOOK = 'fonts:resolved'
@@ -62,17 +63,13 @@ export function fontsResolvedHookAvailable(fontsModulePath: string): boolean {
 }
 
 /** Custom font families referenced by `font-family` in the app's CSS entry files. */
-export function fontFamiliesFromCssEntries(css: Array<string | { src?: string } | undefined>, srcDir: string): string[] {
+export function fontFamiliesFromCssEntries(css: Array<string | { src?: string } | undefined>, srcDir: string, rootDir: string = srcDir): string[] {
   const families = new Set<string>()
   for (const entry of css || []) {
     const cssPath = typeof entry === 'string' ? entry : entry?.src
     if (!cssPath)
       continue
-    const resolved = cssPath.startsWith('~/')
-      ? join(srcDir, cssPath.slice(2))
-      : cssPath.startsWith('/')
-        ? cssPath
-        : join(srcDir, cssPath)
+    const resolved = resolveAppCssPath(cssPath, srcDir, rootDir)
     let content: string
     try {
       content = readFileSync(resolved, 'utf-8')
