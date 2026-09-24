@@ -38,7 +38,7 @@ interface ProcessFontsOptions {
   warnOnMissingStaticFonts?: boolean
 }
 
-/** The `fonts:public-asset-context` context, as far as og-image uses it. */
+/** Reads the files `@nuxt/fonts` serves, from the `fonts:resolved` hook. */
 export interface NuxtFontsAssetContext {
   /** The bytes of a font `@nuxt/fonts` serves, by URL; `undefined` for any other file. */
   readFont: (url: string) => Promise<Buffer | undefined>
