@@ -94,6 +94,15 @@ describe('resolveOgImageFonts', () => {
     const result = await resolveOgImageFonts(opts)
     expect(result).toEqual([fonts400, fonts300])
   })
+
+  it('keeps italic faces when components were never analysed', async () => {
+    const normal = { family: 'Poppins', src: '/poppins-400.woff2', weight: 400, style: 'normal' }
+    const italic = { family: 'Poppins', src: '/poppins-400-italic.woff2', weight: 400, style: 'italic' }
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValue([normal, italic])
+    const opts = createOpts({ fontRequirements: { ...baseFontReqs, weights: [400], styles: ['normal'], scanned: false } })
+    const result = await resolveOgImageFonts(opts)
+    expect(result).toEqual([normal, italic])
+  })
 })
 
 /** A `@nuxt/fonts` context that serves every file in `dir` under `/_fonts/`. */
