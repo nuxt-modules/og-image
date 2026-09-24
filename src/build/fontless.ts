@@ -19,7 +19,7 @@ import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getResolvedNuxtFonts, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, STATIC_FONTS_PREFIX } from './fonts'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -378,13 +378,13 @@ async function downloadStaticFonts(options: {
       ]
       if (configuredFamily && configuredFamily.global !== true) {
         lines.push(
-          `  "${family}" is declared in fonts.families, but it is not global so @nuxt/fonts did not emit it in nuxt-fonts-global.css.`,
+          `  "${family}" is in fonts.families, but it is not global and no site CSS uses it, so @nuxt/fonts did not resolve it.`,
           `  Set global: true, e.g. fonts: { families: [{ name: '${family}', provider: 'local', weights: [400, 700], global: true }] }.`,
         )
       }
       else if (configuredFamily) {
         lines.push(
-          `  "${family}" is declared with global: true, but @nuxt/fonts still did not emit @font-face for it.`,
+          `  "${family}" has global: true, but @nuxt/fonts did not resolve it.`,
           `  Check that the configured provider/src, weights, styles, and file names match the available font files.`,
         )
         if (local)
@@ -392,8 +392,8 @@ async function downloadStaticFonts(options: {
       }
       else if (local) {
         lines.push(
-          `  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}) but @nuxt/fonts did not emit @font-face for "${family}".`,
-          `  Tailwind v4 @theme variables are not scanned by @nuxt/fonts, and OG images only read globally emitted font faces.`,
+          `  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}), but @nuxt/fonts did not resolve "${family}".`,
+          `  @nuxt/fonts does not scan Tailwind v4 @theme variables. OG images only use fonts that @nuxt/fonts resolves.`,
           `  Declare it explicitly with global: true, e.g. fonts: { families: [{ name: '${family}', provider: 'local', weights: [400, 700], global: true }] }.`,
         )
       }
@@ -611,7 +611,7 @@ async function convertNuxtWoff2Sources(options: {
  */
 export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<void> {
   const { nuxt, logger, fontRequirements, fontState, nuxtFontsContext, fontSubsets, warnOnMissingStaticFonts = true } = options
-  const parsedFonts = await parseFontsFromTemplate(nuxt, { fontState })
+  const parsedFonts = await getResolvedNuxtFonts(nuxt, { fontState })
   const requirementsByFamily = new Map<string, ReturnType<typeof getFamilyRequirements>>()
   for (const font of parsedFonts) {
     if (!requirementsByFamily.has(font.family)) {
@@ -737,7 +737,7 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
 // ============================================================================
 
 /**
- * Resolve font families not available from @nuxt/fonts global CSS.
+ * Resolve font families that @nuxt/fonts did not resolve.
  * Downloads static font files via fontless (Fontsource, Google, Bunny).
  */
 async function resolveMissingFontFamilies(options: {
@@ -792,9 +792,9 @@ export async function resolveOgImageFonts(options: {
   const { nuxt, hasNuxtFonts, hasSatoriRenderer, hasTakumiRenderer, fontState, fontSubsets, fontRequirements, tw4FontVars, logger, ogFontsDir } = options
   const staticInterFonts = getStaticInterFonts(ogFontsDir)
 
-  // 1. Extract fonts from @nuxt/fonts global CSS (WOFF2 paths included for all renderers)
+  // 1. Fonts @nuxt/fonts resolved (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
-    ? await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirements.weights })
+    ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })
     : []
 
   if (hasNuxtFonts) {
@@ -890,7 +890,7 @@ export async function resolveOgImageFonts(options: {
   // not the actual @nuxt/fonts families (e.g. Inter).
   const nuxtFontFamilies = new Set(
     hasNuxtFonts
-      ? (await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
+      ? (await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
       : [],
   )
   const fonts = !fontRequirements.hasDynamicBindings

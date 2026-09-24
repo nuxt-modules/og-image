@@ -375,7 +375,7 @@ export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
  * Fonts from the `@nuxt/fonts` `fonts:resolved` hook that OG images need.
  * Returns font configs with family, src, weight, style, and optional satoriSrc.
  */
-export async function parseFontsFromTemplate(
+export async function getResolvedNuxtFonts(
   nuxt: Nuxt,
   options: {
     fontState: FontProcessingState

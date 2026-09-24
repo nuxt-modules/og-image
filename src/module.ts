@@ -38,8 +38,8 @@ import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
+  getResolvedNuxtFonts,
   getStaticFontCacheDir,
-  parseFontsFromTemplate,
   resolveFontFamilies,
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
@@ -834,7 +834,7 @@ export default defineNuxtModule<ModuleOptions>({
             // Normalizes template names to match @nuxt/fonts casing (e.g. 'Biz UDPGothic' → 'BIZ UDPGothic').
             let knownFamilies: Map<string, string> | undefined
             if (hasNuxtFonts) {
-              const resolvedFonts = await parseFontsFromTemplate(nuxt, { fontState })
+              const resolvedFonts = await getResolvedNuxtFonts(nuxt, { fontState })
               knownFamilies = buildFontFamilyCanonicalMap(resolvedFonts.map(f => f.family))
             }
             const families = resolveFontFamilies([...reqs.familyClasses], [...reqs.familyNames], cssMetadata.fontVars, knownFamilies)
@@ -1563,7 +1563,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
       const fonts = hasNuxtFonts
-        ? await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
+        ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
         : []
       return `export default ${JSON.stringify(fonts)}`
     }
