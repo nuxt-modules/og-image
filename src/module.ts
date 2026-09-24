@@ -263,6 +263,16 @@ export interface ModuleOptions {
    */
   fontSubsets?: string[]
   /**
+   * Where Satori loads a font for characters no configured font covers, such as Japanese or
+   * Arabic text in a runtime title. `'google'` loads the matching Noto family from Google Fonts,
+   * subset to those characters, so only the characters are sent to Google.
+   *
+   * Set to `false` to render them as empty boxes instead.
+   *
+   * @default 'google'
+   */
+  missingGlyphFonts?: 'google' | false
+  /**
    * Browser renderer configuration.
    *
    * When using browser-based rendering (screenshots), configure the browser provider.
@@ -386,6 +396,7 @@ export default defineNuxtModule<ModuleOptions>({
       runtimeCacheStorage: true,
       debug: false,
       fontSubsets: ['latin'],
+      missingGlyphFonts: 'google',
     }
   },
   async onInstall(nuxt: Nuxt) {
@@ -1757,6 +1768,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         publicStoragePath: `root${publicDirAbs.replace(nuxt.options.rootDir, '').replaceAll('/', ':')}`,
 
         defaults: config.defaults,
+        missingGlyphFonts: config.missingGlyphFonts ?? 'google',
         debug: config.debug,
         includeTwitter,
         // avoid adding credentials
