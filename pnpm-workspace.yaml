@@ -6,6 +6,7 @@ minimumReleaseAgeExclude:
   - nuxtseo-layer-devtools
   - nuxtseo-shared
   - satori@0.33.5
+  - fontless@1.1.0
 
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800

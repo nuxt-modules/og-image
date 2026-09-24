@@ -4,7 +4,9 @@ import type { ResvgRenderOptions } from '@resvg/resvg-js'
 import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type { CssProvider } from './build/css/css-provider'
+import type { ResolvedFontFace } from './build/css/font-face'
 import type { NuxtFontsAssetContext } from './build/fontless'
+import type { FontProcessingState } from './build/fonts'
 import type {
   BrowserConfig,
   CompatibilityFlagEnvOverrides,
@@ -32,7 +34,7 @@ import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
-import { persistFontUrlMapping, prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
+import { attachNuxtFontFiles, prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
   copyStaticFontsToOutput,
@@ -791,9 +793,10 @@ export default defineNuxtModule<ModuleOptions>({
     // Used by builder:watch to detect when a nested component changes and trigger a Nitro reload.
     const ogImageTransformedFiles = new Set<string>()
 
-    const fontState = {
+    const fontState: FontProcessingState = {
       sourceMap: new Map<string, string>(),
       fallbackMap: new Map<string, string>(),
+      resolvedFaces: new Map(),
     }
 
     // we're going to expose the og image components to the ssr build so we can fix prop usage
@@ -1492,13 +1495,6 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
       await loadCssMetadata()
-      // Persist font URL mapping for dev/prerender font resolution.
-      // In dev mode, /_fonts/ is served by a Nuxt dev server handler (addDevServerHandler)
-      // which isn't reachable via Nitro's internal fetch. The mapping lets the resolver
-      // download fonts directly from the CDN instead.
-      if (hasNuxtFonts && fontContext) {
-        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, baseURL: nuxt.options.app.baseURL, logger })
-      }
       // Dev mode: WOFF2 preparation may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
       if (!fontProcessingDone && hasSatoriRenderer() && hasNuxtFonts) {
@@ -1527,6 +1523,8 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         logger,
         ogFontsDir: resolve('./runtime/public/_og-fonts'),
       })
+      if (fontContext)
+        await attachNuxtFontFiles({ fonts, context: fontContext, buildDir: nuxt.options.buildDir })
       return `export default ${JSON.stringify(fonts)}`
     }
 
@@ -1586,14 +1584,21 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // Convert static Nuxt Fonts WOFF2 assets to TTF for Satori.
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
-      // Hook into @nuxt/fonts to persist font URL mapping for prerender
+      // Read the font files @nuxt/fonts serves, for dev, prerender and Satori conversion
       nuxt.hook('fonts:public-asset-context' as any, (ctx: NuxtFontsAssetContext) => {
         fontContext = ctx
       })
+      // @nuxt/fonts v1+: every resolved family, including ones only used in CSS
+      nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[] }) => {
+        fontState.resolvedFaces!.set(font.fontFamily, font.fonts)
+      })
+      const globalFamilies = new Set(((nuxt.options as { fonts?: { families?: Array<{ name: string, global?: boolean }> } }).fonts?.families || [])
+        .filter(f => f.global)
+        .map(f => f.name.toLowerCase()))
+      fontState.isOgFamily = family => globalFamilies.has(family.toLowerCase())
+        || fontRequirementsState.families.some(f => f.toLowerCase() === family.toLowerCase())
 
       nuxt.hook('vite:compiled', async () => {
-        // Always persist font URL mapping (needed by all renderers for prerender/dev font resolution)
-        persistFontUrlMapping({ fontContext, buildDir: nuxt.options.buildDir, baseURL: nuxt.options.app.baseURL, logger })
         if (fontProcessingDone || !hasSatoriRenderer())
           return
         // Skip until font requirements are populated (OG components are server-side,

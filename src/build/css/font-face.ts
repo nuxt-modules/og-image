@@ -1,7 +1,5 @@
 import { loadLightningCss } from './css-utils'
 
-const RE_FONT_FACE_WITH_SUBSET = /(?:\/\*\s*([a-z-]+)\s*\*\/\s*)?(@font-face\s*\{[^}]+\})/g
-
 // ============================================================================
 // Types
 // ============================================================================
@@ -159,11 +157,8 @@ export async function extractFontFacesSimple(css: string): Promise<Array<{
   }).filter(f => f.src)
 }
 
-/**
- * Extract @font-face rules with Google Fonts subset comments (e.g. latin, devanagari).
- * Preserves the subset label on each result for debugging.
- */
-export async function extractFontFacesWithSubsets(css: string): Promise<Array<{
+/** A font face in the shape og-image builds its font list from. */
+export interface NuxtFontFace {
   family: string
   src: string
   weight: number
@@ -172,25 +167,37 @@ export async function extractFontFacesWithSubsets(css: string): Promise<Array<{
   isWoff2: boolean
   subset?: string
   weightRange?: [number, number]
-}>> {
-  const fontFaceRe = RE_FONT_FACE_WITH_SUBSET
-  const results: Array<{
-    family: string
-    src: string
-    weight: number
-    style: string
-    unicodeRange?: string
-    isWoff2: boolean
-    subset?: string
-    weightRange?: [number, number]
-  }> = []
+}
 
-  for (const match of css.matchAll(fontFaceRe)) {
-    const subset = match[1]
-    const fonts = await extractFontFacesSimple(match[2]!)
-    for (const font of fonts)
-      results.push({ ...font, subset })
-  }
+/** A `@font-face` rule as `@nuxt/fonts` passes it to the `fonts:resolved` hook. */
+export interface ResolvedFontFace {
+  src: Array<{ url: string, originalURL?: string, format?: string } | { name: string }>
+  weight?: string | number | [number, number]
+  style?: string
+  unicodeRange?: string[]
+  meta?: { subset?: string }
+}
 
-  return results
+/** Read the faces `@nuxt/fonts` passes to the `fonts:resolved` hook. */
+export function fontFacesFromResolved(family: string, faces: ResolvedFontFace[]): NuxtFontFace[] {
+  return faces.flatMap((face) => {
+    const source = face.src.find((s): s is { url: string } => 'url' in s)
+    if (!source)
+      return []
+    const range = typeof face.weight === 'string'
+      ? face.weight.split(/\s+/).map(Number)
+      : Array.isArray(face.weight) ? face.weight : [face.weight ?? 400]
+    const [min = 400, max = min] = range
+    const weightRange: [number, number] | undefined = max !== min ? [min, max] : undefined
+    return [{
+      family,
+      src: source.url,
+      weight: weightRange ? (min <= 400 && max >= 400 ? 400 : min) : min,
+      style: face.style || 'normal',
+      unicodeRange: face.unicodeRange?.join(','),
+      isWoff2: source.url.endsWith('.woff2'),
+      subset: face.meta?.subset,
+      weightRange,
+    }]
+  })
 }

@@ -35,7 +35,8 @@ async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<
   const cached = fontCache.get(cacheKey)
   if (cached)
     return cached
-  const data = await resolve(event, { ...font, src }).catch((err) => {
+  // `absolutePath` is the file for `font.src`, never for a Satori static fallback
+  const data = await resolve(event, { ...font, src, absolutePath: src === font.src ? font.absolutePath : undefined }).catch((err) => {
     logger.warn(`Failed to load font ${font.family}: ${err.message}`)
     return null
   })

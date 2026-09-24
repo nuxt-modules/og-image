@@ -613,8 +613,8 @@ importers:
         specifier: 'catalog:'
         version: 4.0.0-beta.1(@nuxt/kit@4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.8)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))))(nitropack@2.13.4(@parcel/watcher@2.6.0)(better-sqlite3@13.0.3)(oxc-parser@0.151.0)(rolldown@1.2.8)(srvx@0.11.22)(supports-color@10.2.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)
       '@nuxt/fonts':
-        specifier: 'catalog:'
-        version: 0.14.0(db0@0.3.4(better-sqlite3@13.0.3))(esbuild@0.28.2)(ioredis@5.11.1(supports-color@10.2.2))(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+        specifier: https://pkg.pr.new/@nuxt/fonts@5a92920
+        version: https://pkg.pr.new/@nuxt/fonts@5a92920(db0@0.3.4(better-sqlite3@13.0.3))(esbuild@0.28.2)(ioredis@5.11.1(supports-color@10.2.2))(jiti@2.7.0)(lightningcss@1.33.0)(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(postcss@8.5.28)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
       '@nuxt/icon':
         specifier: 'catalog:'
         version: 2.5.1(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.8)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)(vue@3.5.43(typescript@6.0.3))
@@ -2527,6 +2527,15 @@ packages:
 
   '@nuxt/fonts@0.14.0':
     resolution: {integrity: sha512-4uXQl9fa5F4ibdgU8zomoOcyMdnwgdem+Pi8JEqeDYI5yPR32Kam6HnuRr47dTb97CstaepAvXPWQUUHMtjsFQ==}
+
+  '@nuxt/fonts@https://pkg.pr.new/@nuxt/fonts@5a92920':
+    resolution: {integrity: sha512-PBC6oLnE+Nqy8jOFVqQqFfWxnVEmhPTgu+8Kgx18CF7lijHgf387ShiQqEfjuDumMbzd5lZaPOjxmFQ4kFBsOQ==, tarball: https://pkg.pr.new/@nuxt/fonts@5a92920}
+    version: 0.14.0
+    peerDependencies:
+      subset-font: ^2.9.0
+    peerDependenciesMeta:
+      subset-font:
+        optional: true
 
   '@nuxt/icon@2.5.1':
     resolution: {integrity: sha512-zBP72Po7BS+tXzoeDRA/Y9TTY77OIcNCyzfgXsOmep7zZShTEoe4p1WZBXce/9oJDK3YXmbYC3ILQ7XvqM4/XA==}
@@ -6917,6 +6926,24 @@ packages:
       vite:
         optional: true
 
+  fontless@1.1.0:
+    resolution: {integrity: sha512-wajvi9COas8yGpS3E7sbun2AUp4rp1ypiqn+3wgRcYVgGWUGFVYrskib6OxCEruJ9M93rCBN4VK46s4xqLAfcQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      jiti: ^2.6.1
+      lightningcss: ^1.33.0
+      subset-font: ^2.5.0
+      vite: 8.3.0
+    peerDependenciesMeta:
+      jiti:
+        optional: true
+      lightningcss:
+        optional: true
+      subset-font:
+        optional: true
+      vite:
+        optional: true
+
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
     engines: {node: '>= 0.4'}
@@ -10036,6 +10063,9 @@ packages:
   unifont@1.0.0-beta.0:
     resolution: {integrity: sha512-3OP9/hsM5FvhY0Z3mO/nN5AQqRKH4nmuQ3Sg52R3QHgB+PBefzWIsiSPlHf7TvdGrRun/ybYbqD386nskANHWw==}
 
+  unifont@1.0.1:
+    resolution: {integrity: sha512-PeL9ZjJ7z98cjfdHNWd8G+u1+Yr0vim9dwX7UCqFuoLPNTZmvU/HumbGYAHSXYdpuQAqW2KL65F4jpHbrug1JA==}
+
   unimport@6.5.0:
     resolution: {integrity: sha512-t0KLJLRbebz3f7NrQe+vy2ObeugVeM1XqI2oeYnauddmHSglYj3U6bxOJ65IbXmOFkcAGFJK2OyGH7aqHPM6Ug==}
     engines: {node: '>=18.12.0'}
@@ -12267,9 +12297,9 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@nuxt/devtools-kit@3.4.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)':
+  '@nuxt/devtools-kit@3.4.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)':
     dependencies:
-      '@nuxt/kit': 4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
+      '@nuxt/kit': 4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
       execa: 8.0.1
       vite: 8.3.0(@types/node@26.5.1)(@vitejs/devtools@0.7.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -12510,8 +12540,8 @@ snapshots:
 
   '@nuxt/fonts@0.14.0(db0@0.4.1)(esbuild@0.28.2)(ioredis@5.11.1(supports-color@10.2.2))(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))':
     dependencies:
-      '@nuxt/devtools-kit': 3.4.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)
-      '@nuxt/kit': 4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
+      '@nuxt/devtools-kit': 3.4.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)
+      '@nuxt/kit': 4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
       consola: 3.4.2
       defu: 6.1.7
       fontless: 0.2.1(db0@0.4.1)(ioredis@5.11.1(supports-color@10.2.2))(vite@8.3.0)
@@ -12552,6 +12582,63 @@ snapshots:
       - magic-string
       - magicast
       - oxc-parser
+      - rolldown
+      - rollup
+      - unloader
+      - uploadthing
+      - vite
+      - webpack
+
+  '@nuxt/fonts@https://pkg.pr.new/@nuxt/fonts@5a92920(db0@0.3.4(better-sqlite3@13.0.3))(esbuild@0.28.2)(ioredis@5.11.1(supports-color@10.2.2))(jiti@2.7.0)(lightningcss@1.33.0)(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(postcss@8.5.28)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))':
+    dependencies:
+      '@nuxt/devtools-kit': 3.4.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.8)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(vite@8.3.0)
+      '@nuxt/kit': 4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.8)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
+      consola: 3.4.2
+      defu: 6.1.7
+      exsolve: 1.1.1
+      fontless: 1.1.0(esbuild@0.28.2)(jiti@2.7.0)(lightningcss@1.33.0)(postcss@8.5.28)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+      h3: 1.15.11
+      magic-regexp: 0.11.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+      nypm: 0.6.10
+      ofetch: 1.5.1
+      pathe: 2.0.3
+      sirv: 3.0.2
+      std-env: 4.2.0
+      tinyglobby: 0.2.17
+      ufo: 1.6.4
+      unifont: 1.0.1
+      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+      unstorage: 1.17.5(db0@0.3.4(better-sqlite3@13.0.3))(ioredis@5.11.1(supports-color@10.2.2))
+    transitivePeerDependencies:
+      - '@azure/app-configuration'
+      - '@azure/cosmos'
+      - '@azure/data-tables'
+      - '@azure/identity'
+      - '@azure/keyvault-secrets'
+      - '@azure/storage-blob'
+      - '@capacitor/preferences'
+      - '@deno/kv'
+      - '@farmfe/core'
+      - '@netlify/blobs'
+      - '@planetscale/database'
+      - '@rsbuild/core'
+      - '@rspack/core'
+      - '@upstash/redis'
+      - '@vercel/blob'
+      - '@vercel/functions'
+      - '@vercel/kv'
+      - aws4fetch
+      - bun-types-no-globals
+      - db0
+      - esbuild
+      - idb-keyval
+      - ioredis
+      - jiti
+      - lightningcss
+      - magic-string
+      - magicast
+      - oxc-parser
+      - postcss
       - rolldown
       - rollup
       - unloader
@@ -12693,7 +12780,7 @@ snapshots:
       - rolldown
       - unplugin
 
-  '@nuxt/kit@4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))':
+  '@nuxt/kit@4.5.2(magic-string@1.4.1)(magicast@0.5.5)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))':
     dependencies:
       c12: 3.3.4(magicast@0.5.5)
       consola: 3.4.2
@@ -12713,7 +12800,7 @@ snapshots:
       scule: 1.3.0
       tinyglobby: 0.2.17
       ufo: 1.6.4
-      unctx: 3.0.1(magic-string@1.4.1)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
+      unctx: 3.0.1(magic-string@1.4.1)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))
       untyped: 2.0.0
       verkit: 0.3.2
     transitivePeerDependencies:
@@ -17525,6 +17612,34 @@ snapshots:
       - unloader
       - webpack
 
+  fontless@1.1.0(esbuild@0.28.2)(jiti@2.7.0)(lightningcss@1.33.0)(postcss@8.5.28)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)):
+    dependencies:
+      consola: 3.4.2
+      css-tree: 3.2.1
+      defu: 6.1.7
+      exsolve: 1.1.1
+      fontaine: 1.0.0(esbuild@0.28.2)(postcss@8.5.28)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+      magic-string: 1.4.1
+      ohash: 2.0.12
+      pathe: 2.0.3
+      ufo: 1.6.4
+      unifont: 1.0.1
+    optionalDependencies:
+      jiti: 2.7.0
+      lightningcss: 1.33.0
+      vite: 8.3.0(@types/node@26.5.1)(@vitejs/devtools@0.7.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2)(yaml@2.9.1)
+    transitivePeerDependencies:
+      - '@farmfe/core'
+      - '@rsbuild/core'
+      - '@rspack/core'
+      - bun-types-no-globals
+      - esbuild
+      - postcss
+      - rolldown
+      - rollup
+      - unloader
+      - webpack
+
   for-each@0.3.5:
     dependencies:
       is-callable: 1.2.7
@@ -21568,12 +21683,12 @@ snapshots:
       rolldown: 1.2.8
       unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
 
-  unctx@3.0.1(magic-string@1.4.1)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))):
+  unctx@3.0.1(magic-string@1.4.1)(oxc-parser@0.151.0)(rolldown@1.2.1)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))):
     optionalDependencies:
       magic-string: 1.4.1
       oxc-parser: 0.151.0
       rolldown: 1.2.1
-      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.1)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
 
   unctx@3.0.1(magic-string@1.4.1)(oxc-parser@0.151.0)(rolldown@1.2.8)(unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.8)(rollup@4.63.2)(vite@8.3.0)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))):
     optionalDependencies:
@@ -21650,6 +21765,13 @@ snapshots:
       undici: 8.10.2
 
   unifont@1.0.0-beta.0:
+    dependencies:
+      css-tree: 3.2.1
+      ohash: 2.0.12
+      std-env: 4.2.0
+      undici: 8.10.2
+
+  unifont@1.0.1:
     dependencies:
       css-tree: 3.2.1
       ohash: 2.0.12

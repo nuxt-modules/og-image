@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -96,6 +96,16 @@ describe('resolveOgImageFonts', () => {
   })
 })
 
+/** A `@nuxt/fonts` context that serves every file in `dir` under `/_fonts/`. */
+function servedFrom(dir: string) {
+  return {
+    readFont: async (url: string) => {
+      const path = join(dir, url.split('/').pop()!)
+      return existsSync(path) ? readFileSync(path) : undefined
+    },
+  }
+}
+
 describe('prepareWoff2Fonts', () => {
   it('converts exact Nuxt Fonts subsets without resolving unrelated weights', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'og-image-nuxt-fonts-'))
@@ -154,10 +164,7 @@ describe('prepareWoff2Fonts', () => {
           },
         },
         fontState,
-        nuxtFontsContext: {
-          assetsBaseURL: '/_fonts',
-          renderedFontURLs: new Map(subsets.map(([publicName]) => [publicName, `/fonts/${publicName}`])),
-        },
+        nuxtFontsContext: servedFrom(publicFontsDir),
         warnOnMissingStaticFonts: true,
       } as any)
 
@@ -234,10 +241,7 @@ describe('prepareWoff2Fonts', () => {
           },
         },
         fontState,
-        nuxtFontsContext: {
-          assetsBaseURL: '/_fonts',
-          renderedFontURLs: new Map(subsets.map(filename => [filename, `/fonts/${filename}`])),
-        },
+        nuxtFontsContext: servedFrom(publicFontsDir),
       } as any)
 
       expect(resolver).toHaveBeenCalledWith('Noto Sans SC', {
