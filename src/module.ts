@@ -1618,7 +1618,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // Variable Satori fonts still need provider-resolved static fallbacks.
     if (hasNuxtFonts) {
       // @nuxt/fonts v1+: every resolved family, including ones only used in CSS
-      nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[], files: Array<{ url: string, getContents: () => Promise<Buffer> }> }) => {
+      nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[], files: Array<{ url: string, readFont: () => Promise<Buffer> }> }) => {
         // A family is reported once per resolution (per bundler environment, and again for
         // global families), so faces are merged rather than replaced
         const faces = fontState.resolvedFaces!.get(font.fontFamily) || []
@@ -1626,7 +1626,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         const added = font.fonts.filter(face => !known.has(JSON.stringify(face.src)))
         fontState.resolvedFaces!.set(font.fontFamily, [...faces, ...added])
         for (const file of font.files)
-          nuxtFontFiles.set(file.url, file.getContents)
+          nuxtFontFiles.set(file.url, file.readFont)
         if (added.length > 0)
           refreshDevFonts()
       })
