@@ -893,7 +893,8 @@ export async function resolveOgImageFonts(options: {
       ? (await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
       : [],
   )
-  const fonts = !fontRequirements.hasDynamicBindings
+  // Unanalysed builds (webpack, rspack) may use any font style, like dynamic bindings
+  const fonts = !(fontRequirements.hasDynamicBindings || fontRequirements.scanned === false)
     ? allFonts.filter(f =>
         nuxtFontFamilies.has(f.family)
           // Keep all @nuxt/fonts weights — runtime will pick closest match per requirement
