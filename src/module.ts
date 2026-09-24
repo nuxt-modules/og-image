@@ -53,7 +53,7 @@ import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOV
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, detectScreenshotPageUsage, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
+import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, resolveAutoDetectedProvider, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
 
 export type {
@@ -262,7 +262,7 @@ export interface ModuleOptions {
   /**
    * Browser renderer configuration.
    *
-   * When using browser-based rendering (screenshots), configure the browser provider.
+   * Set to true to enable defineOgImageScreenshot(), or configure a browser provider.
    * For Cloudflare deployments, specify the browser binding name.
    *
    * @example { provider: 'cloudflare', binding: 'BROWSER' }
@@ -1166,24 +1166,8 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
     }
-    // Screenshot pages render through the browser renderer without any `.browser.vue`
-    // component, so filename detection can't see them — scan page files as well.
-    // This must never suppress provider renderer detection below: a site mixing
-    // screenshot pages with defineOgImage() pages still needs its satori/takumi renderer.
-    const pageDirs = new Set<string>()
-    const defaultPagesDir = nuxt.options.dir.pages || 'pages'
-    for (const layer of (nuxt.options._layers || [])) {
-      const layerPagesDir = (typeof layer.config?.dir === 'object' ? layer.config.dir?.pages : undefined) || defaultPagesDir
-      pageDirs.add(join(nuxt.options.srcDir, defaultPagesDir))
-      pageDirs.add(join(layer.cwd, layerPagesDir))
-      pageDirs.add(join(layer.cwd, 'app', layerPagesDir))
-      if (layer.config?.srcDir) {
-        const layerSrcDir = isAbsolute(layer.config.srcDir) ? layer.config.srcDir : join(layer.cwd, layer.config.srcDir)
-        pageDirs.add(join(layerSrcDir, layerPagesDir))
-      }
-    }
-    const hasScreenshotPages = await detectScreenshotPageUsage([...pageDirs])
-    if (hasScreenshotPages)
+    // Screenshot pages opt in without requiring a browser component.
+    if (config.browser)
       ogImageComponentCtx.detectedRenderers.add('browser')
     // No user components — auto-detect from installed deps, prompt only if none installed
     if (!nuxt.options._prepare && !hasUserComponents) {
@@ -1736,6 +1720,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cssFramework: cssFramework || 'none',
+        browserEnabled: !!config.browser,
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'
           ? {
@@ -1796,6 +1781,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         'nuxt-og-image': {
           defaults: runtimeConfig.defaults,
           includeTwitter: runtimeConfig.includeTwitter,
+          browserEnabled: runtimeConfig.browserEnabled,
           hasServerRuntime: !(nuxt.options as any)._generate && !nuxt.options.nitro?.static,
         },
       } as any
