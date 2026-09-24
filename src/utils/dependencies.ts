@@ -81,8 +81,6 @@ export const OPTIONAL_DEPENDENCIES: ProviderDependency[] = [
 export interface AutoDetectProviderInput {
   /** a renderer-suffix component (e.g. Default.satori.vue) was found on disk */
   hasUserComponents: boolean
-  /** at least one page calls defineOgImageScreenshot() */
-  hasScreenshotPages: boolean
   /** providers with all dependencies installed, from getInstalledProviders() */
   installedProviders: ProviderName[]
 }
@@ -106,10 +104,6 @@ export function resolveAutoDetectedProvider(input: AutoDetectProviderInput): Aut
   const preferred = (input.installedProviders.find(p => p === 'takumi') ?? input.installedProviders[0]) ?? null
   if (preferred)
     return { preferred, fallbackToDefault: false }
-  // Screenshot pages render through the browser renderer and don't need a
-  // provider renderer — don't prompt or force the takumi default for them.
-  if (input.hasScreenshotPages)
-    return { preferred: null, fallbackToDefault: false }
   return { preferred: null, fallbackToDefault: true }
 }
 

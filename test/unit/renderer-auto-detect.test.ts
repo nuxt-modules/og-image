@@ -5,7 +5,6 @@ describe('resolveAutoDetectedProvider', () => {
   it('keeps the provider renderer on mixed sites with screenshot pages', () => {
     const decision = resolveAutoDetectedProvider({
       hasUserComponents: false,
-      hasScreenshotPages: true,
       installedProviders: ['takumi', 'satori'],
     })
     expect(decision).toEqual({ preferred: 'takumi', fallbackToDefault: false })
@@ -14,7 +13,6 @@ describe('resolveAutoDetectedProvider', () => {
   it('prefers the first installed provider when takumi is absent', () => {
     const decision = resolveAutoDetectedProvider({
       hasUserComponents: false,
-      hasScreenshotPages: true,
       installedProviders: ['satori'],
     })
     expect(decision).toEqual({ preferred: 'satori', fallbackToDefault: false })
@@ -23,25 +21,14 @@ describe('resolveAutoDetectedProvider', () => {
   it('treats an installed browser provider as the preferred renderer', () => {
     const decision = resolveAutoDetectedProvider({
       hasUserComponents: false,
-      hasScreenshotPages: true,
       installedProviders: ['browser'],
     })
     expect(decision).toEqual({ preferred: 'browser', fallbackToDefault: false })
   })
 
-  it('does not default to a provider renderer for screenshot-only sites', () => {
+  it('keeps the fallback when screenshot pages have no installed provider', () => {
     const decision = resolveAutoDetectedProvider({
       hasUserComponents: false,
-      hasScreenshotPages: true,
-      installedProviders: [],
-    })
-    expect(decision).toEqual({ preferred: null, fallbackToDefault: false })
-  })
-
-  it('keeps the prompt/default fallback for sites without screenshot pages', () => {
-    const decision = resolveAutoDetectedProvider({
-      hasUserComponents: false,
-      hasScreenshotPages: false,
       installedProviders: [],
     })
     expect(decision).toEqual({ preferred: null, fallbackToDefault: true })
@@ -50,7 +37,6 @@ describe('resolveAutoDetectedProvider', () => {
   it('never auto-detects when user components were found on disk', () => {
     const decision = resolveAutoDetectedProvider({
       hasUserComponents: true,
-      hasScreenshotPages: true,
       installedProviders: ['takumi'],
     })
     expect(decision).toEqual({ preferred: null, fallbackToDefault: false })

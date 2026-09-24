@@ -1189,7 +1189,6 @@ export default defineNuxtModule<ModuleOptions>({
     if (!nuxt.options._prepare && !hasUserComponents) {
       const { preferred, fallbackToDefault } = resolveAutoDetectedProvider({
         hasUserComponents,
-        hasScreenshotPages,
         installedProviders: (await getInstalledProviders()).map(p => p.provider),
       })
       if (preferred) {

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { readdir, readFile } from 'node:fs/promises'
 import { resolvePath } from '@nuxt/kit'
 import { Launcher } from 'chrome-launcher'
 import { basename, join } from 'pathe'
@@ -110,20 +110,26 @@ function scriptCallsScreenshotComposable(
  * browser renderer.
  */
 export async function detectScreenshotPageUsage(dirs: string[]): Promise<boolean> {
-  const parse = await loadSfcParser()
-  for (const dir of dirs) {
-    if (!existsSync(dir))
-      continue
+  for (const dir of new Set(dirs)) {
     const stack = [dir]
     while (stack.length > 0) {
       const current = stack.pop()!
-      for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const entries = await readdir(current, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
+        // Layers can omit their pages directory.
+        if (error.code === 'ENOENT')
+          return []
+        throw error
+      })
+      for (const entry of entries) {
         const path = join(current, entry.name)
         if (entry.isDirectory()) {
           stack.push(path)
         }
-        else if (entry.name.endsWith('.vue') && scriptCallsScreenshotComposable(parse, readFileSync(path, 'utf-8'))) {
-          return true
+        else if (entry.isFile() && entry.name.endsWith('.vue')) {
+          const code = await readFile(path, 'utf-8')
+          // Most pages need no SFC parsing. Load the compiler only for candidates.
+          if (code.includes('defineOgImageScreenshot') && scriptCallsScreenshotComposable(await loadSfcParser(), code))
+            return true
         }
       }
     }
