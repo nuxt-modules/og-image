@@ -103,6 +103,49 @@ describe('resolveOgImageFonts', () => {
     const result = await resolveOgImageFonts(opts)
     expect(result).toEqual([normal, italic])
   })
+
+  it('re-resolves glyph-subset families with every resolved face when components were never analysed', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-glyph-reresolve-'))
+    try {
+      vi.mocked(getResolvedNuxtFonts).mockResolvedValue([
+        { family: 'Noto Sans SC', src: '/_fonts/noto-400-normal.woff2', weight: 400, style: 'normal' },
+        { family: 'Noto Sans SC', src: '/_fonts/noto-400-italic.woff2', weight: 400, style: 'italic' },
+        { family: 'Noto Sans SC', src: '/_fonts/noto-700-normal.woff2', weight: 700, style: 'normal' },
+      ])
+      const resolver = vi.fn().mockImplementation(async (_family: string, override: { weights: number[], styles: string[] }) => ({
+        fonts: override.weights.flatMap(weight => override.styles.map(style => ({
+          weight,
+          style,
+          src: [{ url: 'data:font/woff;base64,d09GRgAAAAA=', originalURL: 'data:font/woff;base64,d09GRgAAAAA=', format: 'woff' }],
+        }))),
+      }))
+      const nuxt = {
+        options: {
+          buildDir: join(rootDir, '.nuxt'),
+          rootDir,
+          fonts: { families: [{ name: 'Noto Sans SC', provider: 'google', glyphs: ['一'] }] },
+        },
+        _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+      } as any
+
+      const result = await resolveOgImageFonts({
+        nuxt,
+        hasNuxtFonts: true,
+        hasSatoriRenderer: true,
+        hasTakumiRenderer: false,
+        fontState: { fallbackMap: new Map(), sourceMap: new Map() },
+        fontRequirements: { ...baseFontReqs, weights: [400], styles: ['normal'], scanned: false },
+        tw4FontVars: {},
+        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
+      })
+
+      expect(result.some(f => f.family === 'Noto Sans SC' && f.weight === 700)).toBe(true)
+      expect(result.some(f => f.family === 'Noto Sans SC' && f.style === 'italic')).toBe(true)
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
 })
 
 /** A `@nuxt/fonts` context that serves every file in `dir` under `/_fonts/`. */

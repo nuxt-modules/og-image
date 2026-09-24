@@ -741,16 +741,13 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
  * Downloads static font files via fontless (Fontsource, Google, Bunny).
  */
 async function resolveMissingFontFamilies(options: {
-  missingFamilies: string[]
-  weights: number[]
-  styles: Array<'normal' | 'italic'>
+  families: Array<{ family: string, weights: number[], styles: Array<'normal' | 'italic'> }>
   nuxt: Nuxt
   logger: ConsolaInstance
   fontSubsets?: string[]
 }): Promise<ParsedFont[]> {
-  const { missingFamilies, weights, styles, nuxt, logger, fontSubsets } = options
+  const { families, nuxt, logger, fontSubsets } = options
 
-  const families = missingFamilies.map(family => ({ family, weights, styles }))
   const downloaded = await downloadStaticFonts({ families, nuxt, logger, fontSubsets })
 
   const results = downloaded.map(f => ({
@@ -762,7 +759,7 @@ async function resolveMissingFontFamilies(options: {
   }))
 
   if (results.length > 0)
-    logger.debug(`Resolved ${results.length} font files via fontless for: ${missingFamilies.join(', ')}`)
+    logger.debug(`Resolved ${results.length} font files via fontless for: ${families.map(f => f.family).join(', ')}`)
 
   return results
 }
@@ -861,10 +858,18 @@ export async function resolveOgImageFonts(options: {
     missingFamilies = [...new Set([...missingFamilies, ...glyphSubsetFamilies])]
 
     if (missingFamilies.length > 0) {
+      // Builds that never analyse OG components (webpack, rspack) keep the default
+      // requirements, so re-resolution must follow the faces @nuxt/fonts resolved
+      const familyRequirements = missingFamilies.map((family) => {
+        if (fontRequirements.scanned === false) {
+          const resolved = getResolvedWeights(glyphSubsetFaces, family)
+          if (resolved.weights.length > 0 || resolved.styles.length > 0)
+            return { family, ...resolved }
+        }
+        return { family, weights: fontRequirements.weights, styles: fontRequirements.styles }
+      })
       const additionalFonts = await resolveMissingFontFamilies({
-        missingFamilies,
-        weights: fontRequirements.weights,
-        styles: fontRequirements.styles,
+        families: familyRequirements,
         nuxt,
         logger,
         fontSubsets: effectiveSubsets,
