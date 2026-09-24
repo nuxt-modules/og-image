@@ -14,7 +14,20 @@ vi.mock('../../src/build/fonts', async (importOriginal) => {
 })
 
 const { prepareWoff2Fonts, resolveOgImageFonts } = await import('../../src/build/fontless')
-const { getResolvedNuxtFonts } = await import('../../src/build/fonts')
+const { getResolvedNuxtFonts, satoriSourceKey } = await import('../../src/build/fonts')
+
+// Inter 4 variable (wght 100-900), latin subset, as Google Fonts serves it
+const variableFont = readFileSync(new URL('./fixtures/fonts/InterVariable-latin.woff2', import.meta.url))
+
+function weightClass(font: Uint8Array): number {
+  const view = new DataView(font.buffer, font.byteOffset, font.byteLength)
+  for (let index = 0; index < view.getUint16(4); index++) {
+    const record = 12 + index * 16
+    if (String.fromCharCode(...font.subarray(record, record + 4)) === 'OS/2')
+      return view.getUint16(view.getUint32(record + 8) + 4)
+  }
+  return 0
+}
 
 const baseFontReqs = { weights: [400, 700], styles: ['normal' as const], families: [] as string[], hasDynamicBindings: false, componentMap: {} }
 
@@ -169,7 +182,7 @@ describe('prepareWoff2Fonts', () => {
       } as any)
 
       expect(resolver).not.toHaveBeenCalled()
-      expect([...fontState.sourceMap.keys()]).toEqual(subsets.map(([publicName]) => `/_fonts/${publicName}`))
+      expect([...fontState.sourceMap.keys()]).toEqual(subsets.map(([publicName]) => satoriSourceKey(`/_fonts/${publicName}`, 400)))
       expect(new Set(fontState.sourceMap.values()).size).toBe(2)
       expect(fontState.fallbackMap.size).toBe(0)
       let outputBytes = 0
@@ -180,6 +193,71 @@ describe('prepareWoff2Fonts', () => {
         expect(output.subarray(0, 4)).toEqual(Buffer.from([0, 1, 0, 0]))
       }
       expect(outputBytes).toBeLessThan(20_000)
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('instances a variable Nuxt Fonts file at each weight instead of asking providers', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-variable-font-'))
+    const src = '/_nuxt/fonts/inter.woff2'
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
+      { family: 'Inter Variable', src, weight: 400, style: 'normal', weightRange: [100, 900] },
+    ])
+    const resolver = vi.fn()
+    const fontState = { fallbackMap: new Map<string, string>(), sourceMap: new Map<string, string>() }
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+    } as any
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
+        fontRequirements: baseFontReqs,
+        fontState,
+        nuxtFontsContext: { readFont: async url => url === src ? variableFont : undefined },
+      })
+
+      expect(resolver).not.toHaveBeenCalled()
+      for (const weight of [400, 700]) {
+        const output = fontState.sourceMap.get(satoriSourceKey(src, weight))!
+        const font = readFileSync(join(getStaticFontCacheDir(nuxt.options.buildDir), output.split('/').pop()!))
+        expect(weightClass(font), `weight ${weight}`).toBe(weight)
+      }
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('asks providers and says why when HarfBuzz is not available', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-variable-font-'))
+    const src = '/_nuxt/fonts/inter.woff2'
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
+      { family: 'Inter Variable', src, weight: 400, style: 'normal', weightRange: [100, 900] },
+    ])
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+    } as any
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger,
+        fontRequirements: baseFontReqs,
+        fontState: { fallbackMap: new Map<string, string>(), sourceMap: new Map<string, string>() },
+        nuxtFontsContext: { readFont: async url => url === src ? variableFont : undefined },
+        loadInstancer: async () => ({ _tag: 'Missing' }),
+      })
+
+      expect(resolver).toHaveBeenCalledWith('Inter Variable', expect.objectContaining({ weights: [400, 700] }))
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('harfbuzzjs'))
     }
     finally {
       rmSync(rootDir, { recursive: true, force: true })
@@ -268,7 +346,7 @@ describe('prepareWoff2Fonts', () => {
     })
     const fontState = {
       fallbackMap: new Map<string, string>(),
-      sourceMap: new Map([['/_fonts/nunito.woff2', '/_og-static-fonts/nunito.ttf']]),
+      sourceMap: new Map([[satoriSourceKey('/_fonts/nunito.woff2', 400), '/_og-static-fonts/nunito.ttf']]),
     }
     const nuxt = {
       options: {
@@ -335,7 +413,7 @@ describe('prepareWoff2Fonts', () => {
         fontRequirements: baseFontReqs,
         fontState: {
           fallbackMap: new Map<string, string>(),
-          sourceMap: new Map([['/_fonts/lobster.woff2', '/_og-static-fonts/lobster.ttf']]),
+          sourceMap: new Map([[satoriSourceKey('/_fonts/lobster.woff2', 400), '/_og-static-fonts/lobster.ttf']]),
         },
       })
 

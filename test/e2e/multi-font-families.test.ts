@@ -56,11 +56,6 @@ describe('multi-font-families', () => {
     }
   })
 
-  it('downloads a static fallback for a missing font weight', async () => {
-    const font700 = await $fetch('/_og-static-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' }) as ArrayBuffer
-    expect(font700.byteLength).toBeGreaterThan(1000)
-  })
-
   it('serves local font files from public directory', async () => {
     const [sansRegular, serifRegular, serifBold] = await Promise.all([
       $fetch('/fonts/LocalSans-Regular.ttf', { responseType: 'arrayBuffer' }) as Promise<ArrayBuffer>,
@@ -70,11 +65,6 @@ describe('multi-font-families', () => {
     expect(sansRegular.byteLength).toBeGreaterThan(1000)
     expect(serifRegular.byteLength).toBeGreaterThan(1000)
     expect(serifBold.byteLength).toBeGreaterThan(1000)
-  })
-
-  it('downloads static font files for Devanagari (non-Latin subset)', async () => {
-    const font400: ArrayBuffer = await $fetch('/_og-static-fonts/Noto_Sans_Devanagari-400-normal.woff', { responseType: 'arrayBuffer' })
-    expect(font400.byteLength).toBeGreaterThan(1000)
   })
 
   // #551 — CJK fonts split into 100+ unicode-range subsets by fontsource.

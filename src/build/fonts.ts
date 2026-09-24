@@ -46,14 +46,19 @@ export const FONTS_URL_PREFIX = '/_fonts'
 export const STATIC_FONTS_PREFIX = '/_og-static-fonts'
 
 export interface FontProcessingState {
-  /** Exact @nuxt/fonts WOFF2 URL → locally decoded TTF path. */
+  /** A @nuxt/fonts font at one weight (`satoriSourceKey`) → the static TTF Satori reads. */
   sourceMap: Map<string, string>
   /** Font identity (family+weight+style) → provider-resolved static fallback path. */
   fallbackMap: Map<string, string>
-  /** Faces from the `@nuxt/fonts` `fonts:resolved` hook, by family. Empty before v1. */
+  /** Faces from the `@nuxt/fonts` `fonts:resolved` hook, by family. */
   resolvedFaces?: Map<string, ResolvedFontFace[]>
   /** Whether OG images need a resolved family: global, or used by an OG component. */
   isOgFamily?: (family: string) => boolean
+}
+
+/** Where the Satori file for one weight of a font source is kept in `sourceMap`. */
+export function satoriSourceKey(src: string, weight: number): string {
+  return `${src}#${weight}`
 }
 
 export function getStaticFontCacheDir(buildDir: string): string {
@@ -476,7 +481,7 @@ export async function getResolvedNuxtFonts(
   const result = expandedFonts.map((font) => {
     // Look up fontless static download by font identity (family+weight+style, no unicodeRange)
     const fKey = `${font.family}-${font.weight}-${font.style}`
-    const convertedSource = options.fontState.sourceMap.get(font.src)
+    const convertedSource = options.fontState.sourceMap.get(satoriSourceKey(font.src, font.weight))
     const fontlessPath = options.fontState.fallbackMap.get(fKey)
     // Prefer the exact converted @nuxt/fonts source. For families with provider
     // fallbacks, don't trust an @nuxt/fonts WOFF because it may be variable.
