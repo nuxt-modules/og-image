@@ -1,14 +1,33 @@
 import type { SatoriOptions } from 'satori'
 import type { JpegOptions } from 'sharp'
-import type { OgImageRenderEventContext, Renderer, RuntimeFontConfig } from '../../../types'
+import type { OgImageRenderEventContext, OgImageRuntimeConfig, Renderer, RuntimeFontConfig } from '../../../types'
+import type { MissingGlyphLoader } from './missing-glyphs'
 import { defu } from 'defu'
+import { $fetch } from 'ofetch'
 import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
+import { logger } from '../../../logger'
+import { getFetchTimeout } from '../../util/fetchTimeout'
 import { withTimeout } from '../../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getResvg, getSatori, getSharp } from './instances'
+import { createMissingGlyphLoader } from './missing-glyphs'
 import { createVNodes } from './vnodes'
+
+// Shared across renders so the fonts loaded for a set of characters are reused
+let missingGlyphLoader: MissingGlyphLoader | undefined
+function useMissingGlyphLoader(runtimeConfig: OgImageRuntimeConfig): MissingGlyphLoader {
+  const timeout = getFetchTimeout(runtimeConfig)
+  // Redirects are refused so a response can only come from the Google Fonts hosts
+  const options = { timeout, retry: 0 as const, redirect: 'manual' as const }
+  missingGlyphLoader ||= createMissingGlyphLoader({
+    fetchText: url => $fetch(url, { ...options, responseType: 'text' }),
+    fetchBuffer: url => $fetch(url, { ...options, responseType: 'arrayBuffer' }),
+    onError: (family, error) => logger.warn(`Could not load ${family} for characters that no configured font covers. They render as empty boxes. ${error.message}`),
+  })
+  return missingGlyphLoader
+}
 
 // Stable font array cache — satori uses a WeakMap keyed by array identity
 const _satoriFontCache = new WeakMap<RuntimeFontConfig[], Array<RuntimeFontConfig & { name: string }>>()
@@ -108,6 +127,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
     fonts: satoriFonts,
     tailwindConfig: Object.keys(fontFamily).length ? { theme: { fontFamily } } : undefined,
     embedFont: true,
+    loadAdditionalAsset: event.runtimeConfig.missingGlyphFonts === 'google' ? useMissingGlyphLoader(event.runtimeConfig) : undefined,
     width: options.width!,
     height: options.height!,
   }) as SatoriOptions

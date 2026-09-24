@@ -40,6 +40,8 @@ export interface OgImageRuntimeConfig {
   publicStoragePath: string
 
   defaults: Omit<OgImageOptions, 'component' | 'renderer' | 'props' | 'url' | 'html' | 'key' | 'cacheKey' | '_query' | '_hash' | 'socialPreview'>
+  /** Where Satori loads fonts for characters no configured font covers. */
+  missingGlyphFonts: 'google' | false
   debug: boolean
   /** Whether twitter:* meta tags are emitted alongside og:image tags */
   includeTwitter: boolean
