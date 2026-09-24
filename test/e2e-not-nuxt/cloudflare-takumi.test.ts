@@ -245,11 +245,10 @@ describe('cloudflare-takumi', () => {
       takumi.initSync({ module: wasmBytes })
       Renderer = takumi.Renderer
 
-      // `/_fonts` with @nuxt/fonts v0, `/_nuxt/fonts` with v1 Vite builds
-      const publicDir = resolve(fixtureDir, '.output/public')
-      const woff2Files = await globby(['_fonts/*.woff2', '_nuxt/fonts/*.woff2'], { cwd: publicDir })
+      const fontsDir = resolve(fixtureDir, '.output/public/_nuxt/fonts')
+      const woff2Files = await globby('*.woff2', { cwd: fontsDir })
       fontSubsets = await Promise.all(
-        woff2Files.map(async f => new Uint8Array(await fs.readFile(join(publicDir, f)))),
+        woff2Files.map(async f => new Uint8Array(await fs.readFile(join(fontsDir, f)))),
       )
     })
 
