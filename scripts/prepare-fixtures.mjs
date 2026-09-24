@@ -12,6 +12,7 @@ const fixturesDir = join(root, 'test/fixtures')
 // These fixtures build themselves in their tests (nuxt build/generate) — skip nuxt prepare
 const selfBuildFixtures = new Set([
   'app-dir',
+  'browser-prerender',
   'cloudflare-satori',
   'cloudflare-takumi',
   'hash-mode',

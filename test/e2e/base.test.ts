@@ -19,11 +19,6 @@ await setup({
 setupImageSnapshots(SNAPSHOT_LOOSE)
 
 describe('build', () => {
-  it.runIf(process.env.HAS_CHROME)('browser tests', async () => {
-    const images = await fetchOgImages('/prefix/browser')
-    expect(images.get('/prefix/browser')).toMatchImageSnapshot()
-  })
-
   it('static images', async () => {
     const images = await fetchOgImages(
       '/prefix/satori/custom-font',

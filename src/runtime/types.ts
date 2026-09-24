@@ -32,6 +32,7 @@ export interface OgImageIconsData {
 }
 
 export interface OgImageRuntimeConfig {
+  browserEnabled: boolean
   version: string
   satoriOptions: SatoriOptions
   resvgOptions: ResvgRenderOptions
@@ -88,7 +89,7 @@ export type RendererType = 'satori' | 'browser' | 'takumi'
 
 export type BrowserProvider = 'playwright' | 'chrome-launcher' | 'on-demand' | 'cloudflare'
 
-export type BrowserConfig = false | {
+export type BrowserConfig = boolean | {
   provider: BrowserProvider
   /** Required when provider is 'cloudflare' - the wrangler binding name */
   binding?: string

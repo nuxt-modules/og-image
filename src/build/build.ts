@@ -48,6 +48,15 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
   // Reapply after component discovery. The initial pass is required by Nitro 3,
   // while this pass includes nested components and module hook additions.
   nuxt.hooks.hook('nitro:init', async (nitro) => {
+    // The prerender build runs in Node and may launch a local browser, so it
+    // needs the real playwright-core. The stub stays in the deployed bundle.
+    // Copy `virtual`: the prerender config shares it with the deployed build.
+    nitro.hooks.hook('prerender:config', (prerenderConfig) => {
+      if (prerenderConfig.virtual?.['playwright-core']) {
+        const { 'playwright-core': _, ...virtual } = prerenderConfig.virtual
+        prerenderConfig.virtual = virtual
+      }
+    })
     await applyNitroPresetCompatibility(nitro.options, {
       compatibility: config.compatibility?.runtime,
       resolve,

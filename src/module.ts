@@ -54,7 +54,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, resolveAutoDetectedProvider, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -262,7 +262,7 @@ export interface ModuleOptions {
   /**
    * Browser renderer configuration.
    *
-   * When using browser-based rendering (screenshots), configure the browser provider.
+   * Set to true to enable defineOgImageScreenshot(), or configure a browser provider.
    * For Cloudflare deployments, specify the browser binding name.
    *
    * @example { provider: 'cloudflare', binding: 'BROWSER' }
@@ -1166,24 +1166,31 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
     }
+    // Screenshot pages opt in without requiring a browser component.
+    if (config.browser)
+      ogImageComponentCtx.detectedRenderers.add('browser')
     // No user components — auto-detect from installed deps, prompt only if none installed
     if (!nuxt.options._prepare && !hasUserComponents) {
-      const installedProviders = await getInstalledProviders()
-      const preferred = installedProviders.find(p => p.provider === 'takumi') || installedProviders[0]
+      const { preferred, fallbackToDefault } = resolveAutoDetectedProvider({
+        hasUserComponents,
+        installedProviders: (await getInstalledProviders()).map(p => p.provider),
+      })
       if (preferred) {
-        ogImageComponentCtx.detectedRenderers.add(preferred.provider)
-        logger.debug(`Using ${preferred.provider} renderer`)
+        ogImageComponentCtx.detectedRenderers.add(preferred)
+        logger.debug(`Using ${preferred} renderer`)
       }
-      else if (nuxt.options.dev && !nuxt.options._prepare && canPromptInteractively()) {
-        const renderer = await promptForRendererSelection()
-        ogImageComponentCtx.detectedRenderers.add(renderer)
-        logger.debug(`Using ${renderer} renderer`)
-      }
-      else {
-        // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
-        // Warn so the choice is visible and the agent can pin a renderer explicitly.
-        ogImageComponentCtx.detectedRenderers.add('takumi')
-        logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+      else if (fallbackToDefault) {
+        if (nuxt.options.dev && !nuxt.options._prepare && canPromptInteractively()) {
+          const renderer = await promptForRendererSelection()
+          ogImageComponentCtx.detectedRenderers.add(renderer)
+          logger.debug(`Using ${renderer} renderer`)
+        }
+        else {
+          // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
+          // Warn so the choice is visible and the agent can pin a renderer explicitly.
+          ogImageComponentCtx.detectedRenderers.add('takumi')
+          logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+        }
       }
     }
 
@@ -1713,6 +1720,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         // @ts-expect-error runtime type
         isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cssFramework: cssFramework || 'none',
+        browserEnabled: !!config.browser,
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'
           ? {
@@ -1773,6 +1781,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         'nuxt-og-image': {
           defaults: runtimeConfig.defaults,
           includeTwitter: runtimeConfig.includeTwitter,
+          browserEnabled: runtimeConfig.browserEnabled,
           hasServerRuntime: !(nuxt.options as any)._generate && !nuxt.options.nitro?.static,
         },
       } as any
