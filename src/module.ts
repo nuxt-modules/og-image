@@ -851,6 +851,7 @@ export default defineNuxtModule<ModuleOptions>({
             }
 
             recomputeFontRequirements()
+            refreshDevFonts()
 
             // Persist component font map to disk so Nitro runtime can read it in dev mode
             // (virtual modules are cached on first import, before any components are transformed)
@@ -1495,8 +1496,38 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       ? { readFont: async url => nuxtFontFiles.get(url)?.() }
       : null
     let fontProcessingDone = false
+    // What the font list was last built from: the resolved families OG images need, and the
+    // weights and styles components use. Undefined before the first build.
+    let builtFontKey: string | undefined
+    const currentFontKey = () => JSON.stringify([
+      [...fontState.resolvedFaces?.keys() || []].filter(family => fontState.isOgFamily?.(family) ?? true).toSorted(),
+      fontRequirementsState.weights,
+      fontRequirementsState.styles,
+    ])
+    // In dev, a family can resolve (Vite transforms CSS lazily), and components can turn out to
+    // use a family or weight (they are analysed lazily), after Nitro built the font list
+    let reloadNitro: (() => Promise<void>) | undefined
+    function refreshDevFonts() {
+      if (!reloadNitro || builtFontKey === undefined || builtFontKey === currentFontKey())
+        return
+      // not awaited: callers run inside Vite transforms
+      reloadNitro().catch((error: Error) => {
+        logger.warn(`Could not rebuild the OG image font list: ${error.message}`)
+      })
+    }
+    if (nuxt.options.dev) {
+      nuxt.hook('nitro:init', (nitro) => {
+        let pending: Promise<void> | undefined
+        reloadNitro = () => pending ||= Promise.resolve().then(async () => {
+          pending = undefined
+          fontProcessingDone = false
+          await nitro.hooks.callHook('rollup:reload')
+        })
+      })
+    }
 
     nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
+      builtFontKey = currentFontKey()
       await loadCssMetadata()
       // Dev mode: WOFF2 preparation may not have run via vite:compiled
       // because OG components are lazily compiled. Run it now on first resolve.
@@ -1587,14 +1618,32 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     if (hasNuxtFonts) {
       // @nuxt/fonts v1+: every resolved family, including ones only used in CSS
       nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[], files: Array<{ url: string, getContents: () => Promise<Buffer> }> }) => {
-        fontState.resolvedFaces!.set(font.fontFamily, font.fonts)
+        // A family is reported once per resolution (per bundler environment, and again for
+        // global families), so faces are merged rather than replaced
+        const faces = fontState.resolvedFaces!.get(font.fontFamily) || []
+        const known = new Set(faces.map(face => JSON.stringify(face.src)))
+        const added = font.fonts.filter(face => !known.has(JSON.stringify(face.src)))
+        fontState.resolvedFaces!.set(font.fontFamily, [...faces, ...added])
         for (const file of font.files)
           nuxtFontFiles.set(file.url, file.getContents)
+        if (added.length > 0)
+          refreshDevFonts()
       })
+      // @nuxt/fonts reports every family before Nitro builds. Versions without the hook report
+      // none, and OG images would silently fall back to Inter.
+      if (!nuxt.options.dev) {
+        nuxt.hook('nitro:build:before', () => {
+          const configuredFamilies = (nuxt.options as { fonts?: { families?: unknown[] } }).fonts?.families || []
+          if (fontState.resolvedFaces!.size === 0 && (configuredFamilies.length > 0 || fontRequirementsState.families.length > 0))
+            logger.warn('@nuxt/fonts did not report any fonts, so OG images use the bundled Inter font. OG images need a @nuxt/fonts version with the `fonts:resolved` hook.')
+        })
+      }
       const globalFamilies = new Set(((nuxt.options as { fonts?: { families?: Array<{ name: string, global?: boolean }> } }).fonts?.families || [])
         .filter(f => f.global)
         .map(f => f.name.toLowerCase()))
+      // Component analysis only runs on Vite; without it, any family may be used
       fontState.isOgFamily = family => globalFamilies.has(family.toLowerCase())
+        || !fontRequirementsState.scanned
         || fontRequirementsState.families.some(f => f.toLowerCase() === family.toLowerCase())
 
       nuxt.hook('vite:compiled', async () => {
