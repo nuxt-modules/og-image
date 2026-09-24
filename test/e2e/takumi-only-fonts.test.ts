@@ -29,9 +29,9 @@ setupImageSnapshots(SNAPSHOT_LOOSE)
 
 describe('takumi-only fonts', () => {
   it.runIf(hasTakumi)('uses Nuxt Fonts WOFF2 assets directly', async () => {
-    const buildDir = useTestContext().nuxt!.options.buildDir
-    // og-image copies the files @nuxt/fonts serves here, for dev and prerender
-    const nuxtFontsDir = join(buildDir, 'cache', 'og-image', 'nuxt-fonts')
+    const { buildDir } = useTestContext().nuxt!.options
+    // the files @nuxt/fonts serves, which og-image reads through their URLs
+    const nuxtFontsDir = join(buildDir, 'output', 'public', '_nuxt', 'fonts')
     const files = readdirSync(nuxtFontsDir).filter(file => file.endsWith('.woff2'))
     expect(files.length).toBeGreaterThan(0)
     const staticFontDir = join(buildDir, 'cache', 'og-image', 'static-fonts')

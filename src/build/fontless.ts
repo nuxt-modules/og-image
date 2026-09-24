@@ -912,30 +912,3 @@ export async function resolveOgImageFonts(options: {
 
   return fonts
 }
-
-/**
- * Copy the `@nuxt/fonts` files OG images use into the buildDir and point `absolutePath` at them,
- * so dev and prerender read them from disk. `@nuxt/fonts` only serves them from Vite and the
- * final output, which Nitro can't reach before the build finishes.
- */
-export async function attachNuxtFontFiles(options: {
-  fonts: ParsedFont[]
-  context: NuxtFontsAssetContext
-  buildDir: string
-}): Promise<void> {
-  const dir = join(options.buildDir, 'cache', 'og-image', 'nuxt-fonts')
-  fs.mkdirSync(dir, { recursive: true })
-  const written = new Map<string, string | undefined>()
-  for (const font of options.fonts) {
-    if (font.absolutePath)
-      continue
-    if (!written.has(font.src)) {
-      const data = await options.context.readFont(font.src)
-      const path = data ? join(dir, font.src.split('/').pop()!) : undefined
-      if (data && path)
-        await fs.promises.writeFile(path, data)
-      written.set(font.src, path)
-    }
-    font.absolutePath = written.get(font.src)
-  }
-}
