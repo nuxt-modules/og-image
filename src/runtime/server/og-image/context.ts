@@ -244,8 +244,8 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     autoEjectCommunityTemplate(normalised.component, runtimeConfig, { requestPath: e.path })
 
   const rendererType = normalised.renderer
-  // In hash mode, basePath is always '/' (since _path isn't in the prerender cache payload),
-  // so use the options hash directly as cache key to avoid all hash-mode images sharing one cache entry.
+  // In hash mode, pages with identical options share one image, so key the
+  // cache by the options hash, not by the page path.
   // Component hash is appended so template changes invalidate the runtime cache.
   const baseCacheKey = normalised.options.cacheKey
     || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, normalised.options))

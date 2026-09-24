@@ -3,9 +3,10 @@ import { digest } from 'ohash/crypto'
 /**
  * URL encoding for OG image options (Cloudinary/IPX style)
  *
- * Format: /_og/s/w_1200,h_600,c_NuxtSeo,title_Hello+World.png
+ * Format: /_og/d/w_1200,h_600,c_NuxtSeo,title_Hello+World.png
  *
- * When the encoded path exceeds MAX_PATH_LENGTH (200 chars), falls back to hash mode:
+ * Static paths fall back to hash mode when the encoded path exceeds MAX_PATH_LENGTH
+ * (200 chars) or holds a character outside [A-Za-z0-9_.~-]:
  * Format: /_og/s/o_<hash>.png
  *
  * - Known OgImageOptions use short aliases (w, h, c, etc.)
@@ -38,6 +39,7 @@ const RE_SIGNATURE_SUFFIX = /,s_[^,]+$/
 const RE_NON_ASCII = /[^\u0000-\u007F]/
 // eslint-disable-next-line no-control-regex
 const RE_WINDOWS_RESERVED_FILENAME_CHARACTERS = /[<>:"/\\|?*\u0000-\u001F]/
+const RE_NOT_UNRESERVED = /[^\w.~-]/
 
 // Short aliases for OgImageOptions params
 const PARAM_ALIASES: Record<string, string> = {
@@ -121,35 +123,67 @@ function b64Decode(str: string): string {
 }
 
 /**
- * Simple hash function for creating short deterministic hashes
- * Works in both browser and Node environments
+ * JSON.stringify with object keys recursively sorted, so serialization is
+ * insertion-order independent. The server and the pure-SSG client build the
+ * same options in different key orders (separateProps appends props at the
+ * end) and must produce the same hash.
  */
-function simpleHash(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object')
+    return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value))
+    return `[${value.map(item => canonicalJson(item)).join(',')}]`
+  const record = value as Record<string, unknown>
+  const entries = Object.keys(record)
+    .sort()
+    .filter(key => record[key] !== undefined)
+    .map(key => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+  return `{${entries.join(',')}}`
+}
+
+// Both ohash crypto runtimes (node + js) emit base64url
+const B64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+
+/**
+ * Decode a base64url string (no padding) into lowercase hex, so hash segments
+ * stay within [a-z0-9] for the o_<hash> path/filename parsing.
+ */
+function base64UrlToHex(input: string): string {
+  let hex = ''
+  let buffer = 0
+  let bits = 0
+  for (const char of input) {
+    buffer = (buffer << 6) | B64URL_ALPHABET.indexOf(char)
+    bits += 6
+    if (bits >= 8) {
+      bits -= 8
+      hex += ((buffer >> bits) & 0xFF).toString(16).padStart(2, '0')
+    }
   }
-  // Convert to base36 for shorter string, ensure positive
-  return Math.abs(hash).toString(36)
+  return hex
 }
 
 /**
  * Generate a deterministic hash from options object
- * Excludes _path so images with same options can be cached across pages
+ * Excludes _path so images with same options can be cached across pages,
+ * except for PageScreenshot, which renders the page itself.
  * Optionally includes componentHash and version for cache busting
+ *
+ * Uses the first 64 bits of a SHA-256 digest over a canonical (key-sorted)
+ * serialization. The previous 32-bit rolling hash collided on large sites,
+ * silently overwriting other pages' prerendered images.
  */
 export function hashOgImageOptions(
   options: Record<string, any>,
   componentHash?: string,
   version?: string,
 ): string {
-  const { _path, _hash, ...hashableOptions } = options
+  const { _path, _hash, ...rest } = options
+  const hashableOptions = rest.component === 'PageScreenshot' ? { ...rest, _path } : rest
   const hashInput = componentHash || version
     ? [hashableOptions, componentHash || '', version || '']
     : hashableOptions
-  return simpleHash(JSON.stringify(hashInput))
+  return base64UrlToHex(digest(canonicalJson(hashInput))).slice(0, 16)
 }
 
 /**
@@ -379,7 +413,8 @@ export interface BuildOgImageUrlResult {
 /**
  * Build full OG image URL
  *
- * When encoded params exceed MAX_PATH_LENGTH, falls back to hash mode:
+ * Static URLs fall back to hash mode when encoded params exceed MAX_PATH_LENGTH
+ * or hold a character outside [A-Za-z0-9_.~-]:
  * - Returns short path: /_og/s/o_<hash>.png
  * - Returns hash in result for cache storage
  *
@@ -388,7 +423,7 @@ export interface BuildOgImageUrlResult {
  * @param isStatic - Whether this is a static/prerendered image
  * @param defaults - Optional defaults to skip from URL (keeps URLs shorter)
  * @example buildOgImageUrl({ width: 1200, props: { title: 'Hello' } }, 'png', true)
- * // Returns: { url: "/_og/s/w_1200,title_Hello.png" }
+ * // Returns: { url: "/_og/s/o_<hash>.png", hash: "<hash>" }
  */
 export function buildOgImageUrl(
   options: Record<string, any>,
@@ -400,11 +435,13 @@ export function buildOgImageUrl(
   const encoded = encodeOgImageParams(options, defaults)
   const prefix = isStatic ? '/_og/s' : '/_og/d'
 
-  // Check if encoded path is too long or contains percent-encoded chars (only applies to static/prerendered)
-  // Hash mode requires prerender options cache, so it can't work at runtime
-  // Percent-encoded chars (%23=#, %3F=?, %2C=, etc.) get decoded by prerender crawlers,
-  // proxies, and CDNs in unpredictable ways — hash mode avoids this entirely
-  if (isStatic && (encoded.length > MAX_PATH_LENGTH || encoded.includes('%'))) {
+  // Static segments take hash mode when too long or when they hold any character
+  // outside the RFC 3986 unreserved set. Hash mode requires the prerender options
+  // cache, so it can't work at runtime.
+  // Crawlers, proxies and CDNs rewrite reserved characters in unpredictable ways:
+  // Cloudflare static assets answer `,` or `+` with a 307 to the percent-encoded
+  // path, which social crawlers often do not follow.
+  if (isStatic && (encoded.length > MAX_PATH_LENGTH || RE_NOT_UNRESERVED.test(encoded))) {
     // Use hash mode - short deterministic path
     const hash = hashOgImageOptions(options)
     return {

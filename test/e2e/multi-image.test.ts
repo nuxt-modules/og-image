@@ -55,7 +55,8 @@ describe('multiple og images', () => {
     expect(html).toContain('og:image:height" content="800"')
 
     const urls = extractImageUrls(html)
-    expect(urls.twitter[0]).toContain('k_twitter')
-    expect(urls.og[0]).toContain('k_whatsapp')
+    expect(urls.twitter[0]).toBeTruthy()
+    expect(urls.og[0]).toBeTruthy()
+    expect(urls.twitter[0]).not.toBe(urls.og[0])
   })
 })
