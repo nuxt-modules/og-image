@@ -165,6 +165,21 @@ export function resolveFontFamilies(
 // ============================================================================
 
 /**
+ * Resolve a Nuxt CSS entry path to an absolute filesystem path using the
+ * default Nuxt aliases: `~`/`@` point at srcDir, `~~`/`@@` at rootDir.
+ * Root-absolute paths pass through; anything else is srcDir-relative.
+ */
+export function resolveAppCssPath(cssPath: string, srcDir: string, rootDir: string = srcDir): string {
+  if (cssPath.startsWith('~~/') || cssPath.startsWith('@@/'))
+    return join(rootDir, cssPath.slice(3))
+  if (cssPath.startsWith('~/') || cssPath.startsWith('@/'))
+    return join(srcDir, cssPath.slice(2))
+  if (cssPath.startsWith('/'))
+    return cssPath
+  return join(srcDir, cssPath)
+}
+
+/**
  * Parse manual @font-face declarations from the app's CSS entry files.
  * These are user-declared local fonts (not managed by @nuxt/fonts).
  * Uses lightningcss with errorRecovery to handle @import/@tailwind directives.
@@ -183,12 +198,7 @@ export async function parseAppCssFontFaces(nuxt: Nuxt): Promise<ParsedFont[]> {
     if (!cssPath)
       continue
 
-    // Resolve path relative to srcDir
-    const resolved = cssPath.startsWith('~/')
-      ? join(nuxt.options.srcDir, cssPath.slice(2))
-      : cssPath.startsWith('/')
-        ? cssPath
-        : join(nuxt.options.srcDir, cssPath)
+    const resolved = resolveAppCssPath(cssPath, nuxt.options.srcDir, nuxt.options.rootDir)
 
     if (!existsSync(resolved))
       continue

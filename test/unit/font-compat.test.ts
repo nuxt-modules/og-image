@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { fontFamiliesFromCssEntries, fontsResolvedHookAvailable, warnWhenFontsUnreported } from '../../src/build/font-compat'
+import { parseAppCssFontFaces } from '../../src/build/fonts'
 
 function createNuxt(options: { dev?: boolean, families?: unknown[] } = {}) {
   const hooks: Record<string, () => unknown | Promise<unknown>> = {}
@@ -107,6 +108,45 @@ describe('font-family scanning', () => {
     }
     finally {
       rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('maps Nuxt srcDir and rootDir aliases in CSS entries', () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-compat-alias-'))
+    const srcDir = join(rootDir, 'app')
+    try {
+      mkdirSync(join(srcDir, 'assets/css'), { recursive: true })
+      mkdirSync(join(rootDir, 'assets/css'), { recursive: true })
+      writeFileSync(join(srcDir, 'assets/css/main.css'), 'body { font-family: "Poppins", sans-serif; }\n')
+      writeFileSync(join(rootDir, 'assets/css/root.css'), 'body { font-family: "Rubik", sans-serif; }\n')
+
+      expect(fontFamiliesFromCssEntries(['@/assets/css/main.css'], srcDir, rootDir)).toEqual(['Poppins'])
+      expect(fontFamiliesFromCssEntries(['~/assets/css/main.css'], srcDir, rootDir)).toEqual(['Poppins'])
+      expect(fontFamiliesFromCssEntries(['~~/assets/css/root.css'], srcDir, rootDir)).toEqual(['Rubik'])
+      expect(fontFamiliesFromCssEntries(['@@/assets/css/root.css'], srcDir, rootDir)).toEqual(['Rubik'])
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('parses @font-face from alias-resolved CSS entries', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-compat-faces-'))
+    const srcDir = join(rootDir, 'app')
+    try {
+      mkdirSync(join(srcDir, 'assets/css'), { recursive: true })
+      writeFileSync(
+        join(srcDir, 'assets/css/main.css'),
+        '@font-face {\n  font-family: Poppins;\n  src: url("/fonts/poppins.woff2") format("woff2");\n  font-weight: 400;\n  font-style: normal;\n}\n',
+      )
+
+      const nuxt = { options: { css: ['@/assets/css/main.css'], srcDir, rootDir } }
+      const fonts = await parseAppCssFontFaces(nuxt as any)
+
+      expect(fonts.map(font => font.family)).toEqual(['Poppins'])
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
     }
   })
 })
