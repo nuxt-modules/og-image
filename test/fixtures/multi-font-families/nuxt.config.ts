@@ -22,7 +22,7 @@ export default defineNuxtConfig({
       { name: 'Lobster', weights: [400], global: true },
       { name: 'JetBrains Mono', weights: [400, 700], global: true },
       { name: 'Playfair Display', weights: [400, 700], global: true },
-      // Variable font — declares weight range, og-image should download 400 + 700 static alternatives
+      // Variable font: og-image pins the served file to 400 and 700 for Satori
       { name: 'Nunito Sans', global: true },
       // Local font via @nuxt/fonts — provider: 'none' skips provider resolution, uses src directly
       { name: 'LocalSerif', src: '/fonts/LocalSerif-Regular.ttf', provider: 'none', global: true },

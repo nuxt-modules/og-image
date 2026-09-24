@@ -5,6 +5,7 @@ import type { SatoriOptions } from 'satori'
 import type { SharpOptions } from 'sharp'
 import type { CssProvider } from './build/css/css-provider'
 import type { ResolvedFontFace } from './build/css/font-face'
+import type { InstancerResult } from './build/font-instancer'
 import type { NuxtFontsAssetContext } from './build/fontless'
 import type { FontProcessingState } from './build/fonts'
 import type {
@@ -34,6 +35,7 @@ import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
+import { loadFontInstancer } from './build/font-instancer'
 import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
@@ -1496,6 +1498,9 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       ? { readFont: async url => nuxtFontFiles.get(url)?.() }
       : null
     let fontProcessingDone = false
+    // HarfBuzz for Satori's static fonts, loaded once however often the font list is rebuilt
+    let fontInstancer: Promise<InstancerResult> | undefined
+    const loadInstancer = () => fontInstancer ||= loadFontInstancer([pathToFileURL(`${nuxt.options.rootDir}/`), import.meta.url])
     // What the font list was last built from: the resolved families OG images need, and the
     // weights and styles components use. Undefined before the first build.
     let builtFontKey: string | undefined
@@ -1542,6 +1547,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
           nuxtFontsContext: fontContext,
           fontSubsets: config.fontSubsets,
           warnOnMissingStaticFonts: hasSatoriRenderer(),
+          loadInstancer,
         })
         fontProcessingDone = true
       }
@@ -1664,6 +1670,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
           nuxtFontsContext: fontContext,
           fontSubsets: config.fontSubsets,
           warnOnMissingStaticFonts: hasSatoriRenderer(),
+          loadInstancer,
         })
         fontProcessingDone = true
       })

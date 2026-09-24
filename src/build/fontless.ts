@@ -11,15 +11,17 @@
 import type { ConsolaInstance } from 'consola'
 import type { FontFamilyProviderOverride, FontlessOptions, Resolver } from 'fontless'
 import type { Nuxt } from 'nuxt/schema'
+import type { InstancerResult } from './font-instancer'
 import type { FontProcessingState, FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { isAbsolute, join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getResolvedNuxtFonts, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, STATIC_FONTS_PREFIX } from './fonts'
+import { loadFontInstancer } from './font-instancer'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getResolvedNuxtFonts, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, satoriSourceKey, STATIC_FONTS_PREFIX } from './fonts'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -36,6 +38,8 @@ interface ProcessFontsOptions {
   fontSubsets?: string[]
   /** Warn when no static fallback is available. Satori requires one; Takumi can use WOFF2. */
   warnOnMissingStaticFonts?: boolean
+  /** HarfBuzz, which turns variable fonts into static ones for Satori. Found from the project by default. */
+  loadInstancer?: () => Promise<InstancerResult>
 }
 
 /** Reads the files `@nuxt/fonts` serves, from the `fonts:resolved` hook. */
@@ -113,6 +117,16 @@ function getFamilyRequirements(fontRequirements: FontRequirementsState, family: 
     weights: [...new Set(matchingComponents.flatMap(component => component.weights))],
     styles: [...new Set(matchingComponents.flatMap(component => component.styles))],
   }
+}
+
+/**
+ * The weights to build the font list for. Without component analysis (webpack, rspack), a
+ * variable face stands for its regular and bold weights, as in `getResolvedWeights`.
+ */
+function getListWeights(fontRequirements: FontRequirementsState): number[] {
+  return fontRequirements.scanned === false
+    ? [...new Set([...fontRequirements.weights, 400, 700])].toSorted((a, b) => a - b)
+    : fontRequirements.weights
 }
 
 /**
@@ -548,26 +562,41 @@ async function readLocalFontAsset(nuxt: Nuxt, source: string): Promise<FontAsset
     .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
 }
 
-async function convertNuxtWoff2Sources(options: {
-  fonts: ParsedFont[]
+/** Whether a face renders `weight`: its own weight, or any weight in its variable range. */
+function coversWeight(font: ParsedFont, weight: number): boolean {
+  return font.weightRange
+    ? font.weightRange[0] <= weight && weight <= font.weightRange[1]
+    : font.weight === weight
+}
+
+const WOFF2_SIGNATURE = 0x774F4632
+const SFNT_SIGNATURES = new Set([0x00010000, 0x4F54544F, 0x74727565])
+
+/**
+ * Turn the @nuxt/fonts files Satori needs into static TTFs, one per source and weight. WOFF2 is
+ * decoded, and a variable font is pinned to each weight with HarfBuzz. A static TTF, OTF or WOFF
+ * file needs nothing: Satori reads it as served.
+ *
+ * Returns the sources that are variable, and the families HarfBuzz was missing for.
+ */
+async function convertNuxtFontSources(options: {
+  sources: Map<string, { font: ParsedFont, weights: number[] }>
   nuxt: Nuxt
   context?: NuxtFontsAssetContext | null
   fontState: FontProcessingState
   logger: ConsolaInstance
-}): Promise<void> {
+  loadInstancer: () => Promise<InstancerResult>
+}): Promise<{ variableSources: Set<string>, withoutInstancer: Set<string> }> {
   const staticFontDir = getStaticFontCacheDir(options.nuxt.options.buildDir)
   fs.mkdirSync(staticFontDir, { recursive: true })
+  const variableSources = new Set<string>()
+  const withoutInstancer = new Set<string>()
 
-  const fontsBySource = new Map<string, ParsedFont>()
-  for (const font of options.fonts) {
-    if (!font.weightRange && !fontsBySource.has(font.src))
-      fontsBySource.set(font.src, font)
-  }
-
-  // Keep the decoder out of the main module chunk for apps that do not need conversion.
+  // Keep the decoder and HarfBuzz out of the main module chunk for apps that do not need them.
   let decoder: typeof import('./woff2/decode') | undefined
+  let instancer: InstancerResult | undefined
 
-  for (const [fontSrc, font] of fontsBySource) {
+  for (const [fontSrc, { font, weights }] of options.sources) {
     const served: FontAssetResult | undefined = await options.context?.readFont(fontSrc)
       .then(data => data && { _tag: 'Ok' as const, data })
       .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
@@ -580,37 +609,66 @@ async function convertNuxtWoff2Sources(options: {
       continue
     }
 
-    decoder ||= await import('./woff2/decode')
-    const { woff2Decode } = decoder
-    const decoded = await Promise.resolve().then(() => woff2Decode(asset.data)).catch((error: Error) => {
-      options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)
-      return null
-    })
-    if (!decoded)
+    const signature = asset.data.byteLength >= 4
+      ? new DataView(asset.data.buffer, asset.data.byteOffset, 4).getUint32(0)
+      : 0
+    const isWoff2 = signature === WOFF2_SIGNATURE
+    if (!isWoff2 && !SFNT_SIGNATURES.has(signature))
+      continue
+    decoder ||= isWoff2 ? await import('./woff2/decode') : decoder
+    const sfnt = isWoff2
+      ? await Promise.resolve().then(() => decoder!.woff2Decode(asset.data)).catch((error: Error) => {
+          options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)
+          return null
+        })
+      : asset.data
+    if (!sfnt)
       continue
 
-    if (hasOpenTypeTable(decoded, 'fvar')) {
-      options.logger.debug(`${font.family}: ${fontSrc} is variable; a static Satori fallback is required`)
+    const baseName = fontSrc.split('/').pop()!.replace(/\.(?:woff2|ttf|otf)$/i, '')
+    if (!hasOpenTypeTable(sfnt, 'fvar')) {
+      if (!isWoff2)
+        continue
+      const filename = `${baseName}.ttf`
+      await fs.promises.writeFile(join(staticFontDir, filename), sfnt)
+      for (const weight of weights)
+        options.fontState.sourceMap.set(satoriSourceKey(fontSrc, weight), `${STATIC_FONTS_PREFIX}/${filename}`)
       continue
     }
 
-    const sourceFilename = fontSrc.split('/').pop()!
-    const filename = sourceFilename.replace(/\.woff2$/i, '.ttf')
-    await fs.promises.writeFile(join(staticFontDir, filename), decoded)
-    options.fontState.sourceMap.set(fontSrc, `${STATIC_FONTS_PREFIX}/${filename}`)
+    variableSources.add(fontSrc)
+    instancer ||= await options.loadInstancer()
+    if (instancer._tag === 'Missing') {
+      withoutInstancer.add(font.family)
+      continue
+    }
+    for (const weight of weights) {
+      const result = instancer.instancer.instance(sfnt, weight)
+      if (result._tag === 'Err') {
+        options.logger.warn(`Could not make a static ${font.family} ${weight} font for Satori from ${fontSrc}: ${result.reason}`)
+        continue
+      }
+      const filename = `${baseName}-${weight}.ttf`
+      await fs.promises.writeFile(join(staticFontDir, filename), result.data)
+      options.fontState.sourceMap.set(satoriSourceKey(fontSrc, weight), `${STATIC_FONTS_PREFIX}/${filename}`)
+    }
   }
 
   if (options.fontState.sourceMap.size > 0)
-    options.logger.debug(`Converted ${options.fontState.sourceMap.size} Nuxt Fonts WOFF2 assets to TTF`)
+    options.logger.debug(`Prepared ${options.fontState.sourceMap.size} static Nuxt Fonts files for Satori`)
+  return { variableSources, withoutInstancer }
 }
 
 /**
- * Prepare WOFF2 fonts for Satori. Static Nuxt Fonts assets are
- * decoded directly to TTF, preserving every user-selected subset. Only
- * variable or unreadable assets need provider-resolved static fallbacks.
+ * Prepare @nuxt/fonts files for Satori, which reads neither WOFF2 nor variable fonts. Each file
+ * is converted to a static TTF per weight, keeping every subset the site serves. Providers are
+ * asked for static files only for weights @nuxt/fonts does not serve, or when a file cannot be
+ * converted.
  */
 export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<void> {
   const { nuxt, logger, fontRequirements, fontState, nuxtFontsContext, fontSubsets, warnOnMissingStaticFonts = true } = options
+  const loadInstancer = options.loadInstancer
+    || (() => loadFontInstancer([pathToFileURL(`${nuxt.options.rootDir}/`), import.meta.url]))
   const parsedFonts = await getResolvedNuxtFonts(nuxt, { fontState })
   const requirementsByFamily = new Map<string, ReturnType<typeof getFamilyRequirements>>()
   for (const font of parsedFonts) {
@@ -626,55 +684,63 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
       .map(f => fontKey(f)),
   )
 
-  const woff2Fonts = parsedFonts.filter((font) => {
-    const requirements = requirementsByFamily.get(font.family)!
-    return font.src.endsWith('.woff2')
-      && !hasNonWoff2.has(fontKey(font))
-      && requirements.weights.includes(font.weight)
-      && requirements.styles.includes(font.style as 'normal' | 'italic')
-  })
-
-  if (woff2Fonts.length === 0) {
-    logger.debug('No WOFF2 fonts to process')
+  // Every face Satori may render, with the weights it renders it at
+  const faces = parsedFonts
+    .filter(font => !(font.src.endsWith('.woff2') && hasNonWoff2.has(fontKey(font))))
+    .filter(font => requirementsByFamily.get(font.family)!.styles.includes(font.style as 'normal' | 'italic'))
+    .map(font => ({ font, weights: requirementsByFamily.get(font.family)!.weights.filter(weight => coversWeight(font, weight)) }))
+    .filter(face => face.weights.length > 0)
+  if (faces.length === 0) {
+    logger.debug('No Nuxt Fonts files to prepare for Satori')
     return
   }
+  const sources = new Map<string, { font: ParsedFont, weights: number[] }>()
+  for (const { font, weights } of faces) {
+    const source = sources.get(font.src)
+    sources.set(font.src, { font, weights: [...new Set([...(source?.weights || []), ...weights])] })
+  }
 
-  await convertNuxtWoff2Sources({
-    fonts: woff2Fonts,
+  const { variableSources, withoutInstancer } = await convertNuxtFontSources({
+    sources,
     nuxt,
     context: nuxtFontsContext,
     fontState,
     logger,
+    loadInstancer,
   })
 
+  if (warnOnMissingStaticFonts && withoutInstancer.size > 0)
+    logger.warn(`Satori cannot read variable fonts, and harfbuzzjs was not found to convert ${[...withoutInstancer].join(', ')}. It comes with satori 0.33 and later. Until then, OG images use static files from the font providers.`)
+
+  // Whether Satori can render a family at a weight: every face covering it has a Satori file
+  const hasSatoriFile = (font: ParsedFont, weight: number) => fontState.sourceMap.has(satoriSourceKey(font.src, weight))
+    || (!font.src.endsWith('.woff2') && !variableSources.has(font.src))
+  const isAvailable = (family: string, weight: number, style: string) => {
+    const covering = faces.filter(({ font }) => font.family === family && font.style === style && coversWeight(font, weight))
+    return covering.length > 0 && covering.every(({ font }) => hasSatoriFile(font, weight))
+  }
+  const needsConversion = faces
+    .map(({ font }) => font)
+    .filter(font => font.src.endsWith('.woff2') || variableSources.has(font.src))
+
   const configuredLocalFamilies = new Set(
-    woff2Fonts
+    needsConversion
       .filter(font => isConfiguredLocalFontFamily(nuxt, font.family))
       .map(font => font.family),
   )
   const unresolvedLocalFamilies = new Set(
-    woff2Fonts
-      .filter(font => configuredLocalFamilies.has(font.family) && !fontState.sourceMap.has(font.src))
-      .map(font => font.family),
+    faces
+      .filter(({ font, weights }) => configuredLocalFamilies.has(font.family) && !withoutInstancer.has(font.family)
+        && weights.some(weight => !hasSatoriFile(font, weight)))
+      .map(({ font }) => font.family),
   )
   if (warnOnMissingStaticFonts) {
     for (const family of unresolvedLocalFamilies)
       logger.warn(`Configured Nuxt Fonts assets for "${family}" could not be converted for Satori. Satori does not support WOFF2 or variable fonts; use static WOFF/TTF sources or the Takumi renderer.`)
   }
 
-  const unavailableStaticFonts = new Set(
-    woff2Fonts
-      .filter(font => !fontState.sourceMap.has(font.src))
-      .map(font => `${font.family}-${font.weight}-${font.style}`),
-  )
-  const availableStaticFonts = new Set(
-    parsedFonts
-      .filter(font => !unavailableStaticFonts.has(`${font.family}-${font.weight}-${font.style}`))
-      .filter(font => !font.src.endsWith('.woff2') || fontState.sourceMap.has(font.src))
-      .map(font => `${font.family}-${font.weight}-${font.style}`),
-  )
   const fallbackRequests = new Map<string, { family: string, weights: Set<number>, style: 'normal' | 'italic' }>()
-  for (const font of woff2Fonts) {
+  for (const font of needsConversion) {
     if (configuredLocalFamilies.has(font.family))
       continue
     const style = font.style as 'normal' | 'italic'
@@ -682,7 +748,7 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
     const key = `${font.family}\0${style}`
     const request = fallbackRequests.get(key) || { family: font.family, weights: new Set<number>(), style }
     for (const weight of requirements.weights) {
-      if (!availableStaticFonts.has(`${font.family}-${weight}-${style}`))
+      if (!isAvailable(font.family, weight, style))
         request.weights.add(weight)
     }
     fallbackRequests.set(key, request)
@@ -717,7 +783,7 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
 
   if (warnOnMissingStaticFonts) {
     const usableFamilies = new Set([
-      ...parsedFonts.filter(font => !font.src.endsWith('.woff2') || fontState.sourceMap.has(font.src)).map(font => font.family),
+      ...faces.filter(({ font, weights }) => weights.some(weight => hasSatoriFile(font, weight))).map(({ font }) => font.family),
       ...downloaded.map(font => font.family),
     ])
     for (const family of new Set(families.map(f => f.family))) {
@@ -794,7 +860,7 @@ export async function resolveOgImageFonts(options: {
 
   // 1. Fonts @nuxt/fonts resolved (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
-    ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })
+    ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: getListWeights(fontRequirements) })
     : []
 
   if (hasNuxtFonts) {
@@ -890,7 +956,7 @@ export async function resolveOgImageFonts(options: {
   // not the actual @nuxt/fonts families (e.g. Inter).
   const nuxtFontFamilies = new Set(
     hasNuxtFonts
-      ? (await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
+      ? (await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: getListWeights(fontRequirements) })).map(f => f.family)
       : [],
   )
   const fonts = !fontRequirements.hasDynamicBindings
