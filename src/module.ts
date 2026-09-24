@@ -32,8 +32,10 @@ import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
 import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
+import { extractCustomFontFamilies } from './build/css/css-utils'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
+import { fontFamiliesFromCssEntries, fontsResolvedHookAvailable, warnWhenFontsUnreported } from './build/font-compat'
 import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
@@ -1632,13 +1634,19 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       })
       // @nuxt/fonts reports every family before Nitro builds. Versions without the hook report
       // none, and OG images would silently fall back to Inter.
-      if (!nuxt.options.dev) {
-        nuxt.hook('nitro:build:before', () => {
-          const configuredFamilies = (nuxt.options as { fonts?: { families?: unknown[] } }).fonts?.families || []
-          if (fontState.resolvedFaces!.size === 0 && (configuredFamilies.length > 0 || fontRequirementsState.families.length > 0))
-            logger.warn('@nuxt/fonts did not report any fonts, so OG images use the bundled Inter font. OG images need a @nuxt/fonts version with the `fonts:resolved` hook.')
-        })
-      }
+      const fontsModulePath = await resolveOptionalModulePath('@nuxt/fonts', nuxt.options.rootDir)
+      warnWhenFontsUnreported({
+        nuxt,
+        logger,
+        fontState,
+        loadCssMetadata,
+        fontsResolvedHook: !!fontsModulePath && fontsResolvedHookAvailable(fontsModulePath),
+        expectedFamilies: () => [
+          ...fontRequirementsState.families,
+          ...Object.values(cssMetadata.fontVars).flatMap(value => extractCustomFontFamilies(value)),
+          ...fontFamiliesFromCssEntries(nuxt.options.css, nuxt.options.srcDir),
+        ],
+      })
       const globalFamilies = new Set(((nuxt.options as { fonts?: { families?: Array<{ name: string, global?: boolean }> } }).fonts?.families || [])
         .filter(f => f.global)
         .map(f => f.name.toLowerCase()))
