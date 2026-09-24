@@ -66,7 +66,7 @@ catalog:
   '@nuxt/content': ^3.16.1
   '@nuxt/devtools': 4.0.0-beta.1
   '@nuxt/devtools-kit': 4.0.0-beta.1
-  '@nuxt/fonts': ^0.14.0
+  '@nuxt/fonts': https://pkg.pr.new/@nuxt/fonts@5a92920
   '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
   '@nuxt/kit': ^4.5.2

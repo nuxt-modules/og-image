@@ -181,7 +181,7 @@
     "@nuxt/content": "catalog:",
     "@nuxt/devtools": "catalog:",
     "@nuxt/devtools-kit": "catalog:",
-    "@nuxt/fonts": "https://pkg.pr.new/@nuxt/fonts@5a92920",
+    "@nuxt/fonts": "catalog:",
     "@nuxt/icon": "catalog:",
     "@nuxt/image": "catalog:",
     "@nuxt/module-builder": "catalog:",
