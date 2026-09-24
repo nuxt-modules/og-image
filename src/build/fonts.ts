@@ -67,6 +67,8 @@ export interface FontRequirementsState {
   families: string[]
   hasDynamicBindings: boolean
   componentMap: Record<string, { weights: number[], styles: Array<'normal' | 'italic'>, families: string[], hasDynamicBindings: boolean, category?: 'app' | 'community' | 'pro' }>
+  /** Whether any OG component was analysed. Only Vite builds analyse them. */
+  scanned?: boolean
 }
 
 // ============================================================================
