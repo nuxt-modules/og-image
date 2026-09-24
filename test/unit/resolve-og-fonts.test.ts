@@ -377,6 +377,37 @@ describe('prepareWoff2Fonts', () => {
     }
   })
 
+  it('prepares every resolved weight when components were never analysed', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+    } as any
+
+    // webpack and rspack never analyse OG components, so only the default weight is known
+    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([
+      { family: 'Poppins', src: '/_fonts/poppins-400.woff2', weight: 400, style: 'normal' },
+      { family: 'Poppins', src: '/_fonts/poppins-700.woff2', weight: 700, style: 'normal' },
+      { family: 'Inter', src: '/_fonts/inter.woff2', weight: 400, style: 'normal', weightRange: [100, 900] },
+    ])
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
+        fontRequirements: { ...baseFontReqs, weights: [400], scanned: false },
+        fontState: { fallbackMap: new Map<string, string>(), sourceMap: new Map<string, string>() },
+      })
+
+      expect(resolver).toHaveBeenCalledWith('Poppins', expect.objectContaining({ weights: [400, 700] }))
+      expect(resolver).toHaveBeenCalledWith('Inter', expect.objectContaining({ weights: [400, 700] }))
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it('suppresses warnings when a static fallback is optional', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'og-image-fontless-'))
     const resolver = vi.fn().mockResolvedValue(undefined)

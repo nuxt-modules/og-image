@@ -115,6 +115,21 @@ function getFamilyRequirements(fontRequirements: FontRequirementsState, family: 
   }
 }
 
+/**
+ * Every weight and style @nuxt/fonts resolved for a family, for builds that never analyse OG
+ * components (webpack, rspack). A variable face stands for its regular and bold weights.
+ */
+function getResolvedWeights(fonts: ParsedFont[], family: string): ReturnType<typeof getFamilyRequirements> {
+  const faces = fonts.filter(font => font.family === family)
+  const weights = new Set(faces.flatMap(font => font.weightRange
+    ? [400, 700].filter(weight => font.weightRange![0] <= weight && weight <= font.weightRange![1])
+    : [font.weight]))
+  return {
+    weights: [...weights].toSorted((a, b) => a - b),
+    styles: [...new Set(faces.map(font => font.style as 'normal' | 'italic'))],
+  }
+}
+
 async function initFontless(options: {
   nuxt: Nuxt
   logger?: ConsolaInstance
@@ -599,8 +614,11 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
   const parsedFonts = await parseFontsFromTemplate(nuxt, { fontState })
   const requirementsByFamily = new Map<string, ReturnType<typeof getFamilyRequirements>>()
   for (const font of parsedFonts) {
-    if (!requirementsByFamily.has(font.family))
-      requirementsByFamily.set(font.family, getFamilyRequirements(fontRequirements, font.family))
+    if (!requirementsByFamily.has(font.family)) {
+      requirementsByFamily.set(font.family, fontRequirements.scanned === false
+        ? getResolvedWeights(parsedFonts, font.family)
+        : getFamilyRequirements(fontRequirements, font.family))
+    }
   }
   const hasNonWoff2 = new Set(
     parsedFonts

@@ -1578,7 +1578,8 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         weights: fontRequirementsState.weights,
         styles: fontRequirementsState.styles,
         families: fontRequirementsState.families,
-        hasDynamicBindings: fontRequirementsState.hasDynamicBindings,
+        // Unanalysed components (webpack, rspack) may use any font, like dynamic bindings
+        hasDynamicBindings: fontRequirementsState.hasDynamicBindings || !fontRequirementsState.scanned,
       })}
 export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
       // In dev mode, componentFontMap must be read from disk on each access because
