@@ -16,6 +16,8 @@ minimumReleaseAgeExclude:
   - '@nuxt/devtools-kit@4.0.0-beta.4'
   - '@nuxt/devtools@4.0.0-beta.4'
   - vite@8.3.3
+  - satori@0.33.5
+  - fontless@1.1.0
 
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800

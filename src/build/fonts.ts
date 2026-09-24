@@ -5,12 +5,13 @@
 
 import type { ConsolaInstance } from 'consola'
 import type { Nuxt } from 'nuxt/schema'
+import type { ResolvedFontFace } from './css/font-face'
 import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { join, relative } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { extractFontFacesWithSubsets } from './css/font-face'
+import { fontFacesFromResolved } from './css/font-face'
 
 const RE_FONT_FACE_BLOCK = /@font-face\s*\{[^}]+\}/g
 const RE_FONT_KEY = /^(.+)-(\d+)-(.+)$/
@@ -49,6 +50,10 @@ export interface FontProcessingState {
   sourceMap: Map<string, string>
   /** Font identity (family+weight+style) → provider-resolved static fallback path. */
   fallbackMap: Map<string, string>
+  /** Faces from the `@nuxt/fonts` `fonts:resolved` hook, by family. Empty before v1. */
+  resolvedFaces?: Map<string, ResolvedFontFace[]>
+  /** Whether OG images need a resolved family: global, or used by an OG component. */
+  isOgFamily?: (family: string) => boolean
 }
 
 export function getStaticFontCacheDir(buildDir: string): string {
@@ -365,25 +370,9 @@ export function parseConfiguredLocalFonts(nuxt: Nuxt): ParsedFont[] {
 // ============================================================================
 
 /**
- * Parse fonts from @nuxt/fonts CSS template.
+ * Fonts from the `@nuxt/fonts` `fonts:resolved` hook that OG images need.
  * Returns font configs with family, src, weight, style, and optional satoriSrc.
  */
-/**
- * `@nuxt/fonts` registers the global stylesheet as a template for Vite. With webpack and
- * rspack, v1 writes it to the buildDir on `build:before` instead.
- */
-async function readNuxtFontsGlobalCss(nuxt: Nuxt): Promise<string | undefined> {
-  const template = nuxt.options.build.templates.find(t => t.filename?.endsWith('nuxt-fonts-global.css'))
-  if (template?.getContents)
-    return template.getContents({} as any)
-  return fs.promises.readFile(join(nuxt.options.buildDir, 'nuxt-fonts-global.css'), 'utf-8')
-    .catch((error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT')
-        return undefined
-      throw error
-    })
-}
-
 export async function parseFontsFromTemplate(
   nuxt: Nuxt,
   options: {
@@ -396,21 +385,18 @@ export async function parseFontsFromTemplate(
   const weightsKey = options.requiredWeights?.toSorted((a, b) => a - b).join(',') || ''
   const sourceKey = [...options.fontState.sourceMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
   const fallbackKey = [...options.fontState.fallbackMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
-  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}`
+  const resolvedFamilies = [...options.fontState.resolvedFaces?.keys() || []].filter(f => options.fontState.isOgFamily?.(f) ?? true)
+  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}:${resolvedFamilies.join(',')}`
   const cache: Map<string, ParsedFont[]> = (nuxt as any)._ogImageParsedFontsCache ||= new Map()
   const cached = cache.get(cacheKey)
   if (cached)
     return cached
 
-  const contents = await readNuxtFontsGlobalCss(nuxt)
-  if (contents === undefined)
-    return []
-
   // Include all @nuxt/fonts subsets — these are user-configured fonts and shouldn't be
   // filtered. Non-Latin subsets (devanagari, cyrillic, etc.) need to be available for
   // renderers like Takumi that support them natively. The fontSubsets config only controls
   // fontless downloads (Satori fallback path) to limit download size.
-  const allFonts = await extractFontFacesWithSubsets(contents)
+  const allFonts = resolvedFamilies.flatMap(family => fontFacesFromResolved(family, options.fontState.resolvedFaces!.get(family)!))
 
   // Dedupe: for each (family, weight, style, unicodeRange), prefer WOFF over WOFF2
   const fontMap = new Map<string, typeof allFonts[0]>()

@@ -11,14 +11,12 @@
 import type { ConsolaInstance } from 'consola'
 import type { FontFamilyProviderOverride, FontlessOptions, Resolver } from 'fontless'
 import type { Nuxt } from 'nuxt/schema'
-import type { NuxtFontsManifest, NuxtFontSource, RenderedFontURL } from '../runtime/server/og-image/bindings/font-assets/nuxt-fonts'
 import type { FontProcessingState, FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { isAbsolute, join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
-import { nuxtFontFilename, toNuxtFontSource } from '../runtime/server/og-image/bindings/font-assets/nuxt-fonts'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
@@ -40,11 +38,10 @@ interface ProcessFontsOptions {
   warnOnMissingStaticFonts?: boolean
 }
 
+/** The `fonts:public-asset-context` context, as far as og-image uses it. */
 export interface NuxtFontsAssetContext {
-  assetsBaseURL: string
-  /** Set by `@nuxt/fonts` v1. */
-  baseURL?: string
-  renderedFontURLs: Map<string, RenderedFontURL>
+  /** The bytes of a font `@nuxt/fonts` serves, by URL; `undefined` for any other file. */
+  readFont: (url: string) => Promise<Buffer | undefined>
 }
 
 interface DownloadedFont {
@@ -212,26 +209,6 @@ async function initFontless(options: {
 // ============================================================================
 // Font URL Persistence
 // ============================================================================
-
-/** Persist @nuxt/fonts URL mapping to disk for prerender. */
-export function persistFontUrlMapping(options: {
-  fontContext: NuxtFontsAssetContext | null
-  buildDir: string
-  baseURL: string
-  logger: ConsolaInstance
-}): void {
-  if (!options.fontContext?.renderedFontURLs.size)
-    return
-  const cacheDir = join(options.buildDir, 'cache', 'og-image')
-  fs.mkdirSync(cacheDir, { recursive: true })
-  const manifest: NuxtFontsManifest = {
-    assetsBaseURL: options.fontContext.assetsBaseURL,
-    baseURL: options.fontContext.baseURL || options.baseURL,
-    urls: Object.fromEntries([...options.fontContext.renderedFontURLs].map(([filename, entry]) => [filename, toNuxtFontSource(entry)])),
-  }
-  fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(manifest))
-  options.logger.debug(`Persisted ${options.fontContext.renderedFontURLs.size} font URLs for prerender`)
-}
 
 // ============================================================================
 // Static Font Download Pipeline
@@ -527,15 +504,7 @@ function hasOpenTypeTable(data: Uint8Array, expectedTag: string): boolean {
   return false
 }
 
-function getNuxtFontOriginalSource(fontSrc: string, context?: NuxtFontsAssetContext | null): NuxtFontSource | undefined {
-  if (!context)
-    return
-  const filename = nuxtFontFilename(fontSrc, context.assetsBaseURL, context.baseURL)
-  const entry = filename && context.renderedFontURLs.get(filename)
-  return entry ? toNuxtFontSource(entry) : undefined
-}
-
-async function readNuxtFontAsset(nuxt: Nuxt, { url: source, headers }: NuxtFontSource): Promise<FontAssetResult> {
+async function readLocalFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetResult> {
   if (source.startsWith('/')) {
     const configuredPublicDir = nuxt.options.dir.public || 'public'
     const publicDir = isAbsolute(configuredPublicDir)
@@ -557,7 +526,7 @@ async function readNuxtFontAsset(nuxt: Nuxt, { url: source, headers }: NuxtFontS
       .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
   }
 
-  return fetch(source, { headers })
+  return fetch(source)
     .then(async response => response.ok
       ? { _tag: 'Ok' as const, data: new Uint8Array(await response.arrayBuffer()) }
       : { _tag: 'Err' as const, reason: `source returned HTTP ${response.status}` })
@@ -580,28 +549,24 @@ async function convertNuxtWoff2Sources(options: {
       fontsBySource.set(font.src, font)
   }
 
-  const mappedSources: Array<{ font: ParsedFont, fontSrc: string, originalSource: NuxtFontSource }> = []
-  for (const [fontSrc, font] of fontsBySource) {
-    const originalSource = getNuxtFontOriginalSource(fontSrc, options.context)
-      || (isConfiguredLocalFontFamily(options.nuxt, font.family) ? { url: fontSrc } : undefined)
-    if (originalSource)
-      mappedSources.push({ font, fontSrc, originalSource })
-    else
-      options.logger.debug(`Could not map Nuxt Fonts asset to its original source: ${fontSrc}`)
-  }
-  if (mappedSources.length === 0)
-    return
-
   // Keep the decoder out of the main module chunk for apps that do not need conversion.
-  const { woff2Decode } = await import('./woff2/decode')
+  let decoder: typeof import('./woff2/decode') | undefined
 
-  for (const { fontSrc, font, originalSource } of mappedSources) {
-    const asset = await readNuxtFontAsset(options.nuxt, originalSource)
+  for (const [fontSrc, font] of fontsBySource) {
+    const served: FontAssetResult | undefined = await options.context?.readFont(fontSrc)
+      .then(data => data && { _tag: 'Ok' as const, data })
+      .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
+    const asset: FontAssetResult = served
+      || (isConfiguredLocalFontFamily(options.nuxt, font.family)
+        ? await readLocalFontAsset(options.nuxt, fontSrc)
+        : { _tag: 'Err', reason: 'not served by Nuxt Fonts' })
     if (asset._tag === 'Err') {
       options.logger.debug(`Could not read Nuxt Fonts asset ${fontSrc}: ${asset.reason}`)
       continue
     }
 
+    decoder ||= await import('./woff2/decode')
+    const { woff2Decode } = decoder
     const decoded = await Promise.resolve().then(() => woff2Decode(asset.data)).catch((error: Error) => {
       options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)
       return null
@@ -946,4 +911,31 @@ export async function resolveOgImageFonts(options: {
   }
 
   return fonts
+}
+
+/**
+ * Copy the `@nuxt/fonts` files OG images use into the buildDir and point `absolutePath` at them,
+ * so dev and prerender read them from disk. `@nuxt/fonts` only serves them from Vite and the
+ * final output, which Nitro can't reach before the build finishes.
+ */
+export async function attachNuxtFontFiles(options: {
+  fonts: ParsedFont[]
+  context: NuxtFontsAssetContext
+  buildDir: string
+}): Promise<void> {
+  const dir = join(options.buildDir, 'cache', 'og-image', 'nuxt-fonts')
+  fs.mkdirSync(dir, { recursive: true })
+  const written = new Map<string, string | undefined>()
+  for (const font of options.fonts) {
+    if (font.absolutePath)
+      continue
+    if (!written.has(font.src)) {
+      const data = await options.context.readFont(font.src)
+      const path = data ? join(dir, font.src.split('/').pop()!) : undefined
+      if (data && path)
+        await fs.promises.writeFile(path, data)
+      written.set(font.src, path)
+    }
+    font.absolutePath = written.get(font.src)
+  }
 }
