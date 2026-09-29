@@ -18,7 +18,6 @@ import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { logger } from '../../logger'
 import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps, verifyOgImageSignature } from '../../shared'
 import { hashKey } from '../../shared/hash'
-import { autoEjectCommunityTemplate } from '../util/auto-eject'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { getEventQuery } from '../util/query'
@@ -238,10 +237,6 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     }
     normalised.options.props = filtered
   }
-
-  // Auto-eject community templates in dev mode (skip devtools requests)
-  if (normalised.component?.category === 'community')
-    autoEjectCommunityTemplate(normalised.component, runtimeConfig, { requestPath: e.path })
 
   const rendererType = normalised.renderer
   // In hash mode, pages with identical options share one image, so key the
