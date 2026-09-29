@@ -20,14 +20,13 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
-import { addBuildPlugin, addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { setupNitroRuntimeCompatibility } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
 import { readPackageJSON } from 'pkg-types'
-import { isAgent } from 'std-env'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
@@ -44,7 +43,7 @@ import { resolveOptionalModulePath } from './build/optional-module'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { resolveSigningSecret } from './build/signing-secret'
-import { TreeShakeComposablesPlugin } from './build/tree-shake-plugin'
+import { OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
 import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
@@ -54,7 +53,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getRecommendedBinding, promptForRendererSelection, resolveAutoDetectedProvider, TAKUMI_CORE_PACKAGE } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, promptForRendererSelection, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -873,13 +872,16 @@ export default defineNuxtModule<ModuleOptions>({
         },
       })
 
-      if (!nuxt.options.dev) {
-        // `addBuildPlugin`'s `build` option cannot express "build only": kit skips a plugin
-        // on `build: false`, and `nuxt.options.build` is always truthy. The `nuxt.options.dev`
-        // guard above is the real switch.
-        addBuildPlugin(TreeShakeComposablesPlugin, { server: true, client: true })
+      if (!nuxt.options.dev)
         setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
-      }
+    }
+    // Fail the production build on calls that can never render, instead of a silent
+    // fallback or a runtime 500. The client build sees every page, so it scans once.
+    if (!nuxt.options.dev && !nuxt.options._prepare) {
+      addVitePlugin(OgImageUsageCheckPlugin.vite({
+        getContext: () => ({ components: ogImageComponentCtx.components, browserEnabled: !!config.browser }),
+        ignoreDirs: [resolve('./runtime'), nuxt.options.buildDir],
+      }), { server: false })
     }
     const basePath = config.zeroRuntime ? './runtime/server/routes/__zero-runtime' : './runtime/server/routes'
     let publicDirAbs = nuxt.options.dir.public
@@ -1091,7 +1093,10 @@ export default defineNuxtModule<ModuleOptions>({
         }
         addImports({
           name,
-          from: resolve(`./runtime/app/composables/${name}`),
+          // zeroRuntime production builds get wrappers that only run during prerender
+          from: config.zeroRuntime && !nuxt.options.dev
+            ? resolve('./runtime/app/composables/zero-runtime')
+            : resolve(`./runtime/app/composables/${name}`),
         })
       })
 
@@ -1180,16 +1185,17 @@ export default defineNuxtModule<ModuleOptions>({
         logger.debug(`Using ${preferred} renderer`)
       }
       else if (fallbackToDefault) {
-        if (nuxt.options.dev && !nuxt.options._prepare && canPromptInteractively()) {
+        if (nuxt.options.dev && canPromptInteractively()) {
+          // choosing a renderer in the prompt is consent to install it below
           const renderer = await promptForRendererSelection()
           ogImageComponentCtx.detectedRenderers.add(renderer)
           logger.debug(`Using ${renderer} renderer`)
         }
         else {
-          // non-interactive (agent, CI, or no TTY) — can't prompt, default to takumi.
-          // Warn so the choice is visible and the agent can pin a renderer explicitly.
-          ogImageComponentCtx.detectedRenderers.add('takumi')
-          logger.warn(`No OG image renderer dependency detected. Defaulting to \`takumi\` (non-interactive environment). Install \`${TAKUMI_CORE_PACKAGE}\`, or add a renderer component (e.g. components/OgImage/Default.satori.vue) to choose explicitly.`)
+          // Fresh install with no template and no renderer (for example through @nuxtjs/seo).
+          // Nothing can render yet, and nothing asked for an image, so there is nothing to fail.
+          // Every non-interactive shell (agent, CI, piped) gets the same single line.
+          logger.warn(NO_RENDERER_MESSAGE)
         }
       }
     }
@@ -1201,31 +1207,26 @@ export default defineNuxtModule<ModuleOptions>({
         for (const renderer of ogImageComponentCtx.detectedRenderers) {
           const binding = getRecommendedBinding(renderer, targetCompatibility)
           const missing = await getMissingDependencies(renderer, binding)
-          if (missing.length === 0) {
+          // The browser renderer falls back to local Chrome or an on-demand download
+          // when playwright-core is missing, so a missing package does not stop it.
+          if (missing.length === 0 || renderer === 'browser') {
             availableRenderers.add(renderer)
-          }
-          else if (nuxt.options.dev && !nuxt.options._prepare) {
-            const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
-            logger.warn(`${renderer} renderer requires: ${installSpecs.join(', ')}`)
-            const { success } = await ensureProviderDependencies(renderer, binding, nuxt)
-            if (success) {
-              availableRenderers.add(renderer)
-            }
-            else if (isAgent) {
-              // agents can't recover from a half-installed renderer — fail loud and actionable
-              throw new Error(`[nuxt-og-image] Failed to install ${renderer} dependencies: ${missing.join(', ')}. Install manually: npx nypm add ${installSpecs.join(' ')}`)
-            }
-            else {
-              logger.error(`Failed to install ${renderer} dependencies. Templates using this renderer won't work.`)
-            }
-          }
-          else if (isAgent) {
-            const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
-            throw new Error(`[nuxt-og-image] ${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${installSpecs.join(' ')}`)
           }
           else {
             const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
-            logger.error(`${renderer} renderer missing dependencies: ${missing.join(', ')}. Install with: npx nypm add ${installSpecs.join(' ')}`)
+            const action = resolveMissingRendererAction({ renderer, installSpecs, dev: nuxt.options.dev, interactive: canPromptInteractively() })
+            if (action._tag === 'Fail')
+              throw new Error(action.message)
+            if (action._tag === 'Report') {
+              logger.error(action.message)
+            }
+            else {
+              const accepted = await logger.prompt(`The ${renderer} renderer needs ${installSpecs.join(', ')}. Install now?`, { type: 'confirm', initial: true })
+              if (accepted === true && (await ensureProviderDependencies(renderer, binding, nuxt)).success)
+                availableRenderers.add(renderer)
+              else
+                logger.error(getMissingRendererMessage(renderer, installSpecs))
+            }
           }
           // Set resvg WASM fallback compatibility when satori resolved to wasm binding
           if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
@@ -1870,6 +1871,8 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
+    if (nuxt.options.dev)
+      addServerPlugin(resolve('./runtime/server/plugins/auto-eject'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
 

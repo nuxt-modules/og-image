@@ -32,18 +32,40 @@ describe('cli', () => {
   })
 
   describe('eject', () => {
-    it('ejects template to components/OgImage with renderer suffix', () => {
+    it('ejects the default takumi variant when nothing picks a renderer', () => {
       const output = runCli('eject NuxtSeo')
       expect(output).toContain('Ejected "NuxtSeo"')
+      expect(output).toContain('Picked the takumi variant')
+      expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.takumi.vue'))).toBe(true)
+    })
+
+    it('ejects the variant named by a renderer suffix', () => {
+      runCli('eject NuxtSeo.satori')
+      expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.satori.vue'))).toBe(true)
+      expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.takumi.vue'))).toBe(false)
+    })
+
+    it('ejects the variant for the renderer in package.json', () => {
+      writeFileSync(join(tmpDir, 'package.json'), JSON.stringify({ dependencies: { 'satori': '*', '@resvg/resvg-js': '*' } }))
+      const output = runCli('eject NuxtSeo')
+      expect(output).toContain('satori is in package.json')
+      expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.satori.vue'))).toBe(true)
+    })
+
+    it('ejects the variant for the renderer the app templates use', () => {
+      mkdirSync(join(tmpDir, 'components/OgImage'), { recursive: true })
+      writeFileSync(join(tmpDir, 'components/OgImage/Card.satori.vue'), '<template><div /></template>')
+      writeFileSync(join(tmpDir, 'package.json'), JSON.stringify({ dependencies: { '@takumi-rs/core': '*' } }))
+      runCli('eject NuxtSeo')
       expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.satori.vue'))).toBe(true)
     })
 
     it('ejects to app/components/OgImage when app/ exists (Nuxt v4)', () => {
       mkdirSync(join(tmpDir, 'app'), { recursive: true })
-      const output = runCli('eject NuxtSeo')
-      expect(output).toContain('Ejected "NuxtSeo"')
-      expect(existsSync(join(tmpDir, 'app/components/OgImage/NuxtSeo.satori.vue'))).toBe(true)
-      expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.satori.vue'))).toBe(false)
+      const output = runCli('eject NuxtSeo.takumi')
+      expect(output).toContain('Ejected "NuxtSeo.takumi"')
+      expect(existsSync(join(tmpDir, 'app/components/OgImage/NuxtSeo.takumi.vue'))).toBe(true)
+      expect(existsSync(join(tmpDir, 'components/OgImage/NuxtSeo.takumi.vue'))).toBe(false)
     })
 
     it('fails for non-existent template', () => {
@@ -280,8 +302,17 @@ describe('cli', () => {
 
       runCli('migrate v6 --yes')
       const content = readFileSync(pageFile, 'utf-8')
-      expect(content).toContain('<!-- Migrated: use defineOgImage(')
+      expect(content).toContain(`<!-- Migrated: use defineOgImage('NuxtSeo', { title: 'Hello' }) in <script setup> -->`)
       expect(content).not.toContain('<OgImage')
+    })
+
+    it('migrates <OgImage component="..." /> with the component as the first argument', () => {
+      const pageFile = join(tmpDir, 'page.vue')
+      writeFileSync(pageFile, `<template>\n  <OgImage component="BlogPost" :title="post.title" />\n</template>`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(pageFile, 'utf-8')
+      expect(content).toContain(`<!-- Migrated: use defineOgImage('BlogPost', { title: post.title }) in <script setup> -->`)
     })
 
     it('migrates <OgImageScreenshot /> to composable comment', () => {

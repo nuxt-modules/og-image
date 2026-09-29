@@ -17,7 +17,6 @@ import {
   getProviderDependencyInstallSpecs,
   getRecommendedBindingFromPreset,
   PROVIDER_DEPENDENCIES,
-  TAKUMI_CORE_PACKAGE,
   validateProviderSetup,
 } from './utils/dependencies'
 
@@ -63,26 +62,11 @@ export async function onInstall(nuxt: Nuxt): Promise<void> {
   if (nuxt.options._prepare)
     return
 
-  // in CI, validate deps exist or throw
-  if (isCI) {
-    const installedProviders = await getInstalledProviders()
-    if (installedProviders.length === 0) {
-      throw new Error(
-        '[nuxt-og-image] No OG image provider dependencies found. '
-        + 'Install a provider before running in CI:\n'
-        + `  npm add ${TAKUMI_CORE_PACKAGE}                # for takumi\n`
-        + '  npm add @resvg/resvg-js satori yoga-wasm-web  # for satori\n'
-        + '  npm add playwright-core                       # for browser\n'
-        + 'See: https://nuxtseo.com/og-image/getting-started',
-      )
-    }
-    return
-  }
-
-  // non-interactive environment (AI agent or no TTY) — can't prompt, skip onboarding.
-  // module setup auto-detects installed providers and defaults to takumi.
-  if (!canPromptInteractively()) {
-    logger.info('Skipping interactive onboarding (non-interactive environment). Defaulting to the takumi renderer.')
+  // Without a prompt (CI, AI agent, piped stdin), never install and never fail here.
+  // Module setup reports a missing renderer once, and fails the build only when a
+  // template needs it.
+  if (isCI || !canPromptInteractively()) {
+    logger.info('Skipping interactive onboarding (non-interactive environment).')
     return
   }
 

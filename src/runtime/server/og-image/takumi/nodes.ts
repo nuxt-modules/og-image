@@ -2,11 +2,10 @@ import type { ContainerNode, ImageNode, Node, TextNode } from '@takumi-rs/helper
 import type { OgImageRenderEventContext, VNode } from '../../../types'
 import { createVNodes, resolveSvgDimension, SVG_CAMEL_ATTR_VALUES } from '../core/vnodes'
 
-const RE_RELATIVE_UNIT = /^([\d.]+)(em|rem)$/
-const RE_TW_TEXT_ARBITRARY = /(?:^|\s)text-\[(\d+(?:\.\d+)?)(px|rem|em)\]/
-const RE_FONT_SIZE_PX = /^(\d+(?:\.\d+)?)(px)?$/
+const RE_RELATIVE_UNIT = /^[\d.]+r?em$/
 
-const DEFAULT_FONT_SIZE = 16
+const RE_LEADING_SPACE = /^\s/
+const RE_TRAILING_SPACE = /\s$/
 
 const RE_UPPERCASE = /[A-Z]/g
 const RE_DQUOTE = /"/g
@@ -16,7 +15,7 @@ const RE_GT = />/g
 
 export async function createTakumiNodes(ctx: OgImageRenderEventContext): Promise<Node> {
   const vnodeTree = await createVNodes(ctx)
-  return await ctx.timings.measure('takumi-nodes', () => vnodeToTakumiNode(vnodeTree, DEFAULT_FONT_SIZE))
+  return await ctx.timings.measure('takumi-nodes', () => vnodeToTakumiNode(vnodeTree))
 }
 
 // Extract numeric width/height from HTML attributes
@@ -28,46 +27,12 @@ function pickNumericDimension(props: Record<string, any>, key: 'width' | 'height
   return Number.isNaN(n) ? undefined : n
 }
 
-/**
- * Resolve an em/rem value to pixels given the inherited font size.
- */
-function resolveRelativeUnit(value: string | number | undefined, inheritedFontSize: number): number | undefined {
-  if (value == null)
-    return undefined
-  const match = String(value).match(RE_RELATIVE_UNIT)
-  if (!match)
-    return undefined
-  const n = Number.parseFloat(match[1]!)
-  return match[2] === 'rem' ? n * DEFAULT_FONT_SIZE : n * inheritedFontSize
-}
-
-/**
- * Extract font size in px from a vnode's style or tailwind classes.
- */
-function extractFontSize(props: Record<string, any>, style: Record<string, any> | undefined): number | undefined {
-  // 1. Inline style fontSize
-  if (style?.fontSize != null) {
-    const m = String(style.fontSize).match(RE_FONT_SIZE_PX)
-    if (m)
-      return Number.parseFloat(m[1]!)
-  }
-  // 2. Tailwind arbitrary text-[Npx] from class or tw
-  const twStr = props.tw || props.class || ''
-  const twMatch = twStr.match(RE_TW_TEXT_ARBITRARY)
-  if (twMatch) {
-    const val = Number.parseFloat(twMatch[1]!)
-    if (twMatch[2] === 'px')
-      return val
-  }
-  return undefined
-}
-
 function extractColor(style: Record<string, any> | undefined): string | undefined {
   const color = style?.color
   return typeof color === 'string' && color ? color : undefined
 }
 
-export async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number, inheritedColor?: string): Promise<Node> {
+export async function vnodeToTakumiNode(vnode: VNode, inheritedColor?: string): Promise<Node> {
   const { style, children, class: cls, tw, src, ...rest } = vnode.props
   const nodeColor = extractColor(style) ?? inheritedColor
 
@@ -78,25 +43,20 @@ export async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number,
 
   // SVG elements → convert to SVG string
   if (vnode.type === 'svg') {
-    // Only resolve em/rem to pixels when we have an explicit font size from a parent
-    // (e.g. text-[80px]). When using the default 16px, leave dimensions unset so
-    // takumi can handle the SVG's native 1em sizing and keep inline layout.
-    const hasExplicitFontSize = inheritedFontSize !== DEFAULT_FONT_SIZE
-    const isRelativeW = RE_RELATIVE_UNIT.test(String(rest.width ?? ''))
-    const isRelativeH = RE_RELATIVE_UNIT.test(String(rest.height ?? ''))
+    // em sizes follow the text the SVG sits in, as with emoji. Takumi resolves em against
+    // the computed font size, which includes Tailwind classes this converter cannot see.
+    const relativeW = RE_RELATIVE_UNIT.test(String(rest.width ?? '')) ? String(rest.width) : undefined
+    const relativeH = RE_RELATIVE_UNIT.test(String(rest.height ?? '')) ? String(rest.height) : undefined
+    const imageStyle = relativeW || relativeH
+      ? { ...style, ...(relativeW && style?.width == null ? { width: relativeW } : {}), ...(relativeH && style?.height == null ? { height: relativeH } : {}) }
+      : style
     return {
       ...baseMetadata,
+      style: imageStyle,
       type: 'image',
       src: vnodeToHtmlString(vnode, nodeColor),
-      // When em/rem + explicit parent font size → resolve to px.
-      // When em/rem + default font size → leave undefined (takumi handles natively).
-      // Otherwise → use standard resolution chain (numeric attrs → style → viewBox).
-      width: isRelativeW
-        ? (hasExplicitFontSize ? resolveRelativeUnit(rest.width, inheritedFontSize) : undefined)
-        : resolveSvgDimension(rest, style, 'width'),
-      height: isRelativeH
-        ? (hasExplicitFontSize ? resolveRelativeUnit(rest.height, inheritedFontSize) : undefined)
-        : resolveSvgDimension(rest, style, 'height'),
+      width: relativeW ? undefined : resolveSvgDimension(rest, style, 'width'),
+      height: relativeH ? undefined : resolveSvgDimension(rest, style, 'height'),
     } satisfies ImageNode
   }
 
@@ -109,10 +69,6 @@ export async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number,
       height: pickNumericDimension(rest, 'height'),
     } satisfies ImageNode
   }
-
-  // Compute inherited font size for children
-  const nodeFontSize = extractFontSize(vnode.props, style)
-  const childFontSize = nodeFontSize ?? inheritedFontSize
 
   // For non-image nodes, merge any explicit width/height into style
   const containerStyle = { ...style }
@@ -148,11 +104,17 @@ export async function vnodeToTakumiNode(vnode: VNode, inheritedFontSize: number,
   // Array children
   if (Array.isArray(children)) {
     const takumiChildren: Node[] = []
-    for (const child of children) {
-      if (child && typeof child === 'object')
-        takumiChildren.push(await vnodeToTakumiNode(child, childFontSize, nodeColor))
-      else if (typeof child === 'string' && child.trim())
-        takumiChildren.push({ type: 'text', text: child.trim() })
+    const isInlineImage = (c: unknown) => !!c && typeof c === 'object' && ['svg', 'img'].includes((c as VNode).type)
+    for (const [i, child] of children.entries()) {
+      if (child && typeof child === 'object') {
+        takumiChildren.push(await vnodeToTakumiNode(child, nodeColor))
+      }
+      else if (typeof child === 'string' && child.trim()) {
+        // Keep one space next to an inline image such as an emoji, so "it 🚀 now" keeps its gaps
+        const start = isInlineImage(children[i - 1]) && RE_LEADING_SPACE.test(child) ? ' ' : ''
+        const end = isInlineImage(children[i + 1]) && RE_TRAILING_SPACE.test(child) ? ' ' : ''
+        takumiChildren.push({ type: 'text', text: `${start}${child.trim()}${end}` })
+      }
     }
 
     return {
