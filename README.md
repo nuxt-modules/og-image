@@ -7,11 +7,11 @@
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
 
-<a href="https://skilld.dev/gh/nuxt-modules/og-image/nuxt-og-image">
+<a href="https://skilld.dev/gh/nuxt-modules/og-image">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://skilld.dev/b/nuxt-modules/og-image/nuxt-og-image?theme=dark">
-    <source media="(prefers-color-scheme: light)" srcset="https://skilld.dev/b/nuxt-modules/og-image/nuxt-og-image?theme=light">
-    <img alt="Skill repository on skilld.dev" src="https://skilld.dev/b/nuxt-modules/og-image/nuxt-og-image?theme=light">
+    <source media="(prefers-color-scheme: dark)" srcset="https://skilld.dev/b/nuxt-modules/og-image?theme=dark">
+    <source media="(prefers-color-scheme: light)" srcset="https://skilld.dev/b/nuxt-modules/og-image?theme=light">
+    <img alt="Skill repository on skilld.dev" src="https://skilld.dev/b/nuxt-modules/og-image?theme=light">
   </picture>
 </a>
 
@@ -50,7 +50,7 @@ npx nuxi@latest module add og-image
 ```
 
 > [!TIP]
-> Using an AI agent? Get the nuxt-og-image Skill on [skilld.dev/gh/nuxt-modules/og-image/nuxt-og-image](https://skilld.dev/gh/nuxt-modules/og-image/nuxt-og-image).
+> Using an AI agent? Get the nuxt-og-image Skill on [skilld.dev/gh/nuxt-modules/og-image](https://skilld.dev/gh/nuxt-modules/og-image).
 
 💡 Built your OG images? Check how they render across Twitter, Facebook, LinkedIn and Slack with the free [Social Share Debugger](https://nuxtseo.com/tools/social-share-debugger), or monitor them site-wide with [Nuxt SEO Pro](https://nuxtseo.com/pro).
 
