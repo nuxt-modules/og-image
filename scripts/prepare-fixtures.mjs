@@ -27,6 +27,7 @@ const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
 
 const templates = readdirSync(communityDir).filter(f => f.endsWith('.vue'))
 const fixturesWithoutCommunityTemplates = new Set([
+  'test/fixtures/auto-eject',
   'test/fixtures/takumi-only-fonts',
   'test/fixtures/woff2-conversion',
 ])
