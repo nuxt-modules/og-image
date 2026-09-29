@@ -7,7 +7,7 @@ describe('resolveAutoDetectedProvider', () => {
       hasUserComponents: false,
       installedProviders: ['takumi', 'satori'],
     })
-    expect(decision).toEqual({ preferred: 'takumi', fallbackToDefault: false })
+    expect(decision).toEqual({ preferred: 'takumi', noRenderer: false })
   })
 
   it('prefers the first installed provider when takumi is absent', () => {
@@ -15,7 +15,7 @@ describe('resolveAutoDetectedProvider', () => {
       hasUserComponents: false,
       installedProviders: ['satori'],
     })
-    expect(decision).toEqual({ preferred: 'satori', fallbackToDefault: false })
+    expect(decision).toEqual({ preferred: 'satori', noRenderer: false })
   })
 
   it('treats an installed browser provider as the preferred renderer', () => {
@@ -23,7 +23,7 @@ describe('resolveAutoDetectedProvider', () => {
       hasUserComponents: false,
       installedProviders: ['browser'],
     })
-    expect(decision).toEqual({ preferred: 'browser', fallbackToDefault: false })
+    expect(decision).toEqual({ preferred: 'browser', noRenderer: false })
   })
 
   it('keeps the fallback when screenshot pages have no installed provider', () => {
@@ -31,7 +31,7 @@ describe('resolveAutoDetectedProvider', () => {
       hasUserComponents: false,
       installedProviders: [],
     })
-    expect(decision).toEqual({ preferred: null, fallbackToDefault: true })
+    expect(decision).toEqual({ preferred: null, noRenderer: true })
   })
 
   it('never auto-detects when user components were found on disk', () => {
@@ -39,6 +39,6 @@ describe('resolveAutoDetectedProvider', () => {
       hasUserComponents: true,
       installedProviders: ['takumi'],
     })
-    expect(decision).toEqual({ preferred: null, fallbackToDefault: false })
+    expect(decision).toEqual({ preferred: null, noRenderer: false })
   })
 })
