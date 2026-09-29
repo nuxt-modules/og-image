@@ -43,6 +43,7 @@
   "files": [
     "bin",
     "dist",
+    "skills",
     "types/virtual.d.ts"
   ],
   "engines": {
