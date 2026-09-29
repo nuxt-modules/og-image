@@ -43,7 +43,7 @@ import { resolveOptionalModulePath } from './build/optional-module'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { resolveSigningSecret } from './build/signing-secret'
-import { OgImageUsageCheckPlugin } from './build/usage-check'
+import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
 import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
@@ -877,9 +877,17 @@ export default defineNuxtModule<ModuleOptions>({
     }
     // Fail the production build on calls that can never render, instead of a silent
     // fallback or a runtime 500. The client build sees every page, so it scans once.
+    // Renderers a template needs but whose dependencies are missing, filled in below.
+    const missingRenderers: Partial<Record<RendererType, string[]>> = {}
     if (!nuxt.options.dev && !nuxt.options._prepare) {
       addVitePlugin(OgImageUsageCheckPlugin.vite({
-        getContext: () => ({ components: ogImageComponentCtx.components, browserEnabled: !!config.browser }),
+        getContext: () => ({
+          components: ogImageComponentCtx.components,
+          browserEnabled: !!config.browser,
+          missingRenderers,
+          routeRuleReferences: collectRouteRuleReferences(nuxt.options.routeRules),
+        }),
+        warn: message => logger.warn(message),
         ignoreDirs: [resolve('./runtime'), nuxt.options.buildDir],
       }), { server: false })
     }
@@ -1207,9 +1215,10 @@ export default defineNuxtModule<ModuleOptions>({
           else {
             const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
             const action = resolveMissingRendererAction({ renderer, installSpecs, dev: nuxt.options.dev, interactive: canPromptInteractively() })
-            if (action._tag === 'Fail')
-              throw new Error(action.message)
-            if (action._tag === 'Report') {
+            if (action._tag === 'CheckUsage') {
+              missingRenderers[renderer] = installSpecs
+            }
+            else if (action._tag === 'Report') {
               logger.error(action.message)
             }
             else {
