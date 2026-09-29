@@ -182,23 +182,13 @@ export function normaliseOptions(_options: DefineOgImageInput): NormalisedOption
 
   options.component = resolved.pascalName
 
-  // check if using a community template - auto-ejected in dev, error in prod
-  if (resolved.category === 'community') {
-    if (!import.meta.dev) {
-      // In production, fall back to an app component if available
-      const appComponent = componentNames.find((c: OgImageComponent) => c.category !== 'community')
-      if (appComponent) {
-        resolved = appComponent
-        renderer = resolved.renderer
-        options.component = resolved.pascalName
-      }
-      else {
-        throw createError({
-          statusCode: 500,
-          message: `Community template "${resolved.pascalName}" must be ejected before production use. Run: npx nuxt-og-image eject ${resolved.pascalName}\n  No app components found — create one in components/OgImage/`,
-        })
-      }
-    }
+  // Community templates exist only in dev. In production, never swap in another
+  // template: the image would show the wrong design with no error.
+  if (resolved.category === 'community' && !import.meta.dev) {
+    throw createError({
+      statusCode: 500,
+      message: `[Nuxt OG Image] Community template "${resolved.pascalName}" is not ejected, and production builds do not include community templates. Run: npx nuxt-og-image eject ${stripRenderer(resolved.pascalName)}.${resolved.renderer}`,
+    })
   }
 
   return {
