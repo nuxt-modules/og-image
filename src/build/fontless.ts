@@ -19,7 +19,7 @@ import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
 import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, parseFontsFromTemplate, STATIC_FONTS_PREFIX } from './fonts'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getResolvedNuxtFonts, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, STATIC_FONTS_PREFIX } from './fonts'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -38,9 +38,10 @@ interface ProcessFontsOptions {
   warnOnMissingStaticFonts?: boolean
 }
 
-interface NuxtFontsAssetContext {
-  assetsBaseURL: string
-  renderedFontURLs: Map<string, string>
+/** Reads the files `@nuxt/fonts` serves, from the `fonts:resolved` hook. */
+export interface NuxtFontsAssetContext {
+  /** The bytes of a font `@nuxt/fonts` serves, by URL; `undefined` for any other file. */
+  readFont: (url: string) => Promise<Buffer | undefined>
 }
 
 interface DownloadedFont {
@@ -70,6 +71,24 @@ function getNuxtFontsFamilyConfig(nuxt: Nuxt, family: string): Record<string, un
   return families?.find(f => typeof f?.name === 'string' && f.name.toLowerCase() === family.toLowerCase())
 }
 
+type Glyphs = string | string[] | undefined
+
+interface NuxtFontsGlyphOptions {
+  defaults?: { glyphs?: Glyphs }
+  families?: Array<{ name?: unknown, glyphs?: Glyphs }>
+}
+
+/**
+ * `@nuxt/fonts` v1 subsets a family to `glyphs`, and Google applies it server side, so neither
+ * the served file nor its source can render arbitrary OG text. Mirrors fontless: a truthy
+ * family value wins, otherwise `defaults.glyphs` applies.
+ */
+export function isGlyphSubsetFamily(fonts: NuxtFontsGlyphOptions | undefined, family: string): boolean {
+  const config = fonts?.families?.find(f => typeof f.name === 'string' && f.name.toLowerCase() === family.toLowerCase())
+  const glyphs = config?.glyphs || fonts?.defaults?.glyphs
+  return !!glyphs?.length
+}
+
 function isConfiguredLocalFontFamily(nuxt: Nuxt, family: string): boolean {
   const config = getNuxtFontsFamilyConfig(nuxt, family)
   return !!config && config.global === true && (config.provider === 'local' || typeof config.src === 'string')
@@ -93,6 +112,21 @@ function getFamilyRequirements(fontRequirements: FontRequirementsState, family: 
   return {
     weights: [...new Set(matchingComponents.flatMap(component => component.weights))],
     styles: [...new Set(matchingComponents.flatMap(component => component.styles))],
+  }
+}
+
+/**
+ * Every weight and style @nuxt/fonts resolved for a family, for builds that never analyse OG
+ * components (webpack, rspack). A variable face stands for its regular and bold weights.
+ */
+function getResolvedWeights(fonts: ParsedFont[], family: string): ReturnType<typeof getFamilyRequirements> {
+  const faces = fonts.filter(font => font.family === family)
+  const weights = new Set(faces.flatMap(font => font.weightRange
+    ? [400, 700].filter(weight => font.weightRange![0] <= weight && weight <= font.weightRange![1])
+    : [font.weight]))
+  return {
+    weights: [...weights].toSorted((a, b) => a - b),
+    styles: [...new Set(faces.map(font => font.style as 'normal' | 'italic'))],
   }
 }
 
@@ -190,21 +224,6 @@ async function initFontless(options: {
 // ============================================================================
 // Font URL Persistence
 // ============================================================================
-
-/** Persist @nuxt/fonts URL mapping to disk for prerender. */
-export function persistFontUrlMapping(options: {
-  fontContext: { renderedFontURLs: Map<string, string> } | null
-  buildDir: string
-  logger: ConsolaInstance
-}): void {
-  if (!options.fontContext?.renderedFontURLs.size)
-    return
-  const cacheDir = join(options.buildDir, 'cache', 'og-image')
-  fs.mkdirSync(cacheDir, { recursive: true })
-  const mapping = Object.fromEntries(options.fontContext.renderedFontURLs)
-  fs.writeFileSync(join(cacheDir, 'font-urls.json'), JSON.stringify(mapping))
-  options.logger.debug(`Persisted ${options.fontContext.renderedFontURLs.size} font URLs for prerender`)
-}
 
 // ============================================================================
 // Static Font Download Pipeline
@@ -359,13 +378,13 @@ async function downloadStaticFonts(options: {
       ]
       if (configuredFamily && configuredFamily.global !== true) {
         lines.push(
-          `  "${family}" is declared in fonts.families, but it is not global so @nuxt/fonts did not emit it in nuxt-fonts-global.css.`,
+          `  "${family}" is in fonts.families, but it is not global and no site CSS uses it, so @nuxt/fonts did not resolve it.`,
           `  Set global: true, e.g. fonts: { families: [{ name: '${family}', provider: 'local', weights: [400, 700], global: true }] }.`,
         )
       }
       else if (configuredFamily) {
         lines.push(
-          `  "${family}" is declared with global: true, but @nuxt/fonts still did not emit @font-face for it.`,
+          `  "${family}" has global: true, but @nuxt/fonts did not resolve it.`,
           `  Check that the configured provider/src, weights, styles, and file names match the available font files.`,
         )
         if (local)
@@ -373,8 +392,8 @@ async function downloadStaticFonts(options: {
       }
       else if (local) {
         lines.push(
-          `  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}) but @nuxt/fonts did not emit @font-face for "${family}".`,
-          `  Tailwind v4 @theme variables are not scanned by @nuxt/fonts, and OG images only read globally emitted font faces.`,
+          `  Found ${local.matches.length} matching file(s) under public/fonts/ (e.g. ${local.matches.slice(0, 2).join(', ')}), but @nuxt/fonts did not resolve "${family}".`,
+          `  @nuxt/fonts does not scan Tailwind v4 @theme variables. OG images only use fonts that @nuxt/fonts resolves.`,
           `  Declare it explicitly with global: true, e.g. fonts: { families: [{ name: '${family}', provider: 'local', weights: [400, 700], global: true }] }.`,
         )
       }
@@ -500,16 +519,7 @@ function hasOpenTypeTable(data: Uint8Array, expectedTag: string): boolean {
   return false
 }
 
-function getNuxtFontOriginalSource(fontSrc: string, context?: NuxtFontsAssetContext | null): string | undefined {
-  if (!context)
-    return
-  const prefix = `${context.assetsBaseURL.replace(/\/$/, '')}/`
-  if (!fontSrc.startsWith(prefix))
-    return
-  return context.renderedFontURLs.get(fontSrc.slice(prefix.length))
-}
-
-async function readNuxtFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetResult> {
+async function readLocalFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetResult> {
   if (source.startsWith('/')) {
     const configuredPublicDir = nuxt.options.dir.public || 'public'
     const publicDir = isAbsolute(configuredPublicDir)
@@ -554,28 +564,24 @@ async function convertNuxtWoff2Sources(options: {
       fontsBySource.set(font.src, font)
   }
 
-  const mappedSources: Array<{ font: ParsedFont, fontSrc: string, originalSource: string }> = []
-  for (const [fontSrc, font] of fontsBySource) {
-    const originalSource = getNuxtFontOriginalSource(fontSrc, options.context)
-      || (isConfiguredLocalFontFamily(options.nuxt, font.family) ? fontSrc : undefined)
-    if (originalSource)
-      mappedSources.push({ font, fontSrc, originalSource })
-    else
-      options.logger.debug(`Could not map Nuxt Fonts asset to its original source: ${fontSrc}`)
-  }
-  if (mappedSources.length === 0)
-    return
-
   // Keep the decoder out of the main module chunk for apps that do not need conversion.
-  const { woff2Decode } = await import('./woff2/decode')
+  let decoder: typeof import('./woff2/decode') | undefined
 
-  for (const { fontSrc, font, originalSource } of mappedSources) {
-    const asset = await readNuxtFontAsset(options.nuxt, originalSource)
+  for (const [fontSrc, font] of fontsBySource) {
+    const served: FontAssetResult | undefined = await options.context?.readFont(fontSrc)
+      .then(data => data && { _tag: 'Ok' as const, data })
+      .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
+    const asset: FontAssetResult = served
+      || (isConfiguredLocalFontFamily(options.nuxt, font.family)
+        ? await readLocalFontAsset(options.nuxt, fontSrc)
+        : { _tag: 'Err', reason: 'not served by Nuxt Fonts' })
     if (asset._tag === 'Err') {
       options.logger.debug(`Could not read Nuxt Fonts asset ${fontSrc}: ${asset.reason}`)
       continue
     }
 
+    decoder ||= await import('./woff2/decode')
+    const { woff2Decode } = decoder
     const decoded = await Promise.resolve().then(() => woff2Decode(asset.data)).catch((error: Error) => {
       options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)
       return null
@@ -605,11 +611,14 @@ async function convertNuxtWoff2Sources(options: {
  */
 export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<void> {
   const { nuxt, logger, fontRequirements, fontState, nuxtFontsContext, fontSubsets, warnOnMissingStaticFonts = true } = options
-  const parsedFonts = await parseFontsFromTemplate(nuxt, { fontState })
+  const parsedFonts = await getResolvedNuxtFonts(nuxt, { fontState })
   const requirementsByFamily = new Map<string, ReturnType<typeof getFamilyRequirements>>()
   for (const font of parsedFonts) {
-    if (!requirementsByFamily.has(font.family))
-      requirementsByFamily.set(font.family, getFamilyRequirements(fontRequirements, font.family))
+    if (!requirementsByFamily.has(font.family)) {
+      requirementsByFamily.set(font.family, fontRequirements.scanned === false
+        ? getResolvedWeights(parsedFonts, font.family)
+        : getFamilyRequirements(fontRequirements, font.family))
+    }
   }
   const hasNonWoff2 = new Set(
     parsedFonts
@@ -688,12 +697,14 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
     return
 
   logger.debug(`Resolving static font fallbacks for: ${families.map(f => f.family).join(', ')}`)
+  // Every family here came from @nuxt/fonts, so a provider without a file only lacks that
+  // weight (Lobster ships 400 alone); the unknown-family warning would mislead
   const downloaded = await downloadStaticFonts({
     families,
     nuxt,
     logger,
     fontSubsets,
-    warnOnMissingStaticFonts,
+    warnOnMissingStaticFonts: false,
   }).catch((error: Error) => {
     logger.debug('fontless resolution failed:', error)
     return []
@@ -702,6 +713,17 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
   for (const font of downloaded) {
     const key = `${font.family}-${font.weight}-${font.style}`
     fontState.fallbackMap.set(key, `${STATIC_FONTS_PREFIX}/${font.filename}`)
+  }
+
+  if (warnOnMissingStaticFonts) {
+    const usableFamilies = new Set([
+      ...parsedFonts.filter(font => !font.src.endsWith('.woff2') || fontState.sourceMap.has(font.src)).map(font => font.family),
+      ...downloaded.map(font => font.family),
+    ])
+    for (const family of new Set(families.map(f => f.family))) {
+      if (!usableFamilies.has(family))
+        logger.warn(`Satori cannot use the Nuxt Fonts files for "${family}", and no provider has static files for it. Satori renders "${family}" text with the bundled Inter font. Use the Takumi renderer for WOFF2 and variable fonts.`)
+    }
   }
 
   if (fontState.fallbackMap.size > 0)
@@ -715,20 +737,17 @@ export async function prepareWoff2Fonts(options: ProcessFontsOptions): Promise<v
 // ============================================================================
 
 /**
- * Resolve font families not available from @nuxt/fonts global CSS.
+ * Resolve font families that @nuxt/fonts did not resolve.
  * Downloads static font files via fontless (Fontsource, Google, Bunny).
  */
 async function resolveMissingFontFamilies(options: {
-  missingFamilies: string[]
-  weights: number[]
-  styles: Array<'normal' | 'italic'>
+  families: Array<{ family: string, weights: number[], styles: Array<'normal' | 'italic'> }>
   nuxt: Nuxt
   logger: ConsolaInstance
   fontSubsets?: string[]
 }): Promise<ParsedFont[]> {
-  const { missingFamilies, weights, styles, nuxt, logger, fontSubsets } = options
+  const { families, nuxt, logger, fontSubsets } = options
 
-  const families = missingFamilies.map(family => ({ family, weights, styles }))
   const downloaded = await downloadStaticFonts({ families, nuxt, logger, fontSubsets })
 
   const results = downloaded.map(f => ({
@@ -740,7 +759,7 @@ async function resolveMissingFontFamilies(options: {
   }))
 
   if (results.length > 0)
-    logger.debug(`Resolved ${results.length} font files via fontless for: ${missingFamilies.join(', ')}`)
+    logger.debug(`Resolved ${results.length} font files via fontless for: ${families.map(f => f.family).join(', ')}`)
 
   return results
 }
@@ -770,9 +789,9 @@ export async function resolveOgImageFonts(options: {
   const { nuxt, hasNuxtFonts, hasSatoriRenderer, hasTakumiRenderer, fontState, fontSubsets, fontRequirements, tw4FontVars, logger, ogFontsDir } = options
   const staticInterFonts = getStaticInterFonts(ogFontsDir)
 
-  // 1. Extract fonts from @nuxt/fonts global CSS (WOFF2 paths included for all renderers)
+  // 1. Fonts @nuxt/fonts resolved (WOFF2 paths included for all renderers)
   const allFonts = hasNuxtFonts
-    ? await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirements.weights })
+    ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })
     : []
 
   if (hasNuxtFonts) {
@@ -812,6 +831,15 @@ export async function resolveOgImageFonts(options: {
   // Skip when @nuxt/fonts is not installed — fontless can't resolve system/fallback fonts
   // from TW4 font stacks (e.g. Menlo, Apple Color Emoji), just use bundled Inter instead
   if ((hasSatoriRenderer || hasTakumiRenderer) && hasNuxtFonts) {
+    // Families subset to `glyphs` only hold the site's characters; OG text is arbitrary.
+    // Re-resolve them in full, and keep the subset faces only if that fails.
+    const nuxtFontsOptions = (nuxt.options as { fonts?: NuxtFontsGlyphOptions }).fonts
+    const glyphSubsetFamilies = [...new Set(allFonts.map(f => f.family))]
+      .filter(family => isGlyphSubsetFamily(nuxtFontsOptions, family))
+    const glyphSubsetFaces = allFonts.filter(f => glyphSubsetFamilies.includes(f.family))
+    if (glyphSubsetFaces.length > 0)
+      allFonts.splice(0, allFonts.length, ...allFonts.filter(f => !glyphSubsetFaces.includes(f)))
+
     const coveredFamilies = new Set(allFonts.map(f => f.family))
     let missingFamilies: string[] = []
 
@@ -827,12 +855,21 @@ export async function resolveOgImageFonts(options: {
       if (defaultVar)
         missingFamilies = extractCustomFontFamilies(defaultVar).filter(f => !coveredFamilies.has(f) && !isFontaineFallback(f))
     }
+    missingFamilies = [...new Set([...missingFamilies, ...glyphSubsetFamilies])]
 
     if (missingFamilies.length > 0) {
+      // Builds that never analyse OG components (webpack, rspack) keep the default
+      // requirements, so re-resolution must follow the faces @nuxt/fonts resolved
+      const familyRequirements = missingFamilies.map((family) => {
+        if (fontRequirements.scanned === false) {
+          const resolved = getResolvedWeights(glyphSubsetFaces, family)
+          if (resolved.weights.length > 0 || resolved.styles.length > 0)
+            return { family, ...resolved }
+        }
+        return { family, weights: fontRequirements.weights, styles: fontRequirements.styles }
+      })
       const additionalFonts = await resolveMissingFontFamilies({
-        missingFamilies,
-        weights: fontRequirements.weights,
-        styles: fontRequirements.styles,
+        families: familyRequirements,
         nuxt,
         logger,
         fontSubsets: effectiveSubsets,
@@ -841,6 +878,13 @@ export async function resolveOgImageFonts(options: {
         return []
       })
       allFonts.push(...additionalFonts)
+    }
+
+    const resolvedFamilies = new Set(allFonts.map(f => f.family))
+    const unresolvedSubsetFaces = glyphSubsetFaces.filter(f => !resolvedFamilies.has(f.family))
+    if (unresolvedSubsetFaces.length > 0) {
+      logger.warn(`Could not resolve ${[...new Set(unresolvedSubsetFaces.map(f => f.family))].join(', ')} without \`glyphs\` subsetting. OG images may miss characters outside the configured glyphs.`)
+      allFonts.push(...unresolvedSubsetFaces)
     }
   }
 
@@ -851,10 +895,11 @@ export async function resolveOgImageFonts(options: {
   // not the actual @nuxt/fonts families (e.g. Inter).
   const nuxtFontFamilies = new Set(
     hasNuxtFonts
-      ? (await parseFontsFromTemplate(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
+      ? (await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirements.weights })).map(f => f.family)
       : [],
   )
-  const fonts = !fontRequirements.hasDynamicBindings
+  // Unanalysed builds (webpack, rspack) may use any font style, like dynamic bindings
+  const fonts = !(fontRequirements.hasDynamicBindings || fontRequirements.scanned === false)
     ? allFonts.filter(f =>
         nuxtFontFamilies.has(f.family)
           // Keep all @nuxt/fonts weights — runtime will pick closest match per requirement

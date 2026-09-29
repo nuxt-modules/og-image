@@ -245,7 +245,7 @@ describe('cloudflare-takumi', () => {
       takumi.initSync({ module: wasmBytes })
       Renderer = takumi.Renderer
 
-      const fontsDir = resolve(fixtureDir, '.output/public/_fonts')
+      const fontsDir = resolve(fixtureDir, '.output/public/_nuxt/fonts')
       const woff2Files = await globby('*.woff2', { cwd: fontsDir })
       fontSubsets = await Promise.all(
         woff2Files.map(async f => new Uint8Array(await fs.readFile(join(fontsDir, f)))),
