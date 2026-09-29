@@ -302,8 +302,17 @@ describe('cli', () => {
 
       runCli('migrate v6 --yes')
       const content = readFileSync(pageFile, 'utf-8')
-      expect(content).toContain('<!-- Migrated: use defineOgImage(')
+      expect(content).toContain(`<!-- Migrated: use defineOgImage('NuxtSeo', { title: 'Hello' }) in <script setup> -->`)
       expect(content).not.toContain('<OgImage')
+    })
+
+    it('migrates <OgImage component="..." /> with the component as the first argument', () => {
+      const pageFile = join(tmpDir, 'page.vue')
+      writeFileSync(pageFile, `<template>\n  <OgImage component="BlogPost" :title="post.title" />\n</template>`)
+
+      runCli('migrate v6 --yes')
+      const content = readFileSync(pageFile, 'utf-8')
+      expect(content).toContain(`<!-- Migrated: use defineOgImage('BlogPost', { title: post.title }) in <script setup> -->`)
     })
 
     it('migrates <OgImageScreenshot /> to composable comment', () => {
