@@ -8,6 +8,7 @@ import { addDependency, detectPackageManager, removeDependency } from 'nypm'
 import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
 import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
+import { detectAppRenderers, detectInstalledRenderers, listEjectableNames, resolveEjectTemplate } from './eject'
 import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -280,32 +281,33 @@ function listTemplates() {
       .filter(f => f.endsWith('.vue'))
       .map(getBaseName),
   )]
+  const variants = listEjectableNames(readdirSync(communityDir)).filter(n => n.includes('.'))
   p.intro('Community Templates')
   p.note(templates.map(t => `• ${t}`).join('\n'), 'Available')
   p.log.info('Usage: npx nuxt-og-image eject <template-name>')
+  p.log.info(`To pick a renderer, add its suffix: ${variants.slice(0, 2).join(', ')}`)
   p.outro('')
 }
 
-function findTemplateFile(name: string): string | null {
-  const files = readdirSync(communityDir).filter(f => f.endsWith('.vue'))
-  const match = files.find(f => getBaseName(f) === name)
-  return match || null
-}
-
-function ejectTemplate(name: string, targetDir: string) {
-  const templateFile = findTemplateFile(name)
-  if (!templateFile) {
+function ejectTemplate(name: string, targetDir: string, cwd: string = process.cwd()) {
+  const appComponents = [...new Set([cwd, targetDir])].flatMap(findOgImageComponents)
+  const resolution = resolveEjectTemplate(name, {
+    templateFiles: readdirSync(communityDir).filter(f => f.endsWith('.vue')),
+    appRenderers: detectAppRenderers(appComponents),
+    installedRenderers: detectInstalledRenderers(readPackageJson(cwd)),
+  })
+  if (resolution._tag === 'NotFound') {
     p.log.error(`Template "${name}" not found.`)
     listTemplates()
     process.exit(1)
   }
 
-  const templatePath = join(communityDir, templateFile)
+  const templatePath = join(communityDir, resolution.file)
   const outputDir = resolve(targetDir, 'components', 'OgImage')
   if (!existsSync(outputDir))
     mkdirSync(outputDir, { recursive: true })
 
-  const outputPath = join(outputDir, templateFile)
+  const outputPath = join(outputDir, resolution.file)
   if (existsSync(outputPath)) {
     p.log.error(`File already exists: ${outputPath}`)
     process.exit(1)
@@ -314,6 +316,18 @@ function ejectTemplate(name: string, targetDir: string) {
   const content = readFileSync(templatePath, 'utf-8')
   writeFileSync(outputPath, content, 'utf-8')
   p.log.success(`Ejected "${name}" to ${outputPath}`)
+  const why = {
+    'exact': null,
+    'only-variant': null,
+    'app-templates': `your templates use ${resolution.renderer}`,
+    'installed': `${resolution.renderer} is in package.json`,
+    'default': `${resolution.renderer} is the default renderer`,
+  }[resolution.reason]
+  if (why) {
+    const others = listEjectableNames(readdirSync(communityDir))
+      .filter(n => n.startsWith(`${getBaseName(resolution.file)}.`) && n !== resolution.file.replace('.vue', ''))
+    p.log.info(`Picked the ${resolution.renderer} variant because ${why}.${others.length ? ` For another renderer, run: npx nuxt-og-image eject ${others[0]}` : ''}`)
+  }
 }
 
 // Find OgImage components in a directory
@@ -1042,7 +1056,7 @@ async function runMigrate(args: string[]): Promise<void> {
       if (shouldEject) {
         const targetDir = existsSync(join(cwd, 'app')) ? join(cwd, 'app') : cwd
         for (const name of migrationCheck.usedCommunityTemplates) {
-          ejectTemplate(name, targetDir)
+          ejectTemplate(name, targetDir, cwd)
         }
       }
       else {
@@ -1687,6 +1701,7 @@ function showHelp() {
     '                  Options: --renderer <renderer>, --path <dir>',
     'list              List available community templates',
     'eject <name>      Eject a community template to your project',
+    '                  Picks the variant for your renderer; add .takumi or .satori to choose',
     'switch            Switch components between renderers',
     '                  Options: --from <renderer>, --to <renderer>, --dry-run, --yes',
     'enable <renderer> Install dependencies for a renderer (satori, browser, takumi)',
@@ -1718,7 +1733,7 @@ else if (command === 'eject') {
   }
   const cwd = process.cwd()
   const targetDir = existsSync(join(cwd, 'app')) ? join(cwd, 'app') : cwd
-  ejectTemplate(templateName, targetDir)
+  ejectTemplate(templateName, targetDir, cwd)
 }
 else if (command === 'list') {
   listTemplates()
