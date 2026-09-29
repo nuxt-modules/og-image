@@ -107,6 +107,34 @@ export function resolveAutoDetectedProvider(input: AutoDetectProviderInput): Aut
   return { preferred: null, fallbackToDefault: true }
 }
 
+export function getMissingRendererMessage(renderer: ProviderName, installSpecs: string[]): string {
+  return `The ${renderer} renderer is missing dependencies, so templates that use it cannot render. Install them with: npx nypm add ${installSpecs.join(' ')}`
+}
+
+export type MissingRendererAction
+  /** interactive dev: ask, and install only when the user accepts */
+  = | { _tag: 'AskToInstall' }
+  /** dev without a prompt: never touch package.json, log one actionable error */
+    | { _tag: 'Report', message: string }
+  /** production build: a template can never render, so stop the build */
+    | { _tag: 'Fail', message: string }
+
+/**
+ * Decide what to do when a template needs a renderer whose dependencies are missing.
+ * The shell type (AI agent, CI, piped stdin) only matters through `interactive`, so
+ * every non-interactive shell behaves the same.
+ */
+export function resolveMissingRendererAction(input: { renderer: ProviderName, installSpecs: string[], dev: boolean, interactive: boolean }): MissingRendererAction {
+  const message = getMissingRendererMessage(input.renderer, input.installSpecs)
+  if (!input.dev)
+    return { _tag: 'Fail', message: `[nuxt-og-image] ${message}` }
+  if (input.interactive)
+    return { _tag: 'AskToInstall' }
+  return { _tag: 'Report', message }
+}
+
+export const NO_RENDERER_MESSAGE = `No OG image renderer is installed, so OG images are off. To add one, run: npx nuxt-og-image enable takumi`
+
 export async function getInstalledProviders(): Promise<{ provider: ProviderName, binding: BindingVariant }[]> {
   const installed: { provider: ProviderName, binding: BindingVariant }[] = []
 
