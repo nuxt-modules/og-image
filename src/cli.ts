@@ -625,14 +625,22 @@ function collectTemplateReplacements(templateHtml: string): AstReplacement[] {
       return
 
     const isScreenshot = el.name === 'OgImageScreenshot'
-    const composable = isScreenshot ? 'defineOgImageScreenshot' : 'defineOgImage'
-    const propsStr = attrsToProps(el.attributes)
-
     const start = el.loc[0].start
     const end = el.loc[1].end
-    const text = propsStr
-      ? `<!-- Migrated: use ${composable}(${propsStr}) in <script setup> -->`
-      : `<!-- Migrated: use ${composable}() in <script setup> -->`
+    let call: string
+    if (isScreenshot) {
+      const propsStr = attrsToProps(el.attributes)
+      call = `defineOgImageScreenshot(${propsStr})`
+    }
+    else {
+      // v6 takes the component name as the first argument. v5 rendered NuxtSeo when
+      // <OgImage> named no component.
+      const { component, ':component': dynamicComponent, ...props } = el.attributes
+      const componentArg = dynamicComponent || (component ? `'${component}'` : `'NuxtSeo'`)
+      const propsStr = attrsToProps(props)
+      call = `defineOgImage(${componentArg}${propsStr ? `, ${propsStr}` : ''})`
+    }
+    const text = `<!-- Migrated: use ${call} in <script setup> -->`
 
     replacements.push({ start, end, text })
   })
