@@ -143,7 +143,7 @@ function buildEmojiSvg(emoji: string, icons: IconifyJSON, emojiSet: string): str
       const body = wrapDefsElements(iconData.body || '')
       const width = iconData.width || icons.width || 128
       const height = iconData.height || icons.height || 128
-      let svg = `<span style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="1em" height="1em">${body}</svg></span>`
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="1em" height="1em">${body}</svg>`
       svg = makeIdsUnique(svg)
       return svg
     }
@@ -174,7 +174,7 @@ async function fetchEmojiSvg(emoji: string, emojiSet: string): Promise<string | 
         const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 128 128'
         const bodyMatch = svg.match(RE_SVG_BODY)
         const body = bodyMatch ? bodyMatch[1] : ''
-        let result = `<span style="display:flex"><svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="1em" height="1em">${body}</svg></span>`
+        let result = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="1em" height="1em">${body}</svg>`
         result = makeIdsUnique(result)
         emojiFetchCache.set(cacheKey, result)
         if (emojiFetchCache.size > 200)
