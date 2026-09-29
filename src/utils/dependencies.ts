@@ -116,8 +116,8 @@ export type MissingRendererAction
   = | { _tag: 'AskToInstall' }
   /** dev without a prompt: never touch package.json, log one actionable error */
     | { _tag: 'Report', message: string }
-  /** production build: a template can never render, so stop the build */
-    | { _tag: 'Fail', message: string }
+  /** production build: fail only if app code uses a template that needs this renderer */
+    | { _tag: 'CheckUsage' }
 
 /**
  * Decide what to do when a template needs a renderer whose dependencies are missing.
@@ -125,12 +125,11 @@ export type MissingRendererAction
  * every non-interactive shell behaves the same.
  */
 export function resolveMissingRendererAction(input: { renderer: ProviderName, installSpecs: string[], dev: boolean, interactive: boolean }): MissingRendererAction {
-  const message = getMissingRendererMessage(input.renderer, input.installSpecs)
   if (!input.dev)
-    return { _tag: 'Fail', message: `[nuxt-og-image] ${message}` }
+    return { _tag: 'CheckUsage' }
   if (input.interactive)
     return { _tag: 'AskToInstall' }
-  return { _tag: 'Report', message }
+  return { _tag: 'Report', message: getMissingRendererMessage(input.renderer, input.installSpecs) }
 }
 
 export const NO_RENDERER_MESSAGE = `No OG image renderer is installed, so OG images are off. To add one, run: npx nuxt-og-image enable takumi`

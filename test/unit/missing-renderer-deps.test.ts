@@ -14,12 +14,9 @@ describe('resolveMissingRendererAction', () => {
     expect(action._tag !== 'AskToInstall' && action.message).toContain('npx nypm add @takumi-rs/core')
   })
 
-  it('fails a production build, interactive or not', () => {
-    for (const interactive of [true, false]) {
-      const action = resolveMissingRendererAction({ ...base, dev: false, interactive })
-      expect(action).toMatchObject({ _tag: 'Fail' })
-      expect(action._tag !== 'AskToInstall' && action.message).toContain('npx nypm add @takumi-rs/core')
-    }
+  it('leaves a production build to the usage check, interactive or not', () => {
+    for (const interactive of [true, false])
+      expect(resolveMissingRendererAction({ ...base, dev: false, interactive })).toEqual({ _tag: 'CheckUsage' })
   })
 
   it('treats an agent shell and a piped shell the same way', () => {
