@@ -10,9 +10,10 @@ The module renders a Vue component to a PNG and adds `og:image` and `twitter:ima
 
 ## Setup
 
-- Set `site.url`. Without it, prerendered pages get a relative `og:image` such as `/_og/s/o_x.png`, and the build does not warn. Crawlers need an absolute URL.
+- Set `site.url`. Without it, prerendered pages get a relative `og:image` such as `/_og/s/o_x.png`. The build warns, but still succeeds. Crawlers need an absolute URL.
 - Install one renderer yourself: `@takumi-rs/core` (recommended), or `satori` with `@resvg/resvg-js`. Use the Wasm packages (`@takumi-rs/wasm`, `@resvg/resvg-wasm`) on edge runtimes. `pnpm exec nuxt-og-image enable takumi` installs the right one.
-- If a template needs a renderer that is not installed, the build throws under an AI agent. Elsewhere it logs an error and the template does not render.
+- If a template needs a renderer that is not installed, the production build fails with the install command. In dev, the module asks before it installs in an interactive terminal. In an agent, CI, or piped shell it only logs the command and never edits `package.json`.
+- With no template and no renderer installed, OG images are off, and the module logs `npx nuxt-og-image enable takumi`.
 - The module needs SSR. With `ssr: false` it warns and does nothing.
 
 ## Automatic behaviour
@@ -23,7 +24,7 @@ The module renders a Vue component to a PNG and adds `og:image` and `twitter:ima
 - Default size is 1200 by 600, not 1200 by 630. Set `ogImage.defaults.height` to change it.
 - Runtime URLs are signed. With no `security.secret`, the module generates one per build and warns in dev. A tampered URL, or a URL without a signature, returns 403 in production. Query overrides such as `?title=X` are ignored. Dev and prerender skip the check.
 - A prerendered page gets a static file at `/_og/s/`. A server rendered page gets `/_og/d/` with all props encoded in the path.
-- Inter 400 and 700 are bundled. Emoji use the `noto` set.
+- Inter 400 and 700 are bundled. Emoji use the `noto` set and follow the size of the surrounding text.
 
 ## Common tasks
 
@@ -52,7 +53,7 @@ defineOgImage('Card', { title: 'Hello' })
 ```
 
 The second argument holds the component props. Image options such as `width`, `alt`, or `cacheMaxAgeSeconds` go in the third argument.
-Tailwind classes work without the Tailwind module. Put values that come from props in `:style`, because the module resolves classes at build time.
+Tailwind classes work without the Tailwind module. Put values that come from props in `:style`. The module resolves theme classes at build time, so a class built from a prop, such as `` `bg-${tone}` ``, gets only the renderer's default palette: `bg-red-500` renders, `bg-primary-500` or `bg-brand` renders nothing.
 Give every prop a default, so DevTools can preview the template.
 If two variants share a name, `'Card'` picks the first one. Use `'Card.takumi'` to select one.
 
@@ -83,10 +84,9 @@ To use an existing image, call `useSeoMeta({ ogImage: '/cover.png' })`. The v5 `
 
 ## Traps
 
-- **A community template that is not ejected renders a different template in production.** In dev, `defineOgImage('NuxtSeo')` renders NuxtSeo. In a production build it silently renders your first app template. It returns 500 only if the app has no template. Eject before you build.
-- **`nuxt-og-image eject NuxtSeo` copies `NuxtSeo.satori.vue`.** A Takumi only app then fails to build with "satori renderer missing dependencies". Install `satori` and `@resvg/resvg-js`, or copy `NuxtSeo.takumi.vue` from `node_modules/nuxt-og-image/dist/runtime/app/components/Templates/Community/`. `eject NuxtSeo.takumi` is not a valid name.
-- **`zeroRuntime: true` removes the `/_og/d/` handler, but pages still point at it.** A page that is not prerendered gets an `og:image` that returns 500, and the build does not warn. Prerender every page that calls `defineOgImage()`.
-- **`defineOgImageScreenshot()` throws a 500 on the page unless `ogImage.browser` is set.** Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
+- **Community templates such as `NuxtSeo` work only in dev.** A dev page render copies the template into `components/OgImage/`. A production build fails on `defineOgImage('NuxtSeo')` until you eject it. A component name built at runtime is not checked at build; that image returns 500. Run `pnpm exec nuxt-og-image eject NuxtSeo`. It picks the variant for the renderer your app uses; `eject NuxtSeo.takumi` or `eject NuxtSeo.satori` chooses one.
+- **`zeroRuntime: true` removes the `/_og/d/` handler.** A page that is not prerendered gets no `og:image`. Prerender every page that calls `defineOgImage()`.
+- **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
 - **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
 - **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
 - **Rolling or multi instance deploys need a stable secret.** Set `NUXT_OG_IMAGE_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Otherwise a URL signed by one build fails on another with 403.
