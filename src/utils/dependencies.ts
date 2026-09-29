@@ -88,8 +88,8 @@ export interface AutoDetectProviderInput {
 export interface AutoDetectProviderDecision {
   /** provider renderer to bundle alongside the already-detected renderers */
   preferred: ProviderName | null
-  /** run the interactive prompt, or default to takumi when non-interactive */
-  fallbackToDefault: boolean
+  /** nothing is installed and no template asks for a renderer: select none and report it */
+  noRenderer: boolean
 }
 
 /**
@@ -100,11 +100,11 @@ export interface AutoDetectProviderDecision {
  */
 export function resolveAutoDetectedProvider(input: AutoDetectProviderInput): AutoDetectProviderDecision {
   if (input.hasUserComponents)
-    return { preferred: null, fallbackToDefault: false }
+    return { preferred: null, noRenderer: false }
   const preferred = (input.installedProviders.find(p => p === 'takumi') ?? input.installedProviders[0]) ?? null
   if (preferred)
-    return { preferred, fallbackToDefault: false }
-  return { preferred: null, fallbackToDefault: true }
+    return { preferred, noRenderer: false }
+  return { preferred: null, noRenderer: true }
 }
 
 export function getMissingRendererMessage(renderer: ProviderName, installSpecs: string[]): string {
@@ -324,16 +324,6 @@ export function canPromptInteractively(env: InteractiveEnv = {
   isCI,
 }): boolean {
   return env.hasTTY && env.hasStdinTTY && !env.isAgent && !env.isCI
-}
-
-export async function promptForRendererSelection(): Promise<ProviderName> {
-  logger.info('Welcome to Nuxt OG Image! No renderer dependencies detected.')
-  const renderer = await logger.prompt('Which renderer would you like to use?', {
-    type: 'select',
-    options: PROVIDER_DEPENDENCIES.map(p => p.name),
-    initial: 'takumi',
-  })
-  return (renderer as ProviderName) || 'takumi'
 }
 
 export async function validateProviderSetup(

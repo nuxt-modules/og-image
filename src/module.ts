@@ -53,7 +53,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, promptForRendererSelection, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
 
 export type {
   OgImageComponent,
@@ -1174,9 +1174,9 @@ export default defineNuxtModule<ModuleOptions>({
     // Screenshot pages opt in without requiring a browser component.
     if (config.browser)
       ogImageComponentCtx.detectedRenderers.add('browser')
-    // No user components — auto-detect from installed deps, prompt only if none installed
+    // No user components: auto-detect from installed deps, never prompt
     if (!nuxt.options._prepare && !hasUserComponents) {
-      const { preferred, fallbackToDefault } = resolveAutoDetectedProvider({
+      const { preferred, noRenderer } = resolveAutoDetectedProvider({
         hasUserComponents,
         installedProviders: (await getInstalledProviders()).map(p => p.provider),
       })
@@ -1184,19 +1184,11 @@ export default defineNuxtModule<ModuleOptions>({
         ogImageComponentCtx.detectedRenderers.add(preferred)
         logger.debug(`Using ${preferred} renderer`)
       }
-      else if (fallbackToDefault) {
-        if (nuxt.options.dev && canPromptInteractively()) {
-          // choosing a renderer in the prompt is consent to install it below
-          const renderer = await promptForRendererSelection()
-          ogImageComponentCtx.detectedRenderers.add(renderer)
-          logger.debug(`Using ${renderer} renderer`)
-        }
-        else {
-          // Fresh install with no template and no renderer (for example through @nuxtjs/seo).
-          // Nothing can render yet, and nothing asked for an image, so there is nothing to fail.
-          // Every non-interactive shell (agent, CI, piped) gets the same single line.
-          logger.warn(NO_RENDERER_MESSAGE)
-        }
+      else if (noRenderer) {
+        // No template and no renderer, for example an app that gets this module through
+        // @nuxtjs/seo and never uses OG images. Select nothing and install nothing: every
+        // shell gets the same single line. `nuxt-og-image enable` is the explicit opt-in.
+        logger.warn(NO_RENDERER_MESSAGE)
       }
     }
 
