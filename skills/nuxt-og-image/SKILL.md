@@ -12,7 +12,7 @@ The module renders a Vue component to a PNG and adds `og:image` and `twitter:ima
 
 - Set `site.url`. Without it, prerendered pages get a relative `og:image` such as `/_og/s/o_x.png`. The build warns, but still succeeds. Crawlers need an absolute URL.
 - Install one renderer yourself: `@takumi-rs/core` (recommended), or `satori` with `@resvg/resvg-js`. Use the Wasm packages (`@takumi-rs/wasm`, `@resvg/resvg-wasm`) on edge runtimes. `pnpm exec nuxt-og-image enable takumi` installs the right one.
-- If a template needs a renderer that is not installed, the production build fails with the install command. In dev, the module asks before it installs in an interactive terminal. In an agent, CI, or piped shell it only logs the command and never edits `package.json`.
+- If a page or route rule uses a template whose renderer is not installed, the production build fails with the install command. A template that nothing uses only logs a warning. In dev, the module asks before it installs in an interactive terminal. In an agent, CI, or piped shell it only logs the command and never edits `package.json`.
 - With no template and no renderer installed, OG images are off, and the module logs `npx nuxt-og-image enable takumi`.
 - The module needs SSR. With `ssr: false` it warns and does nothing.
 
