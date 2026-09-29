@@ -55,23 +55,23 @@ catalog:
   '@antfu/eslint-config': ^9.5.1
   '@clack/prompts': ^1.8.1
   '@fontsource/noto-sans-sc': ^5.3.0
-  '@iconify-json/carbon': ^1.2.27
+  '@iconify-json/carbon': ^1.2.28
   '@iconify-json/logos': ^1.2.14
-  '@iconify-json/noto': ^1.2.8
+  '@iconify-json/noto': ^1.2.9
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.39
+  '@iconify-json/tabler': ^1.2.40
   '@iconify/types': ^2.0.0
-  '@img/sharp-linux-x64': ^0.35.4
+  '@img/sharp-linux-x64': ^0.35.5
   '@nuxt/content': ^3.16.1
-  '@nuxt/devtools': 4.0.0-beta.1
-  '@nuxt/devtools-kit': 4.0.0-beta.1
+  '@nuxt/devtools': 4.0.0-beta.2
+  '@nuxt/devtools-kit': 4.0.0-beta.2
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
   '@nuxt/kit': ^4.5.2
   '@nuxt/module-builder': ^1.0.3
   '@nuxt/test-utils': ^4.3.2
-  '@nuxt/ui': ^4.11.1
+  '@nuxt/ui': ^4.11.2
   '@nuxtjs/color-mode': ^4.0.1
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.6.0
@@ -101,19 +101,19 @@ catalog:
   chrome-launcher: ^1.2.1
   consola: ^3.4.2
   defu: ^6.1.7
-  devalue: ^5.9.2
+  devalue: ^6.0.2
   eslint: ^10.11.0
-  eslint-plugin-harlanzw: ^0.22.0
+  eslint-plugin-harlanzw: ^0.23.0
   exsolve: ^1.1.1
   fnv1a-64: ^0.1.2
-  fontless: ^1.0.0
+  fontless: ^1.2.1
   fontless-v0-2: npm:fontless@0.2.0
   globby: ^16.2.4
   happy-dom: ^20.14.5
   hookable: ^6.1.2
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.33.0
-  magic-string: ^1.4.1
+  magic-string: ^1.4.2
   magicast: ^0.5.5
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
@@ -132,9 +132,9 @@ catalog:
   playwright: ^1.63.0
   playwright-core: ^1.63.0
   radix3: ^1.1.2
-  sass: ^1.104.1
+  sass: ^1.105.0
   satori: ^0.33.5
-  sharp: ^0.35.4
+  sharp: ^0.35.5
   sirv: ^3.0.2
   std-env: ^4.2.0
   strip-literal: ^4.0.0
@@ -144,13 +144,13 @@ catalog:
   ufo: ^1.6.4
   ultrahtml: ^1.7.0
   unbuild: ^3.6.1
-  unifont: ^0.8.3
+  unifont: ^1.0.2
   unifont-v0-7: npm:unifont@0.7.0
   unocss: ^66.10.5
   unplugin: ^3.4.0
-  vitest: ^5.0.1
+  vitest: ^5.0.2
   vue: ^3.5.43
   vue-tsc: ^3.3.11
-  wrangler: ^4.136.1
+  wrangler: ^4.142.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.6.5
