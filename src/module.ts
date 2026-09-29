@@ -1807,7 +1807,9 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     })
 
     // Setup playground. Only available in development
-    const getDetectedRenderers = () => ogImageComponentCtx.detectedRenderers
+    // A renderer with missing dependencies cannot be bundled. The usage check fails the
+    // build if a used template needs it, so only unused templates reach this point.
+    const getDetectedRenderers = () => new Set([...ogImageComponentCtx.detectedRenderers].filter(r => !missingRenderers[r]))
     const getCompatibilityMeta = () => runtimeCompatibilityMeta
     if (nuxt.options.dev) {
       await setupDevHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
