@@ -1870,6 +1870,8 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
+    if (nuxt.options.dev)
+      addServerPlugin(resolve('./runtime/server/plugins/auto-eject'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
 
