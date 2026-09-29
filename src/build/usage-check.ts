@@ -144,7 +144,7 @@ export function checkMissingRendererUsage(input: {
     const why = input.references.hasDynamicName
       ? 'The build found a component name built at runtime, so it cannot tell whether they render. If one does, that image returns 500.'
       : 'No page or route rule uses them, so the build continues.'
-    warnings.push(`[nuxt-og-image] These OG image templates need a renderer that is not installed:\n${lines.join('\n')}\n${why}`)
+    warnings.push(`These OG image templates need a renderer that is not installed:\n${lines.join('\n')}\n${why}`)
   }
   return { errors: [...new Set(errors)], warnings }
 }
