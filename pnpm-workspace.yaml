@@ -148,6 +148,7 @@ catalog:
   unifont-v0-7: npm:unifont@0.7.0
   unocss: ^66.10.5
   unplugin: ^3.4.0
+  vite: 8.3.0
   vitest: ^5.0.2
   vue: ^3.5.43
   vue-tsc: ^3.3.11
