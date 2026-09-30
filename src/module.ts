@@ -1454,6 +1454,7 @@ export function getIslandHash({ name, props, context, source }) {
     // Serve static font downloads (fontless-resolved + bundled Inter fallback)
     // All static fonts are served under /_og-static-fonts/ (separate from @nuxt/fonts /_fonts/)
     const staticFontCacheDir = getStaticFontCacheDir(nuxt.options.buildDir)
+    await mkdir(staticFontCacheDir, { recursive: true })
     nuxt.options.nitro.publicAssets.push({
       dir: staticFontCacheDir,
       baseURL: '/_og-static-fonts',

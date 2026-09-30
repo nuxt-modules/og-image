@@ -6,6 +6,7 @@ import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
+import { createSitePathResolver } from '#site-config/app/composables/utils'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 // Per-head-client map of active useHead entries, keyed by og key. Scoped to the
@@ -121,6 +122,7 @@ export function clientProcessOgImageOptions(
   const inputs = Array.isArray(input) ? input : [input]
   const rc = useRuntimeConfig()
   const baseURL = rc.app.baseURL
+  const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: false })
   const publicCfg = (rc.public?.['nuxt-og-image'] as { defaults?: Record<string, any>, includeTwitter?: boolean, hasServerRuntime?: boolean } | undefined) || {}
   const defaults = publicCfg.defaults || {}
   const metaOptions = { includeTwitter: publicCfg.includeTwitter }
@@ -147,7 +149,8 @@ export function clientProcessOgImageOptions(
     // Prebuilt URL override: user pointed at a specific URL, use it directly.
     if ((validOptions as OgImagePrebuilt).url) {
       const url = (validOptions as OgImagePrebuilt).url as string
-      registerClientOgHead(ogKey, { meta: generateMeta(url, validOptions, metaOptions) }, { tagPriority: 'high' })
+      const absoluteUrl = /^https?:\/\//.test(url) ? url : toValue(resolveImageUrl(url))
+      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, validOptions, metaOptions) }, { tagPriority: 'high' })
       paths.push(url)
       continue
     }
@@ -155,7 +158,7 @@ export function clientProcessOgImageOptions(
     // SSR: route through the resolver for a guaranteed match with the server URL.
     if (publicCfg.hasServerRuntime) {
       const finalUrl = buildResolverUrl(baseURL, basePath, ogKey, route.query as Record<string, any> | undefined)
-      registerClientOgHead(ogKey, { meta: generateMeta(finalUrl, validOptions, metaOptions) }, { tagPriority: 35 })
+      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), validOptions, metaOptions) }, { tagPriority: 'high' })
       paths.push(finalUrl)
       continue
     }
@@ -174,7 +177,7 @@ export function clientProcessOgImageOptions(
     const finalUrl = opts._query && Object.keys(opts._query).length
       ? withQuery(resolvedUrl, { _query: opts._query })
       : resolvedUrl
-    registerClientOgHead(ogKey, { meta: generateMeta(finalUrl, opts, metaOptions) }, { processTemplateParams: true, tagPriority: 35 })
+    registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), opts, metaOptions) }, { processTemplateParams: true, tagPriority: 'high' })
     paths.push(finalUrl)
   }
 
