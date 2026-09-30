@@ -1,0 +1,16 @@
+import { readFile } from 'node:fs/promises'
+import { createResolver } from '@nuxt/kit'
+import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { describe, expect, it } from 'vitest'
+
+const { resolve } = createResolver(import.meta.url)
+
+describe('cached Nuxt fonts', async () => {
+  await setup({ rootDir: resolve('../fixtures/font-cache'), dev: false })
+
+  it('prerenders a cached font without a URL mapping or public output', async () => {
+    const expected = await readFile(resolve('../../src/runtime/public/_og-fonts/inter-400-latin.ttf'))
+    const received = await $fetch('/api/font', { responseType: 'arrayBuffer' }) as ArrayBuffer
+    expect(Buffer.from(received)).toEqual(expected)
+  })
+})
