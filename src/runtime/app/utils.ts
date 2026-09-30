@@ -7,6 +7,7 @@ import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
+import { createSitePathResolver, withSiteUrl } from '#site-config/app/composables/utils'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 /**
@@ -94,7 +95,9 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   if (!url)
     return
   const { includeTwitter } = useOgImageRuntimeConfig()
-  const meta = generateMeta(url, input, { includeTwitter })
+  const urlValue = toValue(url)
+  const absoluteUrl = /^https?:\/\//.test(urlValue) ? urlValue : toValue(withSiteUrl(urlValue, { withBase: true, canonical: !import.meta.dev }))
+  const meta = generateMeta(absoluteUrl, input, { includeTwitter })
   useHead({ meta }, { tagPriority: 'high' })
 }
 
@@ -123,6 +126,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   // The lazy meta() callback runs during unhead tag resolution, where
   // useNuxtApp() / useRuntimeConfig() are no longer accessible.
   const baseURL = useRuntimeConfig().app.baseURL
+  const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: !import.meta.dev })
 
   ssrContext._ogImageInstance?.dispose()
   ssrContext._ogImageInstance = useHead({
@@ -188,12 +192,12 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
           }
         }
-        return generateMeta(finalUrl, opts, { includeTwitter: ogImageConfig.includeTwitter })
+        return generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
       })
     },
   }, {
     processTemplateParams: true,
-    tagPriority: 35,
+    tagPriority: 'high',
   })
 
   // devtools script injection for dev mode and prerender cache

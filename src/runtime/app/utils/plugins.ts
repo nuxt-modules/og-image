@@ -45,7 +45,7 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
           }
 
           for (const tag of ctx.tags) {
-            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || ['twitter:image:src', 'twitter:image'].includes(tag.props.name || ''))) {
+            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || tag.props.name === 'twitter:image')) {
               if (!tag.props.content) {
                 tag.props = {} // equivalent to removing
                 continue
@@ -56,9 +56,7 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
                 .replaceAll('%title', title)
                 .replaceAll('%description', description)
                 .replaceAll(' ', '+')
-              // property og:image
-              // property twitter:image:src
-              if (!tag.props.content?.startsWith('https')) {
+              if (!/^https?:\/\//.test(tag.props.content || '')) {
                 nuxtApp.runWithContext(() => {
                   tag.props.content = toValue(withSiteUrl(tag.props.content || '', {
                     withBase: true,

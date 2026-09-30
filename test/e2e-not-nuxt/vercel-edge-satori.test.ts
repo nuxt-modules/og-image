@@ -51,6 +51,7 @@ async function buildFixture() {
 
 async function deployToVercel(): Promise<string> {
   const { stdout } = await exec('vercel', ['deploy', '--prebuilt', '--yes', '--scope', vercelScope], {
+    throwOnError: true,
     nodeOptions: {
       cwd: fixtureDir,
     },

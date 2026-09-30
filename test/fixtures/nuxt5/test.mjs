@@ -51,6 +51,7 @@ async function run(command, args) {
 async function main() {
   const buildOutput = await run('nuxt', ['build'])
   assert.doesNotMatch(buildOutput, /\[UNRESOLVED_IMPORT\]|Could not resolve ['"](?:nitropack\/runtime|h3)['"]/, 'Nuxt 5 build emitted a legacy Nitro import warning')
+  assert.doesNotMatch(buildOutput, /NUXT_B7023.*static-fonts/, 'Nuxt 5 build lost the OG image font asset directory')
 
   const portServer = createServer()
   portServer.listen(0, '127.0.0.1')

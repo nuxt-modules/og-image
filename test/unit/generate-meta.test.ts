@@ -17,6 +17,14 @@ describe('generateMeta', () => {
     expect(names).toContain('og:image')
   })
 
+  it('omits redundant Twitter image metadata while keeping the card and alt text', () => {
+    const names = tagNames(generateMeta(url, { ...options }))
+    expect(names).toContain('twitter:image:alt')
+    expect(names).not.toContain('twitter:image:src')
+    expect(names).not.toContain('twitter:image:width')
+    expect(names).not.toContain('twitter:image:height')
+  })
+
   it('emits twitter tags when includeTwitter is true', () => {
     const names = tagNames(generateMeta(url, { ...options }, { includeTwitter: true }))
     expect(names).toContain('twitter:card')
