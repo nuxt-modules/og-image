@@ -1,6 +1,6 @@
 import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
-import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
+import type { OgImageComponent, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
@@ -147,7 +147,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         const resolvedComponent = resolvedComponentName
           ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
           : undefined
-        const declaredProps = resolvedComponent?.propNames
+        const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
         // Inject title/description from head entries if not explicitly set AND the component declares them
         if (seo) {
           if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
@@ -219,7 +219,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             const component = resolvedComponentName
               ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
               : undefined
-            const declaredProps = component?.propNames
+            const declaredProps: OgImageComponent['propNames'] = component?.propNames
             // Use %s template param for title so unhead resolves it with titleTemplate
             if (payload.props && typeof payload.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
               payload.props.title = '%s'
