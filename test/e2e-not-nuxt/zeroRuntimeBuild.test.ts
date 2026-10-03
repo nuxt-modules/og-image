@@ -99,7 +99,7 @@ describe('zeroRuntime', () => {
     expect(prerenderedImage.status).toBe(200)
     expect(prerenderedImage.headers.get('content-type')).toContain('image/png')
 
-    for (const path of ['/_og/d/missing.png', '/_og/s/missing.png']) {
+    for (const path of ['/_og/d/missing.png', '/_og/s/missing.png', '/_og/r/missing']) {
       const missingImage = await fetchFromBuiltServer(path)
       expect(missingImage.status).toBe(404)
     }
