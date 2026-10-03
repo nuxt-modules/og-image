@@ -25,19 +25,24 @@ async function getFreePort(): Promise<number> {
   })
 }
 
-async function fetchFromBuiltServer(path: string): Promise<string> {
+async function fetchFromBuiltServer(path: string): Promise<Response> {
   const port = await getFreePort()
   const proc = spawn(process.execPath, [resolve(fixtureDir, '.output/server/index.mjs')], {
     env: { ...process.env, PORT: String(port), NITRO_PORT: String(port) },
     stdio: 'ignore',
   })
   try {
-    let html = ''
+    let response: Response | undefined
     await waitFor(async () => {
-      html = await fetch(`http://localhost:${port}${path}`).then(r => r.text()).catch(() => '')
-      return html.length > 0
+      response = await fetch(`http://localhost:${port}${path}`).catch(() => {
+        // Connection failures are expected while the server starts.
+        return undefined
+      })
+      return response !== undefined
     })
-    return html
+    // Read the body before stopping the server.
+    const body = await response!.arrayBuffer()
+    return new Response(body, { status: response!.status, headers: response!.headers })
   }
   finally {
     proc.kill()
@@ -86,9 +91,18 @@ describe('zeroRuntime', () => {
     expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/o_2f5504472ab46099.png"`)
 
     // A page that is not prerendered has no /_og/d/ handler to point at, so it gets no og:image.
-    const runtimeHtml = await fetchFromBuiltServer('/runtime')
+    const runtimeHtml = await fetchFromBuiltServer('/runtime').then(r => r.text())
     expect(runtimeHtml).toContain('Runtime')
     expect(runtimeHtml).not.toContain('og:image')
+
+    const prerenderedImage = await fetchFromBuiltServer(new URL(ogImage![1]!).pathname)
+    expect(prerenderedImage.status).toBe(200)
+    expect(prerenderedImage.headers.get('content-type')).toContain('image/png')
+
+    for (const path of ['/_og/d/missing.png', '/_og/s/missing.png']) {
+      const missingImage = await fetchFromBuiltServer(path)
+      expect(missingImage.status).toBe(404)
+    }
   }, 120000)
 
   it('local fonts in config', async () => {
