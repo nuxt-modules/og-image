@@ -4,10 +4,10 @@ import type { OgImageRenderEventContext } from '../../../types'
 import { withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { fetchWithEvent } from '#nuxtseo/nitro'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { buildOgImageUrl } from '../../../shared'
 import { getFetchTimeout } from '../../util/fetchTimeout'
 import { logger } from '../../util/logger'
+import { getOgImageOrigin } from '../../util/origin'
 import { resolveSameOriginUrl } from '../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../utils'
 
@@ -104,7 +104,7 @@ export async function createScreenshot({ basePath, e, options, extension, timing
     // Playwright: browser.newPage({ colorScheme, baseURL })
     page = await browser.newPage({
       colorScheme: colorPreference || 'no-preference',
-      baseURL: getNitroOrigin(e),
+      baseURL: getOgImageOrigin(e),
     })
   }
 
@@ -146,7 +146,7 @@ export async function createScreenshot({ basePath, e, options, extension, timing
     else {
       // avoid another fetch to the base path to resolve options
       // The headless browser must never leave the site origin, on either engine.
-      const url = resolveSameOriginUrl(withQuery(path, options.props || {}), getNitroOrigin(e))
+      const url = resolveSameOriginUrl(withQuery(path, options.props || {}), getOgImageOrigin(e))
       if (!url)
         throw new Error('[Nuxt OG Image] The browser renderer can only navigate to a same-origin path.')
       await gotoWithIdle(page, url, 10000)

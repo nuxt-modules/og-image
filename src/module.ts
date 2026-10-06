@@ -19,14 +19,14 @@ import { randomBytes } from 'node:crypto'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { findPackageJSON } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getNuxtModuleVersion, getNuxtVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
-import { setupNitroRuntimeCompatibility } from 'nuxtseo-shared/kit'
+import { setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
-import { readPackageJSON } from 'pkg-types'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
@@ -40,6 +40,7 @@ import {
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { resolveOptionalModulePath } from './build/optional-module'
+import { readPackageManifest } from './build/package-manifest.ts'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { resolveSigningSecret } from './build/signing-secret'
@@ -87,7 +88,7 @@ async function findPackageVersionFromEntry(pkg: string, resolver: Resolver): Pro
   while (dir && dir !== dirname(dir)) {
     const pkgPath = join(dir, 'package.json')
     if (existsSync(pkgPath)) {
-      const pkgJson = await readPackageJSON(pkgPath)
+      const pkgJson = await readPackageManifest(pkgPath)
       if (pkgJson?.name === pkg)
         return pkgJson.version
     }
@@ -351,7 +352,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '>=3.16.0',
+      nuxt: '^4.6.0 || ^5.0.0',
     },
     configKey: 'ogImage',
   },
@@ -364,7 +365,7 @@ export default defineNuxtModule<ModuleOptions>({
       optional: true,
     },
     'nuxt-site-config': {
-      version: '>=3.2',
+      version: '>=5.0.0',
     },
   },
   defaults() {
@@ -408,20 +409,32 @@ export default defineNuxtModule<ModuleOptions>({
       resolve,
       resolvePath: async (path, opts) => fixSharedPath(await _resolver.resolvePath(path, opts)),
     }
-    const { version } = await readPackageJSON(resolve('../package.json'))
-    const userAppPkgJson = await readPackageJSON(nuxt.options.rootDir)
+    const packageManifest = findPackageJSON('./', import.meta.url)
+    if (!packageManifest)
+      throw new Error('Could not resolve the Nuxt OG Image package manifest.')
+    const { version } = await readPackageManifest(packageManifest)
+    const userAppPkgJson = await readPackageManifest(join(nuxt.options.rootDir, 'package.json'))
       .catch(() => ({ dependencies: {}, devDependencies: {} }))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
+    // Packed runtime files need Nuxt's aliases during Vite development SSR.
+    nuxt.options.build.transpile.push(resolve('./runtime/app'))
     if (config.enabled === false) {
       logger.info('The module is disabled, skipping setup.')
-      // need to mock the composables to allow module still to work when disabled
+      setupRuntimeAliases({ namespace: '#og-image', app: resolve('./runtime/app/disabled') }, nuxt)
+      nuxt.options.alias['#og-image/components'] = resolve('./runtime/app/disabled/components')
+      // Preserve the existing disabled composables through canonical and deep imports.
       ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
         .forEach((name) => {
-          addImports({ name, from: resolve(`./runtime/app/composables/mock`) })
+          addImports({ name, from: '#og-image/app' })
         })
       return
     }
     const nitroCompatibility = setupNitroRuntimeCompatibility(nuxt)
+    if (nitroCompatibility._tag === 'nitro-v2') {
+      nuxt.options.nitro.externals ||= {}
+      nuxt.options.nitro.externals.inline ||= []
+      nuxt.options.nitro.externals.inline.push(resolve('./runtime'))
+    }
     // Nitro 2 uses a boolean here. Keep DevTools from assigning Nitro 3's array option.
     if (nuxt.options.dev && nitroCompatibility._tag === 'nitro-v2')
       nuxt.options.nitro.noExternals ??= false
@@ -1141,10 +1154,10 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // 1. Scan layer roots (handles most setups including app/ directory convention)
-    for (const layer of (nuxt.options._layers || [])) {
-      registerOgComponentDir(join(layer.cwd, 'components'))
-      if (layer.config?.srcDir && layer.config.srcDir !== layer.cwd)
-        registerOgComponentDir(join(layer.config.srcDir, 'components'))
+    for (const layer of getLayerDirectories(nuxt)) {
+      registerOgComponentDir(join(layer.root, 'components'))
+      if (layer.app !== layer.root)
+        registerOgComponentDir(join(layer.app, 'components'))
     }
 
     // 2. Also hook into Nuxt's resolved component dirs to respect custom configurations
@@ -1429,26 +1442,10 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
       return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
     }
-    // Island fetches embed a hash the server validates (400 on mismatch), so it must
-    // exactly match the installed Nuxt's algorithm. Prefer Nuxt's own implementation
-    // (nuxt/dist/app/island-hash.js) so Nuxt can change the algorithm without breaking us;
-    // the ohash replication is only for Nuxt versions predating that file.
+    // Nuxt validates island hashes; use its implementation to preserve the contract.
     nuxt.options.nitro.virtual['#og-image/island-hash'] = () => {
       const islandHashFile = join(nuxt.options.appDir, 'island-hash.js')
-      const [nuxtMajor = 0, nuxtMinor = 0] = getNuxtVersion(nuxt).split('.').map(v => Number.parseInt(v))
-      if (nuxtMajor > 4 || (nuxtMajor === 4 && nuxtMinor >= 5))
-        return `export { getIslandHash } from '${islandHashFile}'`
-      // Nuxt 4.4.x exposes computeIslandHash(name, props, context, source) instead
-      if (existsSync(islandHashFile)) {
-        return `import { computeIslandHash } from '${islandHashFile}'
-export function getIslandHash({ name, props, context, source }) {
-  return computeIslandHash(name, props ?? {}, context ?? {}, source)
-}`
-      }
-      return `import { hash } from 'ohash'
-export function getIslandHash({ name, props, context, source }) {
-  return hash([name, props ?? {}, context ?? {}, source]).replace(/[-_]/g, '')
-}`
+      return `export { getIslandHash } from '${islandHashFile}'`
     }
     nuxt.options.nitro.publicAssets ||= []
     // Serve static font downloads (fontless-resolved + bundled Inter fallback)
@@ -1869,14 +1866,14 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     }
     // Keep public aliases specific. A bare #og-image prefix shadows Nitro's
     // renderer and binding aliases under Nitro 3's insertion-order resolver.
-    setRuntimeAlias('#og-image/app', resolve('./runtime/app'))
+    setupRuntimeAliases({ namespace: '#og-image', app: resolve('./runtime/app'), server: resolve('./runtime/server') }, nuxt)
     setRuntimeAlias('#og-image/shared', resolve('./runtime/shared'))
     setRuntimeAlias('#og-image/types', resolve('./runtime/types'))
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     if (nuxt.options.dev)
-      addServerPlugin(resolve('./runtime/server/plugins/auto-eject'))
+      addServerPlugin(resolve(getNitroVersion(nuxt) === 3 ? './runtime/server/plugins/auto-eject-nitro3' : './runtime/server/plugins/auto-eject'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
 

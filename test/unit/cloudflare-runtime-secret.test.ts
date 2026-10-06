@@ -16,7 +16,7 @@ const runtimeConfig = {
   },
 }
 
-vi.mock('#nuxtseo/nitro', () => ({
+vi.mock('nuxt/server', () => ({
   useRuntimeConfig: () => runtimeConfig,
 }))
 

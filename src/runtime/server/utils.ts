@@ -1,7 +1,7 @@
-import type { H3Event } from '#nuxtseo/h3'
+import type { RequestEvent } from 'nuxt/server'
 import type { OgImageComponent, OgImageOptionsInternal, OgImageRuntimeConfig } from '../types'
+import { useRuntimeConfig } from 'nuxt/server'
 import { joinURL } from 'ufo'
-import { useRuntimeConfig } from '#nuxtseo/nitro'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { buildOgImageUrl } from '../shared'
 import { getCloudflareEnv } from './util/cloudflare'
@@ -12,8 +12,8 @@ export interface GetOgImagePathResult {
 }
 
 // The event is required: runtime secrets (e.g. Cloudflare env bindings) only resolve with it.
-export function getOgImagePath(event: H3Event, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
-  const baseURL = useRuntimeConfig(event).app.baseURL
+export function getOgImagePath(event: Pick<RequestEvent, 'context'>, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
+  const baseURL = useRuntimeConfig().app.baseURL
   const { defaults, security } = useOgImageRuntimeConfig(event)
   const extension = _options?.extension || defaults.extension
   // Force dynamic+signed URLs even during prerender when strict+secret are set.
@@ -36,9 +36,9 @@ export function getOgImagePath(event: H3Event, _pagePath: string, _options?: Par
   }
 }
 
-export function useOgImageRuntimeConfig(e?: H3Event): OgImageRuntimeConfig {
-  const c = useRuntimeConfig(e)
-  const moduleCfg = c['nuxt-og-image']
+export function useOgImageRuntimeConfig(e?: Pick<RequestEvent, 'context'>): OgImageRuntimeConfig {
+  const c = useRuntimeConfig()
+  const moduleCfg = c['nuxt-og-image'] as unknown as Omit<OgImageRuntimeConfig, 'app'>
   const cloudflareEnv = getCloudflareEnv(e)
   // Top-level `ogImage.secret` is populated by Nuxt's standard env override
   // (`NUXT_OG_IMAGE_SECRET`) and takes precedence over the build-time
@@ -54,7 +54,6 @@ export function useOgImageRuntimeConfig(e?: H3Event): OgImageRuntimeConfig {
     ? { ...(moduleCfg.security || {}), secret: overrideSecret }
     : moduleCfg.security
   return {
-    defaults: {},
     ...moduleCfg,
     security,
     app: {

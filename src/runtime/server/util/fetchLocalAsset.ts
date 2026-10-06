@@ -1,8 +1,8 @@
 import type { H3Event } from '#nuxtseo/h3'
 import { $fetch } from 'ofetch'
 import { fetchWithEvent } from '#nuxtseo/nitro'
-import { getNitroOrigin } from '#site-config/server/composables'
 import { tryCloudflareAssetsFetch } from './cloudflareAssets'
+import { getOgImageOrigin } from './origin'
 
 export interface FetchLocalAssetOptions {
   fetchTimeout: number
@@ -68,7 +68,7 @@ export async function fetchLocalAsset(
   if (result || expired || !includeExternalFallback)
     return result
 
-  const absolute = `${getNitroOrigin(event)}${path}`
+  const absolute = `${getOgImageOrigin(event)}${path}`
   return await race($fetch(absolute, {
     responseType: 'arrayBuffer',
     signal: deadline,

@@ -1,4 +1,4 @@
-import { defineEventHandler } from 'h3'
+import { defineEventHandler } from 'nuxt/server'
 import { getOgImageUrl } from '#imports'
 
 export default defineEventHandler(event => ({

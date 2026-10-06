@@ -1,4 +1,4 @@
-import type { H3Event } from '#nuxtseo/h3'
+import type { RequestEvent } from 'nuxt/server'
 
 export type CloudflareEnv = Record<string, unknown>
 
@@ -8,7 +8,7 @@ function toRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined
 }
 
-export function getCloudflareEnv(event?: H3Event): CloudflareEnv | undefined {
+export function getCloudflareEnv(event?: Pick<RequestEvent, 'context'>): CloudflareEnv | undefined {
   const runtime = event && 'runtime' in event
     ? toRecord(event.runtime)
     : undefined

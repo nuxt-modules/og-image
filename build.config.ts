@@ -7,6 +7,7 @@ export default defineBuildConfig({
     { input: 'src/cli', name: 'cli' },
   ],
   externals: [
+    'nuxt/server',
     'h3',
     'yoga-wasm-web',
     'nitropack',

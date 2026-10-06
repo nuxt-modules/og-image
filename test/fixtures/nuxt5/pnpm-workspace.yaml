@@ -1,26 +1,123 @@
+packages:
+  - .
+allowBuilds:
+  '@firebase/util': false
+  protobufjs: false
+  simple-git-hooks: false
+  '@parcel/watcher': true
+  better-sqlite3: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  vue-demi: true
+  workerd: true
 minimumReleaseAgeExclude:
-  - nuxt-site-config@4.1.4
-  - nuxt-site-config-kit@4.1.4
-  - site-config-stack@4.1.4
-  - '@nuxt/kit-nightly@5.0.0-29762711.192612c7 || 5.0.0-29835210.f258408a || 5.0.0-29844772.97ae4fa8'
-  - '@nuxt/nitro-server-nightly@5.0.0-29762711.192612c7 || 5.0.0-29835210.f258408a || 5.0.0-29844772.97ae4fa8'
-  - '@nuxt/schema-nightly@5.0.0-29762711.192612c7 || 5.0.0-29835210.f258408a || 5.0.0-29844772.97ae4fa8'
-  - '@nuxt/vite-builder-nightly@5.0.0-29762711.192612c7 || 5.0.0-29835210.f258408a || 5.0.0-29844772.97ae4fa8'
-  - nuxt-nightly@5.0.0-29762711.192612c7 || 5.0.0-29835210.f258408a || 5.0.0-29844772.97ae4fa8
-  - nuxtseo-shared@5.3.8 || 5.3.9 || 5.3.11
-  - '@nuxt/vite-server-nightly@5.0.0-29835210.f258408a || 5.0.0-29844772.97ae4fa8'
-  - my-bad@0.2.7
+  - nuxtseo-layer-devtools
+  - nuxtseo-shared
   - satori@0.33.5
+  - '@nuxt/cli@4.0.0'
+  - '@nuxt/kit@4.6.0'
+  - '@nuxt/nitro-server@4.6.0'
+  - '@nuxt/schema@4.6.0'
+  - '@nuxt/vite-builder@4.6.0'
+  - '@nuxt/vite-server@4.6.0'
+  - nuxt@4.6.0
+  - nuxt-nightly
+  - '@nuxt/*-nightly'
+  - pixelmatch@8.0.0
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 262800
+trustPolicyExclude:
+  - stylehacks@9.0.7
+  - postcss-unique-selectors@9.0.5
+  - postcss-svgo@9.0.4
+  - postcss-reduce-transforms@9.0.4
+  - postcss-reduce-initial@9.0.6
+  - postcss-ordered-values@9.0.6
+  - postcss-normalize-whitespace@9.0.5
+  - postcss-normalize-url@9.0.5
+  - postcss-normalize-unicode@9.0.5
+  - postcss-normalize-timing-functions@9.0.5
+  - postcss-normalize-string@9.0.5
+  - postcss-normalize-repeat-style@9.0.5
+  - postcss-normalize-positions@9.0.6
+  - postcss-normalize-display-values@9.0.5
+  - postcss-normalize-charset@9.0.5
+  - postcss-minify-selectors@9.0.6
+  - postcss-minify-params@9.0.6
+  - postcss-minify-gradients@9.0.6
+  - postcss-minify-font-values@9.0.7
+  - postcss-merge-rules@9.0.8
+  - postcss-merge-longhand@9.2.0
+  - postcss-discard-overridden@9.0.5
+  - postcss-discard-empty@9.0.5
+  - postcss-discard-duplicates@9.0.5
+  - postcss-discard-comments@9.0.6
+  - postcss-convert-values@9.0.7
+  - postcss-colormin@9.0.6
+  - cssnano-utils@8.1.0
+  - cssnano-preset-default@9.2.2
+  - cssnano@9.2.2
+  - chokidar@4.0.3
+  - eslint-import-resolver-typescript@3.10.1
+  - undici-types@6.21.0
+  - semver@6.3.1
+  - koa@2.16.3
+  - semver@5.7.2
+  - '@nuxtjs/tailwindcss@7.0.0-beta.1'
+  - tinyexec@1.2.2
+overrides:
+  '@unhead/vue': ^3.4.2
+  cssnano: 9.2.2
+  cssnano-preset-default: 9.2.2
+  cssnano-utils: 8.1.0
+  postcss-colormin: 9.0.6
+  postcss-convert-values: 9.0.7
+  postcss-discard-comments: 9.0.6
+  postcss-discard-duplicates: 9.0.5
+  postcss-discard-empty: 9.0.5
+  postcss-discard-overridden: 9.0.5
+  postcss-merge-longhand: 9.2.0
+  postcss-merge-rules: 9.0.8
+  postcss-minify-font-values: 9.0.7
+  postcss-minify-gradients: 9.0.6
+  postcss-minify-params: 9.0.6
+  postcss-minify-selectors: 9.0.6
+  postcss-normalize-charset: 9.0.5
+  postcss-normalize-display-values: 9.0.5
+  postcss-normalize-positions: 9.0.6
+  postcss-normalize-repeat-style: 9.0.5
+  postcss-normalize-string: 9.0.5
+  postcss-normalize-timing-functions: 9.0.5
+  postcss-normalize-unicode: 9.0.5
+  postcss-normalize-url: 9.0.5
+  postcss-normalize-whitespace: 9.0.5
+  postcss-ordered-values: 9.0.6
+  postcss-reduce-initial: 9.0.6
+  postcss-reduce-transforms: 9.0.4
+  postcss-svgo: 9.0.4
+  postcss-unique-selectors: 9.0.5
+  stylehacks: 9.0.7
+  unhead: ^3.4.2
+  vitest-environment-nuxt: 2.0.0
+  vue: ^3.5.43
+  nuxtseo-shared: https://pkg.pr.new/harlan-zw/nuxt-seo/nuxtseo-shared@226c091a0744b7286ef721ac035eed53856bfaa5
+  nuxt-site-config: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
+  nuxt-site-config-kit: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config-kit@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
+  site-config-stack: https://pkg.pr.new/harlan-zw/nuxt-site-config/site-config-stack@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
+blockExoticSubdeps: false
 catalog:
   '@resvg/resvg-js': ^2.6.2
+  '@takumi-rs/core': ^2.14.0
   nitro: 3.0.260903-beta
   nitropack: npm:nitro@3.0.260903-beta
-  nuxt: npm:nuxt-nightly@5.0.0-29844772.97ae4fa8
-  nuxt-site-config: ^4.2.3
-  pixelmatch: 7.2.0
-  pngjs: 7.0.0
-  satori: ^0.33.5
+  nuxt: npm:nuxt-nightly@5.0.0-2610061032-c7ad8cd
+  nuxt-site-config: ^5.0.0
+  nuxtseo-shared: ^6.0.0
+  pixelmatch: ^8.0.0
+  pngjs: ^7.0.0
+  satori: ^0.35.0
   typescript: 6.0.3
   vue: ^3.5.43
   vue-router: ^5.3.1
-  vue-tsc: ^3.3.11
+  vue-tsc: ^3.3.12

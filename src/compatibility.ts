@@ -8,8 +8,8 @@ import { addTemplate, getNuxtVersion, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { resolveModulePath } from 'exsolve'
 import { join } from 'pathe'
-import { readPackageJSON } from 'pkg-types'
 import { prepareHarfBuzzCallbacks } from './build/harfbuzz'
+import { readPackageManifest } from './build/package-manifest.ts'
 import { resolveNitroPreset } from './kit'
 import { logger } from './runtime/logger'
 import { isSupportedSatoriVersion, MIN_SATORI_VERSION, RE_LEGACY_SUFFIX } from './util'
@@ -223,7 +223,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     nitroConfig.alias || {},
   )
   if (resolvedCompatibility.satori) {
-    const satoriPackage = await readPackageJSON(`${satoriPkgDir}/package.json`)
+    const satoriPackage = await readPackageManifest(`${satoriPkgDir}/package.json`)
     if (!isSupportedSatoriVersion(satoriPackage.version))
       throw new Error(`[Nuxt OG Image] Satori ${satoriPackage.version} is not supported. Satori ${MIN_SATORI_VERSION} or later is required (GHSA-wx4j-mvgx-mqwp). Run: npm install satori@latest`)
     const harfbuzzWasmPath = resolveModulePath('harfbuzzjs/hb.wasm', { from: `${satoriPkgDir}/package.json` })

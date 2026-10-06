@@ -5,7 +5,7 @@ description: Generate, fix, or debug Open Graph images in a Nuxt app with the nu
 
 # nuxt-og-image
 
-Tested against `nuxt-og-image` 6.9.1 on Nuxt 4.5 with `@takumi-rs/core` 2 (requires Nuxt `>=3.16.0`).
+Requires Nuxt `^4.6.0 || ^5.0.0` and Unhead 3.4.2 or newer.
 The module renders a Vue component to a PNG and adds `og:image` and `twitter:image` meta for the page. Docs: https://nuxtseo.com/docs/og-image
 
 ## Setup
