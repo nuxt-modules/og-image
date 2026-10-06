@@ -1,3 +1,8 @@
+<a href="https://nuxtseo.com"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/icon-dark.svg">
+  <img src=".github/assets/icon-light.svg" width="64" height="64" alt="">
+</picture></a>
+
 <img src=".github/assets/og-image-preview.png" alt="Nuxt OG Image DevTools Preview">
 
 <h1>nuxt-og-image</h1>
