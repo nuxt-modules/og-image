@@ -21,7 +21,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { findPackageJSON } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
+import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
@@ -416,16 +416,25 @@ export default defineNuxtModule<ModuleOptions>({
     const userAppPkgJson = await readPackageManifest(join(nuxt.options.rootDir, 'package.json'))
       .catch(() => ({ dependencies: {}, devDependencies: {} }))
     logger.level = (config.debug || nuxt.options.debug) ? 4 : 3
+    // Packed runtime files need Nuxt's aliases during Vite development SSR.
+    nuxt.options.build.transpile.push(resolve('./runtime/app'))
     if (config.enabled === false) {
       logger.info('The module is disabled, skipping setup.')
-      // need to mock the composables to allow module still to work when disabled
+      setupRuntimeAliases({ namespace: '#og-image', app: resolve('./runtime/app/disabled') }, nuxt)
+      nuxt.options.alias['#og-image/components'] = resolve('./runtime/app/disabled/components')
+      // Preserve the existing disabled composables through canonical and deep imports.
       ;['defineOgImage', 'defineOgImageComponent', 'defineOgImageScreenshot']
         .forEach((name) => {
-          addImports({ name, from: resolve(`./runtime/app/composables/mock`) })
+          addImports({ name, from: '#og-image/app' })
         })
       return
     }
     const nitroCompatibility = setupNitroRuntimeCompatibility(nuxt)
+    if (nitroCompatibility._tag === 'nitro-v2') {
+      nuxt.options.nitro.externals ||= {}
+      nuxt.options.nitro.externals.inline ||= []
+      nuxt.options.nitro.externals.inline.push(resolve('./runtime'))
+    }
     // Nitro 2 uses a boolean here. Keep DevTools from assigning Nitro 3's array option.
     if (nuxt.options.dev && nitroCompatibility._tag === 'nitro-v2')
       nuxt.options.nitro.noExternals ??= false
@@ -1864,7 +1873,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     if (nuxt.options.dev)
-      addServerPlugin(resolve('./runtime/server/plugins/auto-eject'))
+      addServerPlugin(resolve(getNitroVersion(nuxt) === 3 ? './runtime/server/plugins/auto-eject-nitro3' : './runtime/server/plugins/auto-eject'))
     // always call this as we may have routes only discovered at build time
     setupPrerenderHandler(config, resolver, getDetectedRenderers, getCompatibilityMeta)
 

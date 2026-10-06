@@ -14,6 +14,7 @@ export default defineNuxtConfig({
   future: { compatibilityVersion: process.env.NUXT_TEST_LANE === 'future5' ? 5 : undefined },
   modules: [NuxtOgImage],
   ogImage: {
+    enabled: process.env.NUXT_TEST_OG_DISABLED === '1' ? false : undefined,
     debug: true,
     security: {
       secret: false,
