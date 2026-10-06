@@ -3,7 +3,7 @@ name: Package Size Analysis
 on:
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - '**/README.md'
       - 'docs/**'
 
 concurrency:
@@ -15,6 +15,4 @@ permissions:
 
 jobs:
   analyze:
-    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-package-size.yml@09760efb0ffeac9f477673725c1c2f1fc8b1b049
-    with:
-      node-version: 22.22.3
+    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-package-size.yml@main

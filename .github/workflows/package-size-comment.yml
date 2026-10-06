@@ -8,8 +8,7 @@ on:
       - completed
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.id
-    }}-${{ github.event.workflow_run.head_branch }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 permissions: {}
@@ -22,4 +21,4 @@ jobs:
     permissions:
       actions: read
       pull-requests: write
-    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-package-size-comment.yml@09760efb0ffeac9f477673725c1c2f1fc8b1b049
+    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-package-size-comment.yml@main
