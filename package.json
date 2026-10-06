@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "7.0.0",
+  "version": "6.10.3",
   "packageManager": "pnpm@12.8.1",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
