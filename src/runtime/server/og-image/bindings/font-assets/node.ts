@@ -2,8 +2,9 @@ import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig } from '../../../../types'
 import { withBase } from 'ufo'
 import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
-import { getNitroOrigin, getSiteConfig } from '#site-config/server/composables'
+import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
+import { getOgImageOrigin } from '../../../util/origin'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../../utils'
 import { fetchSpecialFontUrl, isDataFontUrl, isExternalFontUrl } from './external-url'
@@ -13,7 +14,7 @@ export async function resolve(event: H3Event, font: FontConfig) {
   const runtimeConfig = useOgImageRuntimeConfig()
   const timeout = getFetchTimeout(runtimeConfig)
   const { app } = useRuntimeConfig()
-  const origin = getNitroOrigin(event)
+  const origin = getOgImageOrigin(event)
   const fullPath = withBase(path, app.baseURL)
 
   // `data:` and external font URLs are attacker-reachable via the `fonts` URL

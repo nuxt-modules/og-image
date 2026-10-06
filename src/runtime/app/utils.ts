@@ -14,7 +14,7 @@ import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
  * Recursively unwrap refs/computed/getters in a head input object.
  *
  * Replaces `resolveUnrefHeadInput` from `@unhead/vue`, which was removed in
- * Unhead v3. Keeping a local walker lets us compile against both v2 and v3.
+ * Unhead v3. The local walker resolves reactive inputs before encoding them.
  */
 function resolveUnrefHeadInput(input: any): any {
   if (input == null)

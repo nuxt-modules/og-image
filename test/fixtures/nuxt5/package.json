@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "catalog:",
+    "@takumi-rs/core": "catalog:",
     "nitro": "catalog:",
     "nitropack": "catalog:",
     "nuxt": "catalog:",

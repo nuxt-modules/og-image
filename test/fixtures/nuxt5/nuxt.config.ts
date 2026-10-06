@@ -1,6 +1,16 @@
 import NuxtOgImage from 'nuxt-og-image'
+import NuxtSiteConfig from 'nuxt-site-config'
+
+if (process.env.NUXT_TEST_LANE === 'nuxt5') {
+  for (const module of [NuxtOgImage, NuxtSiteConfig]) {
+    const metadata = await module.getMeta()
+    metadata.compatibility ||= {}
+    metadata.compatibility.nuxt = `${metadata.compatibility.nuxt} || 5.0.0-2610052343-36eafab`
+  }
+}
 
 export default defineNuxtConfig({
+  future: { compatibilityVersion: process.env.NUXT_TEST_LANE === 'future5' ? 5 : undefined },
   modules: [NuxtOgImage],
   ogImage: {
     debug: true,

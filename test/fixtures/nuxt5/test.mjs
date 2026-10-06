@@ -63,7 +63,7 @@ async function main() {
   const origin = `http://127.0.0.1:${port}`
   const nitroManifest = JSON.parse(await readFile(new URL('.output/nitro.json', import.meta.url), 'utf8'))
   const moduleManifest = JSON.parse(await readFile(new URL('node_modules/nuxt-og-image/package.json', import.meta.url), 'utf8'))
-  assert.equal(nitroManifest.versions.nitro, '3.0.260903-beta')
+  assert.match(nitroManifest.versions.nitro, process.env.NUXT_TEST_LANE === 'nuxt5' ? /^3\./ : /^2\./)
 
   const server = spawn(process.execPath, ['.output/server/index.mjs'], {
     cwd: import.meta.dirname,

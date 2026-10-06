@@ -2,12 +2,12 @@ import type { H3Event } from '#nuxtseo/h3'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
 import { withBase, withoutLeadingSlash } from 'ufo'
 import { useStorage } from '#nuxtseo/nitro'
-import { getNitroOrigin } from '#site-config/server/composables/getNitroOrigin'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
 import { fetchLocalAsset } from '../../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { logger } from '../../../util/logger'
+import { getOgImageOrigin } from '../../../util/origin'
 import { fetchWithRedirectValidation, isBlockedUrl } from '../../../util/ssrf'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
@@ -194,7 +194,7 @@ export default defineTransformer([
       // satori/takumi may attempt to resolve at render time (against the app's
       // own origin, not an attacker-controlled one)
       if (isRelative) {
-        node.props.src = withBase(src, `${getNitroOrigin(ctx.e)}`)
+        node.props.src = withBase(src, `${getOgImageOrigin(ctx.e)}`)
         return
       }
       // Absolute external URL whose validated fetch failed. Drop it in

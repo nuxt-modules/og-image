@@ -6,11 +6,48 @@ minimumReleaseAgeExclude:
   - nuxtseo-layer-devtools
   - nuxtseo-shared
   - satori@0.33.5
+  - '@nuxt/cli@4.0.0'
+  - '@nuxt/kit@4.6.0'
+  - '@nuxt/nitro-server@4.6.0'
+  - '@nuxt/schema@4.6.0'
+  - '@nuxt/vite-builder@4.6.0'
+  - '@nuxt/vite-server@4.6.0'
+  - nuxt@4.6.0
 
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
 
 trustPolicyExclude:
+  - stylehacks@9.0.7
+  - postcss-unique-selectors@9.0.5
+  - postcss-svgo@9.0.4
+  - postcss-reduce-transforms@9.0.4
+  - postcss-reduce-initial@9.0.6
+  - postcss-ordered-values@9.0.6
+  - postcss-normalize-whitespace@9.0.5
+  - postcss-normalize-url@9.0.5
+  - postcss-normalize-unicode@9.0.5
+  - postcss-normalize-timing-functions@9.0.5
+  - postcss-normalize-string@9.0.5
+  - postcss-normalize-repeat-style@9.0.5
+  - postcss-normalize-positions@9.0.6
+  - postcss-normalize-display-values@9.0.5
+  - postcss-normalize-charset@9.0.5
+  - postcss-minify-selectors@9.0.6
+  - postcss-minify-params@9.0.6
+  - postcss-minify-gradients@9.0.6
+  - postcss-minify-font-values@9.0.7
+  - postcss-merge-rules@9.0.8
+  - postcss-merge-longhand@9.2.0
+  - postcss-discard-overridden@9.0.5
+  - postcss-discard-empty@9.0.5
+  - postcss-discard-duplicates@9.0.5
+  - postcss-discard-comments@9.0.6
+  - postcss-convert-values@9.0.7
+  - postcss-colormin@9.0.6
+  - cssnano-utils@8.1.0
+  - cssnano-preset-default@9.2.2
+  - cssnano@9.2.2
   - chokidar@4.0.3
   - eslint-import-resolver-typescript@3.10.1
   - undici-types@6.21.0
@@ -27,8 +64,38 @@ packages:
   - '!examples/**'
 
 overrides:
-  '@unhead/vue': ^3.4.1
-  unhead: ^3.4.1
+  '@unhead/vue': ^3.4.2
+  cssnano: 9.2.2
+  cssnano-preset-default: 9.2.2
+  cssnano-utils: 8.1.0
+  postcss-colormin: 9.0.6
+  postcss-convert-values: 9.0.7
+  postcss-discard-comments: 9.0.6
+  postcss-discard-duplicates: 9.0.5
+  postcss-discard-empty: 9.0.5
+  postcss-discard-overridden: 9.0.5
+  postcss-merge-longhand: 9.2.0
+  postcss-merge-rules: 9.0.8
+  postcss-minify-font-values: 9.0.7
+  postcss-minify-gradients: 9.0.6
+  postcss-minify-params: 9.0.6
+  postcss-minify-selectors: 9.0.6
+  postcss-normalize-charset: 9.0.5
+  postcss-normalize-display-values: 9.0.5
+  postcss-normalize-positions: 9.0.6
+  postcss-normalize-repeat-style: 9.0.5
+  postcss-normalize-string: 9.0.5
+  postcss-normalize-timing-functions: 9.0.5
+  postcss-normalize-unicode: 9.0.5
+  postcss-normalize-url: 9.0.5
+  postcss-normalize-whitespace: 9.0.5
+  postcss-ordered-values: 9.0.6
+  postcss-reduce-initial: 9.0.6
+  postcss-reduce-transforms: 9.0.4
+  postcss-svgo: 9.0.4
+  postcss-unique-selectors: 9.0.5
+  stylehacks: 9.0.7
+  unhead: ^3.4.2
   vite: 8.3.0
   vitest-environment-nuxt: 2.0.0
   vue: ^3.5.43
@@ -68,7 +135,7 @@ catalog:
   '@nuxt/fonts': ^0.14.0
   '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
-  '@nuxt/kit': ^4.5.2
+  '@nuxt/kit': ^4.6.0
   '@nuxt/module-builder': ^1.0.3
   '@nuxt/test-utils': ^4.3.2
   '@nuxt/ui': ^4.11.2
@@ -117,10 +184,10 @@ catalog:
   magicast: ^0.5.5
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
-  nuxt: ^4.5.2
-  nuxt-site-config: ^4.2.3
+  nuxt: 4.6.0
+  nuxt-site-config: ^5.0.0
   nuxtseo-layer-devtools: ^5.3.16
-  nuxtseo-shared: ^5.3.16
+  nuxtseo-shared: ^6.0.0
   nypm: ^0.6.10
   object-identity: ^0.2.3
   ofetch: ^1.5.1
@@ -128,7 +195,6 @@ catalog:
   oxc-parser: ^0.151.0
   oxc-walker: ^1.1.1
   pathe: ^2.0.3
-  pkg-types: ^2.3.3
   playwright: ^1.63.0
   playwright-core: ^1.63.0
   radix3: ^1.1.2

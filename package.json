@@ -1,7 +1,7 @@
 {
   "name": "nuxt-og-image",
   "type": "module",
-  "version": "6.10.3",
+  "version": "7.0.0",
   "packageManager": "pnpm@12.6.0",
   "description": "Enlightened OG Image generation for Nuxt.",
   "author": {
@@ -47,7 +47,7 @@
     "types/virtual.d.ts"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "scripts": {
     "bench:edge-startup": "nuxt build bench/fixtures/edge-startup && node bench/edge-startup.mjs bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js",
@@ -66,25 +66,27 @@
     "release": "pnpm build && bumpp -x \"npx changelogen --output=CHANGELOG.md\"",
     "typecheck": "pnpm stub && nuxt typecheck",
     "test": "pnpm run prepare:fixtures && vitest",
-    "test:run": "pnpm test -- --run && pnpm test:nuxt5",
-    "test:nuxt5": "pnpm pack --out test/fixtures/nuxt5/nuxt-og-image.tgz && node -e \"require('node:fs').rmSync('test/fixtures/nuxt5/node_modules', { recursive: true, force: true })\" && pnpm install --dir test/fixtures/nuxt5 --no-frozen-lockfile --force --update-checksums && pnpm --dir test/fixtures/nuxt5 test",
+    "test:run": "pnpm test -- --run && pnpm test:nuxt-lanes",
+    "test:nuxt5": "node scripts/test-nuxt-lanes.ts nuxt5",
     "test:chrome": "HAS_CHROME=true vitest",
     "test:packed-install": "node scripts/smoke-packed-install.mjs",
     "test:peers": "node scripts/test-peer-compatibility.mjs",
     "test:takumi:e2e": "node scripts/test-takumi-e2e.mjs",
     "test:takumi:e2e:matrix": "node scripts/test-takumi-e2e.mjs --matrix",
-    "test:takumi:e2e:compare": "node scripts/test-takumi-e2e.mjs --compare"
+    "test:takumi:e2e:compare": "node scripts/test-takumi-e2e.mjs --compare",
+    "test:nuxt-lanes": "node scripts/test-nuxt-lanes.ts"
   },
   "peerDependencies": {
     "@resvg/resvg-js": "^2.6.0",
     "@resvg/resvg-wasm": "^2.6.0",
     "@takumi-rs/core": "^1.0.0-beta.3 || ^2.0.0",
     "@takumi-rs/wasm": "^1.0.0-beta.3 || ^2.0.0",
-    "@unhead/vue": "^2.0.5 || ^3.0.0",
+    "@unhead/vue": "^3.4.2",
     "@unocss/config": "catalog:",
     "@unocss/core": "catalog:",
     "fontless": "^0.2.0 || ^0.4.3 || ^1.0.0",
     "nitropack": "catalog:",
+    "nuxt": "^4.6.0 || ^5.0.0",
     "playwright-core": "^1.50.0",
     "satori": ">=0.33.5",
     "sharp": "^0.35.4",
@@ -160,7 +162,6 @@
     "oxc-parser": "catalog:",
     "oxc-walker": "catalog:",
     "pathe": "catalog:",
-    "pkg-types": "catalog:",
     "radix3": "catalog:",
     "std-env": "catalog:",
     "strip-literal": "catalog:",
