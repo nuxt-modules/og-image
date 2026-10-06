@@ -1,8 +1,9 @@
 import NuxtOgImage from 'nuxt-og-image'
 import NuxtSiteConfig from 'nuxt-site-config'
+import NuxtSeoShared from 'nuxtseo-shared'
 
 if (process.env.NUXT_TEST_LANE === 'nuxt5') {
-  for (const module of [NuxtOgImage, NuxtSiteConfig]) {
+  for (const module of [NuxtOgImage, NuxtSiteConfig, NuxtSeoShared]) {
     const metadata = await module.getMeta()
     metadata.compatibility ||= {}
     metadata.compatibility.nuxt = `${metadata.compatibility.nuxt} || 5.0.0-2610052343-36eafab`

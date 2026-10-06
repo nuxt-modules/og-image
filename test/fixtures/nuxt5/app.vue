@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { defineOgImage, useRoute, useSeoMeta } from '#imports'
+import { useRoute, useSeoMeta } from '#imports'
+import { defineOgImage } from '#og-image/app'
 
 useSeoMeta({
   title: 'Nuxt 5 OG Image fixture',

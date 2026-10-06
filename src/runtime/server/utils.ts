@@ -1,5 +1,4 @@
 import type { RequestEvent } from 'nuxt/server'
-import type { H3Event } from '#nuxtseo/h3'
 import type { OgImageComponent, OgImageOptionsInternal, OgImageRuntimeConfig } from '../types'
 import { useRuntimeConfig } from 'nuxt/server'
 import { joinURL } from 'ufo'
@@ -13,7 +12,7 @@ export interface GetOgImagePathResult {
 }
 
 // The event is required: runtime secrets (e.g. Cloudflare env bindings) only resolve with it.
-export function getOgImagePath(event: H3Event, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
+export function getOgImagePath(event: Pick<RequestEvent, 'context'>, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
   const baseURL = useRuntimeConfig().app.baseURL
   const { defaults, security } = useOgImageRuntimeConfig(event)
   const extension = _options?.extension || defaults.extension

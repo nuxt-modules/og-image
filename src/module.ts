@@ -25,7 +25,7 @@ import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImp
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
-import { setupNitroRuntimeCompatibility } from 'nuxtseo-shared/kit'
+import { setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
 import { setupBuildHandler } from './build/build'
 import { setupDevHandler } from './build/dev'
@@ -1857,7 +1857,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     }
     // Keep public aliases specific. A bare #og-image prefix shadows Nitro's
     // renderer and binding aliases under Nitro 3's insertion-order resolver.
-    setRuntimeAlias('#og-image/app', resolve('./runtime/app'))
+    setupRuntimeAliases({ namespace: '#og-image', app: resolve('./runtime/app'), server: resolve('./runtime/server') }, nuxt)
     setRuntimeAlias('#og-image/shared', resolve('./runtime/shared'))
     setRuntimeAlias('#og-image/types', resolve('./runtime/types'))
     // no way to know if we'll prerender any routes

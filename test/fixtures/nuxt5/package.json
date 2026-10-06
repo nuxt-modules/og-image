@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "test": "nuxt prepare && vue-tsc --noEmit -p .nuxt/tsconfig.server.json && node test.mjs"
+    "test": "nuxt prepare && vue-tsc --noEmit -p .nuxt/tsconfig.app.json && vue-tsc --noEmit -p .nuxt/tsconfig.server.json && node test.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "catalog:",
@@ -14,6 +14,7 @@
     "nuxt": "catalog:",
     "nuxt-og-image": "file:./nuxt-og-image.tgz",
     "nuxt-site-config": "catalog:",
+    "nuxtseo-shared": "catalog:",
     "satori": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"

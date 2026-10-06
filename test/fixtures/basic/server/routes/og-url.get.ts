@@ -1,3 +1,5 @@
+import { defineEventHandler } from 'nuxt/server'
+
 // Exercises the auto-imported Nitro utility from a pure server handler (#690).
 export default defineEventHandler((event) => {
   const options = { component: 'NuxtSeo.satori', props: { title: 'From Nitro' } }

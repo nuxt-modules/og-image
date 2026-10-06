@@ -22,6 +22,7 @@ catalog:
   nitropack: npm:nitro@3.0.260903-beta
   nuxt: npm:nuxt-nightly@5.0.0-2610052343-36eafab
   nuxt-site-config: ^5.0.0
+  nuxtseo-shared: ^6.0.0
   pixelmatch: 7.2.0
   pngjs: 7.0.0
   satori: ^0.33.5

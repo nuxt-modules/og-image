@@ -96,6 +96,10 @@ async function main() {
 
   try {
     const response = await waitForServer()
+    const aliasBody = await (await fetch(`${origin}/api/runtime-alias?ignored=one`)).json()
+    assert.match(aliasBody.url, /^https:\/\/og-image\.example\.com\//)
+    assert.equal(aliasBody.url, aliasBody.nestedUrl)
+    assert.equal(aliasBody.currentUrl, (await (await fetch(`${origin}/api/runtime-alias?ignored=two`)).json()).currentUrl)
     const body = await response.json()
     assert.equal(body.siteConfigUrl, 'https://og-image.example.com')
     assert.equal(body.runtimeConfig.version, moduleManifest.version)
