@@ -5,6 +5,12 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - docs/**
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
@@ -15,10 +21,10 @@ permissions:
 
 jobs:
   ci:
-    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-ci.yml@226c091a0744b7286ef721ac035eed53856bfaa5
+    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-ci.yml@09760efb0ffeac9f477673725c1c2f1fc8b1b049
     with:
-      migration: true
       test-command: pnpm test:run
+      node-version: 22.22.3
 
   packed-install-smoke:
     name: Packed install smoke
@@ -35,14 +41,12 @@ jobs:
         with:
           package_json_file: package.json
 
-      - uses: ./.github/actions/migration-ci
-        id: migration
+      - run: pnpm install --frozen-lockfile
 
       - run: pnpm run test:packed-install
-        working-directory: ${{ steps.migration.outputs.workspace }}
 
   takumi-e2e-matrix:
-    name: Takumi e2e matrix
+    name: Takumi e2e
     runs-on: ubuntu-latest
 
     steps:
@@ -56,14 +60,11 @@ jobs:
         with:
           package_json_file: package.json
 
-      - uses: ./.github/actions/migration-ci
-        id: migration
+      - run: pnpm install --frozen-lockfile
 
       - run: pnpm dev:prepare
-        working-directory: ${{ steps.migration.outputs.workspace }}
 
-      - run: pnpm run test:takumi:e2e:matrix
-        working-directory: ${{ steps.migration.outputs.workspace }}
+      - run: pnpm run test:takumi:e2e
 
   browser-prerender:
     name: Browser prerender (screenshot pages)
@@ -80,27 +81,19 @@ jobs:
         with:
           package_json_file: package.json
 
-      - uses: ./.github/actions/migration-ci
-        id: migration
+      - run: pnpm install --frozen-lockfile
 
       - run: pnpm dev:prepare
-        working-directory: ${{ steps.migration.outputs.workspace }}
 
       - run: pnpm exec playwright-core install --with-deps chromium
-        working-directory: ${{ steps.migration.outputs.workspace }}
 
       - run: pnpm exec vitest run test/e2e-not-nuxt/browser-prerender.test.ts
-        working-directory: ${{ steps.migration.outputs.workspace }}
         env:
           HAS_CHROME: true
 
   peer-compatibility:
-    name: Peer compatibility (${{ matrix.profile }})
+    name: Peer compatibility
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        profile: [minimum, current]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -109,9 +102,6 @@ jobs:
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: package.json
-      - uses: ./.github/actions/migration-ci
-        id: migration
+      - run: pnpm install --frozen-lockfile
       - run: pnpm dev:prepare
-        working-directory: ${{ steps.migration.outputs.workspace }}
-      - run: pnpm run test:peers ${{ matrix.profile }}
-        working-directory: ${{ steps.migration.outputs.workspace }}
+      - run: pnpm run test:peers current

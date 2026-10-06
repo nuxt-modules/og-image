@@ -14,7 +14,6 @@ on:
       - package.json
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
-      - scripts/migration-lock.yaml
       - src/**
 
 concurrency:
@@ -47,7 +46,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24.x
+          node-version: 22.22.3
           cache: pnpm
 
       - name: Build base branch fixture
@@ -61,14 +60,11 @@ jobs:
           pnpm --dir "$BASE_DIR" stub
           pnpm --dir "$BASE_DIR" exec nuxt build bench/fixtures/edge-startup
 
-      - uses: ./.github/actions/migration-ci
-        id: migration
-
       - name: Build pull request fixture
-        working-directory: ${{ steps.migration.outputs.workspace }}
         env:
           NUXT_OG_IMAGE_SKIP_ONBOARDING: '1'
         run: |
+          pnpm install --frozen-lockfile
           pnpm stub
           pnpm exec nuxt build bench/fixtures/edge-startup
 
@@ -78,7 +74,7 @@ jobs:
           BENCH_SAMPLES: '12'
         run: |
           node bench/edge-startup.mjs "$BASE_DIR/bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js" > "${{ runner.temp }}/edge-startup-base.json"
-          node bench/edge-startup.mjs "${{ steps.migration.outputs.workspace }}/bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js" > "${{ runner.temp }}/edge-startup-head.json"
+          node bench/edge-startup.mjs bench/fixtures/edge-startup/.netlify/edge-functions/server/server.js > "${{ runner.temp }}/edge-startup-head.json"
 
       - name: Report benchmark
         id: report

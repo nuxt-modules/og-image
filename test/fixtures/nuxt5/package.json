@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.8.1",
   "scripts": {
-    "test": "nuxt prepare && vue-tsc --noEmit -p .nuxt/tsconfig.app.json && vue-tsc --noEmit -p .nuxt/tsconfig.server.json && node test.mjs && node auto-eject.ts && node auto-eject.ts disabled"
+    "test": "nuxt prepare && vue-tsc --noEmit -p .nuxt/tsconfig.app.json && vue-tsc --noEmit -p .nuxt/tsconfig.server.json && node test.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "catalog:",
@@ -12,7 +12,7 @@
     "nitro": "catalog:",
     "nitropack": "catalog:",
     "nuxt": "catalog:",
-    "nuxt-og-image": "file:./nuxt-og-image.tgz",
+    "nuxt-og-image": "link:../../..",
     "nuxt-site-config": "catalog:",
     "nuxtseo-shared": "catalog:",
     "satori": "catalog:",

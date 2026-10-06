@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { createPackedRegistry } from './packed-registry.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const rootPackage = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
@@ -16,9 +15,6 @@ const packageManagers = process.argv
   .filter(Boolean) || ['pnpm', 'npm']
 const tempRoot = await mkdtemp(join(tmpdir(), 'og-image-packed-smoke-'))
 const rootWorkspace = await readFile(join(root, 'pnpm-workspace.yaml'), 'utf8')
-const tarballs = JSON.parse(process.env.NUXT_TEST_TARBALLS || '{}')
-delete tarballs[rootPackage.name]
-const registry = Object.keys(tarballs).length ? await createPackedRegistry(tarballs) : undefined
 const RE_ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g')
 
 function log(message) {
@@ -33,7 +29,6 @@ function run(cwd, command, args, options = {}) {
       env: {
         ...process.env,
         CI: '1',
-        ...(registry ? { npm_config_registry: registry.origin } : {}),
         ...options.env,
       },
     })
@@ -112,6 +107,7 @@ async function createApp(pm, name, dependencies, nuxtConfig) {
     packageManager: await getPackageManagerField(pm),
     engines: rootPackage.engines,
     dependencies,
+    overrides: Object.fromEntries([...rootWorkspace.matchAll(/^ {2}'?(nuxtseo-shared|nuxt-site-config|nuxt-site-config-kit|site-config-stack)'?: (https:\/\/[^\n]+)/gm)].map(([, name, url]) => [name, url])),
   }, null, 2)}\n`)
   if (pm === 'pnpm') {
     await writeFile(join(appDir, 'pnpm-workspace.yaml'), [
@@ -126,7 +122,9 @@ async function createApp(pm, name, dependencies, nuxtConfig) {
       // Preserve the repository's approved provenance policy in the nested install.
       ...['minimumReleaseAgeExclude', 'trustPolicy', 'trustPolicyIgnoreAfter', 'trustPolicyExclude']
         .flatMap(key => rootWorkspace.match(new RegExp(`^${key}:[^\\n]*(?:\\n[ \t]+[^\\n]*)*`, 'm'))?.[0].split('\n') || []),
+      'blockExoticSubdeps: false',
       'overrides:',
+      ...[...rootWorkspace.matchAll(/^ {2}'?(nuxtseo-shared|nuxt-site-config|nuxt-site-config-kit|site-config-stack)'?: (https:\/\/[^\n]+)/gm)].map(([, name, url]) => `  '${name}': ${url}`),
       // Exact approved CSS versions prevent a newer unapproved publisher downgrade.
       ...[...rootWorkspace.matchAll(/^ {2}(cssnano(?:-preset-default|-utils)?|postcss-[\w-]+|stylehacks): ([\d.]+)$/gm)]
         .map(([, name, version]) => `  ${name}: ${version}`),
@@ -143,8 +141,6 @@ async function install(pm, appDir) {
     : pm === 'npm'
       ? ['install', '--strict-peer-deps', '--loglevel=warn']
       : ['install']
-  if (registry)
-    args.push(`--registry=${registry.origin}`)
   const output = await run(appDir, pm, args, { capture: true })
   assertNoPeerWarnings(output, `${pm} install`)
 }
@@ -234,7 +230,6 @@ try {
   log('passed')
 }
 finally {
-  await registry?.close()
   if (keepTemp)
     log(`kept temp directory ${tempRoot}`)
   else

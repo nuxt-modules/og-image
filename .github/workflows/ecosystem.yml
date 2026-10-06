@@ -10,14 +10,10 @@ on:
 
 jobs:
   npmx:
-    name: 🌐 npmx.dev build (${{ matrix.attempt }})
+    name: 🌐 npmx.dev build
     runs-on: ubuntu-24.04-arm
     container:
       image: mcr.microsoft.com/playwright:v1.58.2-noble
-    strategy:
-      fail-fast: false
-      matrix:
-        attempt: [1, 2, 3]
 
     steps:
       - name: 📦 Checkout og-image
@@ -27,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: lts/*
+          node-version: 22.22.3
 
       - uses: pnpm/action-setup@v6
         with:
