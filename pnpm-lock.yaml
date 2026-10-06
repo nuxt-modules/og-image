@@ -330,8 +330,8 @@ catalogs:
       specifier: ^1.2.1
       version: 1.2.1
     fontless-v0-2:
-      specifier: npm:fontless@0.2.0
-      version: 0.2.0
+      specifier: npm:fontless@0.2.1
+      version: 0.2.1
     globby:
       specifier: ^16.2.4
       version: 16.2.4
@@ -435,8 +435,8 @@ catalogs:
       specifier: ^1.0.2
       version: 1.0.2
     unifont-v0-7:
-      specifier: npm:unifont@0.7.0
-      version: 0.7.0
+      specifier: npm:unifont@0.7.5
+      version: 0.7.5
     unocss:
       specifier: ^66.10.5
       version: 66.10.5
@@ -735,7 +735,7 @@ importers:
         version: 1.2.1(esbuild@0.28.2)(jiti@2.7.0)(lightningcss@1.33.0)(postcss@8.5.28)(rolldown@1.2.12)(rollup@4.63.2)(vite@8.3.3)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
       fontless-v0-2:
         specifier: 'catalog:'
-        version: fontless@0.2.0(db0@0.3.4(better-sqlite3@13.0.3))(ioredis@5.11.1(supports-color@10.2.2))(vite@8.3.3)
+        version: fontless@0.2.1(db0@0.3.4(better-sqlite3@13.0.3))(ioredis@5.11.1(supports-color@10.2.2))(vite@8.3.3)
       globby:
         specifier: 'catalog:'
         version: 16.2.4
@@ -789,7 +789,7 @@ importers:
         version: 1.0.2
       unifont-v0-7:
         specifier: 'catalog:'
-        version: unifont@0.7.0
+        version: unifont@0.7.5
       unocss:
         specifier: 'catalog:'
         version: 66.10.5(@devframes/agentic@1.0.0)(@unocss/webpack@66.10.5(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.63.2)(vite@8.3.3)(webpack@5.109.2(cssnano@8.0.10(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)))(cac@7.0.0)(rolldown@1.2.12)(rollup@4.63.2)(srvx@0.11.22)(vite@8.3.3)
@@ -7111,15 +7111,6 @@ packages:
     resolution: {integrity: sha512-Wp1zXWPVUPBmfoa3Cqc9ctaKuzKAV6uLstRqlR56kSjplf5uAce+qeyYym7F+PHbGTk+tCEdkCW6RD7DX/gBZw==}
     engines: {node: '>=20'}
 
-  fontless@0.2.0:
-    resolution: {integrity: sha512-8s83ExazIxe4b1mkq/fkFMyixcstRwAZ3gj+GFQRuNFJGmwRPiFKmobWMOSWm1zGLeG0nY5vhxyGRzyr2NUxQA==}
-    engines: {node: '>=18.12.0'}
-    peerDependencies:
-      vite: ^8.3.3
-    peerDependenciesMeta:
-      vite:
-        optional: true
-
   fontless@0.2.1:
     resolution: {integrity: sha512-mUWZ8w91/mw2KEcZ6gHNoNNmsAq9Wiw2IypIux5lM03nhXm+WSloXGUNuRETNTLqZexMgpt7Aj/v63qqrsWraQ==}
     engines: {node: '>=18.12.0'}
@@ -10108,9 +10099,6 @@ packages:
 
   unified@11.0.5:
     resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
-
-  unifont@0.7.0:
-    resolution: {integrity: sha512-VjixPHyRyCHIpy80orxroE4CTX5SDScT+cwSfnALrAkQ/DfZ2LhujLDDCE31l3AqyzEK/CiW2vGvfyU19Eaobg==}
 
   unifont@0.7.5:
     resolution: {integrity: sha512-ULe/Cs+ZIsq+dcFofNkhqielCrUJnb5mr+Yc4EBM2VlL+6OZR6+cjtI2mT1bJvRBrVncqHAbLURxmPLcCXzWMg==}
@@ -17842,44 +17830,6 @@ snapshots:
     dependencies:
       tiny-inflate: 1.0.3
 
-  fontless@0.2.0(db0@0.3.4(better-sqlite3@13.0.3))(ioredis@5.11.1(supports-color@10.2.2))(vite@8.3.3):
-    dependencies:
-      consola: 3.4.2
-      css-tree: 3.2.1
-      defu: 6.1.7
-      esbuild: 0.27.7
-      fontaine: 0.8.0
-      jiti: 2.7.0
-      lightningcss: 1.33.0
-      magic-string: 0.30.21
-      ohash: 2.0.12
-      pathe: 2.0.3
-      ufo: 1.6.4
-      unifont: 0.7.5
-      unstorage: 1.17.5(db0@0.3.4(better-sqlite3@13.0.3))(ioredis@5.11.1(supports-color@10.2.2))
-    optionalDependencies:
-      vite: 8.3.3(@types/node@26.5.1)(@vitejs/devtools@0.7.6)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@deno/kv'
-      - '@netlify/blobs'
-      - '@planetscale/database'
-      - '@upstash/redis'
-      - '@vercel/blob'
-      - '@vercel/functions'
-      - '@vercel/kv'
-      - aws4fetch
-      - db0
-      - idb-keyval
-      - ioredis
-      - uploadthing
-
   fontless@0.2.1(db0@0.3.4(better-sqlite3@13.0.3))(ioredis@5.11.1(supports-color@10.2.2))(vite@8.3.3):
     dependencies:
       consola: 3.4.2
@@ -21999,17 +21949,11 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
-  unifont@0.7.0:
-    dependencies:
-      css-tree: 3.2.1
-      ofetch: 1.5.1
-      ohash: 2.0.12
-
   unifont@0.7.5:
     dependencies:
       css-tree: 3.2.1
       ohash: 2.0.12
-      undici: 8.10.2
+      undici: 8.11.2
 
   unifont@1.0.2:
     dependencies:
