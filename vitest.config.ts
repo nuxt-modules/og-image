@@ -18,6 +18,9 @@ export default defineConfig({
             './**/*.test.ts',
           ],
           exclude: [
+            '**/.migration-sources/**',
+            '**/.migration-checkouts/**',
+            '**/.migration-artifacts/**',
             './test/e2e/**/*.test.ts',
             './test/e2e-not-nuxt/**/*.test.ts',
             './test/unit/resvg-worker-queue.test.ts',

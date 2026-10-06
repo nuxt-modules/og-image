@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 type Lane = 'nuxt4' | 'future5' | 'nuxt5'
-const lanes: Lane[] = ['nuxt4', 'future5', 'nuxt5']
+const lanes = ['nuxt4', 'future5', 'nuxt5'] as const
 const root = resolve(import.meta.dirname, '..')
 const fixture = join(root, 'test/fixtures/nuxt5')
 const selected = process.argv[2]
@@ -22,6 +22,9 @@ function run(args: string[], cwd: string, lane: Lane): Promise<void> {
     child.once('exit', (code, signal) => code === 0 ? resolve() : reject(new Error(`pnpm failed: ${signal || code}`)))
   })
 }
+
+// Preparation can leave development stubs. Every consumer must receive a real build.
+await run(['build'], root, selected ? selected as Lane : lanes[0])
 
 for (const lane of selected ? [selected as Lane] : lanes) {
   const consumer = await mkdtemp(join(tmpdir(), `nuxt-module-${lane}-`))
@@ -41,6 +44,8 @@ for (const lane of selected ? [selected as Lane] : lanes) {
       delete manifest.dependencies.nitropack
     }
     const tarballs: Record<string, string> = JSON.parse(process.env.NUXT_TEST_TARBALLS || '{}')
+    // The target archive always comes from the source built by this runner.
+    delete tarballs[moduleName]
     for (const [name, path] of Object.entries(tarballs)) {
       if (!path.startsWith('/'))
         throw new Error(`Packed dependency requires an absolute path: ${name}`)

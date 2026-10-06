@@ -15,4 +15,7 @@ permissions:
 
 jobs:
   analyze:
-    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-package-size.yml@main
+    uses: harlan-zw/nuxt-seo/.github/workflows/reusable-package-size.yml@226c091a0744b7286ef721ac035eed53856bfaa5
+    with:
+      migration: true
+      node-version: 22.22.3

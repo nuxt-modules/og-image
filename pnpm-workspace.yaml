@@ -101,6 +101,9 @@ overrides:
   vue: ^3.5.43
 
 allowBuilds:
+  '@firebase/util': false
+  protobufjs: false
+  simple-git-hooks: false
   '@parcel/watcher': true
   better-sqlite3: true
   esbuild: true
