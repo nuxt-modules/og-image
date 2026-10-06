@@ -6,14 +6,7 @@
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
-
-<a href="https://skilld.dev/gh/nuxt-modules/og-image">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://skilld.dev/b/nuxt-modules/og-image?theme=dark">
-    <source media="(prefers-color-scheme: light)" srcset="https://skilld.dev/b/nuxt-modules/og-image?theme=light">
-    <img alt="Skill repository on skilld.dev" src="https://skilld.dev/b/nuxt-modules/og-image?theme=light">
-  </picture>
-</a>
+[![Skill repository on skilld.dev][skilld-src]][skilld-href]
 
 Nuxt OG Image allows you to easily generate OG Images using either Vue components or screenshots of your pages.
 
@@ -78,14 +71,17 @@ npx nuxi@latest module add og-image
 Licensed under the [MIT license](https://github.com/nuxt-modules/og-image/blob/main/LICENSE.md).
 
 <!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/nuxt-og-image/latest.svg?style=flat&colorA=18181B&colorB=28CF8D
+[npm-version-src]: https://img.shields.io/npm/v/nuxt-og-image/latest.svg?style=flat&labelColor=16152b&color=00a63e
 [npm-version-href]: https://npmjs.com/package/nuxt-og-image
 
-[npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
+[npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-og-image.svg?style=flat&labelColor=16152b&color=00a63e
 [npm-downloads-href]: https://npmjs.com/package/nuxt-og-image
 
-[license-src]: https://img.shields.io/github/license/nuxt-modules/og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
+[license-src]: https://img.shields.io/github/license/nuxt-modules/og-image.svg?style=flat&labelColor=16152b&color=00a63e
 [license-href]: https://github.com/nuxt-modules/og-image/blob/main/LICENSE.md
 
-[nuxt-src]: https://img.shields.io/badge/Nuxt-18181B?logo=nuxt
+[nuxt-src]: https://img.shields.io/badge/Nuxt-16152b?logo=nuxt&style=flat
 [nuxt-href]: https://nuxt.com
+
+[skilld-src]: https://skilld.dev/b/nuxt-modules/og-image?style=flat&labelColor=16152b&color=00a63e&logoColor=ffffff
+[skilld-href]: https://skilld.dev/gh/nuxt-modules/og-image
