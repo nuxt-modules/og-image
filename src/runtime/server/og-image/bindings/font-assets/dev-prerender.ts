@@ -1,7 +1,7 @@
 import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
-import { join } from 'pathe'
+import { basename, join } from 'pathe'
 import { withBase } from 'ufo'
 import { getRequestURL } from '#nuxtseo/h3'
 import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
@@ -39,6 +39,17 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   // except the site's own origin, fetched through the SSRF guard.
   if (path && (isDataFontUrl(path) || isExternalFontUrl(path)))
     return fetchSpecialFontUrl(path, getSiteConfig(event).url, timeout)
+
+  // Nuxt Fonts can reuse downloaded files without repopulating its URL mapping.
+  // Read the active build cache before stale public output or a network fetch.
+  if ((import.meta.dev || import.meta.prerender) && path.startsWith('/_fonts/')) {
+    const filename = path.slice('/_fonts/'.length)
+    if (filename && basename(filename) === filename) {
+      const cached = await readOptionalFile(join(buildDir, 'cache', 'fonts', filename))
+      if (cached?.length)
+        return cached
+    }
+  }
 
   if (import.meta.prerender) {
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)

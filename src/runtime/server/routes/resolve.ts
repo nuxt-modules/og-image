@@ -1,3 +1,4 @@
+import type { FetchError } from 'ofetch'
 import type { H3Event } from '#nuxtseo/h3'
 import { parseURL, withLeadingSlash, withQuery } from 'ufo'
 import { createError, defineEventHandler, getRequestHost, sendRedirect } from '#nuxtseo/h3'
@@ -150,10 +151,10 @@ export default defineEventHandler(async (event) => {
   const html = await fetchWithEvent<string>(event, fetchPath, {
     headers: { accept: 'text/html' },
     responseType: 'text',
-  }).catch((err: unknown) => {
+  }).catch((err: FetchError) => {
     throw createError({
-      statusCode: 502,
-      statusMessage: `[Nuxt OG Image] Failed to fetch ${fetchPath}: ${(err as Error)?.message || 'unknown error'}`,
+      statusCode: err.statusCode === 404 ? 404 : 502,
+      statusMessage: `[Nuxt OG Image] Failed to fetch ${fetchPath}: ${err.message || 'unknown error'}`,
     })
   })
 

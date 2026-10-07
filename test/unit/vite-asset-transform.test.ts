@@ -72,6 +72,17 @@ describe('asset-transform plugin', () => {
       expect(result?.code).not.toContain('👋')
     })
 
+    it('keeps a transformed emoji inline with its text', async () => {
+      const code = `<template>
+  <p class="text-8xl">Hello 👋 World</p>
+</template>`
+
+      const result = await runTransform(plugin, code, '/test/components/OgImage/Test.vue')
+      // A flex wrapper makes Takumi break the line around the emoji
+      expect(result?.code).toMatch(/Hello <svg[^>]*width="1em" height="1em"/)
+      expect(result?.code).not.toContain('display:flex')
+    })
+
     it('should NOT transform emojis in attributes', async () => {
       const code = `<template>
   <div>

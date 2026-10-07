@@ -22,17 +22,10 @@ catch {
   hasSatoriDeps = false
 }
 
-// Check if vercel CLI is available and authenticated
-let hasVercel = false
-try {
-  await exec('vercel', ['whoami'])
-  hasVercel = true
-}
-catch {
-  hasVercel = false
-}
+// Remote tests require explicit authorization, even when the CLI is authenticated.
+const testVercelDeployment = process.env.NUXT_OG_IMAGE_TEST_VERCEL === '1'
 
-const canRunTests = hasSatoriDeps && hasVercel
+const canRunTests = hasSatoriDeps
 const isCI = !!process.env.CI
 // Deploy to a team with Pro plan to avoid 1MB edge function size limit
 const vercelScope = process.env.VERCEL_SCOPE || 'my-team-47a10b37'
@@ -51,6 +44,7 @@ async function buildFixture() {
 
 async function deployToVercel(): Promise<string> {
   const { stdout } = await exec('vercel', ['deploy', '--prebuilt', '--yes', '--scope', vercelScope], {
+    throwOnError: true,
     nodeOptions: {
       cwd: fixtureDir,
     },
@@ -94,8 +88,9 @@ describe('vercel-edge-satori', () => {
   })
 
   // Deploy to Vercel and test runtime OG image generation on the edge
-  describe.runIf(canRunTests && !isCI)('vercel edge runtime', () => {
+  describe.runIf(canRunTests && testVercelDeployment && !isCI)('vercel edge runtime', () => {
     beforeAll(async () => {
+      await exec('vercel', ['whoami'])
       const outputExists = await fs.access(resolve(fixtureDir, '.vercel/output/config.json')).then(() => true).catch(() => false)
       if (!outputExists)
         await buildFixture()

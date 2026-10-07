@@ -11,15 +11,9 @@ const ejectedTemplates = new Set<string>()
 export function autoEjectCommunityTemplate(
   component: OgImageComponent,
   runtimeConfig: OgImageRuntimeConfig,
-  options?: { requestPath?: string },
 ): void {
   if (!import.meta.dev)
     return
-
-  // skip devtools/debug requests — only eject from actual page renders
-  if (options?.requestPath?.includes('/_og/')) {
-    return
-  }
 
   const { srcDir, communityTemplatesDir } = runtimeConfig
   if (!srcDir || !communityTemplatesDir)

@@ -186,6 +186,8 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       return insertDefineOgImage(componentName, pageFile)
     },
   } as ServerFunctions, nuxt).then((rpc) => {
+    if (!rpc)
+      return
     const safeBroadcast = (fn: () => unknown) => {
       try {
         const result = fn()

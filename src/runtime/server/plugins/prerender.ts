@@ -1,8 +1,8 @@
 import type { Hookable } from 'hookable'
 import { parse } from 'devalue'
-import { parseURL } from 'ufo'
+import { parseURL, withoutBase } from 'ufo'
 import { appendResponseHeader } from '#nuxtseo/h3'
-import { defineNitroPlugin } from '#nuxtseo/nitro'
+import { defineNitroPlugin, useRuntimeConfig } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { isInternalRoute } from '../../shared'
@@ -46,10 +46,13 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
     const key = resolvePathCacheKey(ctx.event, resolvePathWithBase(path))
     await prerenderOptionsCache!.setItem(key, payloads)
 
-    // Also store by hash for hash-mode URLs (when path was too long)
+    // Also store by hash for hash-mode URLs. The hash omits the page path so
+    // pages with identical options share one image; store the path so route
+    // rules and page lookups resolve against a real page, not `/`.
+    const pagePath = withoutBase(path, useRuntimeConfig().app.baseURL)
     for (const [_ogKey, opt] of payloads) {
       if (opt._hash) {
-        await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, opt)
+        await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, { ...opt, _path: pagePath })
       }
     }
 

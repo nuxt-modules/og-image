@@ -47,15 +47,14 @@ describe('multiple og images', () => {
     const html: string = await $fetch('/satori/multi-image')
 
     expect(html).toContain('twitter:image')
-    expect(html).toContain('twitter:image:width" content="1200"')
-    expect(html).toContain('twitter:image:height" content="600"')
 
     expect(html).toContain('og:image')
     expect(html).toContain('og:image:width" content="800"')
     expect(html).toContain('og:image:height" content="800"')
 
     const urls = extractImageUrls(html)
-    expect(urls.twitter[0]).toContain('k_twitter')
-    expect(urls.og[0]).toContain('k_whatsapp')
+    expect(urls.twitter[0]).toBeTruthy()
+    expect(urls.og[0]).toBeTruthy()
+    expect(urls.twitter[0]).not.toBe(urls.og[0])
   })
 })

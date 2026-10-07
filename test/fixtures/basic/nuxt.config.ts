@@ -12,6 +12,7 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
+    browser: true,
     debug: true,
     // URLs are signed by default; these tests assert unsigned dynamic URLs and
     // hand-construct /_og/d/ requests. Signing is covered by the url-signing unit

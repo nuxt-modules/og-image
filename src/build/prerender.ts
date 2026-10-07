@@ -5,11 +5,22 @@ import type { ModuleOptions } from '../module'
 import type { RendererType, RuntimeCompatibilityMeta } from '../runtime/types'
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { useNuxt } from '@nuxt/kit'
+import { useSiteConfig } from 'nuxt-site-config/kit'
 import { join } from 'pathe'
 import { applyNitroPresetCompatibility } from '../compatibility'
 import { logger } from '../runtime/logger'
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * Prerendered HTML is final: without a site URL its og:image stays relative,
+ * and crawlers ignore a relative og:image. Returns the warning to log, if any.
+ */
+export function getMissingSiteUrlWarning(input: { siteUrl?: string, prerenderedImageCount: number }): string | null {
+  if (input.siteUrl || input.prerenderedImageCount === 0)
+    return null
+  return `Prerendered ${input.prerenderedImageCount} OG image${input.prerenderedImageCount > 1 ? 's' : ''} without a site URL, so each og:image is a relative path such as \`/_og/s/...\`. Social crawlers need an absolute URL. Set \`site.url\` in nuxt.config.ts or the \`NUXT_SITE_URL\` environment variable.`
+}
 
 // prerender will always be called when using nuxi generate and sometimes be used when using nuxi build
 
@@ -41,6 +52,17 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
     // doesn't add them to failedRoutes (which would fail the build).
     // Must use prerender:generate (fires before failedRoutes check), not
     // prerender:route (fires after — too late to prevent the build failure).
+    let prerenderedImageCount = 0
+    nitro.hooks.hook('prerender:route', (route) => {
+      if (!route.error && route.route.includes('/_og/s/'))
+        prerenderedImageCount++
+    })
+    nitro.hooks.hook('prerender:done', () => {
+      const warning = getMissingSiteUrlWarning({ siteUrl: useSiteConfig(nuxt).url, prerenderedImageCount })
+      if (warning)
+        logger.warn(warning)
+    })
+
     const orphanedOgHashes: string[] = []
     nitro.hooks.hook('prerender:generate', (route) => {
       if (!route.error || route.error.statusCode !== 404)

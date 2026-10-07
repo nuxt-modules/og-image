@@ -28,7 +28,6 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
   if (includeTwitter) {
     meta.push({ name: 'twitter:card', content: 'summary_large_image' })
     meta.push({ name: 'twitter:image', content: url })
-    meta.push({ name: 'twitter:image:src', content: url })
   }
 
   if (!isTwitterOnly) {
@@ -39,14 +38,10 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
   if (resolvedOptions.width) {
     if (!isTwitterOnly)
       meta.push({ property: 'og:image:width', content: resolvedOptions.width })
-    if (includeTwitter)
-      meta.push({ name: 'twitter:image:width', content: resolvedOptions.width })
   }
   if (resolvedOptions.height) {
     if (!isTwitterOnly)
       meta.push({ property: 'og:image:height', content: resolvedOptions.height })
-    if (includeTwitter)
-      meta.push({ name: 'twitter:image:height', content: resolvedOptions.height })
   }
   if (resolvedOptions.alt) {
     if (!isTwitterOnly)

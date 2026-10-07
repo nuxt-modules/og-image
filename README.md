@@ -1,11 +1,12 @@
 <img src=".github/assets/og-image-preview.png" alt="Nuxt OG Image DevTools Preview">
 
-<h1>nuxt-og-image</h1>
+<h1><a href="https://nuxtseo.com"><img src=".github/assets/icon.svg" width="40" height="40" alt="Nuxt SEO" align="top"></a> nuxt-og-image</h1>
 
 [![npm version][npm-version-src]][npm-version-href]
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
+[![Skill repository on skilld.dev][skilld-src]][skilld-href]
 
 Nuxt OG Image allows you to easily generate OG Images using either Vue components or screenshots of your pages.
 
@@ -42,10 +43,7 @@ npx nuxi@latest module add og-image
 ```
 
 > [!TIP]
-> Generate an Agent Skill for this package using [skilld](https://github.com/harlan-zw/skilld):
-> ```bash
-> npx skilld add nuxt-og-image
-> ```
+> Using an AI agent? Get the nuxt-og-image Skill on [skilld.dev/gh/nuxt-modules/og-image](https://skilld.dev/gh/nuxt-modules/og-image).
 
 💡 Built your OG images? Check how they render across Twitter, Facebook, LinkedIn and Slack with the free [Social Share Debugger](https://nuxtseo.com/tools/social-share-debugger), or monitor them site-wide with [Nuxt SEO Pro](https://nuxtseo.com/pro).
 
@@ -73,14 +71,17 @@ npx nuxi@latest module add og-image
 Licensed under the [MIT license](https://github.com/nuxt-modules/og-image/blob/main/LICENSE.md).
 
 <!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/nuxt-og-image/latest.svg?style=flat&colorA=18181B&colorB=28CF8D
+[npm-version-src]: https://img.shields.io/npm/v/nuxt-og-image/latest.svg?style=flat&labelColor=16152b&color=00a63e
 [npm-version-href]: https://npmjs.com/package/nuxt-og-image
 
-[npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
+[npm-downloads-src]: https://img.shields.io/npm/dm/nuxt-og-image.svg?style=flat&labelColor=16152b&color=00a63e
 [npm-downloads-href]: https://npmjs.com/package/nuxt-og-image
 
-[license-src]: https://img.shields.io/github/license/nuxt-modules/og-image.svg?style=flat&colorA=18181B&colorB=28CF8D
+[license-src]: https://img.shields.io/github/license/nuxt-modules/og-image.svg?style=flat&labelColor=16152b&color=00a63e
 [license-href]: https://github.com/nuxt-modules/og-image/blob/main/LICENSE.md
 
-[nuxt-src]: https://img.shields.io/badge/Nuxt-18181B?logo=nuxt
+[nuxt-src]: https://img.shields.io/badge/Nuxt-16152b?logo=nuxt&style=flat
 [nuxt-href]: https://nuxt.com
+
+[skilld-src]: https://skilld.dev/b/nuxt-modules/og-image?style=flat&labelColor=16152b&color=00a63e&logoColor=ffffff
+[skilld-href]: https://skilld.dev/gh/nuxt-modules/og-image

@@ -78,6 +78,62 @@ export const OPTIONAL_DEPENDENCIES: ProviderDependency[] = [
   { name: 'sharp', description: 'JPEG image output support', optional: true },
 ]
 
+export interface AutoDetectProviderInput {
+  /** a renderer-suffix component (e.g. Default.satori.vue) was found on disk */
+  hasUserComponents: boolean
+  /** providers with all dependencies installed, from getInstalledProviders() */
+  installedProviders: ProviderName[]
+}
+
+export interface AutoDetectProviderDecision {
+  /** provider renderer to bundle alongside the already-detected renderers */
+  preferred: ProviderName | null
+  /** nothing is installed and no template asks for a renderer: select none and report it */
+  noRenderer: boolean
+}
+
+/**
+ * Decide which provider renderer to auto-detect when no user component drove
+ * renderer detection. Screenshot pages must never suppress provider detection:
+ * they only add the browser renderer, and a site mixing them with defineOgImage()
+ * pages still needs its installed satori/takumi renderer.
+ */
+export function resolveAutoDetectedProvider(input: AutoDetectProviderInput): AutoDetectProviderDecision {
+  if (input.hasUserComponents)
+    return { preferred: null, noRenderer: false }
+  const preferred = (input.installedProviders.find(p => p === 'takumi') ?? input.installedProviders[0]) ?? null
+  if (preferred)
+    return { preferred, noRenderer: false }
+  return { preferred: null, noRenderer: true }
+}
+
+export function getMissingRendererMessage(renderer: ProviderName, installSpecs: string[]): string {
+  return `The ${renderer} renderer is missing dependencies, so templates that use it cannot render. Install them with: npx nypm add ${installSpecs.join(' ')}`
+}
+
+export type MissingRendererAction
+  /** interactive dev: ask, and install only when the user accepts */
+  = | { _tag: 'AskToInstall' }
+  /** dev without a prompt: never touch package.json, log one actionable error */
+    | { _tag: 'Report', message: string }
+  /** production build: fail only if app code uses a template that needs this renderer */
+    | { _tag: 'CheckUsage' }
+
+/**
+ * Decide what to do when a template needs a renderer whose dependencies are missing.
+ * The shell type (AI agent, CI, piped stdin) only matters through `interactive`, so
+ * every non-interactive shell behaves the same.
+ */
+export function resolveMissingRendererAction(input: { renderer: ProviderName, installSpecs: string[], dev: boolean, interactive: boolean }): MissingRendererAction {
+  if (!input.dev)
+    return { _tag: 'CheckUsage' }
+  if (input.interactive)
+    return { _tag: 'AskToInstall' }
+  return { _tag: 'Report', message: getMissingRendererMessage(input.renderer, input.installSpecs) }
+}
+
+export const NO_RENDERER_MESSAGE = `No OG image renderer is installed, so OG images are off. To add one, run: npx nuxt-og-image enable takumi`
+
 export async function getInstalledProviders(): Promise<{ provider: ProviderName, binding: BindingVariant }[]> {
   const installed: { provider: ProviderName, binding: BindingVariant }[] = []
 
@@ -267,16 +323,6 @@ export function canPromptInteractively(env: InteractiveEnv = {
   isCI,
 }): boolean {
   return env.hasTTY && env.hasStdinTTY && !env.isAgent && !env.isCI
-}
-
-export async function promptForRendererSelection(): Promise<ProviderName> {
-  logger.info('Welcome to Nuxt OG Image! No renderer dependencies detected.')
-  const renderer = await logger.prompt('Which renderer would you like to use?', {
-    type: 'select',
-    options: PROVIDER_DEPENDENCIES.map(p => p.name),
-    initial: 'takumi',
-  })
-  return (renderer as ProviderName) || 'takumi'
 }
 
 export async function validateProviderSetup(

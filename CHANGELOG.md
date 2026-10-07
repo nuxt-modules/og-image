@@ -1,6 +1,27 @@
 # Changelog
 
 
+## v6.9.0...main
+
+[compare changes](https://github.com/nuxt-modules/og-image/compare/v6.9.0...main)
+
+### 🩹 Fixes
+
+- Hash static og paths holding reserved characters ([#695](https://github.com/nuxt-modules/og-image/pull/695))
+- Require explicit opt-in for page screenshots ([#697](https://github.com/nuxt-modules/og-image/pull/697))
+
+### 🏡 Chore
+
+- Bump ([422f588f](https://github.com/nuxt-modules/og-image/commit/422f588f))
+
+### ✅ Tests
+
+- Enable screenshots in the hash-mode fixture ([#701](https://github.com/nuxt-modules/og-image/pull/701))
+
+### ❤️ Contributors
+
+- Harlan Wilton ([@harlan-zw](https://github.com/harlan-zw))
+
 ## v6.8.0...main
 
 [compare changes](https://github.com/nuxt-modules/og-image/compare/v6.8.0...main)

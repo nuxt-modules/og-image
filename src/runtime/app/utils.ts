@@ -1,19 +1,20 @@
 import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
-import type { OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
+import type { OgImageComponent, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
 import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
+import { createSitePathResolver, withSiteUrl } from '#site-config/app/composables/utils'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 /**
  * Recursively unwrap refs/computed/getters in a head input object.
  *
  * Replaces `resolveUnrefHeadInput` from `@unhead/vue`, which was removed in
- * Unhead v3. Keeping a local walker lets us compile against both v2 and v3.
+ * Unhead v3. The local walker resolves reactive inputs before encoding them.
  */
 function resolveUnrefHeadInput(input: any): any {
   if (input == null)
@@ -94,7 +95,9 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   if (!url)
     return
   const { includeTwitter } = useOgImageRuntimeConfig()
-  const meta = generateMeta(url, input, { includeTwitter })
+  const urlValue = toValue(url)
+  const absoluteUrl = /^https?:\/\//.test(urlValue) ? urlValue : toValue(withSiteUrl(urlValue, { withBase: true, canonical: !import.meta.dev }))
+  const meta = generateMeta(absoluteUrl, input, { includeTwitter })
   useHead({ meta }, { tagPriority: 'high' })
 }
 
@@ -123,6 +126,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   // The lazy meta() callback runs during unhead tag resolution, where
   // useNuxtApp() / useRuntimeConfig() are no longer accessible.
   const baseURL = useRuntimeConfig().app.baseURL
+  const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: !import.meta.dev })
 
   ssrContext._ogImageInstance?.dispose()
   ssrContext._ogImageInstance = useHead({
@@ -143,7 +147,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         const resolvedComponent = resolvedComponentName
           ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
           : undefined
-        const declaredProps = resolvedComponent?.propNames
+        const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
         // Inject title/description from head entries if not explicitly set AND the component declares them
         if (seo) {
           if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
@@ -188,12 +192,12 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
           }
         }
-        return generateMeta(finalUrl, opts, { includeTwitter: ogImageConfig.includeTwitter })
+        return generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
       })
     },
   }, {
     processTemplateParams: true,
-    tagPriority: 35,
+    tagPriority: 'high',
   })
 
   // devtools script injection for dev mode and prerender cache
@@ -215,7 +219,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             const component = resolvedComponentName
               ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
               : undefined
-            const declaredProps = component?.propNames
+            const declaredProps: OgImageComponent['propNames'] = component?.propNames
             // Use %s template param for title so unhead resolves it with titleTemplate
             if (payload.props && typeof payload.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
               payload.props.title = '%s'
@@ -268,10 +272,14 @@ export function resolveComponentName(component: OgImageOptionsInternal['componen
     const normalizedName = originalName.split('.').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join('')
     // Strip renderer suffix to get the base input name (DefaultTakumi → Default)
     const inputBase = normalizedName.replace(RE_RENDERER_SUFFIX, '')
+    // A suffix such as `.takumi` selects that renderer's variant, never a sibling variant
+    const requestedRenderer = normalizedName.match(RE_RENDERER_SUFFIX)?.[1]?.toLowerCase()
     for (const component of componentNames) {
       // Exact match with normalized name
       if (component.pascalName === normalizedName)
         return component.pascalName
+      if (requestedRenderer && component.renderer !== requestedRenderer)
+        continue
       // Strip renderer suffix for matching (e.g., OgImageComplexTestSatori -> OgImageComplexTest)
       const basePascalName = component.pascalName.replace(RE_RENDERER_SUFFIX, '')
       if (basePascalName === originalName || basePascalName === inputBase)

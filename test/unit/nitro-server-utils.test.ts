@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { getOgImagePath } from '../../src/runtime/server/utils'
 import { decodeOgImageParams, signEncodedParams } from '../../src/runtime/shared'
 
-vi.mock('#nuxtseo/nitro', () => ({
-  useRuntimeConfig: (event: H3Event) => (event as any).__runtimeConfig,
+const runtime = vi.hoisted(() => ({ config: {} as Record<string, unknown> }))
+
+vi.mock('nuxt/server', () => ({
+  useRuntimeConfig: () => runtime.config,
 }))
 
 vi.mock('#og-image-virtual/component-names.mjs', () => ({
@@ -12,12 +14,12 @@ vi.mock('#og-image-virtual/component-names.mjs', () => ({
 }))
 
 function fakeEvent({ baseURL = '/', secret = '', runtimeSecret = '', cloudflareSecret = '' } = {}): H3Event {
+  runtime.config = {
+    'app': { baseURL },
+    'nuxt-og-image': { defaults: {}, security: { strict: !!secret, secret } },
+    'ogImage': { secret: runtimeSecret },
+  }
   return {
-    __runtimeConfig: {
-      'app': { baseURL },
-      'nuxt-og-image': { defaults: {}, security: { strict: !!secret, secret } },
-      'ogImage': { secret: runtimeSecret },
-    },
     context: cloudflareSecret ? { cloudflare: { env: { NUXT_OG_IMAGE_SECRET: cloudflareSecret } } } : {},
   } as any as H3Event
 }

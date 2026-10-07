@@ -12,8 +12,10 @@ const fixturesDir = join(root, 'test/fixtures')
 // These fixtures build themselves in their tests (nuxt build/generate) — skip nuxt prepare
 const selfBuildFixtures = new Set([
   'app-dir',
+  'browser-prerender',
   'cloudflare-satori',
   'cloudflare-takumi',
+  'hash-mode',
   'nuxt5',
   'vercel-edge-satori',
   'zero-runtime',
@@ -25,6 +27,7 @@ const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
 
 const templates = readdirSync(communityDir).filter(f => f.endsWith('.vue'))
 const fixturesWithoutCommunityTemplates = new Set([
+  'test/fixtures/auto-eject',
   'test/fixtures/takumi-only-fonts',
   'test/fixtures/woff2-conversion',
 ])

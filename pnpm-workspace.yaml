@@ -1,17 +1,56 @@
 catalogMode: prefer
 cleanupUnusedCatalogs: true
+blockExoticSubdeps: false
 
 minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
   - nuxtseo-layer-devtools
   - nuxtseo-shared
-  - satori@0.33.5
-  - fontless@1.1.0
+  - '@nuxt/cli@4.0.0'
+  - '@nuxt/kit@4.6.0'
+  - '@nuxt/nitro-server@4.6.0'
+  - '@nuxt/schema@4.6.0'
+  - '@nuxt/vite-builder@4.6.0'
+  - '@nuxt/vite-server@4.6.0'
+  - nuxt@4.6.0
+  - '@nuxt/devtools-kit@4.0.0-beta.4'
+  - '@nuxt/devtools@4.0.0-beta.4'
+  - vite@8.3.3
 
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
 
 trustPolicyExclude:
+  - stylehacks@9.0.7
+  - postcss-unique-selectors@9.0.5
+  - postcss-svgo@9.0.4
+  - postcss-reduce-transforms@9.0.4
+  - postcss-reduce-initial@9.0.6
+  - postcss-ordered-values@9.0.6
+  - postcss-normalize-whitespace@9.0.5
+  - postcss-normalize-url@9.0.5
+  - postcss-normalize-unicode@9.0.5
+  - postcss-normalize-timing-functions@9.0.5
+  - postcss-normalize-string@9.0.5
+  - postcss-normalize-repeat-style@9.0.5
+  - postcss-normalize-positions@9.0.6
+  - postcss-normalize-display-values@9.0.5
+  - postcss-normalize-charset@9.0.5
+  - postcss-minify-selectors@9.0.6
+  - postcss-minify-params@9.0.6
+  - postcss-minify-gradients@9.0.6
+  - postcss-minify-font-values@9.0.7
+  - postcss-merge-rules@9.0.8
+  - postcss-merge-longhand@9.2.0
+  - postcss-discard-overridden@9.0.5
+  - postcss-discard-empty@9.0.5
+  - postcss-discard-duplicates@9.0.5
+  - postcss-discard-comments@9.0.6
+  - postcss-convert-values@9.0.7
+  - postcss-colormin@9.0.6
+  - cssnano-utils@8.1.0
+  - cssnano-preset-default@9.2.2
+  - cssnano@9.2.2
   - chokidar@4.0.3
   - eslint-import-resolver-typescript@3.10.1
   - undici-types@6.21.0
@@ -28,17 +67,55 @@ packages:
   - '!examples/**'
 
 overrides:
-  '@unhead/vue': ^3.4.1
-  unhead: ^3.4.1
-  vite: 8.3.0
+  '@unhead/vue': ^3.4.2
+  cssnano: 9.2.2
+  cssnano-preset-default: 9.2.2
+  cssnano-utils: 8.1.0
+  nuxt-site-config: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
+  nuxt-site-config-kit: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config-kit@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
+  nuxtseo-shared: https://pkg.pr.new/harlan-zw/nuxt-seo/nuxtseo-shared@226c091a0744b7286ef721ac035eed53856bfaa5
+  postcss-colormin: 9.0.6
+  postcss-convert-values: 9.0.7
+  postcss-discard-comments: 9.0.6
+  postcss-discard-duplicates: 9.0.5
+  postcss-discard-empty: 9.0.5
+  postcss-discard-overridden: 9.0.5
+  postcss-merge-longhand: 9.2.0
+  postcss-merge-rules: 9.0.8
+  postcss-minify-font-values: 9.0.7
+  postcss-minify-gradients: 9.0.6
+  postcss-minify-params: 9.0.6
+  postcss-minify-selectors: 9.0.6
+  postcss-normalize-charset: 9.0.5
+  postcss-normalize-display-values: 9.0.5
+  postcss-normalize-positions: 9.0.6
+  postcss-normalize-repeat-style: 9.0.5
+  postcss-normalize-string: 9.0.5
+  postcss-normalize-timing-functions: 9.0.5
+  postcss-normalize-unicode: 9.0.5
+  postcss-normalize-url: 9.0.5
+  postcss-normalize-whitespace: 9.0.5
+  postcss-ordered-values: 9.0.6
+  postcss-reduce-initial: 9.0.6
+  postcss-reduce-transforms: 9.0.4
+  postcss-svgo: 9.0.4
+  postcss-unique-selectors: 9.0.5
+  site-config-stack: https://pkg.pr.new/harlan-zw/nuxt-site-config/site-config-stack@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
+
+  stylehacks: 9.0.7
+  unhead: ^3.4.2
+  vite: ^8.3.3
   vitest-environment-nuxt: 2.0.0
   vue: ^3.5.43
 
 allowBuilds:
+  '@firebase/util': false
   '@parcel/watcher': true
   better-sqlite3: true
   esbuild: true
+  protobufjs: false
   sharp: true
+  simple-git-hooks: false
   unrs-resolver: true
   vue-demi: true
   workerd: true
@@ -56,23 +133,23 @@ catalog:
   '@antfu/eslint-config': ^9.5.1
   '@clack/prompts': ^1.8.1
   '@fontsource/noto-sans-sc': ^5.3.0
-  '@iconify-json/carbon': ^1.2.27
-  '@iconify-json/logos': ^1.2.14
-  '@iconify-json/noto': ^1.2.8
+  '@iconify-json/carbon': ^1.2.28
+  '@iconify-json/logos': ^1.2.15
+  '@iconify-json/noto': ^1.2.9
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.39
+  '@iconify-json/tabler': ^1.2.41
   '@iconify/types': ^2.0.0
-  '@img/sharp-linux-x64': ^0.35.4
+  '@img/sharp-linux-x64': ^0.35.5
   '@nuxt/content': ^3.16.1
-  '@nuxt/devtools': 4.0.0-beta.1
-  '@nuxt/devtools-kit': 4.0.0-beta.1
+  '@nuxt/devtools': 4.0.0-beta.4
+  '@nuxt/devtools-kit': 4.0.0-beta.4
   '@nuxt/fonts': https://pkg.pr.new/@nuxt/fonts@f68ab2d
   '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
-  '@nuxt/kit': ^4.5.2
+  '@nuxt/kit': ^4.6.0
   '@nuxt/module-builder': ^1.0.3
-  '@nuxt/test-utils': ^4.3.2
-  '@nuxt/ui': ^4.11.1
+  '@nuxt/test-utils': ^4.3.3
+  '@nuxt/ui': ^4.11.3
   '@nuxtjs/color-mode': ^4.0.1
   '@nuxtjs/eslint-config-typescript': ^12.1.0
   '@nuxtjs/i18n': ^10.6.0
@@ -99,45 +176,44 @@ catalog:
   better-sqlite3: ^13.0.3
   birpc: ^4.2.0
   bumpp: ^12.3.0
-  chrome-launcher: ^1.2.1
+  chrome-launcher: ^1.2.2
   consola: ^3.4.2
   defu: ^6.1.7
-  devalue: ^5.9.2
-  eslint: ^10.11.0
-  eslint-plugin-harlanzw: ^0.22.0
-  exsolve: ^1.1.1
+  devalue: ^6.0.2
+  eslint: ^10.12.0
+  eslint-plugin-harlanzw: ^0.23.0
+  exsolve: ^1.1.3
   fnv1a-64: ^0.1.2
-  fontless: ^1.0.0
-  fontless-v0-2: npm:fontless@0.2.0
+  fontless: ^1.2.1
+  fontless-v0-2: npm:fontless@0.2.1
   globby: ^16.2.4
   happy-dom: ^20.14.5
   hookable: ^6.1.2
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.33.0
-  magic-string: ^1.4.1
+  magic-string: ^1.4.3
   magicast: ^0.5.5
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
-  nuxt: ^4.5.2
-  nuxt-site-config: ^4.2.3
+  nuxt: 4.6.0
+  nuxt-site-config: ^5.0.0
   nuxtseo-layer-devtools: ^5.3.16
-  nuxtseo-shared: ^5.3.16
+  nuxtseo-shared: ^6.0.0
   nypm: ^0.6.10
   object-identity: ^0.2.3
   ofetch: ^1.5.1
   ohash: ^2.0.12
-  oxc-parser: ^0.151.0
+  oxc-parser: ^0.153.0
   oxc-walker: ^1.1.1
   pathe: ^2.0.3
-  pkg-types: ^2.3.3
   playwright: ^1.63.0
   playwright-core: ^1.63.0
   radix3: ^1.1.2
-  sass: ^1.104.1
-  satori: ^0.33.5
-  sharp: ^0.35.4
+  sass: ^1.105.1
+  satori: ^0.35.0
+  sharp: ^0.35.5
   sirv: ^3.0.2
-  std-env: ^4.2.0
+  std-env: ^4.3.0
   strip-literal: ^4.0.0
   tailwindcss: ^4.3.3
   tinyexec: ^1.3.1
@@ -145,13 +221,14 @@ catalog:
   ufo: ^1.6.4
   ultrahtml: ^1.7.0
   unbuild: ^3.6.1
-  unifont: ^0.8.3
-  unifont-v0-7: npm:unifont@0.7.0
+  unifont: ^1.0.2
+  unifont-v0-7: npm:unifont@0.7.5
   unocss: ^66.10.5
   unplugin: ^3.4.0
-  vitest: ^5.0.1
+  vite: ^8.3.3
+  vitest: ^5.0.3
   vue: ^3.5.43
-  vue-tsc: ^3.3.11
-  wrangler: ^4.136.1
+  vue-tsc: ^3.3.12
+  wrangler: ^4.147.0
   yoga-wasm-web: ^0.3.3
   zod: ^4.6.5
