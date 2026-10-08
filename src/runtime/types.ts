@@ -44,7 +44,7 @@ export interface OgImageRuntimeConfig {
   debug: boolean
   /** Whether twitter:* meta tags are emitted alongside og:image tags */
   includeTwitter: boolean
-  baseCacheKey: string
+  baseCacheKey: string | false
   hasNuxtIcon: boolean
   hasNuxtContent?: boolean
   colorPreference: 'light' | 'dark'

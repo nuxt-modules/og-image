@@ -44,14 +44,16 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   // file served via the `/_og/s/**` route rule (which sets its own immutable caching),
   // and the configured backend may not exist in the Node build environment — e.g. a
   // Cloudflare KV binding is only bound at runtime in the Worker, not during prerender (#613).
-  const intentionallyEnabled = !import.meta.dev && !import.meta.prerender && maxAge > 0
+  const intentionallyEnabled = options.baseCacheKey !== false && !import.meta.dev && !import.meta.prerender && maxAge > 0
   let enabled = intentionallyEnabled
-  const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
+  const cache = options.baseCacheKey === false
+    ? undefined
+    : prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey))
   const key = ctx.key
 
   // cache will invalidate if the options change
   let cachedItem: BufferSource | false = false
-  if (enabled) {
+  if (enabled && cache) {
     const hasItem = await cache.hasItem(key).catch((e) => {
       // Backend unreachable (e.g. NuxtHub KV binding missing during Node prerender).
       // Degrade to no-cache for this request rather than failing the render.
@@ -124,7 +126,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       // `enabled` is false when caching is off OR the backend degraded mid-request;
       // either way this isn't a normal miss that will be written back.
       setHeader(ctx.e, 'X-OG-Cache', enabled ? 'MISS' : 'DISABLED')
-      if (!enabled)
+      if (!enabled || !cache)
         return
       const value = Buffer.from(item as Uint8Array).toString('base64')
       const headers = {
