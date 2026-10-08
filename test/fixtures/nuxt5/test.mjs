@@ -128,6 +128,13 @@ async function main() {
     assert.ok(imageBuffer.byteLength > 1_000, 'Rendered OG image is unexpectedly small')
     await assertImageSnapshot(imageBuffer)
 
+    const cachedResponse = await fetch(`${origin}${parsedImageUrl.pathname}${parsedImageUrl.search}`, {
+      headers: { 'x-og-image-test': 'forwarded' },
+    })
+    assert.equal(cachedResponse.status, 200)
+    assert.equal(cachedResponse.headers.get('x-og-cache'), 'HIT')
+    assert.deepEqual(Buffer.from(await cachedResponse.arrayBuffer()), imageBuffer)
+
     const satoriPage = await fetch(`${origin}/?renderer=satori`)
     const satoriHtml = await satoriPage.text()
     const satoriUrl = satoriHtml.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)?.[1]

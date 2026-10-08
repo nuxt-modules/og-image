@@ -43,7 +43,7 @@ import { resolveOptionalModulePath } from './build/optional-module'
 import { readPackageManifest } from './build/package-manifest.ts'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
-import { configureRuntimeCacheStorage } from './build/runtime-cache'
+import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache'
 import { resolveSigningSecret } from './build/signing-secret'
 import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
@@ -1686,8 +1686,9 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       baseCacheKey = false
 
     let hasUnboundedRuntimeCache = false
-    nuxt.hooks.hook('nitro:config', (nitroConfig) => {
+    nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       const storage = configureRuntimeCacheStorage(config, nitroConfig)
+      await resolveRuntimeCacheDriver(storage, nitroConfig, nuxt.options.rootDir)
       hasUnboundedRuntimeCache = storage?.driver === 'memory'
     })
     nuxt.hooks.hook('nitro:init', (nitro) => {

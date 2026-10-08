@@ -1,8 +1,22 @@
 import type { NitroConfig } from 'nitropack'
 import type { ModuleOptions } from '../module'
+import { directoryToURL, tryResolveModule } from '@nuxt/kit'
 
 const DEFAULT_CACHE_MOUNT = 'cache/nuxt-og-image'
 type StorageMount = NonNullable<NitroConfig['storage']>[string]
+
+/** Nitro 3 resolves optional driver libraries from the app rather than this module. */
+export async function resolveRuntimeCacheDriver(storage: StorageMount | undefined, nitro: NitroConfig, rootDir: string): Promise<void> {
+  if (storage?.driver !== 'lru-cache' && storage?.driver !== 'lruCache')
+    return
+  if (nitro.alias?.['lru-cache'] || await tryResolveModule('lru-cache', directoryToURL(rootDir)))
+    return
+  const library = await tryResolveModule('lru-cache', import.meta.url)
+  if (!library)
+    throw new Error('[nuxt-og-image] Cannot resolve the runtime cache dependency "lru-cache".')
+  nitro.alias ||= {}
+  nitro.alias['lru-cache'] = library
+}
 
 function findStorageMount(nitro: NitroConfig, prefix: string): StorageMount | undefined {
   return Object.entries(nitro.storage || {})
