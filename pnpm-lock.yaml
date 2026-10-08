@@ -347,6 +347,9 @@ catalogs:
     lightningcss:
       specifier: ^1.33.0
       version: 1.33.0
+    lru-cache:
+      specifier: ^11.5.2
+      version: 11.5.2
     magic-string:
       specifier: ^1.4.3
       version: 1.4.3
@@ -537,6 +540,9 @@ importers:
       lightningcss:
         specifier: 'catalog:'
         version: 1.33.0
+      lru-cache:
+        specifier: 'catalog:'
+        version: 11.5.2
       magic-string:
         specifier: 'catalog:'
         version: 1.4.3

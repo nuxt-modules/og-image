@@ -149,6 +149,7 @@
     "exsolve": "catalog:",
     "fnv1a-64": "catalog:",
     "lightningcss": "catalog:",
+    "lru-cache": "catalog:",
     "magic-string": "catalog:",
     "magicast": "catalog:",
     "mocked-exports": "catalog:",

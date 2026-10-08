@@ -43,6 +43,7 @@ import { resolveOptionalModulePath } from './build/optional-module'
 import { readPackageManifest } from './build/package-manifest.ts'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
+import { configureRuntimeCacheStorage } from './build/runtime-cache'
 import { resolveSigningSecret } from './build/signing-secret'
 import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
@@ -168,7 +169,7 @@ export interface ModuleOptions {
   debug: boolean
   /**
    * Configure the runtime cache storage for generated OG images.
-   * - `true` - Use Nitro's default cache storage (default)
+   * - `true` - Use configured Nitro cache storage, or a 64 MiB bounded memory cache (default)
    * - `false` - Disable caching
    * - `string` - Use a custom storage mount key (e.g., `'redis'`). You must mount the storage yourself via a Nitro plugin.
    * - `object` - Provide a driver config that the module will mount for you (build-time only)
@@ -1683,6 +1684,18 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     }
     if (!cacheEnabled)
       baseCacheKey = false
+
+    let hasUnboundedRuntimeCache = false
+    nuxt.hooks.hook('nitro:config', (nitroConfig) => {
+      const storage = configureRuntimeCacheStorage(config, nitroConfig)
+      hasUnboundedRuntimeCache = storage?.driver === 'memory'
+    })
+    nuxt.hooks.hook('nitro:init', (nitro) => {
+      const hasServerRuntime = !nitro.options.static && !(nuxt.options as any)._generate
+      if (!nuxt.options.dev && hasServerRuntime && !config.zeroRuntime && Number(config.defaults?.cacheMaxAgeSeconds) > 0 && hasUnboundedRuntimeCache) {
+        logger.warn('The runtime OG image cache uses memory storage without a size limit. Use lru-cache with maxSize or an expiring driver. See https://nuxtseo.com/docs/og-image/guides/runtime-cache')
+      }
+    })
 
     // Build cache for CI persistence (absolute path)
     const buildCachePath = typeof config.buildCache === 'object' && config.buildCache.base

@@ -30,7 +30,19 @@ function makeCtx() {
 
 describe('useOgImageBufferCache storage TTL', () => {
   beforeEach(() => {
-    storage.setItem.mockClear()
+    vi.clearAllMocks()
+  })
+
+  it('does not read or write storage when runtime caching is disabled', async () => {
+    const ctx = makeCtx()
+    const result = await useOgImageBufferCache(ctx, { baseCacheKey: false, cacheMaxAgeSeconds: 3600 }) as any
+    await result.update(Buffer.from('img'))
+
+    expect(result.enabled).toBe(false)
+    expect(storage.hasItem).not.toHaveBeenCalled()
+    expect(storage.setItem).not.toHaveBeenCalled()
+    expect(ctx.e._headers['X-OG-Cache']).toBe('DISABLED')
+    expect(ctx.e._headers['Cache-Control']).toContain('no-store')
   })
 
   it('passes the cache TTL to the storage driver so unread entries expire', async () => {

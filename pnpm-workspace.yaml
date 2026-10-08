@@ -191,6 +191,7 @@ catalog:
   hookable: ^6.1.2
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.33.0
+  lru-cache: ^11.5.2
   magic-string: ^1.4.3
   magicast: ^0.5.5
   mocked-exports: ^0.1.1
