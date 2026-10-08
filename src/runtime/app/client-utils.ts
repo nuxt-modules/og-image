@@ -5,6 +5,7 @@ import { defu } from 'defu'
 import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
+import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver } from '#site-config/app/composables/utils'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
@@ -156,7 +157,7 @@ export function clientProcessOgImageOptions(
     }
 
     // SSR: route through the resolver for a guaranteed match with the server URL.
-    if (publicCfg.hasServerRuntime) {
+    if (hasServerRuntime) {
       const finalUrl = buildResolverUrl(baseURL, basePath, ogKey, route.query as Record<string, any> | undefined)
       registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), validOptions, metaOptions) }, { tagPriority: 'high' })
       paths.push(finalUrl)

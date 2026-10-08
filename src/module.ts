@@ -1437,6 +1437,15 @@ export default defineNuxtModule<ModuleOptions>({
       },
       options: { mode: 'server' },
     })
+    // A literal lets every client builder prune the unused deployment strategy.
+    // Templates run after Nitro init, including preset-derived static builds.
+    addTemplate({
+      filename: 'nuxt-og-image/client-config.mjs',
+      getContents() {
+        const config = nuxt.options.runtimeConfig.public['nuxt-og-image'] as { hasServerRuntime?: boolean }
+        return `export const hasServerRuntime = ${config.hasServerRuntime === true}`
+      },
+    })
 
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
