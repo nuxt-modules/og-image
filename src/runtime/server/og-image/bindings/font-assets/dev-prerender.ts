@@ -1,11 +1,11 @@
 import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig } from '../../../../types'
 import { readFile } from 'node:fs/promises'
-import { basename, join } from 'pathe'
+import { join } from 'pathe'
 import { withBase } from 'ufo'
 import { getRequestURL } from '#nuxtseo/h3'
 import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
-import { buildDir, rootDir, staticFontCacheDir } from '#og-image-virtual/build-dir.mjs'
+import { resolvedFontPaths, rootDir, staticFontCacheDir } from '#og-image-virtual/build-dir.mjs'
 import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
@@ -40,30 +40,21 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
   if (path && (isDataFontUrl(path) || isExternalFontUrl(path)))
     return fetchSpecialFontUrl(path, getSiteConfig(event).url, timeout)
 
-  // Nuxt Fonts can reuse downloaded files without repopulating its URL mapping.
-  // Read the active build cache before stale public output or a network fetch.
-  if ((import.meta.dev || import.meta.prerender) && path.startsWith('/_fonts/')) {
-    const filename = path.slice('/_fonts/'.length)
-    if (filename && basename(filename) === filename) {
-      const cached = await readOptionalFile(join(buildDir, 'cache', 'fonts', filename))
-      if (cached?.length)
-        return cached
-    }
-  }
+  // The hook owns URL resolution. Read our build-time copy before public assets exist.
+  if (resolvedFontPaths[path])
+    return readFile(resolvedFontPaths[path])
 
   if (import.meta.prerender) {
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)
     if (path.startsWith('/_og-static-fonts/')) {
       const filename = path.slice('/_og-static-fonts/'.length)
       const cached = await readOptionalFile(join(staticFontCacheDir, filename))
-        || await readOptionalFile(join(rootDir, '.output', 'public', '_og-static-fonts', filename))
       if (cached?.length)
         return cached
     }
 
     const publicPath = path.slice(1)
     const data = await readOptionalFile(join(rootDir, 'public', publicPath))
-      || await readOptionalFile(join(rootDir, '.output', 'public', publicPath))
     if (data?.length)
       return data
     // Fall through to Nitro's event-aware fetch, which resolves via the asset server.

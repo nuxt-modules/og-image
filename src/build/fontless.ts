@@ -13,8 +13,7 @@ import type { FontFamilyProviderOverride, FontlessOptions, Resolver } from 'font
 import type { Nuxt } from 'nuxt/schema'
 import type { FontProcessingState, FontRequirementsState, ParsedFont } from './fonts'
 import * as fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { isAbsolute, join } from 'pathe'
+import { join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
 import { RE_WHITESPACE } from '../util'
@@ -519,35 +518,6 @@ function hasOpenTypeTable(data: Uint8Array, expectedTag: string): boolean {
   return false
 }
 
-async function readLocalFontAsset(nuxt: Nuxt, source: string): Promise<FontAssetResult> {
-  if (source.startsWith('/')) {
-    const configuredPublicDir = nuxt.options.dir.public || 'public'
-    const publicDir = isAbsolute(configuredPublicDir)
-      ? configuredPublicDir
-      : join(nuxt.options.srcDir, configuredPublicDir)
-    const path = join(publicDir, source.slice(1).split(/[?#]/, 1)[0]!)
-    return fs.promises.readFile(path)
-      .then(data => ({ _tag: 'Ok' as const, data }))
-      .catch((error: NodeJS.ErrnoException) => ({
-        _tag: 'Err' as const,
-        reason: error.code === 'ENOENT' ? `local source not found: ${path}` : error.message,
-      }))
-  }
-
-  if (source.startsWith('file:')) {
-    const path = fileURLToPath(source)
-    return fs.promises.readFile(path)
-      .then(data => ({ _tag: 'Ok' as const, data }))
-      .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
-  }
-
-  return fetch(source)
-    .then(async response => response.ok
-      ? { _tag: 'Ok' as const, data: new Uint8Array(await response.arrayBuffer()) }
-      : { _tag: 'Err' as const, reason: `source returned HTTP ${response.status}` })
-    .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
-}
-
 async function convertNuxtWoff2Sources(options: {
   fonts: ParsedFont[]
   nuxt: Nuxt
@@ -571,10 +541,7 @@ async function convertNuxtWoff2Sources(options: {
     const served: FontAssetResult | undefined = await options.context?.readFont(fontSrc)
       .then(data => data && { _tag: 'Ok' as const, data })
       .catch((error: Error) => ({ _tag: 'Err' as const, reason: error.message }))
-    const asset: FontAssetResult = served
-      || (isConfiguredLocalFontFamily(options.nuxt, font.family)
-        ? await readLocalFontAsset(options.nuxt, fontSrc)
-        : { _tag: 'Err', reason: 'not served by Nuxt Fonts' })
+    const asset: FontAssetResult = served || { _tag: 'Err', reason: 'not served by Nuxt Fonts' }
     if (asset._tag === 'Err') {
       options.logger.debug(`Could not read Nuxt Fonts asset ${fontSrc}: ${asset.reason}`)
       continue

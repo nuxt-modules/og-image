@@ -4,7 +4,7 @@ import { fontFacesFromResolved } from '../../src/build/css/font-face'
 describe('fontFacesFromResolved', () => {
   it('reads the served URL, subset and unicode range of each face', () => {
     const faces = fontFacesFromResolved('Poppins', [{
-      src: [{ name: 'Poppins' }, { url: '/docs/_nuxt/fonts/a.woff2', originalURL: 'https://x.test/a.woff2', format: 'woff2' }],
+      src: [{ name: 'Poppins' }, { url: '/docs/_nuxt/fonts/a.woff2', format: 'woff2' }],
       weight: 400,
       style: 'normal',
       unicodeRange: ['U+0000-00FF', 'U+0131'],

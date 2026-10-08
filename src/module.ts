@@ -38,6 +38,7 @@ import { fontFamiliesFromCssEntries, fontsResolvedHookAvailable, warnWhenFontsUn
 import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
+  cacheResolvedFontFiles,
   copyStaticFontsToOutput,
   getResolvedNuxtFonts,
   getStaticFontCacheDir,
@@ -1617,9 +1618,11 @@ export function getComponentFontMap() { return _staticMap }`
 export const tw4Breakpoints = ${JSON.stringify(cssMetadata.breakpoints)}
 export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
     }
-    nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = () => {
+    nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = async () => {
+      const resolvedFontPaths = await cacheResolvedFontFiles(nuxtFontFiles, join(nuxt.options.buildDir, 'cache', 'og-image', 'resolved-fonts'))
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}
 export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}
+export const resolvedFontPaths = ${JSON.stringify(resolvedFontPaths)}
 export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.options.buildDir))}`
     }
 
@@ -1628,16 +1631,10 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     if (hasNuxtFonts) {
       // @nuxt/fonts v1+: every resolved family, including ones only used in CSS
       nuxt.hook('fonts:resolved' as any, (font: { fontFamily: string, fonts: ResolvedFontFace[], files: Array<{ url: string, readFont: () => Promise<Buffer> }> }) => {
-        // A family is reported once per resolution (per bundler environment, and again for
-        // global families), so faces are merged rather than replaced
-        const faces = fontState.resolvedFaces!.get(font.fontFamily) || []
-        const known = new Set(faces.map(face => JSON.stringify(face.src)))
-        const added = font.fonts.filter(face => !known.has(JSON.stringify(face.src)))
-        fontState.resolvedFaces!.set(font.fontFamily, [...faces, ...added])
+        fontState.resolvedFaces!.set(font.fontFamily, font.fonts)
         for (const file of font.files)
           nuxtFontFiles.set(file.url, file.readFont)
-        if (added.length > 0)
-          refreshDevFonts()
+        refreshDevFonts()
       })
       // @nuxt/fonts reports every family before Nitro builds. Versions without the hook report
       // none, and OG images would silently fall back to Inter.
