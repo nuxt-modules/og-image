@@ -135,11 +135,14 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         'cache-control': `public, max-age=${maxAge}, s-maxage=${maxAge}, immutable`,
       }
       setHeaders(ctx.e, headers)
+      // `expiresAt` is only checked when the same key is read again, so also hand the TTL to the driver: drivers that
+      // support it (Redis, Cloudflare KV, ...) then drop entries that are never requested again. Cloudflare KV rejects
+      // TTLs under 60s; a longer storage TTL is harmless since reads still honour `expiresAt`.
       await cache.setItem(key, {
         value,
         headers,
         expiresAt: Date.now() + (maxAge * 1000),
-      }).catch(err => logger.warn(`[Nuxt OG Image] Failed to write cache for key "${key}": ${err?.message || err}`))
+      }, { ttl: Math.max(maxAge, 60) }).catch(err => logger.warn(`[Nuxt OG Image] Failed to write cache for key "${key}": ${err?.message || err}`))
     },
   }
 }
