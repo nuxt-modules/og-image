@@ -171,7 +171,7 @@ export interface NuxtFontFace {
 
 /** A `@font-face` rule as `@nuxt/fonts` passes it to the `fonts:resolved` hook. */
 export interface ResolvedFontFace {
-  src: Array<{ url: string, originalURL?: string, format?: string } | { name: string }>
+  src: Array<{ url: string, format?: string } | { name: string }>
   weight?: string | number | [number, number]
   style?: string
   unicodeRange?: string[]

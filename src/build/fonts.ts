@@ -6,9 +6,10 @@
 import type { ConsolaInstance } from 'consola'
 import type { Nuxt } from 'nuxt/schema'
 import type { ResolvedFontFace } from './css/font-face'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join, relative } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { fontFacesFromResolved } from './css/font-face'
@@ -58,6 +59,22 @@ export interface FontProcessingState {
 
 export function getStaticFontCacheDir(buildDir: string): string {
   return join(buildDir, 'cache', 'og-image', 'static-fonts')
+}
+
+/** Read served bytes at build time into og-image's private prerender cache. */
+export async function cacheResolvedFontFiles(
+  files: Map<string, () => Promise<Buffer>>,
+  dir: string,
+): Promise<Record<string, string>> {
+  const paths: Record<string, string> = {}
+  for (const [url, readFont] of files) {
+    const data = await readFont()
+    await mkdir(dir, { recursive: true })
+    const path = join(dir, createHash('sha256').update(url).update(data).digest('hex'))
+    await writeFile(path, data)
+    paths[url] = path
+  }
+  return paths
 }
 
 export interface FontRequirementsState {
