@@ -1,3 +1,7 @@
+declare module '#build/nuxt-og-image/client-config.mjs' {
+  export const hasServerRuntime: boolean
+}
+
 declare module '#nuxtseo/h3' {
   export * from 'h3'
 }
