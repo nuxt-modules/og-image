@@ -173,6 +173,7 @@ catalog:
   '@vue/compiler-core': ^3.5.43
   '@vue/compiler-sfc': ^3.5.43
   '@vueuse/nuxt': ^15.0.0
+  aws4fetch: ^1.0.20
   better-sqlite3: ^13.0.3
   birpc: ^4.2.0
   bumpp: ^12.3.0

@@ -57,6 +57,7 @@ import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
+import { hasPublishMount, parsePublishConfig } from './runtime/shared/publish'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
@@ -221,6 +222,11 @@ export interface ModuleOptions {
    * @example { base: '.cache/og-image' }
    */
   buildCache?: boolean | { base?: string }
+  /**
+   * Publish rendered images to a mounted Nitro storage driver.
+   * Image objects have no TTL. cacheMaxAgeSeconds limits manifest reuse.
+   */
+  publish?: { storage: string, baseURL: string }
   /**
    * Warn about OG Image components missing renderer suffix in dev mode.
    * Set to false to suppress warnings for legacy/test components.
@@ -447,6 +453,13 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
+    }
+
+    if (config.publish) {
+      const parsed = parsePublishConfig(config.publish)
+      if (parsed._tag === 'Err')
+        throw new Error(`[nuxt-og-image] ${parsed.reason}`)
+      config.publish = parsed.value
     }
 
     // Resolve top-level cacheMaxAgeSeconds into defaults
@@ -1709,6 +1722,10 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     })
     nuxt.hooks.hook('nitro:init', (nitro) => {
       const hasServerRuntime = !nitro.options.static && !(nuxt.options as any)._generate
+      const publishStorage = hasServerRuntime && !config.zeroRuntime ? nitro.options.storage : { ...nitro.options.storage, ...nitro.options.devStorage }
+      if (!nuxt.options.dev && config.publish && !hasPublishMount(config.publish.storage, publishStorage || {})) {
+        logger.warn(`Publish storage mount "${config.publish.storage}" is not configured. Set nitro.storage or mount it in a Nitro plugin.`)
+      }
       if (!nuxt.options.dev && hasServerRuntime && !config.zeroRuntime && Number(config.defaults?.cacheMaxAgeSeconds) > 0 && hasUnboundedRuntimeCache) {
         logger.warn('The runtime OG image cache uses memory storage without a size limit. Use lru-cache with maxSize or an expiring driver. See https://nuxtseo.com/docs/og-image/guides/runtime-cache')
       }
@@ -1753,6 +1770,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         // avoid adding credentials
         baseCacheKey,
         buildCacheDir,
+        publish: config.publish ? { ...config.publish, cacheVersion } : undefined,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
@@ -1897,6 +1915,8 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
+    if (nuxt.options.build && config.publish && !config.zeroRuntime)
+      addServerPlugin(resolve('./runtime/server/plugins/publish'))
     if (nuxt.options.dev)
       addServerPlugin(resolve(getNitroVersion(nuxt) === 3 ? './runtime/server/plugins/auto-eject-nitro3' : './runtime/server/plugins/auto-eject'))
     // always call this as we may have routes only discovered at build time

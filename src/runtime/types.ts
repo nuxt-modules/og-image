@@ -56,6 +56,8 @@ export interface OgImageRuntimeConfig {
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
   buildCacheDir?: string
+  /** Publish rendered images to a public storage mount. */
+  publish?: { storage: string, baseURL: string, cacheVersion: string }
   /** Source directory for auto-eject (dev only) */
   srcDir?: string
   /** Root directory for relative path display (dev only) */
@@ -218,6 +220,8 @@ export interface OgImageOptions {
  * Extends OgImageOptions with fields set by defineOgImage() and the module internals.
  */
 export interface OgImageOptionsInternal extends OgImageOptions {
+  /** Completed page content supplied during prerender publishing. */
+  _prerenderHtml?: string
   /** Set by defineOgImage() — the resolved component PascalName */
   component?: string
   /** Determined by component filename suffix (.satori.vue, .takumi.vue, .browser.vue) */
