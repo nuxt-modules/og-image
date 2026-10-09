@@ -3,6 +3,7 @@ import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getPublishKey, publishImage } from '../../src/runtime/server/og-image/cache/publish'
+import { getPublishedImageCache, getPublishedImageCacheKey } from '../../src/runtime/server/og-image/cache/published'
 import publishPlugin from '../../src/runtime/server/plugins/publish'
 
 const { useStorage, useOgImageRuntimeConfig, warn } = vi.hoisted(() => ({
@@ -41,13 +42,21 @@ async function setup() {
   storage.mount('public', memoryDriver())
   useStorage.mockReturnValue(storage)
   const hooks = createHooks()
-  await publishPlugin({ hooks } as Parameters<typeof publishPlugin>[0])
+  const app = { hooks } as Parameters<typeof publishPlugin>[0]
+  await publishPlugin(app)
   const html = { head: [`<meta property="og:image" content="${imageURL}">`, `<meta name="twitter:image" content="${imageURL}">`] }
   const render = () => hooks.callHook('render:html', html, { event: { path: '/article' } })
-  return { storage, html, render }
+  return { storage, html, render, app }
 }
 
 describe('published SSR image URLs', () => {
+  it('escapes public URLs in HTML attributes', async () => {
+    const { html, render, app } = await setup()
+    const key = getPublishedImageCacheKey(config.publish, getPublishKey(imageURL, config.defaults, 'v1'), 'png')
+    getPublishedImageCache(app).remember(key, { _tag: 'Published', url: 'https://images.example/a&b/image.png', objectKey: 'image.png', expiresAt: Date.now() + 60000 }, Date.now())
+    await render()
+    expect(html.head[0]).toContain('content="https://images.example/a&amp;b/image.png"')
+  })
   it.each([
     [],
     ['<meta property="og:image" content="https://site.example/_og/s/static.png">'],
@@ -70,20 +79,21 @@ describe('published SSR image URLs', () => {
     expect(html.head[0]).toContain(imageURL)
   })
 
-  it('keeps app URLs when storage hangs, without waiting for the render timeout', async () => {
+  it('keeps app URLs immediately without contacting storage', async () => {
     vi.useFakeTimers()
     const { storage, html, render } = await setup()
-    vi.spyOn(storage, 'getItem').mockReturnValue(new Promise(() => {}))
+    const lookup = vi.spyOn(storage, 'getItem').mockReturnValue(new Promise(() => {}))
     const completed = vi.fn()
-    const rendering = render().then(completed)
-    await vi.advanceTimersByTimeAsync(500)
+    const rendering = Promise.resolve(render()).then(completed)
+    await vi.advanceTimersByTimeAsync(0)
     expect(completed).toHaveBeenCalledOnce()
     await rendering
     expect(html.head).toEqual([`<meta property="og:image" content="${imageURL}">`, `<meta name="twitter:image" content="${imageURL}">`])
-    expect(warn).toHaveBeenCalledOnce()
+    expect(lookup).not.toHaveBeenCalled()
+    expect(warn).not.toHaveBeenCalled()
   })
 
-  it('uses a fresh published URL and looks up duplicate image tags once', async () => {
+  it('keeps the app URL on a cold Worker even when storage contains a published image', async () => {
     const { storage, html, render } = await setup()
     const published = await publishImage({
       storage,
@@ -99,8 +109,24 @@ describe('published SSR image URLs', () => {
       throw new Error('Expected a published image')
     const lookup = vi.spyOn(storage, 'getItem')
     await render()
-    expect(html.head).toEqual([`<meta property="og:image" content="${published.url}">`, `<meta name="twitter:image" content="${published.url}">`])
-    expect(lookup).toHaveBeenCalledOnce()
+    expect(html.head).toEqual([`<meta property="og:image" content="${imageURL}">`, `<meta name="twitter:image" content="${imageURL}">`])
+    expect(lookup).not.toHaveBeenCalled()
     expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('uses a locally known public URL without storage, then returns to the app URL at expiry', async () => {
+    vi.useFakeTimers({ now: 1000 })
+    const { storage, html, render, app } = await setup()
+    const key = getPublishedImageCacheKey(config.publish, getPublishKey(imageURL, config.defaults, 'v1'), 'png')
+    getPublishedImageCache(app).remember(key, { _tag: 'Published', url: 'https://images.example/image.png', objectKey: 'image.png', expiresAt: 2000 }, 1000)
+    const lookup = vi.spyOn(storage, 'getItem')
+    await render()
+    expect(html.head).toEqual(['<meta property="og:image" content="https://images.example/image.png">', '<meta name="twitter:image" content="https://images.example/image.png">'])
+    expect(lookup).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1000)
+    html.head = [`<meta property="og:image" content="${imageURL}">`]
+    await render()
+    expect(html.head).toEqual([`<meta property="og:image" content="${imageURL}">`])
+    expect(lookup).not.toHaveBeenCalled()
   })
 })

@@ -28,7 +28,7 @@ interface PublishInput {
   now: () => number
 }
 
-interface Published { _tag: 'Published', url: string, objectKey: string }
+export interface Published { _tag: 'Published', url: string, objectKey: string, expiresAt: number }
 interface Unavailable { _tag: 'Unavailable', reason: unknown }
 interface PublishTarget { _tag: 'Target', storage: Omit<PublishStorage, 'getMount'>, baseURL: string }
 
@@ -83,11 +83,12 @@ export async function publishImage(input: PublishInput & {
         return { _tag: 'Unavailable', reason: 'Publish storage did not retain the image.' }
     }
     // Image objects have no driver TTL. Only manifests expire.
+    const expiresAt = input.expiresAt ?? input.now() + (Number.isFinite(input.maxAgeSeconds) ? Math.max(0, input.maxAgeSeconds) : 0) * 1000
     await storage.setItem(manifestKey(input), {
       objectKey,
-      expiresAt: input.expiresAt ?? input.now() + (Number.isFinite(input.maxAgeSeconds) ? Math.max(0, input.maxAgeSeconds) : 0) * 1000,
+      expiresAt,
     }, { ttl: Math.max(60, Number.isFinite(input.maxAgeSeconds) ? Math.ceil(input.maxAgeSeconds) : 60) })
-    return published(target, objectKey)
+    return published(target, objectKey, expiresAt)
   })(), input.timeoutMs ?? 15000, 'OG image publication').catch(reason => ({ _tag: 'Unavailable' as const, reason }))
 }
 
@@ -116,7 +117,7 @@ async function lookupPublishedImage(input: PublishInput, target: PublishTarget):
   const raw = await target.storage.getItem(manifestKey(input))
   const manifest = parseManifest(raw, input.extension)
   if (manifest && manifest.expiresAt > input.now() && await target.storage.hasItem(manifest.objectKey))
-    return published(target, manifest.objectKey)
+    return published(target, manifest.objectKey, manifest.expiresAt)
   return { _tag: 'Miss' }
 }
 
@@ -124,8 +125,8 @@ function manifestKey(input: PublishInput): string {
   return `manifest:${input.key}.${input.extension}.json`
 }
 
-function published(target: PublishTarget, objectKey: string): Published {
-  return { _tag: 'Published', objectKey, url: `${target.baseURL}/${objectKey}` }
+function published(target: PublishTarget, objectKey: string, expiresAt: number): Published {
+  return { _tag: 'Published', objectKey, url: `${target.baseURL}/${objectKey}`, expiresAt }
 }
 
 function parseManifest(value: unknown, extension: string): PublishManifest | undefined {

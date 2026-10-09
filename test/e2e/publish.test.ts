@@ -4,7 +4,7 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
 import sharp from 'sharp'
 import { exec } from 'tinyexec'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 const rootDir = fileURLToPath(new URL('../fixtures/publish', import.meta.url))
 const publishedDir = join(rootDir, '.data/published')
@@ -43,22 +43,33 @@ describe('prerender publishing', () => {
     const generated = new Uint8Array(await response.arrayBuffer())
     expect([...generated.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
 
-    const after = await $fetch('/runtime')
+    let after = ''
+    await vi.waitFor(async () => {
+      after = await $fetch('/runtime')
+      expect(after).toMatch(/property="og:image" content="https:\/\/files\.example\.com\/og\/[a-f0-9]{64}\.png"/)
+    })
     const publicURL = after.match(/property="og:image" content="([^"]+)"/)![1]!
-    expect(publicURL).toMatch(/^https:\/\/files\.example\.com\/og\/[a-f0-9]{64}\.png$/)
     expect(await readFile(join(publishedDir, publicURL.split('/').pop()!))).toEqual(Buffer.from(generated))
     expect(after).toContain(`name="twitter:image" content="${publicURL}"`)
 
     const manifestFiles = await readdir(join(publishedDir, 'manifest'))
     const manifestEntries = await Promise.all(manifestFiles.map(async file => ({ file, value: JSON.parse(await readFile(join(publishedDir, 'manifest', file), 'utf8')) })))
     const manifest = manifestEntries.find(entry => entry.value.objectKey === publicURL.split('/').pop())!
+    const redirect = await fetch(new URL(appURL).pathname, { redirect: 'manual' })
+    expect(redirect.status).toBe(302)
+    expect(redirect.headers.get('location')).toBe(publicURL)
+    const redirectAge = Number(redirect.headers.get('cache-control')?.match(/max-age=(\d+)/)?.[1])
+    expect(redirectAge).toBeLessThanOrEqual(Math.floor((manifest.value.expiresAt - Date.now()) / 1000) + 1)
     await rm(join(publishedDir, manifest.value.objectKey))
-    expect(await $fetch('/runtime')).toContain(`property="og:image" content="${appURL}"`)
     const cached = await fetch(new URL(appURL).pathname)
+    expect(cached.status).toBe(200)
     expect(cached.headers.get('x-og-cache')).toBe('HIT')
-    const republished = JSON.parse(await readFile(join(publishedDir, 'manifest', manifest.file), 'utf8'))
-    expect(republished.expiresAt).toBe(manifest.value.expiresAt)
-    expect(await $fetch('/runtime')).toContain(`property="og:image" content="${publicURL}"`)
+    await vi.waitFor(async () => {
+      expect(await readFile(join(publishedDir, manifest.value.objectKey))).toEqual(Buffer.from(generated))
+      const republished = JSON.parse(await readFile(join(publishedDir, 'manifest', manifest.file), 'utf8'))
+      expect(republished.expiresAt).toBe(manifest.value.expiresAt)
+      expect(await $fetch('/runtime')).toContain(`property="og:image" content="${publicURL}"`)
+    })
   })
 
   it.runIf(process.env.HAS_CHROME)('publishes a page screenshot without recursive page rendering', async () => {

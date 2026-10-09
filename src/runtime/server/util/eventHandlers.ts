@@ -1,16 +1,18 @@
 import type { H3Event } from '#nuxtseo/h3'
-import { appendResponseHeader, createError, getRequestHost, H3Error, setHeader } from '#nuxtseo/h3'
+import { appendResponseHeader, createError, getRequestHost, H3Error, sendRedirect, setHeader } from '#nuxtseo/h3'
 import { useStorage } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
-import { getPublishKey, publishImage } from '../og-image/cache/publish'
+import { getPublishedImage, getPublishKey, publishImage } from '../og-image/cache/publish'
+import { getPublishedImageCache, getPublishedImageCacheKey } from '../og-image/cache/published'
 import { resolveContext } from '../og-image/context'
 import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
 import { warnPublishUnavailable } from './publishWarnings'
+import { getEventQuery } from './query'
 
 export async function imageEventHandler(e: H3Event) {
   const reqStart = performance.now()
@@ -157,6 +159,41 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     return buildCachedImage
   }
 
+  const purge = typeof getEventQuery(e).purge !== 'undefined'
+  let publication = publish && !import.meta.dev && !import.meta.prerender
+    ? (() => {
+        const key = getPublishKey(new URL(e.path, getSiteConfig(e).url).href, config.defaults, publish.cacheVersion)
+        return {
+          cache: getPublishedImageCache(ctx._nitro),
+          cacheKey: getPublishedImageCacheKey(publish, key, extension),
+          input: {
+            storage: useStorage(),
+            mount: publish.storage,
+            baseURL: publish.baseURL,
+            key,
+            extension,
+            maxAgeSeconds: Number(ctx.options.cacheMaxAgeSeconds),
+            timeoutMs: security.renderTimeout,
+            now: Date.now,
+          },
+        }
+      })()
+    : undefined
+  if (publication && !purge && !publication.cache.isPublishing(publication.cacheKey, Date.now())) {
+    const result = await getPublishedImage({ ...publication.input, timeoutMs: 500 })
+    if (result._tag === 'Published' && result.expiresAt > Date.now()) {
+      publication.cache.remember(publication.cacheKey, result, Date.now())
+      const remainingAge = Math.max(0, Math.floor((result.expiresAt - Date.now()) / 1000))
+      setHeader(e, 'Cache-Control', `public, max-age=${remainingAge}, s-maxage=${remainingAge}`)
+      return sendRedirect(e, result.url, 302)
+    }
+    publication.cache.forget(publication.cacheKey)
+    if (result._tag === 'Unavailable') {
+      warnPublishUnavailable(ctx._nitro, result.reason, logger)
+      publication = undefined
+    }
+  }
+
   const endCacheLookup = timings.start('cache-lookup')
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
@@ -170,6 +207,9 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   if (cacheApi instanceof H3Error) {
     return cacheApi
   }
+  // Purge authentication happens in the buffer cache before local URL invalidation.
+  if (publication && purge)
+    publication.cache.forget(publication.cacheKey)
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem
   if (image) {
@@ -210,25 +250,32 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       setBuildCachedImage(ctx.options, extension, image as Buffer, ctx.options.cacheMaxAgeSeconds)
     }
   }
-  if (publish && !import.meta.dev && !import.meta.prerender) {
+  if (publication) {
     const maxAge = Number(ctx.options.cacheMaxAgeSeconds)
     // A cache hit retains its original expiry. Publishing must never renew stale bytes.
-    const remainingAge = cacheApi.expiresAt ? Math.max(0, (cacheApi.expiresAt - Date.now()) / 1000) : maxAge
-    const result = await publishImage({
-      storage: useStorage(),
-      mount: publish.storage,
-      baseURL: publish.baseURL,
-      key: getPublishKey(new URL(e.path, getSiteConfig(e).url).href, config.defaults, publish.cacheVersion),
-      extension,
-      maxAgeSeconds: remainingAge,
-      expiresAt: cacheApi.expiresAt || undefined,
-      timeoutMs: security.renderTimeout,
-      now: Date.now,
-      force: true,
-      render: async () => new Uint8Array(image as Uint8Array),
-    })
-    if (result._tag === 'Unavailable')
-      warnPublishUnavailable(ctx._nitro, result.reason, logger)
+    const expiresAt = cacheApi.expiresAt || Date.now() + (Number.isFinite(maxAge) ? Math.max(0, maxAge) : 0) * 1000
+    const remainingAge = Math.max(0, (expiresAt - Date.now()) / 1000)
+    const { cache, cacheKey, input } = publication
+    const token = cache.begin(cacheKey, Date.now(), input.timeoutMs)
+    if (token) {
+      const bytes = new Uint8Array(image as Uint8Array)
+      const app = ctx._nitro
+      const task = publishImage({
+        ...input,
+        maxAgeSeconds: remainingAge,
+        expiresAt,
+        force: true,
+        render: async () => bytes,
+      }).then((result) => {
+        cache.complete(cacheKey, token, result, Date.now())
+        if (result._tag === 'Unavailable')
+          warnPublishUnavailable(app, result.reason, logger)
+      }).catch((reason) => {
+        cache.complete(cacheKey, token, { _tag: 'Unavailable' }, Date.now())
+        warnPublishUnavailable(app, reason, logger)
+      })
+      e.waitUntil(task)
+    }
   }
   return image
 }
