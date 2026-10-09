@@ -175,10 +175,12 @@ export function clientProcessOgImageOptions(
       urlOpts._componentHash = component.hash
     const result = buildOgImageUrl(urlOpts, extension, true, defaults, undefined)
     const resolvedUrl = joinURL('/', baseURL, result.url)
-    const finalUrl = opts._query && Object.keys(opts._query).length
-      ? withQuery(resolvedUrl, { _query: opts._query })
-      : resolvedUrl
-    registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), opts, metaOptions) }, { processTemplateParams: true, tagPriority: 'high' })
+    const query = opts._query && Object.keys(opts._query).length ? { _query: opts._query } : {}
+    const finalUrl = withQuery(resolvedUrl, query)
+    const imageUrl = rc.app.cdnURL
+      ? withQuery(joinURL(rc.app.cdnURL, result.url), query)
+      : toValue(resolveImageUrl(finalUrl))
+    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, opts, metaOptions) }, { processTemplateParams: true, tagPriority: 'high' })
     paths.push(finalUrl)
   }
 

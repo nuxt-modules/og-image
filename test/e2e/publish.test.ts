@@ -94,12 +94,27 @@ describe('prerender publishing', () => {
 
     await exec('pnpm', ['exec', 'nuxt', 'build', rootDir], {
       throwOnError: true,
-      nodeOptions: { env: { ...process.env, OG_IMAGE_TEST_MISSING_MOUNT: 'true' } },
+      nodeOptions: { env: { ...process.env, OG_IMAGE_TEST_MISSING_MOUNT: 'true', OG_IMAGE_TEST_BASE_URL: '/prefix/' } },
     })
     const fallback = await readFile(join(rootDir, '.output/public/index.html'), 'utf8')
     const url = fallback.match(/property="og:image" content="([^"]+)"/)![1]!
-    expect(url).toContain('/_og/s/')
-    const bytes = await readFile(join(rootDir, '.output/public', new URL(url).pathname))
+    expect(url).toMatch(/^https:\/\/assets\.example\.com\/static\/_og\/s\//)
+    expect(url).not.toContain('/prefix/')
+    expect(fallback).toContain(`name="twitter:image" content="${url}"`)
+    const bytes = await readFile(join(rootDir, '.output/public', new URL(url).pathname.replace('/static/', '/')))
+    expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
+  }, 120000)
+
+  it('uses the asset CDN without enabling bucket publishing', async () => {
+    await exec('pnpm', ['exec', 'nuxt', 'build', rootDir], {
+      throwOnError: true,
+      nodeOptions: { env: { ...process.env, OG_IMAGE_TEST_DISABLE_PUBLISH: 'true', OG_IMAGE_TEST_BASE_URL: '/prefix/' } },
+    })
+    const html = await readFile(join(rootDir, '.output/public/index.html'), 'utf8')
+    const url = html.match(/property="og:image" content="([^"]+)"/)![1]!
+    expect(url).toMatch(/^https:\/\/assets\.example\.com\/static\/_og\/s\//)
+    expect(html).toContain(`name="twitter:image" content="${url}"`)
+    const bytes = await readFile(join(rootDir, '.output/public', new URL(url).pathname.replace('/static/', '/')))
     expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
   }, 120000)
 })

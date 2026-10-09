@@ -1,6 +1,6 @@
 import type { Hookable } from 'hookable'
 import { parse } from 'devalue'
-import { parseURL, withoutBase, withQuery } from 'ufo'
+import { joinURL, parseURL, withoutBase, withQuery } from 'ufo'
 import { appendResponseHeader } from '#nuxtseo/h3'
 import { defineNitroPlugin, useRuntimeConfig, useStorage } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
@@ -20,6 +20,16 @@ const RE_SCRIPT_OVERRIDES = /<script id="nuxt-og-image-overrides" type="applicat
 function getPayloadFromHtml(html: string): string | null {
   const match = String(html).match(PAYLOAD_REGEX)
   return match ? String(match[1]) : null
+}
+
+function replaceImageUrls(head: string[], path: string, resolve: (source: string) => string): string[] {
+  return head.map(entry => entry.replace(/(<meta\b[^>]+\bcontent=")([^"]*)("[^>]*>)/g, (tag, start, url, end) => {
+    if (!/\b(?:property|name)="(?:og:image(?::url|:secure_url)?|twitter:image(?::src)?)"/.test(tag))
+      return tag
+    const source = url.replace(/&amp;/g, '&')
+    const urlPath = parseURL(source).pathname
+    return urlPath?.replace(/,/g, '%2C') === path ? `${start}${resolve(source).replace(/&/g, '&amp;')}${end}` : tag
+  }))
 }
 
 // @ts-expect-error hookable v6
@@ -106,12 +116,7 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
             })
             if (result._tag === 'Published') {
               // Replace only the finalized image URL, preserving all other metadata.
-              html.head = html.head.map(entry => entry.replace(/(<meta\b[^>]+\bcontent=")([^"]*)("[^>]*>)/g, (tag, start, url, end) => {
-                if (!/\b(?:property|name)="(?:og:image(?::url|:secure_url)?|twitter:image(?::src)?)"/.test(tag))
-                  return tag
-                const urlPath = parseURL(url.replace(/&amp;/g, '&')).pathname
-                return urlPath?.replace(/,/g, '%2C') === prerenderPath ? `${start}${result.url}${end}` : tag
-              }))
+              html.head = replaceImageUrls(html.head, prerenderPath, () => result.url)
               prerenderPaths.delete(ogKey)
             }
             else if (!publishWarningShown) {
@@ -124,7 +129,12 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
           publishingPages.delete(path)
         }
       }
+      const app = useRuntimeConfig(ctx.event).app
       for (const prerenderPath of prerenderPaths.values()) {
+        if (app.cdnURL && prerenderPath.includes('/_og/s/')) {
+          const imageURL = joinURL(app.cdnURL, withoutBase(prerenderPath, app.baseURL))
+          html.head = replaceImageUrls(html.head, prerenderPath, source => `${imageURL}${parseURL(source).search || ''}`)
+        }
         appendResponseHeader(ctx.event, 'x-nitro-prerender', prerenderPath)
       }
     }
