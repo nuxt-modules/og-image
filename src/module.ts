@@ -53,6 +53,7 @@ import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
 import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
+import { hasPublishMount, parsePublishConfig } from './runtime/shared/publish'
 import { registerTypeTemplates } from './templates'
 import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
@@ -452,6 +453,13 @@ export default defineNuxtModule<ModuleOptions>({
     if (config.enabled && !nuxt.options.ssr) {
       logger.warn('Nuxt OG Image is enabled but SSR is disabled.\n\nYou should enable SSR (`ssr: true`) or disable the module (`ogImage: { enabled: false }`).')
       return
+    }
+
+    if (config.publish) {
+      const parsed = parsePublishConfig(config.publish)
+      if (parsed._tag === 'Err')
+        throw new Error(`[nuxt-og-image] ${parsed.reason}`)
+      config.publish = parsed.value
     }
 
     // Resolve top-level cacheMaxAgeSeconds into defaults
@@ -1698,6 +1706,10 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     })
     nuxt.hooks.hook('nitro:init', (nitro) => {
       const hasServerRuntime = !nitro.options.static && !(nuxt.options as any)._generate
+      const publishStorage = hasServerRuntime && !config.zeroRuntime ? nitro.options.storage : { ...nitro.options.storage, ...nitro.options.devStorage }
+      if (!nuxt.options.dev && config.publish && !hasPublishMount(config.publish.storage, publishStorage || {})) {
+        logger.warn(`Publish storage mount "${config.publish.storage}" is not configured. Set nitro.storage or mount it in a Nitro plugin.`)
+      }
       if (!nuxt.options.dev && hasServerRuntime && !config.zeroRuntime && Number(config.defaults?.cacheMaxAgeSeconds) > 0 && hasUnboundedRuntimeCache) {
         logger.warn('The runtime OG image cache uses memory storage without a size limit. Use lru-cache with maxSize or an expiring driver. See https://nuxtseo.com/docs/og-image/guides/runtime-cache')
       }

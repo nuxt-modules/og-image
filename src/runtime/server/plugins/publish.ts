@@ -5,6 +5,7 @@ import { logger } from '../../logger'
 import { isInternalRoute } from '../../shared'
 import { decodeOgImageParams, extractEncodedSegment } from '../../shared/urlEncoding'
 import { getPublishedImage, getPublishKey } from '../og-image/cache/publish'
+import { warnPublishUnavailable } from '../util/publishWarnings'
 import { useOgImageRuntimeConfig } from '../utils'
 
 const IMAGE_META = /<meta\b[^>]+\b(?:property|name)="(?:og:image(?::url|:secure_url)?|twitter:image(?::src)?)"[^>]*>/g
@@ -45,6 +46,8 @@ export default defineNitroPlugin((nitro) => {
       })
       if (result._tag === 'Published')
         replacements.set(source, result.url)
+      else if (result._tag === 'Unavailable')
+        warnPublishUnavailable(nitro, result.reason, logger)
     })).catch((err) => {
       // User-supplied meta URLs can be malformed. Keep their existing app URL.
       logger.debug('[Nuxt OG Image] Publish lookup failed. Keeping the app image URL.', err)

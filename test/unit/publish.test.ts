@@ -78,7 +78,7 @@ describe('publishImage', () => {
     expect(render).not.toHaveBeenCalled()
   })
 
-  it.each(['invalid', 'https://files.example.com/og?token=secret', 'https://user:secret@files.example.com/og'])('keeps local URLs for invalid public origins: %s', async (baseURL) => {
+  it.each(['invalid', 'https://files.example.com/og?', 'https://files.example.com/og#', 'https://files.example.com/og?token=secret', 'https://user:secret@files.example.com/og'])('keeps local URLs for invalid public origins: %s', async (baseURL) => {
     const { input, render } = setup()
     expect((await publishImage({ ...input, baseURL }))._tag).toBe('Unavailable')
     expect(render).not.toHaveBeenCalled()

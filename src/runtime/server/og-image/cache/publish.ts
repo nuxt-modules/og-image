@@ -1,6 +1,6 @@
 import type { Storage } from 'unstorage'
 import { parseURL } from 'ufo'
-import { normalizeKey } from 'unstorage'
+import { parsePublishConfig } from '../../../shared/publish'
 import { extractEncodedSegment, hashOgImageOptions } from '../../../shared/urlEncoding'
 import { withTimeout } from '../../util/withTimeout'
 
@@ -92,14 +92,14 @@ export async function publishImage(input: PublishInput & {
 }
 
 function resolveTarget(input: PublishInput): PublishTarget | Unavailable {
-  const mount = normalizeKey(input.mount)
+  const parsed = parsePublishConfig({ storage: input.mount, baseURL: input.baseURL })
+  if (parsed._tag === 'Err')
+    return { _tag: 'Unavailable', reason: parsed.reason }
+  const { storage: mount, baseURL } = parsed.value
   const mounted = input.storage.getMount(`${mount}:`)
   // Unstorage otherwise falls through to root memory storage, creating broken public URLs.
   if (!mount || mounted.base !== `${mount}:` || !mounted.driver.setItemRaw)
     return { _tag: 'Unavailable', reason: 'Publish storage needs a mounted driver with raw writes.' }
-  const baseURL = new URL(input.baseURL)
-  if (!['https:', 'http:'].includes(baseURL.protocol) || baseURL.username || baseURL.password || baseURL.search || baseURL.hash)
-    return { _tag: 'Unavailable', reason: 'Publish baseURL needs a public HTTP URL without credentials, query, or fragment.' }
   const prefix = `${mount}:`
   const storage = {
     hasItem: (key: string) => input.storage.hasItem(prefix + key),
@@ -107,7 +107,7 @@ function resolveTarget(input: PublishInput): PublishTarget | Unavailable {
     setItem: (key: string, value: object, options?: Record<string, unknown>) => input.storage.setItem(prefix + key, value, options),
     setItemRaw: (key: string, value: Uint8Array, options?: Record<string, unknown>) => input.storage.setItemRaw(prefix + key, value, options),
   }
-  return { _tag: 'Target', storage, baseURL: baseURL.href.replace(/\/+$/, '') }
+  return { _tag: 'Target', storage, baseURL }
 }
 
 async function lookupPublishedImage(input: PublishInput, target: PublishTarget): Promise<Published | { _tag: 'Miss' }> {

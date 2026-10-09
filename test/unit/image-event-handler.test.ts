@@ -1,13 +1,17 @@
 import type { H3Event } from '#nuxtseo/h3'
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
+import { createStorage } from 'unstorage'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { imageEventHandler } from '../../src/runtime/server/util/eventHandlers'
 import { createTimings } from '../../src/runtime/server/util/timings'
 
-const { resolveContext, useOgImageBufferCache } = vi.hoisted(() => ({
+const { resolveContext, useOgImageBufferCache, useStorage, useOgImageRuntimeConfig, warn } = vi.hoisted(() => ({
   resolveContext: vi.fn(),
   useOgImageBufferCache: vi.fn(),
+  useStorage: vi.fn(),
+  useOgImageRuntimeConfig: vi.fn(),
+  warn: vi.fn(),
 }))
 
 // Model both adapter header APIs while retaining Node's real sent-header errors.
@@ -32,10 +36,11 @@ vi.mock('#nuxtseo/h3', () => ({
   },
 }))
 vi.mock('#site-config/server/composables/getSiteConfig', () => ({ getSiteConfig: () => ({ url: 'http://localhost' }) }))
-vi.mock('#nuxtseo/nitro', () => ({ useStorage: vi.fn() }))
+vi.mock('#nuxtseo/nitro', () => ({ useStorage }))
 vi.mock('../../src/runtime/server/og-image/context', () => ({ resolveContext }))
 vi.mock('../../src/runtime/server/util/cache', () => ({ useOgImageBufferCache }))
-vi.mock('../../src/runtime/server/utils', () => ({ useOgImageRuntimeConfig: () => ({}) }))
+vi.mock('../../src/runtime/server/utils', () => ({ useOgImageRuntimeConfig }))
+vi.mock('../../src/runtime/logger', () => ({ logger: { warn, debug: vi.fn(), error: vi.fn() } }))
 vi.mock('../../src/runtime/server/og-image/cache/buildCache', () => ({ getBuildCachedImage: vi.fn(), setBuildCachedImage: vi.fn() }))
 vi.mock('../../src/runtime/server/og-image/devtools', () => ({ fetchPathHtmlAndExtractOptions: vi.fn() }))
 vi.mock('../../src/runtime/server/og-image/templates/html', () => ({ html: vi.fn() }))
@@ -58,6 +63,7 @@ function webEvent(node?: object) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  useOgImageRuntimeConfig.mockReturnValue({})
   resolveContext.mockResolvedValue({
     timings: createTimings(),
     extension: 'png',
@@ -68,6 +74,30 @@ beforeEach(() => {
 })
 
 describe('imageEventHandler response timing', () => {
+  it('warns once per app when publishing fails and still serves each image', async () => {
+    const app = {}
+    useStorage.mockReturnValue(createStorage())
+    useOgImageRuntimeConfig.mockReturnValue({
+      defaults: {},
+      security: { renderTimeout: 100 },
+      publish: { storage: 'missing', baseURL: 'https://files.example.com', cacheVersion: 'v1' },
+    })
+    resolveContext.mockImplementation(async () => ({
+      _nitro: app,
+      timings: createTimings(),
+      extension: 'png',
+      renderer: { supportedFormats: ['png'] },
+      options: { cacheMaxAgeSeconds: 60 },
+    }))
+    for (let request = 0; request < 2; request++) {
+      const event = nodeEvent()
+      event.path = '/_og/d/c_Test.png'
+      expect(await imageEventHandler(event)).toBe(image)
+    }
+    expect(warn).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Publish storage is unavailable'), expect.stringContaining('mounted driver'))
+  })
+
   it('adds timing to an unsent Node response and returns the image', async () => {
     const event = nodeEvent()
 

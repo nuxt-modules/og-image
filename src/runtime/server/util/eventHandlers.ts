@@ -10,6 +10,7 @@ import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
+import { warnPublishUnavailable } from './publishWarnings'
 
 export async function imageEventHandler(e: H3Event) {
   const reqStart = performance.now()
@@ -227,7 +228,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       render: async () => new Uint8Array(image as Uint8Array),
     })
     if (result._tag === 'Unavailable')
-      logger.debug('[Nuxt OG Image] Publish storage is unavailable. Serving the app image.', result.reason)
+      warnPublishUnavailable(ctx._nitro, result.reason, logger)
   }
   return image
 }
