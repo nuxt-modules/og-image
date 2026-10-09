@@ -76,6 +76,21 @@ describe('cloudflare runtime config', () => {
     expect(body).toContain('island rendered')
   })
 
+  it('signs SSR URLs and serves internal requests with the legacy binding', async () => {
+    const env = { NUXT_APP_SECRET: '', NUXT_OG_IMAGE_SECRET: rootSecret }
+    const response = await fetchWorker('/', env)
+    const html = await response.text()
+    const url = extractOgImageUrl(html)!
+    const [, params, signature] = url.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, signingSecret))
+    expect(html).not.toContain(rootSecret)
+    const internal = await fetchWorker('/internal-fetch', env)
+    const body = await internal.text()
+    expect(internal.status, body).toBe(200)
+    expect(body).toContain('world')
+    expect(body).toContain('island rendered')
+  })
+
   it('signs getOgImageUrl with the Cloudflare runtime secret', async () => {
     const env = { NUXT_APP_SECRET: rootSecret }
     const response = await fetchWorker('/api/og-url', env)

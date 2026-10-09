@@ -1,5 +1,5 @@
 import { hkdfSync } from 'node:crypto'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { initializeOgImageSigning } from '../../src/runtime/server/signing-secret'
 
 const runtime = vi.hoisted(() => ({
@@ -23,11 +23,68 @@ describe('request signing initialization', () => {
     runtime.derive.mockReset().mockImplementation(async purpose =>
       Buffer.from(hkdfSync('sha256', runtime.config.appSecret, 'nuxt', purpose, 32)).toString('hex'))
   })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
 
   it('stores the purpose-derived Nuxt secret for synchronous URL helpers', async () => {
     const event = { context: {} as Record<string, unknown> }
     await initializeOgImageSigning(event)
     expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
+  })
+
+  it('uses the legacy environment root when appSecret is empty and warns once', async () => {
+    runtime.config.appSecret = ''
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', rootSecret)
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    for (let i = 0; i < 2; i++) {
+      const event = { context: {} as Record<string, unknown> }
+      await initializeOgImageSigning(event)
+      expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
+    }
+    expect(warning).toHaveBeenCalledExactlyOnceWith('[nuxt-og-image] NUXT_OG_IMAGE_SECRET is deprecated. Rename it to NUXT_APP_SECRET. Existing signed URLs must be refreshed.')
+  })
+
+  it('prefers a configured appSecret over the legacy environment root', async () => {
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', `${rootSecret}-legacy`)
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const event = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
+    expect(warning).not.toHaveBeenCalled()
+  })
+
+  it.each([undefined, ''])('uses a legacy Worker binding when the application binding is %s', async (root) => {
+    runtime.config.appSecret = ''
+    const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: root, NUXT_OG_IMAGE_SECRET: rootSecret } } } as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
+    const internal = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(internal)
+    expect(internal.context._ogImageSigningSecret).toBe(expectedSecret)
+  })
+
+  it('keeps the new Worker binding for internal requests when the process has a legacy key', async () => {
+    runtime.config.appSecret = ''
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', `${rootSecret}-legacy`)
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: rootSecret, NUXT_OG_IMAGE_SECRET: `${rootSecret}-old-binding` } } } })
+    const internal = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(internal)
+    expect(internal.context._ogImageSigningSecret).toBe(expectedSecret)
+    expect(warning).not.toHaveBeenCalled()
+  })
+
+  it.each(['short', false, 123, null])('does not replace an invalid non-empty application binding %s', async (root) => {
+    runtime.config.appSecret = ''
+    await expect(initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: root, NUXT_OG_IMAGE_SECRET: rootSecret } } } })).rejects.toThrow('at least 32 characters')
+  })
+
+  it('rejects a short legacy root', async () => {
+    runtime.config.appSecret = ''
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', 'short')
+    await expect(initializeOgImageSigning({ context: {} })).rejects.toThrow('at least 32 characters')
   })
 
   it('derives the same secret from request-only Cloudflare bindings', async () => {

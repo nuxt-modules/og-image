@@ -90,6 +90,7 @@ To use an existing image, call `useSeoMeta({ ogImage: '/cover.png' })`. The v5 `
 - **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
 - **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
 - **Rolling or multi instance deploys need a stable secret.** Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Changing the application secret invalidates existing signed URLs.
+- **Legacy environment key:** V7 accepts `NUXT_OG_IMAGE_SECRET` if the application secret is empty, with a deprecation warning. Rename it to `NUXT_APP_SECRET`. The derived key still invalidates v6 signatures.
 - **A wildcard route rule with `swr`, `isr`, or `cache` breaks `/_og/` routes.** The module warns. Use narrower patterns such as `/blog/**`.
 
 ## Fonts
