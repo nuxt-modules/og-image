@@ -64,4 +64,36 @@ describe('request signing initialization', () => {
     expect(first.context._ogImageSigningSecret).toBe(expectedSecret)
     expect(second.context._ogImageSigningSecret).toBe(Buffer.from(hkdfSync('sha256', otherRoot, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex'))
   })
+
+  it('reuses the observed Cloudflare root for binding-less internal events', async () => {
+    runtime.config.appSecret = ''
+    runtime.derive.mockRejectedValue(new Error('`appSecret` is not set. Set `NUXT_APP_SECRET` to at least 32 characters, or pass a secret explicitly.'))
+    const real = { context: { cloudflare: { env: { NUXT_APP_SECRET: rootSecret } } } as Record<string, unknown> }
+    await initializeOgImageSigning(real)
+    // Nitro internal $fetch events carry no Worker bindings.
+    const synthetic = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(synthetic)
+    expect(synthetic.context._ogImageSigningSecret).toBe(expectedSecret)
+  })
+
+  it('prefers Nuxt deriveSecret over the observed root when the shared appSecret is usable', async () => {
+    runtime.config.appSecret = ''
+    const real = { context: { cloudflare: { env: { NUXT_APP_SECRET: rootSecret } } } as Record<string, unknown> }
+    await initializeOgImageSigning(real)
+    runtime.config.appSecret = rootSecret
+    runtime.derive.mockResolvedValue('nuxt-derived')
+    const event = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe('nuxt-derived')
+  })
+
+  it('refreshes the reused secret when the observed Cloudflare root changes', async () => {
+    runtime.config.appSecret = ''
+    const otherRoot = `${rootSecret}-other`
+    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: rootSecret } } } })
+    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: otherRoot } } } })
+    const synthetic = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(synthetic)
+    expect(synthetic.context._ogImageSigningSecret).toBe(Buffer.from(hkdfSync('sha256', otherRoot, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex'))
+  })
 })

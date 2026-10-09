@@ -68,6 +68,14 @@ describe('cloudflare runtime config', () => {
     expect(response.status).toBe(500)
   })
 
+  it('serves internal $fetch requests and server islands with a binding-only secret', async () => {
+    const response = await fetchWorker('/internal-fetch', { NUXT_APP_SECRET: rootSecret })
+    const body = await response.text()
+    expect(response.status, body).toBe(200)
+    expect(body).toContain('world')
+    expect(body).toContain('island rendered')
+  })
+
   it('signs getOgImageUrl with the Cloudflare runtime secret', async () => {
     const env = { NUXT_APP_SECRET: rootSecret }
     const response = await fetchWorker('/api/og-url', env)
