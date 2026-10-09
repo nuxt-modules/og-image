@@ -157,7 +157,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
-    secret: security?.secret,
+    secret: security?.secret || undefined,
   }).finally(endCacheLookup)
   // we sent a 304 not modified
   if (typeof cacheApi === 'undefined') {

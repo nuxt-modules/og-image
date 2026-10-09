@@ -22,7 +22,7 @@ The module renders a Vue component to a PNG and adds `og:image` and `twitter:ima
 - `defineOgImage`, `defineOgImageScreenshot`, and `getOgImagePath` are auto-imported. `getOgImageUrl` is auto-imported in server code.
 - Any `.vue` file in `components/OgImage/` is a template. The filename suffix picks the renderer: `Card.takumi.vue`, `Card.satori.vue`, `Card.browser.vue`. A file without a suffix is invalid. There is no renderer option.
 - Default size is 1200 by 600, not 1200 by 630. Set `ogImage.defaults.height` to change it.
-- Runtime URLs are signed. With no `security.secret`, the module generates one per build and warns in dev. A tampered URL, or a URL without a signature, returns 403 in production. Query overrides such as `?title=X` are ignored. Dev and prerender skip the check.
+- Runtime URLs are signed. The module derives a signing secret from Nuxt `appSecret`. Set `NUXT_APP_SECRET` in production; Nuxt persists a generated development secret. A tampered URL, or a URL without a signature, returns 403 in production. Query overrides such as `?title=X` are ignored. Dev and prerender skip the check.
 - A prerendered page gets a static file at `/_og/s/`. A server rendered page gets `/_og/d/` with all props encoded in the path.
 - Inter 400 and 700 are bundled. Emoji use the `noto` set and follow the size of the surrounding text.
 
@@ -89,7 +89,8 @@ To use an existing image, call `useSeoMeta({ ogImage: '/cover.png' })`. The v5 `
 - **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
 - **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
 - **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
-- **Rolling or multi instance deploys need a stable secret.** Set `NUXT_OG_IMAGE_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Otherwise a URL signed by one build fails on another with 403.
+- **Rolling or multi instance deploys need a stable secret.** Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Changing the application secret invalidates existing signed URLs.
+- **Legacy environment key:** V7 accepts `NUXT_OG_IMAGE_SECRET` if the application secret is empty, with a deprecation warning. Rename it to `NUXT_APP_SECRET`. The derived key still invalidates v6 signatures.
 - **A wildcard route rule with `swr`, `isr`, or `cache` breaks `/_og/` routes.** The module warns. Use narrower patterns such as `/blog/**`.
 
 ## Fonts
@@ -123,7 +124,7 @@ The `html` option is deprecated, and `security.strict` removes it. Use a compone
 
 - `defaults`: default image options, such as `width`, `height`, `extension`, `emojis`. Options equal to a default stay out of the URL.
 - `zeroRuntime` (`false`): drop the runtime renderer. See the trap above.
-- `security.secret`, `security.strict` (`false`): `strict` requires an explicit secret, drops `html`, and restricts runtime images to the site host.
+- `security.secret`, `security.strict` (`false`): `strict` requires Nuxt `appSecret`, drops `html`, and restricts runtime images to the site host.
 - `browser`: enables screenshots and `.browser.vue` templates.
 - Other options: https://nuxtseo.com/docs/og-image/api/config
 

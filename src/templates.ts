@@ -252,10 +252,7 @@ declare module '#og-image-cache' {
         nitroInterfaces: {
           NitroApp: `_ogImageCacheBackendWarned?: boolean
 _ogImageIconsData?: OgImageIconsData`,
-          NitroRuntimeConfig: `'nuxt-og-image': OgImageRuntimeConfig
-ogImage: {
-  secret: string
-}`,
+          NitroRuntimeConfig: `'nuxt-og-image': OgImageRuntimeConfig`,
         },
         routeRules: 'ogImage?: false | OgImageOptions & Record<string, any>',
         routeConfig: 'ogImage?: false | OgImageOptions & Record<string, any>',
@@ -264,6 +261,7 @@ ogImage: {
         eventContext: `_nitro?: {
   routeRules?: import('${nitroCompatibility.nitroTypesModule}').NitroRouteRules
 }
+_ogImageSigningSecret?: string
 _ogImagePrerenderPaths?: Map<string, string>`,
       })
       return `/// <reference path="./og-image-virtual.d.ts" />

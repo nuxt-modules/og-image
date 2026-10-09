@@ -5,6 +5,9 @@ import { join } from 'pathe'
 import NuxtOgImage from '../../../src/module'
 
 export default defineNuxtConfig({
+  runtimeConfig: {
+    appSecret: 'fixture-app-secret-with-at-least-32-characters',
+  },
   modules: [
     NuxtOgImage,
     async (_, nuxt) => {

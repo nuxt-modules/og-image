@@ -1,3 +1,4 @@
+import { hkdfSync } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { createResolver } from '@nuxt/kit'
 import { exec } from 'tinyexec'
@@ -6,6 +7,8 @@ import { signEncodedParams } from '../../src/runtime/shared'
 import { ensureLocalModuleStub, extractOgImageUrl } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
+const rootSecret = 'cloudflare-root-secret-at-least-32-characters'
+const signingSecret = Buffer.from(hkdfSync('sha256', rootSecret, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex')
 const fixtureDir = resolve('../fixtures/cloudflare-runtime-config')
 
 async function buildFixture() {
@@ -36,29 +39,60 @@ describe('cloudflare runtime config', () => {
     await buildFixture()
   }, 120000)
 
-  it('maps NUXT_OG_IMAGE_SECRET env bindings into event runtime config', async () => {
+  it('maps NUXT_APP_SECRET env bindings into event runtime config', async () => {
     const response = await fetchWorker('/api/runtime-config', {
-      NUXT_OG_IMAGE_SECRET: 'cf-secret',
+      NUXT_APP_SECRET: rootSecret,
     })
     const body = await response.json()
 
-    expect(body.eventRuntimeConfig.ogImage.secret).toBe('cf-secret')
-    expect(body.sharedRuntimeConfig.ogImage.secret).toBe('')
-    expect(body.cloudflareEnv.NUXT_OG_IMAGE_SECRET).toBe('cf-secret')
+    expect(body.eventRuntimeConfig.appSecret).toBe(rootSecret)
+    expect(body.sharedRuntimeConfig.appSecret).toBe('')
+    expect(body.cloudflareEnv.NUXT_APP_SECRET).toBe(rootSecret)
   })
 
   it('uses the Cloudflare runtime secret when rendering SSR og:image URLs', async () => {
     const response = await fetchWorker('/', {
-      NUXT_OG_IMAGE_SECRET: 'cf-secret',
+      NUXT_APP_SECRET: rootSecret,
     })
     const html = await response.text()
     const ogImageUrl = extractOgImageUrl(html)
 
-    expect(ogImageUrl).toContain(',s_')
+    const [, params, signature] = ogImageUrl!.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, signingSecret))
+    expect(html).not.toContain(rootSecret)
+    expect(html).not.toContain(signingSecret)
+  })
+
+  it.each([undefined, 'short'])('fails closed with an invalid appSecret %s', async (secret) => {
+    const response = await fetchWorker('/', secret === undefined ? {} : { NUXT_APP_SECRET: secret })
+    expect(response.status).toBe(500)
+  })
+
+  it('serves internal $fetch requests and server islands with a binding-only secret', async () => {
+    const response = await fetchWorker('/internal-fetch', { NUXT_APP_SECRET: rootSecret })
+    const body = await response.text()
+    expect(response.status, body).toBe(200)
+    expect(body).toContain('world')
+    expect(body).toContain('island rendered')
+  })
+
+  it('signs SSR URLs and serves internal requests with the legacy binding', async () => {
+    const env = { NUXT_APP_SECRET: '', NUXT_OG_IMAGE_SECRET: rootSecret }
+    const response = await fetchWorker('/', env)
+    const html = await response.text()
+    const url = extractOgImageUrl(html)!
+    const [, params, signature] = url.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, signingSecret))
+    expect(html).not.toContain(rootSecret)
+    const internal = await fetchWorker('/internal-fetch', env)
+    const body = await internal.text()
+    expect(internal.status, body).toBe(200)
+    expect(body).toContain('world')
+    expect(body).toContain('island rendered')
   })
 
   it('signs getOgImageUrl with the Cloudflare runtime secret', async () => {
-    const env = { NUXT_OG_IMAGE_SECRET: 'cf-secret' }
+    const env = { NUXT_APP_SECRET: rootSecret }
     const response = await fetchWorker('/api/og-url', env)
     const { url } = await response.json() as { url: string }
 
@@ -68,13 +102,13 @@ describe('cloudflare runtime config', () => {
     const ogImage = html.match(/property="og:image" content="([^"]+)"/)?.[1]
     expect(parsed.origin).toBe(new URL(ogImage!).origin)
     const [, params, signature] = parsed.pathname.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
-    expect(signature).toBe(signEncodedParams(params, 'cf-secret'))
+    expect(signature).toBe(signEncodedParams(params, signingSecret))
 
     // satori is not bundled in this fixture, so rendering fails after
     // verification. Only the signature check matters here.
     const image = await fetchWorker(parsed.pathname, env)
     expect(image.status).not.toBe(403)
     const tampered = await fetchWorker(parsed.pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png'), env)
-    expect(tampered.status).toBe(403)
+    expect(tampered.status, await tampered.text()).toBe(403)
   })
 })
