@@ -8,8 +8,7 @@ export const OG_IMAGE_SECRET_PURPOSE = 'nuxt-og-image:url-signing'
 // Nitro in-process requests (internal $fetch, islands via global fetch) re-enter
 // middleware as synthetic events without Worker context. Remember the derived
 // secret for the isolate once a Cloudflare root has been observed.
-let observedRoot: unknown
-let observedSecret: string | undefined
+let observed: { root: unknown, configRoot: unknown, secret: string } | undefined
 
 /** Resolve once per request before synchronous app and server URL helpers run. */
 export async function initializeOgImageSigning(event: Pick<RequestEvent, 'context'>): Promise<void> {
@@ -19,31 +18,30 @@ export async function initializeOgImageSigning(event: Pick<RequestEvent, 'contex
     return
 
   const cloudflareEnv = getCloudflareEnv(event)
-  const cloudflareRoot = cloudflareEnv?.NUXT_APP_SECRET
-  if (cloudflareRoot !== undefined && cloudflareRoot !== config.appSecret) {
+  const configRoot = config.appSecret
+  if (cloudflareEnv !== undefined) {
+    const root = cloudflareEnv.NUXT_APP_SECRET === undefined ? configRoot : cloudflareEnv.NUXT_APP_SECRET
     // Nuxt 4.6's deriveSecret has no event argument. Nitro 2's shared config
     // cannot see Worker bindings, so use the same HKDF for an event-bound root.
-    if (cloudflareRoot !== observedRoot) {
-      observedSecret = await deriveCloudflareSecret(cloudflareRoot)
-      observedRoot = cloudflareRoot
-    }
-    event.context._ogImageSigningSecret = observedSecret
+    const secret = observed !== undefined && observed.root === root
+      ? observed.secret
+      : root === configRoot
+        ? await deriveSecret(OG_IMAGE_SECRET_PURPOSE)
+        : await deriveCloudflareSecret(root)
+    observed = { root, configRoot, secret }
+    event.context._ogImageSigningSecret = secret
     return
   }
-  if (cloudflareEnv === undefined && !isUsableAppSecret(config.appSecret) && observedSecret !== undefined) {
+  if (observed !== undefined && configRoot === observed.configRoot) {
     // Synthetic events carry no Worker context, so the only observable root is
     // the one this isolate already served. Nitro 2's event-less runtime config
-    // cannot see bindings, so deriveSecret would reject every internal request
-    // on binding-only deployments. Real Worker requests keep the env object and
-    // still fail closed above when the binding is missing.
-    event.context._ogImageSigningSecret = observedSecret
+    // cannot see binding overrides. Keep the observed key while the shared
+    // configuration is unchanged. Real Worker requests always resolve their
+    // current env above, so invalid roots cannot reuse a previous valid key.
+    event.context._ogImageSigningSecret = observed.secret
     return
   }
   event.context._ogImageSigningSecret = await deriveSecret(OG_IMAGE_SECRET_PURPOSE)
-}
-
-function isUsableAppSecret(value: unknown): boolean {
-  return typeof value === 'string' && value.length >= 32
 }
 
 async function deriveCloudflareSecret(root: unknown): Promise<string> {

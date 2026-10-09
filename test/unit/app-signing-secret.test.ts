@@ -96,4 +96,26 @@ describe('request signing initialization', () => {
     await initializeOgImageSigning(synthetic)
     expect(synthetic.context._ogImageSigningSecret).toBe(Buffer.from(hkdfSync('sha256', otherRoot, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex'))
   })
+
+  it('keeps the Worker binding override when internal events have a valid build default', async () => {
+    const bindingRoot = `${rootSecret}-binding`
+    const real = { context: { cloudflare: { env: { NUXT_APP_SECRET: bindingRoot } } } as Record<string, unknown> }
+    await initializeOgImageSigning(real)
+    expect(real.context._ogImageSigningSecret).toBe(Buffer.from(hkdfSync('sha256', bindingRoot, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex'))
+
+    const synthetic = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(synthetic)
+    expect(synthetic.context._ogImageSigningSecret).toBe(real.context._ogImageSigningSecret)
+  })
+
+  it.each([{ NUXT_APP_SECRET: rootSecret }, {}])('updates internal signing when a Worker returns to its configured root %s', async (env) => {
+    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: `${rootSecret}-binding` } } } })
+    const real = { context: { cloudflare: { env } } as Record<string, unknown> }
+    await initializeOgImageSigning(real)
+    expect(real.context._ogImageSigningSecret).toBe(expectedSecret)
+
+    const synthetic = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(synthetic)
+    expect(synthetic.context._ogImageSigningSecret).toBe(expectedSecret)
+  })
 })
