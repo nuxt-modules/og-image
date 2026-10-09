@@ -32,6 +32,7 @@ vi.mock('#nuxtseo/h3', () => ({
   },
 }))
 vi.mock('#site-config/server/composables/getSiteConfig', () => ({ getSiteConfig: () => ({ url: 'http://localhost' }) }))
+vi.mock('#nuxtseo/nitro', () => ({ useStorage: vi.fn() }))
 vi.mock('../../src/runtime/server/og-image/context', () => ({ resolveContext }))
 vi.mock('../../src/runtime/server/util/cache', () => ({ useOgImageBufferCache }))
 vi.mock('../../src/runtime/server/utils', () => ({ useOgImageRuntimeConfig: () => ({}) }))

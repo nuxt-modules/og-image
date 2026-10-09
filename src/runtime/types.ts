@@ -56,6 +56,8 @@ export interface OgImageRuntimeConfig {
   componentDirs?: string[]
   /** Directory for persistent build cache (CI caching) */
   buildCacheDir?: string
+  /** Publish prerendered images to a public storage mount. */
+  publish?: { storage: string, baseURL: string, cacheVersion: string }
   /** Source directory for auto-eject (dev only) */
   srcDir?: string
   /** Root directory for relative path display (dev only) */

@@ -211,6 +211,7 @@
     "@vitejs/plugin-vue": "catalog:",
     "@vue/compiler-core": "catalog:",
     "@vueuse/nuxt": "catalog:",
+    "aws4fetch": "catalog:",
     "birpc": "catalog:",
     "bumpp": "catalog:",
     "eslint": "catalog:",

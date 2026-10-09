@@ -1,8 +1,10 @@
 import type { H3Event } from '#nuxtseo/h3'
 import { appendResponseHeader, createError, getRequestHost, H3Error, setHeader } from '#nuxtseo/h3'
+import { useStorage } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
 import { getBuildCachedImage, setBuildCachedImage } from '../og-image/cache/buildCache'
+import { getPublishKey, publishImage } from '../og-image/cache/publish'
 import { resolveContext } from '../og-image/context'
 import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
@@ -37,7 +39,8 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   const timings = ctx.timings
 
   const { isDevToolsContextRequest, extension, renderer } = ctx
-  const { debug, baseCacheKey, security } = useOgImageRuntimeConfig(e)
+  const config = useOgImageRuntimeConfig(e)
+  const { debug, baseCacheKey, security, publish } = config
 
   // Origin restriction: block runtime requests from unknown hosts.
   // Loopback requests (localhost, 127.0.0.1, ::1) are allowed only when URL
@@ -205,6 +208,26 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     if (import.meta.prerender && ctx.options.cacheMaxAgeSeconds) {
       setBuildCachedImage(ctx.options, extension, image as Buffer, ctx.options.cacheMaxAgeSeconds)
     }
+  }
+  if (publish && !import.meta.dev && !import.meta.prerender) {
+    const maxAge = Number(ctx.options.cacheMaxAgeSeconds)
+    // A cache hit retains its original expiry. Publishing must never renew stale bytes.
+    const remainingAge = cacheApi.expiresAt ? Math.max(0, (cacheApi.expiresAt - Date.now()) / 1000) : maxAge
+    const result = await publishImage({
+      storage: useStorage(),
+      mount: publish.storage,
+      baseURL: publish.baseURL,
+      key: getPublishKey(new URL(e.path, getSiteConfig(e).url).href, config.defaults, publish.cacheVersion),
+      extension,
+      maxAgeSeconds: remainingAge,
+      expiresAt: cacheApi.expiresAt || undefined,
+      timeoutMs: security.renderTimeout,
+      now: Date.now,
+      force: true,
+      render: async () => new Uint8Array(image as Uint8Array),
+    })
+    if (result._tag === 'Unavailable')
+      logger.debug('[Nuxt OG Image] Publish storage is unavailable. Serving the app image.', result.reason)
   }
   return image
 }

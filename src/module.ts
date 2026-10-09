@@ -218,6 +218,11 @@ export interface ModuleOptions {
    */
   buildCache?: boolean | { base?: string }
   /**
+   * Publish rendered images to a mounted Nitro storage driver.
+   * Image objects have no TTL. cacheMaxAgeSeconds limits manifest reuse.
+   */
+  publish?: { storage: string, baseURL: string }
+  /**
    * Warn about OG Image components missing renderer suffix in dev mode.
    * Set to false to suppress warnings for legacy/test components.
    *
@@ -1737,6 +1742,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         // avoid adding credentials
         baseCacheKey,
         buildCacheDir,
+        publish: config.publish ? { ...config.publish, cacheVersion } : undefined,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
@@ -1895,6 +1901,8 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
+    if (nuxt.options.build && config.publish && !config.zeroRuntime)
+      addServerPlugin(resolve('./runtime/server/plugins/publish'))
     if (nuxt.options.dev)
       addServerPlugin(resolve(getNitroVersion(nuxt) === 3 ? './runtime/server/plugins/auto-eject-nitro3' : './runtime/server/plugins/auto-eject'))
     // always call this as we may have routes only discovered at build time

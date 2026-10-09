@@ -1,13 +1,17 @@
 import type { Hookable } from 'hookable'
 import { parse } from 'devalue'
-import { parseURL, withoutBase } from 'ufo'
+import { parseURL, withoutBase, withQuery } from 'ufo'
 import { appendResponseHeader } from '#nuxtseo/h3'
-import { defineNitroPlugin, useRuntimeConfig } from '#nuxtseo/nitro'
+import { defineNitroPlugin, useRuntimeConfig, useStorage } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
+import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
+import { logger } from '../../logger'
 import { isInternalRoute } from '../../shared'
+import { getPublishKey, publishImage } from '../og-image/cache/publish'
 import { resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
+import { useOgImageRuntimeConfig } from '../utils'
 
 const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
 const RE_SCRIPT_OPTIONS = /<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/
@@ -19,11 +23,14 @@ function getPayloadFromHtml(html: string): string | null {
 }
 
 // @ts-expect-error hookable v6
-export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
+export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetch: typeof fetch }) => {
   if (!import.meta.prerender)
     return
 
   const routeRuleMatcher = createNitroRouteRuleMatcher()
+  // Browser screenshots fetch their source page while publishing its image.
+  const publishingPages = new Set<string>()
+  let publishWarningShown = false
   nitro.hooks.hook('render:html', async (html: { head: string[], bodyAppend: string[] }, ctx: { event: any }) => {
     const { head, bodyAppend } = html
     const path = parseURL(ctx.event.path).pathname
@@ -62,6 +69,54 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
     // from being enqueued when defineOgImage is called multiple times with the same key).
     const prerenderPaths: Map<string, string> | undefined = ctx.event.context._ogImagePrerenderPaths
     if (prerenderPaths) {
+      const config = useOgImageRuntimeConfig(ctx.event)
+      const publish = config.publish
+      if (publish && !publishingPages.has(path)) {
+        publishingPages.add(path)
+        try {
+          for (const [ogKey, prerenderPath] of prerenderPaths) {
+            const extension = prerenderPath.split('.').pop()
+            if (!prerenderPath.includes('/_og/s/') || (extension !== 'png' && extension !== 'jpeg' && extension !== 'jpg' && extension !== 'webp'))
+              continue
+            const opt = payloads.find(([key]) => key === ogKey)?.[1]
+            if (!opt)
+              continue
+            const result = await publishImage({
+              storage: useStorage(),
+              mount: publish.storage,
+              baseURL: publish.baseURL,
+              key: getPublishKey(new URL(prerenderPath, getSiteConfig(ctx.event).url).href, config.defaults, publish.cacheVersion),
+              extension,
+              maxAgeSeconds: Number(opt.cacheMaxAgeSeconds ?? config.defaults.cacheMaxAgeSeconds),
+              timeoutMs: config.security.renderTimeout,
+              now: Date.now,
+              render: async () => {
+                const response = await nitro.localFetch(opt._query ? withQuery(prerenderPath, { _query: opt._query }) : prerenderPath)
+                if (!response.ok || !response.headers.get('content-type')?.startsWith('image/'))
+                  throw new Error(`Image render failed: ${response.status}`)
+                return new Uint8Array(await response.arrayBuffer())
+              },
+            })
+            if (result._tag === 'Published') {
+              // Replace only the finalized image URL, preserving all other metadata.
+              html.head = html.head.map(entry => entry.replace(/(<meta\b[^>]+\bcontent=")([^"]*)("[^>]*>)/g, (tag, start, url, end) => {
+                if (!/\b(?:property|name)="(?:og:image(?::url|:secure_url)?|twitter:image(?::src)?)"/.test(tag))
+                  return tag
+                const urlPath = parseURL(url.replace(/&amp;/g, '&')).pathname
+                return urlPath?.replace(/,/g, '%2C') === prerenderPath ? `${start}${result.url}${end}` : tag
+              }))
+              prerenderPaths.delete(ogKey)
+            }
+            else if (!publishWarningShown) {
+              publishWarningShown = true
+              logger.warn('[Nuxt OG Image] Publish storage is unavailable. Using local image URLs.', result.reason)
+            }
+          }
+        }
+        finally {
+          publishingPages.delete(path)
+        }
+      }
       for (const prerenderPath of prerenderPaths.values()) {
         appendResponseHeader(ctx.event, 'x-nitro-prerender', prerenderPath)
       }

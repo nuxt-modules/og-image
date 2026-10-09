@@ -38,7 +38,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
   secret?: string
-}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
+}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, expiresAt: number, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
   // Skip the runtime buffer cache during prerender. The output is written to a static
   // file served via the `/_og/s/**` route rule (which sets its own immutable caching),
@@ -53,6 +53,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
 
   // cache will invalidate if the options change
   let cachedItem: BufferSource | false = false
+  let cacheExpiresAt = 0
   if (enabled && cache) {
     const hasItem = await cache.hasItem(key).catch((e) => {
       // Backend unreachable (e.g. NuxtHub KV binding missing during Node prerender).
@@ -88,6 +89,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
         })
       }
       else if (expiresAt > Date.now()) {
+        cacheExpiresAt = expiresAt
         cachedItem = Buffer.from(value, 'base64')
         // Check for cache headers
         if (
@@ -122,6 +124,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   return {
     enabled,
     cachedItem,
+    get expiresAt() { return cacheExpiresAt },
     async update(item) {
       // `enabled` is false when caching is off OR the backend degraded mid-request;
       // either way this isn't a normal miss that will be written back.
@@ -129,6 +132,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       if (!enabled || !cache)
         return
       const value = Buffer.from(item as Uint8Array).toString('base64')
+      cacheExpiresAt = Date.now() + (maxAge * 1000)
       const headers = {
         // avoid multi-tenancy cache issues
         'Vary': 'accept-encoding, host',
@@ -143,7 +147,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       await cache.setItem(key, {
         value,
         headers,
-        expiresAt: Date.now() + (maxAge * 1000),
+        expiresAt: cacheExpiresAt,
       }, { ttl: Math.max(maxAge, 60) }).catch(err => logger.warn(`[Nuxt OG Image] Failed to write cache for key "${key}": ${err?.message || err}`))
     },
   }
