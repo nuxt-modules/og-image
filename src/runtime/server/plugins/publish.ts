@@ -41,7 +41,8 @@ export default defineNitroPlugin((nitro) => {
         key: getPublishKey(url.href, config.defaults, publish.cacheVersion),
         extension,
         maxAgeSeconds: Number(options.cacheMaxAgeSeconds ?? config.defaults.cacheMaxAgeSeconds),
-        timeoutMs: config.security.renderTimeout,
+        // Page rendering needs a shorter deadline than image rendering and uploads.
+        timeoutMs: 500,
         now: Date.now,
       })
       if (result._tag === 'Published')
