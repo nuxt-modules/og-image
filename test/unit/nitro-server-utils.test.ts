@@ -13,14 +13,13 @@ vi.mock('#og-image-virtual/component-names.mjs', () => ({
   componentNames: [],
 }))
 
-function fakeEvent({ baseURL = '/', secret = '', runtimeSecret = '', cloudflareSecret = '' } = {}): H3Event {
+function fakeEvent({ baseURL = '/', secret = '' } = {}): H3Event {
   runtime.config = {
     'app': { baseURL },
     'nuxt-og-image': { defaults: {}, security: { strict: !!secret, secret } },
-    'ogImage': { secret: runtimeSecret },
   }
   return {
-    context: cloudflareSecret ? { cloudflare: { env: { NUXT_OG_IMAGE_SECRET: cloudflareSecret } } } : {},
+    context: { _ogImageSigningSecret: secret },
   } as any as H3Event
 }
 
@@ -30,27 +29,13 @@ function parseSigned(path: string) {
 }
 
 describe('getOgImagePath (Nitro)', () => {
-  it('signs with the build-time secret', () => {
+  it('signs with the request-derived secret', () => {
     const { path } = getOgImagePath(fakeEvent({ secret: 'build' }), '/blog/hello', { props: { title: 'Hello' } })
 
     const { params, signature } = parseSigned(path)
     expect(signature).toBe(signEncodedParams(params, 'build'))
     expect(decodeOgImageParams(params)._path).toBe('/blog/hello')
     expect(decodeOgImageParams(params).props.title).toBe('Hello')
-  })
-
-  it('prefers the runtime secret over the build-time secret', () => {
-    const { path } = getOgImagePath(fakeEvent({ secret: 'build', runtimeSecret: 'runtime' }), '/')
-
-    const { params, signature } = parseSigned(path)
-    expect(signature).toBe(signEncodedParams(params, 'runtime'))
-  })
-
-  it('reads the Cloudflare env secret from the event', () => {
-    const { path } = getOgImagePath(fakeEvent({ cloudflareSecret: 'cf' }), '/')
-
-    const { params, signature } = parseSigned(path)
-    expect(signature).toBe(signEncodedParams(params, 'cf'))
   })
 
   it('prefixes the app baseURL', () => {

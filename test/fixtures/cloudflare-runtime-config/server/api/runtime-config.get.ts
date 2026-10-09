@@ -11,14 +11,14 @@ export default defineEventHandler((event) => {
     sharedRuntimeConfig: summarize(sharedRuntimeConfig),
     cloudflareEnv: {
       keys: Object.keys(cloudflareEnv || {}).sort(),
-      NUXT_OG_IMAGE_SECRET: cloudflareEnv?.NUXT_OG_IMAGE_SECRET,
+      NUXT_APP_SECRET: cloudflareEnv?.NUXT_APP_SECRET,
     },
   }
 })
 
 function summarize(runtimeConfig: Record<string, any>) {
   return {
-    ogImage: runtimeConfig.ogImage,
+    appSecret: runtimeConfig.appSecret,
     nuxtOgImageSecurity: runtimeConfig['nuxt-og-image']?.security,
     topLevelKeys: Object.keys(runtimeConfig).sort(),
   }

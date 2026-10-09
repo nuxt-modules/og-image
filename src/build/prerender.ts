@@ -82,7 +82,7 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
         logger.warn(
           `Skipped ${orphanedOgHashes.length} orphaned OG image hash URL${orphanedOgHashes.length > 1 ? 's' : ''} during prerender. `
           + `These URLs were crawled from HTML but their source page was not prerendered, so the hash cache entry was never written. `
-          + `If your pages are prerendered but OG images are generated at runtime, enable \`security.strict\` with a \`security.secret\` to switch to signed dynamic URLs.`,
+          + `If your pages are prerendered but OG images are generated at runtime, enable \`security.strict\` with \`NUXT_APP_SECRET\` to switch to signed dynamic URLs.`,
         )
         for (const route of orphanedOgHashes)
           logger.info(`  ${route}`)
