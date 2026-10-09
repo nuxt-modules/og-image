@@ -2,6 +2,7 @@ import { readdir, readFile, rm } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
+import sharp from 'sharp'
 import { exec } from 'tinyexec'
 import { describe, expect, it } from 'vitest'
 
@@ -66,11 +67,17 @@ describe('prerender publishing', () => {
     expect(url).toMatch(/^https:\/\/files\.example\.com\/og\/[a-f0-9]{64}\.jpeg$/)
     const bytes = await readFile(join(publishedDir, url.split('/').pop()!))
     expect([...bytes.subarray(0, 3)]).toEqual([255, 216, 255])
+    const pixel = await sharp(bytes).extract({ left: 20, top: 20, width: 1, height: 1 }).raw().toBuffer()
+    for (const [channel, expected] of [220, 20, 60].entries())
+      expect(Math.abs(pixel[channel]! - expected)).toBeLessThanOrEqual(2)
   })
 
   it('retains an expiring manifest for subsequent builds', async () => {
+    const html = await $fetch('/')
+    const objectKey = html.match(/property="og:image" content="([^"]+)"/)![1]!.split('/').pop()!
     const files = await readdir(join(publishedDir, 'manifest'))
-    const manifest = JSON.parse(await readFile(join(publishedDir, 'manifest', files[0]!), 'utf8'))
+    const manifests = await Promise.all(files.map(async file => JSON.parse(await readFile(join(publishedDir, 'manifest', file), 'utf8'))))
+    const manifest = manifests.find(value => value.objectKey === objectKey)!
     expect(manifest.expiresAt).toBeGreaterThan(Date.now())
     const bytes = await readFile(join(publishedDir, manifest.objectKey))
     expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10])

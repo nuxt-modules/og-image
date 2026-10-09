@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   site: { url: 'https://example.com' },
   ogImage: {
     browser: true,
+    compatibility: { prerender: { browser: 'playwright' } },
     publish: { storage: process.env.OG_IMAGE_TEST_MISSING_MOUNT ? 'missing' : 'og-public', baseURL: 'https://files.example.com/og' },
     security: { secret: false },
   },

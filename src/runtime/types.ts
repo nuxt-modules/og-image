@@ -220,6 +220,8 @@ export interface OgImageOptions {
  * Extends OgImageOptions with fields set by defineOgImage() and the module internals.
  */
 export interface OgImageOptionsInternal extends OgImageOptions {
+  /** Completed page content supplied during prerender publishing. */
+  _prerenderHtml?: string
   /** Set by defineOgImage() — the resolved component PascalName */
   component?: string
   /** Determined by component filename suffix (.satori.vue, .takumi.vue, .browser.vue) */

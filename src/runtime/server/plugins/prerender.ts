@@ -31,7 +31,7 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
   // Browser screenshots fetch their source page while publishing its image.
   const publishingPages = new Set<string>()
   let publishWarningShown = false
-  nitro.hooks.hook('render:html', async (html: { head: string[], bodyAppend: string[] }, ctx: { event: any }) => {
+  nitro.hooks.hook('render:html', async (html: { head: string[], bodyAppend: string[], body?: string[], bodyPrepend?: string[], htmlAttrs?: string[], bodyAttrs?: string[] }, ctx: { event: any }) => {
     const { head, bodyAppend } = html
     const path = parseURL(ctx.event.path).pathname
     if (isInternalRoute(path))
@@ -91,6 +91,13 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
               timeoutMs: config.security.renderTimeout,
               now: Date.now,
               render: async () => {
+                if (opt.component === 'PageScreenshot') {
+                  // The source page is still rendering. A recursive fetch cannot return its HTML yet.
+                  opt._prerenderHtml = `<!DOCTYPE html><html ${(html.htmlAttrs || []).join(' ')}><head>${html.head.join('')}</head><body ${(html.bodyAttrs || []).join(' ')}>${[...(html.bodyPrepend || []), ...(html.body || []), ...html.bodyAppend].join('')}</body></html>`
+                  await prerenderOptionsCache!.setItem(key, payloads)
+                  if (opt._hash)
+                    await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, { ...opt, _path: pagePath })
+                }
                 const response = await nitro.localFetch(opt._query ? withQuery(prerenderPath, { _query: opt._query }) : prerenderPath)
                 if (!response.ok || !response.headers.get('content-type')?.startsWith('image/'))
                   throw new Error(`Image render failed: ${response.status}. ${(await response.text()).slice(0, 1000)}`)
