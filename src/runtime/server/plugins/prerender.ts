@@ -93,7 +93,7 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
               render: async () => {
                 const response = await nitro.localFetch(opt._query ? withQuery(prerenderPath, { _query: opt._query }) : prerenderPath)
                 if (!response.ok || !response.headers.get('content-type')?.startsWith('image/'))
-                  throw new Error(`Image render failed: ${response.status}`)
+                  throw new Error(`Image render failed: ${response.status}. ${(await response.text()).slice(0, 1000)}`)
                 return new Uint8Array(await response.arrayBuffer())
               },
             })
