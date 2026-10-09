@@ -6,6 +6,9 @@ import NuxtOgImage from '../../../src/module'
 // templates which would leak satori into detectedRenderers and trigger the satori-gated
 // convertWoff2ToTtf path, hiding the regression we want to exercise here.
 export default defineNuxtConfig({
+  runtimeConfig: {
+    appSecret: 'fixture-app-secret-with-at-least-32-characters',
+  },
   modules: [
     '@nuxt/fonts',
     NuxtOgImage,
