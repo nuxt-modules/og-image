@@ -4,7 +4,6 @@ import { useRuntimeConfig } from 'nuxt/server'
 import { joinURL } from 'ufo'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import { buildOgImageUrl } from '../shared'
-import { getCloudflareEnv } from './util/cloudflare'
 
 export interface GetOgImagePathResult {
   path: string
@@ -39,19 +38,9 @@ export function getOgImagePath(event: Pick<RequestEvent, 'context'>, _pagePath: 
 export function useOgImageRuntimeConfig(e?: Pick<RequestEvent, 'context'>): OgImageRuntimeConfig {
   const c = useRuntimeConfig()
   const moduleCfg = c['nuxt-og-image'] as unknown as Omit<OgImageRuntimeConfig, 'app'>
-  const cloudflareEnv = getCloudflareEnv(e)
-  // Top-level `ogImage.secret` is populated by Nuxt's standard env override
-  // (`NUXT_OG_IMAGE_SECRET`) and takes precedence over the build-time
-  // `security.secret` so deployments can rotate the secret without rebuilding.
-  // Passing the event matters on platforms like Cloudflare Workers where env
-  // bindings are only resolved when an event is available.
-  const runtimeSecret = c.ogImage?.secret
-  const cloudflareSecret = cloudflareEnv?.NUXT_OG_IMAGE_SECRET
-  const overrideSecret = typeof runtimeSecret === 'string' && runtimeSecret
-    ? runtimeSecret
-    : typeof cloudflareSecret === 'string' ? cloudflareSecret : undefined
-  const security = overrideSecret
-    ? { ...(moduleCfg.security || {}), secret: overrideSecret }
+  const secret = e?.context._ogImageSigningSecret
+  const security = secret
+    ? { ...moduleCfg.security, secret }
     : moduleCfg.security
   return {
     ...moduleCfg,

@@ -353,7 +353,7 @@ export function useOgImageRuntimeConfig() {
   const serverCfg = (c['nuxt-og-image'] as Record<string, any> | undefined) || {}
   const publicCfg = (c.public?.['nuxt-og-image'] as Record<string, any> | undefined) || {}
   const merged: Record<string, any> = { defaults: {}, ...publicCfg, ...serverCfg }
-  const overrideSecret = (c as Record<string, any>).ogImage?.secret as string | undefined
+  const overrideSecret = event?.context._ogImageSigningSecret
   if (overrideSecret)
     merged.security = { ...(merged.security || {}), secret: overrideSecret }
   merged.app = { baseURL: c.app.baseURL }

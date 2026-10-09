@@ -18,7 +18,6 @@ import type {
   RuntimeCompatibilityMeta,
   RuntimeCompatibilitySchema,
 } from './runtime/types'
-import { randomBytes } from 'node:crypto'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -50,7 +49,6 @@ import { readPackageManifest } from './build/package-manifest.ts'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache'
-import { resolveSigningSecret } from './build/signing-secret'
 import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
@@ -319,21 +317,17 @@ export interface ModuleOptions {
      */
     restrictRuntimeImagesToOrigin?: boolean | string[]
     /**
-     * Secret for URL signing. When set, all runtime OG image URLs include a
+     * Disable URL signing with false. Otherwise, all runtime OG image URLs include a
      * keyed hash signature and the handler rejects requests with missing or
      * invalid signatures.
      *
-     * Leave unset to auto-generate a per-build secret (signing on by default).
-     * Set an explicit, stable string for rolling or multi-instance deploys, or
-     * `false` to disable signing entirely. Generate one with:
-     * `npx nuxt-og-image generate-secret`
-     *
-     * Required (explicitly) when `strict` is enabled.
+     * Leave unset to derive a secret from Nuxt runtimeConfig.appSecret.
+     * Set NUXT_APP_SECRET in production. Use false to disable signing.
      */
-    secret?: string | false
+    secret?: false
     /**
      * Enable strict security mode. When enabled:
-     * - `secret` is required (URL signing)
+     * - URL signing is required through Nuxt appSecret
      * - The `html` option is disabled (prevents SSRF via inline HTML injection)
      * - `maxQueryParamSize` defaults to `2048`
      * - `restrictRuntimeImagesToOrigin` defaults to `true`
@@ -465,47 +459,9 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('`ogImage.debug` is enabled in production. This exposes the `/_og/debug.json` endpoint and should not be enabled in production. Disable it before deploying.')
     }
 
-    // Resolve the URL-signing secret. No explicit secret → auto-generate one so
-    // signing is on by default; the value is random, server-only, and baked into
-    // the build (stable within a build artifact so runtime sign + verify agree).
-    const signing = resolveSigningSecret(
-      config.security?.secret,
-      process.env.NUXT_OG_IMAGE_SECRET,
-      () => randomBytes(32).toString('base64url'),
-    )
-    const resolvedSecret = signing.secret
-
-    // Strict still requires an explicit, stable secret — the auto value's
-    // per-build rotation isn't a strong enough guarantee for strict mode.
-    if (config.security?.strict && !signing.hasExplicit) {
-      throw new Error('[nuxt-og-image] `security.strict` requires a signing secret. Generate one with: npx nuxt-og-image generate-secret')
+    if (config.security?.strict && config.security.secret === false) {
+      throw new Error('[nuxt-og-image] Strict mode requires URL signing. Remove security.secret: false and set NUXT_APP_SECRET.')
     }
-
-    // Signing only happens at runtime, so the secret warnings are irrelevant for
-    // pure SSG/static deploys (no server, images served as files). Defer them to
-    // nitro:init where `nitro.options.static` authoritatively reflects the preset.
-    nuxt.hook('nitro:init', (nitro) => {
-      const hasServerRuntime = !nitro.options.static && !(nuxt.options as any)._generate
-      if (!nuxt.options.dev || config.zeroRuntime || !hasServerRuntime)
-        return
-      if (signing.optOut) {
-        logger.warn([
-          'OG image URL signing is disabled (`security.secret: false`).',
-          'Attackers can craft image requests and poison the cache so your real OG image URLs serve attacker-controlled content (content spoofing).',
-          'Signing will be required in v7 whenever runtime image generation is enabled. Leave signing on, or set an explicit secret:',
-          '  NUXT_OG_IMAGE_SECRET=<secret>',
-          '  Generate one with: npx nuxt-og-image generate-secret',
-        ].join('\n'))
-      }
-      else if (signing.generated) {
-        logger.warn([
-          'OG image URLs are signed with an auto-generated secret that changes every build.',
-          'This is fine for single-instance deploys; for rolling or multi-instance deploys set a stable secret:',
-          '  NUXT_OG_IMAGE_SECRET=<secret>',
-          '  Generate one with: npx nuxt-og-image generate-secret',
-        ].join('\n'))
-      }
-    })
 
     // Check for removed/deprecated config options
     const ogImageConfig = config as unknown as Record<string, unknown>
@@ -1821,7 +1777,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
-          secret: resolvedSecret,
+          secret: config.security?.secret === false ? false : '',
         },
       }
       if (nuxt.options.dev) {
@@ -1833,22 +1789,6 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       nuxt.hooks.callHook('nuxt-og-image:runtime-config', runtimeConfig)
       // @ts-expect-error untyped
       nuxt.options.runtimeConfig['nuxt-og-image'] = runtimeConfig
-
-      // Top-level alias so `NUXT_OG_IMAGE_SECRET` env var maps automatically via
-      // Nuxt's standard runtime override convention (NUXT_<KEY> -> runtimeConfig.<key>).
-      // Read by useOgImageRuntimeConfig and prefers this value over security.secret
-      // when set, allowing runtime overrides on platforms like Cloudflare Workers
-      // where env bindings are surfaced through the event context.
-      // Only an EXPLICIT secret is baked into this override channel — never the
-      // auto-generated one. Leaving it empty when auto-generating keeps the
-      // `NUXT_OG_IMAGE_SECRET` runtime override (e.g. Cloudflare env bindings)
-      // reachable; the auto value lives solely in the build-time `security.secret`
-      // fallback below, which the runtime override still supersedes.
-      const existingOgImageCfg = (nuxt.options.runtimeConfig as Record<string, any>).ogImage
-      ;(nuxt.options.runtimeConfig as Record<string, any>).ogImage = {
-        ...(existingOgImageCfg && typeof existingOgImageCfg === 'object' ? existingOgImageCfg : {}),
-        secret: (existingOgImageCfg as any)?.secret || (signing.hasExplicit ? signing.secret : ''),
-      }
 
       // Non-sensitive subset exposed to the browser so defineOgImage can refresh
       // og:image meta tags on SPA navigation (#567). `defaults` feed the SSG
@@ -1952,6 +1892,8 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     setupRuntimeAliases({ namespace: '#og-image', app: resolve('./runtime/app'), server: resolve('./runtime/server') }, nuxt)
     setRuntimeAlias('#og-image/shared', resolve('./runtime/shared'))
     setRuntimeAlias('#og-image/types', resolve('./runtime/types'))
+    if (!config.zeroRuntime)
+      addServerHandler({ middleware: true, handler: resolve('./runtime/server/middleware/signing') })
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))

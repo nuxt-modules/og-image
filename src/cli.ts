@@ -1696,7 +1696,7 @@ function generateSecret() {
   p.log.step(`Secret: ${secret}`)
   p.log.message('')
   p.log.message('Set the environment variable:')
-  p.log.message(`  NUXT_OG_IMAGE_SECRET=${secret}`)
+  p.log.message(`  NUXT_APP_SECRET=${secret}`)
   p.log.message('')
   p.log.message('The secret is automatically picked up via runtime config.')
   p.outro('')
