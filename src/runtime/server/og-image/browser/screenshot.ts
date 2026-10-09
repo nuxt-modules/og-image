@@ -112,6 +112,8 @@ export async function createScreenshot({ basePath, e, options, extension, timing
     if (options.html) {
       logger.warn('The `html` option is deprecated and will be removed in the next major version. Use a Vue component instead.')
     }
+    if (import.meta.prerender && options._prerenderHtml)
+      options.html = options._prerenderHtml
     if (import.meta.prerender && !options.html) {
       // we need to do a nitro fetch for the HTML instead of rendering with browser
       options.html = await timings.measure('html-fetch', () =>
