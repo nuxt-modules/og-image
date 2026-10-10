@@ -180,7 +180,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       })()
     : undefined
   if (publication && !purge && !publication.cache.isPublishing(publication.cacheKey, Date.now())) {
-    const result = await getPublishedImage({ ...publication.input, timeoutMs: 500 })
+    const result = await getPublishedImage(publication.input)
     if (result._tag === 'Published' && result.expiresAt > Date.now()) {
       publication.cache.remember(publication.cacheKey, result, Date.now())
       const remainingAge = Math.max(0, Math.floor((result.expiresAt - Date.now()) / 1000))

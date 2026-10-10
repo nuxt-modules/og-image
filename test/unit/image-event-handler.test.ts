@@ -124,6 +124,45 @@ afterEach(async () => {
 })
 
 describe('imageEventHandler response timing', () => {
+  it('redirects when the published manifest takes more than 500 ms to read', async () => {
+    vi.useFakeTimers()
+    const { storage, input, event } = setupPublishing()
+    const published = await publishImage(input)
+    if (published._tag !== 'Published')
+      throw new Error('Expected publication')
+    const read = storage.getItem.bind(storage)
+    vi.spyOn(storage, 'getItem').mockImplementation(async (key, options) => {
+      await new Promise(resolve => setTimeout(resolve, 750))
+      return read(key, options)
+    })
+
+    const response = imageEventHandler(event)
+    await vi.advanceTimersByTimeAsync(750)
+
+    expect(await response).toBe('redirect')
+    expect(event.node.res.getHeader('Location')).toBe(published.url)
+    expect(useOgImageBufferCache).not.toHaveBeenCalled()
+  })
+
+  it('publishes in the background after a slow manifest miss', async () => {
+    vi.useFakeTimers()
+    const { storage, input, event } = setupPublishing()
+    const read = storage.getItem.bind(storage)
+    const delayedRead = vi.spyOn(storage, 'getItem').mockImplementation(async (key, options) => {
+      await new Promise(resolve => setTimeout(resolve, 750))
+      return read(key, options)
+    })
+
+    const response = imageEventHandler(event)
+    await vi.advanceTimersByTimeAsync(750)
+
+    expect(await response).toBe(image)
+    expect(event.waitUntil).toHaveBeenCalledOnce()
+    await vi.mocked(event.waitUntil).mock.calls[0]![0]
+    delayedRead.mockRestore()
+    expect(await getPublishedImage(input)).toMatchObject({ _tag: 'Published', url: expect.stringMatching(/^https:\/\/images\.example\//) })
+  })
+
   it('returns image bytes without waiting for a background upload', async () => {
     vi.useFakeTimers()
     const storage = createStorage().mount('public', memoryDriver())
