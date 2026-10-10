@@ -19,11 +19,10 @@ import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { findPackageJSON } from 'node:module'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
-import { installNuxtSiteConfig } from 'nuxt-site-config/kit'
 import { setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
 import { setupBuildHandler } from './build/build'
@@ -365,7 +364,7 @@ export default defineNuxtModule<ModuleOptions>({
     '@nuxt/fonts': {
       optional: true,
     },
-    'nuxt-site-config': {
+    [fileURLToPath(import.meta.resolve('nuxt-site-config'))]: {
       version: '>=5.0.0',
     },
   },
@@ -979,8 +978,6 @@ export default defineNuxtModule<ModuleOptions>({
         prerender: { browser: browserBinding.prerender },
       })
     }
-
-    await installNuxtSiteConfig()
 
     nuxt.options.experimental.componentIslands ||= true
 
