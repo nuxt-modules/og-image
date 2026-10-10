@@ -2,7 +2,7 @@
 name: nuxt-og-image
 description: Generate, fix, or debug Open Graph images in a Nuxt app with the nuxt-og-image module. Use when a task mentions og:image, social share images, twitter:image, defineOgImage, defineOgImageScreenshot, components/OgImage templates, the Takumi, Satori, or browser renderer, the ogImage config key, zeroRuntime, or /_og/ URLs. Also use when an OG image renders the wrong template, returns 403 or 500, shows no text on Cloudflare, or has a relative URL.
 license: MIT
-compatibility: "Requires a project using nuxt-og-image. Requires Node.js ^22.22.3 || ^24.15.0 || >=26.0.0. Requires Nuxt ^4.6.0 || ^5.0.0."
+compatibility: "Requires Node.js ^22.22.3 || ^24.15.0 || >=26.0.0. Requires Nuxt ^4.6.0 || ^5.0.0."
 ---
 
 # nuxt-og-image
