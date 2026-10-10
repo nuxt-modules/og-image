@@ -45,13 +45,15 @@ describe('getOgImageUrl in a Nitro handler', () => {
   it('builds an absolute URL signed with the runtime secret that renders', async () => {
     const { url } = await $fetch<OgUrlResponse>('/prefix/og-url')
     // fixture site.url, same origin the app side uses for og:image
-    expect(url).toMatch(/^https:\/\/nuxtseo\.com\/prefix\/_og\/d\/.+,s_[\w-]+\.png$/)
-    const path = new URL(url).pathname
+    expect(url).toMatch(/^https:\/\/nuxtseo\.com\/prefix\/_og\/d\/.+%2Cs_[\w-]+\.png$/)
+    expect(url).not.toMatch(/[,+]/)
+    expect(url).toContain('%2B')
+    const path = decodeURIComponent(new URL(url).pathname)
 
     const [, params, signature] = path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
 
-    const image = await fetch(path)
+    const image = await fetch(new URL(url).pathname)
     expect(image.status).toBe(200)
     expect(image.headers.get('content-type')).toContain('image/png')
     const bytes = new Uint8Array(await image.arrayBuffer())
@@ -61,7 +63,7 @@ describe('getOgImageUrl in a Nitro handler', () => {
 
   it('rejects a tampered signature', async () => {
     const { url } = await $fetch<OgUrlResponse>('/prefix/og-url')
-    const tampered = new URL(url).pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
+    const tampered = decodeURIComponent(new URL(url).pathname).replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
     const res = await fetch(tampered)
     expect(res.status).toBe(403)
   })
@@ -69,7 +71,7 @@ describe('getOgImageUrl in a Nitro handler', () => {
   it('signs SSR meta tags with the same derived secret without exposing it', async () => {
     const html = await $fetch<string>('/prefix/satori/ellipsis')
     const url = html.match(/property="og:image" content="([^"]+)"/)![1]!
-    const [, params, signature] = new URL(url).pathname.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    const [, params, signature] = decodeURIComponent(new URL(url).pathname).match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
     expect(html).not.toContain(rootSecret)
     expect(html).not.toContain(signingSecret)
@@ -77,7 +79,7 @@ describe('getOgImageUrl in a Nitro handler', () => {
 
   it('defaults to the request path without the baseURL', async () => {
     const { current } = await $fetch<OgUrlResponse>('/prefix/og-url?foo=bar')
-    const [, params, signature] = new URL(current).pathname.match(/^\/prefix\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    const [, params, signature] = decodeURIComponent(new URL(current).pathname).match(/^\/prefix\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
     expect(decodeOgImageParams(params)._path).toBe('/og-url')
   })

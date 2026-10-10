@@ -27,7 +27,7 @@ await setup({
 describe('legacy signing environment fallback', () => {
   it('signs server URLs with the derived legacy root and renders the image', async () => {
     const { url } = await $fetch<{ url: string }>('/og-url')
-    const path = new URL(url).pathname
+    const path = decodeURIComponent(new URL(url).pathname)
     const [, params, signature] = path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
     const image = await fetch(path)
@@ -39,7 +39,7 @@ describe('legacy signing environment fallback', () => {
 
   it('rejects a tampered signature', async () => {
     const { url } = await $fetch<{ url: string }>('/og-url')
-    const path = new URL(url).pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
+    const path = decodeURIComponent(new URL(url).pathname).replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
     expect((await fetch(path)).status).toBe(403)
   })
 })

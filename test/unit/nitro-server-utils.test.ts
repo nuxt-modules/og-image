@@ -24,7 +24,7 @@ function fakeEvent({ baseURL = '/', secret = '' } = {}): H3Event {
 }
 
 function parseSigned(path: string) {
-  const [, params, signature] = path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+  const [, params, signature] = decodeURIComponent(path).match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
   return { params, signature }
 }
 
