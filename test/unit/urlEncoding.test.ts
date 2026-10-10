@@ -329,7 +329,7 @@ describe('urlEncoding', () => {
         component: 'Test',
         props: { title: 'Hello' },
       }, 'png', false, defaults)
-      expect(result.url).toBe('/_og/d/c_Test,title_Hello.png')
+      expect(result.url).toBe('/_og/d/c_Test%2Ctitle_Hello.png')
     })
 
     // Cloudflare static assets answer a path holding `,` or `+` with a 307 to
@@ -357,7 +357,7 @@ describe('urlEncoding', () => {
 
       it('isStatic=false + secret produces signed dynamic URL', () => {
         const result = buildOgImageUrl({ width: 1200 }, 'png', false, undefined, SECRET)
-        expect(result.url).toMatch(/^\/_og\/d\/w_1200,s_[\w-]+\.png$/)
+        expect(result.url).toMatch(/^\/_og\/d\/w_1200%2Cs_[\w-]+\.png$/)
         expect(result.hash).toBeUndefined()
       })
 
@@ -376,7 +376,7 @@ describe('urlEncoding', () => {
         const longTitle = 'A'.repeat(250)
         const result = buildOgImageUrl({ props: { title: longTitle } }, 'png', false, undefined, SECRET)
         expect(result.url).toMatch(/^\/_og\/d\//)
-        expect(result.url).toMatch(/,s_[\w-]+\.png$/)
+        expect(result.url).toMatch(/%2Cs_[\w-]+\.png$/)
         expect(result.url).not.toMatch(/\/o_[a-z0-9]+\./) // no hash-mode fallback
         expect(result.hash).toBeUndefined()
       })
@@ -384,8 +384,8 @@ describe('urlEncoding', () => {
       it('signature changes when options change', () => {
         const a = buildOgImageUrl({ width: 1200 }, 'png', false, undefined, SECRET)
         const b = buildOgImageUrl({ width: 1201 }, 'png', false, undefined, SECRET)
-        const sigA = a.url.match(/,s_([\w-]+)\.png$/)?.[1]
-        const sigB = b.url.match(/,s_([\w-]+)\.png$/)?.[1]
+        const sigA = a.url.match(/%2Cs_([\w-]+)\.png$/)?.[1]
+        const sigB = b.url.match(/%2Cs_([\w-]+)\.png$/)?.[1]
         expect(sigA).toBeDefined()
         expect(sigB).toBeDefined()
         expect(sigA).not.toBe(sigB)
@@ -1018,7 +1018,7 @@ describe('urlEncoding', () => {
         props: { image: 'https://images.prismic.io/xxx/aVfGGnNYClf9ou-1-.png?auto=format,compress' },
       }
       const { url } = buildOgImageUrl(options, 'png', false)
-      expect(url).not.toContain('%')
+      expect(decodeURIComponent(url)).not.toContain('%')
       const parsed = parseOgImageUrl(url)
       expect(parsed.options).toEqual(options)
     })
