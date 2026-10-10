@@ -160,6 +160,7 @@ declare module '#og-image-virtual/build-dir.mjs' {
   export const buildDir: string
   export const rootDir: string
   export const staticFontCacheDir: string
+  export const resolvedFontPaths: Record<string, string>
 }
 
 declare module '#og-image/compatibility' {
