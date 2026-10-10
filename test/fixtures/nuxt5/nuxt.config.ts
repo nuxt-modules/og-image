@@ -11,7 +11,7 @@ for (const module of [NuxtOgImage, NuxtSiteConfig, NuxtSeoShared]) {
 export default defineNuxtConfig({
   workspaceDir: import.meta.dirname,
   vite: { resolve: { dedupe: ['nuxt', 'vue', 'vue-router'] } },
-  modules: [NuxtOgImage],
+  modules: [NuxtSiteConfig, NuxtOgImage],
   ogImage: {
     enabled: process.env.NUXT_TEST_OG_DISABLED === '1' ? false : undefined,
     debug: true,
