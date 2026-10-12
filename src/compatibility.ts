@@ -208,12 +208,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
       [`#og-image/bindings/${key}`]: !binding ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
     }
   }
-  // Resolve the layout binary bundled with the required Satori release.
-  const satoriPkgDir = await resolve.resolvePath('satori/package.json').then(p => p.replace('/package.json', ''))
-  const layoutWasmPath = `${satoriPkgDir}/layout.wasm`
-
   nitroConfig.alias = defu(
-    { '#og-image/layout-wasm': `${layoutWasmPath}?module` },
     await applyBinding('browser'),
     await applyBinding('satori'),
     await applyBinding('takumi'),
@@ -222,6 +217,9 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
     nitroConfig.alias || {},
   )
   if (resolvedCompatibility.satori) {
+    // Resolve optional Satori assets only when its binding is enabled.
+    const satoriPkgDir = await resolve.resolvePath('satori/package.json').then(p => p.replace('/package.json', ''))
+    nitroConfig.alias['#og-image/layout-wasm'] = `${satoriPkgDir}/layout.wasm?module`
     const satoriPackage = await readPackageManifest(`${satoriPkgDir}/package.json`)
     if (!isSupportedSatoriVersion(satoriPackage.version))
       throw new Error(`[Nuxt OG Image] Satori ${satoriPackage.version} is not supported. Satori ${MIN_SATORI_VERSION} or later is required. Run: npm install satori@latest`)

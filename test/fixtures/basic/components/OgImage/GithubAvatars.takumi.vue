@@ -26,9 +26,9 @@ function format(value: number) {
         >
         <img
           alt="image urls without a file extension should work"
-          src="/avatar" class="h-32 w-32 text-5xl"
+          :src="`https://avatars.githubusercontent.com/u/${contributor.githubId}`" class="h-32 w-32 text-5xl"
         >
-        <div style="background-image: url('/avatar'); width: 100px; height: 100px">
+        <div :style="{ backgroundImage: `url('https://avatars.githubusercontent.com/u/${contributor.githubId}')`, width: '100px', height: '100px' }">
           background image
         </div>
         <div class="pt-12">
