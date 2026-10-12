@@ -5,9 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { imageEventHandler } from '../../src/runtime/server/util/eventHandlers'
 import { createTimings } from '../../src/runtime/server/util/timings'
 
-const { resolveContext, useOgImageBufferCache } = vi.hoisted(() => ({
+const { resolveContext, useOgImageBufferCache, useOgImageRuntimeConfig } = vi.hoisted(() => ({
   resolveContext: vi.fn(),
   useOgImageBufferCache: vi.fn(),
+  useOgImageRuntimeConfig: vi.fn(),
 }))
 
 // Model both adapter header APIs while retaining Node's real sent-header errors.
@@ -34,7 +35,7 @@ vi.mock('#nuxtseo/h3', () => ({
 vi.mock('#site-config/server/composables/getSiteConfig', () => ({ getSiteConfig: () => ({ url: 'http://localhost' }) }))
 vi.mock('../../src/runtime/server/og-image/context', () => ({ resolveContext }))
 vi.mock('../../src/runtime/server/util/cache', () => ({ useOgImageBufferCache }))
-vi.mock('../../src/runtime/server/utils', () => ({ useOgImageRuntimeConfig: () => ({}) }))
+vi.mock('../../src/runtime/server/utils', () => ({ useOgImageRuntimeConfig }))
 vi.mock('../../src/runtime/server/og-image/cache/buildCache', () => ({ getBuildCachedImage: vi.fn(), setBuildCachedImage: vi.fn() }))
 vi.mock('../../src/runtime/server/og-image/devtools', () => ({ fetchPathHtmlAndExtractOptions: vi.fn() }))
 vi.mock('../../src/runtime/server/og-image/templates/html', () => ({ html: vi.fn() }))
@@ -57,6 +58,7 @@ function webEvent(node?: object) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  useOgImageRuntimeConfig.mockReturnValue({})
   resolveContext.mockResolvedValue({
     timings: createTimings(),
     extension: 'png',
@@ -64,6 +66,35 @@ beforeEach(() => {
     options: {},
   })
   useOgImageBufferCache.mockResolvedValue({ cachedItem: image })
+})
+
+describe('imageEventHandler purge', () => {
+  it.each([
+    { secret: undefined, query: '?purge' },
+    { secret: undefined, query: '?purge=true' },
+    { secret: 'signing-secret', query: '?purge' },
+    { secret: 'signing-secret', query: '?purge=wrong' },
+  ])('answers 403 to a purge that lacks the signing secret ($query, secret: $secret)', async ({ secret, query }) => {
+    useOgImageRuntimeConfig.mockReturnValue({ security: { secret } })
+    const event = nodeEvent()
+    event.path += query
+    expect(await imageEventHandler(event)).toMatchObject({ statusCode: 403 })
+    expect(useOgImageBufferCache).not.toHaveBeenCalled()
+  })
+
+  it('passes a purge with the signing secret to the runtime cache', async () => {
+    useOgImageRuntimeConfig.mockReturnValue({ security: { secret: 'signing-secret' } })
+    const event = nodeEvent()
+    event.path += '?purge=signing-secret'
+    expect(await imageEventHandler(event)).toBe(image)
+    expect(useOgImageBufferCache).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ purge: true }))
+  })
+
+  it('serves the image without purging when the query has no purge', async () => {
+    useOgImageRuntimeConfig.mockReturnValue({ security: { secret: 'signing-secret' } })
+    expect(await imageEventHandler(nodeEvent())).toBe(image)
+    expect(useOgImageBufferCache).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ purge: false }))
+  })
 })
 
 describe('imageEventHandler response timing', () => {

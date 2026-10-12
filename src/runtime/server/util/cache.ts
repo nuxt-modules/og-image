@@ -1,25 +1,11 @@
-import type { H3Error } from '#nuxtseo/h3'
 import type { OgImageRenderEventContext } from '../../types'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { withTrailingSlash } from 'ufo'
 import { prefixStorage } from 'unstorage'
-import { createError, handleCacheHeaders, setHeader, setHeaders } from '#nuxtseo/h3'
+import { handleCacheHeaders, setHeader, setHeaders } from '#nuxtseo/h3'
 import { useStorage } from '#nuxtseo/nitro'
 import { logger } from '../../logger'
-import { getEventQuery } from './query'
-
-/**
- * Constant-time string comparison to prevent timing attacks on secret values.
- * Works on edge runtimes without node:crypto.
- */
-function safeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length)
-    return false
-  let mismatch = 0
-  for (let i = 0; i < a.length; i++)
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return mismatch === 0
-}
+import { toStorageKey } from './storageKey'
 
 /**
  * Emit a single warning per Nitro app when the cache backend is unreachable.
@@ -37,8 +23,9 @@ function warnCacheBackendUnreachable(ctx: OgImageRenderEventContext, baseCacheKe
 export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, options: {
   baseCacheKey: string | false
   cacheMaxAgeSeconds?: number
-  secret?: string
-}): Promise<void | H3Error | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
+  /** The caller has checked the purge token. Drop the stored entry and render again. */
+  purge?: boolean
+}): Promise<void | { cachedItem: false | BufferSource, enabled: boolean, update: (image: BufferSource | Buffer | Uint8Array) => Promise<void> }> {
   const maxAge = Number(options.cacheMaxAgeSeconds)
   // Skip the runtime buffer cache during prerender. The output is written to a static
   // file served via the `/_og/s/**` route rule (which sets its own immutable caching),
@@ -47,7 +34,8 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
   const intentionallyEnabled = !import.meta.dev && !import.meta.prerender && maxAge > 0
   let enabled = intentionallyEnabled
   const cache = prefixStorage(useStorage(), withTrailingSlash(options.baseCacheKey || '/'))
-  const key = ctx.key
+  // `ctx.key` is an identity that hooks may also set. The stored key is always its digest.
+  const key = toStorageKey('image', ctx.key)
 
   // cache will invalidate if the options change
   let cachedItem: BufferSource | false = false
@@ -71,15 +59,7 @@ export async function useOgImageBufferCache(ctx: OgImageRenderEventContext, opti
       : null
     if (entry) {
       const { value, expiresAt, headers } = entry
-      const purgeValue = getEventQuery(ctx.e).purge
-      if (typeof purgeValue !== 'undefined') {
-        // When URL signing is enabled, require the secret as the purge value
-        if (options.secret && !safeCompare(String(purgeValue), options.secret)) {
-          return createError({
-            statusCode: 403,
-            statusMessage: '[Nuxt OG Image] Invalid purge token. Provide the signing secret as ?purge=<secret>.',
-          })
-        }
+      if (options.purge) {
         await cache.removeItem(key).catch((err) => {
           // Cache purge should not fail the request if the backend already removed the item.
           void err

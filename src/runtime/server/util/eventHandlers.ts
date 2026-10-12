@@ -8,6 +8,8 @@ import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
+import { parsePurgeRequest } from './purge'
+import { getEventQuery } from './query'
 
 export async function imageEventHandler(e: H3Event) {
   const reqStart = performance.now()
@@ -81,6 +83,16 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
         })
       }
     }
+  }
+  // Dev and prerender have no runtime cache, so a purge there has nothing to drop.
+  const purgeRequest = import.meta.dev || import.meta.prerender
+    ? { _tag: 'None' as const }
+    : parsePurgeRequest(getEventQuery(e).purge, security?.secret)
+  if (purgeRequest._tag === 'Denied') {
+    return createError({
+      statusCode: 403,
+      statusMessage: '[Nuxt OG Image] Invalid purge token. Provide the signing secret as ?purge=<secret>.',
+    })
   }
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
@@ -157,14 +169,11 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
-    secret: security?.secret,
+    purge: purgeRequest._tag === 'Authorized',
   }).finally(endCacheLookup)
   // we sent a 304 not modified
   if (typeof cacheApi === 'undefined') {
     return
-  }
-  if (cacheApi instanceof H3Error) {
-    return cacheApi
   }
 
   let image: H3Error | BufferSource | Buffer | Uint8Array | false | void = cacheApi.cachedItem

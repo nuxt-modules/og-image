@@ -257,42 +257,67 @@ export type SameOriginPath = string & { readonly [sameOriginPathBrand]: true }
 
 const PROBE_ORIGIN = 'http://og-image.invalid'
 
-function hasUnsafePathChar(input: string): boolean {
+export type SameOriginPathResult = { _tag: 'Ok', value: SameOriginPath } | { _tag: 'Err', reason: string }
+
+// After one decode, a remaining escape means the input was encoded twice.
+const RE_PERCENT_ESCAPE = /%[\da-f]{2}/i
+// An encoded separator would change the segments after decoding.
+const RE_ENCODED_SEPARATOR = /%(?:2f|5c)/i
+
+function hasReservedPathChar(input: string): boolean {
   for (let i = 0; i < input.length; i++) {
     const code = input.charCodeAt(i)
     // C0 controls and DEL: URL parsers strip tabs and newlines, so `/\t/host`
     // becomes `//host`. Backslash: browsers read `\` as `/` in http(s) URLs.
-    if (code <= 0x1F || code === 0x7F || code === 0x5C)
+    // `?` and `#` end the path part of a URL.
+    if (code <= 0x1F || code === 0x7F || code === 0x5C || code === 0x3F || code === 0x23)
       return true
   }
   return false
 }
 
+function err(reason: string): SameOriginPathResult {
+  return { _tag: 'Err', reason }
+}
+
 /**
  * Parse an untrusted path (for example the `_path` URL option) into a
- * same-origin path. Returns `undefined` for anything that could leave the
- * origin: absolute URLs, other schemes, protocol-relative `//host`,
- * backslash variants, control characters, and paths without a leading `/`
- * (which a string concatenation with the origin turns into `origin@host`).
+ * normalized same-origin path. The input is decoded once and must then be a
+ * plain absolute path: one leading `/`, no `.` or `..` segments, no
+ * encoded separators, no `?` or `#`, and no control characters. The value
+ * is the percent-encoded pathname, so it resolves the same way everywhere.
  *
  * GHSA-h5qf-97cw-2h86: an absolute `_path` navigated the browser renderer to
  * an internal host and reflected the response into the image.
  */
-export function parseSameOriginPath(input: unknown): SameOriginPath | undefined {
+export function parseSameOriginPath(input: unknown): SameOriginPathResult {
   if (typeof input !== 'string' || input[0] !== '/' || input[1] === '/')
-    return undefined
-  if (hasUnsafePathChar(input))
-    return undefined
+    return err('The path must start with a single /.')
+  if (RE_ENCODED_SEPARATOR.test(input))
+    return err('The path must not encode a / or \\.')
+  let decoded: string
+  try {
+    decoded = decodeURIComponent(input)
+  }
+  catch {
+    return err('The path has an invalid percent-encoding.')
+  }
+  if (RE_PERCENT_ESCAPE.test(decoded))
+    return err('The path must be percent-encoded once.')
+  if (hasReservedPathChar(decoded))
+    return err('The path must not contain ?, #, \\ or control characters.')
+  if (decoded.split('/').some(segment => segment === '.' || segment === '..'))
+    return err('The path must not contain . or .. segments.')
   let resolved: URL
   try {
     resolved = new URL(input, PROBE_ORIGIN)
   }
   catch {
-    return undefined
+    return err('The path is not a valid URL path.')
   }
-  if (resolved.origin !== PROBE_ORIGIN)
-    return undefined
-  return input as SameOriginPath
+  if (resolved.origin !== PROBE_ORIGIN || resolved.search || resolved.hash)
+    return err('The path must stay on the same origin.')
+  return { _tag: 'Ok', value: resolved.pathname as SameOriginPath }
 }
 
 /**

@@ -4,10 +4,9 @@ import { parseURL, withoutBase } from 'ufo'
 import { appendResponseHeader } from '#nuxtseo/h3'
 import { defineNitroPlugin, useRuntimeConfig } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
-import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { isInternalRoute } from '../../shared'
-import { resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
+import { toStorageKey } from '../util/storageKey'
 
 const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
 const RE_SCRIPT_OPTIONS = /<script id="nuxt-og-image-options" type="application\/json">[\s\S]*?<\/script>/
@@ -39,20 +38,14 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any> }) => {
       return
     const parsed = parse(_payload) as { key?: string, _hash?: string }[]
     const payloads: [string, any][] = parsed.map(opt => [opt.key || 'og', opt])
-    const resolvePathWithBase = createSitePathResolver(ctx.event, {
-      absolute: false,
-      withBase: true,
-    })
-    const key = resolvePathCacheKey(ctx.event, resolvePathWithBase(path))
-    await prerenderOptionsCache!.setItem(key, payloads)
 
-    // Also store by hash for hash-mode URLs. The hash omits the page path so
+    // Store options by hash for hash-mode URLs. The hash omits the page path so
     // pages with identical options share one image; store the path so route
     // rules and page lookups resolve against a real page, not `/`.
     const pagePath = withoutBase(path, useRuntimeConfig().app.baseURL)
     for (const [_ogKey, opt] of payloads) {
       if (opt._hash) {
-        await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, { ...opt, _path: pagePath })
+        await prerenderOptionsCache!.setItem(toStorageKey('prerender', opt._hash), { ...opt, _path: pagePath })
       }
     }
 
