@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
+import { setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { join } from 'pathe'
 import { describe, expect, it } from 'vitest'
 import { fetchOgImage, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
@@ -29,16 +29,15 @@ setupImageSnapshots(SNAPSHOT_LOOSE)
 
 describe('takumi-only fonts', () => {
   it.runIf(hasTakumi)('uses Nuxt Fonts WOFF2 assets directly', async () => {
-    const buildDir = useTestContext().nuxt!.options.buildDir
-    const mapping = JSON.parse(readFileSync(join(buildDir, 'cache', 'og-image', 'font-urls.json'), 'utf8')) as Record<string, string>
+    const { buildDir } = useTestContext().nuxt!.options
+    // the files @nuxt/fonts serves, which og-image reads through their URLs
+    const nuxtFontsDir = join(buildDir, 'output', 'public', '_nuxt', 'fonts')
+    const files = readdirSync(nuxtFontsDir).filter(file => file.endsWith('.woff2'))
+    expect(files.length).toBeGreaterThan(0)
     const staticFontDir = join(buildDir, 'cache', 'og-image', 'static-fonts')
-    const hasConvertedFont = Object.keys(mapping).some(filename => existsSync(join(staticFontDir, filename.replace(/\.woff2$/, '.ttf'))))
-    expect(hasConvertedFont).toBe(false)
-
-    const filename = Object.entries(mapping).find(([, source]) => source.includes('/notosansdevanagari/'))?.[0]
-    expect(filename).toBeDefined()
-    const font = await $fetch(`/_fonts/${filename}`, { responseType: 'arrayBuffer' }) as ArrayBuffer
-    expect(Buffer.from(font).subarray(0, 4).toString()).toBe('wOF2')
+    expect(files.some(file => existsSync(join(staticFontDir, file.replace(/\.woff2$/, '.ttf'))))).toBe(false)
+    for (const file of files)
+      expect.soft(readFileSync(join(nuxtFontsDir, file)).subarray(0, 4).toString()).toBe('wOF2')
   })
 
   it.runIf(hasTakumi)('renders devanagari glyphs through takumi', async () => {

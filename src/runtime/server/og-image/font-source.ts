@@ -1,5 +1,7 @@
 export type FontFormat = 'ttf' | 'otf' | 'woff' | 'woff2'
 
+export const TAKUMI_FORMATS = new Set<FontFormat>(['ttf', 'otf', 'woff', 'woff2'])
+
 export function fontFormat(src: string): FontFormat {
   if (src.endsWith('.woff2'))
     return 'woff2'
