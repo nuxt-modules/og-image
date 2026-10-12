@@ -6,7 +6,7 @@ import satori from 'satori'
 import standalone, { init } from 'satori/standalone'
 import { describe, expect, it, vi } from 'vitest'
 import { applyEmojis } from '../../src/runtime/server/og-image/core/transforms/emojis'
-import { htmlToVNode } from '../../src/runtime/server/og-image/core/vnodes'
+import { createVNodes as createCoreVNodes, htmlToVNode } from '../../src/runtime/server/og-image/core/vnodes'
 
 vi.mock('../../src/runtime/server/util/kit', () => ({}))
 vi.mock('../../src/runtime/server/og-image/core/plugins/imageSrc', () => ({ default: [] }))
@@ -20,6 +20,15 @@ const font = await readFile(new URL('../fixtures/multi-font-families/public/font
 const options = { width: 300, height: 150, fonts: [{ name: 'LocalSans', data: font }] }
 
 describe('satori native rendering', () => {
+  it('omits images without a source before rendering', async () => {
+    const node = await createCoreVNodes({
+      options: { html: '<img alt="missing source">' },
+      timings: { measure: (_name, fn) => fn() },
+    } as OgImageRenderEventContext)
+
+    await expect(satori(node, options)).resolves.toContain('<svg')
+  })
+
   it('lays out inline text and dynamic emoji on one line', async () => {
     const content = { html: '<p style="font-size:24px">Hello 👋 World</p>' }
     await applyEmojis({ options: { emojis: 'noto' } } as OgImageRenderEventContext, content)

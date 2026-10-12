@@ -154,6 +154,24 @@ export function htmlToVNode(html: string): VNode {
   return elementToVNode(root)
 }
 
+function omitImagesWithoutSource(node: VNode): void {
+  const children = node.props.children
+  if (!Array.isArray(children))
+    return
+
+  node.props.children = children.filter((child): child is VNode | string => {
+    if (!child || typeof child !== 'object')
+      return true
+    if (child.type === 'img' && !child.props.src)
+      return false
+    omitImagesWithoutSource(child)
+    return true
+  })
+
+  if (node.props.children.length === 0)
+    delete node.props.children
+}
+
 // SVG elements that cannot be rendered by Satori or Takumi and will be silently dropped
 const UNSUPPORTED_SVG_ELEMENTS = new Set(['text', 'tspan', 'textPath', 'foreignObject', 'switch', 'a'])
 
@@ -223,5 +241,6 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
   // run shared plugins (encoding, styleDirectives, imageSrc); image-fetch
   // attributes externally so vnode-walk reflects everything else.
   await ctx.timings.measure('vnode-walk', () => Promise.all(walkTree(ctx, vnodeTree, [encoding, styleDirectives, imageSrc])))
+  omitImagesWithoutSource(vnodeTree)
   return vnodeTree
 }
