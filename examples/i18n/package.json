@@ -15,7 +15,7 @@
     "fontless": "^1.3.2",
     "nuxt": "^4.6.1",
     "nuxt-og-image": "latest",
-    "nuxt-site-config": "^4.2.3",
+    "nuxt-site-config": "^5.0.0",
     "satori": "^0.47.1",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.43"

@@ -2,16 +2,18 @@
 name: nuxt-og-image
 description: Generate, fix, or debug Open Graph images in a Nuxt app with the nuxt-og-image module. Use when a task mentions og:image, social share images, twitter:image, defineOgImage, defineOgImageScreenshot, components/OgImage templates, the Takumi, Satori, or browser renderer, the ogImage config key, zeroRuntime, or /_og/ URLs. Also use when an OG image renders the wrong template, returns 403 or 500, shows no text on Cloudflare, or has a relative URL.
 license: MIT
-compatibility: "Requires Node.js ^22.22.3 || ^24.15.0 || >=26.0.0. Requires Nuxt ^4.6.0 || ^5.0.0."
+compatibility: "Requires Node.js ^22.22.3 || ^24.15.0 || >=26.0.0. Requires Nuxt ^4.6.1 || ^5.0.0. Requires Unhead ^3.4.2."
 ---
 
 # nuxt-og-image
 
-Requires Nuxt `^4.6.0 || ^5.0.0` and Unhead 3.4.2 or newer.
+Requires Nuxt `^4.6.1 || ^5.0.0` and Unhead 3.4.2 or newer.
 The module renders a Vue component to a PNG and adds `og:image` and `twitter:image` meta for the page. Docs: https://nuxtseo.com/docs/og-image
 
 ## Setup
 
+- Included in `@nuxtjs/seo` v6. If the app uses `@nuxtjs/seo`, configure the `ogImage` key and do not add the module again.
+- Otherwise, install it with `npx nuxt module add nuxt-og-image`.
 - Set `site.url`. Without it, prerendered pages get a relative `og:image` such as `/_og/s/o_x.png`. The build warns, but still succeeds. Crawlers need an absolute URL.
 - Install one renderer yourself: `@takumi-rs/core` (recommended), or `satori` with `@resvg/resvg-js`. Use the Wasm packages (`@takumi-rs/wasm`, `@resvg/resvg-wasm`) on edge runtimes. `pnpm exec nuxt-og-image enable takumi` installs the right one.
 - If a page or route rule uses a template whose renderer is not installed, the production build fails with the install command. A template that nothing uses only logs a warning. In dev, the module asks before it installs in an interactive terminal. In an agent, CI, or piped shell it only logs the command and never edits `package.json`.
@@ -84,17 +86,6 @@ export default defineNuxtConfig({
 Keep runtime URLs short: pass a slug, then `await $fetch()` the data inside the template.
 To use an existing image, call `useSeoMeta({ ogImage: '/cover.png' })`. The v5 `defineOgImage({ url })` form is gone.
 
-## Traps
-
-- **Community templates such as `NuxtSeo` work only in dev.** A dev page render copies the template into `components/OgImage/`. A production build fails on `defineOgImage('NuxtSeo')` until you eject it. A component name built at runtime is not checked at build; that image returns 500. Run `pnpm exec nuxt-og-image eject NuxtSeo`. It picks the variant for the renderer your app uses; `eject NuxtSeo.takumi` or `eject NuxtSeo.satori` chooses one.
-- **`zeroRuntime: true` removes the `/_og/d/` handler.** A page that is not prerendered gets no `og:image`. Prerender every page that calls `defineOgImage()`.
-- **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
-- **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
-- **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
-- **Rolling or multi instance deploys need a stable secret.** Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Changing the application secret invalidates existing signed URLs.
-- **Legacy environment key:** V7 accepts `NUXT_OG_IMAGE_SECRET` if the application secret is empty, with a deprecation warning. Rename it to `NUXT_APP_SECRET`. The derived key still invalidates v6 signatures.
-- **A wildcard route rule with `swr`, `isr`, or `cache` breaks `/_og/` routes.** The module warns. Use narrower patterns such as `/blog/**`.
-
 ## Fonts
 
 Custom fonts load only through `@nuxt/fonts`, and each family needs `global: true`. CSS `@font-face` rules and font CDN links do not reach the renderer. Local fonts: Takumi reads woff2 and ttf; Satori reads woff, ttf, and otf.
@@ -111,7 +102,29 @@ export default defineNuxtConfig({
 Takumi and Satori use Wasm on Workers. If images render with no text, the Worker has no `ASSETS` binding and cannot load fonts. Set `nitro.cloudflare.deployConfig: true` and deploy with `wrangler --cwd .output deploy`, or add an `[assets]` block to your own Wrangler config. The runtime cache is in memory; for KV set `ogImage.runtimeCacheStorage: { driver: 'cloudflare-kv-binding', binding: 'OG_IMAGE_CACHE' }`.
 Guide: https://nuxtseo.com/docs/og-image/guides/cloudflare
 
+## Traps
+
+- **Community templates such as `NuxtSeo` work only in dev.** A dev page render copies the template into `components/OgImage/`. A production build fails on `defineOgImage('NuxtSeo')` until you eject it. A component name built at runtime is not checked at build; that image returns 500. Run `pnpm exec nuxt-og-image eject NuxtSeo`. It picks the variant for the renderer your app uses; `eject NuxtSeo.takumi` or `eject NuxtSeo.satori` chooses one.
+- **`zeroRuntime: true` removes the `/_og/d/` handler.** A page that is not prerendered gets no `og:image`. Prerender every page that calls `defineOgImage()`.
+- **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
+- **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
+- **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
+- **Rolling or multi instance deploys need a stable secret.** Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Changing the application secret invalidates existing signed URLs.
+- **Legacy environment key:** V7 accepts `NUXT_OG_IMAGE_SECRET` if the application secret is empty, with a deprecation warning. Rename it to `NUXT_APP_SECRET`. The derived key still invalidates v6 signatures.
+- **A wildcard route rule with `swr`, `isr`, or `cache` breaks `/_og/` routes.** The module warns. Use narrower patterns such as `/blog/**`.
+
 ## Version limits
+
+v7 changes that v6 examples still show:
+
+- Nuxt versions before 4.6.1 are not supported. Upgrade Nuxt to 4.6.1 or later.
+- String `ogImage.security.secret` and `runtimeConfig.ogImage.secret` are removed. Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. If the production secret is missing or shorter than 32 characters, OG image requests return 500.
+- Satori 0.47.1+ uses native layout. A bare `<div>` is no longer a flex column. Add `flex flex-col` where the template needs it.
+- Custom fonts need `@nuxt/fonts` 1.0+. With an older version, images fall back to Inter.
+- Takumi v1 is removed. Use `@takumi-rs/core` or `@takumi-rs/wasm` `^2.15.0`. Merge `takumi.fetchedResources` and `takumi.persistentImages` into `takumi.images`.
+- `defineOgImageSchema()` needs Zod 4.
+- `getOgImageUrl(event, ...)` takes the Nuxt `RequestEvent`. Import `defineEventHandler` from `nuxt/server`, not the h3 auto-import.
+- The DevTools panel needs `nuxtseo-devtools-host` as a dev dependency: `pnpm add -D nuxtseo-devtools-host@^1`.
 
 v6 changes that older examples still show:
 
@@ -132,6 +145,6 @@ The `html` option is deprecated, and `security.strict` removes it. Use a compone
 
 ## Debug
 
-- Nuxt DevTools has an OG Image tab with a live preview.
+- Nuxt DevTools has an OG Image tab with a live preview. The tab needs `nuxtseo-devtools-host` as a dev dependency.
 - In dev, the image at a URL is cached. After a template edit, append `?purge` to the image URL.
 - `ogImage.debug: true` adds `/_og/debug.json` and logs more. It warns if left on in production.
