@@ -5,12 +5,11 @@ import { appendResponseHeader } from '#nuxtseo/h3'
 import { defineNitroPlugin, useRuntimeConfig, useStorage } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
-import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { logger } from '../../logger'
 import { isInternalRoute } from '../../shared'
 import { getPublishKey, publishImage } from '../og-image/cache/publish'
-import { resolvePathCacheKey } from '../og-image/context'
 import { createNitroRouteRuleMatcher } from '../util/kit'
+import { toStorageKey } from '../util/storageKey'
 import { useOgImageRuntimeConfig } from '../utils'
 
 const PAYLOAD_REGEX = /<script.+id="nuxt-og-image-options"[^>]*>(.+?)<\/script>/
@@ -56,20 +55,14 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
       return
     const parsed = parse(_payload) as { key?: string, _hash?: string }[]
     const payloads: [string, any][] = parsed.map(opt => [opt.key || 'og', opt])
-    const resolvePathWithBase = createSitePathResolver(ctx.event, {
-      absolute: false,
-      withBase: true,
-    })
-    const key = resolvePathCacheKey(ctx.event, resolvePathWithBase(path))
-    await prerenderOptionsCache!.setItem(key, payloads)
 
-    // Also store by hash for hash-mode URLs. The hash omits the page path so
+    // Store options by hash for hash-mode URLs. The hash omits the page path so
     // pages with identical options share one image; store the path so route
     // rules and page lookups resolve against a real page, not `/`.
     const pagePath = withoutBase(path, useRuntimeConfig().app.baseURL)
     for (const [_ogKey, opt] of payloads) {
       if (opt._hash) {
-        await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, { ...opt, _path: pagePath })
+        await prerenderOptionsCache!.setItem(toStorageKey('prerender', opt._hash), { ...opt, _path: pagePath })
       }
     }
 
@@ -104,9 +97,8 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
                 if (opt.component === 'PageScreenshot') {
                   // The source page is still rendering. A recursive fetch cannot return its HTML yet.
                   opt._prerenderHtml = `<!DOCTYPE html><html ${(html.htmlAttrs || []).join(' ')}><head>${html.head.join('')}</head><body ${(html.bodyAttrs || []).join(' ')}>${[...(html.bodyPrepend || []), ...(html.body || []), ...html.bodyAppend].join('')}</body></html>`
-                  await prerenderOptionsCache!.setItem(key, payloads)
                   if (opt._hash)
-                    await prerenderOptionsCache!.setItem(`hash:${opt._hash}`, { ...opt, _path: pagePath })
+                    await prerenderOptionsCache!.setItem(toStorageKey('prerender', opt._hash), { ...opt, _path: pagePath })
                 }
                 const response = await nitro.localFetch(opt._query ? withQuery(prerenderPath, { _query: opt._query }) : prerenderPath)
                 if (!response.ok || !response.headers.get('content-type')?.startsWith('image/'))

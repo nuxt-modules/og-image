@@ -8,8 +8,7 @@ import type BrowserRenderer from './browser/renderer'
 import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { defu } from 'defu'
-import { parseURL, withoutLeadingSlash, withoutTrailingSlash, withQuery } from 'ufo'
-import { normalizeKey } from 'unstorage'
+import { parseURL, withoutTrailingSlash, withQuery } from 'ufo'
 import { createError } from '#nuxtseo/h3'
 import { useNitroApp } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
@@ -17,11 +16,12 @@ import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { createSitePathResolver } from '#site-config/server/composables/utils'
 import { logger } from '../../logger'
 import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProps, verifyOgImageSignature } from '../../shared'
-import { hashKey } from '../../shared/hash'
+import { digestCanonical } from '../../shared/urlEncoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
 import { getEventQuery } from '../util/query'
 import { parseSameOriginPath } from '../util/ssrf'
+import { toStorageKey } from '../util/storageKey'
 import { createTimings, TIMING_CTX_KEY } from '../util/timings'
 import { withTimeout } from '../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../utils'
@@ -29,25 +29,6 @@ import { getBrowserRenderer, getSatoriRenderer, getTakumiRenderer } from './inst
 
 const RE_HASH_MODE = /^o_([a-z0-9]+)$/i
 const RE_SIGNATURE_SUFFIX = /,s_([^,]+)$/
-
-export function resolvePathCacheKey(e: H3Event, path: string, resolvedOptions?: Record<string, any>) {
-  const siteConfig = getSiteConfig(e, {
-    resolveRefs: true,
-  })
-  const basePath = withoutTrailingSlash(withoutLeadingSlash(normalizeKey(path)))
-  const hashParts: any[] = [
-    basePath,
-    import.meta.prerender ? '' : siteConfig.url,
-  ]
-  // Hash resolved options (not raw query string) so unknown/extra query params
-  // cannot produce unique cache keys and bypass the cache.
-  if (resolvedOptions)
-    hashParts.push(hashKey(resolvedOptions))
-  return [
-    (!basePath || basePath === '/') ? 'index' : basePath,
-    hashKey(hashParts),
-  ].join(':')
-}
 
 export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRenderEventContext> {
   const runtimeConfig = useOgImageRuntimeConfig(e)
@@ -102,7 +83,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     // Hash mode - look up options from prerender cache
     const optionsHash = hashMatch[1]
     if (import.meta.prerender && prerenderOptionsCache) {
-      const cached = await prerenderOptionsCache.getItem(`hash:${optionsHash}`)
+      const cached = await prerenderOptionsCache.getItem(toStorageKey('prerender', optionsHash))
       if (cached && typeof cached === 'object') {
         urlOptions = cached as Record<string, any>
       }
@@ -166,13 +147,14 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // basePath drives route rules, the page HTML fetch, and the browser renderer's
   // navigation. Parse it once here: only a same-origin path may pass inward.
   const rawPath = urlOptions._path ?? '/'
-  const basePath = parseSameOriginPath(typeof rawPath === 'string' ? withoutTrailingSlash(rawPath) : rawPath)
-  if (!basePath) {
+  const parsedPath = parseSameOriginPath(typeof rawPath === 'string' ? withoutTrailingSlash(rawPath) : rawPath)
+  if (parsedPath._tag === 'Err') {
     return createError({
       statusCode: 400,
-      statusMessage: '[Nuxt OG Image] The _path option must be a same-origin path.',
+      statusMessage: `[Nuxt OG Image] The _path option must be a same-origin path. ${parsedPath.reason}`,
     })
   }
+  const basePath = parsedPath.value
   const componentHash = urlOptions._componentHash || ''
   delete urlOptions._path
   delete urlOptions._hash // Remove internal hash field
@@ -239,12 +221,17 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   }
 
   const rendererType = normalised.renderer
-  // In hash mode, pages with identical options share one image, so key the
-  // cache by the options hash, not by the page path.
-  // Component hash is appended so template changes invalidate the runtime cache.
-  const baseCacheKey = normalised.options.cacheKey
-    || (hashMatch ? `hash:${hashMatch[1]}` : resolvePathCacheKey(e, basePathWithQuery, normalised.options))
-  const key = componentHash ? `${baseCacheKey}:${componentHash}` : baseCacheKey
+  // The key names one image: a custom cacheKey, the options hash (hash mode,
+  // where pages with identical options share one image), or the page with its
+  // resolved options. Each kind has its own tag, so keys of different kinds
+  // never match. The component hash changes the key when the template changes.
+  const identity = normalised.options.cacheKey
+    ? ['cacheKey', String(normalised.options.cacheKey)]
+    : hashMatch
+      ? ['hash', hashMatch[1]]
+      // Prerendered images skip the site URL: the build may not know the final host.
+      : ['page', basePathWithQuery, import.meta.prerender ? '' : getSiteConfig(e, { resolveRefs: true }).url, normalised.options]
+  const key = digestCanonical([...identity, componentHash])
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (rendererType) {

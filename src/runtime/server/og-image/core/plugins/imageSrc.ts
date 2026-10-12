@@ -1,6 +1,6 @@
 import type { H3Event } from '#nuxtseo/h3'
 import type { OgImageRenderEventContext, VNode } from '../../../../types'
-import { withBase, withoutLeadingSlash } from 'ufo'
+import { parseURL, withBase, withoutLeadingSlash } from 'ufo'
 import { useStorage } from '#nuxtseo/nitro'
 import { toBase64Image } from '../../../../shared'
 import { decodeHtml } from '../../../util/encoding'
@@ -8,7 +8,7 @@ import { fetchLocalAsset } from '../../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { logger } from '../../../util/logger'
 import { getOgImageOrigin } from '../../../util/origin'
-import { fetchWithRedirectValidation, isBlockedUrl } from '../../../util/ssrf'
+import { fetchWithRedirectValidation, isBlockedUrl, parseSameOriginPath } from '../../../util/ssrf'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
@@ -22,7 +22,11 @@ const SUBREQUEST_HEADERS = { 'x-nuxt-og-image': '1' }
 
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
   // try hydrating from storage — can't fetch public files via $fetch when prerendering
-  const normalizedSrc = withoutLeadingSlash(src
+  // The storage key names a file, so normalize the path before lookup.
+  const path = parseSameOriginPath(parseURL(src).pathname)
+  if (path._tag === 'Err')
+    return
+  const normalizedSrc = withoutLeadingSlash(decodeURIComponent(path.value)
     .replace('_nuxt/@fs/', '')
     .replace('_nuxt/', '')
     .replace('./', ''),
