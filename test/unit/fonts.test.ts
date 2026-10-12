@@ -5,12 +5,18 @@ import satori from 'satori'
 import { describe, expect, it } from 'vitest'
 import { extractCustomFontFamilies } from '../../src/build/css/css-utils'
 import { fontKey, getStaticInterFonts, matchesFontRequirements, parseConfiguredLocalFonts, resolveFontFamilies } from '../../src/build/fonts'
-import { selectFontSource } from '../../src/runtime/server/og-image/font-source'
+import { selectFontSource, TAKUMI_FORMATS } from '../../src/runtime/server/og-image/font-source'
 import { buildSubsetFamilyChain, renameSubsetFonts } from '../../src/runtime/server/og-image/font-subsets'
 import { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from '../../src/runtime/server/og-image/unicode-range'
 
-const TAKUMI_FORMATS = new Set(['ttf', 'woff2'] as const)
 const SATORI_FORMATS = new Set(['ttf', 'otf', 'woff'] as const)
+
+describe('takumi font sources', () => {
+  it.each(['otf', 'woff'])('keeps a supported %s source', (format) => {
+    const src = `/fonts/custom.${format}`
+    expect(selectFontSource({ src }, TAKUMI_FORMATS)).toEqual({ src, isStaticFallback: false })
+  })
+})
 
 describe('extractCustomFontFamilies', () => {
   it('extracts unquoted family names', () => {

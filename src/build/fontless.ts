@@ -143,7 +143,7 @@ async function initFontless(options: {
     import('unifont'),
   ])
 
-  // Each fontless version owns its map values: URLs in 0.2, metadata in 0.4.
+  // Fontless v1 records source metadata for each served URL.
   const renderedFontURLs: Parameters<typeof normalizeFontData>[0]['renderedFontURLs'] = new Map()
 
   const providers = {
@@ -451,11 +451,10 @@ async function resolveAndDownloadFamily(options: {
       return results
 
     for (const font of resolution.fonts) {
-      const srcs = Array.isArray(font.src) ? font.src : [font.src]
-      for (const src of srcs) {
-        if (typeof src !== 'object' || !('url' in src))
+      for (const src of font.src) {
+        if (!('url' in src))
           continue
-        const url = (src as any).originalURL || src.url
+        const url = src.originalURL || src.url
         const format = src.format || (url.endsWith('.woff') ? 'woff' : url.endsWith('.ttf') ? 'truetype' : undefined)
         const isTtf = format === 'truetype' || format === 'ttf'
         if (!isTtf && format !== 'woff')

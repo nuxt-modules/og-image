@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { fontFamiliesFromCssEntries, fontsResolvedHookAvailable, warnWhenFontsUnreported } from '../../src/build/font-compat'
+import { fontFamiliesFromCssEntries, warnWhenFontsUnreported } from '../../src/build/font-compat'
 import { parseAppCssFontFaces } from '../../src/build/fonts'
 
 function createNuxt(options: { dev?: boolean, families?: unknown[] } = {}) {
@@ -27,52 +27,19 @@ function registerWarning(nuxt: any, logger: any, overrides: Record<string, unkno
   })
 }
 
-describe('fontsResolvedHookAvailable', () => {
-  it('detects the hook in an installed hook-bearing package', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'og-image-font-compat-'))
-    try {
-      writeFileSync(join(dir, 'module.mjs'), 'nuxt.callHook("fonts:resolved", resolved)')
-      expect(fontsResolvedHookAvailable(join(dir, 'module.mjs'))).toBe(true)
-    }
-    finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-  })
-
-  it('rejects a package that never calls the hook', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'og-image-font-compat-'))
-    try {
-      writeFileSync(join(dir, 'module.mjs'), 'nuxt.callHook("fonts:public-asset-context", context)')
-      expect(fontsResolvedHookAvailable(join(dir, 'module.mjs'))).toBe(false)
-    }
-    finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-  })
-})
-
 describe('warnWhenFontsUnreported', () => {
-  it('warns in dev when the installed @nuxt/fonts cannot report fonts', async () => {
-    const { hooks, logger, nuxt } = createNuxt({ dev: true, families: [{ name: 'Poppins' }] })
-    registerWarning(nuxt, logger)
-
-    await hooks['nitro:build:before']!()
-
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('fonts:resolved'))
-  })
-
-  it('warns in production for a hook-less release even with CSS-only families', async () => {
+  it('warns in production when CSS-only families were not reported', async () => {
     const { hooks, logger, nuxt } = createNuxt()
     registerWarning(nuxt, logger, { expectedFamilies: () => ['Poppins'] })
 
     await hooks['nitro:build:before']!()
 
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('fonts:resolved'))
+    expect(logger.warn).toHaveBeenCalledWith('@nuxt/fonts did not report any fonts, so OG images use the bundled Inter font.')
   })
 
-  it('stays quiet in dev when the hook exists but fonts are not resolved yet', async () => {
+  it('stays quiet in dev before fonts are resolved', async () => {
     const { hooks, logger, nuxt } = createNuxt({ dev: true, families: [{ name: 'Poppins' }] })
-    registerWarning(nuxt, logger, { fontsResolvedHook: true })
+    registerWarning(nuxt, logger)
 
     await hooks['nitro:build:before']!()
 

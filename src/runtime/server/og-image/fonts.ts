@@ -18,7 +18,7 @@ export interface LoadFontsOptions {
   /**
    * Font formats the renderer can parse.
    * Satori: ttf, otf, woff
-   * Takumi: ttf, woff2
+   * Takumi: ttf, otf, woff, woff2
    */
   supportedFormats: Set<FontFormat>
   /** Component pascalName — filters fonts to only what this component needs */

@@ -51,7 +51,7 @@ export interface FontProcessingState {
   sourceMap: Map<string, string>
   /** Font identity (family+weight+style) → provider-resolved static fallback path. */
   fallbackMap: Map<string, string>
-  /** Faces from the `@nuxt/fonts` `fonts:resolved` hook, by family. Empty before v1. */
+  /** Faces from the `@nuxt/fonts` `fonts:resolved` hook, by family. */
   resolvedFaces?: Map<string, ResolvedFontFace[]>
   /** Whether OG images need a resolved family: global, or used by an OG component. */
   isOgFamily?: (family: string) => boolean

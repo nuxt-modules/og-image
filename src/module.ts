@@ -33,7 +33,7 @@ import { setupBuildHandler } from './build/build'
 import { extractCustomFontFamilies } from './build/css/css-utils'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
-import { fontFamiliesFromCssEntries, fontsResolvedHookAvailable, warnWhenFontsUnreported } from './build/font-compat'
+import { fontFamiliesFromCssEntries, warnWhenFontsUnreported } from './build/font-compat'
 import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
 import {
   buildFontFamilyCanonicalMap,
@@ -1616,15 +1616,12 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
           nuxtFontFiles.set(file.url, file.readFont)
         refreshDevFonts()
       })
-      // @nuxt/fonts reports every family before Nitro builds. Versions without the hook report
-      // none, and OG images would silently fall back to Inter.
-      const fontsModulePath = await resolveOptionalModulePath('@nuxt/fonts', nuxt.options.rootDir)
+      // Production reports each family before Nitro builds. Development resolves lazily.
       warnWhenFontsUnreported({
         nuxt,
         logger,
         fontState,
         loadCssMetadata,
-        fontsResolvedHook: !!fontsModulePath && fontsResolvedHookAvailable(fontsModulePath),
         expectedFamilies: () => [
           ...fontRequirementsState.families,
           ...Object.values(cssMetadata.fontVars).flatMap(value => extractCustomFontFamilies(value)),
