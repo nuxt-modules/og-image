@@ -1711,8 +1711,6 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
 
-        // @ts-expect-error runtime type
-        isNuxtContentDocumentDriven: !!nuxt.options.content?.documentDriven,
         cssFramework: cssFramework || 'none',
         browserEnabled: !!config.browser,
         // Browser renderer config for cloudflare binding access

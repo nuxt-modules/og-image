@@ -309,7 +309,6 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev', async () => {
             },
           ],
           "hasNuxtIcon": false,
-          "isNuxtContentDocumentDriven": false,
           "publicStoragePath": "root:public",
           "resvgOptions": {},
           "satoriOptions": {},
