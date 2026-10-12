@@ -9,6 +9,16 @@ describe('devtools font previews', () => {
     expect(createFontPreviewCss([latin], 'http://localhost:3100/app/')).toContain('http://localhost:3100/app/_nuxt/fonts/latin.woff2')
   })
 
+  it('adds the app base URL to module-owned static font paths', () => {
+    const face = { ...latin, src: '/_og-static-fonts/inter.ttf' }
+    expect(createFontPreviewCss([face], 'http://localhost:3100/app/')).toContain('http://localhost:3100/app/_og-static-fonts/inter.ttf')
+  })
+
+  it('keeps an existing app base URL on static font paths', () => {
+    const face = { ...latin, src: '/app/_og-static-fonts/inter.ttf' }
+    expect(createFontPreviewCss([face], 'http://localhost:3100/app/')).toContain('http://localhost:3100/app/_og-static-fonts/inter.ttf')
+  })
+
   it('registers every subset and the variable weight range', () => {
     const css = createFontPreviewCss([latin, { ...latin, src: '/app/_nuxt/fonts/greek.woff2', unicodeRange: 'U+0370-03FF' }], 'http://localhost:3100')
     expect(css).toContain('greek.woff2')
