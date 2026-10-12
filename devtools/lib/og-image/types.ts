@@ -33,6 +33,13 @@ export interface GlobalDebugResponse {
   componentNames: OgImageComponent[]
   siteConfigUrl?: string
   compatibility?: RuntimeCompatibilitySchema
+  origin?: string
+  fontRequirements?: {
+    weights: number[]
+    styles: string[]
+    families: string[]
+    hasDynamicBindings: boolean
+  }
   resolvedFonts?: FontConfig[]
   availableFonts?: FontConfig[]
 }

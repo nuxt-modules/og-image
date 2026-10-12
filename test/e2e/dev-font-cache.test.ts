@@ -13,4 +13,14 @@ describe('resolved Nuxt fonts in dev', async () => {
     const received = await $fetch('/api/font', { responseType: 'arrayBuffer' }) as ArrayBuffer
     expect(Buffer.from(received)).toEqual(expected)
   })
+
+  it('serves the bundled font to DevTools in development', async () => {
+    const expected = await readFile(resolve('../../src/runtime/public/_og-fonts/inter-700-latin.ttf'))
+    const received = await $fetch('/_og-static-fonts/inter-700-latin.ttf', { responseType: 'arrayBuffer' }) as ArrayBuffer
+    expect(Buffer.from(received)).toEqual(expected)
+  })
+
+  it('rejects font paths outside the resolved font list', async () => {
+    await expect($fetch('/_og-static-fonts/unknown.ttf')).rejects.toMatchObject({ statusCode: 404 })
+  })
 })

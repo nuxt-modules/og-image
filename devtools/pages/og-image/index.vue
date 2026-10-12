@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { useHead } from 'nuxt/app'
-import { hasProductionUrl, previewSource, productionUrl } from 'nuxtseo-layer-devtools/composables/state'
+import { hasProductionUrl, host, previewSource, productionUrl } from 'nuxtseo-layer-devtools/composables/state'
 import { withHttps } from 'ufo'
 import { computed, reactive, ref, watch } from 'vue'
+import { createFontPreviewCss, getFontPreviewFaces } from '../../lib/og-image/fonts'
 import { useOgImage } from '../../lib/og-image/og-image'
 import { RendererSelectDialogPromise } from '../../lib/og-image/renderer-select'
 import { isConnectionFailed, isFallbackMode } from '../../lib/og-image/rpc'
+import { optionsOverrides } from '../../lib/og-image/util/logic'
 
 const RE_SINGLE_QUOTE = /'/g
 const RE_VUE_FILENAME = /[^/]+\.vue$/
@@ -226,7 +228,7 @@ const fontFiles = computed<FontFileEntry[]>(() => {
   const resolved = globalDebug.value?.resolvedFonts || []
   if (!available.length && !resolved.length)
     return []
-  const source = available.length ? available : resolved
+  const source = getFontPreviewFaces(available, resolved)
   // Build set of resolved keys for loaded check
   const resolvedKeys = new Set(resolved.map((f: any) => `${f.family}-${f.weight}-${f.style}`))
   // Count subsets per family+weight+style and collect subset names
@@ -234,7 +236,7 @@ const fontFiles = computed<FontFileEntry[]>(() => {
   for (const f of source) {
     const key = `${f.family}-${f.weight}-${f.style}`
     const subs = subsetMap.get(key) || []
-    if (f.subset)
+    if (f.subset && !subs.includes(f.subset))
       subs.push(f.subset)
     subsetMap.set(key, subs)
   }
@@ -268,9 +270,13 @@ const fontFiles = computed<FontFileEntry[]>(() => {
 const fontFamilySizes = computed(() => {
   const resolved = globalDebug.value?.resolvedFonts || []
   const sizes = new Map<string, number>()
+  const seen = new Set<string>()
   for (const f of resolved) {
-    if (f.size)
+    const key = JSON.stringify([f.family, f.src])
+    if (f.size && !seen.has(key)) {
+      seen.add(key)
       sizes.set(f.family, (sizes.get(f.family) || 0) + f.size)
+    }
   }
   return sizes
 })
@@ -296,15 +302,8 @@ const unresolvedFamilies = computed(() => {
 })
 
 const fontFaceCss = computed(() => {
-  const rules: string[] = []
-  const seen = new Set<string>()
-  for (const f of fontFiles.value) {
-    if (seen.has(f.family))
-      continue
-    seen.add(f.family)
-    rules.push(`@font-face { font-family: 'ogp-${f.family}'; src: url('${f.src}'); font-display: swap; }`)
-  }
-  return rules.join('\n')
+  const faces = getFontPreviewFaces(globalDebug.value?.availableFonts || [], globalDebug.value?.resolvedFonts || [])
+  return createFontPreviewCss(faces, host.value || globalDebug.value?.origin || '')
 })
 
 useHead({ style: computed(() => fontFaceCss.value ? [fontFaceCss.value] : []) })
@@ -315,7 +314,13 @@ function applyFontOverride(family: string) {
   const next = fontOverride.value === family ? '' : family
   fontOverride.value = next
   hasMadeChanges.value = true
-  updateProps({ fontFamily: next || undefined })
+  const props = { ...optionsOverrides.value.props }
+  if (next)
+    props.fontFamily = next
+  else
+    delete props.fontFamily
+  optionsOverrides.value = { ...optionsOverrides.value, props }
+  refreshSources()
 }
 
 const metaOverrides = reactive({

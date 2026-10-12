@@ -1000,6 +1000,13 @@ export default defineNuxtModule<ModuleOptions>({
         handler: resolve('./runtime/server/routes/debug.json'),
       })
     }
+    if (nuxt.options.dev) {
+      addServerHandler({
+        lazy: true,
+        route: '/_og-static-fonts/**',
+        handler: resolve('./runtime/server/routes/static-font'),
+      })
+    }
     addServerHandler({
       lazy: true,
       route: '/_og/d/**',
@@ -1443,12 +1450,14 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.publicAssets.push({
       dir: staticFontCacheDir,
       baseURL: '/_og-static-fonts',
+      fallthrough: nuxt.options.dev,
       maxAge: 60 * 60 * 24 * 365,
     })
     // Bundled Inter fallback fonts (served under same prefix so node.ts resolver can fetch them)
     nuxt.options.nitro.publicAssets.push({
       dir: resolve('./runtime/public/_og-fonts'),
       baseURL: '/_og-static-fonts',
+      fallthrough: nuxt.options.dev,
       maxAge: 60 * 60 * 24 * 365,
     })
 
