@@ -2,6 +2,10 @@ declare module '#build/nuxt-og-image/client-config.mjs' {
   export const hasServerRuntime: boolean
 }
 
+declare module '#og-image-virtual/signing.mjs' {
+  export const rendersImages: boolean
+}
+
 declare module '#nuxtseo/h3' {
   export * from 'h3'
 }

@@ -1,9 +1,13 @@
 import { createError, useRuntimeConfig } from 'nuxt/server'
 import { joinURL } from 'ufo'
 import { defineEventHandler, getRequestURL } from '#nuxtseo/h3'
+import { rendersImages } from '#og-image-virtual/signing.mjs'
 import { initializeOgImageSigning, isOgImageEndpointPath, reportSigningFailure } from '../signing-secret'
 
 export default defineEventHandler(async (event) => {
+  // No renderer means no OG image can render, so the secret is never needed.
+  if (!rendersImages)
+    return
   const baseURL = useRuntimeConfig().app.baseURL
   const pathname = getRequestURL(event).pathname
   // Nuxt renders errors through an internal request without Worker bindings.

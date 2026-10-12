@@ -156,6 +156,10 @@ declare module '#og-image-virtual/component-names.mjs' {
   export const componentNames: OgImageComponent[]
 }
 
+declare module '#og-image-virtual/signing.mjs' {
+  export const rendersImages: boolean
+}
+
 declare module '#og-image-virtual/build-dir.mjs' {
   export const buildDir: string
   export const rootDir: string

@@ -1846,8 +1846,13 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     setupRuntimeAliases({ namespace: '#og-image', app: resolve('./runtime/app'), server: resolve('./runtime/server') }, nuxt)
     setRuntimeAlias('#og-image/shared', resolve('./runtime/shared'))
     setRuntimeAlias('#og-image/types', resolve('./runtime/types'))
-    if (!config.zeroRuntime)
+    if (!config.zeroRuntime) {
+      // Without a renderer no OG image can render, for example when an app gets this module
+      // through @nuxtjs/seo and never enables OG images. The middleware then never reads the secret.
+      // Nitro evaluates this after component discovery, so the renderer set is final.
+      nuxt.options.nitro.virtual['#og-image-virtual/signing.mjs'] = () => `export const rendersImages = ${getDetectedRenderers().size > 0}`
       addServerHandler({ middleware: true, handler: resolve('./runtime/server/middleware/signing') })
+    }
     // no way to know if we'll prerender any routes
     if (nuxt.options.build)
       addServerPlugin(resolve('./runtime/server/plugins/prerender'))
