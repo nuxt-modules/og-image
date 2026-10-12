@@ -492,16 +492,16 @@ export default defineNuxtModule<ModuleOptions>({
 
     let hasNuxtFonts = hasNuxtModule('@nuxt/fonts')
 
-    // Check @nuxt/fonts version - require 0.13.0+ for proper font extraction
-    if (hasNuxtFonts && !await hasNuxtModuleCompatibility('@nuxt/fonts', '>=0.13.0')) {
+    // Nuxt Fonts 1.0.0 introduced the fonts:resolved hook.
+    if (hasNuxtFonts && !await hasNuxtModuleCompatibility('@nuxt/fonts', '>=1.0.0')) {
       const version = await getNuxtModuleVersion('@nuxt/fonts')
       logger.error(
-        `@nuxt/fonts ${version} is not supported. Version 0.13.0+ is required for OG image font extraction.\n`
+        `@nuxt/fonts ${version} is not supported. Version 1.0.0+ is required for OG image font extraction.\n`
         + `Falling back to bundled Inter font.\n\n`
         + `To fix, update @nuxt/fonts:\n`
         + `  pnpm add @nuxt/fonts@latest\n\n`
         + `Or pin to a specific version in package.json:\n`
-        + `  "@nuxt/fonts": "^0.13.0"`,
+        + `  "@nuxt/fonts": "^1.0.0"`,
       )
       hasNuxtFonts = false
     }

@@ -16,6 +16,8 @@ minimumReleaseAgeExclude:
   - '@nuxt/devtools-kit@4.0.0-beta.4'
   - '@nuxt/devtools@4.0.0-beta.4'
   - vite@8.3.3
+  - '@nuxt/fonts@1.0.1'
+  - fontless@1.3.2
 
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
@@ -143,7 +145,7 @@ catalog:
   '@nuxt/content': ^3.16.1
   '@nuxt/devtools': 4.0.0-beta.4
   '@nuxt/devtools-kit': 4.0.0-beta.4
-  '@nuxt/fonts': https://pkg.pr.new/@nuxt/fonts@a73361e
+  '@nuxt/fonts': ^1.0.1
   '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
   '@nuxt/kit': ^4.6.0

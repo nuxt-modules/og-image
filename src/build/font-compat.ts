@@ -32,9 +32,7 @@ function* implementationFiles(dir: string): Generator<string> {
 }
 
 /**
- * Whether the installed `@nuxt/fonts` calls the `fonts:resolved` hook. Released
- * versions up to 0.14 do not, but the `>=0.13.0` compatibility range admits
- * them, so the hook is detected in the installed code itself. The resolved
+ * Whether the installed `@nuxt/fonts` calls the `fonts:resolved` hook. The resolved
  * module path sits inside the package, which is scanned for the hook name.
  */
 export function fontsResolvedHookAvailable(fontsModulePath: string): boolean {
