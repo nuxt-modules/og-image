@@ -7,7 +7,7 @@ import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import { createSitePathResolver, withSiteUrl } from '#site-config/app/composables/utils'
+import { createSitePathResolver, withSiteUrl } from '#site-config/app'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 /**

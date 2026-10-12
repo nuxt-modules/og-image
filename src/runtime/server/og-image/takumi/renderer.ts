@@ -2,7 +2,6 @@ import type { Node } from '@takumi-rs/helpers'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { defu } from 'defu'
 import { withBase } from 'ufo'
-import compatibility from '#og-image/compatibility'
 import { logger } from '../../../logger'
 import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
@@ -17,8 +16,6 @@ const RE_QUOTES = /['"]/g
 
 interface TakumiState {
   renderer: any
-  loadedFontKeys: Set<string>
-  loadedFamilies: Set<string>
   // Serializes WASM-touching work on the shared Renderer. The renderer is
   // reused across requests in the same isolate (nitroApp is module-scope on
   // CF Workers etc.) and concurrent font registration/render calls share linear memory,
@@ -33,8 +30,6 @@ async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiS
   const Renderer = await getTakumi()
   nitro._takumiState = {
     renderer: new Renderer(),
-    loadedFontKeys: new Set(),
-    loadedFamilies: new Set(),
     lock: Promise.resolve(),
   } satisfies TakumiState
   return nitro._takumiState
@@ -68,8 +63,6 @@ function withTakumiLock<T>(
       try {
         const Renderer = await getTakumi()
         state.renderer = new Renderer()
-        state.loadedFontKeys.clear()
-        state.loadedFamilies.clear()
       }
       catch (resetErr) {
         logger.warn(`failed to reset takumi renderer after lock timeout: ${(resetErr as Error)?.message || resetErr}`)
@@ -114,7 +107,7 @@ interface DedupedFontLoad {
 }
 
 interface TakumiFontDescriptor {
-  key?: string
+  key: string
   name: string
   data: Uint8Array
   weight?: number
@@ -179,42 +172,13 @@ function toUint8Array(data: BufferSource): Uint8Array {
   return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
 }
 
-function createFontDescriptor(entry: DedupedFontLoad, includeKey = false): TakumiFontDescriptor {
+function createFontDescriptor(entry: DedupedFontLoad): TakumiFontDescriptor {
   return {
-    ...(includeKey ? { key: entry.binaryKey } : {}),
+    key: entry.binaryKey,
     name: entry.family,
     data: toUint8Array(entry.data),
     ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
     ...(entry.style ? { style: entry.style as 'normal' | 'italic' | 'oblique' } : {}),
-  }
-}
-
-function addLoadedFamilies(state: TakumiState, entry: DedupedFontLoad, registeredFamilies?: unknown) {
-  if (Array.isArray(registeredFamilies) && registeredFamilies.length) {
-    for (const family of registeredFamilies) {
-      const name = (family as { name?: unknown } | null)?.name
-      if (typeof name === 'string')
-        state.loadedFamilies.add(name)
-    }
-  }
-  else {
-    state.loadedFamilies.add(entry.family)
-  }
-}
-
-async function loadFontsIntoRenderer(state: TakumiState, entries: DedupedFontLoad[]) {
-  for (const entry of entries) {
-    if (state.loadedFontKeys.has(entry.binaryKey))
-      continue
-
-    try {
-      const registeredFamilies = await state.renderer.loadFont(createFontDescriptor(entry))
-      addLoadedFamilies(state, entry, registeredFamilies)
-    }
-    catch (err) {
-      logger.warn(`Failed to load font "${entry.family}" with takumi renderer: ${(err as Error).message}`)
-    }
-    state.loadedFontKeys.add(entry.binaryKey)
   }
 }
 
@@ -273,7 +237,6 @@ function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>, subsetChai
 
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options, timings } = event
-  const isTakumiV2 = compatibility.takumiVersion === 2
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
@@ -299,11 +262,9 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const baseURL = event.runtimeConfig.app.baseURL
 
-  const { images: optionImages, fetchedResources: optionFetchedResources, persistentImages, ...takumiOptions } = options.takumi || {}
+  const { images: optionImages, ...takumiOptions } = options.takumi || {}
   const images: Array<{ src: string, data: Uint8Array }> = [
     ...normalizeImageSources(optionImages),
-    ...normalizeImageSources(optionFetchedResources),
-    ...normalizeImageSources(persistentImages),
   ]
   if (resourceUrls.length) {
     const fetchTimeout = getFetchTimeout(event.runtimeConfig)
@@ -357,7 +318,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
     width: Math.min(Number(options.width) * dpr, maxDim),
     height: Math.min(Number(options.height) * dpr, maxDim),
     format,
-    ...(isTakumiV2 ? { images } : { fetchedResources: images }),
+    images,
     devicePixelRatio: dpr,
   })
 
@@ -370,15 +331,9 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   return await withTakumiLock(state, lockTimeout, () => {
     endLockWait()
     return timings.measure('render-takumi', async () => {
-      let loadedFamilies = state.loadedFamilies
-      if (isTakumiV2) {
-        loadedFamilies = new Set(fontEntries.map(entry => entry.family))
-        renderOptions.fonts = fontEntries.map(entry => createFontDescriptor(entry, true))
-        renderOptions.fontFamilies = [...loadedFamilies]
-      }
-      else {
-        await loadFontsIntoRenderer(state, fontEntries)
-      }
+      const loadedFamilies = new Set(fontEntries.map(entry => entry.family))
+      renderOptions.fonts = fontEntries.map(entry => createFontDescriptor(entry))
+      renderOptions.fontFamilies = [...loadedFamilies]
 
       const rootStyle = nodes.style ?? {}
       if (fontFamilyOverride) {

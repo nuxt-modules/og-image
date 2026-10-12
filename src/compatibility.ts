@@ -2,7 +2,7 @@ import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack/config'
 import type { PresetName } from 'nitropack/presets'
-import type { CompatibilityFlags, RendererType, RuntimeCompatibilityMeta, RuntimeCompatibilityPayload, RuntimeCompatibilitySchema } from './runtime/types'
+import type { CompatibilityFlags, RendererType, RuntimeCompatibilityPayload, RuntimeCompatibilitySchema } from './runtime/types'
 import { readFile } from 'node:fs/promises'
 import { addTemplate, getNuxtVersion, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
@@ -161,7 +161,7 @@ export function getPresetNitroPresetCompatibility(target: string) {
   return compatibility
 }
 
-export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: Resolver, overrides?: RuntimeCompatibilitySchema, detectedRenderers: Set<RendererType>, metadata?: RuntimeCompatibilityMeta }): Promise<RuntimeCompatibilityPayload> {
+export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, options: { compatibility?: CompatibilityFlags, resolve: Resolver, overrides?: RuntimeCompatibilitySchema, detectedRenderers: Set<RendererType> }): Promise<RuntimeCompatibilityPayload> {
   const target = resolveOgImagePreset(nitroConfig)
   const compatibility: RuntimeCompatibilitySchema = getPresetNitroPresetCompatibility(target)
 
@@ -185,7 +185,7 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   nitroConfig.alias!['#og-image/renderers/browser'] = browserEnabled ? await resolve.resolvePath('./runtime/server/og-image/browser/renderer') : emptyMock
   nitroConfig.alias!['#og-image/renderers/takumi'] = takumiEnabled ? await resolve.resolvePath('./runtime/server/og-image/takumi/renderer') : emptyMock
 
-  const resolvedCompatibility: RuntimeCompatibilityPayload = { ...(options.metadata || {}) }
+  const resolvedCompatibility: RuntimeCompatibilityPayload = {}
   async function applyBinding(key: keyof Omit<RuntimeCompatibilitySchema, 'wasm'>) {
     let binding = options.compatibility?.[key]
     if (typeof binding === 'undefined')

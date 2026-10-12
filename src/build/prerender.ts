@@ -2,7 +2,7 @@ import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack/config'
 import type { ModuleOptions } from '../module'
-import type { RendererType, RuntimeCompatibilityMeta } from '../runtime/types'
+import type { RendererType } from '../runtime/types'
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { useNuxt } from '@nuxt/kit'
 import { useSiteConfig } from 'nuxt-site-config/kit'
@@ -24,11 +24,11 @@ export function getMissingSiteUrlWarning(input: { siteUrl?: string, prerenderedI
 
 // prerender will always be called when using nuxi generate and sometimes be used when using nuxi build
 
-export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, getCompatibilityMeta: () => RuntimeCompatibilityMeta = () => ({}), nuxt: Nuxt = useNuxt()) {
+export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig: NitroConfig) => {
       // bindings
-      await applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve, detectedRenderers: getDetectedRenderers(), metadata: getCompatibilityMeta() })
+      await applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve, detectedRenderers: getDetectedRenderers() })
       // avoid wasm handling while prerendering
       nitroConfig.wasm = nitroConfig.wasm || {}
       nitroConfig.wasm.esmImport = false
