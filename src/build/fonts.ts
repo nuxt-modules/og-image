@@ -415,7 +415,7 @@ export async function getResolvedNuxtFonts(
   const sourceKey = [...options.fontState.sourceMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
   const fallbackKey = [...options.fontState.fallbackMap.entries()].toSorted(([a], [b]) => a.localeCompare(b)).flat().join(',')
   const resolvedFamilies = [...options.fontState.resolvedFaces?.keys() || []].filter(f => options.fontState.isOgFamily?.(f) ?? true)
-  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}:${resolvedFamilies.join(',')}`
+  const cacheKey = `${sourceKey}:${fallbackKey}:${weightsKey}:${getResolvedFontStateKey(options.fontState)}`
   const cache: Map<string, ParsedFont[]> = (nuxt as any)._ogImageParsedFontsCache ||= new Map()
   const cached = cache.get(cacheKey)
   if (cached)
@@ -523,6 +523,25 @@ export async function getResolvedNuxtFonts(
 
   cache.set(cacheKey, result)
   return result
+}
+
+/** Stable key for the resolved faces that can affect OG image font output. */
+export function getResolvedFontStateKey(fontState: FontProcessingState): string {
+  return JSON.stringify(
+    [...fontState.resolvedFaces || []]
+      .filter(([family]) => fontState.isOgFamily?.(family) ?? true)
+      .flatMap(([family, faces]) => fontFacesFromResolved(family, faces))
+      .map(font => [
+        font.family,
+        font.src,
+        font.weight,
+        font.style,
+        font.unicodeRange || '',
+        font.subset || '',
+        font.weightRange?.join(',') || '',
+      ])
+      .toSorted((a, b) => a.join('\u0000').localeCompare(b.join('\u0000'))),
+  )
 }
 
 /** Download a font file if not already cached. Returns true on success. */

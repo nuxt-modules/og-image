@@ -39,6 +39,7 @@ import {
   buildFontFamilyCanonicalMap,
   cacheResolvedFontFiles,
   copyStaticFontsToOutput,
+  getResolvedFontStateKey,
   getResolvedNuxtFonts,
   getStaticFontCacheDir,
   resolveFontFamilies,
@@ -1489,7 +1490,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
     // weights and styles components use. Undefined before the first build.
     let builtFontKey: string | undefined
     const currentFontKey = () => JSON.stringify([
-      [...fontState.resolvedFaces?.keys() || []].filter(family => fontState.isOgFamily?.(family) ?? true).toSorted(),
+      getResolvedFontStateKey(fontState),
       fontRequirementsState.weights,
       fontRequirementsState.styles,
     ])

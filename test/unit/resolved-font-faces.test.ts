@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fontFacesFromResolved } from '../../src/build/css/font-face'
+import { getResolvedFontStateKey, getResolvedNuxtFonts } from '../../src/build/fonts'
 
 describe('fontFacesFromResolved', () => {
   it('reads the served URL, subset and unicode range of each face', () => {
@@ -25,5 +26,44 @@ describe('fontFacesFromResolved', () => {
 
   it('skips faces with only local sources', () => {
     expect(fontFacesFromResolved('Arial', [{ src: [{ name: 'Arial' }] }])).toEqual([])
+  })
+
+  it('refreshes cached fonts when a resolved family gains a face', async () => {
+    const nuxt = {} as any
+    const fontState = {
+      sourceMap: new Map<string, string>(),
+      fallbackMap: new Map<string, string>(),
+      resolvedFaces: new Map([['Poppins', [{ src: [{ url: '/_fonts/poppins-400.woff2' }], weight: 400 }]]]),
+    }
+
+    expect(await getResolvedNuxtFonts(nuxt, { fontState })).toMatchObject([
+      { family: 'Poppins', weight: 400 },
+    ])
+
+    fontState.resolvedFaces.set('Poppins', [
+      { src: [{ url: '/_fonts/poppins-400.woff2' }], weight: 400 },
+      { src: [{ url: '/_fonts/poppins-700.woff2' }], weight: 700 },
+    ])
+
+    expect(await getResolvedNuxtFonts(nuxt, { fontState })).toMatchObject([
+      { family: 'Poppins', weight: 400 },
+      { family: 'Poppins', weight: 700 },
+    ])
+  })
+
+  it('changes the development reload key when a resolved family gains a face', () => {
+    const fontState = {
+      sourceMap: new Map<string, string>(),
+      fallbackMap: new Map<string, string>(),
+      resolvedFaces: new Map([['Poppins', [{ src: [{ url: '/_fonts/poppins-400.woff2' }], weight: 400 }]]]),
+    }
+    const initialKey = getResolvedFontStateKey(fontState)
+
+    fontState.resolvedFaces.set('Poppins', [
+      { src: [{ url: '/_fonts/poppins-400.woff2' }], weight: 400 },
+      { src: [{ url: '/_fonts/poppins-700.woff2' }], weight: 700 },
+    ])
+
+    expect(getResolvedFontStateKey(fontState)).not.toBe(initialKey)
   })
 })
