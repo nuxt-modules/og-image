@@ -1,6 +1,7 @@
 import type { RequestEvent } from 'nuxt/server'
 import type { OgImageRuntimeConfig } from '../types'
 import { createError, deriveSecret, useRuntimeConfig } from 'nuxt/server'
+import { joinURL } from 'ufo'
 import { getCloudflareEnv } from './util/cloudflare'
 
 export const OG_IMAGE_SECRET_PURPOSE = 'nuxt-og-image:url-signing'
@@ -52,6 +53,27 @@ export async function initializeOgImageSigning(event: Pick<RequestEvent, 'contex
     return
   }
   event.context._ogImageSigningSecret = await deriveSecret(OG_IMAGE_SECRET_PURPOSE)
+}
+
+/** Only the image endpoints need the secret. Every other request can render without it. */
+export function isOgImageEndpointPath(pathname: string, baseURL: string): boolean {
+  return pathname.startsWith('/_og/') || pathname.startsWith(joinURL(baseURL, '_og/'))
+}
+
+let reportedFailure = false
+
+/** Log a missing or invalid secret once per server instance, with the fix. */
+export function reportSigningFailure(failure: unknown): void {
+  if (reportedFailure)
+    return
+  reportedFailure = true
+  const cause = failure instanceof Error ? failure.message : String(failure)
+  console.error([
+    '[nuxt-og-image] URL signing has no valid secret. OG image requests return 500 until you fix this. Pages still render.',
+    'Run `npx nuxt-og-image generate-secret`, then set NUXT_APP_SECRET in the production environment.',
+    'The secret must have at least 32 characters. To turn off signing, set `ogImage.security.secret` to false.',
+    `Cause: ${cause}`,
+  ].join('\n'))
 }
 
 function resolveLegacyRoot(root: unknown, legacy: unknown): unknown {
