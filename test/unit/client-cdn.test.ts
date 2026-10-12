@@ -20,7 +20,7 @@ vi.mock('#build/nuxt-og-image/client-config.mjs', () => ({
   },
 }))
 vi.mock('#build/nuxt-og-image/components.mjs', () => ({ componentNames: [] }))
-vi.mock('#site-config/app/composables/utils', () => ({
+vi.mock('#site-config/app', () => ({
   createSitePathResolver: () => (path: string) => `https://example.com${path}`,
 }))
 

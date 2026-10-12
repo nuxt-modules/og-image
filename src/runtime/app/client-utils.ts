@@ -7,7 +7,7 @@ import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
-import { createSitePathResolver } from '#site-config/app/composables/utils'
+import { createSitePathResolver } from '#site-config/app'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
 // Per-head-client map of active useHead entries, keyed by og key. Scoped to the

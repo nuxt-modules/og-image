@@ -180,9 +180,6 @@ export interface OgImageOptions {
   takumi?: {
     format?: 'png' | 'jpeg' | 'webp'
     images?: Array<{ src: string, data: ArrayBuffer | Uint8Array }>
-    fetchedResources?: Array<{ src: string, data: ArrayBuffer | Uint8Array }>
-    /** @deprecated Use `images` instead. */
-    persistentImages?: Array<{ src: string, data: ArrayBuffer }>
     devicePixelRatio?: number
   }
   /** @deprecated Legacy font override — no longer used at runtime */
@@ -266,11 +263,7 @@ export interface RuntimeCompatibilitySchema {
   wasm?: any
 }
 
-export interface RuntimeCompatibilityMeta {
-  takumiVersion?: 1 | 2
-}
-
-export type RuntimeCompatibilityPayload = Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>> & RuntimeCompatibilityMeta
+export type RuntimeCompatibilityPayload = Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>
 
 export type CompatibilityFlags = Partial<Omit<RuntimeCompatibilitySchema, 'wasm'>>
 

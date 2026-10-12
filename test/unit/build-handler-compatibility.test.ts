@@ -45,7 +45,6 @@ describe('build handler compatibility', () => {
       { runtimeCacheStorage: false } as any,
       { resolvePath: vi.fn(async path => path) } as any,
       () => detectedRenderers,
-      () => ({}),
       nuxt,
     )
     detectedRenderers.add('satori')
@@ -70,7 +69,6 @@ describe('build handler compatibility', () => {
       {} as any,
       {} as any,
       () => detectedRenderers,
-      () => ({}),
       nuxt,
     )
     detectedRenderers.add('browser')

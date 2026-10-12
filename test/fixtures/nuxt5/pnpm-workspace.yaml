@@ -25,6 +25,16 @@ minimumReleaseAgeExclude:
   - nuxt-nightly
   - '@nuxt/*-nightly'
   - pixelmatch@8.0.0
+  - '@takumi-rs/core-darwin-arm64@2.15.0'
+  - '@takumi-rs/core-darwin-x64@2.15.0'
+  - '@takumi-rs/core-linux-arm64-gnu@2.15.0'
+  - '@takumi-rs/core-linux-arm64-musl@2.15.0'
+  - '@takumi-rs/core-linux-x64-gnu@2.15.0'
+  - '@takumi-rs/core-linux-x64-musl@2.15.0'
+  - '@takumi-rs/core-win32-arm64-msvc@2.15.0'
+  - '@takumi-rs/core-win32-x64-msvc@2.15.0'
+  - '@takumi-rs/core@2.15.0'
+  - '@takumi-rs/helpers@2.15.0'
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
 trustPolicyExclude:
@@ -108,16 +118,16 @@ overrides:
 blockExoticSubdeps: false
 catalog:
   '@resvg/resvg-js': ^2.6.2
-  '@takumi-rs/core': ^2.14.0
+  '@takumi-rs/core': ^2.15.0
   nitro: 3.0.260903-beta
   nitropack: npm:nitro@3.0.260903-beta
-  nuxt: npm:nuxt-nightly@5.0.0-2610061032-c7ad8cd
+  nuxt: npm:nuxt-nightly@5.0.0-2610111729-78f43dd
   nuxt-site-config: ^5.0.0
   nuxtseo-shared: ^6.0.0
   pixelmatch: ^8.0.0
   pngjs: ^7.0.0
-  satori: ^0.35.0
+  satori: ^0.47.1
   typescript: 6.0.3
   vue: ^3.5.43
-  vue-router: ^5.3.1
-  vue-tsc: ^3.3.12
+  vue-router: ^5.4.0
+  vue-tsc: ^3.3.13

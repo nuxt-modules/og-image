@@ -5,7 +5,7 @@
 
 import { parseURL } from 'ufo'
 import { computed } from 'vue'
-import { useSiteConfig } from '#site-config/app/composables'
+import { useSiteConfig } from '#site-config/app'
 
 const props = withDefaults(defineProps<{
   colorMode?: 'dark' | 'light'
