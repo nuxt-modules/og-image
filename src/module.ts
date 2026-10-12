@@ -877,7 +877,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (isProviderEnabledForEnv('browser', nuxt, config)) {
       // in dev and prerender we rely on local chrome or playwright dependency
       // for runtime we need playwright dependency (or cloudflare binding)
-      const hasChromeLocally = checkLocalChrome()
+      const hasChromeLocally = await checkLocalChrome()
       const hasPlaywrightDependency = await hasResolvableDependency('playwright')
       const browserCompatibilityFlags = {
         prerender: config.compatibility?.prerender?.browser,
@@ -1145,14 +1145,21 @@ export default defineNuxtModule<ModuleOptions>({
         for (const renderer of ogImageComponentCtx.detectedRenderers) {
           const binding = getRecommendedBinding(renderer, targetCompatibility)
           const missing = await getMissingDependencies(renderer, binding)
-          // The browser renderer falls back to local Chrome or an on-demand download
-          // when playwright-core is missing, so a missing package does not stop it.
-          if (missing.length === 0 || renderer === 'browser') {
+          // Every local browser binding launches through playwright-core or playwright.
+          // chrome-launcher only finds a local Chrome for playwright-core to launch.
+          // Cloudflare Browser Rendering uses @cloudflare/puppeteer, which setup checks above.
+          const hasOtherBrowserLauncher = renderer === 'browser'
+            && ((typeof config.browser === 'object' && config.browser.provider === 'cloudflare') || await hasResolvableDependency('playwright'))
+          if (missing.length === 0 || hasOtherBrowserLauncher) {
             availableRenderers.add(renderer)
           }
           else {
             const installSpecs = await getMissingDependencyInstallSpecs(renderer, binding)
             const action = resolveMissingRendererAction({ renderer, installSpecs, dev: nuxt.options.dev, interactive: canPromptInteractively() })
+            // Screenshot pages have no template for the usage check to find,
+            // so the ogImage.browser opt-in alone fails the build.
+            if (action._tag === 'CheckUsage' && renderer === 'browser' && config.browser)
+              throw new Error(`[nuxt-og-image] ${getMissingRendererMessage(renderer, installSpecs)}`)
             if (action._tag === 'CheckUsage') {
               missingRenderers[renderer] = installSpecs
             }

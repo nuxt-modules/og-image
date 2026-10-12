@@ -109,7 +109,7 @@ const rendererConfigs = computed<RendererConfig[]>(() => {
         ...(hasSharp ? [fmt('jpg')] : []),
       ],
       disabledReason: !hasTakumi ? 'Module not installed' : null,
-      installCommand: !hasTakumi ? 'npx nuxi module add nuxt-og-image-takumi' : null,
+      installCommand: !hasTakumi ? 'npx nuxt-og-image enable takumi' : null,
     },
   ]
 })

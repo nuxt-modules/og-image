@@ -819,12 +819,12 @@ async function installNuxtFonts(): Promise<void> {
   // Use nuxi module add
   const { exec } = await import('tinyexec')
   try {
-    await exec('npx', ['nuxi', 'module', 'add', '@nuxt/fonts'], { nodeOptions: { cwd } })
+    await exec('npx', ['nuxt', 'module', 'add', '@nuxt/fonts'], { nodeOptions: { cwd } })
     spinner.stop('@nuxt/fonts module added')
   }
   catch {
     spinner.stop('Failed to add @nuxt/fonts')
-    p.log.warn('Run manually: npx nuxi module add @nuxt/fonts')
+    p.log.warn('Run manually: npx nuxt module add @nuxt/fonts')
   }
 }
 
@@ -1091,7 +1091,7 @@ async function runMigrate(args: string[]): Promise<void> {
         await installNuxtFonts()
       }
       else {
-        p.log.info('Skipped @nuxt/fonts installation. Add manually: npx nuxi module add @nuxt/fonts')
+        p.log.info('Skipped @nuxt/fonts installation. Add manually: npx nuxt module add @nuxt/fonts')
       }
     }
   }
