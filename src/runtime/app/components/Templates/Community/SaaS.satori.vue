@@ -2,7 +2,7 @@
 /**
  * @credits Basecamp-inspired SaaS template
  */
-import { useSiteConfig } from '#site-config/app/composables'
+import { useSiteConfig } from '#site-config/app'
 
 const props = withDefaults(defineProps<{
   colorMode?: 'dark' | 'light'

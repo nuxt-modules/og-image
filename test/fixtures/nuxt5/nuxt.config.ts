@@ -5,7 +5,7 @@ import NuxtSeoShared from 'nuxtseo-shared'
 for (const module of [NuxtOgImage, NuxtSiteConfig, NuxtSeoShared]) {
   const metadata = await module.getMeta()
   metadata.compatibility ||= {}
-  metadata.compatibility.nuxt = `${metadata.compatibility.nuxt} || 5.0.0-2610061032-c7ad8cd`
+  metadata.compatibility.nuxt = `${metadata.compatibility.nuxt} || 5.0.0-2610111729-78f43dd`
 }
 
 export default defineNuxtConfig({

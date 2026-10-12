@@ -5,7 +5,7 @@ import { createNitroRouteRuleMatcher } from 'nuxtseo-shared/server'
 import { parseURL } from 'ufo'
 import { toValue } from 'vue'
 import { defineNuxtPlugin, useRequestEvent } from '#app'
-import { withSiteUrl } from '#site-config/app/composables'
+import { withSiteUrl } from '#site-config/app'
 import { createOgImageMeta, getOgImagePath } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 

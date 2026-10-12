@@ -6,18 +6,24 @@ minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
   - nuxtseo-layer-devtools
   - nuxtseo-shared
-  - '@nuxt/cli@4.0.0'
-  - '@nuxt/kit@4.6.0'
-  - '@nuxt/nitro-server@4.6.0'
-  - '@nuxt/schema@4.6.0'
-  - '@nuxt/vite-builder@4.6.0'
-  - '@nuxt/vite-server@4.6.0'
-  - nuxt@4.6.0
   - '@nuxt/devtools-kit@4.0.0-beta.4'
   - '@nuxt/devtools@4.0.0-beta.4'
-  - vite@8.3.3
   - '@nuxt/fonts@1.0.1'
   - fontless@1.3.2
+  - '@fontsource/noto-sans-sc@5.3.1'
+  - '@takumi-rs/core-darwin-arm64@2.15.0'
+  - '@takumi-rs/core-darwin-x64@2.15.0'
+  - '@takumi-rs/core-linux-arm64-gnu@2.15.0'
+  - '@takumi-rs/core-linux-arm64-musl@2.15.0'
+  - '@takumi-rs/core-linux-x64-gnu@2.15.0'
+  - '@takumi-rs/core-linux-x64-musl@2.15.0'
+  - '@takumi-rs/core-win32-arm64-msvc@2.15.0'
+  - '@takumi-rs/core-win32-x64-msvc@2.15.0'
+  - '@takumi-rs/core@2.15.0'
+  - '@takumi-rs/helpers@2.15.0'
+  - '@takumi-rs/wasm@2.15.0'
+  - happy-dom@21.0.1
+  - zod@4.6.6
 
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
@@ -106,7 +112,7 @@ overrides:
 
   stylehacks: 9.0.7
   unhead: ^3.4.2
-  vite: ^8.3.3
+  vite: ^8.3.4
   vitest-environment-nuxt: 2.0.0
   vue: ^3.5.43
 
@@ -134,12 +140,12 @@ onlyBuiltDependencies:
 catalog:
   '@antfu/eslint-config': ^9.5.1
   '@clack/prompts': ^1.8.1
-  '@fontsource/noto-sans-sc': ^5.3.0
+  '@fontsource/noto-sans-sc': ^5.3.1
   '@iconify-json/carbon': ^1.2.28
   '@iconify-json/logos': ^1.2.15
   '@iconify-json/noto': ^1.2.9
   '@iconify-json/ri': ^1.2.10
-  '@iconify-json/tabler': ^1.2.41
+  '@iconify-json/tabler': ^1.2.42
   '@iconify/types': ^2.0.0
   '@img/sharp-linux-x64': ^0.35.5
   '@nuxt/content': ^3.16.1
@@ -148,7 +154,7 @@ catalog:
   '@nuxt/fonts': ^1.0.1
   '@nuxt/icon': ^2.5.1
   '@nuxt/image': ^2.1.0
-  '@nuxt/kit': ^4.6.0
+  '@nuxt/kit': ^4.6.1
   '@nuxt/module-builder': ^1.0.3
   '@nuxt/test-utils': ^4.3.3
   '@nuxt/ui': ^4.11.3
@@ -159,19 +165,16 @@ catalog:
   '@resvg/resvg-js': ^2.6.2
   '@resvg/resvg-wasm': ^2.6.2
   '@tailwindcss/vite': ^4.3.3
-  '@takumi-rs/core': ^2.14.0
-  '@takumi-rs/core-v1': npm:@takumi-rs/core@1.8.7
-  '@takumi-rs/helpers': ^2.14.0
-  '@takumi-rs/helpers-v1': npm:@takumi-rs/helpers@1.8.7
-  '@takumi-rs/wasm': ^2.14.0
-  '@takumi-rs/wasm-v1': npm:@takumi-rs/wasm@1.8.7
+  '@takumi-rs/core': ^2.15.0
+  '@takumi-rs/helpers': ^2.15.0
+  '@takumi-rs/wasm': ^2.15.0
   '@unocss/config': ^66.10.5
   '@unocss/core': ^66.10.5
   '@unocss/nuxt': ^66.10.5
   '@unocss/preset-icons': ^66.10.5
   '@unocss/preset-wind': ^66.10.5
   '@unocss/preset-wind4': ^66.10.5
-  '@vitejs/plugin-vue': ^6.0.9
+  '@vitejs/plugin-vue': ^6.0.10
   '@vue/compiler-core': ^3.5.43
   '@vue/compiler-sfc': ^3.5.43
   '@vueuse/nuxt': ^15.0.0
@@ -189,16 +192,16 @@ catalog:
   fnv1a-64: ^0.1.2
   fontless: ^1.3.2
   globby: ^16.2.4
-  happy-dom: ^20.14.5
+  happy-dom: ^21.0.1
   hookable: ^6.1.2
   jest-image-snapshot: ^6.5.2
   lightningcss: ^1.33.0
-  lru-cache: ^11.5.2
+  lru-cache: ^11.5.3
   magic-string: ^1.4.3
   magicast: ^0.5.5
   mocked-exports: ^0.1.1
   nitropack: ^2.13.4
-  nuxt: 4.6.0
+  nuxt: 4.6.1
   nuxt-site-config: ^5.0.0
   nuxtseo-layer-devtools: ^5.3.16
   nuxtseo-shared: ^6.0.0
@@ -209,8 +212,8 @@ catalog:
   oxc-parser: ^0.153.0
   oxc-walker: ^1.1.1
   pathe: ^2.0.3
-  playwright: ^1.63.0
-  playwright-core: ^1.63.0
+  playwright: ^1.64.0
+  playwright-core: ^1.64.0
   radix3: ^1.1.2
   sass: ^1.105.1
   satori: ^0.47.1
@@ -227,9 +230,9 @@ catalog:
   unifont: ^1.0.3
   unocss: ^66.10.5
   unplugin: ^3.4.0
-  vite: ^8.3.3
+  vite: ^8.3.4
   vitest: ^5.0.3
   vue: ^3.5.43
-  vue-tsc: ^3.3.12
-  wrangler: ^4.147.0
-  zod: ^4.6.5
+  vue-tsc: ^3.3.13
+  wrangler: ^4.149.0
+  zod: ^4.6.6
