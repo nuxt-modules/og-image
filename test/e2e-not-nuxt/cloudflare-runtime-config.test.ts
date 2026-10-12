@@ -63,9 +63,13 @@ describe('cloudflare runtime config', () => {
     expect(html).not.toContain(signingSecret)
   })
 
-  it.each([undefined, 'short'])('fails closed with an invalid appSecret %s', async (secret) => {
-    const response = await fetchWorker('/', secret === undefined ? {} : { NUXT_APP_SECRET: secret })
-    expect(response.status).toBe(500)
+  it.each([undefined, 'short'])('renders pages and fails closed for images with an invalid appSecret %s', async (secret) => {
+    const env = secret === undefined ? {} : { NUXT_APP_SECRET: secret }
+    const page = await fetchWorker('/', env)
+    expect(page.status).toBe(200)
+    const url = extractOgImageUrl(await page.text())!
+    const image = await fetchWorker(new URL(url, 'https://example.com').pathname, env)
+    expect(image.status).toBe(500)
   })
 
   it('serves internal $fetch requests and server islands with a binding-only secret', async () => {
