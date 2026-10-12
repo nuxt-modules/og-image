@@ -300,7 +300,7 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-og-image',
     compatibility: {
-      nuxt: '^4.6.1 || ^5.0.0',
+      nuxt: '^4.6.1 || ^5.0.0-0',
     },
     configKey: 'ogImage',
   },
