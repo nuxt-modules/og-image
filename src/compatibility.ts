@@ -208,13 +208,12 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
       [`#og-image/bindings/${key}`]: !binding ? emptyMock : await resolve.resolvePath(`./runtime/server/og-image/bindings/${key}/${binding}`),
     }
   }
-  // Resolve satori's bundled yoga.wasm (yoga-layout, not yoga-wasm-web)
-  // satori 0.16+ ships its own yoga.wasm that matches its bundled Emscripten glue
+  // Resolve the layout binary bundled with the required Satori release.
   const satoriPkgDir = await resolve.resolvePath('satori/package.json').then(p => p.replace('/package.json', ''))
-  const yogaWasmPath = `${satoriPkgDir}/yoga.wasm`
+  const layoutWasmPath = `${satoriPkgDir}/layout.wasm`
 
   nitroConfig.alias = defu(
-    { '#og-image/yoga-wasm': `${yogaWasmPath}?module` },
+    { '#og-image/layout-wasm': `${layoutWasmPath}?module` },
     await applyBinding('browser'),
     await applyBinding('satori'),
     await applyBinding('takumi'),
@@ -225,9 +224,9 @@ export async function applyNitroPresetCompatibility(nitroConfig: NitroConfig, op
   if (resolvedCompatibility.satori) {
     const satoriPackage = await readPackageManifest(`${satoriPkgDir}/package.json`)
     if (!isSupportedSatoriVersion(satoriPackage.version))
-      throw new Error(`[Nuxt OG Image] Satori ${satoriPackage.version} is not supported. Satori ${MIN_SATORI_VERSION} or later is required (GHSA-wx4j-mvgx-mqwp). Run: npm install satori@latest`)
+      throw new Error(`[Nuxt OG Image] Satori ${satoriPackage.version} is not supported. Satori ${MIN_SATORI_VERSION} or later is required. Run: npm install satori@latest`)
     const harfbuzzWasmPath = resolveModulePath('harfbuzzjs/hb.wasm', { from: `${satoriPkgDir}/package.json` })
-    // Satori 0.33 loads HarfBuzz separately from its bundled Yoga runtime.
+    // Replace bundled HarfBuzz with the loader for this runtime.
     if (resolvedCompatibility.satori === 'wasm' || target.replace(RE_LEGACY_SUFFIX, '') === 'netlify-edge') {
       const harfbuzzDir = harfbuzzWasmPath.slice(0, -'hb.wasm'.length)
       nitroConfig.virtual!['#og-image/harfbuzz-callbacks'] = resolvedCompatibility.satori === 'wasm'

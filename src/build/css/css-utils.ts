@@ -1,7 +1,6 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
 import { logger } from '../../runtime/logger'
 import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css'
-import { RE_WHITESPACE } from '../../util'
 
 const _warnedVars = new Set<string>()
 
@@ -823,35 +822,10 @@ export async function downlevelColor(prop: string, value: string): Promise<strin
 }
 
 /**
- * Convert individual transform properties to shorthand transform for Satori.
- */
-export function convertIndividualTransforms(styles: Record<string, string>): void {
-  const parts: string[] = []
-  if (styles.translate) {
-    const vals = styles.translate.trim().split(RE_WHITESPACE)
-    parts.push(vals.length === 2 ? `translate(${vals[0]}, ${vals[1]})` : `translateX(${vals[0]})`)
-    delete styles.translate
-  }
-  if (styles.rotate) {
-    parts.push(`rotate(${styles.rotate})`)
-    delete styles.rotate
-  }
-  if (styles.scale) {
-    const vals = styles.scale.trim().split(RE_WHITESPACE).filter(Boolean)
-    parts.push(`scale(${vals.join(', ')})`)
-    delete styles.scale
-  }
-  if (parts.length > 0) {
-    styles.transform = styles.transform ? `${parts.join(' ')} ${styles.transform}` : parts.join(' ')
-  }
-}
-
-/**
  * Expand logical properties to physical longhands for Satori.
  */
 export function convertLogicalProperties(styles: Record<string, string>): void {
   const mapping = [
-    ['inset', ['top', 'right', 'bottom', 'left']],
     ['inset-inline', ['left', 'right']],
     ['inset-block', ['top', 'bottom']],
     ['padding-inline', ['padding-left', 'padding-right']],
@@ -868,13 +842,14 @@ export function convertLogicalProperties(styles: Record<string, string>): void {
   }
 }
 
+// Keep shared gradient output compatible with Takumi 1, which ignores interpolation spaces.
 function stripGradientColorSpace(value: string): string {
   return value.replace(GRADIENT_COLOR_SPACE_RE, '')
 }
 
 /**
  * Shared post-processing pipeline for resolved CSS styles.
- * Handles: resolve vars → skip unresolvable → downlevel colors → transforms → logical props.
+ * Handles: resolve vars → skip unresolvable → downlevel colors → logical props.
  */
 export async function postProcessStyles(
   rawStyles: Record<string, string>,
@@ -941,7 +916,6 @@ export async function postProcessStyles(
     styles[prop] = value
   }
 
-  convertIndividualTransforms(styles)
   convertLogicalProperties(styles)
 
   return Object.keys(styles).length ? styles : null

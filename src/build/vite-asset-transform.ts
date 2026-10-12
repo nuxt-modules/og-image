@@ -208,11 +208,9 @@ function getMimeType(ext: string): string {
 
 // Unsupported utility patterns for OG image renderers - filtered at build time
 const UNSUPPORTED_CLASS_PATTERNS = [
-  /^z-/, // z-index not supported by Satori
   /^ring(-|$)/, // Ring utilities - not supported
   /^divide(-|$)/, // Divide utilities - not supported
   /^space-(x|y)(-|$)/, // Space utilities - use gap instead
-  /^backdrop-/, // Backdrop utilities - not supported
   // Note: filter utilities (blur, brightness, etc.) ARE supported by Satori
   // Note: skew transforms ARE supported by Satori
   /^transition(-|$)/, // Animation (static image)

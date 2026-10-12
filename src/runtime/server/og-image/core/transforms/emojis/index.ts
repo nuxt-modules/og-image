@@ -1,4 +1,3 @@
-import type { NuxtIslandResponse } from 'nuxt/app'
 import type { OgImageRenderEventContext } from '../../../../../types'
 import { getEmojiSvg } from '#og-image/emoji-transform'
 import { RE_MATCH_EMOJIS } from './emoji-utils'
@@ -65,7 +64,7 @@ function makeIdsUnique(svg: string): string {
  * Apply emoji transformations to island HTML content.
  * Replaces emoji characters with inline SVG elements.
  */
-export async function applyEmojis(ctx: OgImageRenderEventContext, island: NuxtIslandResponse): Promise<void> {
+export async function applyEmojis(ctx: OgImageRenderEventContext, island: { html: string }): Promise<void> {
   if (!island.html || !ctx.options.emojis)
     return
 

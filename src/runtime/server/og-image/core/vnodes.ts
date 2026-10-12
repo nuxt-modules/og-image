@@ -200,14 +200,15 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
   if (!html) {
     const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
     const island = await ctx.timings.measure('island-fetch', () => fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout))
-    // pre-transform HTML - apply emoji replacements
-    await applyEmojis(ctx, island)
     html = island.html
     if (html?.includes('<body>')) {
       // get inner contents of body
       html = html.match(RE_BODY_CONTENT)?.[1] || ''
     }
   }
+  const content = { html }
+  await applyEmojis(ctx, content)
+  html = content.html
   const baseStyle = `position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;`
   const fullStyle = options?.wrapperStyle ? `${baseStyle} ${options.wrapperStyle}` : baseStyle
   const template = `<div style="${fullStyle}">${html}</div>`
