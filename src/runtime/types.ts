@@ -49,7 +49,6 @@ export interface OgImageRuntimeConfig {
   hasNuxtContent?: boolean
   colorPreference: 'light' | 'dark'
 
-  isNuxtContentDocumentDriven: boolean
   zeroRuntime: boolean
   cssFramework: 'tailwind' | 'unocss' | 'none'
 
