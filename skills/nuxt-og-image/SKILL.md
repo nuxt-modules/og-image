@@ -104,7 +104,7 @@ Guide: https://nuxtseo.com/docs/og-image/guides/cloudflare
 
 ## Traps
 
-- **Community templates such as `NuxtSeo` work only in dev.** A dev page render copies the template into `components/OgImage/`. A production build fails on `defineOgImage('NuxtSeo')` until you eject it. A component name built at runtime is not checked at build; that image returns 500. Run `pnpm exec nuxt-og-image eject NuxtSeo`. It picks the variant for the renderer your app uses; `eject NuxtSeo.takumi` or `eject NuxtSeo.satori` chooses one.
+- **Community templates such as `NuxtSeo` work only in dev.** A dev page render copies the template into `components/OgImage/`. A production build fails on `defineOgImage('NuxtSeo.takumi')` until you eject it. A component name built at runtime is not checked at build; that image returns 500. Run `pnpm exec nuxt-og-image eject NuxtSeo`. It picks the variant for the renderer your app uses; `eject NuxtSeo.takumi` or `eject NuxtSeo.satori` chooses one.
 - **`zeroRuntime: true` removes the `/_og/d/` handler.** A page that is not prerendered gets no `og:image`. Prerender every page that calls `defineOgImage()`.
 - **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
 - **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
