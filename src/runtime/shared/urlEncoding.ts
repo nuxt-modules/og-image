@@ -164,6 +164,14 @@ function base64UrlToHex(input: string): string {
 }
 
 /**
+ * SHA-256 hex digest (64 chars of [0-9a-f]) of a canonical, key-sorted
+ * serialization. Equal structures produce equal digests in every runtime.
+ */
+export function digestCanonical(value: unknown): string {
+  return base64UrlToHex(digest(canonicalJson(value)))
+}
+
+/**
  * Generate a deterministic hash from options object
  * Excludes _path so images with same options can be cached across pages,
  * except for PageScreenshot, which renders the page itself.
@@ -183,7 +191,7 @@ export function hashOgImageOptions(
   const hashInput = componentHash || version
     ? [hashableOptions, componentHash || '', version || '']
     : hashableOptions
-  return base64UrlToHex(digest(canonicalJson(hashInput))).slice(0, 16)
+  return digestCanonical(hashInput).slice(0, 16)
 }
 
 /**

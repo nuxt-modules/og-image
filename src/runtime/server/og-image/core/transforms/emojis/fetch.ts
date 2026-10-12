@@ -2,6 +2,7 @@ import type { OgImageRenderEventContext } from '../../../../../types'
 import { $fetch } from 'ofetch'
 import { emojiCache } from '#og-image-cache'
 import { getFetchTimeout } from '../../../../util/fetchTimeout'
+import { toStorageKey } from '../../../../util/storageKey'
 import { getEmojiCodePoint, getEmojiIconNames } from './emoji-utils'
 
 /**
@@ -14,10 +15,9 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
   const possibleNames = getEmojiIconNames(codePoint, emojiSet)
 
   // Try cache first with any of the possible names
-  // Using '|' delimiter to avoid collisions (colons appear in emoji set names)
   let svg = null
   for (const iconName of possibleNames) {
-    const key = ['1', emojiSet, iconName].join('|')
+    const key = toStorageKey('emoji', [emojiSet, iconName])
     if (await emojiCache.hasItem(key)) {
       svg = await emojiCache.getItem(key)
       if (svg)
@@ -37,7 +37,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
         if (deadline.aborted)
           break
         try {
-          svg = await $fetch(`https://api.iconify.design/${emojiSet}/${iconName}.svg`, {
+          svg = await $fetch(`https://api.iconify.design/${encodeURIComponent(emojiSet)}/${encodeURIComponent(iconName)}.svg`, {
             responseType: 'text',
             retry: 0,
             signal: deadline,
@@ -47,8 +47,7 @@ export async function getEmojiSvg(ctx: OgImageRenderEventContext, emojiChar: str
           // Iconify API returns literal '404' text (not HTTP 404) for missing icons
           if (svg && svg !== '404') {
             // Cache this successful match
-            const key = ['1', emojiSet, iconName].join('|')
-            await emojiCache.setItem(key, svg as string)
+            await emojiCache.setItem(toStorageKey('emoji', [emojiSet, iconName]), svg as string)
             break
           }
         }
