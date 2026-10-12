@@ -1,6 +1,6 @@
 import type { FetchError } from 'ofetch'
 import type { H3Event } from '#nuxtseo/h3'
-import { parseURL, withLeadingSlash, withQuery } from 'ufo'
+import { parseURL, withQuery } from 'ufo'
 import { createError, defineEventHandler, getRequestHost, sendRedirect } from '#nuxtseo/h3'
 import { fetchWithEvent } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
@@ -119,14 +119,16 @@ export default defineEventHandler(async (event) => {
 
   // Reject anything that could leave the origin (e.g. `/_og/r//evil.com/x` or
   // backslash variants), and any embedded scheme (`/_og/r/http://evil.com/x`).
-  if (targetPath.includes('://') || !parseSameOriginPath(targetPath)) {
+  const parsedPath = parseSameOriginPath(targetPath)
+  if (targetPath.includes('://') || parsedPath._tag === 'Err') {
     throw createError({
       statusCode: 400,
       statusMessage: '[Nuxt OG Image] Target path must be a same-origin path.',
     })
   }
+  const pagePath = parsedPath.value
 
-  if (isInternalRoute(targetPath)) {
+  if (isInternalRoute(pagePath)) {
     throw createError({
       statusCode: 400,
       statusMessage: '[Nuxt OG Image] Cannot resolve og:image for internal route.',
@@ -146,7 +148,7 @@ export default defineEventHandler(async (event) => {
       forwardQuery[k] = v
   }
 
-  const fetchPath = withQuery(withLeadingSlash(targetPath), forwardQuery)
+  const fetchPath = withQuery(pagePath, forwardQuery)
 
   const html = await fetchWithEvent<string>(event, fetchPath, {
     headers: { accept: 'text/html' },

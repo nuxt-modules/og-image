@@ -70,7 +70,7 @@ function webEvent(node?: object) {
   return { node, path: '/og.png', res: { headers: new Headers() } }
 }
 
-function setupPublishing() {
+function setupPublishing({ secret }: { secret?: string } = {}) {
   const app = {} as Parameters<typeof getPublishedImageCache>[0]
   const storage = createStorage().mount('public', memoryDriver())
   const input = {
@@ -86,7 +86,7 @@ function setupPublishing() {
   useStorage.mockReturnValue(storage)
   useOgImageRuntimeConfig.mockReturnValue({
     defaults: {},
-    security: { renderTimeout: 15000 },
+    security: { renderTimeout: 15000, secret },
     publish: { storage: input.mount, baseURL: input.baseURL, cacheVersion: 'v1' },
   })
   const createImage = vi.fn(async () => image)
@@ -232,29 +232,52 @@ describe('imageEventHandler response timing', () => {
   })
 
   it('bypasses the published object on purge and publishes the fresh bytes', async () => {
-    const { input, event, createImage } = setupPublishing()
+    const { input, event, createImage } = setupPublishing({ secret: 'signing-secret' })
     const old = await publishImage(input)
     const fresh = Buffer.from('fresh image')
     createImage.mockResolvedValue(fresh)
     useOgImageBufferCache.mockResolvedValue({ cachedItem: false, update: vi.fn(), expiresAt: Date.now() + 60000 })
-    event.path += '?purge=true'
+    event.path += '?purge=signing-secret'
     expect(await imageEventHandler(event)).toBe(fresh)
+    expect(useOgImageBufferCache).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ purge: true }))
     expect(event.node.res.statusCode).toBe(200)
     await vi.mocked(event.waitUntil).mock.calls[0]![0]
     expect(await getPublishedImage(input)).not.toEqual(old)
   })
 
-  it('preserves the known URL and manifest when purge authentication fails', async () => {
-    const { input, event, cache, cacheKey } = setupPublishing()
+  it.each([
+    { secret: undefined, query: '?purge' },
+    { secret: undefined, query: '?purge=true' },
+    { secret: 'signing-secret', query: '?purge' },
+    { secret: 'signing-secret', query: '?purge=wrong' },
+  ])('answers 403 to a purge that lacks the signing secret ($query, secret: $secret)', async ({ secret, query }) => {
+    const { input, event, cache, cacheKey, createImage } = setupPublishing({ secret })
     const published = await publishImage(input)
     await imageEventHandler(event)
-    const denied = Object.assign(new Error('Invalid purge token'), { statusCode: 403 })
-    useOgImageBufferCache.mockResolvedValue(denied)
-    event.path += '?purge=wrong'
-    expect(await imageEventHandler(event)).toBe(denied)
+    useOgImageBufferCache.mockClear()
+    vi.mocked(event.waitUntil).mockClear()
+    event.path += query
+    expect(await imageEventHandler(event)).toMatchObject({ statusCode: 403 })
+    expect(useOgImageBufferCache).not.toHaveBeenCalled()
+    expect(createImage).not.toHaveBeenCalled()
     expect(cache.get(cacheKey, Date.now())).toEqual(published)
     expect(await getPublishedImage(input)).toEqual(published)
     expect(event.waitUntil).not.toHaveBeenCalled()
+  })
+
+  it('answers 403 to a purge on a server without a publish target', async () => {
+    useOgImageRuntimeConfig.mockReturnValue({ security: {} })
+    const event = nodeEvent()
+    event.path = '/_og/d/c_Test.png?purge=1'
+    expect(await imageEventHandler(event)).toMatchObject({ statusCode: 403 })
+    expect(useOgImageBufferCache).not.toHaveBeenCalled()
+  })
+
+  it('serves the image without purging when the query has no purge', async () => {
+    useOgImageRuntimeConfig.mockReturnValue({ security: { secret: 'signing-secret' } })
+    const event = nodeEvent()
+    expect(await imageEventHandler(event)).toBe(image)
+    expect(useOgImageBufferCache).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ purge: false }))
   })
 
   it('warns once per app when publishing fails and still serves each image', async () => {

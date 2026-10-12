@@ -12,6 +12,7 @@ import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
 import { useOgImageBufferCache } from './cache'
 import { warnPublishUnavailable } from './publishWarnings'
+import { parsePurgeRequest } from './purge'
 import { getEventQuery } from './query'
 
 export async function imageEventHandler(e: H3Event) {
@@ -88,6 +89,17 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       }
     }
   }
+  // Dev and prerender have no runtime cache, so a purge there has nothing to drop.
+  const purgeRequest = import.meta.dev || import.meta.prerender
+    ? { _tag: 'None' as const }
+    : parsePurgeRequest(getEventQuery(e).purge, security?.secret)
+  if (purgeRequest._tag === 'Denied') {
+    return createError({
+      statusCode: 403,
+      statusMessage: '[Nuxt OG Image] Invalid purge token. Provide the signing secret as ?purge=<secret>.',
+    })
+  }
+  const purge = purgeRequest._tag === 'Authorized'
   // debug - allow in dev mode OR when debug is enabled in config
   if ((import.meta.dev || debug) && isDevToolsContextRequest) {
     setHeader(e, 'Content-Type', 'application/json')
@@ -159,7 +171,6 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     return buildCachedImage
   }
 
-  const purge = typeof getEventQuery(e).purge !== 'undefined'
   let publication = publish && !import.meta.dev && !import.meta.prerender
     ? (() => {
         const key = getPublishKey(new URL(e.path, getSiteConfig(e).url).href, config.defaults, publish.cacheVersion)
@@ -198,16 +209,12 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   const cacheApi = await useOgImageBufferCache(ctx, {
     cacheMaxAgeSeconds: ctx.options.cacheMaxAgeSeconds,
     baseCacheKey,
-    secret: security?.secret || undefined,
+    purge,
   }).finally(endCacheLookup)
   // we sent a 304 not modified
   if (typeof cacheApi === 'undefined') {
     return
   }
-  if (cacheApi instanceof H3Error) {
-    return cacheApi
-  }
-  // Purge authentication happens in the buffer cache before local URL invalidation.
   if (publication && purge)
     publication.cache.forget(publication.cacheKey)
 

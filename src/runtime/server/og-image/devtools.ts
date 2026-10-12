@@ -5,6 +5,7 @@ import { createError } from '#nuxtseo/h3'
 import { htmlPayloadCache } from '#og-image-cache'
 import { extractSocialPreviewTags } from '../../pure'
 import { logger } from '../util/logger'
+import { toStorageKey } from '../util/storageKey'
 
 export interface DevToolsExtractPayload {
   options: OgImageOptionsInternal[]
@@ -56,7 +57,8 @@ async function doFetchWithErrorHandling(fetch: any, path: string) {
 }
 
 // this is only needed by devtools
-export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, cacheKey: string): Promise<H3Error | DevToolsExtractPayload> {
+export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, key: string): Promise<H3Error | DevToolsExtractPayload> {
+  const cacheKey = toStorageKey('devtools', key)
   const cachedHtmlPayload = await htmlPayloadCache.getItem(cacheKey) as { expiresAt: number, value: DevToolsExtractPayload } | null
   if (!import.meta.dev && cachedHtmlPayload && cachedHtmlPayload.expiresAt > Date.now())
     return cachedHtmlPayload.value

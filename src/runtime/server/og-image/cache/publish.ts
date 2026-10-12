@@ -1,7 +1,7 @@
 import type { Storage } from 'unstorage'
 import { parseURL } from 'ufo'
 import { parsePublishConfig } from '../../../shared/publish'
-import { extractEncodedSegment, hashOgImageOptions } from '../../../shared/urlEncoding'
+import { digestCanonical, extractEncodedSegment } from '../../../shared/urlEncoding'
 import { withTimeout } from '../../util/withTimeout'
 
 interface PublishManifest {
@@ -32,12 +32,15 @@ export interface Published { _tag: 'Published', url: string, objectKey: string, 
 interface Unavailable { _tag: 'Unavailable', reason: unknown }
 interface PublishTarget { _tag: 'Target', storage: Omit<PublishStorage, 'getMount'>, baseURL: string }
 
-/** Normalize signed image paths without loading a renderer during page SSR. */
+/**
+ * Normalize signed image paths without loading a renderer during page SSR.
+ * The key is a full SHA-256 hex digest, so it has one fixed format.
+ */
 export function getPublishKey(url: string, defaults: Record<string, unknown>, cacheVersion: string): string {
   const { pathname: path, host, protocol } = parseURL(url)
   const extension = path.split('.').pop()!
   const segment = decodeURIComponent(extractEncodedSegment(path, extension)).replace(/,s_[^,]+$/, '')
-  return hashOgImageOptions({ segment, defaults, host, protocol }, '', cacheVersion)
+  return digestCanonical([{ segment, defaults, host, protocol }, cacheVersion])
 }
 
 /** A page may reference the bucket only while its manifest and object both exist. */
