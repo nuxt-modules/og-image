@@ -57,7 +57,7 @@ describe('cloudflare runtime config', () => {
     const html = await response.text()
     const ogImageUrl = extractOgImageUrl(html)
 
-    const [, params, signature] = ogImageUrl!.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    const [, params, signature] = decodeURIComponent(ogImageUrl!).match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
     expect(html).not.toContain(rootSecret)
     expect(html).not.toContain(signingSecret)
@@ -81,7 +81,7 @@ describe('cloudflare runtime config', () => {
     const response = await fetchWorker('/', env)
     const html = await response.text()
     const url = extractOgImageUrl(html)!
-    const [, params, signature] = url.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    const [, params, signature] = decodeURIComponent(url).match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
     expect(html).not.toContain(rootSecret)
     const internal = await fetchWorker('/internal-fetch', env)
@@ -97,18 +97,21 @@ describe('cloudflare runtime config', () => {
     const { url } = await response.json() as { url: string }
 
     const parsed = new URL(url)
+    expect(parsed.pathname).not.toMatch(/[,+]/)
+    expect(parsed.pathname).toContain('%2C')
+    expect(parsed.pathname).toContain('%2B')
     // Same origin the app side uses for the page's og:image.
     const html = await (await fetchWorker('/', env)).text()
     const ogImage = html.match(/property="og:image" content="([^"]+)"/)?.[1]
     expect(parsed.origin).toBe(new URL(ogImage!).origin)
-    const [, params, signature] = parsed.pathname.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    const [, params, signature] = decodeURIComponent(parsed.pathname).match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
     expect(signature).toBe(signEncodedParams(params, signingSecret))
 
     // satori is not bundled in this fixture, so rendering fails after
     // verification. Only the signature check matters here.
     const image = await fetchWorker(parsed.pathname, env)
     expect(image.status).not.toBe(403)
-    const tampered = await fetchWorker(parsed.pathname.replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png'), env)
+    const tampered = await fetchWorker(parsed.pathname.replace(/%2Cs_[\w-]+\.png$/, '%2Cs_AAAAAAAAAAAAAAAA.png'), env)
     expect(tampered.status, await tampered.text()).toBe(403)
   })
 })

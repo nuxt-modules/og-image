@@ -13,11 +13,4 @@ export default defineTransformer([
       node.props.tw = node.props.tw.replace(RE_ICON_CLASSES, '')
     },
   },
-  {
-    filter: (node: VNode) => !!node.props?.style?.display,
-    transform(node: VNode) {
-      if (['inline-block', 'inline'].includes(node.props.style!.display))
-        delete node.props.style!.display
-    },
-  },
 ])

@@ -3,7 +3,7 @@ import { digest } from 'ohash/crypto'
 /**
  * URL encoding for OG image options (Cloudinary/IPX style)
  *
- * Format: /_og/d/w_1200,h_600,c_NuxtSeo,title_Hello+World.png
+ * Format: /_og/d/w_1200%2Ch_600%2Cc_NuxtSeo%2Ctitle_Hello%2BWorld.png
  *
  * Static paths fall back to hash mode when the encoded path exceeds MAX_PATH_LENGTH
  * (200 chars) or holds a character outside [A-Za-z0-9_.~-]:
@@ -27,6 +27,8 @@ const RE_UNDERSCORE = /_/g
 const RE_DOUBLE_UNDERSCORE = /__/g
 const RE_PERCENT20 = /%20/g
 const RE_PLUS = /\+/g
+const RE_ENCODED_COMMA = /%2c/gi
+const RE_ENCODED_PLUS = /%2b/gi
 const RE_SINGLE_UNDERSCORE = /(?<!_)_(?!_)/
 const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
 const RE_OG_ROUTE_PREFIX = /\/_og\/[ds]\//
@@ -455,8 +457,13 @@ export function buildOgImageUrl(
   const signed = secret && !isStatic ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
 
   return {
-    url: `${prefix}/${signed}.${extension}`,
+    url: `${prefix}/${signed.replace(/,/g, '%2C').replace(RE_PLUS, '%2B')}.${extension}`,
   }
+}
+
+// Normalize only the transport escapes emitted above. Leave value escapes intact.
+function normalizeUrlSegment(segment: string): string {
+  return segment.replace(RE_ENCODED_COMMA, ',').replace(RE_ENCODED_PLUS, '+')
 }
 
 /**
@@ -504,7 +511,7 @@ export function parseOgImageUrl(url: string): {
   const extension = extMatch?.[1] || 'png'
 
   // Get encoded params (without extension)
-  const encoded = path.replace(RE_FILE_EXTENSION, '')
+  const encoded = normalizeUrlSegment(path.replace(RE_FILE_EXTENSION, ''))
 
   // Check for hash mode (o_<hash>)
   const hashMatch = encoded.match(RE_HASH_SEGMENT)
@@ -536,7 +543,7 @@ export function parseOgImageUrl(url: string): {
 export function extractEncodedSegment(path: string, extension: string): string {
   const match = path.match(RE_OG_ROUTE_PREFIX)
   if (match?.index != null) {
-    return path.slice(match.index + match[0].length).replace(new RegExp(`\\.${extension}$`), '')
+    return normalizeUrlSegment(path.slice(match.index + match[0].length).replace(new RegExp(`\\.${extension}$`), ''))
   }
-  return (path.split('/').pop() as string).replace(new RegExp(`\\.${extension}$`), '')
+  return normalizeUrlSegment((path.split('/').pop() as string).replace(new RegExp(`\\.${extension}$`), ''))
 }

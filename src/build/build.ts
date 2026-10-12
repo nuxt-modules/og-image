@@ -11,6 +11,7 @@ import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
 import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
 import { RE_LEGACY_SUFFIX } from '../util'
+import { externalizeSatoriHarfBuzz } from './harfbuzz'
 
 const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g
 const RE_WASM_IMPORT = /import\("(\.\/wasm\/[^"]+\.wasm)"\)/g
@@ -68,7 +69,11 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
     rollupConfig.plugins = [rollupConfig.plugins, {
       name: 'og-image-harfbuzz-worker',
       transform(code: string, id: string) {
-        if (!nitro.options.alias['#og-image/harfbuzz-factory'] || !id.endsWith('/harfbuzzjs/hb.js'))
+        if (!nitro.options.alias['#og-image/harfbuzz-factory'])
+          return
+        if (/\/satori\/dist\/(?:standalone|index)\.js$/.test(id))
+          return { code: externalizeSatoriHarfBuzz(code, id), map: null }
+        if (!id.endsWith('/harfbuzzjs/hb.js'))
           return
         // Our WASM import replaces Emscripten's filesystem and browser URL loaders.
         const transformed = new MagicString(code)
@@ -128,9 +133,9 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           }
         }
       }
-      const [resvgHash, yogaHash, takumiHash] = await Promise.all([
+      const [resvgHash, layoutHash, takumiHash] = await Promise.all([
         resolveFilePathSha1('@resvg/resvg-wasm/index_bg.wasm'),
-        resolveFilePathSha1('satori/yoga.wasm'),
+        resolveFilePathSha1('satori/layout.wasm'),
         resolveFilePathSha1('@takumi-rs/wasm/takumi_wasm_bg.wasm'),
       ])
       for (const entry of wasmEntries) {
@@ -162,10 +167,8 @@ export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver
           // Try the original source import paths first (before nitro's WASM plugin resolves them)
           contents = contents
             .replaceAll('"@resvg/resvg-wasm/index_bg.wasm?module"', `"${wasmPath}index_bg-${resvgHash}.wasm${postfix}"`)
-            .replaceAll('"satori/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
+            .replaceAll('"satori/layout.wasm?module"', `"${wasmPath}layout-${layoutHash}.wasm${postfix}"`)
             .replaceAll('"@takumi-rs/wasm/takumi_wasm_bg.wasm?module"', `"${wasmPath}takumi_wasm_bg-${takumiHash}.wasm${postfix}"`)
-            // Legacy: also handle yoga-wasm-web path in case it appears
-            .replaceAll('"yoga-wasm-web/dist/yoga.wasm?module"', `"${wasmPath}yoga-${yogaHash}.wasm${postfix}"`)
           // Nitro's WASM plugin may have already resolved the paths (hashed filenames, moved to wasm/).
           // For vercel-edge, append ?module to any .wasm imports that nitro already resolved.
           if (postfix) {

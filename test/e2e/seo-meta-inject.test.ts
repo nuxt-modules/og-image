@@ -17,7 +17,7 @@ await setup({
  * URLs look like: /prefix/_og/d/w_1200,h_630,title_Hello+World.png
  */
 function extractOgParams(ogUrl: string): Record<string, any> {
-  const match = ogUrl.match(/\/_og\/[ds]\/(.+)\.\w+$/)
+  const match = decodeURIComponent(ogUrl).match(/\/_og\/[ds]\/(.+)\.\w+$/)
   if (!match?.[1])
     return {}
   return decodeOgImageParams(match[1])

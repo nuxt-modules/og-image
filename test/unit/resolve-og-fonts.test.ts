@@ -1,20 +1,20 @@
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getStaticFontCacheDir, getStaticInterFonts } from '../../src/build/fonts'
 
-// Mock parseFontsFromTemplate to avoid needing real nuxt instance
+// Mock getResolvedNuxtFonts to avoid needing real nuxt instance
 vi.mock('../../src/build/fonts', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../../src/build/fonts')>()
   return {
     ...mod,
-    parseFontsFromTemplate: vi.fn().mockResolvedValue([]),
+    getResolvedNuxtFonts: vi.fn().mockResolvedValue([]),
   }
 })
 
 const { prepareWoff2Fonts, resolveOgImageFonts } = await import('../../src/build/fontless')
-const { parseFontsFromTemplate } = await import('../../src/build/fonts')
+const { getResolvedNuxtFonts } = await import('../../src/build/fonts')
 
 const baseFontReqs = { weights: [400, 700], styles: ['normal' as const], families: [] as string[], hasDynamicBindings: false, componentMap: {} }
 
@@ -33,7 +33,7 @@ function createOpts(overrides: Record<string, any> = {}) {
 }
 
 beforeEach(() => {
-  vi.mocked(parseFontsFromTemplate).mockReset().mockResolvedValue([])
+  vi.mocked(getResolvedNuxtFonts).mockReset().mockResolvedValue([])
 })
 
 describe('resolveOgImageFonts', () => {
@@ -46,7 +46,7 @@ describe('resolveOgImageFonts', () => {
 
   it('returns parsed fonts for non-satori renderer', async () => {
     const mockFonts = [{ family: 'Inter', src: '/test.woff2', weight: 400, style: 'normal' }]
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce(mockFonts)
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce(mockFonts)
     const opts = createOpts()
     const fonts = await resolveOgImageFonts(opts)
     expect(fonts).toEqual(mockFonts)
@@ -60,7 +60,7 @@ describe('resolveOgImageFonts', () => {
 
   it('logs debug and appends Inter when all fonts are variable (no satoriSrc)', async () => {
     const variableFont = { family: 'Inter', src: '/inter.woff2', weight: 400, style: 'normal' }
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([variableFont])
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([variableFont])
     const opts = createOpts({ hasSatoriRenderer: true })
     const fonts = await resolveOgImageFonts(opts)
     expect(opts.logger.debug).toHaveBeenCalled()
@@ -69,7 +69,7 @@ describe('resolveOgImageFonts', () => {
 
   it('returns fonts with satoriSrc for satori renderer (plus Inter fallback)', async () => {
     const staticFont = { family: 'Inter', src: '/inter.ttf', weight: 400, style: 'normal', satoriSrc: '/inter.ttf' }
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([staticFont])
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([staticFont])
     const opts = createOpts({ hasSatoriRenderer: true })
     const fonts = await resolveOgImageFonts(opts)
     // First font is the user-provided static font, Inter 700 fallback is appended
@@ -80,7 +80,7 @@ describe('resolveOgImageFonts', () => {
   it('filters by requirements when no dynamic bindings', async () => {
     const fonts400 = { family: 'Inter', src: '/inter-400.ttf', weight: 400, style: 'normal' }
     const fonts300 = { family: 'Inter', src: '/inter-300.ttf', weight: 300, style: 'normal' }
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([fonts400, fonts300])
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([fonts400, fonts300])
     const opts = createOpts()
     const result = await resolveOgImageFonts(opts)
     expect(result).toEqual([fonts400])
@@ -89,12 +89,74 @@ describe('resolveOgImageFonts', () => {
   it('skips filtering when hasDynamicBindings is true', async () => {
     const fonts400 = { family: 'Inter', src: '/inter-400.ttf', weight: 400, style: 'normal' }
     const fonts300 = { family: 'Inter', src: '/inter-300.ttf', weight: 300, style: 'normal' }
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([fonts400, fonts300])
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([fonts400, fonts300])
     const opts = createOpts({ fontRequirements: { ...baseFontReqs, hasDynamicBindings: true } })
     const result = await resolveOgImageFonts(opts)
     expect(result).toEqual([fonts400, fonts300])
   })
+
+  it('keeps italic faces when components were never analysed', async () => {
+    const normal = { family: 'Poppins', src: '/poppins-400.woff2', weight: 400, style: 'normal' }
+    const italic = { family: 'Poppins', src: '/poppins-400-italic.woff2', weight: 400, style: 'italic' }
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValue([normal, italic])
+    const opts = createOpts({ fontRequirements: { ...baseFontReqs, weights: [400], styles: ['normal'], scanned: false } })
+    const result = await resolveOgImageFonts(opts)
+    expect(result).toEqual([normal, italic])
+  })
+
+  it('re-resolves glyph-subset families with every resolved face when components were never analysed', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-glyph-reresolve-'))
+    try {
+      vi.mocked(getResolvedNuxtFonts).mockResolvedValue([
+        { family: 'Noto Sans SC', src: '/_fonts/noto-400-normal.woff2', weight: 400, style: 'normal' },
+        { family: 'Noto Sans SC', src: '/_fonts/noto-400-italic.woff2', weight: 400, style: 'italic' },
+        { family: 'Noto Sans SC', src: '/_fonts/noto-700-normal.woff2', weight: 700, style: 'normal' },
+      ])
+      const resolver = vi.fn().mockImplementation(async (_family: string, override: { weights: number[], styles: string[] }) => ({
+        fonts: override.weights.flatMap(weight => override.styles.map(style => ({
+          weight,
+          style,
+          src: [{ url: 'data:font/woff;base64,d09GRgAAAAA=', originalURL: 'data:font/woff;base64,d09GRgAAAAA=', format: 'woff' }],
+        }))),
+      }))
+      const nuxt = {
+        options: {
+          buildDir: join(rootDir, '.nuxt'),
+          rootDir,
+          fonts: { families: [{ name: 'Noto Sans SC', provider: 'google', glyphs: ['一'] }] },
+        },
+        _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+      } as any
+
+      const result = await resolveOgImageFonts({
+        nuxt,
+        hasNuxtFonts: true,
+        hasSatoriRenderer: true,
+        hasTakumiRenderer: false,
+        fontState: { fallbackMap: new Map(), sourceMap: new Map() },
+        fontRequirements: { ...baseFontReqs, weights: [400], styles: ['normal'], scanned: false },
+        tw4FontVars: {},
+        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
+      })
+
+      expect(result.some(f => f.family === 'Noto Sans SC' && f.weight === 700)).toBe(true)
+      expect(result.some(f => f.family === 'Noto Sans SC' && f.style === 'italic')).toBe(true)
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
 })
+
+/** A `@nuxt/fonts` context that serves every file in `dir` under `/_fonts/`. */
+function servedFrom(dir: string) {
+  return {
+    readFont: async (url: string) => {
+      const path = join(dir, url.split('/').pop()!)
+      return existsSync(path) ? readFileSync(path) : undefined
+    },
+  }
+}
 
 describe('prepareWoff2Fonts', () => {
   it('converts exact Nuxt Fonts subsets without resolving unrelated weights', async () => {
@@ -110,7 +172,7 @@ describe('prepareWoff2Fonts', () => {
     for (const [publicName, fixtureName] of subsets)
       copyFileSync(join(sourceDir, fixtureName), join(publicFontsDir, publicName))
 
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce(subsets.map(([publicName, , unicodeRange]) => ({
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce(subsets.map(([publicName, , unicodeRange]) => ({
       family: 'Noto Sans SC',
       src: `/_fonts/${publicName}`,
       weight: 400,
@@ -154,10 +216,7 @@ describe('prepareWoff2Fonts', () => {
           },
         },
         fontState,
-        nuxtFontsContext: {
-          assetsBaseURL: '/_fonts',
-          renderedFontURLs: new Map(subsets.map(([publicName]) => [publicName, `/fonts/${publicName}`])),
-        },
+        nuxtFontsContext: servedFrom(publicFontsDir),
         warnOnMissingStaticFonts: true,
       } as any)
 
@@ -189,7 +248,7 @@ describe('prepareWoff2Fonts', () => {
     )
 
     const subsets = ['subset-97.woff2', 'missing-subset.woff2']
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce(subsets.map(src => ({
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce(subsets.map(src => ({
       family: 'Noto Sans SC',
       src: `/_fonts/${src}`,
       weight: 400,
@@ -234,10 +293,7 @@ describe('prepareWoff2Fonts', () => {
           },
         },
         fontState,
-        nuxtFontsContext: {
-          assetsBaseURL: '/_fonts',
-          renderedFontURLs: new Map(subsets.map(filename => [filename, `/fonts/${filename}`])),
-        },
+        nuxtFontsContext: servedFrom(publicFontsDir),
       } as any)
 
       expect(resolver).toHaveBeenCalledWith('Noto Sans SC', {
@@ -279,7 +335,7 @@ describe('prepareWoff2Fonts', () => {
       },
     } as any
 
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
       { family: 'Nunito Sans', src: '/_fonts/nunito.woff2', weight: 400, style: 'normal' },
     ])
 
@@ -310,6 +366,100 @@ describe('prepareWoff2Fonts', () => {
     }
   })
 
+  it('does not report a Nuxt Fonts family as unknown when a provider lacks a weight', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
+    // Lobster only ships 400, so a provider returns nothing for 700
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google', 'bunny', 'fontsource'] },
+    } as any
+
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
+      { family: 'Lobster', src: '/_fonts/lobster.woff2', weight: 400, style: 'normal' },
+    ])
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger,
+        fontRequirements: baseFontReqs,
+        fontState: {
+          fallbackMap: new Map<string, string>(),
+          sourceMap: new Map([['/_fonts/lobster.woff2', '/_og-static-fonts/lobster.ttf']]),
+        },
+      })
+
+      expect(resolver).toHaveBeenCalledWith('Lobster', expect.objectContaining({ weights: [700] }))
+      expect(logger.warn).not.toHaveBeenCalled()
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('warns when Satori has no usable weight of a Nuxt Fonts family', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+    } as any
+
+    // a variable WOFF2 that could not be converted, and no static file from any provider
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
+      { family: 'Lobster', src: '/_fonts/lobster.woff2', weight: 400, style: 'normal' },
+    ])
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger,
+        fontRequirements: baseFontReqs,
+        fontState: { fallbackMap: new Map<string, string>(), sourceMap: new Map<string, string>() },
+      })
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('"Lobster"'))
+      expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('Not a known'))
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
+  it('prepares every resolved weight when components were never analysed', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-font-weights-'))
+    const resolver = vi.fn().mockResolvedValue(undefined)
+    const nuxt = {
+      options: { buildDir: join(rootDir, '.nuxt'), rootDir },
+      _ogImageFontless: { resolver, renderedFontURLs: new Map(), providerNames: ['google'] },
+    } as any
+
+    // webpack and rspack never analyse OG components, so only the default weight is known
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
+      { family: 'Poppins', src: '/_fonts/poppins-400.woff2', weight: 400, style: 'normal' },
+      { family: 'Poppins', src: '/_fonts/poppins-700.woff2', weight: 700, style: 'normal' },
+      { family: 'Inter', src: '/_fonts/inter.woff2', weight: 400, style: 'normal', weightRange: [100, 900] },
+    ])
+
+    try {
+      await prepareWoff2Fonts({
+        nuxt,
+        logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
+        fontRequirements: { ...baseFontReqs, weights: [400], scanned: false },
+        fontState: { fallbackMap: new Map<string, string>(), sourceMap: new Map<string, string>() },
+      })
+
+      expect(resolver).toHaveBeenCalledWith('Poppins', expect.objectContaining({ weights: [400, 700] }))
+      expect(resolver).toHaveBeenCalledWith('Inter', expect.objectContaining({ weights: [400, 700] }))
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it('suppresses warnings when a static fallback is optional', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'og-image-fontless-'))
     const resolver = vi.fn().mockResolvedValue(undefined)
@@ -331,7 +481,7 @@ describe('prepareWoff2Fonts', () => {
       },
     } as any
 
-    vi.mocked(parseFontsFromTemplate).mockResolvedValueOnce([
+    vi.mocked(getResolvedNuxtFonts).mockResolvedValueOnce([
       { family: 'Raleway Variable', src: '/_fonts/raleway-variable.woff2', weight: 400, style: 'normal' },
     ])
 

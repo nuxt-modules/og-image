@@ -86,22 +86,22 @@ describe('url signing', () => {
 
     it('appends signature when secret provided', () => {
       const result = buildOgImageUrl(options, 'png', false, undefined, secret)
-      expect(result.url).toMatch(/,s_[\w-]{16}\.png$/)
+      expect(result.url).toMatch(/%2Cs_[\w-]{16}\.png$/)
     })
 
     it('does not append signature without secret', () => {
       const result = buildOgImageUrl(options, 'png', false, undefined)
-      expect(result.url).not.toContain(',s_')
+      expect(result.url).not.toContain('%2Cs_')
     })
 
     it('does not sign static/prerender URLs', () => {
       const result = buildOgImageUrl(options, 'png', true, undefined, secret)
-      expect(result.url).not.toContain(',s_')
+      expect(result.url).not.toContain('%2Cs_')
     })
 
     it('produces verifiable signatures', () => {
       const result = buildOgImageUrl(options, 'png', false, undefined, secret)
-      const path = result.url.replace(/^\/_og\/d\//, '').replace(/\.png$/, '')
+      const path = decodeURIComponent(result.url).replace(/^\/_og\/d\//, '').replace(/\.png$/, '')
       const sigMatch = path.match(/,s_([^,]+)$/)
       expect(sigMatch).toBeTruthy()
       const signature = sigMatch![1]
@@ -123,7 +123,7 @@ describe('url signing', () => {
     it('works with all extensions', () => {
       for (const ext of ['png', 'jpeg', 'webp', 'svg', 'html']) {
         const result = buildOgImageUrl(options, ext, false, undefined, secret)
-        expect(result.url).toContain(`,s_`)
+        expect(result.url).toContain('%2Cs_')
         expect(result.url.endsWith(`.${ext}`)).toBe(true)
       }
     })
@@ -136,7 +136,7 @@ describe('url signing', () => {
       const result = buildOgImageUrl({ ...options, props: longProps }, 'png', true, undefined, secret)
       // Hash mode uses o_ prefix
       if (result.url.includes('/o_')) {
-        expect(result.url).not.toContain(',s_')
+        expect(result.url).not.toContain('%2Cs_')
       }
     })
   })

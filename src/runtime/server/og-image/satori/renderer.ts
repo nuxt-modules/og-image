@@ -7,6 +7,7 @@ import compatibility from '#og-image/compatibility'
 import { withTimeout } from '../../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../../utils'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
+import { resolveSvgFilters } from './filters'
 import { getResvg, getSatori, getSharp } from './instances'
 import { createVNodes } from './vnodes'
 
@@ -115,7 +116,7 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   const { result, warnings } = await timings.measure('render-satori', () => withWarningCapture(() =>
     satori(vnodes, satoriOptions),
   ))
-  return { svg: result, warnings, fonts }
+  return { svg: result && resolveSvgFilters(result), warnings, fonts }
 }
 
 async function createPng(event: OgImageRenderEventContext) {

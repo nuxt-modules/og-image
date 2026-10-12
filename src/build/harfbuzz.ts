@@ -78,3 +78,35 @@ export async function prepareHarfBuzzCallbacks(adapterPath: string, outputDir: s
     `export default { ${entries.map(({ signature }) => signature).join(', ')} }`,
   ].join('\n')
 }
+
+/** Replace Satori's bundled HarfBuzz loader with the runtime binding. */
+export function externalizeSatoriHarfBuzz(code: string, id: string, specifier = 'harfbuzzjs'): string {
+  const blocks: Array<{ start: number, end: number }> = []
+  const loaders: Array<{ start: number, end: number, target: string }> = []
+  parseAndWalk(code, id, {
+    enter(node) {
+      if (node.type === 'BlockStatement')
+        blocks.push(node)
+      if (node.type !== 'AssignmentExpression' || node.operator !== '='
+        || node.left.type !== 'MemberExpression' || node.left.computed
+        || node.left.property.type !== 'Identifier' || node.left.property.name !== 'exports'
+        || node.right.type !== 'NewExpression' || node.right.callee.type !== 'Identifier'
+        || node.right.callee.name !== 'Promise') {
+        return
+      }
+      const block = blocks.at(-1)
+      if (block)
+        loaders.push({ ...block, target: code.slice(node.left.start, node.left.end) })
+    },
+    leave(node) {
+      if (node.type === 'BlockStatement')
+        blocks.pop()
+    },
+  })
+  // The published standalone bundle has one CommonJS promise loader: HarfBuzz.
+  // Fail at build time if upstream changes this contract.
+  if (loaders.length !== 1)
+    throw new Error(`Cannot replace the Satori HarfBuzz loader in ${id}: found ${loaders.length} loaders.`)
+  const loader = loaders[0]!
+  return `import _ogImageHarfBuzz from ${JSON.stringify(specifier)};\n${code.slice(0, loader.start)}{${loader.target} = _ogImageHarfBuzz;}${code.slice(loader.end)}`
+}

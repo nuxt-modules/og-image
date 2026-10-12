@@ -8,6 +8,7 @@ import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
 import { fetchWithRedirectValidation, isBlockedUrl } from '../../util/ssrf'
 import { withTimeout } from '../../util/withTimeout'
+import { TAKUMI_FORMATS } from '../font-source'
 import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
 import { getExtractResourceUrls, getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
@@ -277,7 +278,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
   const codepoints = extractCodepoints(nodes)
-  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
+  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: TAKUMI_FORMATS, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
   const fontEntries = dedupeFontsByBinary(fonts)
 
   const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
@@ -416,7 +417,7 @@ const TakumiRenderer: Renderer = {
   async debug(e) {
     const [vnodes, fonts] = await Promise.all([
       createTakumiNodes(e),
-      loadFontsForRenderer(e, { supportedFormats: new Set(['ttf', 'woff2'] as const), component: e.options.component }),
+      loadFontsForRenderer(e, { supportedFormats: TAKUMI_FORMATS, component: e.options.component }),
     ])
     return {
       vnodes,
