@@ -39,7 +39,7 @@ need this module.
 Install `nuxt-og-image` dependency to your project:
 
 ```bash
-npx nuxi@latest module add og-image
+npx nuxt module add og-image
 ```
 
 > [!TIP]
