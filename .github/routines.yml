@@ -1,0 +1,9 @@
+version: 1
+routines:
+  - name: dependency-updates
+    on:
+      schedule:
+        - cron: '0 8 * * 2'
+    timezone: Australia/Melbourne
+    mode: propose
+    enabled: true
