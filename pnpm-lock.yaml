@@ -405,8 +405,8 @@ catalogs:
       specifier: ^1.105.1
       version: 1.105.1
     satori:
-      specifier: ^0.35.0
-      version: 0.35.0
+      specifier: ^0.47.1
+      version: 0.47.1
     sharp:
       specifier: ^0.35.5
       version: 0.35.5
@@ -458,9 +458,6 @@ catalogs:
     wrangler:
       specifier: ^4.147.0
       version: 4.147.0
-    yoga-wasm-web:
-      specifier: ^0.3.3
-      version: 0.3.3
     zod:
       specifier: ^4.6.5
       version: 4.6.5
@@ -780,7 +777,7 @@ importers:
         version: 1.105.1
       satori:
         specifier: 'catalog:'
-        version: 0.35.0
+        version: 0.47.1
       sharp:
         specifier: 'catalog:'
         version: 0.35.5(@types/node@26.5.1)
@@ -820,9 +817,6 @@ importers:
       wrangler:
         specifier: 'catalog:'
         version: 4.147.0(@types/node@26.5.1)
-      yoga-wasm-web:
-        specifier: 'catalog:'
-        version: 0.3.3
       zod:
         specifier: 'catalog:'
         version: 4.6.5
@@ -9464,8 +9458,8 @@ packages:
     engines: {node: '>=20.19.0'}
     hasBin: true
 
-  satori@0.35.0:
-    resolution: {integrity: sha512-YyoP7axF2T93XOWXQXLH4t+cvLgZ+MeYV/xruXJfPa/czpcRqaG41/8Bz3mzgYj/7NxdrqJOx3YtzWy1MLtG5g==}
+  satori@0.47.1:
+    resolution: {integrity: sha512-hoRMFMXQ9o4VvcOZ+5pXKRAuWJkjvUzRz3fZJoFrAT3MVfuUvMWROe50lB7AREI1m9a0FAlEMDdQ3WPvHLm7FA==}
     engines: {node: '>=16'}
 
   sax@1.6.1:
@@ -10843,12 +10837,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  yoga-layout@3.2.1:
-    resolution: {integrity: sha512-0LPOt3AxKqMdFBZA3HBAt/t/8vIKq7VaQYbuA8WxCgung+p9TVyKRYdpvCb80HcdTN2NkbIKbhNwKUfm3tQywQ==}
-
-  yoga-wasm-web@0.3.3:
-    resolution: {integrity: sha512-N+d4UJSJbt/R3wqY7Coqs5pcV0aUj2j9IaQ3rNj9bVCLld8tTGKRa2USARjnvZJWVx1NDmQev8EknoczaOQDOA==}
 
   youch-core@0.3.3:
     resolution: {integrity: sha512-ho7XuGjLaJ2hWHoK8yFnsUGy2Y5uDpqSTq1FkHLK4/oqKtyUU1AFbOOxY4IpC9f0fTLjwYbslUz0Po5BpD1wrA==}
@@ -21167,7 +21155,7 @@ snapshots:
     optionalDependencies:
       '@parcel/watcher': 2.6.0
 
-  satori@0.35.0:
+  satori@0.47.1:
     dependencies:
       '@shuding/opentype.js': 1.4.0-beta.0
       css-background-parser: 0.1.0
@@ -21181,7 +21169,6 @@ snapshots:
       linebreak: 1.1.0
       parse-css-color: 0.2.1
       postcss-value-parser: 4.2.0
-      yoga-layout: 3.2.1
 
   sax@1.6.1: {}
 
@@ -22799,10 +22786,6 @@ snapshots:
       lib0: 0.2.117
 
   yocto-queue@0.1.0: {}
-
-  yoga-layout@3.2.1: {}
-
-  yoga-wasm-web@0.3.3: {}
 
   youch-core@0.3.3:
     dependencies:

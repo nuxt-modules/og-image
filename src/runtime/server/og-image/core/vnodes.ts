@@ -154,6 +154,24 @@ export function htmlToVNode(html: string): VNode {
   return elementToVNode(root)
 }
 
+function omitImagesWithoutSource(node: VNode): void {
+  const children = node.props.children
+  if (!Array.isArray(children))
+    return
+
+  node.props.children = children.filter((child): child is VNode | string => {
+    if (!child || typeof child !== 'object')
+      return true
+    if (child.type === 'img' && !child.props.src)
+      return false
+    omitImagesWithoutSource(child)
+    return true
+  })
+
+  if (node.props.children.length === 0)
+    delete node.props.children
+}
+
 // SVG elements that cannot be rendered by Satori or Takumi and will be silently dropped
 const UNSUPPORTED_SVG_ELEMENTS = new Set(['text', 'tspan', 'textPath', 'foreignObject', 'switch', 'a'])
 
@@ -200,14 +218,15 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
   if (!html) {
     const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
     const island = await ctx.timings.measure('island-fetch', () => fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout))
-    // pre-transform HTML - apply emoji replacements
-    await applyEmojis(ctx, island)
     html = island.html
     if (html?.includes('<body>')) {
       // get inner contents of body
       html = html.match(RE_BODY_CONTENT)?.[1] || ''
     }
   }
+  const content = { html }
+  await applyEmojis(ctx, content)
+  html = content.html
   const baseStyle = `position: relative; display: flex; margin: 0 auto; width: ${ctx.options.width}px; height: ${ctx.options.height}px; overflow: hidden;`
   const fullStyle = options?.wrapperStyle ? `${baseStyle} ${options.wrapperStyle}` : baseStyle
   const template = `<div style="${fullStyle}">${html}</div>`
@@ -222,5 +241,6 @@ export async function createVNodes(ctx: OgImageRenderEventContext, options?: Cre
   // run shared plugins (encoding, styleDirectives, imageSrc); image-fetch
   // attributes externally so vnode-walk reflects everything else.
   await ctx.timings.measure('vnode-walk', () => Promise.all(walkTree(ctx, vnodeTree, [encoding, styleDirectives, imageSrc])))
+  omitImagesWithoutSource(vnodeTree)
   return vnodeTree
 }

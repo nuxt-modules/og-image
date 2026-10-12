@@ -28,10 +28,10 @@ function format(value: number) {
           alt="image urls without a file extension should work"
           :src="`https://avatars.githubusercontent.com/u/${contributor.githubId}`" class="h-32 w-32 text-5xl"
         >
-        <div :style="{ backgroundImage: `url('https://avatars.githubusercontent.com/u/${contributor.githubId}')`, width: '100px', height: '100px' }">
+        <div class="flex flex-col" :style="{ backgroundImage: `url('https://avatars.githubusercontent.com/u/${contributor.githubId}')`, width: '100px', height: '100px' }">
           background image
         </div>
-        <div class="pt-12">
+        <div class="flex flex-col pt-12">
           <svg width="119" height="2" viewBox="0 0 119 2" fill="none" xmlns="http://www.w3.org/2000/svg">
             <line x1="0.5" y1="0.882812" x2="118.5" y2="0.882812" stroke="url(#paint0_linear_186_15197)" />
             <defs>
@@ -58,7 +58,7 @@ function format(value: number) {
               fill="#F8FAFC"
             />
           </svg>
-          <div class="font-medium text-4xl pl-2 pt-1">
+          <div class="flex flex-col font-medium text-4xl pl-2 pt-1">
             {{ format(contributor.score) }}
           </div>
         </div>
@@ -66,7 +66,7 @@ function format(value: number) {
           #{{ format(contributor.rank) }}
         </div>
       </div>
-      <svg width="238" height="43" viewBox="0 0 1091 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="shrink-0" width="238" height="43" viewBox="0 0 1091 200" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M168 200H279C282.542 200 285.932 198.756 289 197C292.068 195.244 295.23 193.041 297 190C298.77 186.959 300.002 183.51 300 179.999C299.998 176.488 298.773 173.04 297 170.001L222 41C220.23 37.96 218.067 35.7552 215 34C211.933 32.2448 207.542 31 204 31C200.458 31 197.067 32.2448 194 34C190.933 35.7552 188.77 37.96 187 41L168 74L130 9.99764C128.228 6.95784 126.068 3.75491 123 2C119.932 0.245087 116.542 0 113 0C109.458 0 106.068 0.245087 103 2C99.9323 3.75491 96.7717 6.95784 95 9.99764L2 170.001C0.226979 173.04 0.00154312 176.488 1.90993e-06 179.999C-0.0015393 183.51 0.229648 186.959 2 190C3.77035 193.04 6.93245 195.244 10 197C13.0675 198.756 16.4578 200 20 200H90C117.737 200 137.925 187.558 152 164L186 105L204 74L259 168H186L168 200ZM89 168H40L113 42L150 105L125.491 147.725C116.144 163.01 105.488 168 89 168Z"
           fill="#00DC82"
@@ -103,18 +103,18 @@ function format(value: number) {
       </svg>
     </div>
     <div class="flex flex-col w-[31.5%] text-white justify-between">
-      <div class="h-[48%] card issues-card">
+      <div class="flex flex-col h-[48%] card issues-card">
         {{ contributor.issues }}
       </div>
-      <div class="h-[48%] card pull-requests-card">
+      <div class="flex flex-col h-[48%] card pull-requests-card">
         {{ contributor.merged_pull_requests }}
       </div>
     </div>
     <div class="flex flex-col w-[31.5%] text-white justify-between">
-      <div class="h-[48%] card comments-card">
+      <div class="flex flex-col h-[48%] card comments-card">
         {{ contributor.comments }}
       </div>
-      <div class="h-[48%] card reactions-card">
+      <div class="flex flex-col h-[48%] card reactions-card">
         {{ contributor.reactions }}
       </div>
     </div>
@@ -125,7 +125,7 @@ function format(value: number) {
 .profile-card {
   background-image: url('/card-gradient-bg.svg');
   background-repeat: no-repeat;
-  background-size: 300%;
+  background-size: 300% 187px;
 }
 
 .issues-card {

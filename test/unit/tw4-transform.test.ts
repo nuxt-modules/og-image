@@ -152,7 +152,7 @@ describe('vue-template-transform', () => {
       expect(result?.code).toContain('#0000ff')
     })
 
-    it('should emit flex-direction:row when flex resolves to display:flex', async () => {
+    it('uses native flex row direction', async () => {
       const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
 
       const code = `<template><div class="flex items-center gap-3"><span>text</span></div></template>`
@@ -170,7 +170,7 @@ describe('vue-template-transform', () => {
       })
 
       expect(result).toBeDefined()
-      expect(result?.code).toContain('flex-direction: row')
+      expect(result?.code).not.toContain('flex-direction: row')
       expect(result?.code).toContain('display: flex')
     })
 
@@ -215,11 +215,9 @@ describe('vue-template-transform', () => {
       expect(result?.code).not.toContain('flex-direction')
     })
 
-    it('should emit flex-direction:row for flex gap-2 (CombinedTest fixture)', async () => {
+    it('uses native flex row direction with an unresolved gap', async () => {
       const { transformVueTemplate } = await import('../../src/build/vue-template-transform')
 
-      // Matches: <div class="flex gap-2"> from CombinedTest.satori.vue
-      // gap-2 may or may not resolve at build-time — either way, flex-direction:row must be emitted
       const code = `<template><div class="flex gap-2"><span>icon1</span><span>icon2</span></div></template>`
       const result = await transformVueTemplate(code, {
         resolveStyles: async (classes) => {
@@ -232,7 +230,7 @@ describe('vue-template-transform', () => {
       })
 
       expect(result).toBeDefined()
-      expect(result?.code).toContain('flex-direction: row')
+      expect(result?.code).not.toContain('flex-direction: row')
       expect(result?.code).toContain('display: flex')
       // gap-2 should remain as unresolved class
       expect(result?.code).toContain('class="gap-2"')
@@ -252,7 +250,6 @@ describe('vue-template-transform', () => {
       })
 
       expect(result).toBeDefined()
-      // Inline style flex-direction:column should win over the auto-injected row
       expect(result?.code).toContain('flex-direction: column')
       expect(result?.code).not.toContain('flex-direction: row')
     })

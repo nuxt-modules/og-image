@@ -295,13 +295,6 @@ export async function transformVueTemplate(
       Object.assign(styleProps, collector.dynamicStyleProps)
     }
 
-    // If `flex` class resolved to display:flex without an explicit direction,
-    // emit flex-direction:row (CSS default) so the runtime flex plugin won't override it.
-    // Runs after inline style merge so style="flex-direction: column" can still override.
-    if (styleProps.display === 'flex' && !styleProps['flex-direction']) {
-      styleProps['flex-direction'] = 'row'
-    }
-
     // Build final style string (escape quotes to prevent HTML breakage)
     const styleStr = Object.entries(styleProps)
       .map(([prop, value]) => `${prop}: ${escapeAttrValue(value)}`)

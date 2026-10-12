@@ -3,8 +3,6 @@ import resolvedFonts from '#og-image/fonts'
 import { walkTree } from '../core/plugins'
 import { createVNodes as coreCreateVNodes, resolveSvgDimension } from '../core/vnodes'
 import classes from './plugins/classes'
-import emojis from './plugins/emojis'
-import flex from './plugins/flex'
 import nuxtIcon from './plugins/nuxt-icon'
 
 // Re-export shared utilities for external consumers
@@ -69,9 +67,7 @@ export async function createVNodes(ctx: OgImageRenderEventContext): Promise<VNod
   const font = fontFamilyOverride ? `'${fontFamilyOverride}', sans-serif` : getDefaultFontFamily()
   const vnodes = await coreCreateVNodes(ctx, { wrapperStyle: `font-family: ${font};` })
   // satori-only sync transforms
-  walkTree(ctx, vnodes, [classes, flex, nuxtIcon])
-  // satori-only async transforms
-  await Promise.all(walkTree(ctx, vnodes, [emojis]))
+  walkTree(ctx, vnodes, [classes, nuxtIcon])
   // Resolve SVG percentage dimensions to parent pixel values (satori can't handle %)
   resolveSvgPercentDimensions(vnodes)
   return vnodes

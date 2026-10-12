@@ -389,7 +389,6 @@ describe('tw4 class resolution', () => {
       const result = await resolve(['rotate-45'])
       expect(result['rotate-45'], 'rotate-45 should resolve').toBeDefined()
       // TW4 outputs `rotate: 45deg` (CSS individual transform property)
-      // Satori only supports `transform: rotate(45deg)` — need to verify what we emit
       const styles = result['rotate-45']!
       const hasRotate = styles.transform?.includes('rotate(45deg)')
         || styles.transform?.includes('45deg')
@@ -397,33 +396,25 @@ describe('tw4 class resolution', () => {
       expect(hasRotate, `rotate-45 should produce rotation, got: ${JSON.stringify(styles)}`).toBe(true)
     })
 
-    it('rotate-45 is converted to transform for Satori compatibility', async () => {
+    it('rotate-45 is preserved as a native transform', async () => {
       const result = await resolve(['rotate-45'])
       const styles = result['rotate-45']!
       // TW4 outputs `rotate: 45deg` (CSS individual transform property)
-      // Must be converted to `transform: rotate(45deg)` for Satori
-      expect(styles.transform, `should have transform property, got: ${JSON.stringify(styles)}`).toBe('rotate(45deg)')
-      expect(styles.rotate).toBeUndefined()
+      expect(styles.rotate).toBe('45deg')
+      expect(styles.transform).toBeUndefined()
     })
 
-    it('scale utilities are converted to transform for Satori', async () => {
+    it('scale utilities are preserved as native transforms', async () => {
       const result = await resolve(['scale-75'])
-      // scale may resolve to empty if TW4 uses var() that can't resolve
-      if (result['scale-75']) {
-        const styles = result['scale-75']
-        // Should have transform, not scale
-        if (styles.transform) {
-          expect(styles.transform).toContain('scale(')
-          expect(styles.scale).toBeUndefined()
-        }
-      }
+      expect(result['scale-75']?.scale).toBe('75% 75%')
+      expect(result['scale-75']?.transform).toBeUndefined()
     })
 
-    it('arbitrary rotate is converted to transform', async () => {
+    it('arbitrary rotate stays a native property', async () => {
       const result = await resolve(['rotate-[30deg]'])
       const styles = result['rotate-[30deg]']!
-      expect(styles.transform, `got: ${JSON.stringify(styles)}`).toBe('rotate(30deg)')
-      expect(styles.rotate).toBeUndefined()
+      expect(styles.rotate).toBe('30deg')
+      expect(styles.transform).toBeUndefined()
     })
   })
 
@@ -689,24 +680,10 @@ describe('tw4 class resolution', () => {
       }
     })
 
-    it('expands inset shorthand to longhands for Satori', async () => {
-      const result = await resolve(['inset-10'])
-      const styles = result['inset-10']!
-      expect(styles.inset, 'inset shorthand should be removed').toBeUndefined()
-      expect(styles.top).toBeDefined()
-      expect(styles.right).toBeDefined()
-      expect(styles.bottom).toBeDefined()
-      expect(styles.left).toBeDefined()
-    })
-
-    it('expands inset-0 to longhands for Satori', async () => {
-      const result = await resolve(['inset-0'])
-      const styles = result['inset-0']!
-      expect(styles.inset).toBeUndefined()
-      expect(styles.top).toBeDefined()
-      expect(styles.right).toBeDefined()
-      expect(styles.bottom).toBeDefined()
-      expect(styles.left).toBeDefined()
+    it('preserves native inset positioning utilities', async () => {
+      const result = await resolve(['inset-10', 'inset-0'])
+      expect(result['inset-10']).toEqual({ inset: '2.5rem' })
+      expect(result['inset-0']).toEqual({ top: '0', right: '0', bottom: '0', left: '0' })
     })
 
     it('resolves border utilities', async () => {
@@ -849,19 +826,19 @@ describe('tw4 class resolution', () => {
 // ============================================================================
 
 describe('resolveClassesToStyles conversions', () => {
-  it('rotate-45 outputs transform (not rotate)', async () => {
+  it('rotate-45 preserves the native property', async () => {
     clearTw4Cache()
     const resolved = await resolve(['rotate-45'])
     expect(resolved['rotate-45'], 'rotate-45 should resolve').toBeDefined()
-    expect(resolved['rotate-45'].transform).toBe('rotate(45deg)')
-    expect(resolved['rotate-45'].rotate).toBeUndefined()
+    expect(resolved['rotate-45'].rotate).toBe('45deg')
+    expect(resolved['rotate-45'].transform).toBeUndefined()
   })
 
-  it('arbitrary rotate outputs transform', async () => {
+  it('arbitrary rotate preserves the native property', async () => {
     clearTw4Cache()
     const resolved = await resolve(['rotate-[30deg]'])
     expect(resolved['rotate-[30deg]'], 'rotate-[30deg] should resolve').toBeDefined()
-    expect(resolved['rotate-[30deg]'].transform).toBe('rotate(30deg)')
+    expect(resolved['rotate-[30deg]'].rotate).toBe('30deg')
   })
 
   it('bg-gradient-to-tr from-[#3b82f6] produces gradient without "in oklab"', async () => {
@@ -919,7 +896,7 @@ describe('resolveClassesToStyles conversions', () => {
     const resolved = await resolve(brutalistClasses)
     const unresolved = brutalistClasses.filter(cls => !resolved[cls])
     expect(unresolved, 'All classes should resolve').toEqual([])
-    expect(resolved['rotate-45'].transform).toBe('rotate(45deg)')
+    expect(resolved['rotate-45'].rotate).toBe('45deg')
   })
 })
 
@@ -957,8 +934,7 @@ describe('assetTransformPlugin with TW4', () => {
     const result = await runTransform(plugin, code, id)
 
     expect(result, 'transform should produce output').toBeDefined()
-    expect(result!.code).toContain('rotate(45deg)')
-    // rotate-45 should be resolved and removed from class
+    expect(result!.code).toContain('rotate: 45deg')
     expect(result!.code).not.toMatch(/class="[^"]*rotate-45[^"]*"/)
   })
 
@@ -982,7 +958,7 @@ describe('assetTransformPlugin with TW4', () => {
 
     expect(result, 'transform should produce output').toBeDefined()
     // rotate-45 should be resolved to transform: rotate(45deg) in style
-    expect(result!.code).toContain('rotate(45deg)')
+    expect(result!.code).toContain('rotate: 45deg')
     // The class attribute should not contain rotate-45 anymore
     expect(result!.code).not.toMatch(/class="[^"]*rotate-45[^"]*"/)
   })
