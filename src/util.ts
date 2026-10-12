@@ -1,15 +1,21 @@
 import { resolvePath } from '@nuxt/kit'
-import { Launcher } from 'chrome-launcher'
 import { basename } from 'pathe'
 import { isCI } from 'std-env'
 
 export const isUndefinedOrTruthy = (v?: any) => typeof v === 'undefined' || v !== false
 
-export function checkLocalChrome() {
+/**
+ * Whether the optional chrome-launcher peer is installed and finds a local Chrome.
+ * The import is dynamic so that a default install never loads chrome-launcher.
+ */
+export async function checkLocalChrome(): Promise<boolean> {
   // quick path for CI
   if (isCI)
     return false
+  if (!await hasResolvableDependency('chrome-launcher'))
+    return false
 
+  const { Launcher } = await import('chrome-launcher')
   let hasChromeLocally = false
   try {
     hasChromeLocally = !!Launcher.getFirstInstallation()

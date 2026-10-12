@@ -504,9 +504,6 @@ importers:
       '@vue/compiler-sfc':
         specifier: 'catalog:'
         version: 3.5.43
-      chrome-launcher:
-        specifier: 'catalog:'
-        version: 1.2.2(supports-color@10.2.2)
       consola:
         specifier: 'catalog:'
         version: 3.4.2
@@ -709,6 +706,9 @@ importers:
       bumpp:
         specifier: 'catalog:'
         version: 12.3.0
+      chrome-launcher:
+        specifier: 'catalog:'
+        version: 1.2.2(supports-color@10.2.2)
       eslint:
         specifier: 'catalog:'
         version: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)

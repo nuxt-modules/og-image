@@ -106,7 +106,7 @@ Guide: https://nuxtseo.com/docs/og-image/guides/cloudflare
 
 - **Community templates such as `NuxtSeo` work only in dev.** A dev page render copies the template into `components/OgImage/`. A production build fails on `defineOgImage('NuxtSeo.takumi')` until you eject it. A component name built at runtime is not checked at build; that image returns 500. Run `pnpm exec nuxt-og-image eject NuxtSeo`. It picks the variant for the renderer your app uses; `eject NuxtSeo.takumi` or `eject NuxtSeo.satori` chooses one.
 - **`zeroRuntime: true` removes the `/_og/d/` handler.** A page that is not prerendered gets no `og:image`. Prerender every page that calls `defineOgImage()`.
-- **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` for local Chrome or Playwright, or `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
+- **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` and install `playwright-core`, or set `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
 - **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
 - **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
 - **Rolling or multi instance deploys need a stable secret.** Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Changing the application secret invalidates existing signed URLs.
@@ -124,6 +124,7 @@ v7 changes that v6 examples still show:
 - Takumi v1 is removed. Use `@takumi-rs/core` or `@takumi-rs/wasm` `^2.15.0`. Merge `takumi.fetchedResources` and `takumi.persistentImages` into `takumi.images`.
 - `defineOgImageSchema()` needs Zod 4.
 - `getOgImageUrl(event, ...)` takes the Nuxt `RequestEvent`. Import `defineEventHandler` from `nuxt/server`, not the h3 auto-import.
+- `chrome-launcher` is no longer installed. Without it, the browser renderer downloads Chromium instead of using a local Chrome. Run `pnpm add -D chrome-launcher`. Without `playwright-core`, a browser renderer build fails.
 - The DevTools panel needs `nuxtseo-devtools-host` as a dev dependency: `pnpm add -D nuxtseo-devtools-host@^1`.
 
 v6 changes that older examples still show:

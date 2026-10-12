@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -161,6 +162,23 @@ async function assertLicenseAttribution(appDir) {
   assert(license.includes('Copyright (c) 2026 Jeremy Tribby, Countertype LLC'), 'packed license should retain the woff-lib attribution')
 }
 
+function assertNoChromeLauncherInstall(appDir) {
+  assert(!existsSync(join(appDir, 'node_modules/chrome-launcher')), 'a default install should not include chrome-launcher')
+}
+
+async function findFilesContaining(dir, needle) {
+  const entries = await readdir(dir, { recursive: true, withFileTypes: true })
+  const matches = []
+  for (const entry of entries) {
+    const path = join(entry.parentPath, entry.name)
+    if (path.includes(needle))
+      matches.push(path)
+    else if (entry.isFile() && (await readFile(path, 'utf8')).includes(needle))
+      matches.push(path)
+  }
+  return matches
+}
+
 async function assertNuxtOnlyApp(pm, tarball) {
   log(`checking clean Nuxt-only app with ${pm}`)
   const appDir = await createApp(pm, `${pm}-nuxt-only`, {
@@ -173,9 +191,59 @@ async function assertNuxtOnlyApp(pm, tarball) {
   `)
 
   await install(pm, appDir)
+  assertNoChromeLauncherInstall(appDir)
   await assertLicenseAttribution(appDir)
   await execPackage(pm, appDir, ['nuxi', 'prepare'], `${pm} nuxi prepare`)
   await execPackage(pm, appDir, ['nuxt-og-image', 'migrate', 'v6', '--dry-run', '--yes'], `${pm} nuxt-og-image migrate`)
+}
+
+// The build output may hold unrelated warnings, so only the exit code decides the result.
+async function buildApp(pm, appDir) {
+  const commandArgs = pm === 'pnpm' ? ['exec', 'nuxi', 'build'] : ['exec', '--', 'nuxi', 'build']
+  return await run(appDir, pm, commandArgs, { capture: true })
+    .then(output => ({ _tag: 'Built', output }))
+    .catch(err => ({ _tag: 'Failed', output: err.message }))
+}
+
+async function assertSatoriOnlyBuild(pm, tarball) {
+  log(`checking Satori-only build without chrome-launcher with ${pm}`)
+  const appDir = await createApp(pm, `${pm}-satori-only`, {
+    'nuxt': '4.6.1',
+    'nuxt-og-image': `file:${tarball}`,
+    'satori': rootPackage.peerDependencies.satori,
+    '@resvg/resvg-js': rootPackage.peerDependencies['@resvg/resvg-js'],
+  }, `
+    export default defineNuxtConfig({
+      modules: ['nuxt-og-image'],
+      site: { url: 'https://example.com' },
+    })
+  `)
+
+  await install(pm, appDir)
+  assertNoChromeLauncherInstall(appDir)
+  const result = await buildApp(pm, appDir)
+  assert(result._tag === 'Built', `Satori-only build without chrome-launcher should pass:\n${result.output}`)
+  const matches = await findFilesContaining(join(appDir, '.output'), 'chrome-launcher')
+  assert(matches.length === 0, `Satori-only build output references chrome-launcher:\n${matches.join('\n')}`)
+}
+
+async function assertBrowserWithoutLauncherFails(pm, tarball) {
+  log(`checking browser renderer without a launcher package with ${pm}`)
+  const appDir = await createApp(pm, `${pm}-browser-no-launcher`, {
+    'nuxt': '4.6.1',
+    'nuxt-og-image': `file:${tarball}`,
+  }, `
+    export default defineNuxtConfig({
+      modules: ['nuxt-og-image'],
+      site: { url: 'https://example.com' },
+      ogImage: { browser: true },
+    })
+  `)
+
+  await install(pm, appDir)
+  const result = await buildApp(pm, appDir)
+  assert(result._tag === 'Failed', `browser renderer build without playwright-core should fail:\n${result.output}`)
+  assert(result.output.includes('npx nypm add playwright-core'), `browser renderer build failure should print the install command:\n${result.output}`)
 }
 
 async function getSharedExports(appDir) {
@@ -225,6 +293,8 @@ try {
   const tarball = await packModule()
   for (const pm of packageManagers) {
     await assertNuxtOnlyApp(pm, tarball)
+    await assertSatoriOnlyBuild(pm, tarball)
+    await assertBrowserWithoutLauncherFails(pm, tarball)
     await assertUnoApp(pm, tarball)
   }
   log('passed')

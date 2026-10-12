@@ -81,6 +81,7 @@
     "@unhead/vue": "^3.4.2",
     "@unocss/config": "catalog:",
     "@unocss/core": "catalog:",
+    "chrome-launcher": "^1.2.2",
     "fontless": "^1.3.2",
     "nitropack": "catalog:",
     "nuxt": "^4.6.1 || ^5.0.0",
@@ -109,6 +110,9 @@
       "optional": true
     },
     "@unocss/core": {
+      "optional": true
+    },
+    "chrome-launcher": {
       "optional": true
     },
     "fontless": {
@@ -140,7 +144,6 @@
     "@clack/prompts": "catalog:",
     "@nuxt/kit": "catalog:",
     "@vue/compiler-sfc": "catalog:",
-    "chrome-launcher": "catalog:",
     "consola": "catalog:",
     "defu": "catalog:",
     "devalue": "catalog:",
@@ -209,6 +212,7 @@
     "aws4fetch": "catalog:",
     "birpc": "catalog:",
     "bumpp": "catalog:",
+    "chrome-launcher": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-harlanzw": "catalog:",
     "fontless": "catalog:",
