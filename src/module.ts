@@ -371,8 +371,10 @@ export default defineNuxtModule<ModuleOptions>({
     '@nuxt/fonts': {
       optional: true,
     },
+    // Keep package-relative resolution until the minimum Nuxt version includes this fix:
+    // https://github.com/nuxt/nuxt/pull/36542
     [fileURLToPath(import.meta.resolve('nuxt-site-config'))]: {
-      version: '>=5.0.0',
+      version: '^5.0.0',
     },
   },
   defaults() {
