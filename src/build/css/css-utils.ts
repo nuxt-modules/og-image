@@ -12,7 +12,9 @@ const RE_CSS_DECL = /([\w-]+)\s*:\s*([^\s;][^;]*)(?:;|$)/g
 const RE_CSS_TOGGLE = /(--[\w-]+)\s*:\s+;/g
 const RE_CSS_CLASS_RULE = /\.((?:\\[0-9a-f]{1,6}\s?|\\[^0-9a-f]|[^\\\s{])+)\s*\{([^}]+)\}/gi
 const RE_ROOT_HOST_BLOCK = /:(?:root|host)[^\s{]*\s*\{([^}]+)\}/g
-const RE_UNIVERSAL_BLOCK = /\*[^{]*\{([^}]+)\}/g
+// The `*` must open a selector. A `*` inside a comment such as Tailwind's `/*! tailwindcss ... */`
+// banner would otherwise start a match that swallows the next rule's first declaration.
+const RE_UNIVERSAL_BLOCK = /(?:^|[{};])\s*\*[^{};]*\{([^{}]+)\}/g
 const RE_PROPERTY_AT_RULE = /@property\s+(--[\w-]+)\s*\{([^}]+)\}/g
 const RE_INITIAL_VALUE = /initial-value\s*:\s*([^\s;][^;]*);?/
 const RE_CSS_ESCAPE_HEX = /\\([0-9a-f]{1,6})\s?/gi
@@ -603,15 +605,31 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
 // Variable resolution
 // ============================================================================
 
+// Bounds substitution when variables reference each other in a cycle.
+const MAX_VAR_SUBSTITUTIONS = 100
+
+/**
+ * Substitute every var() that has a value or a fallback, innermost first.
+ * A var() with neither stays in place, so the caller can name exactly the missing variables.
+ */
 export function resolveCssVars(css: string, vars: Map<string, string>): string {
   let result = css
-  let iterations = 0
-  while (result.includes('var(') && iterations < 20) {
-    const next = resolveInnermostVar(result, vars)
-    if (next === result)
+  let cursor = result.length
+  for (let substitutions = 0; substitutions < MAX_VAR_SUBSTITUTIONS;) {
+    const idx = result.lastIndexOf('var(', cursor)
+    if (idx === -1)
       break
-    result = next
-    iterations++
+    const resolved = substituteVar(result, idx, vars)
+    if (resolved === undefined) {
+      if (idx === 0)
+        break
+      cursor = idx - 1
+      continue
+    }
+    result = result.substring(0, idx) + resolved.value + result.substring(resolved.end)
+    // The substituted value can hold var() of its own; text to its right is already done.
+    cursor = idx + resolved.value.length
+    substitutions++
   }
   return result
 }
@@ -630,23 +648,24 @@ function findClosingParen(str: string, startIdx: number): number {
   return -1
 }
 
-function resolveInnermostVar(css: string, vars: Map<string, string>): string {
-  const idx = css.lastIndexOf('var(')
-  if (idx === -1)
-    return css
+/**
+ * Resolve the var() that starts at `idx`. Returns undefined when the variable is unset and has no fallback.
+ */
+function substituteVar(css: string, idx: number, vars: Map<string, string>): { value: string, end: number } | undefined {
   const closeIdx = findClosingParen(css, idx + 4)
   if (closeIdx === -1)
-    return css
+    return undefined
   const content = css.substring(idx + 4, closeIdx)
-  if (content.includes('var('))
-    return css
   const comma = content.indexOf(',')
   const name = (comma >= 0 ? content.substring(0, comma) : content).trim()
   const fallback = comma >= 0 ? content.substring(comma + 1).trim() : undefined
-  const resolved = vars.get(name) ?? fallback
+  const value = vars.get(name)
+  // A custom property set to `initial` holds the guaranteed-invalid value, so var() takes its fallback.
+  // Tailwind v4 declares `--tw-shadow-color: initial` and similar for every unset utility variable.
+  const resolved = value !== undefined && value.trim() !== 'initial' ? value : fallback
   if (resolved === undefined)
-    return css
-  return css.substring(0, idx) + resolved + css.substring(closeIdx + 1)
+    return undefined
+  return { value: resolved, end: closeIdx + 1 }
 }
 
 // ============================================================================
