@@ -7,7 +7,7 @@ import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
-import { parseFontBinary } from './font-binary'
+import { isWoff2Binary, parseFontBinary } from './font-binary'
 import { fontFormat, selectFontSource } from './font-source'
 import { renameSubsetFonts } from './font-subsets'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
@@ -193,6 +193,11 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
       }
       if (!data)
         return null
+      // A WOFF2 file can hide behind another extension
+      if (!options.supportedFormats.has('woff2') && isWoff2Binary(data)) {
+        warnOnce(`woff2-${src}`, `OG images skip font "${f.family}" (${src}) for this renderer because it is a WOFF2 file. Satori reads TTF, OTF and WOFF.`)
+        return null
+      }
       // Reflect the src actually loaded so downstream dedupe (takumi) keys on the real binary.
       // Drop unicodeRange when using the full static fallback — the subset range doesn't apply
       // to the static TTF, and takumi's subset-chain logic would otherwise split the family.
@@ -283,7 +288,7 @@ function normalizeFontWeight(weight: unknown): number {
  * parsed at this boundary (require string name/path, coerce weight) and the
  * array is bounded before any font is fetched.
  */
-export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDefs: any[]): Promise<RuntimeFontConfig[]> {
+export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDefs: any[], supportedFormats: Set<FontFormat>): Promise<RuntimeFontConfig[]> {
   const results: RuntimeFontConfig[] = []
   const defs = Array.isArray(fontDefs) ? fontDefs : []
   if (import.meta.dev && defs.length > MAX_DEFINED_FONTS)
@@ -314,6 +319,11 @@ export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDef
         warnOnce(`binary-${path}`, `defineOgImage() font "${name}" is skipped because ${binary.reason}. Use a TTF, OTF, WOFF or WOFF2 file.`)
       continue
     }
+    if (!supportedFormats.has('woff2') && isWoff2Binary(binary.data)) {
+      if (import.meta.dev)
+        warnOnce(`woff2-${path}`, `defineOgImage() font "${name}" is skipped because Satori cannot read WOFF2. Use a TTF, OTF or WOFF file.`)
+      continue
+    }
     results.push({
       ...fontConfig,
       cacheKey: `custom-${name}-${weight}-${style}-${path}`,
@@ -341,7 +351,7 @@ export interface LoadFontsForRendererOptions extends LoadFontsOptions {
 export async function loadFontsForRenderer(event: OgImageRenderEventContext, options: LoadFontsForRendererOptions): Promise<RuntimeFontConfig[]> {
   const baseFonts = await loadAllFonts(event.e, options)
   const customFonts = Array.isArray(options.fontDefs) && options.fontDefs.length > 0
-    ? await loadDefinedFonts(event, options.fontDefs)
+    ? await loadDefinedFonts(event, options.fontDefs, options.supportedFormats)
     : []
   const allFonts = customFonts.length > 0 ? [...baseFonts, ...customFonts] : baseFonts
   return renameSubsetFonts(allFonts)

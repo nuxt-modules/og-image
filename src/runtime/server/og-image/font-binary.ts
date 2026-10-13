@@ -121,8 +121,13 @@ async function decodeWoff(woff: Uint8Array<ArrayBuffer>): Promise<Uint8Array<Arr
   return sfnt
 }
 
+/** Whether the bytes are WOFF2, which Satori cannot read. WOFF2 needs Brotli, so the loader never inflates it. */
+export function isWoff2Binary(source: BufferSource): boolean {
+  return readSignature(toBytes(source)) === SIGNATURES.woff2
+}
+
 /**
- * Parse loaded font bytes into a binary that Satori and every Takumi build accept.
+ * Parse loaded font bytes into a binary that every Takumi build accepts.
  * TTF, OTF, font collections and WOFF2 pass through; WOFF inflates to TTF or OTF.
  */
 export async function parseFontBinary(source: BufferSource): Promise<FontBinaryResult> {

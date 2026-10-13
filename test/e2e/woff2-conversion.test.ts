@@ -42,6 +42,11 @@ describe('nuxt Fonts WOFF2 conversion', () => {
     expect(images.get('/takumi')).toMatchImageSnapshot({ customSnapshotIdentifier: 'woff2-subset-takumi' })
   })
 
+  it('renders with Satori when defineOgImage passes a WOFF2 font', async () => {
+    const images = await fetchOgImages('/defined-woff2')
+    expect(images.get('/defined-woff2')!.subarray(0, 4)).toEqual(Buffer.from([0x89, 0x50, 0x4E, 0x47]))
+  })
+
   it('renders JPEG images through sharp', async () => {
     const html = await $fetch('/jpeg') as string
     const imageUrl = extractOgImageUrl(html)
