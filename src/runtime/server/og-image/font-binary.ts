@@ -41,6 +41,66 @@ function readSignature(data: Uint8Array): number | undefined {
   return new DataView(data.buffer, data.byteOffset, data.byteLength).getUint32(0)
 }
 
+/** Check file boundaries before handing an uncompressed font to a renderer. */
+function sfntError(data: Uint8Array, offset = 0): string | undefined {
+  if (offset + 12 > data.byteLength)
+    return 'the SFNT header is truncated'
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  const signature = view.getUint32(offset)
+  if (signature !== SIGNATURES.truetype && signature !== SIGNATURES.appleTrueType && signature !== SIGNATURES.openType)
+    return 'the SFNT signature is invalid'
+  const numTables = view.getUint16(offset + 4)
+  if (numTables === 0)
+    return 'the SFNT file has no tables'
+  if (offset + 12 + numTables * SFNT_TABLE_RECORD_SIZE > data.byteLength)
+    return 'the SFNT table directory is truncated'
+  for (let index = 0; index < numTables; index++) {
+    const record = offset + 12 + index * SFNT_TABLE_RECORD_SIZE
+    if (view.getUint32(record + 8) + view.getUint32(record + 12) > data.byteLength)
+      return 'an SFNT table runs past the end of the file'
+  }
+}
+
+function collectionError(data: Uint8Array): string | undefined {
+  if (data.byteLength < 12)
+    return 'the font collection header is truncated'
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  const version = view.getUint32(4)
+  if (version !== 0x00010000 && version !== 0x00020000)
+    return 'the font collection version is invalid'
+  const numFonts = view.getUint32(8)
+  if (numFonts === 0)
+    return 'the font collection has no fonts'
+  const headerSize = 12 + numFonts * 4 + (version === 0x00020000 ? 12 : 0)
+  if (headerSize > data.byteLength)
+    return 'the font collection directory is truncated'
+  for (let index = 0; index < numFonts; index++) {
+    const offset = view.getUint32(12 + index * 4)
+    if (offset < headerSize)
+      return 'a font collection offset overlaps its header'
+    const error = sfntError(data, offset)
+    if (error)
+      return error
+  }
+}
+
+function woff2Error(data: Uint8Array): string | undefined {
+  if (data.byteLength < 48)
+    return 'the WOFF2 header is truncated'
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  if (view.getUint32(8) !== data.byteLength)
+    return 'the WOFF2 length does not match the file'
+  if (view.getUint16(12) === 0)
+    return 'the WOFF2 file has no tables'
+  const compressedSize = view.getUint32(20)
+  if (compressedSize === 0 || compressedSize > data.byteLength - 48)
+    return 'the WOFF2 compressed data is missing or truncated'
+}
+
+function checked(data: Uint8Array<ArrayBuffer>, error: string | undefined): FontBinaryResult {
+  return error ? { _tag: 'Err', reason: error } : { _tag: 'Ok', data }
+}
+
 /** Inflate one zlib stream that must expand to exactly `size` bytes. */
 async function inflate(data: Uint8Array<ArrayBuffer>, size: number): Promise<Uint8Array<ArrayBuffer>> {
   const output = new Uint8Array(size)
@@ -131,7 +191,8 @@ export function isWoff2Binary(source: BufferSource): boolean {
 
 /**
  * Parse loaded font bytes into a binary that every Takumi build accepts.
- * TTF, OTF, font collections and WOFF2 pass through; WOFF inflates to TTF or OTF.
+ * Check TTF, OTF and collection table bounds, plus WOFF2 header and file length.
+ * Accepted bytes pass through; WOFF inflates to TTF or OTF.
  */
 export async function parseFontBinary(source: BufferSource): Promise<FontBinaryResult> {
   const data = toBytes(source)
@@ -139,12 +200,14 @@ export async function parseFontBinary(source: BufferSource): Promise<FontBinaryR
     case SIGNATURES.truetype:
     case SIGNATURES.appleTrueType:
     case SIGNATURES.openType:
+      return checked(data, sfntError(data))
     case SIGNATURES.collection:
+      return checked(data, collectionError(data))
     case SIGNATURES.woff2:
-      return { _tag: 'Ok', data }
+      return checked(data, woff2Error(data))
     case SIGNATURES.woff:
       return decodeWoff(data).then(
-        (sfnt): FontBinaryResult => ({ _tag: 'Ok', data: sfnt }),
+        (sfnt): FontBinaryResult => checked(sfnt, sfntError(sfnt)),
         (error: Error): FontBinaryResult => ({ _tag: 'Err', reason: `it is a WOFF file that could not be decoded: ${error.message}` }),
       )
     default:
