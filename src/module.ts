@@ -1462,7 +1462,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       })
     }
 
-    nuxt.options.nitro.virtual['#og-image/fonts'] = async () => {
+    async function resolveFontList() {
       builtFontKey = currentFontKey()
       await loadCssMetadata()
       // Dev mode: WOFF2 preparation may not have run via vite:compiled
@@ -1481,7 +1481,7 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         })
         fontProcessingDone = true
       }
-      const fonts = await resolveOgImageFonts({
+      return await resolveOgImageFonts({
         nuxt,
         hasNuxtFonts,
         hasSatoriRenderer: hasSatoriRenderer(),
@@ -1493,8 +1493,17 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
         logger,
         ogFontsDir: resolve('./runtime/public/_og-fonts'),
       })
-      return `export default ${JSON.stringify(fonts)}`
     }
+    // A build resolves the list twice: before Nitro copies public assets, and for the virtual module
+    let builtFontList: { key: string, fonts: ReturnType<typeof resolveFontList> } | undefined
+    function getFontList() {
+      const key = currentFontKey()
+      if (nuxt.options.dev || builtFontList?.key !== key)
+        builtFontList = { key, fonts: resolveFontList() }
+      return builtFontList.fonts
+    }
+
+    nuxt.options.nitro.virtual['#og-image/fonts'] = async () => `export default ${JSON.stringify(await getFontList())}`
 
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
@@ -1606,7 +1615,10 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       // Explicitly copy all static fonts (bundled Inter + fontless downloads) to output.
       // Nitro publicAssets may not copy module-provided directories on all presets
       // (e.g. cloudflare-durable), so we ensure they're always in the output.
-      nuxt.hook('nitro:build:public-assets' as any, (nitro: any) => {
+      nuxt.hook('nitro:build:public-assets' as any, async (nitro: any) => {
+        // Resolving the list downloads the families @nuxt/fonts did not resolve.
+        // Nitro bundles the server after this hook, so a clean build copies them only from here.
+        await getFontList()
         copyStaticFontsToOutput({
           buildDir: nuxt.options.buildDir,
           bundledFontsDir: resolve('./runtime/public/_og-fonts'),

@@ -57,7 +57,7 @@ describe('multi-font-families', () => {
   })
 
   it('downloads a static fallback for a missing font weight', async () => {
-    const font700 = await $fetch('/_og-static-fonts/Nunito_Sans-700-normal.woff', { responseType: 'arrayBuffer' }) as ArrayBuffer
+    const font700 = await $fetch('/_og-static-fonts/Nunito_Sans-700-normal.ttf', { responseType: 'arrayBuffer' }) as ArrayBuffer
     expect(font700.byteLength).toBeGreaterThan(1000)
   })
 
@@ -73,7 +73,7 @@ describe('multi-font-families', () => {
   })
 
   it('downloads static font files for Devanagari (non-Latin subset)', async () => {
-    const font400: ArrayBuffer = await $fetch('/_og-static-fonts/Noto_Sans_Devanagari-400-normal.woff', { responseType: 'arrayBuffer' })
+    const font400: ArrayBuffer = await $fetch('/_og-static-fonts/Noto_Sans_Devanagari-400-normal.ttf', { responseType: 'arrayBuffer' })
     expect(font400.byteLength).toBeGreaterThan(1000)
   })
 

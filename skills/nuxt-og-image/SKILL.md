@@ -88,7 +88,7 @@ To use an existing image, call `useSeoMeta({ ogImage: '/cover.png' })`. The v5 `
 
 ## Fonts
 
-Custom fonts load only through `@nuxt/fonts`, and each family needs `global: true`. CSS `@font-face` rules and font CDN links do not reach the renderer. Local fonts: Takumi reads woff2 and ttf; Satori reads woff, ttf, and otf.
+Custom fonts load only through `@nuxt/fonts`, and each family needs `global: true`. CSS `@font-face` rules and font CDN links do not reach the renderer. Local fonts: Takumi reads woff2, woff, ttf, and otf; Satori reads woff, ttf, and otf.
 
 ```ts
 export default defineNuxtConfig({

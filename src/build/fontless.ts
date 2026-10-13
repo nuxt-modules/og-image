@@ -450,7 +450,14 @@ async function resolveAndDownloadFamily(options: {
     if (!resolution?.fonts?.length)
       return results
 
+    // One file per weight and style. Providers can offer the same face as TTF and WOFF;
+    // TTF comes first because every renderer reads it without inflating.
+    const candidates = new Map<string, Array<{ weight: number, style: string, url: string, isTtf: boolean }>>()
     for (const font of resolution.fonts) {
+      const style = font.style || 'normal'
+      if (!styles.includes(style as 'normal' | 'italic'))
+        continue
+      const resolvedWeights = resolveWeightsFromFontEntry(font.weight, weights)
       for (const src of font.src) {
         if (!('url' in src))
           continue
@@ -459,24 +466,21 @@ async function resolveAndDownloadFamily(options: {
         const isTtf = format === 'truetype' || format === 'ttf'
         if (!isTtf && format !== 'woff')
           continue
-        const style = font.style || 'normal'
-        if (!styles.includes(style as 'normal' | 'italic'))
-          continue
-
-        const resolvedWeights = resolveWeightsFromFontEntry(font.weight, weights)
-        if (resolvedWeights.length === 0)
-          continue
-
-        const ext = isTtf ? 'ttf' : 'woff'
         for (const weight of resolvedWeights) {
-          const filename = `${family.replace(RE_NON_ALPHANUMERIC, '_')}-${weight}-${style}.${ext}`
-          const destPath = join(staticFontDir, filename)
-          if (!await downloadFontFile(url, destPath))
-            continue
-
-          results.push({ family, weight, style, format, filename, url })
-          logger.debug(`Resolved static font: ${family} ${weight}`)
+          const key = `${weight}-${style}`
+          candidates.set(key, [...candidates.get(key) || [], { weight, style, url, isTtf }])
         }
+      }
+    }
+
+    for (const sources of candidates.values()) {
+      for (const { weight, style, url, isTtf } of sources.toSorted((a, b) => Number(b.isTtf) - Number(a.isTtf))) {
+        const filename = `${family.replace(RE_NON_ALPHANUMERIC, '_')}-${weight}-${style}.${isTtf ? 'ttf' : 'woff'}`
+        if (!await downloadFontFile(url, join(staticFontDir, filename)))
+          continue
+        results.push({ family, weight, style, format: isTtf ? 'truetype' : 'woff', filename, url })
+        logger.debug(`Resolved static font: ${family} ${weight}`)
+        break
       }
     }
   }
