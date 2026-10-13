@@ -273,10 +273,16 @@ _ogImagePrerenderPaths?: Map<string, string>`,
 /// <reference path="./og-image-bindings.d.ts" />
 import type { OgImageIconsData, OgImageOptions, OgImageRenderEventContext, OgImageRuntimeConfig, VNode } from '${typesPath}'
 
+declare module '@nuxt/schema' {
+  interface AppRouteRulesExtensions {
+    ogImage?: false | OgImageOptions & Record<string, any>
+  }
+}
+
 ${nitroAugmentations}
 
 export {}
 `
     },
-  }, { nitro: true, nuxt: true })
+  }, { nitro: true, node: true, nuxt: true })
 }

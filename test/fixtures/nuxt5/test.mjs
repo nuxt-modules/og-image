@@ -5,6 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import pixelmatch from 'pixelmatch'
 import { PNG } from 'pngjs'
+import { assertRouteRules } from './test-route-rules.ts'
 
 const fixtureDir = import.meta.dirname
 const imageSnapshotUrl = new URL('__snapshots__/og-image.png', import.meta.url)
@@ -96,6 +97,7 @@ async function main() {
 
   try {
     const response = await waitForServer()
+    await assertRouteRules(origin)
     const aliasBody = await (await fetch(`${origin}/api/runtime-alias?ignored=one`)).json()
     assert.match(aliasBody.url, /^https:\/\/og-image\.example\.com\//)
     assert.equal(aliasBody.url, aliasBody.nestedUrl)
