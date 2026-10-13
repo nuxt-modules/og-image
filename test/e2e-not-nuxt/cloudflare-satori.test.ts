@@ -137,6 +137,21 @@ describe('cloudflare-satori', () => {
       expect(ogImage?.[1]).toBeTruthy()
       expect(ogImage?.[1]).toContain('/_og/')
     })
+
+    it('runs the prerender plugin only in the prerender build', async () => {
+      // The plugin strips the options payload from prerendered HTML.
+      const indexHtml = await fs.readFile(resolve(fixtureDir, '.output/public/index.html'), 'utf-8')
+      expect(indexHtml).not.toContain('id="nuxt-og-image-options"')
+
+      const serverDir = resolve(fixtureDir, '.output/server')
+      const maps = await globby('**/*.map', { cwd: serverDir })
+      const sources = (await Promise.all(maps.map(async (map) => {
+        const { sources = [] } = JSON.parse(await fs.readFile(resolve(serverDir, map), 'utf-8')) as { sources?: string[] }
+        return sources
+      }))).flat()
+      expect(sources.some(source => source.includes('/runtime/server/'))).toBe(true)
+      expect(sources.filter(source => source.includes('/runtime/server/plugins/prerender'))).toEqual([])
+    })
   })
 
   // Skip wrangler runtime in CI or sandboxed environments where local interfaces are unavailable

@@ -1858,9 +1858,6 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       nuxt.options.nitro.virtual['#og-image-virtual/signing.mjs'] = () => `export const rendersImages = ${getDetectedRenderers().size > 0}`
       addServerHandler({ middleware: true, handler: resolve('./runtime/server/middleware/signing') })
     }
-    // no way to know if we'll prerender any routes
-    if (nuxt.options.build)
-      addServerPlugin(resolve('./runtime/server/plugins/prerender'))
     if (nuxt.options.build && config.publish && !config.zeroRuntime)
       addServerPlugin(resolve('./runtime/server/plugins/publish'))
     if (nuxt.options.dev)
