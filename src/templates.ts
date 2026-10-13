@@ -278,5 +278,5 @@ ${nitroAugmentations}
 export {}
 `
     },
-  }, { nitro: true, nuxt: true })
+  }, { nitro: true, node: true, nuxt: true })
 }

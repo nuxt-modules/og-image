@@ -16,6 +16,14 @@ export default defineNuxtConfig({
     name: 'Nuxt 5 OG Image',
     url: 'https://og-image.example.com',
   },
+  routeRules: {
+    '/api/route-rules': {
+      ogImage: { width: 640, height: 320, props: { title: 'Route rule title' } },
+    },
+    '/disabled': {
+      ogImage: false,
+    },
+  },
   devtools: { enabled: false },
   compatibilityDate: '2026-06-10',
 })
