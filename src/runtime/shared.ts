@@ -26,7 +26,8 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
   const meta: ResolvableMeta[] = []
 
   if (includeTwitter) {
-    meta.push({ name: 'twitter:card', content: 'summary_large_image' })
+    // The card type is a default. A page that sets its own twitter:card keeps it.
+    meta.push({ name: 'twitter:card', content: 'summary_large_image', tagPriority: 'low' })
     meta.push({ name: 'twitter:image', content: url })
   }
 
@@ -49,6 +50,9 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
     if (includeTwitter)
       meta.push({ name: 'twitter:image:alt', content: resolvedOptions.alt })
   }
+  // Image tags outrank image fallbacks from other modules.
+  for (const tag of meta)
+    tag.tagPriority ??= 'high'
   return meta
 }
 

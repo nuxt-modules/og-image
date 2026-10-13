@@ -98,7 +98,7 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   const urlValue = toValue(url)
   const absoluteUrl = /^https?:\/\//.test(urlValue) ? urlValue : toValue(withSiteUrl(urlValue, { withBase: true, canonical: !import.meta.dev }))
   const meta = generateMeta(absoluteUrl, input, { includeTwitter })
-  useHead({ meta }, { tagPriority: 'high' })
+  useHead({ meta })
 }
 
 export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePrebuilt, ssrContext: NuxtSSRContext, pagePath?: string, head?: VueHeadClient) {
@@ -197,7 +197,6 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
     },
   }, {
     processTemplateParams: true,
-    tagPriority: 'high',
   })
 
   // devtools script injection for dev mode and prerender cache

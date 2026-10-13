@@ -151,7 +151,7 @@ export function clientProcessOgImageOptions(
     if ((validOptions as OgImagePrebuilt).url) {
       const url = (validOptions as OgImagePrebuilt).url as string
       const absoluteUrl = /^https?:\/\//.test(url) ? url : toValue(resolveImageUrl(url))
-      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, validOptions, metaOptions) }, { tagPriority: 'high' })
+      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, validOptions, metaOptions) })
       paths.push(url)
       continue
     }
@@ -159,7 +159,7 @@ export function clientProcessOgImageOptions(
     // SSR: route through the resolver for a guaranteed match with the server URL.
     if (hasServerRuntime) {
       const finalUrl = buildResolverUrl(baseURL, basePath, ogKey, route.query as Record<string, any> | undefined)
-      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), validOptions, metaOptions) }, { tagPriority: 'high' })
+      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), validOptions, metaOptions) })
       paths.push(finalUrl)
       continue
     }
@@ -180,7 +180,7 @@ export function clientProcessOgImageOptions(
     const imageUrl = rc.app.cdnURL
       ? withQuery(joinURL(rc.app.cdnURL, result.url), query)
       : toValue(resolveImageUrl(finalUrl))
-    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, opts, metaOptions) }, { processTemplateParams: true, tagPriority: 'high' })
+    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, opts, metaOptions) }, { processTemplateParams: true })
     paths.push(finalUrl)
   }
 
