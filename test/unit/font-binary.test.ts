@@ -56,6 +56,65 @@ beforeAll(async () => {
 })
 
 describe('parseFontBinary', () => {
+  it.each([0x00010000, 0x74727565, 0x4F54544F, 0x74746366, 0x774F4632])('rejects a font containing only its signature (%i)', async (signature) => {
+    const data = new Uint8Array(4)
+    new DataView(data.buffer).setUint32(0, signature)
+    expect(await parseFontBinary(data)).toMatchObject({ _tag: 'Err' })
+  })
+
+  it.each([4, 12, 28, 2000])('rejects a truncated SFNT font (%i bytes)', async (length) => {
+    const data = await parsed(await readFont('noto-sans-sc-latin-400-normal.woff'))
+    expect(await parseFontBinary(data.subarray(0, length))).toMatchObject({ _tag: 'Err' })
+  })
+
+  it('passes a complete SFNT font through without changing its bytes', async () => {
+    const data = await parsed(await readFont('noto-sans-sc-latin-400-normal.woff'))
+    expect(await parseFontBinary(data)).toEqual({ _tag: 'Ok', data })
+  })
+
+  it.each([
+    '../fixtures/basic/public/OPTIEinstein-Black.otf',
+    '../fixtures/multi-font-families/public/fonts/LocalSans-Regular.ttf',
+  ])('passes a complete font through (%s)', async (file) => {
+    const data = new Uint8Array(await readFile(new URL(file, import.meta.url)))
+    expect(await parseFontBinary(data)).toEqual({ _tag: 'Ok', data })
+  })
+
+  it.each([0x00010000, 0x00020000])('passes a complete font collection through (%i)', async (version) => {
+    const sfnt = await parsed(await readFont('noto-sans-sc-latin-400-normal.woff'))
+    const headerSize = version === 0x00020000 ? 28 : 16
+    const data = new Uint8Array(headerSize + sfnt.length)
+    data.set(sfnt, headerSize)
+    const view = new DataView(data.buffer)
+    view.setUint32(0, 0x74746366)
+    view.setUint32(4, version)
+    view.setUint32(8, 1)
+    view.setUint32(12, headerSize)
+    const numTables = view.getUint16(headerSize + 4)
+    for (let index = 0; index < numTables; index++) {
+      const offsetField = headerSize + 12 + index * 16 + 8
+      view.setUint32(offsetField, view.getUint32(offsetField) + headerSize)
+    }
+    expect(await parseFontBinary(data)).toEqual({ _tag: 'Ok', data })
+    const [fromCollection, fromSfnt] = await Promise.all([renderWasm(data, 400), renderWasm(sfnt, 400)])
+    expect(Buffer.from(fromCollection).equals(Buffer.from(fromSfnt))).toBe(true)
+  })
+
+  it('rejects a truncated WOFF2 payload', async () => {
+    const data = await readFont('noto-sans-sc-latin-400-normal.woff2')
+    expect(await parseFontBinary(data.subarray(0, data.length - 1))).toMatchObject({ _tag: 'Err' })
+  })
+
+  it('rejects a collection with a missing font directory', async () => {
+    const data = new Uint8Array(16)
+    const view = new DataView(data.buffer)
+    view.setUint32(0, 0x74746366)
+    view.setUint32(4, 0x00010000)
+    view.setUint32(8, 1)
+    view.setUint32(12, data.length)
+    expect(await parseFontBinary(data)).toMatchObject({ _tag: 'Err' })
+  })
+
   it.each([
     [0x7FFFFFFF],
     [0x80000000],
