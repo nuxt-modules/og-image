@@ -333,7 +333,8 @@ async function parseCssOutput(
       if (!extractedAccum.rootVars.has(n))
         extractedAccum.rootVars.set(n, v)
     }
-    extractedAccum.qualifiedRules.push(...fresh.qualifiedRules)
+    // `compiler.build()` returns everything built so far, so the newest rules supersede the old ones.
+    extractedAccum.qualifiedRules = fresh.qualifiedRules
     for (const [n, v] of fresh.universalVars) {
       if (!extractedAccum.universalVars.has(n))
         extractedAccum.universalVars.set(n, v)
@@ -372,6 +373,15 @@ const LINEAR_GRADIENT_DIRECTIONS: Record<string, string> = {
   'bg-gradient-to-bl': 'to bottom left',
   'bg-gradient-to-l': 'to left',
   'bg-gradient-to-tl': 'to top left',
+  // Tailwind v4 names
+  'bg-linear-to-t': 'to top',
+  'bg-linear-to-tr': 'to top right',
+  'bg-linear-to-r': 'to right',
+  'bg-linear-to-br': 'to bottom right',
+  'bg-linear-to-b': 'to bottom',
+  'bg-linear-to-bl': 'to bottom left',
+  'bg-linear-to-l': 'to left',
+  'bg-linear-to-tl': 'to top left',
 }
 
 const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
@@ -387,38 +397,44 @@ const RADIAL_GRADIENT_SHAPES: Record<string, string> = {
   'bg-radial-at-c': 'circle at center',
 }
 
-async function resolveGradientColor(cls: string, vars: Map<string, string>): Promise<string | null> {
+async function toGradientColor(value: string, vars: Map<string, string>): Promise<string | null> {
+  const resolved = await resolveVarsDeep(value, vars)
+  if (resolved.includes('var('))
+    return null
+  const simplified = await simplifyCss(`.x{color:${resolved}}`)
+  return simplified.match(RE_CSS_COLOR_VALUE)?.[1]?.trim() ?? resolved
+}
+
+async function resolveGradientColor(
+  cls: string,
+  vars: Map<string, string>,
+  classVars?: Map<string, string>,
+): Promise<string | null> {
   const colorName = cls.replace(RE_GRADIENT_STOP_PREFIX, '')
 
   const shadeMatch = colorName.match(RE_COLOR_SHADE)
   if (shadeMatch?.[1] && shadeMatch?.[2]) {
-    const varName = `--color-${shadeMatch[1]}-${shadeMatch[2]}`
-    const value = vars.get(varName)
-    if (value) {
-      const resolved = await resolveVarsDeep(value, vars)
-      if (!resolved.includes('var(')) {
-        const simplified = await simplifyCss(`.x{color:${resolved}}`)
-        return simplified.match(RE_CSS_COLOR_VALUE)?.[1]?.trim() ?? resolved
-      }
-    }
+    const value = vars.get(`--color-${shadeMatch[1]}-${shadeMatch[2]}`)
+    const color = value ? await toGradientColor(value, vars) : null
+    if (color)
+      return color
   }
 
-  const varName = `--color-${colorName}`
-  const value = vars.get(varName)
-  if (value) {
-    const resolved = await resolveVarsDeep(value, vars)
-    if (!resolved.includes('var(')) {
-      const simplified = await simplifyCss(`.x{color:${resolved}}`)
-      return simplified.match(RE_CSS_COLOR_VALUE)?.[1]?.trim() ?? resolved
-    }
-  }
+  const value = vars.get(`--color-${colorName}`)
+  const color = value ? await toGradientColor(value, vars) : null
+  if (color)
+    return color
 
-  return null
+  // Arbitrary stops such as from-[#3b82f6] carry the color in the class's own variable.
+  const stop = cls.match(RE_GRADIENT_STOP_PREFIX)?.[1]
+  const own = stop ? classVars?.get(`--tw-gradient-${stop}`) : undefined
+  return own ? toGradientColor(own, vars) : null
 }
 
 async function buildGradient(
   classes: string[],
   vars: Map<string, string>,
+  perClassVars?: Map<string, Map<string, string>>,
 ): Promise<{ gradientClass: string, value: string, colorClasses: string[] } | null> {
   const linearDir = classes.find(c => LINEAR_GRADIENT_DIRECTIONS[c])
   const radialShape = classes.find(c => RADIAL_GRADIENT_SHAPES[c])
@@ -431,9 +447,9 @@ async function buildGradient(
   if (!fromClass && !toClass)
     return null
 
-  const fromColor = fromClass ? await resolveGradientColor(fromClass, vars) : null
-  const viaColor = viaClass ? await resolveGradientColor(viaClass, vars) : null
-  const toColor = toClass ? await resolveGradientColor(toClass, vars) : null
+  const fromColor = fromClass ? await resolveGradientColor(fromClass, vars, perClassVars?.get(fromClass)) : null
+  const viaColor = viaClass ? await resolveGradientColor(viaClass, vars, perClassVars?.get(viaClass)) : null
+  const toColor = toClass ? await resolveGradientColor(toClass, vars, perClassVars?.get(toClass)) : null
 
   if (!fromColor && !toColor)
     return null
@@ -514,6 +530,9 @@ export async function resolveClassesToStyles(
   const uncached = classes.filter(c => !resolvedStyleCache.has(cacheKeyFor(c)))
 
   if (uncached.length > 0) {
+    // The compiler accumulates candidates: its output holds every class built so far, plus the
+    // app's own CSS rules. Only the classes this call asked for are resolved, so a warning names
+    // the template that uses the class.
     const outputCss = compiler.build(uncached)
     // Always populate cachedExtractedVars so theme switches stay correct
     const { classes: parsedClasses, perClassVars } = await parseCssOutput(outputCss, vars, cachedExtractedVars || undefined)
@@ -522,25 +541,23 @@ export async function resolveClassesToStyles(
       ? buildThemeVars(vars, cachedExtractedVars, theme, options.nuxtUiColors)
       : vars
 
-    for (const [className, rawStyles] of parsedClasses) {
+    for (const className of uncached) {
+      const cacheKey = cacheKeyFor(className)
+      const rawStyles = parsedClasses.get(className)
+      if (!rawStyles) {
+        resolvedStyleCache.set(cacheKey, null)
+        continue
+      }
+      // buildGradient() composes these from the sibling from-/via-/to- classes, so their own
+      // var(--tw-gradient-stops) never resolves per class. An empty entry consumes the class.
+      if (LINEAR_GRADIENT_DIRECTIONS[className] || RADIAL_GRADIENT_SHAPES[className]) {
+        resolvedStyleCache.set(cacheKey, {})
+        continue
+      }
       // Merge global vars with per-class var overrides for resolution
       const classVars = perClassVars.get(className)
       const mergedVars = classVars ? new Map([...resolveVarsForClass, ...classVars]) : resolveVarsForClass
-      const styles = await postProcessStyles(rawStyles, mergedVars, undefined, context)
-      const cacheKey = cacheKeyFor(className)
-      // Gradients must resolve to something for buildGradient to find them later
-      if (!styles && className.startsWith('bg-gradient-')) {
-        resolvedStyleCache.set(cacheKey, rawStyles)
-      }
-      else {
-        resolvedStyleCache.set(cacheKey, styles)
-      }
-    }
-
-    for (const c of uncached) {
-      const key = cacheKeyFor(c)
-      if (!resolvedStyleCache.has(key))
-        resolvedStyleCache.set(key, null)
+      resolvedStyleCache.set(cacheKey, await postProcessStyles(rawStyles, mergedVars, undefined, context))
     }
   }
 
@@ -554,7 +571,7 @@ export async function resolveClassesToStyles(
   const gradientVars = theme
     ? buildThemeVars(vars, cachedExtractedVars, theme, options.nuxtUiColors)
     : vars
-  const gradient = await buildGradient(classes, gradientVars)
+  const gradient = await buildGradient(classes, gradientVars, cachedExtractedVars?.perClassVars)
   if (gradient) {
     result[gradient.gradientClass] = { 'background-image': gradient.value }
     for (const colorClass of gradient.colorClasses) {
