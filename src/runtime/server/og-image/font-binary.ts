@@ -16,6 +16,10 @@ const SFNT_TABLE_RECORD_SIZE = 16
 // The largest CJK fonts stay well below this. It bounds a WOFF that declares huge tables.
 const MAX_SFNT_SIZE = 64 * 1024 * 1024
 
+function alignTableSize(size: number): number {
+  return Math.ceil(size / 4) * 4
+}
+
 const SIGNATURES = {
   truetype: 0x00010000,
   appleTrueType: 0x74727565, // 'true'
@@ -88,11 +92,10 @@ async function decodeWoff(woff: Uint8Array<ArrayBuffer>): Promise<Uint8Array<Arr
       throw new Error('a WOFF table runs past the end of the file')
     if (table.compLength > table.origLength)
       throw new Error('a WOFF table is larger than its decoded size')
-    // SFNT tables start on 4-byte boundaries
-    sfntSize += (table.origLength + 3) & ~3
+    sfntSize += alignTableSize(table.origLength)
+    if (sfntSize > MAX_SFNT_SIZE)
+      throw new Error(`the decoded font exceeds ${MAX_SFNT_SIZE} bytes`)
   }
-  if (sfntSize > MAX_SFNT_SIZE)
-    throw new Error(`the decoded font exceeds ${MAX_SFNT_SIZE} bytes`)
 
   const tableData = await Promise.all(tables.map((table) => {
     const stored = woff.subarray(table.offset, table.offset + table.compLength)
@@ -116,7 +119,7 @@ async function decodeWoff(woff: Uint8Array<ArrayBuffer>): Promise<Uint8Array<Arr
     out.setUint32(record + 8, offset)
     out.setUint32(record + 12, table.origLength)
     sfnt.set(tableData[index]!, offset)
-    offset += (table.origLength + 3) & ~3
+    offset += alignTableSize(table.origLength)
   })
   return sfnt
 }

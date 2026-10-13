@@ -1,11 +1,32 @@
 import { readFile } from 'node:fs/promises'
+import { deflateSync } from 'node:zlib'
 import { initSync, Renderer } from '@takumi-rs/wasm'
 import { resolveModulePath } from 'exsolve'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { parseFontBinary } from '../../src/runtime/server/og-image/font-binary'
 
 const fontsDir = new URL('../../node_modules/@fontsource/noto-sans-sc/files/', import.meta.url)
 const readFont = async (file: string) => new Uint8Array(await readFile(new URL(file, fontsDir)))
+
+function woffWithTableLengths(lengths: number[]): Uint8Array {
+  const compressed = deflateSync(new Uint8Array([0]))
+  const directorySize = 44 + lengths.length * 20
+  const woff = new Uint8Array(directorySize + compressed.byteLength)
+  const view = new DataView(woff.buffer)
+  view.setUint32(0, 0x774F4646)
+  view.setUint32(4, 0x00010000)
+  view.setUint32(8, woff.byteLength)
+  view.setUint16(12, lengths.length)
+  lengths.forEach((length, index) => {
+    const entry = 44 + index * 20
+    view.setUint32(entry, 0x68656164 + index)
+    view.setUint32(entry + 4, directorySize)
+    view.setUint32(entry + 8, compressed.byteLength)
+    view.setUint32(entry + 12, length)
+  })
+  woff.set(compressed, directorySize)
+  return woff
+}
 
 async function parsed(data: Uint8Array): Promise<Uint8Array> {
   const result = await parseFontBinary(data)
@@ -35,6 +56,31 @@ beforeAll(async () => {
 })
 
 describe('parseFontBinary', () => {
+  it.each([
+    [0x7FFFFFFF],
+    [0x80000000],
+    [0xFFFFFFF0],
+    [0xFFFFFFFF],
+    [32 * 1024 * 1024, 32 * 1024 * 1024],
+    [0xFFFFFFF0, 64 * 1024 * 1024],
+  ])('rejects oversized WOFF tables before allocating decoded bytes (%j)', async (...lengths) => {
+    const woff = woffWithTableLengths(lengths)
+    const allocations: number[] = []
+    vi.stubGlobal('Uint8Array', new Proxy(Uint8Array, {
+      construct(target, args) {
+        // Stop a regressed decoder from allocating gigabytes during the test.
+        if (typeof args[0] === 'number' && args[0] > 1024 * 1024) {
+          allocations.push(args[0])
+          throw new Error('The test blocked an oversized allocation')
+        }
+        return Reflect.construct(target, args)
+      },
+    }))
+    const result = await parseFontBinary(woff).finally(() => vi.unstubAllGlobals())
+    expect(result).toMatchObject({ _tag: 'Err', reason: expect.stringContaining('exceeds 67108864 bytes') })
+    expect(allocations).toEqual([])
+  })
+
   it.each([400, 700])('turns a WOFF file into a font Takumi WASM renders like its WOFF2 (weight %i)', async (weight) => {
     const woff = await readFont(`noto-sans-sc-latin-${weight}-normal.woff`)
     const woff2 = await readFont(`noto-sans-sc-latin-${weight}-normal.woff2`)
