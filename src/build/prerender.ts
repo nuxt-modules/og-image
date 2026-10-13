@@ -27,6 +27,9 @@ export function getMissingSiteUrlWarning(input: { siteUrl?: string, prerenderedI
 export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {
   nuxt.hooks.hook('nitro:init', async (nitro) => {
     nitro.hooks.hook('prerender:config', async (nitroConfig: NitroConfig) => {
+      // The prerender plugin only does work while prerendering. Adding it to the prerender
+      // build alone keeps it and its imports out of the deployed server bundle.
+      nitroConfig.plugins = [...(nitroConfig.plugins || []), resolve.resolve('./runtime/server/plugins/prerender')]
       // bindings
       await applyNitroPresetCompatibility(nitroConfig, { compatibility: options.compatibility?.prerender, resolve, detectedRenderers: getDetectedRenderers() })
       // avoid wasm handling while prerendering
