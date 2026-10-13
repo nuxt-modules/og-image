@@ -68,3 +68,20 @@ describe('useSeoMeta auto-injection', () => {
     expect(params.props?.title).toBeUndefined()
   }, 60000)
 })
+
+describe('twitter:card', () => {
+  function twitterCards(html: string): string[] {
+    return [...html.matchAll(/<meta name="twitter:card" content="([^"]*)"/g)].map(match => match[1]!)
+  }
+
+  it('defaults to summary_large_image', async () => {
+    const html = await $fetch('/satori/seo-meta-inject') as string
+    expect(twitterCards(html)).toEqual(['summary_large_image'])
+  }, 60000)
+
+  it('keeps the card type the page sets with useSeoMeta', async () => {
+    const html = await $fetch('/satori/user-twitter-card') as string
+    expect(extractOgImageUrl(html)).toBeTruthy()
+    expect(twitterCards(html)).toEqual(['summary'])
+  }, 60000)
+})
