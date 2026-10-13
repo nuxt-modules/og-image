@@ -1,5 +1,6 @@
 export type FontFormat = 'ttf' | 'otf' | 'woff' | 'woff2'
 
+// Takumi's WASM build rejects WOFF. The font loader inflates WOFF to TTF or OTF before any renderer sees it.
 export const TAKUMI_FORMATS = new Set<FontFormat>(['ttf', 'otf', 'woff', 'woff2'])
 
 export function fontFormat(src: string): FontFormat {

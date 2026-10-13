@@ -7,6 +7,7 @@ import resolvedFonts from '#og-image/fonts'
 import availableFonts from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
+import { parseFontBinary } from './font-binary'
 import { fontFormat, selectFontSource } from './font-source'
 import { renameSubsetFonts } from './font-subsets'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
@@ -16,9 +17,9 @@ export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from 
 
 export interface LoadFontsOptions {
   /**
-   * Font formats the renderer can parse.
+   * Font source formats the renderer can take.
    * Satori: ttf, otf, woff
-   * Takumi: ttf, otf, woff, woff2
+   * Takumi: ttf, otf, woff, woff2. The loader inflates WOFF, which Takumi's WASM build rejects.
    */
   supportedFormats: Set<FontFormat>
   /** Component pascalName — filters fonts to only what this component needs */
@@ -27,6 +28,17 @@ export interface LoadFontsOptions {
   fontFamilyOverride?: string
   /** Codepoints present in the template — fonts whose unicodeRange doesn't intersect are skipped */
   codepoints?: Set<number>
+}
+
+const _warnedFontKeys = new Set<string>()
+
+function warnOnce(key: string, message: string) {
+  if (_warnedFontKeys.has(key))
+    return
+  if (_warnedFontKeys.size >= 100)
+    _warnedFontKeys.clear()
+  _warnedFontKeys.add(key)
+  logger.warn(message)
 }
 
 async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<BufferSource | null> {
@@ -42,8 +54,13 @@ async function loadFont(event: H3Event, font: FontConfig, src: string): Promise<
   })
   if (!data)
     return null
-  fontCache.set(cacheKey, data)
-  return data
+  const binary = await parseFontBinary(data)
+  if (binary._tag === 'Err') {
+    warnOnce(`binary-${src}`, `OG images skip font "${font.family}" (${src}) because ${binary.reason}. Serve it as TTF, OTF, WOFF or WOFF2.`)
+    return null
+  }
+  fontCache.set(cacheKey, binary.data)
+  return binary.data
 }
 
 function findClosestWeight(target: number, available: number[]): number {
@@ -99,8 +116,6 @@ function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof
   selected.push(...fallbackFonts)
   return selected
 }
-
-const _warnedFontKeys = new Set<string>()
 
 // Satori uses a WeakMap font cache keyed by array identity — returning the same
 // array reference across requests lets satori skip re-parsing font binaries.
@@ -290,13 +305,20 @@ export async function loadDefinedFonts(event: OgImageRenderEventContext, fontDef
       // Invalid user-defined fonts are skipped so bundled fallbacks can render.
       return null
     })
-    if (data) {
-      results.push({
-        ...fontConfig,
-        cacheKey: `custom-${name}-${weight}-${style}-${path}`,
-        data,
-      } satisfies RuntimeFontConfig)
+    if (!data)
+      continue
+    const binary = await parseFontBinary(data)
+    if (binary._tag === 'Err') {
+      // The path comes from the request URL, so only development names the rejected font.
+      if (import.meta.dev)
+        warnOnce(`binary-${path}`, `defineOgImage() font "${name}" is skipped because ${binary.reason}. Use a TTF, OTF, WOFF or WOFF2 file.`)
+      continue
     }
+    results.push({
+      ...fontConfig,
+      cacheKey: `custom-${name}-${weight}-${style}-${path}`,
+      data: binary.data,
+    } satisfies RuntimeFontConfig)
   }
   return results
 }
