@@ -1,8 +1,8 @@
 import type { H3Event } from '#nuxtseo/h3'
-import { $fetch } from 'ofetch'
 import { fetchWithEvent } from '#nuxtseo/nitro'
 import { tryCloudflareAssetsFetch } from './cloudflareAssets'
 import { getOgImageOrigin } from './origin'
+import { fetchWithRedirectValidation, resolveSameOriginUrl } from './ssrf'
 
 export interface FetchLocalAssetOptions {
   fetchTimeout: number
@@ -21,7 +21,7 @@ export interface FetchLocalAssetOptions {
  * Resolve a same-origin asset path to bytes, trying (in order):
  *   1. Cloudflare Workers ASSETS binding
  *   2. Nitro localFetch through the event-aware bridge, which resolves dynamic routes too
- *   3. External `$fetch` to the Nitro origin (opt-in)
+ *   3. External fetch with redirect validation (opt-in)
  *
  * All steps share a single `AbortSignal.timeout(fetchTimeout)` so a broken
  * URL can't burn N× the configured budget.
@@ -33,6 +33,11 @@ export async function fetchLocalAsset(
   path: string,
   options: FetchLocalAssetOptions,
 ): Promise<ArrayBuffer | undefined> {
+  const absolute = resolveSameOriginUrl(path, getOgImageOrigin(event))
+  if (!path.startsWith('/') || !absolute)
+    return
+  const url = new URL(absolute)
+  path = `${url.pathname}${url.search}`
   const { fetchTimeout, headers, includeExternalFallback = false, onStepFailure } = options
   const deadline = AbortSignal.timeout(fetchTimeout)
 
@@ -58,9 +63,14 @@ export async function fetchLocalAsset(
 
   result = await race(fetchWithEvent<ArrayBuffer>(event, path, {
     responseType: 'arrayBuffer',
+    redirect: 'manual',
     signal: deadline,
     timeout: fetchTimeout,
     headers,
+    onResponse({ response }) {
+      if (!response.ok)
+        throw new Error(response.statusText || String(response.status))
+    },
   }).catch((err: unknown) => {
     onStepFailure?.(path, err)
     return undefined
@@ -68,14 +78,10 @@ export async function fetchLocalAsset(
   if (result || expired || !includeExternalFallback)
     return result
 
-  const absolute = `${getOgImageOrigin(event)}${path}`
-  return await race($fetch(absolute, {
-    responseType: 'arrayBuffer',
+  return await race(fetchWithRedirectValidation(absolute, {
     signal: deadline,
     timeout: fetchTimeout,
     headers,
-  }).catch((err: unknown) => {
-    onStepFailure?.(absolute, err)
-    return undefined
-  }) as Promise<ArrayBuffer | undefined>)
+    trustedHost: url.host,
+  }).then(buffer => buffer ?? undefined))
 }
