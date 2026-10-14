@@ -193,17 +193,12 @@ export default defineTransformer([
         applyImageDimensions(node, result.buffer)
         return
       }
-      // relative src couldn't be fetched — fall back to an absolute URL so
-      // satori/takumi may attempt to resolve at render time (against the app's
-      // own origin, not an attacker-controlled one)
-      if (isRelative) {
+      // In development, renderers may retry unresolved assets against the app origin.
+      if (isRelative && import.meta.dev) {
         node.props.src = withBase(src, `${getOgImageOrigin(ctx.e)}`)
         return
       }
-      // Absolute external URL whose validated fetch failed. Drop it in
-      // production: letting it survive would invite the renderer (satori
-      // fetches <img> URLs internally; takumi fetches via extractResourceUrls)
-      // to re-issue the request without SSRF/redirect validation.
+      // Production removes unresolved sources so renderers cannot fetch them without validation.
       if (!import.meta.dev)
         delete node.props.src
     },
@@ -225,9 +220,8 @@ export default defineTransformer([
         node.props.style!.backgroundImage = `url(${toBufferSourceAsBase64(result.buffer)})`
         return
       }
-      // Same reasoning as the <img> branch: an absolute external URL that
-      // didn't inline must not be left for the renderer to fetch unvalidated.
-      if (!import.meta.dev && !src.startsWith('/'))
+      // Production removes unresolved sources so renderers cannot fetch them without validation.
+      if (!import.meta.dev)
         delete node.props.style!.backgroundImage
     },
   },

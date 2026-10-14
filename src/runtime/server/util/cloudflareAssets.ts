@@ -43,7 +43,7 @@ export async function tryCloudflareAssetsFetch(
     return
   const origin = getRequestURL(event).origin
   const url = new URL(path, origin).href
-  const res = await assets.fetch(url, signal ? { signal } : undefined).catch(() => {
+  const res = await assets.fetch(url, { signal, redirect: 'manual' }).catch(() => {
     // Binding failures fall through to the caller's other asset sources.
     return null
   })

@@ -12,7 +12,7 @@ vi.mock('#nuxtseo/nitro', () => ({
 }))
 vi.mock('#nuxtseo/h3', () => ({ getRequestURL: () => new URL('https://site.example/render') }))
 vi.mock('#site-config/server/composables', () => ({ getNitroOrigin: () => 'https://site.example' }))
-vi.mock('ofetch', () => ({ $fetch: transport.external }))
+vi.mock('#og-image/bindings/fetch', () => ({ guardedFetch: transport.external }))
 
 const crossOriginPaths = ['//other.example/logo.png', '/\\other.example/logo.png', '/\t/other.example/logo.png', '/\n/other.example/logo.png']
 
@@ -24,7 +24,7 @@ function createContext(): OgImageRenderEventContext {
   return {
     e: createEvent(),
     publicStoragePath: 'public',
-    runtimeConfig: { app: { baseURL: '/' }, fetchTimeout: 20 },
+    runtimeConfig: { app: { baseURL: '/' }, security: { imageFetchTimeout: 100 } },
     timings: {
       measure: async <T>(_name: string, work: () => T | Promise<T>) => work(),
       start: () => () => {},
@@ -35,7 +35,7 @@ function createContext(): OgImageRenderEventContext {
 beforeEach(() => {
   vi.clearAllMocks()
   transport.local.mockResolvedValue(undefined)
-  transport.external.mockResolvedValue(undefined)
+  transport.external.mockResolvedValue(new Response(null, { status: 404 }))
 })
 
 describe('local asset fetch', () => {
@@ -52,14 +52,14 @@ describe('local asset fetch', () => {
     transport.local.mockResolvedValue(bytes)
     const event = createEvent()
     expect(await fetchLocalAsset(event, '/logo.png?width=32', { fetchTimeout: 20 })).toBe(bytes)
-    expect(transport.local).toHaveBeenCalledWith(event, '/logo.png?width=32', expect.any(Object))
+    expect(transport.local).toHaveBeenCalledWith(event, '/logo.png?width=32', expect.objectContaining({ redirect: 'manual' }))
   })
 
   it('reads a same-origin asset from the binding', async () => {
     const assets = { fetch: vi.fn(async () => new Response('asset')) }
     const bytes = await fetchLocalAsset(createEvent(assets), '/logo.png?width=32', { fetchTimeout: 20 })
     expect(new TextDecoder().decode(bytes)).toBe('asset')
-    expect(assets.fetch).toHaveBeenCalledWith('https://site.example/logo.png?width=32', expect.any(Object))
+    expect(assets.fetch).toHaveBeenCalledWith('https://site.example/logo.png?width=32', expect.objectContaining({ redirect: 'manual' }))
     expect(transport.local).not.toHaveBeenCalled()
   })
 })
@@ -81,9 +81,15 @@ describe('image asset transformation', () => {
     expect(transport.external).not.toHaveBeenCalled()
   })
 
-  it('keeps the app origin when a local image is unavailable', async () => {
+  it('removes an unavailable local image', async () => {
     const node: VNode = { type: 'img', props: { src: '/logo.png?width=32' } }
     await Promise.all(walkTree(createContext(), node, [imageSrc]))
-    expect(node.props.src).toBe('https://site.example/logo.png?width=32')
+    expect(node.props.src).toBeUndefined()
+  })
+
+  it('removes an unavailable local background image', async () => {
+    const node: VNode = { type: 'div', props: { style: { backgroundImage: 'url(/logo.png?width=32)' } } }
+    await Promise.all(walkTree(createContext(), node, [imageSrc]))
+    expect(node.props.style?.backgroundImage).toBeUndefined()
   })
 })
