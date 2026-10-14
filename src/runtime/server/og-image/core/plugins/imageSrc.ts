@@ -8,7 +8,7 @@ import { fetchLocalAsset } from '../../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { logger } from '../../../util/logger'
 import { getOgImageOrigin } from '../../../util/origin'
-import { fetchWithRedirectValidation, isBlockedUrl, parseSameOriginPath } from '../../../util/ssrf'
+import { fetchWithRedirectValidation, isBlockedUrl, parseSameOriginPath, resolveSameOriginUrl } from '../../../util/ssrf'
 import { getImageDimensions } from '../../utils/image-detector'
 import { defineTransformer } from '../plugins'
 
@@ -89,6 +89,8 @@ async function doResolveSrcToBuffer(
   }
 
   if (src.startsWith('/')) {
+    if (!resolveSameOriginUrl(src, getOgImageOrigin(e)))
+      return { blocked: true }
     let buffer: BufferSource | undefined
     if (import.meta.prerender || import.meta.dev) {
       const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')

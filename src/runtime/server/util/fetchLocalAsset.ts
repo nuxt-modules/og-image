@@ -3,6 +3,7 @@ import { $fetch } from 'ofetch'
 import { fetchWithEvent } from '#nuxtseo/nitro'
 import { tryCloudflareAssetsFetch } from './cloudflareAssets'
 import { getOgImageOrigin } from './origin'
+import { resolveSameOriginUrl } from './ssrf'
 
 export interface FetchLocalAssetOptions {
   fetchTimeout: number
@@ -33,6 +34,11 @@ export async function fetchLocalAsset(
   path: string,
   options: FetchLocalAssetOptions,
 ): Promise<ArrayBuffer | undefined> {
+  const absolute = resolveSameOriginUrl(path, getOgImageOrigin(event))
+  if (!path.startsWith('/') || !absolute)
+    return
+  const url = new URL(absolute)
+  path = `${url.pathname}${url.search}`
   const { fetchTimeout, headers, includeExternalFallback = false, onStepFailure } = options
   const deadline = AbortSignal.timeout(fetchTimeout)
 
@@ -68,7 +74,6 @@ export async function fetchLocalAsset(
   if (result || expired || !includeExternalFallback)
     return result
 
-  const absolute = `${getOgImageOrigin(event)}${path}`
   return await race($fetch(absolute, {
     responseType: 'arrayBuffer',
     signal: deadline,
