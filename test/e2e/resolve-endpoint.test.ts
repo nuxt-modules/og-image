@@ -34,6 +34,20 @@ describe('/_og/r resolver endpoint', () => {
     expect(res.headers.get('location')).toBeTruthy()
   }, 60000)
 
+  // The client builds the root page's resolver URL as `/_og/r` + `/` + `.png` = `/_og/r.png`,
+  // which `/_og/r/**` does not match, so it fell through to the app's 404 page.
+  it('serves the root page through the /_og/r.png alias', async () => {
+    const [alias, canonical] = await Promise.all(
+      ['/_og/r.png', '/_og/r/'].map(path => fetch(path, { redirect: 'manual' })),
+    )
+    // The fixture's root page declares no og:image, so both reach the resolver's own 404.
+    expect(alias.status).toBe(canonical.status)
+    expect(alias.headers.get('location')).toBe(canonical.headers.get('location'))
+    const [aliasBody, canonicalBody] = await Promise.all([alias.json(), canonical.json()])
+    expect(aliasBody.statusMessage).toBe('[Nuxt OG Image] No <meta property="og:image"> found on /.')
+    expect(aliasBody.statusMessage).toBe(canonicalBody.statusMessage)
+  }, 60000)
+
   it('forwards query parameters to the resolved page', async () => {
     const pagePath = '/satori/query-param?title=Resolver%20Query'
     const pageHtml = await $fetch(pagePath) as string
