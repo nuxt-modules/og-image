@@ -605,31 +605,55 @@ export async function extractVarsFromCss(css: string): Promise<ExtractedCssVars>
 // Variable resolution
 // ============================================================================
 
-// Bounds substitution when variables reference each other in a cycle.
+// Bounds the substitutions of one resolution, so variables that each reference several others
+// cannot fan out without limit. Cycles never reach it: they are cut where they close.
 const MAX_VAR_SUBSTITUTIONS = 100
+
+interface VarResolution {
+  value: string
+  /** The substitution budget ran out, so var() that could still resolve may remain. */
+  exhausted: boolean
+}
 
 /**
  * Substitute every var() that has a value or a fallback, innermost first.
  * A var() with neither stays in place, so the caller can name exactly the missing variables.
+ *
+ * The map is flat, so aliases from different scopes can read as a cycle, such as
+ * `--row: calc(var(--outer) - 1rem)` beside `--outer: var(--row)`. A reference back to a
+ * variable that is already being expanded is treated as unset instead of unrolling the cycle.
  */
 export function resolveCssVars(css: string, vars: Map<string, string>): string {
+  return resolveCssVarsWithBudget(css, vars).value
+}
+
+function resolveCssVarsWithBudget(css: string, vars: Map<string, string>): VarResolution {
+  const budget = { left: MAX_VAR_SUBSTITUTIONS }
+  const value = expandVars(css, vars, new Set(), budget)
+  return { value, exhausted: budget.left <= 0 }
+}
+
+function expandVars(css: string, vars: Map<string, string>, expanding: ReadonlySet<string>, budget: { left: number }): string {
   let result = css
   let cursor = result.length
-  for (let substitutions = 0; substitutions < MAX_VAR_SUBSTITUTIONS;) {
+  while (budget.left > 0) {
     const idx = result.lastIndexOf('var(', cursor)
     if (idx === -1)
       break
-    const resolved = substituteVar(result, idx, vars)
-    if (resolved === undefined) {
-      if (idx === 0)
-        break
-      cursor = idx - 1
-      continue
+    const resolved = substituteVar(result, idx, vars, expanding)
+    if (resolved !== undefined) {
+      budget.left--
+      // A fallback sits right of idx, so it is already expanded. A variable's own value is expanded
+      // with that variable marked, so a reference back to it stops there.
+      const replacement = resolved.name === undefined
+        ? resolved.value
+        : expandVars(resolved.value, vars, new Set(expanding).add(resolved.name), budget)
+      result = result.substring(0, idx) + replacement + result.substring(resolved.end)
     }
-    result = result.substring(0, idx) + resolved.value + result.substring(resolved.end)
-    // The substituted value can hold var() of its own; text to its right is already done.
-    cursor = idx + resolved.value.length
-    substitutions++
+    // Text to the right of idx is fully expanded, so the scan continues leftwards.
+    if (idx === 0)
+      break
+    cursor = idx - 1
   }
   return result
 }
@@ -650,8 +674,9 @@ function findClosingParen(str: string, startIdx: number): number {
 
 /**
  * Resolve the var() that starts at `idx`. Returns undefined when the variable is unset and has no fallback.
+ * `name` is set when the variable's own value was taken rather than the fallback.
  */
-function substituteVar(css: string, idx: number, vars: Map<string, string>): { value: string, end: number } | undefined {
+function substituteVar(css: string, idx: number, vars: Map<string, string>, expanding: ReadonlySet<string>): { name?: string, value: string, end: number } | undefined {
   const closeIdx = findClosingParen(css, idx + 4)
   if (closeIdx === -1)
     return undefined
@@ -659,13 +684,15 @@ function substituteVar(css: string, idx: number, vars: Map<string, string>): { v
   const comma = content.indexOf(',')
   const name = (comma >= 0 ? content.substring(0, comma) : content).trim()
   const fallback = comma >= 0 ? content.substring(comma + 1).trim() : undefined
-  const value = vars.get(name)
+  // A variable inside its own expansion closes a cycle; CSS makes such a variable guaranteed-invalid.
+  const value = expanding.has(name) ? undefined : vars.get(name)
   // A custom property set to `initial` holds the guaranteed-invalid value, so var() takes its fallback.
   // Tailwind v4 declares `--tw-shadow-color: initial` and similar for every unset utility variable.
-  const resolved = value !== undefined && value.trim() !== 'initial' ? value : fallback
-  if (resolved === undefined)
+  if (value !== undefined && value.trim() !== 'initial')
+    return { name, value, end: closeIdx + 1 }
+  if (fallback === undefined)
     return undefined
-  return { value: resolved, end: closeIdx + 1 }
+  return { value: fallback, end: closeIdx + 1 }
 }
 
 // ============================================================================
@@ -812,8 +839,10 @@ export async function resolveVarsDeep(value: string, vars: Map<string, string>, 
     }
   }
 
-  const result = resolveCssVars(value, vars)
-  return result.includes('var(') && depth < 10
+  // One pass expands every var() it can; another only helps when the budget cut it short. Re-running
+  // on a var() left by a cycle would unroll that cycle once per pass into a nested calc().
+  const { value: result, exhausted } = resolveCssVarsWithBudget(value, vars)
+  return exhausted && result.includes('var(') && depth < 10
     ? resolveVarsDeep(result, vars, depth + 1)
     : evaluateCalc(result)
 }
