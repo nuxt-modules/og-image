@@ -19,7 +19,6 @@ import type {
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { findPackageJSON } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
@@ -43,7 +42,7 @@ import {
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { resolveOptionalModulePath } from './build/optional-module'
-import { readPackageManifest } from './build/package-manifest.ts'
+import { findNearestPackageJson, readPackageManifest } from './build/package-manifest.ts'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache'
@@ -359,7 +358,7 @@ export default defineNuxtModule<ModuleOptions>({
       resolve,
       resolvePath: async (path, opts) => fixSharedPath(await _resolver.resolvePath(path, opts)),
     }
-    const packageManifest = findPackageJSON('./', import.meta.url)
+    const packageManifest = findNearestPackageJson(import.meta.url)
     if (!packageManifest)
       throw new Error('Could not resolve the Nuxt OG Image package manifest.')
     const { version } = await readPackageManifest(packageManifest)
