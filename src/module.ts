@@ -57,7 +57,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { hasPublishMount, parsePublishConfig } from './runtime/shared/publish'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, getComponentHashes, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
+import { checkLocalChrome, getAppComponents, getComponentHashes, getRegisteredBaseNames, getRendererFromFilename, getServerComponents, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
 
 export type {
@@ -1356,7 +1356,7 @@ export default defineNuxtModule<ModuleOptions>({
     addTemplate({
       filename: 'nuxt-og-image/components.mjs',
       getContents() {
-        return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
+        return `export const componentNames = ${JSON.stringify(getAppComponents(ogImageComponentCtx.components))}`
       },
       options: { mode: 'server' },
     })
@@ -1382,7 +1382,8 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
-      return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
+      const components = nuxt.options.dev ? ogImageComponentCtx.components : getServerComponents(ogImageComponentCtx.components)
+      return `export const componentNames = ${JSON.stringify(components)}`
     }
     // Nuxt validates island hashes; use its implementation to preserve the contract.
     nuxt.options.nitro.virtual['#og-image/island-hash'] = () => {
@@ -1408,29 +1409,14 @@ export default defineNuxtModule<ModuleOptions>({
       maxAge: 60 * 60 * 24 * 365,
     })
 
-    nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = async () => {
-      // Use dev-prerender binding which handles dev/prerender/runtime for node
-      // Use cloudflare binding for cloudflare presets at runtime
+    // Only dev and prerender builds read fonts from the filesystem.
+    function getFontAssetsModule(readsFilesystem: boolean) {
       const normalizedPreset = preset.replace(RE_LEGACY_SUFFIX, '')
       const isCloudflare = normalizedPreset === 'cloudflare' || normalizedPreset.startsWith('cloudflare-')
-      if (isCloudflare) {
-        const devBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')
-        const cfBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/cloudflare')
-        return `
-import { resolve as devResolve } from '${devBinding}'
-import { resolve as cfResolve } from '${cfBinding}'
-export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : cfResolve
-`
-      }
-      // For non-cloudflare (node), use dev-prerender for dev/prerender, node binding for runtime
-      const devBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/dev-prerender')
-      const nodeBinding = resolver.resolve('./runtime/server/og-image/bindings/font-assets/node')
-      return `
-import { resolve as devResolve } from '${devBinding}'
-import { resolve as nodeResolve } from '${nodeBinding}'
-export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve : nodeResolve
-`
+      const binding = readsFilesystem ? 'dev-prerender' : isCloudflare ? 'cloudflare' : 'node'
+      return `export { resolve } from '${resolver.resolve(`./runtime/server/og-image/bindings/font-assets/${binding}`)}'`
     }
+    nuxt.options.nitro.virtual['#og-image-virtual/public-assets.mjs'] = () => getFontAssetsModule(nuxt.options.dev)
     // Renderer detection gates font conversion and shared fontless logic.
     // Browser renderer handles WOFF2 and variable fonts natively
     const hasSatoriRenderer = () => ogImageComponentCtx.detectedRenderers.has('satori')
@@ -1513,7 +1499,20 @@ export const resolve = (import.meta.dev || import.meta.prerender) ? devResolve :
       return builtFontList.fonts
     }
 
-    nuxt.options.nitro.virtual['#og-image/fonts'] = async () => `export default ${JSON.stringify(await getFontList())}`
+    async function getFontsModule(readsFilesystem: boolean) {
+      const fonts = await getFontList()
+      return `export default ${JSON.stringify(readsFilesystem ? fonts : fonts.map(({ absolutePath: _absolutePath, ...font }) => font))}`
+    }
+    nuxt.options.nitro.virtual['#og-image/fonts'] = () => getFontsModule(nuxt.options.dev)
+    nuxt.hook('nitro:init', (nitro) => {
+      nitro.hooks.hook('prerender:config', (prerenderConfig) => {
+        prerenderConfig.virtual = {
+          ...prerenderConfig.virtual,
+          '#og-image/fonts': () => getFontsModule(true),
+          '#og-image-virtual/public-assets.mjs': () => getFontAssetsModule(true),
+        }
+      })
+    })
 
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {

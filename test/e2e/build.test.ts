@@ -1,5 +1,7 @@
+import { readFile } from 'node:fs/promises'
 import { createResolver } from '@nuxt/kit'
-import { setup } from '@nuxt/test-utils/e2e'
+import { setup, useTestContext } from '@nuxt/test-utils/e2e'
+import { globby } from 'globby'
 import { describe, expect, it } from 'vitest'
 import { fetchOgImages, setupImageSnapshots, SNAPSHOT_DEFAULT } from '../utils'
 
@@ -34,5 +36,19 @@ describe('build', () => {
     expect(images.get('/satori/route-rules/inline')).toMatchImageSnapshot()
     expect(images.get('/satori/route-rules/config')).toMatchImageSnapshot()
     expect(images.get('/satori/route-rules')).toMatchImageSnapshot()
+  })
+
+  it('does not bundle build machine paths', async () => {
+    const outputDir = useTestContext().nuxt!.options.nitro.output!.dir!
+    const files = await globby('**/*.{mjs,js,json,html}', { cwd: outputDir, absolute: true })
+    const repoRoot = resolve('../..')
+    const filesWithPaths: string[] = []
+    for (const file of files) {
+      // `@vitejs/plugin-vue` adds `__file` outside production builds.
+      const contents = (await readFile(file, 'utf8')).replace(/["`]__file["`],\s*["`][^"`]*["`]/g, '')
+      if (contents.includes(repoRoot))
+        filesWithPaths.push(file.slice(outputDir.length))
+    }
+    expect(filesWithPaths).toEqual([])
   })
 })
