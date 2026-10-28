@@ -57,7 +57,7 @@ import { onInstall, onUpgrade } from './onboarding'
 import { logger } from './runtime/logger'
 import { hasPublishMount, parsePublishConfig } from './runtime/shared/publish'
 import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
+import { checkLocalChrome, getComponentHashes, getRegisteredBaseNames, getRendererFromFilename, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
 import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
 
 export type {
@@ -1359,6 +1359,16 @@ export default defineNuxtModule<ModuleOptions>({
         return `export const componentNames = ${JSON.stringify(ogImageComponentCtx.components)}`
       },
       options: { mode: 'server' },
+    })
+    addTemplate({
+      filename: 'nuxt-og-image/component-hashes.mjs',
+      dependsOn: [],
+      getContents() {
+        return [
+          `export const defaultComponentName = ${JSON.stringify(ogImageComponentCtx.components[0]?.pascalName)}`,
+          `export const componentHashes = ${JSON.stringify(getComponentHashes(ogImageComponentCtx.components))}`,
+        ].join('\n')
+      },
     })
     // A literal lets every client builder prune the unused deployment strategy.
     // Templates run after Nitro init, including preset-derived static builds.

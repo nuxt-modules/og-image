@@ -151,7 +151,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       const templatePath = join(communityTemplatesDir, dotNotationName)
       const template = (await readFile(templatePath, 'utf-8')).replace('{{ title }}', `{{ title }} - Ejected!`)
       await writeFile(newPath, template, { encoding: 'utf-8' })
-      await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
+      await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') || t.filename.includes('nuxt-og-image/component-hashes.mjs') })
       const nitro = await useNitro
       await nitro.hooks.callHook('rollup:reload')
       return newPath
@@ -175,7 +175,7 @@ export function setupDevToolsUI(options: ModuleOptions, resolve: Resolver['resol
       const template = getStarterTemplate(renderer, cssFramework)
       await writeFile(outputPath, template, { encoding: 'utf-8' })
       await insertDefineOgImage(name, pageFile)
-      await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') })
+      await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image/components.mjs') || t.filename.includes('nuxt-og-image/component-hashes.mjs') })
       const nitro = await useNitro
       await nitro.hooks.callHook('rollup:reload')
       return outputPath

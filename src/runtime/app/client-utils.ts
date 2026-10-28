@@ -6,7 +6,7 @@ import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
-import { componentNames } from '#build/nuxt-og-image/components.mjs'
+import { componentHashes, defaultComponentName } from '#build/nuxt-og-image/component-hashes.mjs'
 import { createSitePathResolver } from '#site-config/app'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 
@@ -169,10 +169,10 @@ export function clientProcessOgImageOptions(
     const opts = separateProps(defu(validOptions, defaults)) as OgImageOptionsInternal
     const extension = opts.extension || defaults?.extension || 'png'
     const urlOpts: Record<string, any> = { ...opts, _path: basePath }
-    const componentName = opts.component || componentNames?.[0]?.pascalName
-    const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
-    if (component?.hash)
-      urlOpts._componentHash = component.hash
+    const componentName = opts.component || defaultComponentName
+    const componentHash = componentName ? componentHashes[componentName] : undefined
+    if (componentHash)
+      urlOpts._componentHash = componentHash
     const result = buildOgImageUrl(urlOpts, extension, true, defaults, undefined)
     const resolvedUrl = joinURL('/', baseURL, result.url)
     const query = opts._query && Object.keys(opts._query).length ? { _query: opts._query } : {}

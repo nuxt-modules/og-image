@@ -1,6 +1,7 @@
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { clientProcessOgImageOptions } from '../../src/runtime/app/client-utils'
+import { buildOgImageUrl } from '../../src/runtime/shared'
 
 const mocks = vi.hoisted(() => ({
   config: { app: { baseURL: '/prefix/', cdnURL: 'https://assets.example.com/static/' }, public: {} },
@@ -19,7 +20,14 @@ vi.mock('#build/nuxt-og-image/client-config.mjs', () => ({
     return mocks.hasServerRuntime
   },
 }))
-vi.mock('#build/nuxt-og-image/components.mjs', () => ({ componentNames: [] }))
+vi.mock('#build/nuxt-og-image/component-hashes.mjs', () => ({
+  defaultComponentName: 'OgImagePageScreenshotTakumi',
+  componentHashes: { 'OgImagePageScreenshotTakumi': 'pagehash', 'og-image-page-screenshot-takumi': 'pagehash' },
+}))
+vi.mock('../../src/runtime/shared', async (importOriginal) => {
+  const shared = await importOriginal<typeof import('../../src/runtime/shared')>()
+  return { ...shared, buildOgImageUrl: vi.fn(shared.buildOgImageUrl) }
+})
 vi.mock('#site-config/app', () => ({
   createSitePathResolver: () => (path: string) => `https://example.com${path}`,
 }))
@@ -61,6 +69,15 @@ describe('static client image CDN URLs', () => {
     mocks.hasServerRuntime = true
     clientProcessOgImageOptions({ component: 'PageScreenshot' }, route, '/page')
     expect(imageURL()).toBe('https://example.com/prefix/_og/r/page.png')
+  })
+
+  it('includes the component hash in static URLs', () => {
+    clientProcessOgImageOptions({}, route, '/page')
+    expect(vi.mocked(buildOgImageUrl).mock.lastCall![0]).toMatchObject({ _componentHash: 'pagehash' })
+    clientProcessOgImageOptions({ component: 'og-image-page-screenshot-takumi' }, route, '/page')
+    expect(vi.mocked(buildOgImageUrl).mock.lastCall![0]).toMatchObject({ _componentHash: 'pagehash' })
+    clientProcessOgImageOptions({ component: 'Unknown' }, route, '/page')
+    expect(vi.mocked(buildOgImageUrl).mock.lastCall![0]).not.toHaveProperty('_componentHash')
   })
 
   it('preserves explicit image URLs', () => {

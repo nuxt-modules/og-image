@@ -2,6 +2,11 @@ declare module '#build/nuxt-og-image/client-config.mjs' {
   export const hasServerRuntime: boolean
 }
 
+declare module '#build/nuxt-og-image/component-hashes.mjs' {
+  export const defaultComponentName: string | undefined
+  export const componentHashes: Record<string, string>
+}
+
 declare module '#og-image-virtual/signing.mjs' {
   export const rendersImages: boolean
 }

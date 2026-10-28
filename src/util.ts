@@ -1,3 +1,4 @@
+import type { OgImageComponent } from './runtime/types'
 import { resolvePath } from '@nuxt/kit'
 import { basename } from 'pathe'
 import { isCI } from 'std-env'
@@ -156,4 +157,19 @@ export function parseComponentName(name: string): ParsedComponentName {
   }
   // bare name: 'Banner'
   return { baseName: name, renderer: null }
+}
+
+/**
+ * Map each component's PascalCase and kebab-case names to its template hash,
+ * omitting components without a hash.
+ */
+export function getComponentHashes(components: OgImageComponent[]): Record<string, string> {
+  const hashes: Record<string, string> = {}
+  for (const { pascalName, kebabName, hash } of components) {
+    if (!hash)
+      continue
+    hashes[pascalName] ??= hash
+    hashes[kebabName] ??= hash
+  }
+  return hashes
 }
