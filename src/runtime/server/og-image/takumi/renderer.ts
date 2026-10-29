@@ -1,117 +1,34 @@
-import type { Node } from '@takumi-rs/helpers'
+import type { Renderer as TakumiNativeRenderer } from '@takumi-rs/core'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
-import { defu } from 'defu'
 import { withBase } from 'ufo'
-import { logger } from '../../../logger'
 import { fetchLocalAsset } from '../../util/fetchLocalAsset'
 import { getFetchTimeout } from '../../util/fetchTimeout'
 import { fetchWithRedirectValidation, isBlockedUrl } from '../../util/ssrf'
 import { withTimeout } from '../../util/withTimeout'
 import { TAKUMI_FORMATS } from '../font-source'
-import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
-import { getExtractResourceUrls, getTakumi } from './instances'
+import { getDefaultFontFamily, loadFontsForRenderer, parseUnicodeRange } from '../fonts'
+import { getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 
-const RE_QUOTES = /['"]/g
-
-interface TakumiState {
-  renderer: any
-  // Serializes WASM-touching work on the shared Renderer. The renderer is
-  // reused across requests in the same isolate (nitroApp is module-scope on
-  // CF Workers etc.) and concurrent font registration/render calls share linear memory,
-  // which can corrupt state and burn CPU until the wall-clock fires.
-  lock: Promise<unknown>
-}
-
-async function getTakumiState(event: OgImageRenderEventContext): Promise<TakumiState> {
+async function getTakumiRenderer(event: OgImageRenderEventContext): Promise<TakumiNativeRenderer> {
   const nitro = event._nitro as any
-  if (nitro._takumiState)
-    return nitro._takumiState
-  const Renderer = await getTakumi()
-  nitro._takumiState = {
-    renderer: new Renderer(),
-    lock: Promise.resolve(),
-  } satisfies TakumiState
-  return nitro._takumiState
-}
-
-function withTakumiLock<T>(
-  state: TakumiState,
-  timeoutMs: number,
-  fn: () => Promise<T>,
-  onLockTimeout?: () => void,
-): Promise<T> {
-  const guarded = async (): Promise<T> => {
-    let timer: ReturnType<typeof setTimeout> | undefined
-    try {
-      return await Promise.race([
-        fn(),
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(
-            () => reject(new Error(`takumi render timed out after ${timeoutMs}ms (lock-held)`)),
-            timeoutMs,
-          )
-        }),
-      ])
-    }
-    catch (err) {
-      // The hung fn() is still running and holds linear memory. Recreate the
-      // renderer so the next caller starts on a fresh isolate-local instance;
-      // the old renderer is unreferenced and GC'd once fn() finally settles.
-      // Without this reset the lock chain grows unbounded under hangs and
-      // burns CPU on every subsequent waiter.
-      try {
-        const Renderer = await getTakumi()
-        state.renderer = new Renderer()
-      }
-      catch (resetErr) {
-        logger.warn(`failed to reset takumi renderer after lock timeout: ${(resetErr as Error)?.message || resetErr}`)
-      }
-      throw err
-    }
-    finally {
-      clearTimeout(timer)
-    }
+  if (!nitro._takumiRenderer) {
+    const Renderer = await getTakumi()
+    nitro._takumiRenderer = new Renderer()
   }
-  // Schedule the work once; future callers chain off this same `work`.
-  const work = state.lock.then(guarded, guarded)
-  state.lock = work.catch((err) => {
-    // The caller receives the render failure; keep the shared lock chain usable.
-    void err
-  })
-  // Lock-acquire timeout: if `work` (or the previous holder it queues behind)
-  // hangs past timeoutMs, release THIS caller early so the upstream request
-  // returns 408 instead of contributing to a snowballing queue. The work
-  // itself keeps running on the chain so its own inner timeout can recover.
-  let acquireTimer: ReturnType<typeof setTimeout> | undefined
-  return Promise.race([
-    work,
-    new Promise<never>((_, reject) => {
-      acquireTimer = setTimeout(() => {
-        onLockTimeout?.()
-        reject(new Error(`takumi lock acquire timed out after ${timeoutMs}ms`))
-      }, timeoutMs)
-    }),
-  ]).finally(() => clearTimeout(acquireTimer))
+  return nitro._takumiRenderer
 }
 
-interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string, weightRange?: [number, number] }
+interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string, weightRange?: [number, number], unicodeRange?: string }
 
 interface DedupedFontLoad {
   binaryKey: string
   family: string
   style?: string
   data: BufferSource
+  unicodeRange?: string
   /** When undefined, binary is shared across multiple weights (variable font) — let takumi read the wght axis. */
   weight: number | undefined
-}
-
-interface TakumiFontDescriptor {
-  key: string
-  name: string
-  data: Uint8Array
-  weight?: number
-  style?: 'normal' | 'italic' | 'oblique'
 }
 
 /**
@@ -129,7 +46,7 @@ interface TakumiFontDescriptor {
  * Mirrored in test/unit/takumi-font-dedupe.test.ts — keep implementations in sync.
  */
 function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
-  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, weights: Set<number | undefined>, hasRange: boolean }>()
+  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, unicodeRange?: string, weights: Set<number | undefined>, hasRange: boolean }>()
   for (const font of fonts) {
     if (!font.data)
       continue
@@ -145,6 +62,7 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
         family: font.family,
         style: font.style,
         data: font.data,
+        unicodeRange: font.unicodeRange,
         weights: new Set([font.weight]),
         hasRange: !!font.weightRange,
       })
@@ -158,6 +76,7 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
       family: entry.family,
       style: entry.style,
       data: entry.data,
+      unicodeRange: entry.unicodeRange,
       weight: isVariable ? undefined : [...entry.weights][0],
     })
   }
@@ -172,13 +91,15 @@ function toUint8Array(data: BufferSource): Uint8Array {
   return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
 }
 
-function createFontDescriptor(entry: DedupedFontLoad): TakumiFontDescriptor {
+function createFontLoader(entry: DedupedFontLoad) {
+  const unicodeRange = entry.unicodeRange ? parseUnicodeRange(entry.unicodeRange) : null
   return {
     key: entry.binaryKey,
     name: entry.family,
     data: toUint8Array(entry.data),
     ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
     ...(entry.style ? { style: entry.style as 'normal' | 'italic' | 'oblique' } : {}),
+    ...(unicodeRange ? { unicodeRange } : {}),
   }
 }
 
@@ -189,124 +110,26 @@ function normalizeImageSources(images: Array<{ src: string, data: ArrayBuffer | 
   }))
 }
 
-/**
- * Case-insensitive font family lookup. Tries exact match first, then lowercase.
- * This handles mismatched casing between template styles ('Biz UDPGothic')
- * and @nuxt/fonts canonical names ('BIZ UDPGothic').
- */
-function lookupFontFamily(family: string, loadedFamilies: Set<string>): string | undefined {
-  if (loadedFamilies.has(family))
-    return family
-  for (const loaded of loadedFamilies) {
-    if (loaded.toLowerCase() === family.toLowerCase())
-      return loaded
-  }
-}
-
-function rewriteFontFamilies(node: Node, loadedFamilies: Set<string>, subsetChains: Map<string, string[]>) {
-  if (node.style?.fontFamily) {
-    const families = (node.style.fontFamily as string).split(',').map((f: string) => f.trim().replace(RE_QUOTES, ''))
-    const resolved: string[] = []
-    const seen = new Set<string>()
-    const addUnique = (name: string) => {
-      if (!seen.has(name.toLowerCase())) {
-        resolved.push(name)
-        seen.add(name.toLowerCase())
-      }
-    }
-    for (const f of families) {
-      // Check if this is an original family name that was split into subsets
-      const chain = resolveSubsetChain(f, subsetChains)
-      if (chain) {
-        chain.forEach(addUnique)
-        continue
-      }
-      // Resolve case-insensitive match against loaded families
-      addUnique(lookupFontFamily(f, loadedFamilies) || f)
-    }
-    // Append remaining loaded families as fallback for missing glyphs
-    for (const family of loadedFamilies)
-      addUnique(family)
-    node.style.fontFamily = resolved.map((f: string) => `"${f}"`).join(', ')
-  }
-  if ('children' in node && node.children) {
-    for (const child of node.children)
-      rewriteFontFamilies(child, loadedFamilies, subsetChains)
-  }
-}
-
 async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
   const { options, timings } = event
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
-  const codepoints = extractCodepoints(nodes)
-  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: TAKUMI_FORMATS, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont, codepoints }))
+  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: TAKUMI_FORMATS, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont }))
   const fontEntries = dedupeFontsByBinary(fonts)
 
-  const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
+  const renderTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
   await withTimeout(
     event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event),
-    hookTimeout,
+    renderTimeout,
     'nuxt-og-image:takumi:nodes hook',
   )
 
-  const subsetChains = buildSubsetFamilyChain(fonts)
+  const renderer = await timings.measure('takumi-init', () => getTakumiRenderer(event))
 
-  const state = await timings.measure('takumi-init', () => getTakumiState(event))
-
-  // Resource extraction + fetching can run outside the WASM lock — they don't
-  // touch the shared Renderer instance, so concurrent requests can overlap I/O.
-  const extractResourceUrls = await timings.measure('takumi-extract-init', () => getExtractResourceUrls())
-  const resourceUrls = await extractResourceUrls(nodes)
-
-  const baseURL = event.runtimeConfig.app.baseURL
-
-  const { images: optionImages, ...takumiOptions } = options.takumi || {}
-  const images: Array<{ src: string, data: Uint8Array }> = [
-    ...normalizeImageSources(optionImages),
-  ]
-  if (resourceUrls.length) {
-    const fetchTimeout = getFetchTimeout(event.runtimeConfig)
-    // Marker header lets downstream middleware short-circuit expensive work
-    // on subrequests we make during OG image rendering (e.g. on CF Workers
-    // where a logo/asset path may route back through the same worker).
-    const headers = { 'x-nuxt-og-image': '1' }
-    await timings.measure('resource-fetch', () => Promise.all(resourceUrls.map(async (src) => {
-      let data: ArrayBuffer | undefined
-      if (src.startsWith('/')) {
-        // withBase is a no-op if src already starts with baseURL
-        const path = withBase(src, baseURL)
-        data = await fetchLocalAsset(event.e, path, {
-          fetchTimeout,
-          headers,
-          includeExternalFallback: true,
-        })
-      }
-      else if (import.meta.dev) {
-        data = await $fetch(src, {
-          responseType: 'arrayBuffer',
-          signal: AbortSignal.timeout(fetchTimeout),
-          timeout: fetchTimeout,
-          headers,
-        }).catch((err) => {
-          // Dev-only external resource fetching is best-effort.
-          void err
-          return undefined
-        }) as ArrayBuffer | undefined
-      }
-      else if (!isBlockedUrl(src)) {
-        // Defense-in-depth: any URL surviving the imageSrc transformer is
-        // re-validated here, with redirects followed manually so 30x →
-        // internal-IP cannot complete the SSRF.
-        data = (await fetchWithRedirectValidation(src, {
-          timeout: fetchTimeout,
-          headers,
-        })) ?? undefined
-      }
-      if (data)
-        images.push({ src, data: new Uint8Array(data) })
-    })))
+  const loadedFamilies = new Set(fontEntries.map(entry => entry.family))
+  if (fontFamilyOverride && loadedFamilies.has(fontFamilyOverride)) {
+    nodes.style = { ...nodes.style, fontFamily: fontFamilyOverride }
   }
 
   // Default to 1x DPR for consistent output with satori (1200x600).
@@ -314,43 +137,61 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const maxDpr = event.runtimeConfig.security?.maxDpr || 2
   const maxDim = event.runtimeConfig.security?.maxDimension || 2048
   const dpr = Math.min(Math.max(1, options.takumi?.devicePixelRatio ?? 1), maxDpr)
-  const renderOptions: Record<string, any> = defu(takumiOptions, {
+  const fetchTimeout = getFetchTimeout(event.runtimeConfig)
+
+  const prepared = await timings.measure('takumi-prepare', () => withTimeout(renderer.prepare(nodes, {
     width: Math.min(Number(options.width) * dpr, maxDim),
     height: Math.min(Number(options.height) * dpr, maxDim),
-    format,
-    images,
     devicePixelRatio: dpr,
-  })
+    fonts: fontEntries.map(createFontLoader),
+    fontFamilies: [...loadedFamilies],
+    images: {
+      sources: normalizeImageSources(options.takumi?.images),
+      fetch: src => fetchImage(event, src, fetchTimeout),
+      // Defense-in-depth: any URL surviving the imageSrc transformer is re-validated here.
+      allowUrl: src => src.startsWith('/') || import.meta.dev || !isBlockedUrl(src),
+      timeout: fetchTimeout,
+      throwOnError: false,
+    },
+  }), renderTimeout, 'takumi prepare'))
 
-  // WASM critical section: font registration and render mutate the shared Renderer's
-  // linear memory. Serializing per isolate avoids cross-request corruption.
-  // lock-wait captures queue time behind prior renders; render-takumi only
-  // covers post-acquire work so the two are additive and attributable.
-  const lockTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
-  const endLockWait = timings.start('lock-wait')
-  return await withTakumiLock(state, lockTimeout, () => {
-    endLockWait()
-    return timings.measure('render-takumi', async () => {
-      const loadedFamilies = new Set(fontEntries.map(entry => entry.family))
-      renderOptions.fonts = fontEntries.map(entry => createFontDescriptor(entry))
-      renderOptions.fontFamilies = [...loadedFamilies]
+  return await timings.measure('render-takumi', () => withTimeout(
+    renderer.render(prepared, { format: options.takumi?.format ?? format }),
+    renderTimeout,
+    'takumi render',
+  ))
+}
 
-      const rootStyle = nodes.style ?? {}
-      if (fontFamilyOverride) {
-        const chain = subsetChains.get(fontFamilyOverride)
-        if (chain) {
-          rootStyle.fontFamily = chain.map(f => `"${f}"`).join(', ')
-        }
-        else if (loadedFamilies.has(fontFamilyOverride)) {
-          rootStyle.fontFamily = fontFamilyOverride
-        }
-      }
-      nodes.style = rootStyle
-      rewriteFontFamilies(nodes, loadedFamilies, subsetChains)
-
-      return await state.renderer.render(nodes, renderOptions)
+async function fetchImage(event: OgImageRenderEventContext, src: string, fetchTimeout: number): Promise<Response> {
+  // Marker header lets downstream middleware short-circuit expensive work
+  // on subrequests we make during OG image rendering (e.g. on CF Workers
+  // where a logo/asset path may route back through the same worker).
+  const headers = { 'x-nuxt-og-image': '1' }
+  let data: ArrayBuffer | undefined | null
+  if (src.startsWith('/')) {
+    // withBase is a no-op if src already starts with baseURL
+    data = await fetchLocalAsset(event.e, withBase(src, event.runtimeConfig.app.baseURL), {
+      fetchTimeout,
+      headers,
+      includeExternalFallback: true,
     })
-  }, endLockWait)
+  }
+  else if (import.meta.dev) {
+    data = await $fetch<ArrayBuffer>(src, {
+      responseType: 'arrayBuffer',
+      signal: AbortSignal.timeout(fetchTimeout),
+      timeout: fetchTimeout,
+      headers,
+    })
+  }
+  else {
+    // Redirects are followed manually so 30x → internal-IP cannot complete the SSRF.
+    data = await fetchWithRedirectValidation(src, { timeout: fetchTimeout, headers })
+  }
+  if (!data) {
+    throw new Error(`Failed to fetch image ${src}`)
+  }
+  return new Response(data)
 }
 
 const TakumiRenderer: Renderer = {
