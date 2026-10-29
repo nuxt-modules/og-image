@@ -79,6 +79,7 @@ interface ImageSource {
 }
 
 interface PrepareOptions {
+  signal?: AbortSignal
   width: number
   height: number
   devicePixelRatio: number
@@ -168,7 +169,7 @@ class RendererWorkerProxy {
   }
 
   async render({ nodes, options }: PreparedSource, { format }: { format: RenderMessage['format'] }): Promise<Buffer> {
-    const { fonts, images, ...layout } = options
+    const { fonts, images, signal: _signal, ...layout } = options
     let jobId: number | undefined
     const result = await workerQueue.enqueue(({ id }) => {
       jobId = id
