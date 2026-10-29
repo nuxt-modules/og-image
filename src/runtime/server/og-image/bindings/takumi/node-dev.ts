@@ -1,10 +1,9 @@
 import { Worker } from 'node:worker_threads'
 import { createWorkerQueue, parseWorkerTimeout } from '../worker-queue'
 
-// Worker maintains a persistent Renderer instance. Font bytes are sent once
-// per worker generation, then referenced by key. This dramatically reduces
-// allocator pressure vs. creating a new Renderer + re-loading all fonts per
-// render. Image fetching stays on the main thread, where Nitro's fetch lives.
+// Worker maintains a persistent Renderer instance, which keeps decoded fonts
+// between renders. Fonts and images are read on the main thread, where Nitro's
+// fetch lives, and only when the renderer asks for them.
 const workerCode = `
 const { createRequire } = require('node:module')
 const _require = createRequire(process.cwd() + '/')
@@ -12,38 +11,32 @@ const { parentPort } = require('node:worker_threads')
 const { Renderer } = _require('@takumi-rs/core')
 
 const renderer = new Renderer()
-const fontData = new Map()
-const pendingFetches = new Map()
-let fetchId = 0
+const pendingReads = new Map()
+let readId = 0
 
-function fetchFromMain(id, src) {
+function readFromMain(id, kind, key) {
   return new Promise((resolve, reject) => {
-    pendingFetches.set(++fetchId, { resolve, reject })
-    parentPort.postMessage({ _tag: 'fetch', id, fetchId, src })
+    pendingReads.set(++readId, { resolve, reject })
+    parentPort.postMessage({ _tag: 'read', id, readId, kind, key })
   })
 }
 
 parentPort.on('message', async (message) => {
-  if (message.type === 'fetched') {
-    const pending = pendingFetches.get(message.fetchId)
-    pendingFetches.delete(message.fetchId)
+  if (message.type === 'read-result') {
+    const pending = pendingReads.get(message.readId)
+    pendingReads.delete(message.readId)
     if (message.error)
       pending.reject(new Error(message.error))
     else
-      pending.resolve(new Response(message.data))
+      pending.resolve(message.data)
     return
   }
   const { id, nodes, layout, fonts, images, format } = message
   try {
-    const loaders = fonts.map((font) => {
-      if (font.data)
-        fontData.set(font.key, font.data)
-      return { ...font, data: fontData.get(font.key) }
-    })
     const prepared = await renderer.prepare(nodes, {
       ...layout,
-      fonts: loaders,
-      images: { sources: images, fetch: src => fetchFromMain(id, src), throwOnError: false },
+      fonts: fonts.map(font => ({ ...font, data: () => readFromMain(id, 'font', font.key) })),
+      images: { sources: images, fetch: async src => new Response(await readFromMain(id, 'image', src)), throwOnError: false },
     })
     const image = await renderer.render(prepared, { format })
     // Always slice to create a standard ArrayBuffer — native addon buffers
@@ -60,7 +53,7 @@ parentPort.postMessage({ _tag: 'ready' })
 interface FontLoader {
   key: string
   name: string
-  data?: Uint8Array
+  data: () => Promise<Uint8Array>
   weight?: number
   style?: string
   unicodeRange?: [number, number][]
@@ -88,7 +81,7 @@ interface RenderMessage {
   id: number
   nodes: unknown
   layout: Omit<PrepareOptions, 'fonts' | 'images'>
-  fonts: FontLoader[]
+  fonts: Array<Omit<FontLoader, 'data'>>
   images: ImageSource[]
   format: 'png' | 'jpeg' | 'webp'
 }
@@ -97,11 +90,12 @@ type RenderResponse
   = { _tag: 'success', image: ArrayBuffer }
     | { _tag: 'failure', error: string }
 
-interface FetchRequest {
-  _tag: 'fetch'
+interface ReadRequest {
+  _tag: 'read'
   id: number
-  fetchId: number
-  src: string
+  readId: number
+  kind: 'font' | 'image'
+  key: string
 }
 
 interface PreparedSource {
@@ -112,23 +106,29 @@ interface PreparedSource {
 // Queue wait does not consume the per-render budget. Worker startup has its
 // own bound so native addon load failures cannot leave prerendering hung.
 const workerTimeout = parseWorkerTimeout(process.env.NUXT_OG_IMAGE_WORKER_TIMEOUT)
-const imageFetchers = new Map<number, PrepareOptions['images']>()
+const activeJobs = new Map<number, PrepareOptions>()
 const workerQueue = createWorkerQueue<RenderMessage, RenderResponse>({
   createWorker: () => {
     const worker = new Worker(workerCode, { eval: true })
-    worker.on('message', async (message: Partial<FetchRequest>) => {
-      if (message._tag !== 'fetch')
+    worker.on('message', async (message: Partial<ReadRequest>) => {
+      if (message._tag !== 'read')
         return
-      const { id, fetchId, src } = message as FetchRequest
+      const { id, readId, kind, key } = message as ReadRequest
       try {
-        const images = imageFetchers.get(id)
-        if (!images?.allowUrl(src))
-          throw new Error(`Image ${src} is not allowed`)
-        const data = await (await images.fetch(src)).arrayBuffer()
-        worker.postMessage({ type: 'fetched', fetchId, data }, [data])
+        const options = activeJobs.get(id)
+        if (kind === 'font') {
+          const data = await options?.fonts.find(font => font.key === key)?.data()
+          worker.postMessage({ type: 'read-result', readId, data })
+          return
+        }
+        if (!options?.images.allowUrl(key)) {
+          throw new Error(`Image ${key} is not allowed`)
+        }
+        const data = await (await options.images.fetch(key)).arrayBuffer()
+        worker.postMessage({ type: 'read-result', readId, data }, [data])
       }
       catch (err) {
-        worker.postMessage({ type: 'fetched', fetchId, error: (err as Error).message })
+        worker.postMessage({ type: 'read-result', readId, error: (err as Error).message })
       }
     })
     return worker
@@ -148,11 +148,7 @@ if (!(globalThis as any)[signalKey]) {
 }
 
 // Proxy class matching the Renderer interface but delegating to the worker.
-// On worker crash/restart, the next render resends every font to the new Renderer.
 class RendererWorkerProxy {
-  private sentFontKeys = new Set<string>()
-  private syncedGeneration = -1
-
   async prepare(nodes: unknown, options: PrepareOptions): Promise<PreparedSource> {
     return { nodes, options }
   }
@@ -160,22 +156,13 @@ class RendererWorkerProxy {
   async render({ nodes, options }: PreparedSource, { format }: { format: RenderMessage['format'] }): Promise<Buffer> {
     const { fonts, images, ...layout } = options
     let jobId: number | undefined
-    const result = await workerQueue.enqueue(({ id, generation }) => {
+    const result = await workerQueue.enqueue(({ id }) => {
       jobId = id
-      // A crash while this job was queued changes the generation, which triggers a full font replay.
-      if (this.syncedGeneration !== generation) {
-        this.sentFontKeys.clear()
-      }
-      this.syncedGeneration = generation
-      imageFetchers.set(id, images)
-      const fontsToSend = fonts.map(font => this.sentFontKeys.has(font.key) ? { ...font, data: undefined } : font)
-      for (const font of fonts) {
-        this.sentFontKeys.add(font.key)
-      }
-      return { id, nodes, layout, fonts: fontsToSend, images: images.sources, format }
+      activeJobs.set(id, options)
+      return { id, nodes, layout, fonts: fonts.map(({ data, ...font }) => font), images: images.sources, format }
     }).finally(() => {
       if (jobId !== undefined) {
-        imageFetchers.delete(jobId)
+        activeJobs.delete(jobId)
       }
     })
     if (result._tag === 'failure') {

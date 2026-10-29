@@ -6,7 +6,7 @@ import { getFetchTimeout } from '../../util/fetchTimeout'
 import { fetchWithRedirectValidation, isBlockedUrl } from '../../util/ssrf'
 import { withTimeout } from '../../util/withTimeout'
 import { TAKUMI_FORMATS } from '../font-source'
-import { getDefaultFontFamily, loadFontsForRenderer, parseUnicodeRange } from '../fonts'
+import { getDefaultFontFamily, loadFontsForRenderer, parseUnicodeRange, selectLazyFonts } from '../fonts'
 import { getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
 
@@ -19,13 +19,13 @@ async function getTakumiRenderer(event: OgImageRenderEventContext): Promise<Taku
   return nitro._takumiRenderer
 }
 
-interface FontEntry { family: string, src?: string, data?: BufferSource, weight?: number, style?: string, cacheKey?: string, weightRange?: [number, number], unicodeRange?: string }
+interface FontEntry { family: string, src?: string, data?: () => Promise<Uint8Array>, weight?: number, style?: string, cacheKey?: string, weightRange?: [number, number], unicodeRange?: string }
 
 interface DedupedFontLoad {
   binaryKey: string
   family: string
   style?: string
-  data: BufferSource
+  data: () => Promise<Uint8Array>
   unicodeRange?: string
   /** When undefined, binary is shared across multiple weights (variable font) — let takumi read the wght axis. */
   weight: number | undefined
@@ -46,7 +46,7 @@ interface DedupedFontLoad {
  * Mirrored in test/unit/takumi-font-dedupe.test.ts — keep implementations in sync.
  */
 function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
-  const byBinary = new Map<string, { family: string, style?: string, data: BufferSource, unicodeRange?: string, weights: Set<number | undefined>, hasRange: boolean }>()
+  const byBinary = new Map<string, { family: string, style?: string, data: () => Promise<Uint8Array>, unicodeRange?: string, weights: Set<number | undefined>, hasRange: boolean }>()
   for (const font of fonts) {
     if (!font.data)
       continue
@@ -83,20 +83,12 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
   return result
 }
 
-function toUint8Array(data: BufferSource): Uint8Array {
-  if (data instanceof Uint8Array)
-    return data
-  if (data instanceof ArrayBuffer)
-    return new Uint8Array(data)
-  return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-}
-
 function createFontLoader(entry: DedupedFontLoad) {
   const unicodeRange = entry.unicodeRange ? parseUnicodeRange(entry.unicodeRange) : null
   return {
     key: entry.binaryKey,
     name: entry.family,
-    data: toUint8Array(entry.data),
+    data: entry.data,
     ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
     ...(entry.style ? { style: entry.style as 'normal' | 'italic' | 'oblique' } : {}),
     ...(unicodeRange ? { unicodeRange } : {}),
@@ -115,8 +107,7 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
-  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, { supportedFormats: TAKUMI_FORMATS, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont }))
-  const fontEntries = dedupeFontsByBinary(fonts)
+  const fontEntries = dedupeFontsByBinary(selectLazyFonts(event.e, { supportedFormats: TAKUMI_FORMATS, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont }))
 
   const renderTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
   await withTimeout(
