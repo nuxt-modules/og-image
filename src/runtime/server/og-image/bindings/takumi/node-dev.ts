@@ -33,10 +33,24 @@ parentPort.on('message', async (message) => {
   }
   const { id, nodes, layout, fonts, images, format } = message
   try {
-    const prepared = await renderer.prepare(nodes, {
+    const failedFonts = new Set()
+    const loaders = fonts.map(font => ({
+      ...font,
+      data: () => readFromMain(id, 'font', font.key).catch((err) => {
+        failedFonts.add(font.key)
+        throw err
+      }),
+    }))
+    const prepare = fonts => renderer.prepare(nodes, {
       ...layout,
-      fonts: fonts.map(font => ({ ...font, data: () => readFromMain(id, 'font', font.key) })),
+      fonts,
       images: { sources: images, fetch: async src => new Response(await readFromMain(id, 'image', src)), throwOnError: false },
+    })
+    // A font that fails to load rejects prepare, so render without it instead
+    const prepared = await prepare(loaders).catch((err) => {
+      if (failedFonts.size === 0)
+        throw err
+      return prepare(loaders.filter(font => !failedFonts.has(font.key)))
     })
     const image = await renderer.render(prepared, { format })
     // Always slice to create a standard ArrayBuffer — native addon buffers

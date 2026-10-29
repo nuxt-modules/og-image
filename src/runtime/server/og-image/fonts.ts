@@ -275,7 +275,7 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
 }
 
 export interface LazyRuntimeFontConfig extends Omit<RuntimeFontConfig, 'data'> {
-  /** Reads the font bytes on demand. Empty when the file cannot be loaded, which Takumi skips. */
+  /** Reads the font bytes on demand. Rejects when the file cannot be loaded. */
   data: () => Promise<Uint8Array>
 }
 
@@ -291,7 +291,12 @@ export function selectLazyFonts(event: H3Event, options: LoadFontsOptions): Lazy
     src,
     ...(isStaticFallback ? { unicodeRange: undefined } : {}),
     cacheKey: `${font.family}-${font.weight}-${font.style}-${src}`,
-    data: async () => toUint8Array(await loadFont(event, font, src) ?? new Uint8Array()),
+    data: async () => {
+      const data = await loadFont(event, font, src)
+      if (!data)
+        throw new Error(`Failed to load font ${font.family} (${src})`)
+      return toUint8Array(data)
+    },
   }))
 }
 

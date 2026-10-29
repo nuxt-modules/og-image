@@ -83,12 +83,31 @@ function dedupeFontsByBinary(fonts: FontEntry[]): DedupedFontLoad[] {
   return result
 }
 
-function createFontLoader(entry: DedupedFontLoad) {
-  const unicodeRange = entry.unicodeRange ? parseUnicodeRange(entry.unicodeRange) : null
+const RE_HTTP_URL = /^https?:\/\//i
+
+const unicodeRanges = new Map<string, [number, number][] | null>()
+
+function parseUnicodeRangeOnce(range: string) {
+  if (!unicodeRanges.has(range)) {
+    unicodeRanges.set(range, parseUnicodeRange(range))
+  }
+  return unicodeRanges.get(range)
+}
+
+function createFontLoader(entry: DedupedFontLoad, failedKeys: Set<string>) {
+  const unicodeRange = entry.unicodeRange ? parseUnicodeRangeOnce(entry.unicodeRange) : null
   return {
     key: entry.binaryKey,
     name: entry.family,
-    data: entry.data,
+    data: async () => {
+      try {
+        return await entry.data()
+      }
+      catch (err) {
+        failedKeys.add(entry.binaryKey)
+        throw err
+      }
+    },
     ...(entry.weight !== undefined ? { weight: entry.weight } : {}),
     ...(entry.style ? { style: entry.style as 'normal' | 'italic' | 'oblique' } : {}),
     ...(unicodeRange ? { unicodeRange } : {}),
@@ -130,27 +149,43 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const dpr = Math.min(Math.max(1, options.takumi?.devicePixelRatio ?? 1), maxDpr)
   const fetchTimeout = getFetchTimeout(event.runtimeConfig)
 
-  const prepared = await timings.measure('takumi-prepare', () => withTimeout(renderer.prepare(nodes, {
+  const failedFontKeys = new Set<string>()
+  const fontLoaders = fontEntries.map(entry => createFontLoader(entry, failedFontKeys))
+  const signal = AbortSignal.timeout(renderTimeout)
+  const prepare = (loaders: typeof fontLoaders) => renderer.prepare(nodes, {
     width: Math.min(Number(options.width) * dpr, maxDim),
     height: Math.min(Number(options.height) * dpr, maxDim),
     devicePixelRatio: dpr,
-    fonts: fontEntries.map(createFontLoader),
+    fonts: loaders,
     fontFamilies: [...loadedFamilies],
     images: {
       sources: normalizeImageSources(options.takumi?.images),
       fetch: src => fetchImage(event, src, fetchTimeout),
       // Defense-in-depth: any URL surviving the imageSrc transformer is re-validated here.
-      allowUrl: src => src.startsWith('/') || import.meta.dev || !isBlockedUrl(src),
+      allowUrl: src => src.startsWith('/') || (import.meta.dev ? RE_HTTP_URL.test(src) : !isBlockedUrl(src)),
       timeout: fetchTimeout,
       throwOnError: false,
     },
-  }), renderTimeout, 'takumi prepare'))
+    signal,
+  })
 
-  return await timings.measure('render-takumi', () => withTimeout(
-    renderer.render(prepared, { format: options.takumi?.format ?? format }),
-    renderTimeout,
-    'takumi render',
-  ))
+  return await withTimeout((async () => {
+    try {
+      // A font that fails to load rejects prepare(), so render without it instead.
+      const prepared = await timings.measure('takumi-prepare', () => prepare(fontLoaders).catch((err) => {
+        if (failedFontKeys.size === 0) {
+          throw err
+        }
+        return prepare(fontLoaders.filter(loader => !failedFontKeys.has(loader.key)))
+      }))
+      return await timings.measure('render-takumi', () => renderer.render(prepared, { format: options.takumi?.format ?? format, signal }))
+    }
+    catch (err) {
+      // Start from a fresh Renderer after a failure, so a trapped WASM instance is not reused.
+      delete (event._nitro as any)._takumiRenderer
+      throw err
+    }
+  })(), renderTimeout, 'takumi render')
 }
 
 async function fetchImage(event: OgImageRenderEventContext, src: string, fetchTimeout: number): Promise<Response> {
