@@ -966,6 +966,12 @@ export default defineNuxtModule<ModuleOptions>({
       route: '/_og/r/**',
       handler: resolve('./runtime/server/routes/resolve'),
     })
+    // The client builds `/_og/r.png` for the root page, and `/_og/r/**` does not match it.
+    addServerHandler({
+      lazy: true,
+      route: '/_og/r.png',
+      handler: resolve('./runtime/server/routes/resolve'),
+    })
 
     // Auto-configure cache-control headers for OG image endpoints so CDNs
     // get correct caching policy at the routing layer. We deliberately set
@@ -999,12 +1005,14 @@ export default defineNuxtModule<ModuleOptions>({
           )
         }
 
-        const ogResolveRule = nuxt.options.routeRules['/_og/r/**']
-        if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
-          nuxt.options.routeRules['/_og/r/**'] = defu(
-            nuxt.options.routeRules['/_og/r/**'] || {},
-            { headers: { 'cache-control': dynamicCacheControl } },
-          )
+        for (const route of ['/_og/r/**', '/_og/r.png']) {
+          const ogResolveRule = nuxt.options.routeRules[route]
+          if (!ogResolveRule?.swr && !ogResolveRule?.isr && !ogResolveRule?.cache && !ogResolveRule?.headers) {
+            nuxt.options.routeRules[route] = defu(
+              nuxt.options.routeRules[route] || {},
+              { headers: { 'cache-control': dynamicCacheControl } },
+            )
+          }
         }
       }
 

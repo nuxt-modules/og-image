@@ -46,6 +46,7 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
       if (Array.isArray(nitroConfig.prerender.ignore)) {
         nitroConfig.prerender.ignore.push('/_og/d/')
         nitroConfig.prerender.ignore.push('/_og/r/')
+        nitroConfig.prerender.ignore.push('/_og/r.png')
       }
     })
 
