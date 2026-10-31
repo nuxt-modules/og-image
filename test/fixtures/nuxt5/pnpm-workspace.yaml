@@ -110,7 +110,7 @@ overrides:
   stylehacks: 9.0.8
   unhead: ^3.4.2
   vitest-environment-nuxt: 2.0.0
-  vue: ^3.5.43
+  vue: ^3.5.44
   nuxtseo-shared: ^6.0.3
   nuxt-site-config: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config@40698727ca424460013f3534af9005e36728d669
   nuxt-site-config-kit: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config-kit@40698727ca424460013f3534af9005e36728d669
@@ -118,7 +118,7 @@ overrides:
 blockExoticSubdeps: false
 catalog:
   '@resvg/resvg-js': ^2.6.2
-  '@takumi-rs/core': ^2.15.0
+  '@takumi-rs/core': ^2.19.0
   nitro: 3.0.260903-beta
   nitropack: npm:nitro@3.0.260903-beta
   nuxt: npm:nuxt-nightly@5.0.0-2610111729-78f43dd
@@ -128,6 +128,6 @@ catalog:
   pngjs: ^7.0.0
   satori: ^0.47.1
   typescript: 6.0.3
-  vue: ^3.5.43
+  vue: ^3.5.44
   vue-router: ^5.4.0
   vue-tsc: ^3.3.13
