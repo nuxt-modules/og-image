@@ -118,7 +118,7 @@ overrides:
 blockExoticSubdeps: false
 catalog:
   '@resvg/resvg-js': ^2.6.2
-  '@takumi-rs/core': ^2.18.1
+  '@takumi-rs/core': ^2.19.0
   nitro: 3.0.260903-beta
   nitropack: npm:nitro@3.0.260903-beta
   nuxt: npm:nuxt-nightly@5.0.0-2610111729-78f43dd

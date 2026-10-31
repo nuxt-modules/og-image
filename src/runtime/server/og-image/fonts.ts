@@ -9,7 +9,6 @@ import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
 import { isWoff2Binary, parseFontBinary } from './font-binary'
 import { fontFormat, selectFontSource } from './font-source'
-import { renameSubsetFonts } from './font-subsets'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
 
 export { buildSubsetFamilyChain, renameSubsetFonts, resolveSubsetChain } from './font-subsets'
@@ -133,7 +132,7 @@ export function loadAllFontsDebug(component?: string) {
   }
 }
 
-export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<RuntimeFontConfig[]> {
+function selectFonts(options: LoadFontsOptions) {
   const map = getComponentFontMap()
   const componentReqs = options.component ? (map as Record<string, typeof fontRequirements>)[options.component] : null
   const usingGlobalFallback = !!(componentReqs && componentReqs.hasDynamicBindings)
@@ -168,7 +167,7 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
   // Filter out font subsets whose unicodeRange doesn't intersect the template's codepoints.
   // Skip entries using the full static fallback — its glyph coverage isn't described by the
   // parent @font-face unicodeRange (which only applied to the WOFF2 subset).
-  const filtered = options.codepoints && options.codepoints.size > 0
+  const selected = options.codepoints && options.codepoints.size > 0
     ? resolved.filter(({ font: f, isStaticFallback }) => {
         if (isStaticFallback || !f.unicodeRange)
           return true
@@ -178,6 +177,46 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
         return codepointsIntersectRanges(options.codepoints!, ranges)
       })
     : resolved
+
+  return { fonts, reqs, usingGlobalFallback, selected }
+}
+
+function warnMissingWeights(
+  options: LoadFontsOptions,
+  { reqs, usingGlobalFallback }: Pick<ReturnType<typeof selectFonts>, 'reqs' | 'usingGlobalFallback'>,
+  loaded: Array<Pick<FontConfig, 'family' | 'weight'>>,
+) {
+  if (!import.meta.dev || reqs.weights.length === 0 || isCommunityComponent(options.component))
+    return
+  const families = reqs.families.length > 0 ? reqs.families : [...new Set(loaded.map(f => f.family))]
+  const component = options.component ? ` (${options.component})` : ''
+  const fallbackNote = usingGlobalFallback ? ' Note: using global font requirements because this component has dynamic font bindings.' : ''
+  for (const family of families) {
+    const loadedWeights = [...new Set(loaded.filter(f => f.family === family).map(f => f.weight))].toSorted((a, b) => a - b)
+    if (loadedWeights.length === 0)
+      continue
+    for (const reqWeight of reqs.weights) {
+      if (loadedWeights.includes(reqWeight))
+        continue
+      const closest = findClosestWeight(reqWeight, loadedWeights)
+      const warnKey = `${family}-${reqWeight}-${closest}-${options.component || ''}`
+      if (_warnedFontKeys.has(warnKey))
+        continue
+      if (_warnedFontKeys.size >= 100)
+        _warnedFontKeys.clear()
+      _warnedFontKeys.add(warnKey)
+      logger.warn(`Font "${family}" weight ${reqWeight} not configured${component}, using ${closest} instead.${fallbackNote}`)
+    }
+  }
+}
+
+// Skip warnings for bundled community templates — users can't control their font usage
+function isCommunityComponent(component: string | undefined): boolean {
+  return !!component && (getComponentFontMap() as Record<string, any>)[component]?.category === 'community'
+}
+
+export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): Promise<RuntimeFontConfig[]> {
+  const { fonts, reqs, usingGlobalFallback, selected: filtered } = selectFonts(options)
 
   const results = await Promise.all(
     filtered.map(async ({ font: f, src: initialSrc, isStaticFallback }) => {
@@ -219,11 +258,8 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
     return cachedArray
   fontArrayCache.set(fingerprint, loaded)
 
-  // Skip warnings for bundled community templates — users can't control their font usage
-  const isCommunity = options.component && (map as Record<string, any>)[options.component]?.category === 'community'
-
   // Warn when rendering with Satori and only variable fonts are available (deduplicated)
-  if (!options.supportedFormats.has('woff2') && loaded.length === 0 && fonts.length > 0 && !isCommunity) {
+  if (!options.supportedFormats.has('woff2') && loaded.length === 0 && fonts.length > 0 && !isCommunityComponent(options.component)) {
     const variableFamilies = [...new Set(fonts.map(f => f.family))]
     const warnKey = `variable-fonts-${variableFamilies.join(',')}`
     if (!_warnedFontKeys.has(warnKey)) {
@@ -233,30 +269,43 @@ export async function loadAllFonts(event: H3Event, options: LoadFontsOptions): P
       logger.warn(`All fonts are variable fonts (${variableFamilies.join(', ')}). Variable fonts are not supported by Satori renderer. Falling back to bundled Inter font. Consider using the 'takumi' renderer for variable font support.`)
     }
   }
-  if (import.meta.dev && reqs.weights.length > 0 && !isCommunity) {
-    const families = reqs.families.length > 0 ? reqs.families : [...new Set(loaded.map(f => f.family))]
-    const component = options.component ? ` (${options.component})` : ''
-    const fallbackNote = usingGlobalFallback ? ' Note: using global font requirements because this component has dynamic font bindings.' : ''
-    for (const family of families) {
-      const loadedWeights = [...new Set(loaded.filter(f => f.family === family).map(f => f.weight))].toSorted((a, b) => a - b)
-      if (loadedWeights.length === 0)
-        continue
-      for (const reqWeight of reqs.weights) {
-        if (loadedWeights.includes(reqWeight))
-          continue
-        const closest = findClosestWeight(reqWeight, loadedWeights)
-        const warnKey = `${family}-${reqWeight}-${closest}-${options.component || ''}`
-        if (_warnedFontKeys.has(warnKey))
-          continue
-        if (_warnedFontKeys.size >= 100)
-          _warnedFontKeys.clear()
-        _warnedFontKeys.add(warnKey)
-        logger.warn(`Font "${family}" weight ${reqWeight} not configured${component}, using ${closest} instead.${fallbackNote}`)
-      }
-    }
-  }
+  warnMissingWeights(options, { reqs, usingGlobalFallback }, loaded)
 
   return loaded
+}
+
+export interface LazyRuntimeFontConfig extends Omit<RuntimeFontConfig, 'data'> {
+  /** Reads the font bytes on demand. Rejects when the file cannot be loaded. */
+  data: () => Promise<Uint8Array>
+}
+
+/**
+ * Select fonts like `loadAllFonts`, but read each file only when the renderer asks for it.
+ * Takumi picks unicode-range subsets from the rendered text, so unused CJK subsets never load.
+ */
+export function selectLazyFonts(event: H3Event, options: LoadFontsOptions): LazyRuntimeFontConfig[] {
+  const { reqs, usingGlobalFallback, selected } = selectFonts(options)
+  warnMissingWeights(options, { reqs, usingGlobalFallback }, selected.map(({ font }) => font))
+  return selected.map(({ font, src, isStaticFallback }) => ({
+    ...font,
+    src,
+    ...(isStaticFallback ? { unicodeRange: undefined } : {}),
+    cacheKey: `${font.family}-${font.weight}-${font.style}-${src}`,
+    data: async () => {
+      const data = await loadFont(event, font, src)
+      if (!data)
+        throw new Error(`Failed to load font ${font.family} (${src})`)
+      return toUint8Array(data)
+    },
+  }))
+}
+
+function toUint8Array(data: BufferSource): Uint8Array {
+  if (data instanceof Uint8Array)
+    return data
+  if (data instanceof ArrayBuffer)
+    return new Uint8Array(data)
+  return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
 }
 
 // Defence-in-depth bounds for attacker-controlled `defineOgImage({ fonts })`
@@ -341,12 +390,6 @@ export interface LoadFontsForRendererOptions extends LoadFontsOptions {
 /**
  * Shared font loading sequence used by both renderers.
  * Loads base fonts via loadAllFonts, then appends any custom font definitions.
- *
- * When a font family has multiple unicode-range subsets loaded (e.g., CJK fonts
- * split into many small chunks), renames each subset to a unique family name
- * (e.g., "Noto Sans SC__<stable hash per binary>") so renderers use font-family
- * fallback chains for per-character glyph coverage. Without this, both Satori
- * and Takumi pick the first font file and show .notdef for characters in other subsets.
  */
 export async function loadFontsForRenderer(event: OgImageRenderEventContext, options: LoadFontsForRendererOptions): Promise<RuntimeFontConfig[]> {
   const baseFonts = await loadAllFonts(event.e, options)
@@ -354,7 +397,7 @@ export async function loadFontsForRenderer(event: OgImageRenderEventContext, opt
     ? await loadDefinedFonts(event, options.fontDefs, options.supportedFormats)
     : []
   const allFonts = customFonts.length > 0 ? [...baseFonts, ...customFonts] : baseFonts
-  return renameSubsetFonts(allFonts)
+  return allFonts
 }
 
 /** Get the default font family override from options or first resolved font */

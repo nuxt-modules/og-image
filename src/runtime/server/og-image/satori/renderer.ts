@@ -6,7 +6,7 @@ import { tw4FontVars } from '#og-image-virtual/tw4-theme.mjs'
 import compatibility from '#og-image/compatibility'
 import { withTimeout } from '../../util/withTimeout'
 import { useOgImageRuntimeConfig } from '../../utils'
-import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer, resolveSubsetChain } from '../fonts'
+import { buildSubsetFamilyChain, extractCodepoints, getDefaultFontFamily, loadAllFontsDebug, loadFontsForRenderer, renameSubsetFonts, resolveSubsetChain } from '../fonts'
 import { resolveSvgFilters } from './filters'
 import { getResvg, getSatori, getSharp } from './instances'
 import { createVNodes } from './vnodes'
@@ -46,13 +46,13 @@ export async function createSvg(event: OgImageRenderEventContext): Promise<{ svg
   ])
   const codepoints = extractCodepoints(vnodes)
   const hasCustomFonts = Array.isArray(options.fonts) && options.fonts.length > 0
-  const fonts = await timings.measure('font-load', () => loadFontsForRenderer(event, {
+  const fonts = await timings.measure('font-load', async () => renameSubsetFonts(await loadFontsForRenderer(event, {
     supportedFormats: new Set(['ttf', 'otf', 'woff'] as const),
     component: options.component,
     fontFamilyOverride: fontFamilyOverride || defaultFont,
     codepoints,
     fontDefs: options.fonts,
-  }))
+  })))
 
   const hookTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
   await withTimeout(
