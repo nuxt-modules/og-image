@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getRegisteredBaseNames, getRendererFromFilename, matchesComponentName, parseComponentName, stripRendererSuffix } from '../../src/util'
+import { getComponentHashes, getRegisteredBaseNames, getRendererFromFilename, matchesComponentName, parseComponentName, stripRendererSuffix } from '../../src/util'
 
 describe('component resolution', () => {
   describe('matchesComponentName', () => {
@@ -141,6 +141,16 @@ describe('component resolution', () => {
     it('returns name unchanged when no suffix', () => {
       expect(stripRendererSuffix('Banner')).toBe('Banner')
       expect(stripRendererSuffix('NuxtSeo')).toBe('NuxtSeo')
+    })
+  })
+
+  describe('getComponentHashes', () => {
+    it('maps both names to the hash and omits paths and unhashed components', () => {
+      const hashes = getComponentHashes([
+        { path: '/app/components/OgImage/Card.takumi.vue', pascalName: 'OgImageCardTakumi', kebabName: 'og-image-card-takumi', hash: 'abc', category: 'app', renderer: 'takumi', propNames: ['title'] },
+        { path: '/node_modules/nuxt-og-image/dist/runtime/app/components/Templates/Community/NuxtSeo.satori.vue', pascalName: 'NuxtSeoSatori', kebabName: 'nuxt-seo-satori', hash: '', category: 'community', renderer: 'satori' },
+      ])
+      expect(hashes).toEqual({ 'OgImageCardTakumi': 'abc', 'og-image-card-takumi': 'abc' })
     })
   })
 

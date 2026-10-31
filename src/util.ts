@@ -1,3 +1,4 @@
+import type { OgImageComponent } from './runtime/types'
 import { resolvePath } from '@nuxt/kit'
 import { basename } from 'pathe'
 import { isCI } from 'std-env'
@@ -156,4 +157,33 @@ export function parseComponentName(name: string): ParsedComponentName {
   }
   // bare name: 'Banner'
   return { baseName: name, renderer: null }
+}
+
+/**
+ * Map each component's PascalCase and kebab-case names to its template hash,
+ * omitting components without a hash.
+ */
+export function getComponentHashes(components: OgImageComponent[]): Record<string, string> {
+  const hashes: Record<string, string> = {}
+  for (const { pascalName, kebabName, hash } of components) {
+    if (!hash)
+      continue
+    hashes[pascalName] ??= hash
+    hashes[kebabName] ??= hash
+  }
+  return hashes
+}
+
+/**
+ * The component registry fields read by the app runtime.
+ */
+export function getAppComponents(components: OgImageComponent[]): Pick<OgImageComponent, 'pascalName' | 'kebabName' | 'hash' | 'renderer' | 'propNames'>[] {
+  return components.map(({ pascalName, kebabName, hash, renderer, propNames }) => ({ pascalName, kebabName, hash, renderer, propNames }))
+}
+
+/**
+ * The component registry without the source `path` and `credits`, which only devtools reads.
+ */
+export function getServerComponents(components: OgImageComponent[]): Omit<OgImageComponent, 'path' | 'credits'>[] {
+  return components.map(({ path: _path, credits: _credits, ...component }) => component)
 }
