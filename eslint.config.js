@@ -14,6 +14,8 @@ export default antfu(
   }),
   {
     rules: {
+      // Keep the existing formatting when upgrading to ESLint config 10.
+      'antfu/reasonable-newline': 'off',
       'harlanzw/link-no-underscores': 'off',
       'harlanzw/link-trailing-slash': 'off',
       'harlanzw/link-lowercase': 'off',
