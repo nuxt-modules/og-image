@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { evaluateCalc, extractCssVars, extractPropertyInitialValues, extractVarsFromCss, postProcessStyles, resolveExtractedVars, resolveVarsDeep } from '../../src/build/css/css-utils'
 import { clearUnoCache, createUnoProvider, setUnoConfig, setUnoRootDir } from '../../src/build/css/providers/uno'
+import { logger } from '../../src/runtime/logger'
 
 // ============================================================================
 // css-utils: new shared functions
@@ -798,5 +799,28 @@ describe('unoCSS preset-wind4 with custom font theme', () => {
     // Multi-word names get CSS quotes so they parse as a single family name.
     expect(result['font-mono']?.['font-family']).toBe('\'Geist Mono\'')
     expect(result['font-sans']?.['font-family']).toBe('Geist')
+  })
+})
+
+describe('uno provider: preflights', () => {
+  afterAll(() => {
+    clearUnoCache()
+    vi.restoreAllMocks()
+  })
+
+  it('only resolves the requested classes, not rules from preflights', async () => {
+    const presetWind4 = await import('@unocss/preset-wind4')
+    clearUnoCache()
+    setUnoRootDir('/tmp/og-image-uno-test-preflights')
+    setUnoConfig({
+      presets: [presetWind4.default()],
+      preflights: [{ getCSS: () => '.card { color: var(--card-color); }' }],
+    })
+    const warn = vi.spyOn(logger, 'warn')
+
+    const result = await createUnoProvider().resolveClassesToStyles(['w-16'])
+
+    expect(result['w-16']).toEqual({ width: '4rem' })
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('--card-color'))
   })
 })

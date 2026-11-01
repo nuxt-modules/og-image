@@ -212,7 +212,12 @@ export function createUnoProvider(options?: UnoProviderOptions): CssProvider {
 
       // Resolve all base class styles (including those extracted from prefixed variants)
       const resolvedBaseStyles = new Map<string, Record<string, string>>()
+      // generate() also returns the preset's preflights: rules nobody asked for here, whose
+      // variables may only exist inside their own components
+      const requested = new Set(classesToGenerate)
       for (const [className, rawStyles] of classMap) {
+        if (!requested.has(className))
+          continue
         const classVars = perClassVars.get(className)
         const mergedVars = classVars ? new Map([...vars, ...classVars]) : vars
         const styles = await postProcessStyles(rawStyles, mergedVars, undefined, context)
