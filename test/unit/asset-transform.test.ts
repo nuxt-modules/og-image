@@ -245,3 +245,35 @@ const icon = 'carbon:home'
     expect(result).toBeUndefined()
   })
 })
+
+it('declares the files the styles are resolved from as watch files', async () => {
+  const cssDependencies = new Set<string>()
+  const plugin = AssetTransformPlugin.raw({
+    ogComponentPaths: ['/app/components/OgImage'],
+    rootDir: '/app',
+    srcDir: '/app',
+    publicDir: '/app/public',
+    cssProvider: {
+      name: 'tailwind',
+      // The module only learns the CSS entry and app config paths while resolving classes
+      resolveClassesToStyles: async (classes) => {
+        cssDependencies.add('/app/assets/css/main.css').add('/app/app.config.ts')
+        return Object.fromEntries(classes.map(cls => [cls, { 'background-color': '#3080ff' }]))
+      },
+    },
+    cssDependencies: () => [...cssDependencies],
+    onCssDependencyChange: file => changed.push(file),
+  }, { framework: 'vite' })
+  const changed: string[] = []
+  const watchFiles: string[] = []
+  await runTransform(plugin, '<template><div class="bg-primary" /></template>', '/app/components/OgImage/Card.takumi.vue', {
+    addWatchFile: (file: string) => watchFiles.push(file),
+  })
+  expect(watchFiles).toEqual(['/app/assets/css/main.css', '/app/app.config.ts'])
+
+  // Editing a dependency must reset the provider caches before the component is transformed again
+  const watchChange = plugin.watchChange as (id: string, change: { event: 'update' }) => void
+  watchChange.call({} as never, '/app/app.config.ts', { event: 'update' })
+  watchChange.call({} as never, '/app/pages/index.vue', { event: 'update' })
+  expect(changed).toEqual(['/app/app.config.ts'])
+})

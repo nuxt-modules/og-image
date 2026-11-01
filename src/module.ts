@@ -18,7 +18,7 @@ import type {
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { findPackageJSON } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
@@ -510,6 +510,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     // CSS provider for class resolution (UnoCSS or TW4)
     let cssProvider: CssProvider | undefined
+    // Files the providers read to resolve classes: the CSS entry and the app configs.
+    // The asset transform declares them as watch files of each OG component.
+    const cssDependencies = new Set<string>()
 
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
@@ -554,6 +557,7 @@ export default defineNuxtModule<ModuleOptions>({
             })
             if (!resolved || !existsSync(resolved))
               continue
+            cssDependencies.add(resolved)
             return resolved
           }
         },
@@ -631,10 +635,15 @@ export default defineNuxtModule<ModuleOptions>({
         resolvedColors = { ...(nuxt.options.appConfig.ui as any)?.colors } as Record<string, string> | undefined
       // Merge user app.config overrides on top (user values win via defu)
       for (const configPath of userConfigPaths) {
+        cssDependencies.add(configPath)
         const hadShim = 'defineAppConfig' in globalThis
         if (!hadShim)
           (globalThis as any).defineAppConfig = (config: any) => config
-        const cfg = await import(pathToFileURL(configPath).href).then(m => m.default || m).catch(() => ({}))
+        // The mtime query makes Node import the file again after an edit instead of reusing its module cache
+        const cfg = await stat(configPath)
+          .then(({ mtimeMs }) => import(`${pathToFileURL(configPath).href}?t=${mtimeMs}`))
+          .then(m => m.default || m)
+          .catch(() => ({}))
         if (!hadShim)
           delete (globalThis as any).defineAppConfig
         if (cfg?.ui?.colors)
@@ -652,8 +661,10 @@ export default defineNuxtModule<ModuleOptions>({
         async resolveCssPath() {
           // Try alias first, but fall through to auto-detect if it's a virtual module (not a real file)
           const aliasPath = nuxt.options.alias['#tailwindcss'] as string | undefined
-          if (aliasPath && existsSync(aliasPath))
+          if (aliasPath && existsSync(aliasPath)) {
+            cssDependencies.add(aliasPath)
             return aliasPath
+          }
           // Auto-detect from nuxt.options.css entries
           for (const cssEntry of nuxt.options.css) {
             // @ts-expect-error untyped
@@ -667,8 +678,10 @@ export default defineNuxtModule<ModuleOptions>({
             if (!resolved || !existsSync(resolved))
               continue
             const content = await readFile(resolved, 'utf-8')
-            if (content.includes('@import "tailwindcss"') || content.includes('@import \'tailwindcss\''))
+            if (content.includes('@import "tailwindcss"') || content.includes('@import \'tailwindcss\'')) {
+              cssDependencies.add(resolved)
               return resolved
+            }
           }
         },
         loadNuxtUiColors,
@@ -688,6 +701,7 @@ export default defineNuxtModule<ModuleOptions>({
       // Both need clearCache: TW4 compiler reads the CSS file directly,
       // UnoCSS config changes rebuild the generator
       cssProvider?.clearCache?.()
+      cachedNuxtUiColors = undefined
       cssMetadataPromise = undefined
       Object.assign(cssMetadata, { fontVars: {}, breakpoints: {}, colors: {} })
       _cssConfigDirty = false
@@ -746,6 +760,10 @@ export default defineNuxtModule<ModuleOptions>({
         srcDir: nuxt.options.srcDir,
         publicDir: isAbsolute(nuxt.options.dir.public) ? nuxt.options.dir.public : join(nuxt.options.srcDir, nuxt.options.dir.public || 'public'),
         cssProvider,
+        cssDependencies: () => [...cssDependencies],
+        onCssDependencyChange: () => {
+          _cssDirty = true
+        },
         beforeCssResolve: flushCssDirtyState,
         onNestedTransform: filePath => ogImageTransformedFiles.add(filePath),
         onFontRequirements(id, reqs) {
