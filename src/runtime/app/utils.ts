@@ -8,7 +8,7 @@ import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver, withSiteUrl } from '#site-config/app'
-import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+import { buildOgImageUrl, generateMeta, separateProps, toVideoUrl } from '../shared'
 
 /**
  * Recursively unwrap refs/computed/getters in a head input object.
@@ -190,7 +190,10 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           const prerenderPaths: Map<string, string> | undefined = ssrContext.event.context._ogImagePrerenderPaths
           if (prerenderPaths) {
             const ogKey = opts.key || 'og'
-            prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
+            const prerenderPath = (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C')
+            prerenderPaths.set(ogKey, prerenderPath)
+            if (opts.video)
+              prerenderPaths.set(`${ogKey}:video`, toVideoUrl(prerenderPath))
           }
         }
         const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })

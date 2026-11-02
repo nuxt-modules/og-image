@@ -156,6 +156,15 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       }
       setHeader(e, 'Content-Type', `image/${extension === 'jpg' ? 'jpeg' : extension}`)
       break
+    case 'mp4':
+      if (!renderer.supportedFormats.includes(extension)) {
+        return createError({
+          statusCode: 400,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
+        })
+      }
+      setHeader(e, 'Content-Type', 'video/mp4')
+      break
     default:
       return createError({
         statusCode: 400,
@@ -171,7 +180,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     return buildCachedImage
   }
 
-  let publication = publish && !import.meta.dev && !import.meta.prerender
+  let publication = publish && extension !== 'mp4' && !import.meta.dev && !import.meta.prerender
     ? (() => {
         const key = getPublishKey(new URL(e.path, getSiteConfig(e).url).href, config.defaults, publish.cacheVersion)
         return {

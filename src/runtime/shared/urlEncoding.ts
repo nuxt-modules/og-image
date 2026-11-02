@@ -85,6 +85,7 @@ const KNOWN_PARAMS = new Set([
   'sharp',
   'screenshot',
   'takumi',
+  'video',
   'fonts',
   '_query',
   '_hash',
@@ -95,7 +96,7 @@ const KNOWN_PARAMS = new Set([
 ])
 
 // Params that need base64 encoding (complex objects, or values with slashes)
-const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'takumi', 'fonts', '_query', '_path'])
+const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'takumi', 'video', 'fonts', '_query', '_path'])
 
 // URL-safe base64 encode/decode helpers (works in both browser and Node, handles Unicode)
 // Uses ~ instead of / and - instead of + to avoid breaking URL path segments

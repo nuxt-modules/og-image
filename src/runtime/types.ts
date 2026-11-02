@@ -9,7 +9,7 @@ import type { Timings } from './server/util/timings'
 
 export interface OgImageRenderEventContext {
   e: H3Event
-  extension: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html' | 'json'
+  extension: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html' | 'json' | 'mp4'
   key: string
   basePath: SameOriginPath
   renderer: Renderer
@@ -162,7 +162,14 @@ export interface OgImageOptions {
    * Props to pass to the component.
    */
   props?: Record<string, any>
-  extension?: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html'
+  extension?: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html' | 'mp4'
+  /**
+   * Also render the template's CSS animations to an MP4 and emit `og:video` tags next to `og:image`.
+   *
+   * Messages on Apple platforms autoplay an MP4 `og:video` inline. Other clients fall back to `og:image`.
+   * Requires the takumi renderer and an `ffmpeg` binary on the server or at prerender.
+   */
+  video?: boolean | OgImageVideoOptions
   emojis?: IconifyEmojiIconSets | false
   /**
    * Provide a static HTML template to render the OG Image instead of a component.
@@ -180,6 +187,10 @@ export interface OgImageOptions {
     format?: 'png' | 'jpeg' | 'webp'
     images?: Array<{ src: string, data: ArrayBuffer | Uint8Array }>
     devicePixelRatio?: number
+    /** Point on the animation timeline to render for still images, in milliseconds. */
+    timeMs?: number
+    /** Keyframes and stylesheets passed to takumi, e.g. `[{ keyframes: 'move', steps: [...] }]`. */
+    css?: any[]
   }
   /** @deprecated Legacy font override — no longer used at runtime */
   fonts?: any
@@ -273,6 +284,13 @@ export interface CompatibilityFlagEnvOverrides {
 }
 
 export type RendererOptions = Omit<OgImageOptions, 'extension'> & { extension: Omit<OgImageOptions['extension'], 'html'> }
+
+export interface OgImageVideoOptions {
+  /** @default 3000 */
+  durationMs?: number
+  /** @default 30 */
+  fps?: number
+}
 
 export interface Renderer {
   name: 'browser' | 'satori' | 'takumi'

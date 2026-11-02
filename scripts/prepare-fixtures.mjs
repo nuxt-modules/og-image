@@ -30,6 +30,7 @@ const fixturesWithoutCommunityTemplates = new Set([
   'test/fixtures/auto-eject',
   'test/fixtures/takumi-font-weights',
   'test/fixtures/takumi-only-fonts',
+  'test/fixtures/og-video',
   'test/fixtures/woff2-conversion',
 ])
 
