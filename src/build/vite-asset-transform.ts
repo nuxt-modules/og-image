@@ -311,6 +311,15 @@ export interface AssetTransformOptions {
    */
   cssProvider?: CssProvider
   /**
+   * Files the CSS provider reads to resolve classes (CSS entry, app configs).
+   * Declared as watch files so editing one re-transforms the OG components.
+   */
+  cssDependencies?: () => string[]
+  /**
+   * Called when one of `cssDependencies` changes, before the bundler re-transforms its importers.
+   */
+  onCssDependencyChange?: (file: string) => void
+  /**
    * Fallback color preference from @nuxtjs/color-mode (used when template has no data-theme).
    */
   colorPreference?: 'light' | 'dark'
@@ -359,6 +368,11 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
   return {
     name: 'nuxt-og-image:asset-transform',
     enforce: 'pre',
+
+    watchChange(id) {
+      if (options.cssDependencies?.().includes(id))
+        options.onCssDependencyChange?.(id)
+    },
 
     transform: {
       filter: {
@@ -663,6 +677,8 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
             logger.warn(`[nuxt-og-image] ${componentName}: CSS template transform failed, using original template`, (err as Error).message)
             // Continue without CSS transforms - Satori will try to handle classes via tw prop
           }
+          for (const file of options.cssDependencies?.() ?? [])
+            this.addWatchFile(file)
         }
 
         // Resolve var() in HTML attributes and inline styles
