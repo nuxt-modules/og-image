@@ -1,3 +1,4 @@
+import type { VueHeadClient } from '@unhead/vue'
 import type { OgImageOptions } from '../../types'
 import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { defu } from 'defu'
@@ -5,14 +6,69 @@ import { createNitroRouteRuleMatcher } from 'nuxtseo-shared/server'
 import { parseURL } from 'ufo'
 import { toValue } from 'vue'
 import { defineNuxtPlugin, useRequestEvent } from '#app'
+import { readCompiledEntry, toHeadInput } from '#build/nuxt-og-image/compiled-meta-server.mjs'
 import { withSiteUrl } from '#site-config/app'
-import { createOgImageMeta, getOgImagePath } from '../../app/utils'
+import { rewriteImageMeta } from '../../app/compiledMeta'
+import { createOgImageMeta, getOgImagePath, resolveUnrefHeadInput } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
 const RE_COMMA = /,/g
 
 interface OgImageRouteRules {
   ogImage?: false | OgImageOptions & Record<string, any>
+}
+
+interface HeadEntryLike {
+  input: unknown
+}
+
+type HeadPlugin = Exclude<Parameters<VueHeadClient['use']>[0], (...args: any[]) => any>
+
+interface CompiledHead {
+  _acceptsCompiled?: unknown
+  entries: Map<number, HeadEntryLike>
+  push: (input: unknown, options: { values: () => unknown[] }) => unknown
+  use: (plugin: HeadPlugin) => void
+}
+
+const UNSETTLED = '\u0000unsettled'
+const unsettledValues = new Proxy([], { get: (target, key) => typeof key === 'string' && /^\d+$/.test(key) ? UNSETTLED : Reflect.get(target, key) })
+
+// The entry that rewrites renders no tag, so every request shares one set of compiled tags
+const NO_TAGS: unknown[] = []
+
+// A key that holds packed seo meta, whose image keys only the hook rewrites
+const PACKED_IMAGE_RE = /image/i
+
+/**
+ * Rewrites the image meta of every entry, as the canonical URLs hook does at the render.
+ * Returns `false`, and rewrites nothing, when only the hook can decide an entry.
+ */
+export function rewriteImageEntries(head: { entries: Map<number, HeadEntryLike> }, siteUrl: (path: string) => string): boolean {
+  const rewrites: [HeadEntryLike, unknown][] = []
+  for (const entry of head.entries.values()) {
+    const read = readCompiledEntry?.(entry as any)
+    const compiled = !!read
+    // Reads compiled tags without running the values of an entry, which may read the entries too.
+    // Values settle in entry order at the head render, so the entries before this one have theirs.
+    // A value that has not settled reads as `UNSETTLED`, so it is never a URL.
+    const input = (read ? toHeadInput!(read.tags, read.values ?? unsettledValues) : entry.input) as Record<string, any> | undefined
+    if (!input)
+      continue
+    if (!compiled && (typeof input !== 'object' || Object.getPrototypeOf(input) !== Object.prototype || Object.keys(input._flatMeta || {}).some(key => PACKED_IMAGE_RE.test(key))))
+      return false
+    if (input.meta === undefined)
+      continue
+    // Loose input may hold refs and getters. Only its meta resolves, so no other getter runs early.
+    const result = rewriteImageMeta({ meta: compiled ? input.meta : resolveUnrefHeadInput(input.meta) }, siteUrl)
+    if (result._tag === 'Plugin')
+      return false
+    if (result._tag === 'Rewrite')
+      rewrites.push([entry, { ...input, meta: result.input.meta }])
+  }
+  for (const [entry, input] of rewrites)
+    entry.input = input
+  return true
 }
 
 export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
@@ -25,8 +81,19 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
       return
 
     ssrContext?.head.use(TemplateParamsPlugin)
+    // `runWithContext` may wrap the return value, so the URL leaves through the closure
+    const siteUrl = (path: string): string => {
+      let url = path
+      nuxtApp.runWithContext(() => {
+        url = toValue(withSiteUrl(path, {
+          withBase: true,
+          canonical: !import.meta.dev,
+        }))
+      })
+      return url
+    }
     // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
-    ssrContext?.head.use({
+    const canonicalUrlsPlugin: HeadPlugin = {
       key: 'nuxt-og-image:overrides-and-canonical-urls',
       hooks: {
         'tags:afterResolve': (ctx) => {
@@ -56,19 +123,35 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
                 .replaceAll('%title', title)
                 .replaceAll('%description', description)
                 .replaceAll(' ', '+')
-              if (!/^https?:\/\//.test(tag.props.content || '')) {
-                nuxtApp.runWithContext(() => {
-                  tag.props.content = toValue(withSiteUrl(tag.props.content || '', {
-                    withBase: true,
-                    canonical: !import.meta.dev,
-                  }))
-                })
-              }
+              if (!/^https?:\/\//.test(tag.props.content || ''))
+                tag.props.content = siteUrl(tag.props.content || '')
             }
           }
         },
       },
-    })
+    }
+    // Under compiler mode a render hook sends the whole head to the full pipeline, so the image
+    // meta of each entry is rewritten instead, at the head render: after every other
+    // `app:rendered` listener has changed its entries. Content only the hook can decide keeps it.
+    const head = ssrContext?.head as unknown as CompiledHead | undefined
+    if (ssrContext && head && readCompiledEntry && head._acceptsCompiled) {
+      ssrContext._ogImageSiteUrl = siteUrl
+      let rewriting = false
+      head.push(NO_TAGS, {
+        values: () => {
+          // reading the entries reads this one too
+          if (rewriting)
+            return []
+          rewriting = true
+          if (!rewriteImageEntries(head, siteUrl))
+            head.use(canonicalUrlsPlugin)
+          rewriting = false
+          return []
+        },
+      })
+      return
+    }
+    ssrContext?.head.use(canonicalUrlsPlugin)
   })
 })
 

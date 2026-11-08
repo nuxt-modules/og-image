@@ -1,14 +1,17 @@
 import type { ActiveHeadEntry, Head, UseHeadInput } from '@unhead/vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import type { DefineOgImageInput, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt } from '../types'
+import type { OgMeta } from './compiledMeta'
 import { defu } from 'defu'
 import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
+import { metaShapes, useCompiledHead } from '#build/nuxt-og-image/compiled-meta.mjs'
 import { componentHashes, defaultComponentName } from '#build/nuxt-og-image/component-hashes.mjs'
 import { createSitePathResolver } from '#site-config/app'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+import { compileOgMeta } from './compiledMeta'
 
 // Per-head-client map of active useHead entries, keyed by og key. Scoped to the
 // Nuxt app via its head instance (released automatically when the head GCs).
@@ -17,10 +20,27 @@ import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 // dispose only fires on component unmount.
 const clientEntriesByHead: WeakMap<object, Map<string, ActiveHeadEntry<Head>>> = /* @__PURE__ */ new WeakMap()
 
-function registerClientOgHead(ogKey: string, input: UseHeadInput, options?: Parameters<typeof useHead>[1]): void {
+/**
+ * Under compiler mode, the meta as compiled tags, so the lazy head keeps its compiled runtime.
+ * The entry options become part of each tag.
+ */
+function compiledOgHead(head: unknown, meta: OgMeta[], options?: Parameters<typeof useHead>[1]): ActiveHeadEntry<Head> | undefined {
+  // A lazy head takes compiled tags
+  if (!metaShapes || !useCompiledHead || !(head as { _acceptsCompiled?: unknown } | undefined)?._acceptsCompiled)
+    return
+  // Other entry options have no compiled tags
+  if (options && Object.keys(options).some(key => key !== 'processTemplateParams'))
+    return
+  const mode = options?.processTemplateParams ? 'template' : 'plain'
+  const compiled = compileOgMeta(metaShapes, mode, meta.map(tag => ({ ...tag, content: toValue(tag.content as any) })))
+  return compiled._tag === 'Compiled' ? useCompiledHead(compiled.tags, compiled.values) as ActiveHeadEntry<Head> : undefined
+}
+
+function registerClientOgHead(ogKey: string, input: { meta: OgMeta[] }, options?: Parameters<typeof useHead>[1]): void {
   let entries: Map<string, ActiveHeadEntry<Head>> | undefined
+  let head: object | undefined
   try {
-    const head = injectHead() as object | undefined
+    head = injectHead() as object | undefined
     if (head) {
       entries = clientEntriesByHead.get(head)
       if (!entries) {
@@ -33,7 +53,7 @@ function registerClientOgHead(ogKey: string, input: UseHeadInput, options?: Para
     // Head injection may be unavailable outside a Vue setup scope; useHead still handles registration.
   }
   entries?.get(ogKey)?.dispose()
-  const entry = useHead(input, options) as ActiveHeadEntry<Head> | undefined
+  const entry = compiledOgHead(head, input.meta, options) ?? useHead(input as UseHeadInput, options) as ActiveHeadEntry<Head> | undefined
   if (entry && entries)
     entries.set(ogKey, entry)
 }

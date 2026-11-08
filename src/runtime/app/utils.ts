@@ -1,14 +1,18 @@
-import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
+import type { ActiveHeadEntry, Head, ResolvableMeta, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageComponent, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
+import type { OgMeta } from './compiledMeta'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
-import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
+import { injectHead, useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
+import { readCompiledEntry } from '#build/nuxt-og-image/compiled-meta-server.mjs'
+import { metaShapes } from '#build/nuxt-og-image/compiled-meta.mjs'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver, withSiteUrl } from '#site-config/app'
 import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+import { compileOgMeta, OG_META_MODES, rewriteImageUrl } from './compiledMeta'
 
 /**
  * Recursively unwrap refs/computed/getters in a head input object.
@@ -16,7 +20,7 @@ import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
  * Replaces `resolveUnrefHeadInput` from `@unhead/vue`, which was removed in
  * Unhead v3. The local walker resolves reactive inputs before encoding them.
  */
-function resolveUnrefHeadInput(input: any): any {
+export function resolveUnrefHeadInput(input: any): any {
   if (input == null)
     return input
   if (isRef(input) || typeof input === 'function')
@@ -52,6 +56,11 @@ function extractHeadSeoProps(head: VueHeadClient): { title?: string, description
   const result: { title?: string, description?: string } = {}
   try {
     for (const entry of head.entries.values()) {
+      // A compiled entry holds no `_flatMeta`, so it is never a useSeoMeta entry here. Reading its
+      // input would also run its values, which may read this function again.
+      // TODO: read compiled useSeoMeta entries once Unhead marks them.
+      if (readCompiledEntry?.(entry as any))
+        continue
       const input = toValue(entry.input) as Record<string, any> | undefined
       if (!input || typeof input !== 'object')
         continue
@@ -84,7 +93,25 @@ declare module 'nuxt/app' {
     _ogImagePayloads?: OgImagePayload[]
     _ogImageInstance?: ActiveHeadEntry<Head>
     _ogImageDevtoolsInstance?: ActiveHeadEntry<Head>
+    /** Set by the canonical URLs plugin under compiler mode: makes an og:image URL absolute. */
+    _ogImageSiteUrl?: (path: string) => string
   }
+}
+
+interface CompiledHead {
+  _acceptsCompiled?: unknown
+  entries: Map<number, { input: unknown }>
+  push: (input: unknown, options?: { values?: unknown[] | (() => unknown[]) }) => ActiveHeadEntry<Head>
+}
+
+/** The request head, when it takes compiled tags and the build compiled the og:image meta. */
+function compiledHead(head: unknown = injectHead()): CompiledHead | undefined {
+  return metaShapes && (head as CompiledHead | undefined)?._acceptsCompiled ? head as CompiledHead : undefined
+}
+
+/** Resolved meta, each tag with the options of its entry, as normal input. */
+function looseMeta(meta: OgMeta[], mode: keyof typeof OG_META_MODES) {
+  return { meta: meta.map(tag => ({ ...tag, ...OG_META_MODES[mode] })) }
 }
 
 export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
@@ -98,7 +125,44 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   const urlValue = toValue(url)
   const absoluteUrl = /^https?:\/\//.test(urlValue) ? urlValue : toValue(withSiteUrl(urlValue, { withBase: true, canonical: !import.meta.dev }))
   const meta = generateMeta(absoluteUrl, input, { includeTwitter })
+  const head = compiledHead()
+  if (head) {
+    const resolved = meta.map(tag => ({ ...tag, content: toValue(tag.content) }))
+    const compiled = compileOgMeta(metaShapes!, 'plain', resolved)
+    if (compiled._tag === 'Compiled')
+      head.push(compiled.tags, { values: compiled.values })
+    else
+      head.push(looseMeta(resolved, 'plain'))
+    return
+  }
   useHead({ meta })
+}
+
+/**
+ * Pushes the og:image meta of `defineOgImage()` as compiled tags. The payload options decide which
+ * tags exist, so the tags are chosen now and their content resolves at the head render, as the
+ * lazy `meta()` of the normal entry does. Content the canonical URLs plugin would rewrite is
+ * rewritten here. Meta that compiled tags cannot render becomes normal input of the same entry.
+ */
+function pushCompiledOgMeta(head: CompiledHead, ssrContext: NuxtSSRContext, payloads: OgImagePayload[], resolveMeta: () => ResolvableMeta[]): ActiveHeadEntry<Head> {
+  // Placeholder content: the identities only depend on the payload options
+  const shape = compileOgMeta(metaShapes!, 'template', payloads.flatMap(([, options]) => generateMeta('x', options).map(tag => ({ ...tag, content: 'x' }))))
+  const entry: ActiveHeadEntry<Head> = head.push(shape._tag === 'Compiled' ? shape.tags : [], {
+    values: () => {
+      const siteUrl = ssrContext._ogImageSiteUrl
+      const meta = resolveMeta().map((tag) => {
+        const content = toValue(tag.content)
+        const image = tag.property === 'og:image' || tag.name === 'twitter:image'
+        return { ...tag, content: siteUrl && image && typeof content === 'string' && content && !content.includes('%') ? rewriteImageUrl(content, siteUrl) : content }
+      })
+      const result = compileOgMeta(metaShapes!, 'template', meta)
+      if (shape._tag === 'Compiled' && result._tag === 'Compiled' && result.tags === shape.tags)
+        return result.values
+      head.entries.get((entry as unknown as { _i: number })._i)!.input = looseMeta(meta, 'template')
+      return []
+    },
+  })
+  return entry
 }
 
 export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePrebuilt, ssrContext: NuxtSSRContext, pagePath?: string, head?: VueHeadClient) {
@@ -129,75 +193,77 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: !import.meta.dev })
 
   ssrContext._ogImageInstance?.dispose()
-  ssrContext._ogImageInstance = useHead({
-    // Meta is generated lazily so that title/description from useSeoMeta / useHead
-    // are available regardless of call ordering (all component setups have completed
-    // by the time Unhead resolves tags).
-    meta() {
-      const finalPayload = ssrContext._ogImagePayloads || []
-      // Extract head SEO props once for all payloads
-      const seo = head ? extractHeadSeoProps(head) : undefined
-      return finalPayload.flatMap(([_, options, payloadBasePath]) => {
-        const opts = { ...options, props: { ...options.props } }
-        // Resolve component with alias/shorthand support so we know which props it declares.
-        // Skips auto-injection for props the component doesn't accept
-        // (#573: useHead({ title }) was leaking into URLs of components without a title prop).
-        const rawComponentName = opts.component || componentNames?.[0]?.pascalName
-        const resolvedComponentName = rawComponentName ? resolveComponentName(rawComponentName) : undefined
-        const resolvedComponent = resolvedComponentName
-          ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
-          : undefined
-        const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
-        // Inject title/description from head entries if not explicitly set AND the component declares them
-        if (seo) {
-          if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
-            opts.props.title = seo.title
-          if (seo.description && typeof opts.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
-            opts.props.description = seo.description
-        }
-        // Inline getOgImagePath logic: useRuntimeConfig() is unavailable in lazy callbacks
-        const extension = opts.extension || defaults?.extension || 'png'
-        // Force dynamic+signed URLs even during prerender when strict+secret are set.
-        // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
-        // setups where pages are prerendered but OG images are served dynamically.
-        const isStatic = import.meta.prerender && !(ogImageConfig.security?.secret && ogImageConfig.security?.strict)
-        const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
-        // Use a strict (non-aliased) lookup for hash — matches main behavior so URLs
-        // stay stable for shorthand component names like `Default` or `NuxtSeo.satori`.
-        const componentName = opts.component || componentNames?.[0]?.pascalName
-        const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
-        if (component?.hash)
-          urlOpts._componentHash = component.hash
-        const result = buildOgImageUrl(urlOpts, extension, isStatic, defaults, ogImageConfig.security?.secret || undefined)
-        // Propagate hash so prerender plugin can store it in prerenderOptionsCache.
-        // Must set on both the local copy (opts) AND the original options object,
-        // because the payload script serializer reads from the original in
-        // ssrContext._ogImagePayloads, not the copy.
-        if (result.hash) {
-          opts._hash = result.hash
-          options._hash = result.hash
-        }
-        const resolvedUrl = joinURL('/', baseURL, result.url)
-        const finalUrl = opts._query && Object.keys(opts._query).length
-          ? withQuery(resolvedUrl, { _query: opts._query })
-          : resolvedUrl
+  // Meta is generated lazily so that title/description from useSeoMeta / useHead
+  // are available regardless of call ordering (all component setups have completed
+  // by the time Unhead resolves tags).
+  const resolveMeta = () => {
+    const finalPayload = ssrContext._ogImagePayloads || []
+    // Extract head SEO props once for all payloads
+    const seo = head ? extractHeadSeoProps(head) : undefined
+    return finalPayload.flatMap(([_, options, payloadBasePath]) => {
+      const opts = { ...options, props: { ...options.props } }
+      // Resolve component with alias/shorthand support so we know which props it declares.
+      // Skips auto-injection for props the component doesn't accept
+      // (#573: useHead({ title }) was leaking into URLs of components without a title prop).
+      const rawComponentName = opts.component || componentNames?.[0]?.pascalName
+      const resolvedComponentName = rawComponentName ? resolveComponentName(rawComponentName) : undefined
+      const resolvedComponent = resolvedComponentName
+        ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
+        : undefined
+      const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
+      // Inject title/description from head entries if not explicitly set AND the component declares them
+      if (seo) {
+        if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
+          opts.props.title = seo.title
+        if (seo.description && typeof opts.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
+          opts.props.description = seo.description
+      }
+      // Inline getOgImagePath logic: useRuntimeConfig() is unavailable in lazy callbacks
+      const extension = opts.extension || defaults?.extension || 'png'
+      // Force dynamic+signed URLs even during prerender when strict+secret are set.
+      // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
+      // setups where pages are prerendered but OG images are served dynamically.
+      const isStatic = import.meta.prerender && !(ogImageConfig.security?.secret && ogImageConfig.security?.strict)
+      const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
+      // Use a strict (non-aliased) lookup for hash — matches main behavior so URLs
+      // stay stable for shorthand component names like `Default` or `NuxtSeo.satori`.
+      const componentName = opts.component || componentNames?.[0]?.pascalName
+      const component = componentNames?.find((c: any) => c.pascalName === componentName || c.kebabName === componentName)
+      if (component?.hash)
+        urlOpts._componentHash = component.hash
+      const result = buildOgImageUrl(urlOpts, extension, isStatic, defaults, ogImageConfig.security?.secret || undefined)
+      // Propagate hash so prerender plugin can store it in prerenderOptionsCache.
+      // Must set on both the local copy (opts) AND the original options object,
+      // because the payload script serializer reads from the original in
+      // ssrContext._ogImagePayloads, not the copy.
+      if (result.hash) {
+        opts._hash = result.hash
+        options._hash = result.hash
+      }
+      const resolvedUrl = joinURL('/', baseURL, result.url)
+      const finalUrl = opts._query && Object.keys(opts._query).length
+        ? withQuery(resolvedUrl, { _query: opts._query })
+        : resolvedUrl
         // Update prerender paths to match the lazily resolved URL.
         // Only emit for static URLs: dynamic (/_og/d/) URLs are runtime-only and
         // must not be force-prerendered via x-nitro-prerender, because long ones
         // would hit the filesystem 255-byte filename limit when nitro writes them.
-        if (isStatic && import.meta.prerender && ssrContext.event) {
-          const prerenderPaths: Map<string, string> | undefined = ssrContext.event.context._ogImagePrerenderPaths
-          if (prerenderPaths) {
-            const ogKey = opts.key || 'og'
-            prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
-          }
+      if (isStatic && import.meta.prerender && ssrContext.event) {
+        const prerenderPaths: Map<string, string> | undefined = ssrContext.event.context._ogImagePrerenderPaths
+        if (prerenderPaths) {
+          const ogKey = opts.key || 'og'
+          prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
         }
-        return generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
+      }
+      return generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
+    })
+  }
+  const compiled = compiledHead(head)
+  ssrContext._ogImageInstance = compiled
+    ? pushCompiledOgMeta(compiled, ssrContext, payloads, resolveMeta)
+    : useHead({ meta: resolveMeta }, {
+        processTemplateParams: true,
       })
-    },
-  }, {
-    processTemplateParams: true,
-  })
 
   // devtools script injection for dev mode and prerender cache
   if (import.meta.dev || import.meta.prerender) {

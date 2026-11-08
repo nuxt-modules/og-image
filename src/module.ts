@@ -28,6 +28,7 @@ import { setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-sha
 import { isAbsolute, join } from 'pathe'
 import { setupBuildHandler } from './build/build'
 import { extractCustomFontFamilies } from './build/css/css-utils'
+import { setupCompiledMeta } from './build/compiledMeta'
 import { setupDevHandler } from './build/dev'
 import { setupDevToolsUI } from './build/devtools'
 import { fontFamiliesFromCssEntries, warnWhenFontsUnreported } from './build/font-compat'
@@ -1082,6 +1083,12 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImports([
       { name: 'getOgImageUrl', from: resolve('./runtime/server/nitro') },
     ])
+
+    // Under Unhead compiler mode the og:image meta is compiled tags, and the canonical URLs plugin
+    // rewrites entry input instead of adding a render hook. The output stays the same.
+    const compiledMeta = await setupCompiledMeta(nuxt)
+    if (compiledMeta._tag === 'Unavailable')
+      logger.warn(`Compiler mode is on, but the og:image meta stays normal input: ${compiledMeta.reason}.`)
 
     const basePluginPath = `./runtime/app/plugins${config.zeroRuntime ? '/__zero-runtime' : ''}`
     // allows us to add og images using route rules without calling defineOgImage
