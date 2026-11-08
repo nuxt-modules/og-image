@@ -20,6 +20,10 @@ vi.mock('#build/nuxt-og-image/client-config.mjs', () => ({
     return mocks.hasServerRuntime
   },
 }))
+vi.mock('#build/nuxt-og-image/compiled-meta.mjs', () => ({
+  metaShapes: null,
+  useCompiledHead: undefined,
+}))
 vi.mock('#build/nuxt-og-image/component-hashes.mjs', () => ({
   defaultComponentName: 'OgImagePageScreenshotTakumi',
   componentHashes: { 'OgImagePageScreenshotTakumi': 'pagehash', 'og-image-page-screenshot-takumi': 'pagehash' },
