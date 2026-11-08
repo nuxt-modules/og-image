@@ -12,7 +12,7 @@ import { generateMeta } from '../../src/runtime/shared'
 
 // og-image reaches Unhead through @unhead/vue, so the test resolves it from there
 const requireFromVue = createRequire(join(realpathSync(fileURLToPath(new URL('../../node_modules/@unhead/vue', import.meta.url))), 'package.json'))
-const compiler = await import(requireFromVue.resolve('unhead/compiled/compile')) as HeadCompiler
+const compiler = await import(requireFromVue.resolve('unhead/compiled')) as HeadCompiler
 const { createHead: createCompiledHead } = await import(requireFromVue.resolve('unhead/compiled/server'))
 const { createHead, renderSSRHead } = await import(requireFromVue.resolve('unhead/server'))
 const { TemplateParamsPlugin } = await import(requireFromVue.resolve('unhead/plugins'))

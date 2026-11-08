@@ -5,7 +5,7 @@ import { OG_META_IDENTITIES, OG_META_MODES, ogMetaShapeInput } from '../runtime/
 
 type CompileResult = { _tag: 'Ok', tags: unknown } | { _tag: 'Bail', reason: string }
 
-/** The Unhead compiler API the build needs, from `unhead/compiled/compile`. */
+/** The Unhead compiler API the build needs, from `unhead/compiled`. */
 export interface HeadCompiler {
   compileTags: (input: unknown, options?: { dynamicValues?: number }) => CompileResult
   dynamicValue: (index: number) => string
@@ -52,9 +52,9 @@ export function compiledMetaModule(compiled: { shapes: MetaShapes } | null): str
 }
 
 /** The server half, `#build/nuxt-og-image/compiled-meta-server.mjs`: the public readers of compiled entries. */
-export function compiledMetaServerModule(paths: { readCompiledEntry: string, toHeadInput: string } | null): string {
-  return paths
-    ? [`export { readCompiledEntry } from ${JSON.stringify(paths.readCompiledEntry)}`, `export { toHeadInput } from ${JSON.stringify(paths.toHeadInput)}`].join('\n')
+export function compiledMetaServerModule(readersPath: string | null): string {
+  return readersPath
+    ? `export { readCompiledEntry, toHeadInput } from ${JSON.stringify(readersPath)}`
     : ['export const readCompiledEntry = undefined', 'export const toHeadInput = undefined'].join('\n')
 }
 
@@ -65,18 +65,18 @@ async function resolveFromApp(nuxt: Nuxt, id: string) {
 
 async function compileMeta(nuxt: Nuxt) {
   // @unhead/vue/compiled only proves the Unhead has compiler mode; the app imports it by name
-  const [compilerPath, serverPath, vuePath] = await Promise.all([
-    resolveFromApp(nuxt, 'unhead/compiled/compile'),
-    resolveFromApp(nuxt, 'unhead/compiled/server'),
+  const [compilerPath, vuePath] = await Promise.all([
+    resolveFromApp(nuxt, 'unhead/compiled'),
     resolveFromApp(nuxt, '@unhead/vue/compiled'),
   ])
-  if (!compilerPath || !serverPath || !vuePath)
-    return { _tag: 'Unavailable', reason: 'the installed Unhead has no compiler (unhead/compiled/compile)' } as const
   // A dynamic import: an Unhead without the compiler must not break the module when compiler mode is off.
-  const result = compileMetaShapes(await import(compilerPath) as HeadCompiler)
+  const compiler = compilerPath && vuePath ? await import(compilerPath) as Partial<HeadCompiler> & { readCompiledEntry?: unknown } : undefined
+  if (typeof compiler?.compileTags !== 'function' || typeof compiler.readCompiledEntry !== 'function')
+    return { _tag: 'Unavailable', reason: 'the installed Unhead has no compiler (compileTags in unhead/compiled)' } as const
+  const result = compileMetaShapes(compiler as HeadCompiler)
   if (result._tag === 'Bail')
     return { _tag: 'Unavailable', reason: `the og:image meta cannot compile: ${result.reason}` } as const
-  return { _tag: 'Ok', compiled: { shapes: result.shapes, server: { readCompiledEntry: serverPath, toHeadInput: compilerPath } } } as const
+  return { _tag: 'Ok', compiled: { shapes: result.shapes, readersPath: compilerPath! } } as const
 }
 
 /**
@@ -93,7 +93,7 @@ export async function setupCompiledMeta(nuxt: Nuxt): Promise<CompiledMetaSetup> 
   })
   addTemplate({
     filename: 'nuxt-og-image/compiled-meta-server.mjs',
-    getContents: () => compiledMetaServerModule(compiled?.server ?? null),
+    getContents: () => compiledMetaServerModule(compiled?.readersPath ?? null),
   })
   if (!result)
     return { _tag: 'Off' }

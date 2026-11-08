@@ -7,7 +7,7 @@ import { stringify } from 'devalue'
 import { injectHead, useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
-import { readCompiledEntry } from '#build/nuxt-og-image/compiled-meta-server.mjs'
+import { readCompiledEntry, toHeadInput } from '#build/nuxt-og-image/compiled-meta-server.mjs'
 import { metaShapes } from '#build/nuxt-og-image/compiled-meta.mjs'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver, withSiteUrl } from '#site-config/app'
@@ -45,40 +45,62 @@ const RE_RENDERER_SUFFIX = /(Satori|Browser|Takumi)$/
  */
 type OgImagePayload = [string, OgImageOptionsInternal, string]
 
+interface SeoProps { title?: string, description?: string }
+
+/** The title and description of a compiled `useSeoMeta` entry whose values have settled. */
+function compiledSeoProps(tags: unknown, values: readonly unknown[]): SeoProps {
+  const input = toHeadInput!(tags as any, values)
+  const meta = (Array.isArray(input.meta) ? input.meta : []) as Record<string, unknown>[]
+  const description = meta.find(tag => tag.name === 'description')?.content || meta.find(tag => tag.property === 'og:description')?.content
+  return {
+    title: typeof input.title === 'string' ? input.title : undefined,
+    description: typeof description === 'string' ? description : undefined,
+  }
+}
+
+/** The title and description of a loose `useSeoMeta` entry, which holds `_flatMeta`. */
+function looseSeoProps(input: Record<string, any> | undefined): SeoProps | undefined {
+  // `_flatMeta` is only populated by useSeoMeta — use it to distinguish from useHead.
+  const flatMeta = input && typeof input === 'object' ? input._flatMeta : undefined
+  if (!flatMeta || typeof flatMeta !== 'object')
+    return
+  const title = 'title' in input! ? toValue(input!.title) : undefined
+  const description = toValue(flatMeta.description) || toValue(flatMeta.ogDescription)
+  return {
+    title: typeof title === 'string' ? title : undefined,
+    description: typeof description === 'string' ? description : undefined,
+  }
+}
+
 /**
  * Extract title and description from head entries set by useSeoMeta.
  *
- * Only pulls from useSeoMeta entries (identified by the `_flatMeta` marker)
- * so plain `useHead({ title })` page titles don't leak into og:image URLs (#573).
- * useSeoMeta hoists title to `entry.input.title` and description to `_flatMeta`.
+ * Only pulls from useSeoMeta entries so plain `useHead({ title })` page titles don't leak into
+ * og:image URLs (#573). A loose useSeoMeta entry holds `_flatMeta`, with the title hoisted to
+ * `entry.input.title`. A compiled one is marked `seoMeta` by `readCompiledEntry()`.
  */
-function extractHeadSeoProps(head: VueHeadClient): { title?: string, description?: string } {
-  const result: { title?: string, description?: string } = {}
+function extractHeadSeoProps(head: VueHeadClient): SeoProps {
+  const result: SeoProps = {}
   try {
     for (const entry of head.entries.values()) {
-      // A compiled entry holds no `_flatMeta`, so it is never a useSeoMeta entry here. Reading its
-      // input would also run its values, which may read this function again.
-      // TODO: read compiled useSeoMeta entries once Unhead marks them.
-      if (readCompiledEntry?.(entry as any))
+      let read = readCompiledEntry?.(entry as any)
+      // A compiled useHead entry is never a useSeoMeta entry. Its values are not read, as they
+      // may read this function again.
+      if (read && !read.seoMeta)
         continue
-      const input = toValue(entry.input) as Record<string, any> | undefined
-      if (!input || typeof input !== 'object')
-        continue
-
-      // `_flatMeta` is only populated by useSeoMeta — use it to distinguish from useHead.
-      const flatMeta = input._flatMeta
-      if (!flatMeta || typeof flatMeta !== 'object')
-        continue
-
-      if ('title' in input) {
-        const t = toValue(input.title)
-        if (typeof t === 'string')
-          result.title = t
+      // Values settle in entry order at the head render. Reading `input` settles the values of a
+      // later useSeoMeta entry now, from its own getters. A special value makes it loose input.
+      if (read && !read.values) {
+        void entry.input
+        read = readCompiledEntry!(entry as any)
       }
-
-      const desc = toValue(flatMeta.description) || toValue(flatMeta.ogDescription)
-      if (typeof desc === 'string')
-        result.description = desc
+      const props = read?.values
+        ? compiledSeoProps(read.tags, read.values)
+        : looseSeoProps(toValue(entry.input) as Record<string, any> | undefined)
+      if (props?.title !== undefined)
+        result.title = props.title
+      if (props?.description !== undefined)
+        result.description = props.description
     }
   }
   catch (e) {
