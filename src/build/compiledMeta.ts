@@ -51,11 +51,14 @@ export function compiledMetaModule(compiled: { shapes: MetaShapes } | null): str
     : ['export const metaShapes = null', 'export const useCompiledHead = undefined'].join('\n')
 }
 
-/** The server half, `#build/nuxt-og-image/compiled-meta-server.mjs`: the public readers of compiled entries. */
-export function compiledMetaServerModule(readersPath: string | null): string {
-  return readersPath
-    ? `export { readCompiledEntry, toHeadInput } from ${JSON.stringify(readersPath)}`
-    : ['export const readCompiledEntry = undefined', 'export const toHeadInput = undefined'].join('\n')
+/**
+ * The server half, `#build/nuxt-og-image/compiled-meta-server.mjs`: `readEntry`, the Unhead reader
+ * of any head entry. It reads every head, so it exists with compiler mode off too.
+ */
+export function compiledMetaServerModule(readerPath: string | null): string {
+  return readerPath
+    ? `export { readEntry } from ${JSON.stringify(readerPath)}`
+    : 'export const readEntry = undefined'
 }
 
 async function resolveFromApp(nuxt: Nuxt, id: string) {
@@ -63,37 +66,44 @@ async function resolveFromApp(nuxt: Nuxt, id: string) {
   return tryResolveModule(id, nuxt.options.modulesDir.map(dir => directoryToURL(dir)))
 }
 
-async function compileMeta(nuxt: Nuxt) {
+type HeadCompilerModule = Partial<HeadCompiler> & { readEntry?: unknown }
+
+async function loadCompiler(nuxt: Nuxt): Promise<{ path: string, compiler: HeadCompilerModule } | undefined> {
+  const path = await resolveFromApp(nuxt, 'unhead/compiled')
+  // A dynamic import: an Unhead without `unhead/compiled` must not break the module.
+  return path ? { path, compiler: await import(path) as HeadCompilerModule } : undefined
+}
+
+async function compileMeta(nuxt: Nuxt, loaded: Awaited<ReturnType<typeof loadCompiler>>) {
   // @unhead/vue/compiled only proves the Unhead has compiler mode; the app imports it by name
-  const [compilerPath, vuePath] = await Promise.all([
-    resolveFromApp(nuxt, 'unhead/compiled'),
-    resolveFromApp(nuxt, '@unhead/vue/compiled'),
-  ])
-  // A dynamic import: an Unhead without the compiler must not break the module when compiler mode is off.
-  const compiler = compilerPath && vuePath ? await import(compilerPath) as Partial<HeadCompiler> & { readCompiledEntry?: unknown } : undefined
-  if (typeof compiler?.compileTags !== 'function' || typeof compiler.readCompiledEntry !== 'function')
-    return { _tag: 'Unavailable', reason: 'the installed Unhead has no compiler (compileTags in unhead/compiled)' } as const
+  const vuePath = await resolveFromApp(nuxt, '@unhead/vue/compiled')
+  const compiler = vuePath ? loaded?.compiler : undefined
+  if (typeof compiler?.compileTags !== 'function' || typeof compiler.readEntry !== 'function')
+    return { _tag: 'Unavailable', reason: 'the installed Unhead has no compiler (compileTags and readEntry in unhead/compiled)' } as const
   const result = compileMetaShapes(compiler as HeadCompiler)
   if (result._tag === 'Bail')
     return { _tag: 'Unavailable', reason: `the og:image meta cannot compile: ${result.reason}` } as const
-  return { _tag: 'Ok', compiled: { shapes: result.shapes, readersPath: compilerPath! } } as const
+  return { _tag: 'Ok', shapes: result.shapes } as const
 }
 
 /**
  * Compiles the og:image meta for compiler mode and adds it as `#build/nuxt-og-image/compiled-meta.mjs`.
  * With compiler mode off, or with an Unhead that has no compiler, the module exports `null`
- * shapes and the og:image meta stays normal input.
+ * shapes and the og:image meta stays normal input. The `metaShapes` export is how the runtime
+ * knows the head takes compiled tags.
  */
 export async function setupCompiledMeta(nuxt: Nuxt): Promise<CompiledMetaSetup> {
-  const result = isCompilerMode(nuxt) ? await compileMeta(nuxt) : undefined
-  const compiled = result?._tag === 'Ok' ? result.compiled : null
+  const loaded = await loadCompiler(nuxt)
+  const result = isCompilerMode(nuxt) ? await compileMeta(nuxt, loaded) : undefined
+  const compiled = result?._tag === 'Ok' ? { shapes: result.shapes } : null
+  const readerPath = loaded && typeof loaded.compiler.readEntry === 'function' ? loaded.path : null
   addTemplate({
     filename: 'nuxt-og-image/compiled-meta.mjs',
     getContents: () => compiledMetaModule(compiled),
   })
   addTemplate({
     filename: 'nuxt-og-image/compiled-meta-server.mjs',
-    getContents: () => compiledMetaServerModule(compiled?.readersPath ?? null),
+    getContents: () => compiledMetaServerModule(readerPath),
   })
   if (!result)
     return { _tag: 'Off' }

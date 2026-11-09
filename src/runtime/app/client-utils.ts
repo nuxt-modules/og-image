@@ -24,9 +24,9 @@ const clientEntriesByHead: WeakMap<object, Map<string, ActiveHeadEntry<Head>>> =
  * Under compiler mode, the meta as compiled tags, so the lazy head keeps its compiled runtime.
  * The entry options become part of each tag.
  */
-function compiledOgHead(head: unknown, meta: OgMeta[], options?: Parameters<typeof useHead>[1]): ActiveHeadEntry<Head> | undefined {
-  // A lazy head takes compiled tags
-  if (!metaShapes || !useCompiledHead || !(head as { _acceptsCompiled?: unknown } | undefined)?._acceptsCompiled)
+function compiledOgHead(meta: OgMeta[], options?: Parameters<typeof useHead>[1]): ActiveHeadEntry<Head> | undefined {
+  // The build compiles the meta only under compiler mode, where the lazy head takes compiled tags
+  if (!metaShapes || !useCompiledHead)
     return
   // Other entry options have no compiled tags
   if (options && Object.keys(options).some(key => key !== 'processTemplateParams'))
@@ -38,9 +38,8 @@ function compiledOgHead(head: unknown, meta: OgMeta[], options?: Parameters<type
 
 function registerClientOgHead(ogKey: string, input: { meta: OgMeta[] }, options?: Parameters<typeof useHead>[1]): void {
   let entries: Map<string, ActiveHeadEntry<Head>> | undefined
-  let head: object | undefined
   try {
-    head = injectHead() as object | undefined
+    const head = injectHead() as object | undefined
     if (head) {
       entries = clientEntriesByHead.get(head)
       if (!entries) {
@@ -53,7 +52,7 @@ function registerClientOgHead(ogKey: string, input: { meta: OgMeta[] }, options?
     // Head injection may be unavailable outside a Vue setup scope; useHead still handles registration.
   }
   entries?.get(ogKey)?.dispose()
-  const entry = compiledOgHead(head, input.meta, options) ?? useHead(input as UseHeadInput, options) as ActiveHeadEntry<Head> | undefined
+  const entry = compiledOgHead(input.meta, options) ?? useHead(input as UseHeadInput, options) as ActiveHeadEntry<Head> | undefined
   if (entry && entries)
     entries.set(ogKey, entry)
 }

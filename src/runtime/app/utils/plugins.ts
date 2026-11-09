@@ -6,10 +6,11 @@ import { createNitroRouteRuleMatcher } from 'nuxtseo-shared/server'
 import { parseURL } from 'ufo'
 import { toValue } from 'vue'
 import { defineNuxtPlugin, useRequestEvent } from '#app'
-import { readCompiledEntry, toHeadInput } from '#build/nuxt-og-image/compiled-meta-server.mjs'
+import { readEntry } from '#build/nuxt-og-image/compiled-meta-server.mjs'
+import { metaShapes } from '#build/nuxt-og-image/compiled-meta.mjs'
 import { withSiteUrl } from '#site-config/app'
 import { rewriteImageMeta } from '../../app/compiledMeta'
-import { createOgImageMeta, getOgImagePath, resolveUnrefHeadInput } from '../../app/utils'
+import { createOgImageMeta, getOgImagePath, isOwnEntry, markOwnEntry } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
 const RE_COMMA = /,/g
@@ -19,26 +20,20 @@ interface OgImageRouteRules {
 }
 
 interface HeadEntryLike {
+  _i: number
   input: unknown
 }
 
 type HeadPlugin = Exclude<Parameters<VueHeadClient['use']>[0], (...args: any[]) => any>
 
 interface CompiledHead {
-  _acceptsCompiled?: unknown
   entries: Map<number, HeadEntryLike>
-  push: (input: unknown, options: { values: () => unknown[] }) => unknown
+  push: (input: unknown, options: { values: () => unknown[] }) => { _i: number }
   use: (plugin: HeadPlugin) => void
 }
 
-const UNSETTLED = '\u0000unsettled'
-const unsettledValues = new Proxy([], { get: (target, key) => typeof key === 'string' && /^\d+$/.test(key) ? UNSETTLED : Reflect.get(target, key) })
-
 // The entry that rewrites renders no tag, so every request shares one set of compiled tags
 const NO_TAGS: unknown[] = []
-
-// A key that holds packed seo meta, whose image keys only the hook rewrites
-const PACKED_IMAGE_RE = /image/i
 
 /**
  * Rewrites the image meta of every entry, as the canonical URLs hook does at the render.
@@ -47,21 +42,16 @@ const PACKED_IMAGE_RE = /image/i
 export function rewriteImageEntries(head: { entries: Map<number, HeadEntryLike> }, siteUrl: (path: string) => string): boolean {
   const rewrites: [HeadEntryLike, unknown][] = []
   for (const entry of head.entries.values()) {
-    const read = readCompiledEntry?.(entry as any)
-    const compiled = !!read
-    // Reads compiled tags without running the values of an entry, which may read the entries too.
-    // Values settle in entry order at the head render, so the entries before this one have theirs.
-    // A value that has not settled reads as `UNSETTLED`, so it is never a URL.
-    const input = (read ? toHeadInput!(read.tags, read.values ?? unsettledValues) : entry.input) as Record<string, any> | undefined
-    if (!input)
+    // og-image makes the URLs of its own entries absolute
+    if (isOwnEntry(head, entry))
       continue
-    if (!compiled && (typeof input !== 'object' || Object.getPrototypeOf(input) !== Object.prototype || Object.keys(input._flatMeta || {}).some(key => PACKED_IMAGE_RE.test(key))))
-      return false
+    // Values settle: a compiled value function runs now, as the head render would run it
+    const { input, seoMeta, compiled } = readEntry!(entry as any, head as any) as { input: Record<string, any>, seoMeta: boolean, compiled: boolean }
     if (input.meta === undefined)
       continue
-    // Loose input may hold refs and getters. Only its meta resolves, so no other getter runs early.
-    const result = rewriteImageMeta({ meta: compiled ? input.meta : resolveUnrefHeadInput(input.meta) }, siteUrl)
-    if (result._tag === 'Plugin')
+    const result = rewriteImageMeta({ meta: input.meta }, siteUrl)
+    // The meta of a loose useSeoMeta entry is packed: its image keys only the hook rewrites
+    if (result._tag === 'Plugin' || (result._tag === 'Rewrite' && seoMeta && !compiled))
       return false
     if (result._tag === 'Rewrite')
       rewrites.push([entry, { ...input, meta: result.input.meta }])
@@ -134,10 +124,11 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
     // meta of each entry is rewritten instead, at the head render: after every other
     // `app:rendered` listener has changed its entries. Content only the hook can decide keeps it.
     const head = ssrContext?.head as unknown as CompiledHead | undefined
-    if (ssrContext && head && readCompiledEntry && head._acceptsCompiled) {
+    // `metaShapes` exists only under compiler mode, where every head takes compiled tags
+    if (ssrContext && head && readEntry && metaShapes) {
       ssrContext._ogImageSiteUrl = siteUrl
       let rewriting = false
-      head.push(NO_TAGS, {
+      const rewriter = head.push(NO_TAGS, {
         values: () => {
           // reading the entries reads this one too
           if (rewriting)
@@ -149,6 +140,7 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
           return []
         },
       })
+      markOwnEntry(head, rewriter)
       return
     }
     ssrContext?.head.use(canonicalUrlsPlugin)

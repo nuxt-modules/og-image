@@ -7,7 +7,7 @@ import { stringify } from 'devalue'
 import { injectHead, useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
-import { readCompiledEntry, toHeadInput } from '#build/nuxt-og-image/compiled-meta-server.mjs'
+import { readEntry } from '#build/nuxt-og-image/compiled-meta-server.mjs'
 import { metaShapes } from '#build/nuxt-og-image/compiled-meta.mjs'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver, withSiteUrl } from '#site-config/app'
@@ -47,60 +47,51 @@ type OgImagePayload = [string, OgImageOptionsInternal, string]
 
 interface SeoProps { title?: string, description?: string }
 
-/** The title and description of a compiled `useSeoMeta` entry whose values have settled. */
-function compiledSeoProps(tags: unknown, values: readonly unknown[]): SeoProps {
-  const input = toHeadInput!(tags as any, values)
-  const meta = (Array.isArray(input.meta) ? input.meta : []) as Record<string, unknown>[]
-  const description = meta.find(tag => tag.name === 'description')?.content || meta.find(tag => tag.property === 'og:description')?.content
-  return {
-    title: typeof input.title === 'string' ? input.title : undefined,
-    description: typeof description === 'string' ? description : undefined,
-  }
+interface HeadEntryLike { _i: number }
+
+// Entries og-image pushes, by head. Their getters and values read the head entries themselves.
+const ownEntries = new WeakMap<object, Set<number>>()
+
+/** Marks an entry og-image pushed, so the entry readers skip it. */
+export function markOwnEntry(head: object, entry: { _i: number } | undefined): void {
+  if (!entry)
+    return
+  let ids = ownEntries.get(head)
+  if (!ids)
+    ownEntries.set(head, ids = new Set())
+  ids.add(entry._i)
 }
 
-/** The title and description of a loose `useSeoMeta` entry, which holds `_flatMeta`. */
-function looseSeoProps(input: Record<string, any> | undefined): SeoProps | undefined {
-  // `_flatMeta` is only populated by useSeoMeta — use it to distinguish from useHead.
-  const flatMeta = input && typeof input === 'object' ? input._flatMeta : undefined
-  if (!flatMeta || typeof flatMeta !== 'object')
-    return
-  const title = 'title' in input! ? toValue(input!.title) : undefined
-  const description = toValue(flatMeta.description) || toValue(flatMeta.ogDescription)
-  return {
-    title: typeof title === 'string' ? title : undefined,
-    description: typeof description === 'string' ? description : undefined,
-  }
+/** Whether og-image pushed the entry. */
+export function isOwnEntry(head: object, entry: HeadEntryLike): boolean {
+  return !!ownEntries.get(head)?.has(entry._i)
 }
 
 /**
- * Extract title and description from head entries set by useSeoMeta.
+ * The title and description of the `useSeoMeta` entries of a head.
  *
- * Only pulls from useSeoMeta entries so plain `useHead({ title })` page titles don't leak into
- * og:image URLs (#573). A loose useSeoMeta entry holds `_flatMeta`, with the title hoisted to
- * `entry.input.title`. A compiled one is marked `seoMeta` by `readCompiledEntry()`.
+ * Only reads `useSeoMeta` entries, so plain `useHead({ title })` page titles do not leak into
+ * og:image URLs (#573). `readEntry()` reads compiled and loose entries alike, with their values
+ * settled and the packed meta of `useSeoMeta` as meta tags. Without it, nothing is read.
  */
-function extractHeadSeoProps(head: VueHeadClient): SeoProps {
+export function readHeadSeoProps(head: VueHeadClient | object): SeoProps {
   const result: SeoProps = {}
+  if (!readEntry)
+    return result
   try {
-    for (const entry of head.entries.values()) {
-      let read = readCompiledEntry?.(entry as any)
-      // A compiled useHead entry is never a useSeoMeta entry. Its values are not read, as they
-      // may read this function again.
-      if (read && !read.seoMeta)
+    for (const entry of (head as VueHeadClient).entries.values()) {
+      if (isOwnEntry(head, entry as HeadEntryLike))
         continue
-      // Values settle in entry order at the head render. Reading `input` settles the values of a
-      // later useSeoMeta entry now, from its own getters. A special value makes it loose input.
-      if (read && !read.values) {
-        void entry.input
-        read = readCompiledEntry!(entry as any)
-      }
-      const props = read?.values
-        ? compiledSeoProps(read.tags, read.values)
-        : looseSeoProps(toValue(entry.input) as Record<string, any> | undefined)
-      if (props?.title !== undefined)
-        result.title = props.title
-      if (props?.description !== undefined)
-        result.description = props.description
+      const read = readEntry(entry as any, head as any)
+      if (!read.seoMeta)
+        continue
+      const input = read.input as Record<string, any>
+      const meta = (Array.isArray(input.meta) ? input.meta : []) as Record<string, unknown>[]
+      const description = meta.find(tag => tag.name === 'description')?.content || meta.find(tag => tag.property === 'og:description')?.content
+      if (typeof input.title === 'string')
+        result.title = input.title
+      if (typeof description === 'string')
+        result.description = description
     }
   }
   catch (e) {
@@ -121,14 +112,17 @@ declare module 'nuxt/app' {
 }
 
 interface CompiledHead {
-  _acceptsCompiled?: unknown
   entries: Map<number, { input: unknown }>
   push: (input: unknown, options?: { values?: unknown[] | (() => unknown[]) }) => ActiveHeadEntry<Head>
 }
 
-/** The request head, when it takes compiled tags and the build compiled the og:image meta. */
+/**
+ * The request head, when the build compiled the og:image meta. The build compiles it only under
+ * compiler mode, where every head takes compiled tags: the compiled `useHead` calls of the app
+ * need that too.
+ */
 function compiledHead(head: unknown = injectHead()): CompiledHead | undefined {
-  return metaShapes && (head as CompiledHead | undefined)?._acceptsCompiled ? head as CompiledHead : undefined
+  return metaShapes && head ? head as CompiledHead : undefined
 }
 
 /** Resolved meta, each tag with the options of its entry, as normal input. */
@@ -221,7 +215,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   const resolveMeta = () => {
     const finalPayload = ssrContext._ogImagePayloads || []
     // Extract head SEO props once for all payloads
-    const seo = head ? extractHeadSeoProps(head) : undefined
+    const seo = head ? readHeadSeoProps(head) : undefined
     return finalPayload.flatMap(([_, options, payloadBasePath]) => {
       const opts = { ...options, props: { ...options.props } }
       // Resolve component with alias/shorthand support so we know which props it declares.
@@ -297,7 +291,7 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         processTemplateParams: true,
         innerHTML: () => {
           // Extract head SEO props once for all devtools payloads
-          const seo = head ? extractHeadSeoProps(head) : undefined
+          const seo = head ? readHeadSeoProps(head) : undefined
           const devtoolsPayload = (ssrContext._ogImagePayloads || []).map(([key, options]) => {
             const payload = resolveUnrefHeadInput(options) as any
             // Resolve component to check declared props before auto-injecting title/description
@@ -347,6 +341,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
     })
   }
 
+  const target = head ?? injectHead()
+  if (target) {
+    markOwnEntry(target, ssrContext._ogImageInstance)
+    markOwnEntry(target, ssrContext._ogImageDevtoolsInstance)
+  }
   ssrContext._ogImagePayloads = payloads
 }
 
