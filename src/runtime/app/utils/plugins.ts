@@ -25,7 +25,7 @@ interface ReadableHead {
   entries: Map<number, unknown>
 }
 
-type ReadEntry = (entry: any, head: any) => { input: Record<string, any> }
+type ReadEntry = (entry: any, head: any) => { input: Record<string, any>, compiled?: boolean, dynamic?: string[] }
 
 /** The Unhead APIs a tag transform needs, from `#build/nuxt-og-image/compiled-meta-server.mjs`. */
 export interface TransformApi {
@@ -87,15 +87,22 @@ function isFinalImageUrl(content: unknown): boolean {
 }
 
 /**
- * The cache key of the canonical URLs transform: the site URL while every image URL of the head
- * is final, and `null` otherwise. The memo holds a token for a dynamic value, so the transform
- * leaves a token as it is, and the memo holds its output only while that is right.
+ * The cache key of the canonical URLs transform: the site URL while the memo output is right, and
+ * `null` otherwise. The memo holds a token for a dynamic value, which the transform leaves as it
+ * is, so a dynamic image URL must be final. The memo runs the transform on a static image URL
+ * itself, unless it holds a `%title` or `%description`, which may take a token.
  */
 export function canonicalUrlsCacheKey(head: ReadableHead, read: ReadEntry, siteKey: string): string | null {
   for (const entry of head.entries.values()) {
-    const meta = read(entry, head).input.meta
-    for (const props of Array.isArray(meta) ? meta : meta ? [meta] : []) {
-      if (props && typeof props === 'object' && isImageMeta(props) && !isFinalImageUrl(props.content))
+    const { input, compiled, dynamic } = read(entry, head)
+    const meta = input.meta
+    const list = Array.isArray(meta) ? meta : meta ? [meta] : []
+    for (const [i, props] of list.entries()) {
+      if (!props || typeof props !== 'object' || !isImageMeta(props))
+        continue
+      // loose input never takes the memo, so it reads as dynamic
+      const isDynamic = !compiled || !!dynamic?.includes(`meta.${i}.content`)
+      if (isDynamic ? !isFinalImageUrl(props.content) : String(props.content ?? '').includes('%'))
         return null
     }
   }

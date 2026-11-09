@@ -62,4 +62,38 @@ describe('canonical URLs transform', () => {
     const { head } = renderBoth(image)
     expect(canonicalUrlsCacheKey(head, readEntry, 'https://example.com/')).toBeNull()
   })
+
+  // The memo runs the transform on a static value itself, so it holds the absolute URL
+  it.each(['/static.png', '/a b.png', ''])('keys the memo on the site URL for the static image %j', (image) => {
+    const result = compileTags({ title: dynamicValue(0), meta: [{ property: 'og:image', content: image }] }, { dynamicValues: 1 })
+    if (result._tag !== 'Ok')
+      throw new Error(result.reason)
+    const v3 = createHead({ disableDefaults: true })
+    v3.use(createCanonicalUrlsPlugin(siteUrl))
+    v3.push({ title: 'Hello', meta: [{ property: 'og:image', content: image }] })
+    const compiled = createCompiledHead({ disableDefaults: true })
+    compiled.use(createCanonicalUrlsTransform(compiled, { readEntry, withTagTransform }, siteUrl))
+    compiled.push(result.tags, { values: ['Hello'] })
+    expect(renderCompiled(compiled)).toEqual(renderSSRHead(v3))
+    expect(canonicalUrlsCacheKey(compiled, readEntry, 'https://example.com/')).toBe('https://example.com/')
+  })
+
+  it('keys the memo on the site URL for an entry with no dynamic value', () => {
+    const result = compileTags({ meta: [{ property: 'og:image', content: '/static.png' }] })
+    if (result._tag !== 'Ok')
+      throw new Error(result.reason)
+    const compiled = createCompiledHead({ disableDefaults: true })
+    compiled.push(result.tags)
+    expect(canonicalUrlsCacheKey(compiled, readEntry, 'https://example.com/')).toBe('https://example.com/')
+  })
+
+  // A static `%title` takes the title, which may be a token
+  it('keeps the memo out for a static image with a template', () => {
+    const result = compileTags({ title: dynamicValue(0), meta: [{ property: 'og:image', content: '/og?title=%title' }] }, { dynamicValues: 1 })
+    if (result._tag !== 'Ok')
+      throw new Error(result.reason)
+    const compiled = createCompiledHead({ disableDefaults: true })
+    compiled.push(result.tags, { values: ['Hello'] })
+    expect(canonicalUrlsCacheKey(compiled, readEntry, 'https://example.com/')).toBeNull()
+  })
 })
