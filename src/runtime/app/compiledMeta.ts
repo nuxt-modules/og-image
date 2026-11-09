@@ -88,41 +88,6 @@ export function metaIdentities(meta: OgMeta[]): string {
   return meta.map(tag => tag.property || tag.name).join()
 }
 
-const IMAGE_META = (meta: OgMeta) => meta.property === 'og:image' || meta.name === 'twitter:image'
-
-export type ImageRewrite
-  = | { _tag: 'Same' }
-    | { _tag: 'Rewrite', input: Record<string, unknown> }
-    | { _tag: 'Plugin', reason: string }
-
-/**
- * Rewrites the image meta of resolved head input, as the canonical URLs hook does once tags
- * resolve: spaces become `+`, and a URL without `http://` or `https://` takes the site URL. Content with a `%`
- * may hold a template param or the `%title` placeholder, which only resolved tags decide, and
- * empty content drops the tag only if it wins. Both return `Plugin`, so the hook runs.
- */
-export function rewriteImageMeta(input: Record<string, unknown>, withSiteUrl: (path: string) => string): ImageRewrite {
-  const meta = Array.isArray(input.meta) ? input.meta as OgMeta[] : input.meta ? [input.meta as OgMeta] : []
-  let changed = false
-  const next: OgMeta[] = []
-  for (const tag of meta) {
-    if (!tag || typeof tag !== 'object' || !IMAGE_META(tag)) {
-      next.push(tag)
-      continue
-    }
-    if (typeof tag.content !== 'string' || !tag.content)
-      return { _tag: 'Plugin', reason: 'an image meta tag has no content' }
-    if (tag.content.includes('%'))
-      return { _tag: 'Plugin', reason: 'an image meta tag holds a %' }
-    if (tag.content.includes('\u0000'))
-      return { _tag: 'Plugin', reason: 'an image meta tag holds a value that has not settled' }
-    const content = rewriteImageUrl(tag.content, withSiteUrl)
-    changed ||= content !== tag.content
-    next.push(content === tag.content ? tag : { ...tag, content })
-  }
-  return changed ? { _tag: 'Rewrite', input: { ...input, meta: next } } : { _tag: 'Same' }
-}
-
 /** The canonical URLs hook for one URL with no `%`. */
 export function rewriteImageUrl(url: string, withSiteUrl: (path: string) => string): string {
   const content = url.replaceAll(' ', '+')

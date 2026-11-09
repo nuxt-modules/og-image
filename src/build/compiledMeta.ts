@@ -53,12 +53,14 @@ export function compiledMetaModule(compiled: { shapes: MetaShapes } | null): str
 
 /**
  * The server half, `#build/nuxt-og-image/compiled-meta-server.mjs`: `readEntry`, the Unhead reader
- * of any head entry. It reads every head, so it exists with compiler mode off too.
+ * of any head entry, and `withTagTransform`, under compiler mode. The reader reads every head,
+ * so it exists with compiler mode off too.
  */
-export function compiledMetaServerModule(readerPath: string | null): string {
-  return readerPath
-    ? `export { readEntry } from ${JSON.stringify(readerPath)}`
-    : 'export const readEntry = undefined'
+export function compiledMetaServerModule(readerPath: string | null, transformPath: string | null): string {
+  return [
+    readerPath ? `export { readEntry } from ${JSON.stringify(readerPath)}` : 'export const readEntry = undefined',
+    transformPath ? `export { withTagTransform } from ${JSON.stringify(transformPath)}` : 'export const withTagTransform = undefined',
+  ].join('\n')
 }
 
 async function resolveFromApp(nuxt: Nuxt, id: string) {
@@ -74,12 +76,21 @@ async function loadCompiler(nuxt: Nuxt): Promise<{ path: string, compiler: HeadC
   return path ? { path, compiler: await import(path) as HeadCompilerModule } : undefined
 }
 
-async function compileMeta(nuxt: Nuxt, loaded: Awaited<ReturnType<typeof loadCompiler>>) {
+// The path of `unhead/plugins` when it has tag transforms
+async function loadTransforms(nuxt: Nuxt): Promise<string | undefined> {
+  const path = await resolveFromApp(nuxt, 'unhead/plugins')
+  const plugins = path ? await import(path) as { withTagTransform?: unknown } : undefined
+  return typeof plugins?.withTagTransform === 'function' ? path : undefined
+}
+
+async function compileMeta(nuxt: Nuxt, loaded: Awaited<ReturnType<typeof loadCompiler>>, transformPath: string | undefined) {
   // @unhead/vue/compiled only proves the Unhead has compiler mode; the app imports it by name
   const vuePath = await resolveFromApp(nuxt, '@unhead/vue/compiled')
   const compiler = vuePath ? loaded?.compiler : undefined
   if (typeof compiler?.compileTags !== 'function' || typeof compiler.readEntry !== 'function')
     return { _tag: 'Unavailable', reason: 'the installed Unhead has no compiler (compileTags and readEntry in unhead/compiled)' } as const
+  if (!transformPath)
+    return { _tag: 'Unavailable', reason: 'the installed Unhead has no tag transforms (withTagTransform in unhead/plugins)' } as const
   const result = compileMetaShapes(compiler as HeadCompiler)
   if (result._tag === 'Bail')
     return { _tag: 'Unavailable', reason: `the og:image meta cannot compile: ${result.reason}` } as const
@@ -94,7 +105,8 @@ async function compileMeta(nuxt: Nuxt, loaded: Awaited<ReturnType<typeof loadCom
  */
 export async function setupCompiledMeta(nuxt: Nuxt): Promise<CompiledMetaSetup> {
   const loaded = await loadCompiler(nuxt)
-  const result = isCompilerMode(nuxt) ? await compileMeta(nuxt, loaded) : undefined
+  const transformPath = isCompilerMode(nuxt) ? await loadTransforms(nuxt) : undefined
+  const result = isCompilerMode(nuxt) ? await compileMeta(nuxt, loaded, transformPath) : undefined
   const compiled = result?._tag === 'Ok' ? { shapes: result.shapes } : null
   const readerPath = loaded && typeof loaded.compiler.readEntry === 'function' ? loaded.path : null
   addTemplate({
@@ -103,7 +115,7 @@ export async function setupCompiledMeta(nuxt: Nuxt): Promise<CompiledMetaSetup> 
   })
   addTemplate({
     filename: 'nuxt-og-image/compiled-meta-server.mjs',
-    getContents: () => compiledMetaServerModule(readerPath),
+    getContents: () => compiledMetaServerModule(readerPath, compiled && transformPath ? transformPath : null),
   })
   if (!result)
     return { _tag: 'Off' }

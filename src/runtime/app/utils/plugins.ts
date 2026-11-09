@@ -6,11 +6,10 @@ import { createNitroRouteRuleMatcher } from 'nuxtseo-shared/server'
 import { parseURL } from 'ufo'
 import { toValue } from 'vue'
 import { defineNuxtPlugin, useRequestEvent } from '#app'
-import { readEntry } from '#build/nuxt-og-image/compiled-meta-server.mjs'
+import { readEntry, withTagTransform } from '#build/nuxt-og-image/compiled-meta-server.mjs'
 import { metaShapes } from '#build/nuxt-og-image/compiled-meta.mjs'
 import { withSiteUrl } from '#site-config/app'
-import { rewriteImageMeta } from '../../app/compiledMeta'
-import { createOgImageMeta, getOgImagePath, isOwnEntry, markOwnEntry } from '../../app/utils'
+import { createOgImageMeta, getOgImagePath } from '../../app/utils'
 import { isInternalRoute } from '../../shared'
 
 const RE_COMMA = /,/g
@@ -19,46 +18,123 @@ interface OgImageRouteRules {
   ogImage?: false | OgImageOptions & Record<string, any>
 }
 
-interface HeadEntryLike {
-  _i: number
-  input: unknown
-}
-
 type HeadPlugin = Exclude<Parameters<VueHeadClient['use']>[0], (...args: any[]) => any>
+type HeadTag = Parameters<NonNullable<NonNullable<HeadPlugin['hooks']>['tags:afterResolve']>>[0]['tags'][number]
 
-interface CompiledHead {
-  entries: Map<number, HeadEntryLike>
-  push: (input: unknown, options: { values: () => unknown[] }) => { _i: number }
-  use: (plugin: HeadPlugin) => void
+interface ReadableHead {
+  entries: Map<number, unknown>
 }
 
-// The entry that rewrites renders no tag, so every request shares one set of compiled tags
-const NO_TAGS: unknown[] = []
+type ReadEntry = (entry: any, head: any) => { input: Record<string, any> }
+
+/** The Unhead APIs a tag transform needs, from `#build/nuxt-og-image/compiled-meta-server.mjs`. */
+export interface TransformApi {
+  readEntry: ReadEntry
+  withTagTransform: (head: any, plugin: HeadPlugin) => HeadPlugin
+}
+
+const CANONICAL_URLS_PLUGIN_KEY = 'nuxt-og-image:overrides-and-canonical-urls'
+const HTTP_RE = /^https?:\/\//
+// The start of a dynamic value token: the server memo runs a transform with one in place of each dynamic value
+const DYNAMIC_VALUE_OPEN = String.fromCharCode(0xE000)
+
+const isImageMeta = (props: Record<string, any>) => props.property === 'og:image' || props.name === 'twitter:image'
+
+/** The hook that makes og:image URLs absolute, and fills `%title` and `%description`. */
+export function createCanonicalUrlsPlugin(siteUrl: (path: string) => string): HeadPlugin {
+  return {
+    key: CANONICAL_URLS_PLUGIN_KEY,
+    hooks: {
+      'tags:afterResolve': (ctx) => {
+        // find title and description as a first pass
+        let title = ''
+        let description = ''
+        for (const tag of ctx.tags) {
+          if (tag.tag === 'title' && tag.textContent) {
+            title = tag.textContent
+          }
+          else if (tag.tag === 'meta' && tag.props.name === 'description') {
+            description = tag.props.content || ''
+          }
+          if (title && description)
+            break
+        }
+
+        for (const tag of ctx.tags) {
+          if (tag.tag === 'meta' && (tag.props.property === 'og:image' || tag.props.name === 'twitter:image')) {
+            if (!tag.props.content) {
+              tag.props = {} // equivalent to removing
+              continue
+            }
+            // looking for:
+            // make sure the query is sanitized
+            tag.props.content = tag.props.content
+              .replaceAll('%title', title)
+              .replaceAll('%description', description)
+              .replaceAll(' ', '+')
+            if (!/^https?:\/\//.test(tag.props.content || ''))
+              tag.props.content = siteUrl(tag.props.content || '')
+          }
+        }
+      },
+    },
+  }
+}
+
+/** Whether the hook would leave an image URL as it is. */
+function isFinalImageUrl(content: unknown): boolean {
+  return typeof content === 'string' && !!content && !content.includes('%') && !content.includes(' ') && HTTP_RE.test(content)
+}
 
 /**
- * Rewrites the image meta of every entry, as the canonical URLs hook does at the render.
- * Returns `false`, and rewrites nothing, when only the hook can decide an entry.
+ * The cache key of the canonical URLs transform: the site URL while every image URL of the head
+ * is final, and `null` otherwise. The memo holds a token for a dynamic value, so the transform
+ * leaves a token as it is, and the memo holds its output only while that is right.
  */
-export function rewriteImageEntries(head: { entries: Map<number, HeadEntryLike> }, siteUrl: (path: string) => string): boolean {
-  const rewrites: [HeadEntryLike, unknown][] = []
+export function canonicalUrlsCacheKey(head: ReadableHead, read: ReadEntry, siteKey: string): string | null {
   for (const entry of head.entries.values()) {
-    // og-image makes the URLs of its own entries absolute
-    if (isOwnEntry(head, entry))
-      continue
-    // Values settle: a compiled value function runs now, as the head render would run it
-    const { input, seoMeta, compiled } = readEntry!(entry as any, head as any) as { input: Record<string, any>, seoMeta: boolean, compiled: boolean }
-    if (input.meta === undefined)
-      continue
-    const result = rewriteImageMeta({ meta: input.meta }, siteUrl)
-    // The meta of a loose useSeoMeta entry is packed: its image keys only the hook rewrites
-    if (result._tag === 'Plugin' || (result._tag === 'Rewrite' && seoMeta && !compiled))
-      return false
-    if (result._tag === 'Rewrite')
-      rewrites.push([entry, { ...input, meta: result.input.meta }])
+    const meta = read(entry, head).input.meta
+    for (const props of Array.isArray(meta) ? meta : meta ? [meta] : []) {
+      if (props && typeof props === 'object' && isImageMeta(props) && !isFinalImageUrl(props.content))
+        return null
+    }
   }
-  for (const [entry, input] of rewrites)
-    entry.input = input
-  return true
+  return siteKey
+}
+
+/**
+ * The canonical URLs hook as a tag transform, for compiler mode: the same output, with the
+ * server memo and no full runtime. It returns new tags and leaves a memo token as it is.
+ */
+export function createCanonicalUrlsTransform(head: ReadableHead, api: TransformApi, siteUrl: (path: string) => string): HeadPlugin {
+  const siteKey = siteUrl('/')
+  return api.withTagTransform(head, {
+    key: CANONICAL_URLS_PLUGIN_KEY,
+    transform: (tags: HeadTag[]) => {
+      let title = ''
+      let description = ''
+      for (const tag of tags) {
+        if (tag.tag === 'title' && tag.textContent)
+          title = tag.textContent
+        else if (tag.tag === 'meta' && tag.props.name === 'description')
+          description = tag.props.content || ''
+        if (title && description)
+          break
+      }
+      return tags.map((tag) => {
+        if (tag.tag !== 'meta' || !isImageMeta(tag.props))
+          return tag
+        const content = tag.props.content
+        if (!content)
+          return { ...tag, props: {} }
+        if (content.includes(DYNAMIC_VALUE_OPEN))
+          return tag
+        const next = content.replaceAll('%title', title).replaceAll('%description', description).replaceAll(' ', '+')
+        return { ...tag, props: { ...tag.props, content: HTTP_RE.test(next) ? next : siteUrl(next) } }
+      })
+    },
+    cacheKey: () => canonicalUrlsCacheKey(head, api.readEntry, siteKey),
+  } as HeadPlugin)
 }
 
 export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
@@ -82,68 +158,16 @@ export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
       })
       return url
     }
-    // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
-    const canonicalUrlsPlugin: HeadPlugin = {
-      key: 'nuxt-og-image:overrides-and-canonical-urls',
-      hooks: {
-        'tags:afterResolve': (ctx) => {
-          // find title and description as a first pass
-          let title = ''
-          let description = ''
-          for (const tag of ctx.tags) {
-            if (tag.tag === 'title' && tag.textContent) {
-              title = tag.textContent
-            }
-            else if (tag.tag === 'meta' && tag.props.name === 'description') {
-              description = tag.props.content || ''
-            }
-            if (title && description)
-              break
-          }
-
-          for (const tag of ctx.tags) {
-            if (tag.tag === 'meta' && (tag.props.property === 'og:image' || tag.props.name === 'twitter:image')) {
-              if (!tag.props.content) {
-                tag.props = {} // equivalent to removing
-                continue
-              }
-              // looking for:
-              // make sure the query is sanitized
-              tag.props.content = tag.props.content
-                .replaceAll('%title', title)
-                .replaceAll('%description', description)
-                .replaceAll(' ', '+')
-              if (!/^https?:\/\//.test(tag.props.content || ''))
-                tag.props.content = siteUrl(tag.props.content || '')
-            }
-          }
-        },
-      },
-    }
-    // Under compiler mode a render hook sends the whole head to the full pipeline, so the image
-    // meta of each entry is rewritten instead, at the head render: after every other
-    // `app:rendered` listener has changed its entries. Content only the hook can decide keeps it.
-    const head = ssrContext?.head as unknown as CompiledHead | undefined
-    // `metaShapes` exists only under compiler mode, where every head takes compiled tags
-    if (ssrContext && head && readEntry && metaShapes) {
+    // Under compiler mode the hook becomes a tag transform, which keeps the server memo.
+    // `metaShapes` exists only under compiler mode, where every head takes compiled tags.
+    const head = ssrContext?.head as unknown as ReadableHead | undefined
+    if (ssrContext && head && readEntry && withTagTransform && metaShapes) {
       ssrContext._ogImageSiteUrl = siteUrl
-      let rewriting = false
-      const rewriter = head.push(NO_TAGS, {
-        values: () => {
-          // reading the entries reads this one too
-          if (rewriting)
-            return []
-          rewriting = true
-          if (!rewriteImageEntries(head, siteUrl))
-            head.use(canonicalUrlsPlugin)
-          rewriting = false
-          return []
-        },
-      })
-      markOwnEntry(head, rewriter)
+      ssrContext.head.use(createCanonicalUrlsTransform(head, { readEntry, withTagTransform }, siteUrl))
       return
     }
-    ssrContext?.head.use(canonicalUrlsPlugin)
+    // unhead plugin to correct missing site URL, this is to fix the Nuxt Content integration not being able to resolve the correct URL
+    ssrContext?.head.use(createCanonicalUrlsPlugin(siteUrl))
   })
 })
 

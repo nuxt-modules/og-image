@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import { markOwnEntry, readHeadSeoProps } from '../../src/runtime/app/utils'
-import { rewriteImageEntries } from '../../src/runtime/app/utils/plugins'
 
 vi.mock('#build/nuxt-og-image/compiled-meta-server.mjs', async () => {
   const require = createRequire(join(realpathSync(fileURLToPath(new URL('../../node_modules/@unhead/vue', import.meta.url))), 'package.json'))
@@ -33,8 +32,6 @@ function compiled(input: unknown, dynamicValues: number) {
 }
 
 const seoTags = compiled({ title: dynamicValue(0), meta: [{ name: 'description', content: dynamicValue(1) }] }, 2)
-const imageTags = compiled({ meta: [{ property: 'og:image', content: dynamicValue(0) }] }, 1)
-const siteUrl = (path: string) => `https://example.com${path}`
 
 describe('readHeadSeoProps', () => {
   it('reads the title and description of a loose useSeoMeta entry', () => {
@@ -58,37 +55,5 @@ describe('readHeadSeoProps', () => {
     } })
     markOwnEntry(head, own)
     expect(readHeadSeoProps(head)).toEqual({})
-  })
-})
-
-describe('rewriteImageEntries', () => {
-  it('rewrites a compiled entry whose values settle at the read', () => {
-    const head = createCompiledHead({ disableDefaults: true })
-    head.push(imageTags, { values: () => ['/a b.png'] })
-    expect(rewriteImageEntries(head, siteUrl)).toBe(true)
-    expect(head.render().headTags).toContain('content="https://example.com/a+b.png"')
-  })
-
-  it('rewrites loose meta held in refs and getters', () => {
-    const head = createCompiledHead({ disableDefaults: true })
-    head.push({ title: 'Page', meta: [{ property: 'og:image', content: () => '/a.png' }] })
-    expect(rewriteImageEntries(head, siteUrl)).toBe(true)
-    const html = head.render().headTags
-    expect(html).toContain('content="https://example.com/a.png"')
-    expect(html).toContain('<title>Page</title>')
-  })
-
-  it('leaves useSeoMeta image keys to the hook', () => {
-    const head = createCompiledHead({ disableDefaults: true })
-    useSeoMeta(head, { ogImage: '/a.png' })
-    expect(rewriteImageEntries(head, siteUrl)).toBe(false)
-  })
-
-  it('skips the entries og-image pushed', () => {
-    const head = createCompiledHead({ disableDefaults: true })
-    markOwnEntry(head, head.push({ meta: () => {
-      throw new Error('og-image entry read')
-    } }))
-    expect(rewriteImageEntries(head, siteUrl)).toBe(true)
   })
 })

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { toValue } from 'vue'
 import { compileMetaShapes } from '../../src/build/compiledMeta'
-import { compileOgMeta, OG_META_MODES, rewriteImageMeta } from '../../src/runtime/app/compiledMeta'
+import { compileOgMeta, OG_META_MODES } from '../../src/runtime/app/compiledMeta'
 import { generateMeta } from '../../src/runtime/shared'
 
 // og-image reaches Unhead through @unhead/vue, so the test resolves it from there
@@ -72,25 +72,5 @@ describe('compileOgMeta', () => {
   it('keeps normal input for content compiled tags render differently', () => {
     expect(compileOgMeta(shapes, 'plain', [{ property: 'og:image', content: '' }])._tag).toBe('Loose')
     expect(compileOgMeta(shapes, 'plain', [...resolved('/a.png', {}), ...resolved('/b.png', {})])._tag).toBe('Loose')
-  })
-})
-
-describe('rewriteImageMeta', () => {
-  const siteUrl = (path: string) => `https://example.com${path}`
-
-  it('makes image URLs absolute and replaces spaces, as the canonical URLs hook does', () => {
-    expect(rewriteImageMeta({ title: 'Page', meta: [{ property: 'og:image', content: '/a b.png' }, { name: 'twitter:image', content: 'https://cdn.example.com/x.png' }, { name: 'description', content: 'a b' }] }, siteUrl)).toEqual({
-      _tag: 'Rewrite',
-      input: { title: 'Page', meta: [{ property: 'og:image', content: 'https://example.com/a+b.png' }, { name: 'twitter:image', content: 'https://cdn.example.com/x.png' }, { name: 'description', content: 'a b' }] },
-    })
-  })
-
-  it('changes nothing for absolute URLs', () => {
-    expect(rewriteImageMeta({ meta: [{ property: 'og:image', content: 'https://example.com/a.png' }] }, siteUrl)).toEqual({ _tag: 'Same' })
-  })
-
-  it('leaves template params and empty content to the hook', () => {
-    expect(rewriteImageMeta({ meta: [{ property: 'og:image', content: '/og?title=%title' }] }, siteUrl)._tag).toBe('Plugin')
-    expect(rewriteImageMeta({ meta: [{ property: 'og:image', content: '' }] }, siteUrl)._tag).toBe('Plugin')
   })
 })
