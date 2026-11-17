@@ -189,6 +189,7 @@ catalog:
   happy-dom: ^21.0.4
   hookable: ^6.1.2
   jest-image-snapshot: ^6.5.2
+  less: ^4.9.1
   lightningcss: ^1.33.0
   lru-cache: ^11.5.3
   magic-string: ^1.4.3
