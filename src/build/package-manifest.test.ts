@@ -1,6 +1,6 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join } from 'pathe'
 import { expect, it } from 'vitest'
 import { readPackageManifest } from './package-manifest'
 
