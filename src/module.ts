@@ -1694,10 +1694,6 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     else if (typeof config.runtimeCacheStorage === 'object') {
       // object: module mounts the storage
       baseCacheKey = `/nuxt-og-image${versionSuffix}`
-      if (!nuxt.options.dev) {
-        nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
-        nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
-      }
     }
     else {
       baseCacheKey = false
@@ -1707,7 +1703,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
 
     let hasUnboundedRuntimeCache = false
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
-      const storage = configureRuntimeCacheStorage(config, nitroConfig)
+      const storage = configureRuntimeCacheStorage(config, nitroConfig, nitroCompatibility._tag === 'nitro-v3' ? 3 : 2)
       await resolveRuntimeCacheDriver(storage, nitroConfig, nuxt.options.rootDir)
       hasUnboundedRuntimeCache = storage?.driver === 'memory'
     })

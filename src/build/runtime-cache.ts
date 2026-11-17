@@ -4,6 +4,7 @@ import { directoryToURL, tryResolveModule } from '@nuxt/kit'
 
 const DEFAULT_CACHE_MOUNT = 'cache/nuxt-og-image'
 type StorageMount = NonNullable<NitroConfig['storage']>[string]
+type CacheNitroConfig = NitroConfig & { kv?: NitroConfig['storage'] }
 
 /** Nitro 3 resolves optional driver libraries from the app rather than this module. */
 export async function resolveRuntimeCacheDriver(storage: StorageMount | undefined, nitro: NitroConfig, rootDir: string): Promise<void> {
@@ -18,8 +19,8 @@ export async function resolveRuntimeCacheDriver(storage: StorageMount | undefine
   nitro.alias['lru-cache'] = library
 }
 
-function findStorageMount(nitro: NitroConfig, prefix: string): StorageMount | undefined {
-  return Object.entries(nitro.storage || {})
+function findStorageMount(mounts: NitroConfig['storage'], prefix: string): StorageMount | undefined {
+  return Object.entries(mounts || {})
     .map(([key, storage]) => ({ mount: key.replaceAll(':', '/').replace(/^\/+|\/+$/g, ''), storage }))
     .filter(({ mount }) => prefix === mount || prefix.startsWith(`${mount}/`))
     .sort((a, b) => b.mount.length - a.mount.length)[0]
@@ -27,24 +28,28 @@ function findStorageMount(nitro: NitroConfig, prefix: string): StorageMount | un
 }
 
 /** Keep the default image cache bounded without changing other Nitro caches. */
-export function configureRuntimeCacheStorage(config: Pick<ModuleOptions, 'runtimeCacheStorage'>, nitro: NitroConfig): StorageMount | undefined {
-  if (typeof config.runtimeCacheStorage === 'object')
+export function configureRuntimeCacheStorage(config: Pick<ModuleOptions, 'runtimeCacheStorage'>, nitro: CacheNitroConfig, nitroVersion: 2 | 3): StorageMount | undefined {
+  const storageKey = nitroVersion === 3 ? 'kv' : 'storage'
+  if (typeof config.runtimeCacheStorage === 'object') {
+    nitro[storageKey] ||= {}
+    nitro[storageKey]['nuxt-og-image'] = config.runtimeCacheStorage
     return config.runtimeCacheStorage
+  }
   if (typeof config.runtimeCacheStorage === 'string')
-    return findStorageMount(nitro, `${config.runtimeCacheStorage.replaceAll(':', '/').replace(/^\/+|\/+$/g, '')}/nuxt-og-image`)
+    return findStorageMount(nitro[storageKey], `${config.runtimeCacheStorage.replaceAll(':', '/').replace(/^\/+|\/+$/g, '')}/nuxt-og-image`)
   if (config.runtimeCacheStorage !== true)
     return
 
   // A configured ancestor or image mount takes precedence over the fallback.
-  const configuredStorage = findStorageMount(nitro, DEFAULT_CACHE_MOUNT)
+  const configuredStorage = findStorageMount(nitro[storageKey], DEFAULT_CACHE_MOUNT)
   if (configuredStorage)
     return configuredStorage
 
-  nitro.storage ||= {}
-  nitro.storage[DEFAULT_CACHE_MOUNT] = {
+  nitro[storageKey] ||= {}
+  nitro[storageKey][DEFAULT_CACHE_MOUNT] = {
     driver: 'lru-cache',
     max: 0,
     maxSize: 64 * 1024 * 1024,
   }
-  return nitro.storage[DEFAULT_CACHE_MOUNT]
+  return nitro[storageKey][DEFAULT_CACHE_MOUNT]
 }

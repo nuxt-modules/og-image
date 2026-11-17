@@ -36,6 +36,24 @@ function createNuxtHarness() {
 }
 
 describe('build handler compatibility', () => {
+  it.each([false, true, { driver: 'memory' }] as const)('leaves cache mounting to nitro:config without renderers (%s)', async (runtimeCacheStorage) => {
+    const { nuxt } = createNuxtHarness()
+    const writeLegacyStorage = vi.fn()
+    Object.defineProperty(nuxt.options.nitro, 'storage', {
+      get: () => undefined,
+      set: writeLegacyStorage,
+    })
+
+    await setupBuildHandler(
+      { runtimeCacheStorage } as any,
+      {} as any,
+      () => new Set(),
+      nuxt,
+    )
+
+    expect(writeLegacyStorage).not.toHaveBeenCalled()
+  })
+
   it('reapplies compatibility for renderers discovered after module setup', async () => {
     compatibilityApplications.length = 0
     const { hooks, nuxt } = createNuxtHarness()
