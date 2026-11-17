@@ -18,10 +18,6 @@ const RE_WASM_IMPORT = /import\("(\.\/wasm\/[^"]+\.wasm)"\)/g
 
 // we need all of the runtime dependencies when using build
 export async function setupBuildHandler(config: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {
-  nuxt.options.nitro.storage = nuxt.options.nitro.storage || {}
-  if (typeof config.runtimeCacheStorage === 'object')
-    nuxt.options.nitro.storage['nuxt-og-image'] = config.runtimeCacheStorage
-
   const nitroConfig = nuxt.options.nitro
   // stub packages that aren't available or used on edge runtimes
   const mockCode = `import proxy from 'mocked-exports/proxy';export default proxy;export * from 'mocked-exports/proxy';`
