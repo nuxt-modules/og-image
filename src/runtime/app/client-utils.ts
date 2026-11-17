@@ -1,8 +1,8 @@
-import type { ActiveHeadEntry, Head, UseHeadInput } from '@unhead/vue'
+import type { ActiveHeadEntry, Head, ResolvableMeta, UseHeadInput } from '@unhead/vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import type { DefineOgImageInput, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt } from '../types'
 import { defu } from 'defu'
-import { injectHead, useHead, useRuntimeConfig } from 'nuxt/app'
+import { injectHead, useHead, useRuntimeConfig, useState } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { toValue } from 'vue'
 import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
@@ -15,10 +15,11 @@ import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
 // SPA navigations from a persistent scope (app.vue, layout, root plugin) would
 // otherwise accumulate one useHead entry per navigation, since Vue's scope-
 // dispose only fires on component unmount.
-const clientEntriesByHead: WeakMap<object, Map<string, ActiveHeadEntry<Head>>> = /* @__PURE__ */ new WeakMap()
+const clientEntriesByHead: WeakMap<object, Map<string | symbol, ActiveHeadEntry<Head>>> = /* @__PURE__ */ new WeakMap()
+const HYDRATION_KEY = Symbol('og-image:hydration')
 
-function registerClientOgHead(ogKey: string, input: UseHeadInput, options?: Parameters<typeof useHead>[1]): void {
-  let entries: Map<string, ActiveHeadEntry<Head>> | undefined
+function registerClientOgHead(ogKey: string | symbol, input: UseHeadInput, options?: Parameters<typeof useHead>[1]): void {
+  let entries: Map<string | symbol, ActiveHeadEntry<Head>> | undefined
   try {
     const head = injectHead() as object | undefined
     if (head) {
@@ -31,6 +32,12 @@ function registerClientOgHead(ogKey: string, input: UseHeadInput, options?: Para
   }
   catch {
     // Head injection may be unavailable outside a Vue setup scope; useHead still handles registration.
+  }
+  // The initial page uses one entry to preserve Unhead's image grouping.
+  // Any SPA update replaces that snapshot, even when it uses a custom image key.
+  if (ogKey !== HYDRATION_KEY) {
+    entries?.get(HYDRATION_KEY)?.dispose()
+    entries?.delete(HYDRATION_KEY)
   }
   entries?.get(ogKey)?.dispose()
   const entry = useHead(input, options) as ActiveHeadEntry<Head> | undefined
@@ -119,13 +126,29 @@ export function clientProcessOgImageOptions(
   input: DefineOgImageInput | DefineOgImageInput[],
   route: RouteLocationNormalizedLoaded,
   basePath: string,
+  isHydrating = false,
 ): string[] {
   const inputs = Array.isArray(input) ? input : [input]
   const rc = useRuntimeConfig()
-  const baseURL = rc.app.baseURL
-  const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: false })
   const publicCfg = (rc.public?.['nuxt-og-image'] as { defaults?: Record<string, any>, includeTwitter?: boolean, hasServerRuntime?: boolean } | undefined) || {}
   const defaults = publicCfg.defaults || {}
+  if (isHydrating) {
+    // Reuse server metadata instead of rebuilding signed or prerendered URLs.
+    // Register it with Unhead so other plugins can infer from the image tags.
+    const meta = useState<Record<string, ResolvableMeta[]>>('og-image:meta', () => ({}))
+    const hasImage = inputs.some((rawInput) => {
+      const options = toValue(rawInput)
+      if (options === false)
+        return false
+      const key = options.key || defaults.key || 'og'
+      return !!meta.value[key]?.length
+    })
+    if (hasImage)
+      registerClientOgHead(HYDRATION_KEY, { meta: Object.values(meta.value).flat() }, { processTemplateParams: true })
+    return []
+  }
+  const baseURL = rc.app.baseURL
+  const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: false })
   const metaOptions = { includeTwitter: publicCfg.includeTwitter }
   const paths: string[] = []
 
