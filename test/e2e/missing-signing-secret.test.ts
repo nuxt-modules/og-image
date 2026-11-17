@@ -17,7 +17,7 @@ await setup({
     },
     runtimeConfig: { appSecret: '' },
   },
-  env: { NUXT_APP_SECRET: '', NUXT_OG_IMAGE_SECRET: '' },
+  env: { NUXT_APP_SECRET: '' },
 })
 
 function ogImagePath(html: string): string {
@@ -35,7 +35,7 @@ describe('missing signing secret', () => {
 
   it('logs the fix', async () => {
     await fetch('/satori/ellipsis')
-    expect(getServerLogs().join('\n')).toContain('Run `npx nuxt-og-image generate-secret`, then set NUXT_APP_SECRET')
+    expect(getServerLogs().join('\n')).toContain('Set NUXT_APP_SECRET in production. Generate it with openssl rand -base64 32.')
   })
 
   it('refuses to render the page image', async () => {

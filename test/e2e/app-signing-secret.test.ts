@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { signEncodedParams } from '../../src/runtime/shared'
 
 const { resolve } = createResolver(import.meta.url)
-const rootSecret = 'legacy-runtime-root-at-least-32-characters'
+const rootSecret = 'runtime-app-root-at-least-32-characters'
 const signingSecret = Buffer.from(hkdfSync('sha256', rootSecret, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex')
 
 await setup({
@@ -21,11 +21,11 @@ await setup({
     runtimeConfig: { appSecret: '' },
     ogImage: { security: { strict: true } },
   },
-  env: { NUXT_APP_SECRET: '', NUXT_OG_IMAGE_SECRET: rootSecret },
+  env: { NUXT_APP_SECRET: rootSecret },
 })
 
-describe('legacy signing environment fallback', () => {
-  it('signs server URLs with the derived legacy root and renders the image', async () => {
+describe('application signing environment', () => {
+  it('signs server URLs with the derived application root and renders the image', async () => {
     const { url } = await $fetch<{ url: string }>('/og-url')
     const path = decodeURIComponent(new URL(url).pathname)
     const [, params, signature] = path.match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
