@@ -1,5 +1,6 @@
 import type { IconifyJSON } from '@iconify/types'
 import type { ElementNode, Node } from 'ultrahtml'
+import type { PreprocessCSSResult } from 'vite'
 import type { CssProvider } from './css/css-provider'
 import { readFile } from 'node:fs/promises'
 import { parse as parseSfc } from '@vue/compiler-sfc'
@@ -15,6 +16,7 @@ import { RE_WHITESPACE } from '../util'
 import { extractFontRequirementsFromVue } from './css/css-classes'
 import { stylesToArbitraryClass } from './css/css-provider'
 import { downlevelColor, extractClassStyles, resolveCssVars, simplifyCss } from './css/css-utils'
+import { importOptionalPeer, resolveOptionalModulePath } from './optional-module'
 import { escapeAttrValue, transformVueTemplate } from './vue-template-transform'
 
 let svgCounter = 0
@@ -362,12 +364,26 @@ function getOuterTemplateBounds(code: string): { templateStart: number, template
   }
 }
 
-export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptions) => {
+export const AssetTransformPlugin = createUnplugin<AssetTransformOptions, false>((options) => {
   let emojiIcons: IconifyJSON | null = null
+  let preprocessStyle: ((source: string, filename: string) => Promise<PreprocessCSSResult>) | undefined
 
   return {
     name: 'nuxt-og-image:asset-transform',
     enforce: 'pre',
+
+    vite: {
+      configResolved(config) {
+        // Resolve Vite from the app's builder, rather than requiring a second copy.
+        let vite: Promise<typeof import('vite')> | undefined
+        preprocessStyle = async (source, filename) => {
+          vite ??= resolveOptionalModulePath('@nuxt/vite-builder', config.root, ['nuxt'])
+            .then(builder => resolveOptionalModulePath('vite', builder ? dirname(builder) : config.root))
+            .then(path => importOptionalPeer<typeof import('vite')>('vite', path, 'OG component style preprocessing'))
+          return (await vite).preprocessCSS(source, filename, config)
+        }
+      },
+    },
 
     watchChange(id) {
       if (options.cssDependencies?.().includes(id))
@@ -839,7 +855,17 @@ export const AssetTransformPlugin = createUnplugin((options: AssetTransformOptio
           const { descriptor } = parseSfc(code)
           if (descriptor.styles.length > 0) {
             for (const styleBlock of descriptor.styles) {
-              const rawCss = styleBlock.content
+              let rawCss = styleBlock.content
+              if (styleBlock.lang && styleBlock.lang !== 'css') {
+                if (!preprocessStyle)
+                  throw new Error(`Style preprocessing requires the resolved Vite configuration: ${id}`)
+                // The extension selects the preprocessor. Keep the component directory
+                // so relative imports resolve as they do in Vue's style pipeline.
+                const result = await preprocessStyle(rawCss, `${id}.${styleBlock.lang}`)
+                rawCss = result.code
+                for (const dependency of result.deps ?? [])
+                  this.addWatchFile(dependency)
+              }
               // Strip scoped data-v attribute selectors so we can match by class name alone
               const scopeId = styleBlock.scoped
                 ? (rawCss.match(RE_SCOPED_DATA_V)?.[0] ?? null)
