@@ -76,8 +76,8 @@
   "peerDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
-    "@takumi-rs/core": "^2.15.0",
-    "@takumi-rs/wasm": "^2.15.0",
+    "@takumi-rs/core": "^2.19.0",
+    "@takumi-rs/wasm": "^2.19.0",
     "@unhead/vue": "^3.4.2",
     "@unocss/config": "catalog:",
     "@unocss/core": "catalog:",
