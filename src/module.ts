@@ -23,7 +23,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
-import { setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
+import { findPackageJSON, setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
 import { isAbsolute, join } from 'pathe'
 import { setupBuildHandler } from './build/build'
 import { extractCustomFontFamilies } from './build/css/css-utils'
@@ -42,7 +42,7 @@ import {
 } from './build/fonts'
 import { setupGenerateHandler } from './build/generate'
 import { resolveOptionalModulePath } from './build/optional-module'
-import { findNearestPackageJson, readPackageManifest } from './build/package-manifest.ts'
+import { readPackageManifest } from './build/package-manifest.ts'
 import { setupPrerenderHandler } from './build/prerender'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
 import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache'
@@ -358,7 +358,7 @@ export default defineNuxtModule<ModuleOptions>({
       resolve,
       resolvePath: async (path, opts) => fixSharedPath(await _resolver.resolvePath(path, opts)),
     }
-    const packageManifest = findNearestPackageJson(import.meta.url)
+    const packageManifest = findPackageJSON('./', import.meta.url)
     if (!packageManifest)
       throw new Error('Could not resolve the Nuxt OG Image package manifest.')
     const { version } = await readPackageManifest(packageManifest)
