@@ -2,6 +2,7 @@ import type { H3Error, H3Event } from '#nuxtseo/h3'
 import type { DevToolsMetaDataExtraction, OgImageOptionsInternal } from '../../types'
 import { parse } from 'devalue'
 import { createError } from '#nuxtseo/h3'
+import { fetchRawWithEvent } from '#nuxtseo/nitro'
 import { htmlPayloadCache } from '#og-image-cache'
 import { extractSocialPreviewTags } from '../../pure'
 import { logger } from '../util/logger'
@@ -64,7 +65,7 @@ export async function fetchPathHtmlAndExtractOptions(e: H3Event, path: string, k
     return cachedHtmlPayload.value
 
   // extract the payload from the original path
-  let [html, err] = await doFetchWithErrorHandling(e.fetch, path)
+  let [html, err] = await doFetchWithErrorHandling(fetchRawWithEvent.bind(null, e), path)
   if (err) {
     logger.warn(err)
   }
