@@ -1465,7 +1465,9 @@ export default defineNuxtModule<ModuleOptions>({
     // use a family or weight (they are analysed lazily), after Nitro built the font list
     let reloadNitro: (() => Promise<void>) | undefined
     function refreshDevFonts() {
-      if (!reloadNitro || builtFontKey === undefined || builtFontKey === currentFontKey())
+      // Without Nuxt Fonts, the first dev build already includes every manual face and
+      // bundled Inter weight. Lazy component analysis cannot add another font.
+      if (!hasNuxtFonts || !reloadNitro || builtFontKey === undefined || builtFontKey === currentFontKey())
         return
       // not awaited: callers run inside Vite transforms
       reloadNitro().catch((error: Error) => {

@@ -869,7 +869,9 @@ export async function resolveOgImageFonts(options: {
       : [],
   )
   // Unanalysed builds (webpack, rspack) may use any font style, like dynamic bindings
-  const fonts = !(fontRequirements.hasDynamicBindings || fontRequirements.scanned === false)
+  // Without Nuxt Fonts, dev already has every manual face. Keep them available so
+  // lazy component analysis does not need to restart Nitro to add a weight or style.
+  const fonts = !(fontRequirements.hasDynamicBindings || fontRequirements.scanned === false || (nuxt.options.dev && !hasNuxtFonts))
     ? allFonts.filter(f =>
         nuxtFontFamilies.has(f.family)
           // Keep all @nuxt/fonts weights — runtime will pick closest match per requirement
