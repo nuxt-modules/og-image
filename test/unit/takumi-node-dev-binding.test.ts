@@ -31,7 +31,13 @@ describe('node-dev takumi binding', () => {
 
   it('renders without a font that fails to load', async () => {
     const renderer = new Renderer()
-    const fonts = [{ key: 'missing', name: 'Missing', data: async () => { throw new Error('404') } }]
+    const fonts = [{
+      key: 'missing',
+      name: 'Missing',
+      data: async () => {
+        throw new Error('404')
+      },
+    }]
     const png = await renderer.render(await renderer.prepare(node, prepareOptions({ fonts })), { format: 'png' })
     expect(png.subarray(1, 4).toString()).toBe('PNG')
   })

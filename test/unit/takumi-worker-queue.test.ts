@@ -2,7 +2,19 @@ import { describe, expect, it } from 'vitest'
 import TakumiBinding from '../../src/runtime/server/og-image/bindings/takumi/node-dev'
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-const renderOptions = { width: 120, height: 60, format: 'png' as const }
+const renderOptions = { format: 'png' as const }
+const prepareOptions = {
+  width: 120,
+  height: 60,
+  devicePixelRatio: 1,
+  fontFamilies: [],
+  fonts: [],
+  images: {
+    sources: [],
+    fetch: async () => { throw new Error('Unexpected image fetch') },
+    allowUrl: () => false,
+  },
+}
 
 function node(label: string) {
   return {
@@ -16,9 +28,9 @@ describe('takumi node-dev worker binding', () => {
   it('drains concurrent renders', async () => {
     const renderer = new TakumiBinding.Renderer()
     const results = await Promise.all([
-      renderer.render(node('one') as any, renderOptions),
-      renderer.render(node('two') as any, renderOptions),
-      renderer.render(node('three') as any, renderOptions),
+      renderer.render(await renderer.prepare(node('one') as any, prepareOptions), renderOptions),
+      renderer.render(await renderer.prepare(node('two') as any, prepareOptions), renderOptions),
+      renderer.render(await renderer.prepare(node('three') as any, prepareOptions), renderOptions),
     ])
 
     for (const png of results)
@@ -28,8 +40,8 @@ describe('takumi node-dev worker binding', () => {
   it('rejects an undispatchable render without stalling its queued neighbour', async () => {
     const renderer = new TakumiBinding.Renderer()
     const settled = await Promise.allSettled([
-      renderer.render({ ...node('bad'), undispatchable: () => undefined } as any, renderOptions),
-      renderer.render(node('good') as any, renderOptions),
+      renderer.render(await renderer.prepare({ ...node('bad'), undispatchable: () => undefined } as any, prepareOptions), renderOptions),
+      renderer.render(await renderer.prepare(node('good') as any, prepareOptions), renderOptions),
     ])
 
     expect(settled.map(result => result.status)).toEqual(['rejected', 'fulfilled'])
@@ -38,9 +50,9 @@ describe('takumi node-dev worker binding', () => {
   it('contains a render failure to its job', async () => {
     const renderer = new TakumiBinding.Renderer()
     const settled = await Promise.allSettled([
-      renderer.render(node('before') as any, renderOptions),
-      renderer.render(null as any, renderOptions),
-      renderer.render(node('after') as any, renderOptions),
+      renderer.render(await renderer.prepare(node('before') as any, prepareOptions), renderOptions),
+      renderer.render(await renderer.prepare(null as any, prepareOptions), renderOptions),
+      renderer.render(await renderer.prepare(node('after') as any, prepareOptions), renderOptions),
     ])
 
     expect(settled.map(result => result.status)).toEqual(['fulfilled', 'rejected', 'fulfilled'])
