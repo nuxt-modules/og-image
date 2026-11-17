@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -37,6 +37,30 @@ beforeEach(() => {
 })
 
 describe('resolveOgImageFonts', () => {
+  it.each([
+    { name: 'keeps manual faces available for lazy dev component analysis', dev: true, weights: [400, 700] },
+    { name: 'filters unused manual faces in production', dev: false, weights: [400] },
+  ])('$name', async ({ dev, weights }) => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'og-image-manual-fonts-'))
+    try {
+      const cssPath = join(rootDir, 'fonts.css')
+      writeFileSync(cssPath, `
+        @font-face { font-family: Manual; font-weight: 400; src: url('/fonts/manual-400.ttf') format('truetype'); }
+        @font-face { font-family: Manual; font-weight: 700; src: url('/fonts/manual-700.ttf') format('truetype'); }
+      `)
+      const fonts = await resolveOgImageFonts(createOpts({
+        nuxt: { options: { dev, rootDir, srcDir: rootDir, buildDir: join(rootDir, '.nuxt'), css: [cssPath] } },
+        hasNuxtFonts: false,
+        hasSatoriRenderer: true,
+        fontRequirements: { ...baseFontReqs, weights: [400], families: ['Manual'], scanned: true },
+      }))
+      expect(fonts.filter(font => font.family === 'Manual').map(font => font.weight)).toEqual(weights)
+    }
+    finally {
+      rmSync(rootDir, { recursive: true, force: true })
+    }
+  })
+
   it('returns Inter fallback when no fonts and no @nuxt/fonts', async () => {
     const opts = createOpts({ hasNuxtFonts: false })
     const fonts = await resolveOgImageFonts(opts)
