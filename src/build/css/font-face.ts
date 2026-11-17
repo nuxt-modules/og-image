@@ -108,8 +108,6 @@ export async function extractFontFaces(css: string): Promise<FontFaceDescriptor[
           if (family && sources.length > 0) {
             fonts.push({ family, sources, weight, style, unicodeRange })
           }
-
-          return rule
         },
       },
     },
