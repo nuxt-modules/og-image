@@ -30,10 +30,10 @@ async function assertImageSnapshot(imageBuffer) {
   assert.ok(mismatchRatio <= 0.001, `Rendered OG image differs from its snapshot by ${(mismatchRatio * 100).toFixed(3)}%`)
 }
 
-async function run(command, args) {
+async function run(command, args, env = {}) {
   const child = spawn(command, args, {
     cwd: fixtureDir,
-    env: process.env,
+    env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let output = ''
@@ -50,7 +50,12 @@ async function run(command, args) {
 }
 
 async function main() {
+  for (const objectCache of ['0', '1']) {
+    const prepareOutput = await run('nuxt', ['prepare', 'no-renderer'], { NUXT_TEST_CACHE_OBJECT: objectCache })
+    assert.doesNotMatch(prepareOutput, /"storage" option is deprecated/, 'Nuxt 5 prepare without renderers used deprecated storage configuration')
+  }
   const buildOutput = await run('nuxt', ['build'])
+  assert.doesNotMatch(buildOutput, /"storage" option is deprecated/, 'Nuxt 5 build used deprecated storage configuration')
   assert.doesNotMatch(buildOutput, /\[UNRESOLVED_IMPORT\]|Could not resolve ['"](?:nitropack\/runtime|h3)['"]/, 'Nuxt 5 build emitted a legacy Nitro import warning')
   assert.doesNotMatch(buildOutput, /NUXT_B7023.*static-fonts/, 'Nuxt 5 build lost the OG image font asset directory')
 
