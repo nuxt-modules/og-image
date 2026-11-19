@@ -23,15 +23,13 @@ describe('cli', () => {
   })
 
   describe('generate-secret', () => {
-    it('prints a 32-byte application secret without changing the configured secret', () => {
+    it('prints a 64-character hexadecimal application secret without changing the configured secret', () => {
       const envPath = join(tmpDir, '.env')
       const configured = 'NUXT_APP_SECRET=existing-production-root-at-least-32-characters\n'
       writeFileSync(envPath, configured)
       const output = runCli('generate-secret')
-      const secret = output.match(/NUXT_APP_SECRET=([A-Za-z0-9+/]+=*)/)?.[1]
-      expect(secret).toBeDefined()
-      expect(Buffer.from(secret!, 'base64')).toHaveLength(32)
-      expect(output).toContain('openssl rand -base64 32')
+      const secret = output.match(/NUXT_APP_SECRET=(\S+)/)?.[1]
+      expect(secret).toMatch(/^[a-f0-9]{64}$/)
       expect(readFileSync(envPath, 'utf8')).toBe(configured)
     })
   })

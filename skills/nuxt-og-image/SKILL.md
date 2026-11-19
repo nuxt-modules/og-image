@@ -109,8 +109,8 @@ Guide: https://nuxtseo.com/docs/og-image/guides/cloudflare
 - **`defineOgImageScreenshot()` needs `ogImage.browser`.** Without it, the production build fails. Set `browser: true` and install `playwright-core`, or set `{ provider: 'cloudflare', binding: 'BROWSER' }`. Use it for prerendered pages; most hosts cannot run a browser.
 - **`defineOgImage()` in a client only component throws in dev and renders nothing in production.** Call it in page or layout setup, on the server.
 - **A border class needs `border-solid`.** A width without a style draws nothing, as in CSS.
-- **Rolling or multi instance deploys need a stable secret.** Keep an existing `NUXT_APP_SECRET`. Otherwise, generate one with `openssl rand -base64 32`. Changing the application secret invalidates existing signed URLs.
-- **Application secret required:** V7 reads `NUXT_APP_SECRET`, rather than `NUXT_OG_IMAGE_SECRET`. Rename the old environment key if you used it. The derived key still invalidates v6 signatures.
+- **Rolling or multi instance deploys need a stable secret.** Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. Changing the application secret invalidates existing signed URLs.
+- **Legacy environment key:** V7 accepts `NUXT_OG_IMAGE_SECRET` if the application secret is empty, with a deprecation warning. Rename it to `NUXT_APP_SECRET`. The derived key still invalidates v6 signatures.
 - **A wildcard route rule with `swr`, `isr`, or `cache` breaks `/_og/` routes.** The module warns. Use narrower patterns such as `/blog/**`.
 
 ## Version limits
@@ -118,7 +118,7 @@ Guide: https://nuxtseo.com/docs/og-image/guides/cloudflare
 v7 changes that v6 examples still show:
 
 - Nuxt versions before 4.6.1 are not supported. Upgrade Nuxt to 4.6.1 or later.
-- String `ogImage.security.secret` and `runtimeConfig.ogImage.secret` are removed. Set `NUXT_APP_SECRET` in production. Generate it with `openssl rand -base64 32`. If the production secret is missing or shorter than 32 characters, OG image requests return 500.
+- String `ogImage.security.secret` and `runtimeConfig.ogImage.secret` are removed. Set `NUXT_APP_SECRET` from `pnpm exec nuxt-og-image generate-secret`. If the production secret is missing or shorter than 32 characters, OG image requests return 500.
 - Satori 0.47.1+ uses native layout. A bare `<div>` is no longer a flex column. Add `flex flex-col` where the template needs it.
 - Custom fonts need `@nuxt/fonts` 1.0+. With an older version, images fall back to Inter.
 - Takumi v1 is removed. Use `@takumi-rs/core` or `@takumi-rs/wasm` `^2.15.0`. Merge `takumi.fetchedResources` and `takumi.persistentImages` into `takumi.images`.

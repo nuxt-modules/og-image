@@ -21,7 +21,7 @@ await setup({
     },
     runtimeConfig: { appSecret: '' },
   },
-  env: { NUXT_APP_SECRET: '' },
+  env: { NUXT_APP_SECRET: '', NUXT_OG_IMAGE_SECRET: '' },
 })
 
 describe('signing without a renderer', () => {

@@ -37,6 +37,54 @@ describe('request signing initialization', () => {
     expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
   })
 
+  it('reuses the legacy environment derivation when the application secret is empty', async () => {
+    runtime.config.appSecret = ''
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', rootSecret)
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const importKey = vi.spyOn(crypto.subtle, 'importKey')
+    const first = { context: {} as Record<string, unknown> }
+    const second = { context: {} as Record<string, unknown> }
+    await Promise.all([initializeOgImageSigning(first), initializeOgImageSigning(second)])
+    expect(first.context._ogImageSigningSecret).toBe(expectedSecret)
+    expect(second.context._ogImageSigningSecret).toBe(expectedSecret)
+    expect(importKey).toHaveBeenCalledTimes(1)
+    expect(warning).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('NUXT_OG_IMAGE_SECRET'))
+  })
+
+  it('prefers a configured application secret over the legacy environment key', async () => {
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', `${rootSecret}-legacy`)
+    const event = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
+  })
+
+  it.each([undefined, ''])('uses a legacy Worker binding when the application binding is %s', async (appSecret) => {
+    runtime.config.appSecret = ''
+    const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: appSecret, NUXT_OG_IMAGE_SECRET: rootSecret } } } as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
+    const internal = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(internal)
+    expect(internal.context._ogImageSigningSecret).toBe(expectedSecret)
+  })
+
+  it('refreshes the derived key when the legacy process environment changes', async () => {
+    runtime.config.appSecret = ''
+    const rotatedRoot = `${rootSecret}-rotated`
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', rootSecret)
+    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_OG_IMAGE_SECRET: rootSecret } } } })
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', rotatedRoot)
+    const event = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe(Buffer.from(hkdfSync('sha256', rotatedRoot, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex'))
+  })
+
+  it('rejects a short legacy root', async () => {
+    runtime.config.appSecret = ''
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', 'short')
+    await expect(initializeOgImageSigning({ context: {} })).rejects.toThrow('at least 32 characters')
+  })
+
   it('derives the same secret from request-only Cloudflare bindings', async () => {
     runtime.config.appSecret = ''
     const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: rootSecret } } } as Record<string, unknown> }
@@ -46,6 +94,11 @@ describe('request signing initialization', () => {
 
   it.each(['short', '', false, 123, null])('rejects an invalid Cloudflare root %s', async (root) => {
     const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: root } } } }
+    await expect(initializeOgImageSigning(event)).rejects.toThrow('at least 32 characters')
+  })
+
+  it('rejects an invalid non-empty application binding even when the legacy binding is valid', async () => {
+    const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: 'short', NUXT_OG_IMAGE_SECRET: rootSecret } } } }
     await expect(initializeOgImageSigning(event)).rejects.toThrow('at least 32 characters')
   })
 

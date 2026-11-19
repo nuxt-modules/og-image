@@ -80,15 +80,19 @@ describe('cloudflare runtime config', () => {
     expect(body).toContain('island rendered')
   })
 
-  it('does not accept the removed module-specific secret binding', async () => {
+  it('signs SSR URLs and serves internal requests with the legacy binding', async () => {
     const env = { NUXT_APP_SECRET: '', NUXT_OG_IMAGE_SECRET: rootSecret }
     const response = await fetchWorker('/', env)
     const html = await response.text()
     const url = extractOgImageUrl(html)!
-    expect(decodeURIComponent(url)).not.toMatch(/,s_[\w-]+\.png$/)
+    const [, params, signature] = decodeURIComponent(url).match(/\/_og\/d\/(.+),s_([\w-]+)\.png$/)!
+    expect(signature).toBe(signEncodedParams(params, signingSecret))
     expect(html).not.toContain(rootSecret)
-    const image = await fetchWorker(new URL(url, 'https://example.com').pathname, env)
-    expect(image.status).toBe(500)
+    const internal = await fetchWorker('/internal-fetch', env)
+    const body = await internal.text()
+    expect(internal.status, body).toBe(200)
+    expect(body).toContain('world')
+    expect(body).toContain('island rendered')
   })
 
   it('signs getOgImageUrl with the Cloudflare runtime secret', async () => {

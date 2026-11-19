@@ -1691,15 +1691,14 @@ async function runEnable(renderer: string, args: string[]): Promise<void> {
 }
 
 function generateSecret() {
-  const secret = randomBytes(32).toString('base64')
+  const secret = randomBytes(32).toString('hex')
   p.intro('nuxt-og-image generate-secret')
-  p.log.step(`Application secret: ${secret}`)
+  p.log.step(`Secret: ${secret}`)
   p.log.message('')
   p.log.message('Set the environment variable:')
   p.log.message(`  NUXT_APP_SECRET=${secret}`)
   p.log.message('')
-  p.log.message('Set NUXT_APP_SECRET in production. Generate it with openssl rand -base64 32.')
-  p.log.message('This command prints a new secret. It does not change your configuration.')
+  p.log.message('The secret is automatically picked up via runtime config.')
   p.outro('')
 }
 
@@ -1717,7 +1716,7 @@ function showHelp() {
     '                  Options: --edge (install wasm versions for edge runtimes)',
     'migrate v6        Migrate to v6 (component suffixes + new API)',
     '                  Options: --dry-run, --yes, --renderer <renderer>',
-    'generate-secret   Generate a Nuxt application secret',
+    'generate-secret   Generate a signing secret for URL tamper protection',
   ].join('\n'), 'Commands')
   p.outro('')
 }
