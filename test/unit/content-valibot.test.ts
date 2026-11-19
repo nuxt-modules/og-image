@@ -4,7 +4,7 @@ import { defineOgImageSchema } from '../../src/content-valibot'
 
 describe('defineOgImageSchema', () => {
   it('preserves arbitrary component props', () => {
-    const value = { component: 'Blog', props: { title: 'Hello', tags: ['news'], featured: true } }
+    const value = { component: 'Blog', props: { title: 'Hello', tags: ['news'], featured: true, toString: 'literal prop' } }
     expect(safeParse(defineOgImageSchema(), value)).toMatchObject({ success: true, output: value })
   })
 

@@ -4,6 +4,6 @@ export function defineOgImageSchema() {
   return v.optional(v.object({
     url: v.optional(v.string()),
     component: v.optional(v.string()),
-    props: v.looseObject({}),
+    props: v.record(v.string(), v.unknown()),
   }))
 }
