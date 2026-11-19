@@ -1,9 +1,9 @@
-import type { ActiveHeadEntry, Head, VueHeadClient } from '@unhead/vue'
+import type { ActiveHeadEntry, Head, ResolvableMeta, VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
 import type { OgImageComponent, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt, OgImageRuntimeConfig } from '../types'
 import { defu } from 'defu'
 import { stringify } from 'devalue'
-import { useHead, useRequestEvent, useRuntimeConfig } from 'nuxt/app'
+import { useHead, useNuxtApp, useRequestEvent, useRuntimeConfig, useState } from 'nuxt/app'
 import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
@@ -98,6 +98,7 @@ export function setHeadOgImagePrebuilt(input: OgImagePrebuilt) {
   const urlValue = toValue(url)
   const absoluteUrl = /^https?:\/\//.test(urlValue) ? urlValue : toValue(withSiteUrl(urlValue, { withBase: true, canonical: !import.meta.dev }))
   const meta = generateMeta(absoluteUrl, input, { includeTwitter })
+  useState<Record<string, ResolvableMeta[]>>('og-image:meta', () => ({})).value[input.key || 'og'] = resolveUnrefHeadInput(meta)
   useHead({ meta })
 }
 
@@ -127,9 +128,9 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   // useNuxtApp() / useRuntimeConfig() are no longer accessible.
   const baseURL = useRuntimeConfig().app.baseURL
   const resolveImageUrl = createSitePathResolver({ absolute: true, withBase: true, canonical: !import.meta.dev })
+  const hydrationMeta = useState<Record<string, ResolvableMeta[]>>('og-image:meta', () => ({}))
 
-  ssrContext._ogImageInstance?.dispose()
-  ssrContext._ogImageInstance = useHead({
+  const headInput = {
     // Meta is generated lazily so that title/description from useSeoMeta / useHead
     // are available regardless of call ordering (all component setups have completed
     // by the time Unhead resolves tags).
@@ -192,10 +193,19 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
           }
         }
-        return generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
+        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
+        hydrationMeta.value[opts.key || 'og'] = resolveUnrefHeadInput(meta)
+        return meta
       })
     },
-  }, {
+  }
+  // Nuxt serializes the payload before rendering the head. Resolve after component
+  // setup so hydration receives the exact URLs, including head-derived props and signatures.
+  useNuxtApp().hook('app:rendered', () => {
+    headInput.meta()
+  })
+  ssrContext._ogImageInstance?.dispose()
+  ssrContext._ogImageInstance = useHead(headInput, {
     processTemplateParams: true,
   })
 
