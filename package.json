@@ -24,7 +24,11 @@
       "types": "./dist/types.d.mts",
       "import": "./dist/module.mjs"
     },
-    "./content": "./dist/content.mjs"
+    "./content": "./dist/content.mjs",
+    "./content/valibot": {
+      "types": "./dist/content-valibot.d.mts",
+      "default": "./dist/content-valibot.mjs"
+    }
   },
   "main": "./dist/module.mjs",
   "typesVersions": {
@@ -34,6 +38,9 @@
       ],
       "content": [
         "./dist/content.d.mts"
+      ],
+      "content/valibot": [
+        "dist/content-valibot.d.mts"
       ]
     }
   },
@@ -91,6 +98,7 @@
     "tailwindcss": "^4.3.3",
     "unifont": "^1.0.3",
     "unstorage": "^1.17.5",
+    "valibot": "^1.0.0",
     "zod": "^4.6.6"
   },
   "peerDependenciesMeta": {
@@ -134,6 +142,9 @@
       "optional": true
     },
     "unifont": {
+      "optional": true
+    },
+    "valibot": {
       "optional": true
     },
     "zod": {
@@ -236,6 +247,7 @@
     "unbuild": "catalog:",
     "unifont": "catalog:",
     "unocss": "catalog:",
+    "valibot": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
     "vue": "catalog:",
