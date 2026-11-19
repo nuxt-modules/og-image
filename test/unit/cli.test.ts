@@ -22,6 +22,18 @@ describe('cli', () => {
       rmSync(tmpDir, { recursive: true })
   })
 
+  describe('generate-secret', () => {
+    it('prints a 64-character hexadecimal application secret without changing the configured secret', () => {
+      const envPath = join(tmpDir, '.env')
+      const configured = 'NUXT_APP_SECRET=existing-production-root-at-least-32-characters\n'
+      writeFileSync(envPath, configured)
+      const output = runCli('generate-secret')
+      const secret = output.match(/NUXT_APP_SECRET=(\S+)/)?.[1]
+      expect(secret).toMatch(/^[a-f0-9]{64}$/)
+      expect(readFileSync(envPath, 'utf8')).toBe(configured)
+    })
+  })
+
   describe('list', () => {
     it('lists available community templates', () => {
       const output = runCli('list')

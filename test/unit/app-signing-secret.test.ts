@@ -13,11 +13,14 @@ vi.mock('nuxt/server', () => ({
   createError: (options: { message: string }) => new Error(options.message),
 }))
 
-const rootSecret = 'root-secret-with-at-least-32-characters'
-const expectedSecret = Buffer.from(hkdfSync('sha256', rootSecret, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex')
+let sequence = 0
+let rootSecret: string
+let expectedSecret: string
 
 describe('request signing initialization', () => {
   beforeEach(() => {
+    rootSecret = `root-secret-with-at-least-32-characters-${++sequence}`
+    expectedSecret = Buffer.from(hkdfSync('sha256', rootSecret, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex')
     runtime.config.appSecret = rootSecret
     runtime.config['nuxt-og-image'].security.secret = ''
     runtime.derive.mockReset().mockImplementation(async purpose =>
@@ -34,30 +37,30 @@ describe('request signing initialization', () => {
     expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
   })
 
-  it('uses the legacy environment root when appSecret is empty and warns once', async () => {
+  it('reuses the legacy environment derivation when the application secret is empty', async () => {
     runtime.config.appSecret = ''
     vi.stubEnv('NUXT_OG_IMAGE_SECRET', rootSecret)
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    for (let i = 0; i < 2; i++) {
-      const event = { context: {} as Record<string, unknown> }
-      await initializeOgImageSigning(event)
-      expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
-    }
-    expect(warning).toHaveBeenCalledExactlyOnceWith('[nuxt-og-image] NUXT_OG_IMAGE_SECRET is deprecated. Rename it to NUXT_APP_SECRET. Existing signed URLs must be refreshed.')
+    const importKey = vi.spyOn(crypto.subtle, 'importKey')
+    const first = { context: {} as Record<string, unknown> }
+    const second = { context: {} as Record<string, unknown> }
+    await Promise.all([initializeOgImageSigning(first), initializeOgImageSigning(second)])
+    expect(first.context._ogImageSigningSecret).toBe(expectedSecret)
+    expect(second.context._ogImageSigningSecret).toBe(expectedSecret)
+    expect(importKey).toHaveBeenCalledTimes(1)
+    expect(warning).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('NUXT_OG_IMAGE_SECRET'))
   })
 
-  it('prefers a configured appSecret over the legacy environment root', async () => {
+  it('prefers a configured application secret over the legacy environment key', async () => {
     vi.stubEnv('NUXT_OG_IMAGE_SECRET', `${rootSecret}-legacy`)
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const event = { context: {} as Record<string, unknown> }
     await initializeOgImageSigning(event)
     expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
-    expect(warning).not.toHaveBeenCalled()
   })
 
-  it.each([undefined, ''])('uses a legacy Worker binding when the application binding is %s', async (root) => {
+  it.each([undefined, ''])('uses a legacy Worker binding when the application binding is %s', async (appSecret) => {
     runtime.config.appSecret = ''
-    const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: root, NUXT_OG_IMAGE_SECRET: rootSecret } } } as Record<string, unknown> }
+    const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: appSecret, NUXT_OG_IMAGE_SECRET: rootSecret } } } as Record<string, unknown> }
     await initializeOgImageSigning(event)
     expect(event.context._ogImageSigningSecret).toBe(expectedSecret)
     const internal = { context: {} as Record<string, unknown> }
@@ -65,20 +68,15 @@ describe('request signing initialization', () => {
     expect(internal.context._ogImageSigningSecret).toBe(expectedSecret)
   })
 
-  it('keeps the new Worker binding for internal requests when the process has a legacy key', async () => {
+  it('refreshes the derived key when the legacy process environment changes', async () => {
     runtime.config.appSecret = ''
-    vi.stubEnv('NUXT_OG_IMAGE_SECRET', `${rootSecret}-legacy`)
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: rootSecret, NUXT_OG_IMAGE_SECRET: `${rootSecret}-old-binding` } } } })
-    const internal = { context: {} as Record<string, unknown> }
-    await initializeOgImageSigning(internal)
-    expect(internal.context._ogImageSigningSecret).toBe(expectedSecret)
-    expect(warning).not.toHaveBeenCalled()
-  })
-
-  it.each(['short', false, 123, null])('does not replace an invalid non-empty application binding %s', async (root) => {
-    runtime.config.appSecret = ''
-    await expect(initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_APP_SECRET: root, NUXT_OG_IMAGE_SECRET: rootSecret } } } })).rejects.toThrow('at least 32 characters')
+    const rotatedRoot = `${rootSecret}-rotated`
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', rootSecret)
+    await initializeOgImageSigning({ context: { cloudflare: { env: { NUXT_OG_IMAGE_SECRET: rootSecret } } } })
+    vi.stubEnv('NUXT_OG_IMAGE_SECRET', rotatedRoot)
+    const event = { context: {} as Record<string, unknown> }
+    await initializeOgImageSigning(event)
+    expect(event.context._ogImageSigningSecret).toBe(Buffer.from(hkdfSync('sha256', rotatedRoot, 'nuxt', 'nuxt-og-image:url-signing', 32)).toString('hex'))
   })
 
   it('rejects a short legacy root', async () => {
@@ -96,6 +94,11 @@ describe('request signing initialization', () => {
 
   it.each(['short', '', false, 123, null])('rejects an invalid Cloudflare root %s', async (root) => {
     const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: root } } } }
+    await expect(initializeOgImageSigning(event)).rejects.toThrow('at least 32 characters')
+  })
+
+  it('rejects an invalid non-empty application binding even when the legacy binding is valid', async () => {
+    const event = { context: { cloudflare: { env: { NUXT_APP_SECRET: 'short', NUXT_OG_IMAGE_SECRET: rootSecret } } } }
     await expect(initializeOgImageSigning(event)).rejects.toThrow('at least 32 characters')
   })
 

@@ -10,6 +10,7 @@ export const OG_IMAGE_SECRET_PURPOSE = 'nuxt-og-image:url-signing'
 // middleware as synthetic events without Worker context. Remember the derived
 // secret for the isolate once a Cloudflare root has been observed.
 let observed: { root: unknown, configRoot: unknown, processRoot: unknown, secret: string } | undefined
+let derivation: { root: string, mode: 'nuxt' | 'explicit', promise: Promise<string> } | undefined
 let warnedLegacy = false
 
 /** Resolve once per request before synchronous app and server URL helpers run. */
@@ -31,9 +32,7 @@ export async function initializeOgImageSigning(event: Pick<RequestEvent, 'contex
     // cannot see Worker bindings, so use the same HKDF for an event-bound root.
     const secret = observed !== undefined && observed.root === root
       ? observed.secret
-      : root === configRoot
-        ? await deriveSecret(OG_IMAGE_SECRET_PURPOSE)
-        : await deriveRootSecret(root)
+      : await getSigningSecret(root, root === configRoot ? 'nuxt' : 'explicit')
     observed = { root, configRoot, processRoot, secret }
     event.context._ogImageSigningSecret = secret
     return
@@ -48,11 +47,26 @@ export async function initializeOgImageSigning(event: Pick<RequestEvent, 'contex
     return
   }
   const root = resolveLegacyRoot(configRoot, processRoot)
-  if (root !== configRoot) {
-    event.context._ogImageSigningSecret = await deriveRootSecret(root)
-    return
-  }
-  event.context._ogImageSigningSecret = await deriveSecret(OG_IMAGE_SECRET_PURPOSE)
+  event.context._ogImageSigningSecret = await getSigningSecret(root, root === configRoot ? 'nuxt' : 'explicit')
+}
+
+function getSigningSecret(root: unknown, mode: 'nuxt' | 'explicit'): Promise<string> {
+  // Invalid roots must reach the validator instead of reusing a previous key.
+  if (typeof root !== 'string' || root.length < 32)
+    return mode === 'nuxt' ? deriveSecret(OG_IMAGE_SECRET_PURPOSE) : deriveRootSecret(root)
+  if (derivation?.root === root && derivation.mode === mode)
+    return derivation.promise
+  // Invoke immediately: Nuxt reads the current root before its first await.
+  // Keep only one root, including pending work, separately from the Worker bridge.
+  const promise = mode === 'nuxt' ? deriveSecret(OG_IMAGE_SECRET_PURPOSE) : deriveRootSecret(root)
+  const entry = { root, mode, promise }
+  derivation = entry
+  entry.promise = promise.catch((error: unknown) => {
+    if (derivation === entry)
+      derivation = undefined
+    throw error
+  })
+  return entry.promise
 }
 
 /** Only the image endpoints need the secret. Every other request can render without it. */
@@ -80,7 +94,7 @@ function resolveLegacyRoot(root: unknown, legacy: unknown): unknown {
   if ((root === undefined || root === '') && legacy !== undefined && legacy !== '') {
     if (!warnedLegacy) {
       warnedLegacy = true
-      console.warn('[nuxt-og-image] NUXT_OG_IMAGE_SECRET is deprecated. Rename it to NUXT_APP_SECRET. Existing signed URLs must be refreshed.')
+      console.warn('[nuxt-og-image] NUXT_OG_IMAGE_SECRET is deprecated. Rename it to NUXT_APP_SECRET and keep its value.')
     }
     return legacy
   }
