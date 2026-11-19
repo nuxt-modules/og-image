@@ -4,6 +4,7 @@ export default defineBuildConfig({
   declaration: true,
   entries: [
     { input: 'src/content', name: 'content' },
+    { input: 'src/content-valibot', name: 'content-valibot' },
     { input: 'src/cli', name: 'cli' },
   ],
   externals: [
@@ -12,6 +13,7 @@ export default defineBuildConfig({
     'yoga-wasm-web',
     'nitropack',
     '@nuxt/content',
+    'valibot',
     'zod',
     'nuxt',
     '#app',

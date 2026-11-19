@@ -122,7 +122,8 @@ v7 changes that v6 examples still show:
 - Satori 0.47.1+ uses native layout. A bare `<div>` is no longer a flex column. Add `flex flex-col` where the template needs it.
 - Custom fonts need `@nuxt/fonts` 1.0+. With an older version, images fall back to Inter.
 - Takumi v1 is removed. Use `@takumi-rs/core` or `@takumi-rs/wasm` `^2.15.0`. Merge `takumi.fetchedResources` and `takumi.persistentImages` into `takumi.images`.
-- `defineOgImageSchema()` needs Zod 4.
+- For Zod collections, install Zod 4 and import `defineOgImageSchema()` from `nuxt-og-image/content`.
+- For Valibot collections, install `valibot` and `@valibot/to-json-schema`. Import the helper from `nuxt-og-image/content/valibot`.
 - `getOgImageUrl(event, ...)` takes the Nuxt `RequestEvent`. Import `defineEventHandler` from `nuxt/server`, not the h3 auto-import.
 - `chrome-launcher` is no longer installed. Without it, the browser renderer downloads Chromium instead of using a local Chrome. Run `pnpm add -D chrome-launcher`. Without `playwright-core`, a browser renderer build fails.
 - The DevTools panel needs `nuxtseo-devtools-host` as a dev dependency: `pnpm add -D nuxtseo-devtools-host@^1`.

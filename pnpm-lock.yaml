@@ -440,6 +440,9 @@ catalogs:
     unplugin:
       specifier: ^3.4.0
       version: 3.4.0
+    valibot:
+      specifier: ^1.4.2
+      version: 1.4.2
     vitest:
       specifier: ^5.0.5
       version: 5.0.5
@@ -780,6 +783,9 @@ importers:
       unocss:
         specifier: 'catalog:'
         version: 66.11.0(@devframes/agentic@1.2.6)(@oxc-project/types@0.153.0)(@unocss/webpack@66.11.0(esbuild@0.28.2)(rolldown@1.2.15)(rollup@4.64.10)(vite@8.3.5)(webpack@5.109.2(cssnano@9.6.0(postcss@8.5.29))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.29)))(cac@7.1.0)(rolldown@1.2.15)(rollup@4.64.10)(srvx@0.11.22)(vite@8.3.5)
+      valibot:
+        specifier: 'catalog:'
+        version: 1.4.2(typescript@6.0.3)
       vite:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@26.5.1)(@vitejs/devtools@0.8.0)(esbuild@0.28.2)(jiti@2.7.0)(less@4.9.1(supports-color@10.2.2))(sass@1.106.1)(terser@5.51.2)(yaml@2.9.1)
@@ -22462,7 +22468,6 @@ snapshots:
   valibot@1.4.2(typescript@6.0.3):
     optionalDependencies:
       typescript: 6.0.3
-    optional: true
 
   validate-npm-package-license@3.0.4:
     dependencies:
