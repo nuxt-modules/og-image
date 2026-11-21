@@ -1,5 +1,5 @@
 import type { FontConfig, OgImageRenderEventContext, VNode } from '../../../types'
-import resolvedFonts from '#og-image/fonts'
+import { getFonts } from '#og-image/fonts'
 import { walkTree } from '../core/plugins'
 import { createVNodes as coreCreateVNodes, resolveSvgDimension } from '../core/vnodes'
 import classes from './plugins/classes'
@@ -10,7 +10,7 @@ export { htmlToVNode, resolveSvgDimension, SVG_CAMEL_ATTR_VALUES, warnUnsupporte
 
 // Get default font family from resolved fonts
 function getDefaultFontFamily(): string {
-  const fonts = resolvedFonts as FontConfig[]
+  const fonts = getFonts() as FontConfig[]
   const firstFont = fonts[0]
   if (firstFont)
     return `'${firstFont.family}', sans-serif`

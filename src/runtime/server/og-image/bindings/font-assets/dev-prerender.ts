@@ -5,7 +5,7 @@ import { join } from 'pathe'
 import { withBase } from 'ufo'
 import { getRequestURL } from '#nuxtseo/h3'
 import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
-import { resolvedFontPaths, rootDir, staticFontCacheDir } from '#og-image-virtual/build-dir.mjs'
+import { getResolvedFontPaths, rootDir, staticFontCacheDir } from '#og-image-virtual/build-dir.mjs'
 import { getSiteConfig } from '#site-config/server/composables'
 import { getFetchTimeout } from '../../../util/fetchTimeout'
 import { fetchWithRedirectValidation } from '../../../util/ssrf'
@@ -41,8 +41,9 @@ export async function resolve(event: H3Event, font: FontConfig): Promise<Buffer>
     return fetchSpecialFontUrl(path, getSiteConfig(event).url, timeout)
 
   // The hook owns URL resolution. Read our build-time copy before public assets exist.
-  if (resolvedFontPaths[path])
-    return readFile(resolvedFontPaths[path])
+  const resolvedFontPath = getResolvedFontPaths()[path]
+  if (resolvedFontPath)
+    return readFile(resolvedFontPath)
 
   if (import.meta.prerender) {
     // Static font downloads (separate from @nuxt/fonts to avoid conflicts)

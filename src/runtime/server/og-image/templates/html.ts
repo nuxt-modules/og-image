@@ -1,7 +1,7 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { createHead, renderSSRHead } from '@unhead/vue/server'
 import { createError } from '#nuxtseo/h3'
-import resolvedFonts from '#og-image/fonts'
+import { getFonts } from '#og-image/fonts'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../core/transforms/emojis'
 
@@ -9,7 +9,7 @@ const RE_SCRIPT_TAG = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
-  const fonts = resolvedFonts as FontConfig[]
+  const fonts = getFonts() as FontConfig[]
 
   if (!options.component) {
     throw createError({

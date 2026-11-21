@@ -109,11 +109,16 @@ declare module '#og-image/fonts' {
   import type { FontConfig } from '${typesPath}'
   const fonts: FontConfig[]
   export default fonts
+  /** The current list: in dev it follows fonts that resolve after Nitro was built */
+  export function getFonts(): FontConfig[]
 }
 
 declare module '#og-image/fonts-available' {
-  const fonts: Array<{ family: string, src: string, weight: number, style: string, satoriSrc?: string, unicodeRange?: string }>
+  type AvailableFont = { family: string, src: string, weight: number, style: string, satoriSrc?: string, unicodeRange?: string }
+  const fonts: AvailableFont[]
   export default fonts
+  /** The current list: in dev it follows fonts that resolve after Nitro was built */
+  export function getAvailableFonts(): AvailableFont[]
 }
 
 declare module '#og-image/font-requirements' {
@@ -165,6 +170,8 @@ declare module '#og-image-virtual/build-dir.mjs' {
   export const rootDir: string
   export const staticFontCacheDir: string
   export const resolvedFontPaths: Record<string, string>
+  /** The current map: in dev it follows fonts that resolve after Nitro was built */
+  export function getResolvedFontPaths(): Record<string, string>
 }
 
 declare module '#og-image/compatibility' {

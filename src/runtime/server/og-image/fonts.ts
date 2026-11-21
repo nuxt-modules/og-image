@@ -3,8 +3,8 @@ import type { FontConfig, OgImageRenderEventContext, RuntimeFontConfig } from '.
 import type { FontFormat } from './font-source'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
 import { fontRequirements, getComponentFontMap } from '#og-image/font-requirements'
-import resolvedFonts from '#og-image/fonts'
-import availableFonts from '#og-image/fonts-available'
+import { getFonts } from '#og-image/fonts'
+import { getAvailableFonts } from '#og-image/fonts-available'
 import { logger } from '../../logger'
 import { fontArrayCache, fontCache } from './cache/lru'
 import { isWoff2Binary, parseFontBinary } from './font-binary'
@@ -128,7 +128,7 @@ export function loadAllFontsDebug(component?: string) {
     componentReqs: componentReqs ? { families: componentReqs.families, weights: componentReqs.weights, hasDynamicBindings: componentReqs.hasDynamicBindings } : null,
     globalReqs: { families: fontRequirements.families, weights: fontRequirements.weights },
     componentFontMapKeys: Object.keys(map),
-    resolvedFontFamilies: [...new Set((resolvedFonts as FontConfig[]).map(f => f.family))],
+    resolvedFontFamilies: [...new Set((getFonts() as FontConfig[]).map(f => f.family))],
   }
 }
 
@@ -137,7 +137,7 @@ function selectFonts(options: LoadFontsOptions) {
   const componentReqs = options.component ? (map as Record<string, typeof fontRequirements>)[options.component] : null
   const usingGlobalFallback = !!(componentReqs && componentReqs.hasDynamicBindings)
   const reqs = (componentReqs && !componentReqs.hasDynamicBindings) ? componentReqs : fontRequirements
-  const fonts = selectFontsForRequirements(resolvedFonts as FontConfig[], reqs)
+  const fonts = selectFontsForRequirements(getFonts() as FontConfig[], reqs)
 
   // Supplement with override family from available (unfiltered) fonts if not already loaded
   if (options.fontFamilyOverride) {
@@ -145,12 +145,12 @@ function selectFonts(options: LoadFontsOptions) {
     if (!loadedFamilies.has(options.fontFamilyOverride)) {
       // Check unfiltered @nuxt/fonts first, then fall back to resolved fonts
       // (which includes bundled Inter when no other fonts are configured)
-      const overrideFonts = (availableFonts as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
+      const overrideFonts = (getAvailableFonts() as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
       if (overrideFonts.length > 0) {
         fonts.push(...overrideFonts)
       }
       else {
-        const resolvedOverride = (resolvedFonts as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
+        const resolvedOverride = (getFonts() as FontConfig[]).filter(f => f.family === options.fontFamilyOverride)
         fonts.push(...resolvedOverride)
       }
     }
@@ -403,6 +403,6 @@ export async function loadFontsForRenderer(event: OgImageRenderEventContext, opt
 /** Get the default font family override from options or first resolved font */
 export function getDefaultFontFamily(options: { props?: Record<string, any> }): { fontFamilyOverride: string | undefined, defaultFont: string | undefined } {
   const fontFamilyOverride = (options.props as Record<string, any>)?.fontFamily
-  const defaultFont = (resolvedFonts as FontConfig[])[0]?.family
+  const defaultFont = (getFonts() as FontConfig[])[0]?.family
   return { fontFamilyOverride, defaultFont }
 }
