@@ -4,12 +4,12 @@ import { createError, defineEventHandler, getRequestURL, useRuntimeConfig } from
 import { join } from 'pathe'
 import { withoutBase } from 'ufo'
 import { staticFontCacheDir } from '#og-image-virtual/build-dir.mjs'
-import resolvedFonts from '#og-image/fonts'
-import availableFonts from '#og-image/fonts-available'
+import { getFonts } from '#og-image/fonts'
+import { getAvailableFonts } from '#og-image/fonts-available'
 
 export default defineEventHandler(async (event) => {
   const path = withoutBase(getRequestURL(event).pathname, useRuntimeConfig().app.baseURL)
-  const font = ([...resolvedFonts, ...availableFonts] as FontConfig[]).find(face => face.src === path || face.satoriSrc === path)
+  const font = ([...getFonts(), ...getAvailableFonts()] as FontConfig[]).find(face => face.src === path || face.satoriSrc === path)
   if (!font)
     throw createError({ status: 404, statusText: 'Not Found' })
   const file = path === font.src && font.absolutePath

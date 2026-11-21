@@ -1,7 +1,7 @@
 import type { FontConfig, OgImageRenderEventContext } from '../../../types'
 import { createHead, renderSSRHead } from '@unhead/vue/server'
 import { createError } from '#nuxtseo/h3'
-import resolvedFonts from '#og-image/fonts'
+import { getFonts } from '#og-image/fonts'
 import { fetchIsland } from '../../util/kit'
 import { applyEmojis } from '../core/transforms/emojis'
 
@@ -9,7 +9,6 @@ const RE_SCRIPT_TAG = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
-  const fonts = resolvedFonts as FontConfig[]
 
   if (!options.component) {
     throw createError({
@@ -19,6 +18,8 @@ export async function html(ctx: OgImageRenderEventContext) {
   }
   const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
   const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout)
+  // Read after the island: rendering it can analyse the component and publish new fonts
+  const fonts = getFonts() as FontConfig[]
   const head = createHead()
   head.push(island.head)
 

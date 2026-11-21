@@ -18,13 +18,13 @@ import type {
 } from './runtime/types'
 import * as fs from 'node:fs'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { addComponentsDir, addImports, addPlugin, addServerHandler, addServerImports, addServerPlugin, addTemplate, addVitePlugin, createResolver, defineNuxtModule, getLayerDirectories, getNitroVersion, getNuxtModuleVersion, hasNuxtModule, hasNuxtModuleCompatibility, updateTemplates } from '@nuxt/kit'
 import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { findPackageJSON, setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
-import { isAbsolute, join } from 'pathe'
+import { dirname, isAbsolute, join } from 'pathe'
 import { setupBuildHandler } from './build/build'
 import { extractCustomFontFamilies } from './build/css/css-utils'
 import { setupDevHandler } from './build/dev'
@@ -1460,29 +1460,71 @@ export default defineNuxtModule<ModuleOptions>({
       getResolvedFontStateKey(fontState),
       fontRequirementsState.weights,
       fontRequirementsState.styles,
+      fontRequirementsState.families,
+      fontRequirementsState.hasDynamicBindings,
     ])
+    // Requirements for components without their own analysis, shared by the virtual module and the dev font state
+    const globalFontRequirements = () => ({
+      weights: fontRequirementsState.weights,
+      styles: fontRequirementsState.styles,
+      families: fontRequirementsState.families,
+      // Unanalysed components (webpack, rspack) may use any font, like dynamic bindings
+      hasDynamicBindings: fontRequirementsState.hasDynamicBindings || !fontRequirementsState.scanned,
+    })
     // In dev, a family can resolve (Vite transforms CSS lazily), and components can turn out to
-    // use a family or weight (they are analysed lazily), after Nitro built the font list
-    let reloadNitro: (() => Promise<void>) | undefined
+    // use a family or weight (they are analysed lazily), after Nitro built the font list.
+    // Rebuilding Nitro for that restarted the server and dropped in-flight requests, so dev
+    // writes the new list to a file the runtime reads on access instead (readDevFontState).
+    const devFontStatePath = join(nuxt.options.buildDir, 'cache', 'og-image', 'dev-font-state.json')
+    if (nuxt.options.dev)
+      fs.rmSync(devFontStatePath, { force: true })
+    let devFontStateWrite: Promise<void> | undefined
+    let devFontStateStale = false
+    // The key of the last state readers can see; a failed write leaves it behind, so the next change retries
+    let publishedFontKey: string | undefined
+    async function writeDevFontState() {
+      const key = currentFontKey()
+      const fonts = await getFontList()
+      // After the list resolved: it prepares the converted faces these two read
+      const [available, resolvedFontPaths] = await Promise.all([getAvailableFontList(), getResolvedFontPaths()])
+      const state = JSON.stringify({ fonts, available, resolvedFontPaths, requirements: globalFontRequirements() })
+      await mkdir(dirname(devFontStatePath), { recursive: true })
+      // Readers never see a partial file: they keep the previous state until the rename
+      const tmpPath = `${devFontStatePath}.${process.pid}.tmp`
+      await writeFile(tmpPath, state)
+      await rename(tmpPath, devFontStatePath)
+      publishedFontKey = key
+    }
     function refreshDevFonts() {
       // Without Nuxt Fonts, the first dev build already includes every manual face and
       // bundled Inter weight. Lazy component analysis cannot add another font.
-      if (!hasNuxtFonts || !reloadNitro || builtFontKey === undefined || builtFontKey === currentFontKey())
+      if (!nuxt.options.dev || !hasNuxtFonts || builtFontKey === undefined || (publishedFontKey ?? builtFontKey) === currentFontKey())
         return
-      // not awaited: callers run inside Vite transforms
-      reloadNitro().catch((error: Error) => {
-        logger.warn(`Could not rebuild the OG image font list: ${error.message}`)
-      })
-    }
-    if (nuxt.options.dev) {
-      nuxt.hook('nitro:init', (nitro) => {
-        let pending: Promise<void> | undefined
-        reloadNitro = () => pending ||= Promise.resolve().then(async () => {
-          pending = undefined
-          fontProcessingDone = false
-          await nitro.hooks.callHook('rollup:reload')
+      // One write at a time (callers run inside Vite transforms, so it is not awaited);
+      // changes that arrive meanwhile get one more write once it settles
+      if (devFontStateWrite) {
+        devFontStateStale = true
+        return
+      }
+      fontProcessingDone = false
+      devFontStateWrite = writeDevFontState()
+        .catch((error: Error) => {
+          logger.warn(`Could not refresh the OG image font list: ${error.message}`)
         })
-      })
+        .finally(() => {
+          devFontStateWrite = undefined
+          if (devFontStateStale) {
+            devFontStateStale = false
+            refreshDevFonts()
+          }
+        })
+    }
+    // A build embeds the font state; dev reads the latest written state and falls back to the embedded one
+    function fontStateGetter(getter: string, field: 'fonts' | 'available' | 'resolvedFontPaths' | 'requirements') {
+      if (!nuxt.options.dev)
+        return `export function ${getter}() { return _value }`
+      return `import { readDevFontState } from ${JSON.stringify(resolve('./runtime/server/og-image/dev-font-state'))}
+export function ${getter}() { return readDevFontState(${JSON.stringify(devFontStatePath)})?.${field} ?? _value }`
     }
 
     async function resolveFontList() {
@@ -1528,7 +1570,17 @@ export default defineNuxtModule<ModuleOptions>({
 
     async function getFontsModule(readsFilesystem: boolean) {
       const fonts = await getFontList()
-      return `export default ${JSON.stringify(readsFilesystem ? fonts : fonts.map(({ absolutePath: _absolutePath, ...font }) => font))}`
+      return `const _value = ${JSON.stringify(readsFilesystem ? fonts : fonts.map(({ absolutePath: _absolutePath, ...font }) => font))}
+export default _value
+${fontStateGetter('getFonts', 'fonts')}`
+    }
+    function getAvailableFontList() {
+      return hasNuxtFonts
+        ? getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
+        : Promise.resolve([])
+    }
+    function getResolvedFontPaths() {
+      return cacheResolvedFontFiles(nuxtFontFiles, join(nuxt.options.buildDir, 'cache', 'og-image', 'resolved-fonts'))
     }
     nuxt.options.nitro.virtual['#og-image/fonts'] = () => getFontsModule(nuxt.options.dev)
     nuxt.hook('nitro:init', (nitro) => {
@@ -1543,10 +1595,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     // All available fonts (unfiltered) for devtools Fonts tab
     nuxt.options.nitro.virtual['#og-image/fonts-available'] = async () => {
-      const fonts = hasNuxtFonts
-        ? await getResolvedNuxtFonts(nuxt, { fontState, requiredWeights: fontRequirementsState.weights })
-        : []
-      return `export default ${JSON.stringify(fonts)}`
+      return `const _value = ${JSON.stringify(await getAvailableFontList())}
+export default _value
+${fontStateGetter('getAvailableFonts', 'available')}`
     }
 
     // Font requirements virtual module - provides detected font weights/styles from component analysis
@@ -1555,13 +1606,9 @@ export default defineNuxtModule<ModuleOptions>({
       // Wait for any pending analysis to complete before reading state.
       if (pendingFontRequirements.length > 0)
         await Promise.all(pendingFontRequirements)
-      const baseExports = `export const fontRequirements = ${JSON.stringify({
-        weights: fontRequirementsState.weights,
-        styles: fontRequirementsState.styles,
-        families: fontRequirementsState.families,
-        // Unanalysed components (webpack, rspack) may use any font, like dynamic bindings
-        hasDynamicBindings: fontRequirementsState.hasDynamicBindings || !fontRequirementsState.scanned,
-      })}
+      const baseExports = `const _value = ${JSON.stringify(globalFontRequirements())}
+export const fontRequirements = _value
+${fontStateGetter('getFontRequirements', 'requirements')}
 export const hasNuxtFonts = ${JSON.stringify(hasNuxtFonts)}`
       // In dev mode, componentFontMap must be read from disk on each access because
       // virtual modules are cached on first import (before Vite transforms any OG components).
@@ -1590,10 +1637,12 @@ export const tw4Breakpoints = ${JSON.stringify(cssMetadata.breakpoints)}
 export const tw4Colors = ${JSON.stringify(cssMetadata.colors)}`
     }
     nuxt.options.nitro.virtual['#og-image-virtual/build-dir.mjs'] = async () => {
-      const resolvedFontPaths = await cacheResolvedFontFiles(nuxtFontFiles, join(nuxt.options.buildDir, 'cache', 'og-image', 'resolved-fonts'))
+      const resolvedFontPaths = await getResolvedFontPaths()
       return `export const buildDir = ${JSON.stringify(nuxt.options.buildDir)}
 export const rootDir = ${JSON.stringify(nuxt.options.rootDir)}
-export const resolvedFontPaths = ${JSON.stringify(resolvedFontPaths)}
+const _value = ${JSON.stringify(resolvedFontPaths)}
+export const resolvedFontPaths = _value
+${fontStateGetter('getResolvedFontPaths', 'resolvedFontPaths')}
 export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.options.buildDir))}`
     }
 

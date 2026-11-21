@@ -1,9 +1,9 @@
 import { defineEventHandler } from 'nuxt/server'
 import { componentNames } from '#og-image-virtual/component-names.mjs'
 import compatibility from '#og-image/compatibility'
-import { fontRequirements } from '#og-image/font-requirements'
-import resolvedFonts from '#og-image/fonts'
-import availableFonts from '#og-image/fonts-available'
+import { getFontRequirements } from '#og-image/font-requirements'
+import { getFonts } from '#og-image/fonts'
+import { getAvailableFonts } from '#og-image/fonts-available'
 
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { getOgImageOrigin } from '../util/origin'
@@ -19,8 +19,8 @@ export default defineEventHandler(async (e) => {
     componentNames,
     runtimeConfig,
     compatibility,
-    resolvedFonts,
-    availableFonts,
-    fontRequirements,
+    resolvedFonts: getFonts(),
+    availableFonts: getAvailableFonts(),
+    fontRequirements: getFontRequirements(),
   }
 })

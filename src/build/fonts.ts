@@ -9,7 +9,7 @@ import type { ResolvedFontFace } from './css/font-face'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join, relative } from 'pathe'
 import { extractCustomFontFamilies } from './css/css-utils'
 import { fontFacesFromResolved } from './css/font-face'
@@ -71,7 +71,13 @@ export async function cacheResolvedFontFiles(
     const data = await readFont()
     await mkdir(dir, { recursive: true })
     const path = join(dir, createHash('sha256').update(url).update(data).digest('hex'))
-    await writeFile(path, data)
+    // Named by content, so an existing file is already right. Dev refreshes this while Nitro
+    // serves the files, so a new one appears only once complete.
+    if (!existsSync(path)) {
+      const tmpPath = `${path}.${process.pid}.tmp`
+      await writeFile(tmpPath, data)
+      await rename(tmpPath, path)
+    }
     paths[url] = path
   }
   return paths
