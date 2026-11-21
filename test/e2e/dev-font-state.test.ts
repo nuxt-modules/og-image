@@ -1,13 +1,16 @@
 import { createResolver } from '@nuxt/kit'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
-import { extractOgImageUrl } from '../utils'
+import { extractOgImageUrl, setupImageSnapshots, SNAPSHOT_LOOSE } from '../utils'
 
 const { resolve } = createResolver(import.meta.url)
 
-async function resolvedFaces() {
-  const debug = await $fetch('/_og/debug.json') as { resolvedFonts: Array<{ family: string, weight: number }> }
-  return new Set(debug.resolvedFonts.map(font => `${font.family} ${font.weight}`))
+async function fontDebug() {
+  const debug = await $fetch('/_og/debug.json') as {
+    resolvedFonts: Array<{ family: string, weight: number }>
+    fontRequirements: { weights: number[] }
+  }
+  return { faces: new Set(debug.resolvedFonts.map(font => `${font.family} ${font.weight}`)), weights: debug.fontRequirements.weights }
 }
 
 // In dev, OG components are analysed lazily, so their font weights become known after Nitro has
@@ -18,13 +21,16 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev font state', async () => {
     dev: true,
   })
 
+  setupImageSnapshots(SNAPSHOT_LOOSE)
+
   it('serves fonts found by component analysis without restarting the server', async () => {
     const bootId = await $fetch('/api/boot-id')
-    const before = await resolvedFaces()
+    const before = await fontDebug()
 
     const html = await $fetch('/variable-bold') as string
     const png: ArrayBuffer = await $fetch(extractOgImageUrl(html)!, { responseType: 'arrayBuffer' })
-    expect(png.byteLength).toBeGreaterThan(0)
+    // The first render already uses Nunito Sans bold: same snapshot as the build-mode test
+    expect(Buffer.from(png)).toMatchImageSnapshot({ customSnapshotIdentifier: 'multi-font-variable-bold' })
 
     // A restart lands seconds after the analysis; watch long enough to see one
     const seen = new Set([bootId])
@@ -34,8 +40,12 @@ describe.skipIf(!import.meta.env?.TEST_DEV)('dev font state', async () => {
     }
     expect([...seen]).toEqual([bootId])
 
-    const after = await resolvedFaces()
-    expect([...before].filter(face => !after.has(face))).toEqual([])
-    expect(after.size).toBeGreaterThan(before.size)
+    // The faces and requirements analysis found after the build reach the runtime without a rebuild
+    const after = await fontDebug()
+    expect(after.faces.has('Nunito Sans 700')).toBe(true)
+    expect([...before.faces].filter(face => !after.faces.has(face))).toEqual([])
+    expect(after.faces.size).toBeGreaterThan(before.faces.size)
+    expect(after.weights).toContain(700)
+    expect(after.weights.length).toBeGreaterThan(before.weights.length)
   })
 }, 120000)

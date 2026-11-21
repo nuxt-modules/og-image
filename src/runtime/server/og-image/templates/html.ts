@@ -9,7 +9,6 @@ const RE_SCRIPT_TAG = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi
 
 export async function html(ctx: OgImageRenderEventContext) {
   const { options } = ctx
-  const fonts = getFonts() as FontConfig[]
 
   if (!options.component) {
     throw createError({
@@ -19,6 +18,8 @@ export async function html(ctx: OgImageRenderEventContext) {
   }
   const islandTimeout = ctx.runtimeConfig.security?.renderTimeout ?? 15_000
   const island = await fetchIsland(ctx.e, ctx.options.component!, typeof ctx.options.props !== 'undefined' ? ctx.options.props as Record<string, any> : ctx.options, islandTimeout)
+  // Read after the island: rendering it can analyse the component and publish new fonts
+  const fonts = getFonts() as FontConfig[]
   const head = createHead()
   head.push(island.head)
 

@@ -2,7 +2,7 @@ import type { H3Event } from '#nuxtseo/h3'
 import type { FontConfig, OgImageRenderEventContext, RuntimeFontConfig } from '../../types'
 import type { FontFormat } from './font-source'
 import { resolve } from '#og-image-virtual/public-assets.mjs'
-import { fontRequirements, getComponentFontMap } from '#og-image/font-requirements'
+import { getComponentFontMap, getFontRequirements } from '#og-image/font-requirements'
 import { getFonts } from '#og-image/fonts'
 import { getAvailableFonts } from '#og-image/fonts-available'
 import { logger } from '../../logger'
@@ -10,6 +10,8 @@ import { fontArrayCache, fontCache } from './cache/lru'
 import { isWoff2Binary, parseFontBinary } from './font-binary'
 import { fontFormat, selectFontSource } from './font-source'
 import { codepointsIntersectRanges, parseUnicodeRange } from './unicode-range'
+
+type FontRequirements = ReturnType<typeof getFontRequirements>
 
 export { buildSubsetFamilyChain, renameSubsetFonts, resolveSubsetChain } from './font-subsets'
 export { codepointsIntersectRanges, extractCodepoints, parseUnicodeRange } from './unicode-range'
@@ -72,7 +74,7 @@ function findClosestWeight(target: number, available: number[]): number {
  * Select fonts matching requirements with closest-weight fallback.
  * Groups by family and for each required weight picks exact match or closest available.
  */
-function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof fontRequirements): FontConfig[] {
+function selectFontsForRequirements(allFonts: FontConfig[], requirements: FontRequirements): FontConfig[] {
   if (requirements.hasDynamicBindings)
     return [...allFonts]
 
@@ -122,11 +124,11 @@ function selectFontsForRequirements(allFonts: FontConfig[], requirements: typeof
 
 export function loadAllFontsDebug(component?: string) {
   const map = getComponentFontMap()
-  const componentReqs = component ? (map as Record<string, typeof fontRequirements>)[component] : null
+  const componentReqs = component ? (map as Record<string, FontRequirements>)[component] : null
   return {
     component,
     componentReqs: componentReqs ? { families: componentReqs.families, weights: componentReqs.weights, hasDynamicBindings: componentReqs.hasDynamicBindings } : null,
-    globalReqs: { families: fontRequirements.families, weights: fontRequirements.weights },
+    globalReqs: { families: getFontRequirements().families, weights: getFontRequirements().weights },
     componentFontMapKeys: Object.keys(map),
     resolvedFontFamilies: [...new Set((getFonts() as FontConfig[]).map(f => f.family))],
   }
@@ -134,9 +136,9 @@ export function loadAllFontsDebug(component?: string) {
 
 function selectFonts(options: LoadFontsOptions) {
   const map = getComponentFontMap()
-  const componentReqs = options.component ? (map as Record<string, typeof fontRequirements>)[options.component] : null
+  const componentReqs = options.component ? (map as Record<string, FontRequirements>)[options.component] : null
   const usingGlobalFallback = !!(componentReqs && componentReqs.hasDynamicBindings)
-  const reqs = (componentReqs && !componentReqs.hasDynamicBindings) ? componentReqs : fontRequirements
+  const reqs = (componentReqs && !componentReqs.hasDynamicBindings) ? componentReqs : getFontRequirements()
   const fonts = selectFontsForRequirements(getFonts() as FontConfig[], reqs)
 
   // Supplement with override family from available (unfiltered) fonts if not already loaded

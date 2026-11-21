@@ -135,6 +135,8 @@ declare module '#og-image/font-requirements' {
     hasDynamicBindings: boolean
     category?: 'app' | 'community' | 'pro'
   }>
+  /** The current requirements: in dev they follow components analysed after Nitro was built */
+  export function getFontRequirements(): typeof fontRequirements
   export const hasNuxtFonts: boolean
 }
 

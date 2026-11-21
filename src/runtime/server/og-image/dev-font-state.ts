@@ -4,6 +4,7 @@ export interface DevFontState {
   fonts: unknown[]
   available: unknown[]
   resolvedFontPaths: Record<string, string>
+  requirements: unknown
 }
 
 let cachedPath: string | undefined
