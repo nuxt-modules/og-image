@@ -56,6 +56,11 @@ describe('generateMeta with video', () => {
     expect(contentOf(generateMeta(url, options), 'og:video')).toBeUndefined()
   })
 
+  it('emits no og:video for a prebuilt image url', () => {
+    const prebuilt = { url: 'https://cdn.example.com/card.png', video: true } as any
+    expect(contentOf(generateMeta('https://cdn.example.com/card.png', prebuilt), 'og:video')).toBeUndefined()
+  })
+
   it('emits no og:video for the twitter key', () => {
     expect(contentOf(generateMeta(url, { ...options, video: true, key: 'twitter' }), 'og:video')).toBeUndefined()
   })

@@ -50,7 +50,9 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
     if (!isTwitterOnly)
       meta.push({ property: 'og:image:height', content: resolvedOptions.height })
   }
-  if ('video' in resolvedOptions && resolvedOptions.video && !isTwitterOnly) {
+  // A prebuilt image has no rendered MP4 next to it.
+  const isPrebuilt = 'url' in resolvedOptions && !!resolvedOptions.url
+  if ('video' in resolvedOptions && resolvedOptions.video && !isTwitterOnly && !isPrebuilt) {
     const videoUrl = () => toVideoUrl(toValue(url) as string)
     meta.push({ property: 'og:video', content: videoUrl })
     meta.push({ property: 'og:video:secure_url', content: videoUrl })

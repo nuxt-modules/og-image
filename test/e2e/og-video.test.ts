@@ -137,4 +137,13 @@ describe.runIf(runVideoTests)('og:video', () => {
     const res = await fetch(video.pathname)
     expect(Buffer.from(await res.arrayBuffer()).subarray(4, 8).toString()).toBe('ftyp')
   })
+
+  it('fetches a template image once per video, not once per frame', async () => {
+    const before = (await $fetch<{ hits: number }>('/logo-hits')).hits
+    const res = await fetchVideo('/logo/runtime')
+    expect(res.headers.get('content-type')).toBe('video/mp4')
+    const { frames } = measureMotion(new Uint8Array(await res.arrayBuffer()))
+    expect(frames).toBe(10)
+    expect((await $fetch<{ hits: number }>('/logo-hits')).hits - before).toBe(1)
+  }, 60_000)
 })

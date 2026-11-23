@@ -167,8 +167,18 @@ async function createTakumiScene(event: OgImageRenderEventContext, { evenDimensi
 
   const failedFontKeys = new Set<string>()
   let fontLoaders = fontEntries.map(entry => createFontLoader(entry, failedFontKeys))
-  // Video frames prepare the same tree many times. The cache fetches each image once.
-  const fetchCache = new Map<string, Promise<ArrayBuffer>>()
+  // Video frames prepare the same tree many times, so each image URL downloads once per render.
+  // The memo lives here because the worker binding does not forward Takumi's `fetchCache`.
+  const imageBytes = new Map<string, Promise<ArrayBuffer>>()
+  const fetchImageOnce = async (src: string) => {
+    let bytes = imageBytes.get(src)
+    if (!bytes) {
+      bytes = fetchImage(event, src, fetchTimeout).then(res => res.arrayBuffer())
+      imageBytes.set(src, bytes)
+    }
+    // A Response copies its body, so a binding that transfers the bytes leaves the memo intact.
+    return new Response(await bytes)
+  }
   const signal = AbortSignal.timeout(renderTimeout)
   const prepareWith = (loaders: typeof fontLoaders, timeMs: number | undefined) => renderer.prepare(nodes, {
     width,
@@ -182,12 +192,11 @@ async function createTakumiScene(event: OgImageRenderEventContext, { evenDimensi
     timeMs: timeMs === undefined ? undefined : Math.round(Number(timeMs)) || 0,
     images: {
       sources: normalizeImageSources(options.takumi?.images),
-      fetch: src => fetchImage(event, src, fetchTimeout),
+      fetch: fetchImageOnce,
       // Defense-in-depth: any URL surviving the imageSrc transformer is re-validated here.
       allowUrl: src => src.startsWith('/') || (import.meta.dev ? RE_HTTP_URL.test(src) : !isBlockedUrl(src)),
       timeout: fetchTimeout,
       throwOnError: false,
-      fetchCache,
     },
     signal,
   })
