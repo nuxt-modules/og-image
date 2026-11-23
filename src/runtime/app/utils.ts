@@ -149,6 +149,12 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
           : undefined
         const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
+        // Only Takumi renders video. Any other renderer would answer the og:video URL with an error.
+        if (opts.video && resolvedComponent?.renderer !== 'takumi') {
+          if (import.meta.dev)
+            console.warn(`[nuxt-og-image] The \`video\` option needs a Takumi component. "${resolvedComponentName}" renders with ${resolvedComponent?.renderer || 'an unknown renderer'}, so the page gets no og:video.`)
+          delete opts.video
+        }
         // Inject title/description from head entries if not explicitly set AND the component declares them
         if (seo) {
           if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))

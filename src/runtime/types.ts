@@ -189,8 +189,8 @@ export interface OgImageOptions {
     devicePixelRatio?: number
     /** Point on the animation timeline to render for still images, in milliseconds. */
     timeMs?: number
-    /** Keyframes and stylesheets passed to takumi, e.g. `[{ keyframes: 'move', steps: [...] }]`. */
-    css?: any[]
+    /** Stylesheet text or CSS rules passed to takumi, e.g. `[{ keyframes: 'move', steps: [...] }]`. */
+    css?: Array<string | Record<string, any>>
   }
   /** @deprecated Legacy font override — no longer used at runtime */
   fonts?: any

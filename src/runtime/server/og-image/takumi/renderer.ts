@@ -1,4 +1,4 @@
-import type { Renderer as TakumiNativeRenderer } from '@takumi-rs/core'
+import type { CssInput, Renderer as TakumiNativeRenderer } from '@takumi-rs/core'
 import type { OgImageRenderEventContext, Renderer } from '../../../types'
 import { withBase } from 'ufo'
 import { fetchLocalAsset } from '../../util/fetchLocalAsset'
@@ -9,6 +9,7 @@ import { TAKUMI_FORMATS } from '../font-source'
 import { getDefaultFontFamily, loadFontsForRenderer, parseUnicodeRange, selectLazyFonts } from '../fonts'
 import { getTakumi } from './instances'
 import { createTakumiNodes } from './nodes'
+import { createMp4Encoder, resolveVideoOptions, videoFrameTimes } from './video'
 
 async function getTakumiRenderer(event: OgImageRenderEventContext): Promise<TakumiNativeRenderer> {
   const nitro = event._nitro as any
@@ -121,7 +122,16 @@ function normalizeImageSources(images: Array<{ src: string, data: ArrayBuffer | 
   }))
 }
 
-async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
+interface TakumiSceneOptions {
+  /** libx264 with yuv420p needs even dimensions. */
+  evenDimensions: boolean
+}
+
+/**
+ * Build the template's node tree once and return a function that prepares it at a point on its animation timeline.
+ * A still image prepares once; a video prepares once per frame, because Takumi reads `timeMs` at prepare time.
+ */
+async function createTakumiScene(event: OgImageRenderEventContext, { evenDimensions }: TakumiSceneOptions) {
   const { options, timings } = event
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
@@ -147,17 +157,29 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
   const maxDpr = event.runtimeConfig.security?.maxDpr || 2
   const maxDim = event.runtimeConfig.security?.maxDimension || 2048
   const dpr = Math.min(Math.max(1, options.takumi?.devicePixelRatio ?? 1), maxDpr)
+  const dimension = (size: unknown) => {
+    const pixels = Math.floor(Math.min(Number(size) * dpr, maxDim))
+    return evenDimensions ? pixels - (pixels % 2) : pixels
+  }
+  const width = dimension(options.width)
+  const height = dimension(options.height)
   const fetchTimeout = getFetchTimeout(event.runtimeConfig)
 
   const failedFontKeys = new Set<string>()
-  const fontLoaders = fontEntries.map(entry => createFontLoader(entry, failedFontKeys))
+  let fontLoaders = fontEntries.map(entry => createFontLoader(entry, failedFontKeys))
+  // Video frames prepare the same tree many times. The cache fetches each image once.
+  const fetchCache = new Map<string, Promise<ArrayBuffer>>()
   const signal = AbortSignal.timeout(renderTimeout)
-  const prepare = (loaders: typeof fontLoaders) => renderer.prepare(nodes, {
-    width: Math.min(Number(options.width) * dpr, maxDim),
-    height: Math.min(Number(options.height) * dpr, maxDim),
+  const prepareWith = (loaders: typeof fontLoaders, timeMs: number | undefined) => renderer.prepare(nodes, {
+    width,
+    height,
     devicePixelRatio: dpr,
     fonts: loaders,
     fontFamilies: [...loadedFamilies],
+    // The rules come from the image URL. Takumi parses them and rejects an invalid rule.
+    css: options.takumi?.css as CssInput[] | undefined,
+    // Takumi accepts whole milliseconds only.
+    timeMs: timeMs === undefined ? undefined : Math.round(Number(timeMs)) || 0,
     images: {
       sources: normalizeImageSources(options.takumi?.images),
       fetch: src => fetchImage(event, src, fetchTimeout),
@@ -165,27 +187,76 @@ async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jp
       allowUrl: src => src.startsWith('/') || (import.meta.dev ? RE_HTTP_URL.test(src) : !isBlockedUrl(src)),
       timeout: fetchTimeout,
       throwOnError: false,
+      fetchCache,
     },
     signal,
   })
 
-  return await withTimeout((async () => {
-    try {
-      // A font that fails to load rejects prepare(), so render without it instead.
-      const prepared = await timings.measure('takumi-prepare', () => prepare(fontLoaders).catch((err) => {
+  return {
+    renderer,
+    width,
+    height,
+    signal,
+    renderTimeout,
+    prepare(timeMs: number | undefined) {
+      // A font that fails to load rejects prepare(), so render without it instead. Later frames skip it too.
+      return prepareWith(fontLoaders, timeMs).catch((err) => {
         if (failedFontKeys.size === 0) {
           throw err
         }
-        return prepare(fontLoaders.filter(loader => !failedFontKeys.has(loader.key)))
-      }))
-      return await timings.measure('render-takumi', () => renderer.render(prepared, { format: options.takumi?.format ?? format, signal }))
+        fontLoaders = fontLoaders.filter(loader => !failedFontKeys.has(loader.key))
+        return prepareWith(fontLoaders, timeMs)
+      })
+    },
+    /** Start from a fresh Renderer after a failure, so a trapped WASM instance is not reused. */
+    discardRenderer() {
+      delete (event._nitro as any)._takumiRenderer
+    },
+  }
+}
+
+async function createImage(event: OgImageRenderEventContext, format: 'png' | 'jpeg' | 'webp') {
+  const { options, timings } = event
+  const scene = await createTakumiScene(event, { evenDimensions: false })
+  return await withTimeout((async () => {
+    try {
+      const prepared = await timings.measure('takumi-prepare', () => scene.prepare(options.takumi?.timeMs))
+      return await timings.measure('render-takumi', () => scene.renderer.render(prepared, { format: options.takumi?.format ?? format, signal: scene.signal }))
     }
     catch (err) {
-      // Start from a fresh Renderer after a failure, so a trapped WASM instance is not reused.
-      delete (event._nitro as any)._takumiRenderer
+      scene.discardRenderer()
       throw err
     }
-  })(), renderTimeout, 'takumi render')
+  })(), scene.renderTimeout, 'takumi render')
+}
+
+async function createVideo(event: OgImageRenderEventContext) {
+  const { options, timings } = event
+  const video = resolveVideoOptions(options.video)
+  const scene = await createTakumiScene(event, { evenDimensions: true })
+  return await withTimeout((async () => {
+    const encoder = await createMp4Encoder({
+      ffmpeg: globalThis.process?.env.NUXT_OG_IMAGE_FFMPEG || 'ffmpeg',
+      width: scene.width,
+      height: scene.height,
+      fps: video.fps,
+      signal: scene.signal,
+    })
+    try {
+      await timings.measure('render-takumi', async () => {
+        for (const timeMs of videoFrameTimes(video)) {
+          const prepared = await scene.prepare(timeMs)
+          await encoder.write(await scene.renderer.render(prepared, { format: 'raw', signal: scene.signal }))
+        }
+      })
+      return await timings.measure('encode-mp4', () => encoder.finish())
+    }
+    catch (err) {
+      await encoder.abort()
+      scene.discardRenderer()
+      throw err
+    }
+  })(), scene.renderTimeout, 'takumi video render')
 }
 
 async function fetchImage(event: OgImageRenderEventContext, src: string, fetchTimeout: number): Promise<Response> {
@@ -222,7 +293,7 @@ async function fetchImage(event: OgImageRenderEventContext, src: string, fetchTi
 
 const TakumiRenderer: Renderer = {
   name: 'takumi',
-  supportedFormats: ['png', 'jpeg', 'jpg', 'webp', 'json'],
+  supportedFormats: ['png', 'jpeg', 'jpg', 'webp', 'json', 'mp4'],
 
   async createImage(e) {
     switch (e.extension) {
@@ -233,6 +304,8 @@ const TakumiRenderer: Renderer = {
         return createImage(e, 'jpeg')
       case 'webp':
         return createImage(e, 'webp')
+      case 'mp4':
+        return createVideo(e)
     }
   },
 

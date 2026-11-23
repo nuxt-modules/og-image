@@ -163,6 +163,13 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
           statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
         })
       }
+      // A video costs one render per frame, so render one only for an image that asked for it.
+      if (!ctx.options.video) {
+        return createError({
+          statusCode: 400,
+          statusMessage: `[Nuxt OG Image] og:video is not enabled for this image. Set the \`video\` option in defineOgImage().`,
+        })
+      }
       setHeader(e, 'Content-Type', 'video/mp4')
       break
     default:

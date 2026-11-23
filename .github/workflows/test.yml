@@ -59,6 +59,32 @@ jobs:
 
       - run: pnpm run test:takumi:e2e
 
+  og-video:
+    name: og:video (ffmpeg)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: package.json
+
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm dev:prepare
+
+      # HAS_FFMPEG makes the tests fail, instead of skip, when ffmpeg is missing.
+      - run: pnpm exec vitest run test/unit/og-video.test.ts test/e2e/og-video.test.ts
+        env:
+          HAS_FFMPEG: true
+
   browser-prerender:
     name: Browser prerender (screenshot pages)
     runs-on: ubuntu-latest

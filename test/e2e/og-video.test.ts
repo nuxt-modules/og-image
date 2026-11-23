@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
-import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch, fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
 
 const { resolve } = createResolver(import.meta.url)
@@ -15,46 +15,126 @@ try {
 catch {
   hasFfmpeg = false
 }
+// CI sets HAS_FFMPEG on the job that installs ffmpeg, so a missing binary fails there instead of skipping.
+const runVideoTests = hasFfmpeg || !!process.env.HAS_FFMPEG
 
-await setup({
-  rootDir: resolve('../fixtures/og-video'),
-  server: true,
-  build: true,
-})
+// The fixture prerenders an og:video, so its build needs ffmpeg.
+if (runVideoTests) {
+  await setup({
+    rootDir: resolve('../fixtures/og-video'),
+    server: true,
+    build: true,
+  })
+}
 
-describe.runIf(hasFfmpeg)('og:video', () => {
+function metaContent(html: string, property: string) {
+  return html.match(new RegExp(`<meta property="${property}" content="([^"]+)"`))?.[1]?.replaceAll('&amp;', '&')
+}
+
+function localPath(url: string) {
+  const { pathname, search } = new URL(url)
+  return pathname + search
+}
+
+async function fetchVideo(page: string) {
+  const video = metaContent(await $fetch<string>(page), 'og:video')
+  if (!video)
+    throw new Error(`${page} has no og:video`)
+  return fetch(localPath(video))
+}
+
+const PROBE_WIDTH = 120
+const PROBE_HEIGHT = 60
+
+/**
+ * Decode the video to small gray frames and return the frame count and the largest mean
+ * pixel difference from the first frame, on a 0 to 255 scale. Lossy encoding moves a
+ * still frame by well under one level; an animation moves it by several.
+ */
+function measureMotion(mp4: Uint8Array) {
+  const file = join(mkdtempSync(join(tmpdir(), 'og-video-')), 'video.mp4')
+  writeFileSync(file, mp4)
+  const pixels = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-vf', `scale=${PROBE_WIDTH}:${PROBE_HEIGHT},format=gray`, '-f', 'rawvideo', '-'], { maxBuffer: 64 * 1024 * 1024 })
+  const size = PROBE_WIDTH * PROBE_HEIGHT
+  const frames = pixels.byteLength / size
+  let motion = 0
+  for (let frame = 1; frame < frames; frame++) {
+    let diff = 0
+    for (let i = 0; i < size; i++)
+      diff += Math.abs(pixels[frame * size + i]! - pixels[i]!)
+    motion = Math.max(motion, diff / size)
+  }
+  return { frames, motion }
+}
+
+describe.runIf(runVideoTests)('og:video', () => {
   it('emits og:video next to og:image', async () => {
-    const html = await $fetch('/invite/AB12') as string
-    const image = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1]
-    const video = html.match(/<meta property="og:video" content="([^"]+)"/)?.[1]
+    const html = await $fetch<string>('/invite/AB12')
+    const image = metaContent(html, 'og:image')
     expect(image).toMatch(/\.png$/)
-    expect(video).toBe(image!.replace(/\.png$/, '.mp4'))
-    expect(html).toContain('<meta property="og:video:type" content="video/mp4">')
+    expect(metaContent(html, 'og:video')).toBe(image!.replace(/\.png$/, '.mp4'))
+    expect(metaContent(html, 'og:video:type')).toBe('video/mp4')
   })
 
   it('renders the template animation to an H.264 mp4', async () => {
-    const html = await $fetch('/invite/AB12') as string
-    const video = html.match(/<meta property="og:video" content="([^"]+)"/)![1]!
-    const res = await fetch(new URL(video.replaceAll('&amp;', '&')).pathname)
+    const res = await fetchVideo('/invite/AB12')
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('video/mp4')
     const bytes = Buffer.from(await res.arrayBuffer())
     // ISO BMFF: `ftyp` box at offset 4, and `+faststart` puts `moov` before `mdat`
     expect(bytes.subarray(4, 8).toString()).toBe('ftyp')
     expect(bytes.indexOf('moov')).toBeLessThan(bytes.indexOf('mdat'))
-  }, 60000)
+  }, 60_000)
+
+  it('animates Tailwind animate-* classes', async () => {
+    const res = await fetchVideo('/invite/AB12')
+    const { frames, motion } = measureMotion(new Uint8Array(await res.arrayBuffer()))
+    expect(frames).toBe(60)
+    expect(motion).toBeGreaterThan(2)
+  }, 60_000)
+
+  it('renders a template without animations to still frames', async () => {
+    const res = await fetchVideo('/still-video')
+    const { frames, motion } = measureMotion(new Uint8Array(await res.arrayBuffer()))
+    expect(frames).toBe(5)
+    expect(motion).toBeLessThan(1)
+  }, 60_000)
 
   it('animates keyframes passed through takumi.css', async () => {
-    const html = await $fetch('/float') as string
-    const video = html.match(/<meta property="og:video" content="([^"]+)"/)![1]!
-    const res = await fetch(new URL(video.replaceAll('&amp;', '&')).pathname)
-    const file = join(mkdtempSync(join(tmpdir(), 'og-video-')), 'float.mp4')
-    writeFileSync(file, Buffer.from(await res.arrayBuffer()))
-    const hashes = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-f', 'framemd5', '-'], { encoding: 'utf8' })
-      .split('\n')
-      .filter(line => line && !line.startsWith('#'))
-      .map(line => line.split(',').pop()!.trim())
-    expect(hashes).toHaveLength(10)
-    expect(new Set(hashes).size).toBeGreaterThan(1)
-  }, 60000)
+    const res = await fetchVideo('/float')
+    const { frames, motion } = measureMotion(new Uint8Array(await res.arrayBuffer()))
+    expect(frames).toBe(10)
+    expect(motion).toBeGreaterThan(2)
+  }, 60_000)
+
+  it('keeps the image and the video of one URL apart in the cache', async () => {
+    const html = await $fetch<string>('/invite/CACHE')
+    const png = await fetch(localPath(metaContent(html, 'og:image')!))
+    expect(png.headers.get('content-type')).toBe('image/png')
+    const mp4 = await fetch(localPath(metaContent(html, 'og:video')!))
+    expect(mp4.headers.get('content-type')).toBe('video/mp4')
+    expect(Buffer.from(await mp4.arrayBuffer()).subarray(4, 8).toString()).toBe('ftyp')
+  }, 60_000)
+
+  it('rejects an mp4 request for an image without video', async () => {
+    const html = await $fetch<string>('/still')
+    expect(metaContent(html, 'og:video')).toBeUndefined()
+    const res = await fetch(localPath(metaContent(html, 'og:image')!).replace(/\.png(?=$|\?)/, '.mp4'))
+    expect(res.status).toBe(400)
+  })
+
+  it('omits og:video for a renderer that cannot render video', async () => {
+    const html = await $fetch<string>('/satori')
+    expect(metaContent(html, 'og:image')).toBeDefined()
+    expect(metaContent(html, 'og:video')).toBeUndefined()
+  })
+
+  it('prerenders the video next to the image', async () => {
+    const video = new URL(metaContent(await $fetch<string>('/invite/GR8F'), 'og:video')!)
+    expect(video.pathname).toMatch(/^\/_og\/s\/.+\.mp4$/)
+    const { buildDir } = useTestContext().nuxt!.options
+    expect(existsSync(join(buildDir, 'output', 'public', video.pathname))).toBe(true)
+    const res = await fetch(video.pathname)
+    expect(Buffer.from(await res.arrayBuffer()).subarray(4, 8).toString()).toBe('ftyp')
+  })
 })
