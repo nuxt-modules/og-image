@@ -31,6 +31,21 @@ describe('video URL encoding', () => {
     expect(decodeOgImageParams(encodeOgImageParams({ video: {} })).video).toBe(true)
   })
 
+  it('keeps a component prop named video apart from the video option', () => {
+    const propOnly = decodeOgImageParams(encodeOgImageParams({ props: { video: 'clip' } }))
+    expect(propOnly.props?.video).toBe('clip')
+    expect(propOnly.video).toBeUndefined()
+    const both = decodeOgImageParams(encodeOgImageParams({ props: { video: 'clip' }, video: true }))
+    expect(both.props?.video).toBe('clip')
+    expect(both.video).toBe(true)
+  })
+
+  it('decodes an inline video param from an older URL as a component prop', () => {
+    const decoded = decodeOgImageParams('c_Card,video_clip')
+    expect(decoded.props?.video).toBe('clip')
+    expect(decoded.video).toBeUndefined()
+  })
+
   it('keeps video settings', () => {
     expect(decodeOgImageParams(encodeOgImageParams({ video: { durationMs: 2000 } })).video).toEqual({ durationMs: 2000 })
   })

@@ -123,6 +123,21 @@ describe.runIf(runVideoTests)('og:video', () => {
     expect(Buffer.from(await mp4.arrayBuffer()).subarray(4, 8).toString()).toBe('ftyp')
   }, 60_000)
 
+  it('answers byte-range requests on a cache miss and a cache hit', async () => {
+    const video = localPath(metaContent(await $fetch<string>('/invite/RANGE'), 'og:video')!)
+    for (const attempt of ['miss', 'hit']) {
+      const res = await fetch(video, { headers: { range: 'bytes=0-1' } })
+      expect(res.status, attempt).toBe(206)
+      expect(res.headers.get('content-range'), attempt).toMatch(/^bytes 0-1\/\d+$/)
+      expect(res.headers.get('accept-ranges'), attempt).toBe('bytes')
+      expect((await res.arrayBuffer()).byteLength, attempt).toBe(2)
+    }
+    const full = await fetch(video)
+    expect(full.status).toBe(200)
+    const size = Number((await fetch(video, { headers: { range: 'bytes=0-0' } })).headers.get('content-range')!.split('/')[1])
+    expect((await full.arrayBuffer()).byteLength).toBe(size)
+  }, 60_000)
+
   it('rejects an mp4 request for an image without video', async () => {
     const html = await $fetch<string>('/still')
     expect(metaContent(html, 'og:video')).toBeUndefined()

@@ -30,7 +30,12 @@ vi.mock('#nuxtseo/h3', () => ({
   },
   H3Error: Error,
   createError: (input: object) => Object.assign(new Error('HTTP error'), input),
+  getRequestHeader: (event: H3Event, name: string) => event.node?.req.headers[name.toLowerCase()] as string | undefined,
   getRequestHost: () => 'localhost',
+  setResponseStatus: (event: H3Event, code: number) => {
+    if (event.node?.res)
+      event.node.res.statusCode = code
+  },
   sendRedirect: (event: H3Event, url: string, status: number) => {
     event.node.res.statusCode = status
     event.node.res.setHeader('Location', url)

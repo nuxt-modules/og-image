@@ -1,5 +1,5 @@
 import type { H3Event } from '#nuxtseo/h3'
-import { appendResponseHeader, createError, getRequestHost, H3Error, sendRedirect, setHeader } from '#nuxtseo/h3'
+import { appendResponseHeader, createError, getRequestHeader, getRequestHost, H3Error, sendRedirect, setHeader, setResponseStatus } from '#nuxtseo/h3'
 import { useStorage } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
@@ -10,6 +10,7 @@ import { resolveContext } from '../og-image/context'
 import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
+import { parseByteRange } from './byteRange'
 import { useOgImageBufferCache } from './cache'
 import { warnPublishUnavailable } from './publishWarnings'
 import { parsePurgeRequest } from './purge'
@@ -307,5 +308,29 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       e.waitUntil(task)
     }
   }
+  if (extension === 'mp4')
+    return sendVideoRange(e, image)
   return image
+}
+
+/**
+ * Safari and other video players read an MP4 in byte ranges, so a cached video and a fresh render
+ * both answer a `Range` request with only the requested bytes.
+ */
+function sendVideoRange(e: H3Event, video: BufferSource | Buffer | Uint8Array) {
+  const bytes = ArrayBuffer.isView(video) ? new Uint8Array(video.buffer, video.byteOffset, video.byteLength) : new Uint8Array(video)
+  setHeader(e, 'Accept-Ranges', 'bytes')
+  const range = parseByteRange(getRequestHeader(e, 'range'), bytes.byteLength)
+  switch (range._tag) {
+    case 'Full':
+      return video
+    case 'Unsatisfiable':
+      setResponseStatus(e, 416)
+      setHeader(e, 'Content-Range', `bytes */${bytes.byteLength}`)
+      return ''
+    case 'Partial':
+      setResponseStatus(e, 206)
+      setHeader(e, 'Content-Range', `bytes ${range.start}-${range.end}/${bytes.byteLength}`)
+      return bytes.subarray(range.start, range.end + 1)
+  }
 }
