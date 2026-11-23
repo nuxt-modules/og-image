@@ -39,6 +39,7 @@ await setup({
 interface OgUrlResponse {
   url: string
   punctuated: string
+  escapedPropNames: string
   current: string
 }
 
@@ -79,6 +80,13 @@ describe('getOgImageUrl in a Nitro handler', () => {
       expect(result.status).toBe(200)
       expect(result.headers.get('content-type')).toContain('image/png')
     }
+  }, 60000)
+
+  it('renders a signed URL with percent escapes and apostrophes in prop names', async () => {
+    const { escapedPropNames } = await $fetch<OgUrlResponse>('/prefix/og-url')
+    const image = await fetch(new URL(escapedPropNames).pathname)
+    expect(image.status).toBe(200)
+    expect(image.headers.get('content-type')).toContain('image/png')
   }, 60000)
 
   it('asks for the complete URL when the signature suffix is missing', async () => {

@@ -38,6 +38,7 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
+const RE_INLINE_PROP_NAME = /^[a-z0-9]+$/i
 const RE_SIGNATURE_SUFFIX = /,s_[^,]+$/
 // eslint-disable-next-line no-control-regex
 const RE_NON_ASCII = /[^\u0000-\u007F]/
@@ -214,13 +215,13 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     if (key === 'props' && typeof value === 'object') {
       // Flatten simple props to top level
       for (const [propKey, propValue] of Object.entries(value)) {
-        if (propValue === undefined || propValue === null)
+        if (propValue === undefined || propValue === null || propValue === '')
           continue
-        if (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean') {
+        if (RE_INLINE_PROP_NAME.test(propKey) && (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean')) {
           flattened[propKey] = propValue
         }
         else {
-          // Complex prop value - keep in props for base64 encoding
+          // Base64 protects names and values that cannot be represented inline.
           flattened.props = flattened.props || {}
           flattened.props[propKey] = propValue
         }
@@ -374,7 +375,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
       }
     }
     else if (paramName === 'props') {
-      // Base64 encoded remaining complex props
+      // Base64 encoded remaining props
       try {
         const json = b64Decode(value)
         options.props = { ...options.props, ...JSON.parse(json) }
