@@ -49,6 +49,7 @@ import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build
 import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
+import { isOgImageComponentPath, resolveWatchedPath } from './build/watch-paths'
 import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
@@ -1895,7 +1896,10 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
 
       // HMR: single watcher using dirty flags for CSS, eager only for component add/remove
       nuxt.hook('builder:watch', async (event, relativePath) => {
-        const absolutePath = isAbsolute(relativePath) ? relativePath : join(nuxt.options.rootDir, relativePath)
+        const absolutePath = resolveWatchedPath(relativePath, {
+          rootDir: nuxt.options.rootDir,
+          srcDir: nuxt.options.srcDir,
+        })
 
         // CSS file change → mark dirty, flushed lazily on next OG image render
         if (absolutePath.endsWith('.css') && nuxt.options.css.some((entry) => {
@@ -1915,10 +1919,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         if (!absolutePath.endsWith('.vue'))
           return
 
-        const isOgImageComponent = config.componentDirs.some((dir) => {
-          const componentDir = join(nuxt.options.srcDir, 'components', dir)
-          return absolutePath.startsWith(componentDir)
-        })
+        const isOgImageComponent = isOgImageComponentPath(absolutePath, nuxt.options.srcDir, config.componentDirs)
 
         // OG image component add/remove → updates component registry + Nitro rebuild
         if (isOgImageComponent && (event === 'add' || event === 'unlink')) {
