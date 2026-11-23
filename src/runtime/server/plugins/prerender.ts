@@ -21,9 +21,9 @@ function getPayloadFromHtml(html: string): string | null {
   return match ? String(match[1]) : null
 }
 
-function replaceImageUrls(head: string[], path: string, resolve: (source: string) => string): string[] {
+function replaceMediaUrls(head: string[], path: string, resolve: (source: string) => string): string[] {
   return head.map(entry => entry.replace(/(<meta\b[^>]+\bcontent=")([^"]*)("[^>]*>)/g, (tag, start, url, end) => {
-    if (!/\b(?:property|name)="(?:og:image(?::url|:secure_url)?|twitter:image(?::src)?)"/.test(tag))
+    if (!/\b(?:property|name)="(?:og:image(?::url|:secure_url)?|og:video(?::url|:secure_url)?|twitter:image(?::src)?)"/.test(tag))
       return tag
     const source = url.replace(/&amp;/g, '&')
     const urlPath = parseURL(source).pathname
@@ -108,7 +108,7 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
             })
             if (result._tag === 'Published') {
               // Replace only the finalized image URL, preserving all other metadata.
-              html.head = replaceImageUrls(html.head, prerenderPath, () => result.url)
+              html.head = replaceMediaUrls(html.head, prerenderPath, () => result.url)
               prerenderPaths.delete(ogKey)
             }
             else if (!publishWarningShown) {
@@ -125,7 +125,7 @@ export default defineNitroPlugin(async (nitro: { hooks: Hookable<any>, localFetc
       for (const prerenderPath of prerenderPaths.values()) {
         if (app.cdnURL && prerenderPath.includes('/_og/s/')) {
           const imageURL = joinURL(app.cdnURL, withoutBase(prerenderPath, app.baseURL))
-          html.head = replaceImageUrls(html.head, prerenderPath, source => `${imageURL}${parseURL(source).search || ''}`)
+          html.head = replaceMediaUrls(html.head, prerenderPath, source => `${imageURL}${parseURL(source).search || ''}`)
         }
         appendResponseHeader(ctx.event, 'x-nitro-prerender', prerenderPath)
       }

@@ -167,6 +167,8 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
         // setups where pages are prerendered but OG images are served dynamically.
         const isStatic = import.meta.prerender && !(ogImageConfig.security?.secret && ogImageConfig.security?.strict)
+        // A runtime MP4 render needs a signed URL. Without signing, advertise only a video the build prerenders.
+        const videoAvailable = renderVideo && (isStatic || import.meta.dev || !!ogImageConfig.security?.secret)
         const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
         // Use a strict (non-aliased) lookup for hash — matches main behavior so URLs
         // stay stable for shorthand component names like `Default` or `NuxtSeo.satori`.
@@ -197,11 +199,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             const ogKey = opts.key || 'og'
             const prerenderPath = (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C')
             prerenderPaths.set(ogKey, prerenderPath)
-            if (renderVideo)
+            if (videoAvailable)
               prerenderPaths.set(`${ogKey}:video`, toVideoUrl(prerenderPath))
           }
         }
-        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), renderVideo ? opts : withoutVideo(opts), { includeTwitter: ogImageConfig.includeTwitter })
+        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), videoAvailable ? opts : withoutVideo(opts), { includeTwitter: ogImageConfig.includeTwitter })
         hydrationMeta.value[opts.key || 'og'] = resolveUnrefHeadInput(meta)
         return meta
       })

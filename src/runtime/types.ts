@@ -162,7 +162,7 @@ export interface OgImageOptions {
    * Props to pass to the component.
    */
   props?: Record<string, any>
-  extension?: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html' | 'mp4'
+  extension?: 'png' | 'jpeg' | 'jpg' | 'webp' | 'svg' | 'html'
   /**
    * Also render the template's CSS animations to an MP4 and emit `og:video` tags next to `og:image`.
    *
@@ -294,7 +294,8 @@ export interface OgImageVideoOptions {
 
 export interface Renderer {
   name: 'browser' | 'satori' | 'takumi'
-  supportedFormats: Partial<RendererOptions['extension']>[]
+  // The MP4 rendition is a renderer format, but never an image extension a page can pick.
+  supportedFormats: Partial<RendererOptions['extension'] | 'mp4'>[]
   createImage: (e: OgImageRenderEventContext) => Promise<H3Error | BufferSource | Buffer | Uint8Array | void | undefined>
   debug: (e: OgImageRenderEventContext) => Promise<Record<string, any>>
 }

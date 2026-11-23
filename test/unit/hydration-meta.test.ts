@@ -47,7 +47,7 @@ vi.mock('nuxt/app', () => ({
 }))
 vi.mock('#build/nuxt-og-image/client-config.mjs', () => ({ hasServerRuntime: true }))
 vi.mock('#build/nuxt-og-image/component-hashes.mjs', () => ({ componentHashes: {}, defaultComponentName: 'Card' }))
-vi.mock('#build/nuxt-og-image/components.mjs', () => ({ componentNames: [{ pascalName: 'Card', propNames: ['title'] }] }))
+vi.mock('#build/nuxt-og-image/components.mjs', () => ({ componentNames: [{ pascalName: 'Card', propNames: ['title'] }, { pascalName: 'ClipTakumi', kebabName: 'clip-takumi', renderer: 'takumi', propNames: [] }] }))
 vi.mock('#site-config/app', () => ({
   createSitePathResolver: () => (path: string) => `https://example.com${path}`,
   withSiteUrl: (path: string) => `https://example.com${path}`,
@@ -192,5 +192,24 @@ describe('hydration image metadata', () => {
     expect(images()).toEqual(['https://cdn.example.com/static.png'])
     app.unmount()
     expect(images()).toEqual([])
+  })
+})
+
+describe('server og:video tags', () => {
+  function videoTag() {
+    for (const callback of mocks.rendered)
+      callback()
+    return renderSSRHead(mocks.head).headTags.match(/<meta property="og:video" content="([^"]+)"/)?.[1]
+  }
+
+  it('advertises no runtime video when URL signing is off', () => {
+    defineServerImage({ component: 'ClipTakumi', video: true })
+    expect(videoTag()).toBeUndefined()
+  })
+
+  it('advertises the runtime video when URL signing is on', () => {
+    mocks.config['nuxt-og-image'].security = { secret: 'test-secret', strict: false }
+    defineServerImage({ component: 'ClipTakumi', video: true })
+    expect(videoTag()).toMatch(/\.mp4$/)
   })
 })

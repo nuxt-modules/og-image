@@ -388,6 +388,8 @@ describe('imageEventHandler og:video', () => {
     useOgImageBufferCache.mockResolvedValue({ cachedItem: false, update: vi.fn() })
     const createImage = vi.fn(async () => image)
     resolveContext.mockResolvedValue({
+      _nitro: {},
+      key: 'video-key',
       timings: createTimings(),
       extension: 'mp4',
       renderer: { name: 'takumi', supportedFormats: ['mp4'], createImage },
@@ -395,7 +397,7 @@ describe('imageEventHandler og:video', () => {
       options: { video: true, cacheMaxAgeSeconds: 60 },
     })
     const event = nodeEvent()
-    event.path = '/_og/d/video_dHJ1ZQ,c_Test.takumi.mp4'
+    event.path = '/_og/d/mp4_dHJ1ZQ,c_Test.takumi.mp4'
     return { event, createImage }
   }
 
@@ -403,6 +405,21 @@ describe('imageEventHandler og:video', () => {
     const { event, createImage } = videoRequest({})
     expect(await imageEventHandler(event)).toMatchObject({ statusCode: 403 })
     expect(createImage).not.toHaveBeenCalled()
+  })
+
+  it('shares one render between concurrent requests for the same video', async () => {
+    const { event, createImage } = videoRequest({ secret: 'test-secret' })
+    let finish!: (bytes: Buffer) => void
+    createImage.mockImplementation(() => new Promise<Buffer>((resolve) => {
+      finish = resolve
+    }))
+    const second = nodeEvent()
+    second.path = event.path
+    const responses = Promise.all([imageEventHandler(event), imageEventHandler(second)])
+    await vi.waitFor(() => expect(createImage).toHaveBeenCalled())
+    finish(image)
+    expect(await responses).toEqual([image, image])
+    expect(createImage).toHaveBeenCalledOnce()
   })
 
   it('renders a runtime video when URL signing is on', async () => {

@@ -133,12 +133,14 @@ interface TakumiSceneOptions {
  */
 async function createTakumiScene(event: OgImageRenderEventContext, { evenDimensions }: TakumiSceneOptions) {
   const { options, timings } = event
+  const renderTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
+  // Start the deadline before setup, so it ends with the request's render timeout and stops ffmpeg with it.
+  const signal = AbortSignal.timeout(renderTimeout)
 
   const { fontFamilyOverride, defaultFont } = getDefaultFontFamily(options)
   const nodes = await createTakumiNodes(event)
   const fontEntries = dedupeFontsByBinary(selectLazyFonts(event.e, { supportedFormats: TAKUMI_FORMATS, component: options.component, fontFamilyOverride: fontFamilyOverride || defaultFont }))
 
-  const renderTimeout = event.runtimeConfig.security?.renderTimeout ?? 15_000
   await withTimeout(
     event._nitro.hooks.callHook('nuxt-og-image:takumi:nodes' as any, nodes, event),
     renderTimeout,
@@ -179,7 +181,6 @@ async function createTakumiScene(event: OgImageRenderEventContext, { evenDimensi
     // A Response copies its body, so a binding that transfers the bytes leaves the memo intact.
     return new Response(await bytes)
   }
-  const signal = AbortSignal.timeout(renderTimeout)
   const prepareWith = (loaders: typeof fontLoaders, timeMs: number | undefined) => renderer.prepare(nodes, {
     width,
     height,
@@ -208,7 +209,10 @@ async function createTakumiScene(event: OgImageRenderEventContext, { evenDimensi
     signal,
     renderTimeout,
     prepare(timeMs: number | undefined) {
-      // A font that fails to load rejects prepare(), so render without it instead. Later frames skip it too.
+      // A font that failed on an earlier frame stays out. The worker binding loads fonts during render,
+      // where the catch below never sees the failure.
+      fontLoaders = fontLoaders.filter(loader => !failedFontKeys.has(loader.key))
+      // A font that fails to load rejects prepare(), so render without it instead.
       return prepareWith(fontLoaders, timeMs).catch((err) => {
         if (failedFontKeys.size === 0) {
           throw err

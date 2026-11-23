@@ -251,7 +251,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     let timer: ReturnType<typeof setTimeout> | undefined
     const endRender = timings.start('render-total')
     image = await Promise.race([
-      renderer.createImage(ctx),
+      renderShared(ctx),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout)
       }),
@@ -311,6 +311,25 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
   if (extension === 'mp4')
     return sendVideoRange(e, image)
   return image
+}
+
+type RenderContext = Exclude<Awaited<ReturnType<typeof resolveContext>>, H3Error>
+
+/**
+ * A video costs one render per frame, and a player opens it with several range requests at once.
+ * Concurrent requests for one uncached video therefore share a single render.
+ */
+function renderShared(ctx: RenderContext) {
+  if (ctx.extension !== 'mp4')
+    return ctx.renderer.createImage(ctx)
+  const nitro = ctx._nitro as { _ogImageVideoRenders?: Map<string, ReturnType<RenderContext['renderer']['createImage']>> }
+  const renders = nitro._ogImageVideoRenders ||= new Map()
+  let render = renders.get(ctx.key)
+  if (!render) {
+    render = ctx.renderer.createImage(ctx).finally(() => renders.delete(ctx.key))
+    renders.set(ctx.key, render)
+  }
+  return render
 }
 
 /**

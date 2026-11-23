@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createResolver } from '@nuxt/kit'
 import { $fetch, fetch, setup, useTestContext } from '@nuxt/test-utils/e2e'
@@ -52,9 +51,8 @@ const PROBE_HEIGHT = 60
  * still frame by well under one level; an animation moves it by several.
  */
 function measureMotion(mp4: Uint8Array) {
-  const file = join(mkdtempSync(join(tmpdir(), 'og-video-')), 'video.mp4')
-  writeFileSync(file, mp4)
-  const pixels = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', file, '-vf', `scale=${PROBE_WIDTH}:${PROBE_HEIGHT},format=gray`, '-f', 'rawvideo', '-'], { maxBuffer: 64 * 1024 * 1024 })
+  // `+faststart` puts the index first, so ffmpeg reads the MP4 from stdin and no temp file is left behind.
+  const pixels = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', 'pipe:0', '-vf', `scale=${PROBE_WIDTH}:${PROBE_HEIGHT},format=gray`, '-f', 'rawvideo', '-'], { input: mp4, maxBuffer: 64 * 1024 * 1024 })
   const size = PROBE_WIDTH * PROBE_HEIGHT
   const frames = pixels.byteLength / size
   let motion = 0
@@ -155,8 +153,13 @@ describe.runIf(runVideoTests)('og:video', () => {
   })
 
   it('prerenders the video next to the image', async () => {
-    const video = new URL(metaContent(await $fetch<string>('/invite/GR8F'), 'og:video')!)
+    const html = await $fetch<string>('/invite/GR8F')
+    const video = new URL(metaContent(html, 'og:video')!)
     expect(video.pathname).toMatch(/^\/_og\/s\/.+\.mp4$/)
+    // The prerender moves the video to the configured CDN, like the image.
+    expect(video.origin).toBe('https://cdn.example.com')
+    expect(new URL(metaContent(html, 'og:image')!).origin).toBe('https://cdn.example.com')
+    expect(new URL(metaContent(html, 'og:video:secure_url')!).origin).toBe('https://cdn.example.com')
     const { buildDir } = useTestContext().nuxt!.options
     expect(existsSync(join(buildDir, 'output', 'public', video.pathname))).toBe(true)
     const res = await fetch(video.pathname)
