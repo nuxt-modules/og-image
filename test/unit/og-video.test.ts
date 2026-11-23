@@ -31,6 +31,10 @@ describe('video URL encoding', () => {
     expect(decodeOgImageParams(encodeOgImageParams({ video: {} })).video).toBe(true)
   })
 
+  it('keeps video settings that are all undefined as an opt-in', () => {
+    expect(decodeOgImageParams(encodeOgImageParams({ video: { durationMs: undefined, fps: undefined } })).video).toBe(true)
+  })
+
   it('keeps a component prop named video apart from the video option', () => {
     const propOnly = decodeOgImageParams(encodeOgImageParams({ props: { video: 'clip' } }))
     expect(propOnly.props?.video).toBe('clip')

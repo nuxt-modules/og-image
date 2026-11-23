@@ -8,7 +8,7 @@ import { toValue } from 'vue'
 import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
 import { componentHashes, defaultComponentName } from '#build/nuxt-og-image/component-hashes.mjs'
 import { createSitePathResolver } from '#site-config/app'
-import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+import { buildOgImageUrl, generateMeta, separateProps, withoutVideo } from '../shared'
 
 // Per-head-client map of active useHead entries, keyed by og key. Scoped to the
 // Nuxt app via its head instance (released automatically when the head GCs).
@@ -72,16 +72,6 @@ function resolveReactiveOptions(input: DefineOgImageInput): OgImageOptions | OgI
     }
   }
   return opts
-}
-
-/**
- * Link previews read og:video from the server HTML. During client navigation the client cannot
- * tell which renderer a component uses, and the resolver serves images only, so it advertises
- * the image alone. URL building still receives `video`, because static file names hash it.
- */
-function withoutVideo<T extends object>(options: T): T {
-  const { video: _video, ...rest } = options as T & { video?: unknown }
-  return rest as T
 }
 
 /**
@@ -162,6 +152,8 @@ export function clientProcessOgImageOptions(
   const metaOptions = { includeTwitter: publicCfg.includeTwitter }
   const paths: string[] = []
 
+  // Link previews read og:video from the server HTML. The client cannot tell a component's renderer,
+  // and the resolver serves images only, so client meta carries og:image alone. URLs keep `video`.
   for (const rawInput of inputs) {
     const resolved = resolveReactiveOptions(rawInput)
     if (resolved === false)

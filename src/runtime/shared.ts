@@ -14,6 +14,15 @@ export function toVideoUrl(imageUrl: string) {
   return imageUrl.replace(RE_IMAGE_EXTENSION, '.mp4')
 }
 
+/**
+ * The options without the `video` opt-in, for meta tags only. URL builders keep `video`, so every
+ * builder hashes the same options and points at the same file.
+ */
+export function withoutVideo<T extends object>(options: T): T {
+  const { video: _video, ...rest } = options as T & { video?: unknown }
+  return rest as T
+}
+
 export interface GenerateMetaOptions {
   /**
    * Emit Twitter card meta tags (`twitter:card`, `twitter:image`, etc) alongside

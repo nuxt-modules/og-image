@@ -147,8 +147,11 @@ describe.runIf(runVideoTests)('og:video', () => {
 
   it('omits og:video for a renderer that cannot render video', async () => {
     const html = await $fetch<string>('/satori')
-    expect(metaContent(html, 'og:image')).toBeDefined()
     expect(metaContent(html, 'og:video')).toBeUndefined()
+    // defineOgImage() returns the same image URL that the meta tag carries.
+    const returned = html.match(/<p id="og-path">\s*([^<\s]+)\s*<\/p>/)?.[1]?.replaceAll('&amp;', '&')
+    expect(returned).toBeDefined()
+    expect(new URL(metaContent(html, 'og:image')!).pathname).toBe(returned!.split('?')[0])
   })
 
   it('prerenders the video next to the image', async () => {

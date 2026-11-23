@@ -8,7 +8,7 @@ import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver, withSiteUrl } from '#site-config/app'
-import { buildOgImageUrl, generateMeta, separateProps, toVideoUrl } from '../shared'
+import { buildOgImageUrl, generateMeta, separateProps, toVideoUrl, withoutVideo } from '../shared'
 
 /**
  * Recursively unwrap refs/computed/getters in a head input object.
@@ -149,12 +149,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
           : undefined
         const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
-        // Only Takumi renders video. Any other renderer would answer the og:video URL with an error.
-        if (opts.video && resolvedComponent?.renderer !== 'takumi') {
-          if (import.meta.dev)
-            console.warn(`[nuxt-og-image] The \`video\` option needs a Takumi component. "${resolvedComponentName}" renders with ${resolvedComponent?.renderer || 'an unknown renderer'}, so the page gets no og:video.`)
-          delete opts.video
-        }
+        // Only Takumi renders video. Another renderer keeps `video` in its URL, so every URL builder
+        // hashes the same options, but it gets no og:video tag and no MP4 prerender.
+        const renderVideo = !!opts.video && resolvedComponent?.renderer === 'takumi'
+        if (opts.video && !renderVideo && import.meta.dev)
+          console.warn(`[nuxt-og-image] The \`video\` option needs a Takumi component. "${resolvedComponentName}" renders with ${resolvedComponent?.renderer || 'an unknown renderer'}, so the page gets no og:video.`)
         // Inject title/description from head entries if not explicitly set AND the component declares them
         if (seo) {
           if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
@@ -198,11 +197,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
             const ogKey = opts.key || 'og'
             const prerenderPath = (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C')
             prerenderPaths.set(ogKey, prerenderPath)
-            if (opts.video)
+            if (renderVideo)
               prerenderPaths.set(`${ogKey}:video`, toVideoUrl(prerenderPath))
           }
         }
-        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
+        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), renderVideo ? opts : withoutVideo(opts), { includeTwitter: ogImageConfig.includeTwitter })
         hydrationMeta.value[opts.key || 'og'] = resolveUnrefHeadInput(meta)
         return meta
       })
