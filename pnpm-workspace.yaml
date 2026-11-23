@@ -4,6 +4,9 @@ blockExoticSubdeps: false
 
 minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
+  - nuxt-site-config@5.0.4
+  - nuxt-site-config-kit@5.0.4
+  - site-config-stack@5.0.4
   - nuxtseo-layer-devtools
   - nuxtseo-shared
   - '@fontsource/noto-sans-sc@5.3.1'
@@ -77,8 +80,6 @@ overrides:
   cssnano: 9.6.0
   cssnano-preset-default: 9.6.0
   cssnano-utils: 9.0.0
-  nuxt-site-config: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
-  nuxt-site-config-kit: https://pkg.pr.new/harlan-zw/nuxt-site-config/nuxt-site-config-kit@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
   postcss-colormin: 9.0.8
   postcss-convert-values: 9.0.9
   postcss-discard-comments: 9.0.8
@@ -105,7 +106,6 @@ overrides:
   postcss-reduce-transforms: 9.0.6
   postcss-svgo: 9.0.6
   postcss-unique-selectors: 9.0.6
-  site-config-stack: https://pkg.pr.new/harlan-zw/nuxt-site-config/site-config-stack@59e27b8dc55b21407ce19dfdbb7be0c6571e9490
 
   stylehacks: 9.0.8
   unhead: ^3.5.0
@@ -200,7 +200,7 @@ catalog:
   mocked-exports: ^0.1.1
   nitropack: ^2.13.5
   nuxt: 4.6.2
-  nuxt-site-config: ^5.0.0
+  nuxt-site-config: ^5.0.4
   nuxtseo-layer-devtools: ^6.0.2
   nuxtseo-shared: ^6.0.4
   nypm: ^0.6.11
