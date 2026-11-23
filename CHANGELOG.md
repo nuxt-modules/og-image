@@ -18,6 +18,7 @@ If your project pins `@unhead/vue` directly, update it to 3.5.0 or later in the 
 - Preprocess styles in OG components and read font sources without format hints. [#785](https://github.com/nuxt-modules/og-image/pull/785), [#790](https://github.com/nuxt-modules/og-image/pull/790)
 - Restore DevTools previews and use KV storage mounts on Nitro 3. [#789](https://github.com/nuxt-modules/og-image/pull/789), [#784](https://github.com/nuxt-modules/og-image/pull/784)
 - Reuse signing keys while preserving existing OG Image secrets and signed URLs. [#793](https://github.com/nuxt-modules/og-image/pull/793)
+- Require Site Config 5.0.4 or later in the 5.x series.
 
 ## v6.9.0...main
 
