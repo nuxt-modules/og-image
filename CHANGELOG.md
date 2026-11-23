@@ -1,12 +1,12 @@
 # Changelog
 
-## 8.0.0
+## 7.1.0
 
-[Compare changes](https://github.com/nuxt-modules/og-image/compare/v7.0.7...v8.0.0)
+[Compare changes](https://github.com/nuxt-modules/og-image/compare/v7.0.7...v7.1.0)
 
 ### Upgrade
 
-If you use the Takumi renderer, upgrade the package you use (`@takumi-rs/core` or `@takumi-rs/wasm`) to 2.19 or later in the 2.x series before upgrading OG Image. The renderer now requires Takumi’s `prepare()` API. Takumi loads only the font subsets used by the image text. [#778](https://github.com/nuxt-modules/og-image/pull/778)
+If you pin Takumi below 2.19, install `@takumi-rs/core@^2.19.0` or `@takumi-rs/wasm@^2.19.0` for your renderer before upgrading OG Image. The renderer now requires Takumi’s `prepare()` API. Takumi loads only the font subsets used by the image text. [#778](https://github.com/nuxt-modules/og-image/pull/778)
 
 If your project pins `@unhead/vue` directly, update it to 3.5.0 or later in the 3.x series. [#796](https://github.com/nuxt-modules/og-image/pull/796)
 
