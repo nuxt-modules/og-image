@@ -1,5 +1,14 @@
 # Changelog
 
+## 7.1.1
+
+[Compare changes](https://github.com/nuxt-modules/og-image/compare/v7.1.0...v7.1.1)
+
+### Changes
+
+- Let Nuxt select Nitro 2 or 3. Strict installs can use Nitro 2.13.4, and the Nuxt peer accepts Nuxt 5.0.0 prereleases. [#799](https://github.com/nuxt-modules/og-image/pull/799)
+- Escape apostrophes in runtime OG Image URLs and keep punctuation in prop names intact. Existing signed URLs with raw apostrophes still work. [#798](https://github.com/nuxt-modules/og-image/pull/798)
+
 ## 7.1.0
 
 [Compare changes](https://github.com/nuxt-modules/og-image/compare/v7.0.7...v7.1.0)
