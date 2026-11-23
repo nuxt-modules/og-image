@@ -27,8 +27,10 @@ const RE_UNDERSCORE = /_/g
 const RE_DOUBLE_UNDERSCORE = /__/g
 const RE_PERCENT20 = /%20/g
 const RE_PLUS = /\+/g
+const RE_APOSTROPHE = /'/g
 const RE_ENCODED_COMMA = /%2c/gi
 const RE_ENCODED_PLUS = /%2b/gi
+const RE_ENCODED_APOSTROPHE = /%27/g
 const RE_SINGLE_UNDERSCORE = /(?<!_)_(?!_)/
 const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
 const RE_OG_ROUTE_PREFIX = /\/_og\/[ds]\//
@@ -465,13 +467,13 @@ export function buildOgImageUrl(
   const signed = secret && !isStatic ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
 
   return {
-    url: `${prefix}/${signed.replace(/,/g, '%2C').replace(RE_PLUS, '%2B')}.${extension}`,
+    url: `${prefix}/${signed.replace(/,/g, '%2C').replace(RE_PLUS, '%2B').replace(RE_APOSTROPHE, '%27')}.${extension}`,
   }
 }
 
 // Normalize only the transport escapes emitted above. Leave value escapes intact.
 function normalizeUrlSegment(segment: string): string {
-  return segment.replace(RE_ENCODED_COMMA, ',').replace(RE_ENCODED_PLUS, '+')
+  return segment.replace(RE_ENCODED_COMMA, ',').replace(RE_ENCODED_PLUS, '+').replace(RE_ENCODED_APOSTROPHE, '\'')
 }
 
 /**

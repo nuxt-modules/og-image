@@ -1,3 +1,4 @@
+import { Window } from 'happy-dom'
 import { describe, expect, it } from 'vitest'
 import {
   buildOgImageUrl,
@@ -286,6 +287,23 @@ describe('urlEncoding', () => {
   })
 
   describe('buildOgImageUrl', () => {
+    it('keeps signed image URLs intact in single-quoted HTML and CSS', () => {
+      const options = {
+        component: 'Article',
+        props: { title: 'One+two, three', description: 'Confirm the user\'s account', label: '%27' },
+      }
+      const { url } = buildOgImageUrl(options, 'png', false, undefined, 'test-signing-secret')
+      const { document } = new Window()
+      document.head.innerHTML = `<meta property='og:image' content='${url}'>`
+      const content = document.querySelector('meta')!.content
+      expect(content).toBe(url)
+      expect(parseOgImageUrl(content).options).toEqual(options)
+
+      const image = document.createElement('div')
+      image.style.backgroundImage = `url('${url}')`
+      expect(image.style.backgroundImage).toContain(url)
+    })
+
     it('builds static URL', () => {
       const result = buildOgImageUrl({ width: 1200 }, 'png', true)
       expect(result.url).toBe('/_og/s/w_1200.png')
