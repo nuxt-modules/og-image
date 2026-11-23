@@ -75,6 +75,16 @@ function resolveReactiveOptions(input: DefineOgImageInput): OgImageOptions | OgI
 }
 
 /**
+ * Link previews read og:video from the server HTML. During client navigation the client cannot
+ * tell which renderer a component uses, and the resolver serves images only, so it advertises
+ * the image alone. URL building still receives `video`, because static file names hash it.
+ */
+function withoutVideo<T extends object>(options: T): T {
+  const { video: _video, ...rest } = options as T & { video?: unknown }
+  return rest as T
+}
+
+/**
  * Build a `/_og/r/<path>` resolver URL. The resolver re-fetches the target page
  * server-side and 302-redirects to whatever og:image it emits, so it matches the
  * SSR URL exactly (including useSeoMeta-injected titles and HMAC-signed strict
@@ -174,7 +184,7 @@ export function clientProcessOgImageOptions(
     if ((validOptions as OgImagePrebuilt).url) {
       const url = (validOptions as OgImagePrebuilt).url as string
       const absoluteUrl = /^https?:\/\//.test(url) ? url : toValue(resolveImageUrl(url))
-      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, validOptions, metaOptions) })
+      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, withoutVideo(validOptions), metaOptions) })
       paths.push(url)
       continue
     }
@@ -182,7 +192,7 @@ export function clientProcessOgImageOptions(
     // SSR: route through the resolver for a guaranteed match with the server URL.
     if (hasServerRuntime) {
       const finalUrl = buildResolverUrl(baseURL, basePath, ogKey, route.query as Record<string, any> | undefined)
-      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), validOptions, metaOptions) })
+      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), withoutVideo(validOptions), metaOptions) })
       paths.push(finalUrl)
       continue
     }
@@ -203,7 +213,7 @@ export function clientProcessOgImageOptions(
     const imageUrl = rc.app.cdnURL
       ? withQuery(joinURL(rc.app.cdnURL, result.url), query)
       : toValue(resolveImageUrl(finalUrl))
-    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, opts, metaOptions) }, { processTemplateParams: true })
+    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, withoutVideo(opts), metaOptions) }, { processTemplateParams: true })
     paths.push(finalUrl)
   }
 

@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 import { createMp4Encoder, resolveVideoOptions, videoFrameTimes } from '../../src/runtime/server/og-image/takumi/video'
-import { generateMeta } from '../../src/runtime/shared'
+import { decodeOgImageParams, encodeOgImageParams, generateMeta } from '../../src/runtime/shared'
 
 let hasFfmpeg = true
 try {
@@ -23,6 +23,16 @@ describe('resolveVideoOptions', () => {
     ['non-numeric values', { durationMs: 'long', fps: 'fast' }, { durationMs: 3000, fps: 30 }],
   ])('bounds %s', (_, input, expected) => {
     expect(resolveVideoOptions(input as any)).toEqual(expected)
+  })
+})
+
+describe('video URL encoding', () => {
+  it('keeps an empty video options object as an opt-in', () => {
+    expect(decodeOgImageParams(encodeOgImageParams({ video: {} })).video).toBe(true)
+  })
+
+  it('keeps video settings', () => {
+    expect(decodeOgImageParams(encodeOgImageParams({ video: { durationMs: 2000 } })).video).toEqual({ durationMs: 2000 })
   })
 })
 

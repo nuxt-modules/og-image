@@ -238,6 +238,10 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     }
   }
 
+  // `video: {}` opts in with default settings. Encode it as `true`, because an empty object below is dropped.
+  if (flattened.video && typeof flattened.video === 'object' && Object.keys(flattened.video).length === 0)
+    flattened.video = true
+
   for (const [key, value] of Object.entries(flattened)) {
     if (value === undefined || value === null || value === '') {
       continue

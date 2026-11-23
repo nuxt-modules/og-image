@@ -100,6 +100,13 @@ describe.runIf(runVideoTests)('og:video', () => {
     expect(motion).toBeLessThan(1)
   }, 60_000)
 
+  it('renders an empty video options object at the default settings', async () => {
+    const res = await fetchVideo('/empty-video')
+    expect(res.headers.get('content-type')).toBe('video/mp4')
+    // 3 seconds at 30 fps
+    expect(measureMotion(new Uint8Array(await res.arrayBuffer())).frames).toBe(90)
+  }, 60_000)
+
   it('animates keyframes passed through takumi.css', async () => {
     const res = await fetchVideo('/float')
     const { frames, motion } = measureMotion(new Uint8Array(await res.arrayBuffer()))

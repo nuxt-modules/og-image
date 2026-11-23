@@ -170,6 +170,13 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
           statusMessage: `[Nuxt OG Image] og:video is not enabled for this image. Set the \`video\` option in defineOgImage().`,
         })
       }
+      // Without URL signing, the request itself can add `video`, so only a signed URL may start a runtime render.
+      if (!import.meta.prerender && !import.meta.dev && !security?.secret) {
+        return createError({
+          statusCode: 403,
+          statusMessage: `[Nuxt OG Image] og:video renders at runtime only with URL signing. Enable URL signing, or prerender the page.`,
+        })
+      }
       setHeader(e, 'Content-Type', 'video/mp4')
       break
     default:

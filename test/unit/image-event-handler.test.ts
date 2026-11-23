@@ -376,3 +376,33 @@ describe('imageEventHandler response timing', () => {
     expect(event.res.headers.get('Server-Timing')).toContain('total;dur=')
   })
 })
+
+describe('imageEventHandler og:video', () => {
+  function videoRequest(security: { secret?: string }) {
+    useOgImageRuntimeConfig.mockReturnValue({ defaults: {}, security: { renderTimeout: 15000, ...security } })
+    useOgImageBufferCache.mockResolvedValue({ cachedItem: false, update: vi.fn() })
+    const createImage = vi.fn(async () => image)
+    resolveContext.mockResolvedValue({
+      timings: createTimings(),
+      extension: 'mp4',
+      renderer: { name: 'takumi', supportedFormats: ['mp4'], createImage },
+      // Without signing, the request itself can carry this option.
+      options: { video: true, cacheMaxAgeSeconds: 60 },
+    })
+    const event = nodeEvent()
+    event.path = '/_og/d/video_dHJ1ZQ,c_Test.takumi.mp4'
+    return { event, createImage }
+  }
+
+  it('refuses a runtime video render when URL signing is off', async () => {
+    const { event, createImage } = videoRequest({})
+    expect(await imageEventHandler(event)).toMatchObject({ statusCode: 403 })
+    expect(createImage).not.toHaveBeenCalled()
+  })
+
+  it('renders a runtime video when URL signing is on', async () => {
+    const { event, createImage } = videoRequest({ secret: 'test-secret' })
+    await imageEventHandler(event)
+    expect(createImage).toHaveBeenCalledOnce()
+  })
+})
