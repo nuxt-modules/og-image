@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isOgImageComponentPath, isPathWithinDir, resolveWatchedPath } from '../../src/build/watch-paths'
+import { isOgImageComponentPath, isPathWithinDir, isSamePath, resolveWatchedPath } from '../../src/build/watch-paths'
 
 describe('builder:watch path resolution', () => {
   describe('resolveWatchedPath', () => {
@@ -51,6 +51,24 @@ describe('builder:watch path resolution', () => {
         caseInsensitive: true,
       })
       expect(resolved).toBe('C:/Users/dev/project/app/components/OgImage/Default.vue')
+    })
+  })
+
+  describe('isSamePath', () => {
+    it('matches normalized Windows paths regardless of slash direction and casing', () => {
+      expect(isSamePath(
+        'c:\\Users\\dev\\project\\app\\components\\OgImage\\Card.satori.vue',
+        'C:/Users/dev/project/app/components/ogimage/Card.satori.vue',
+        true,
+      )).toBe(true)
+    })
+
+    it('respects case sensitivity on POSIX filesystems', () => {
+      expect(isSamePath(
+        '/project/app/components/OgImage/Card.satori.vue',
+        '/project/app/components/ogimage/Card.satori.vue',
+        false,
+      )).toBe(false)
     })
   })
 

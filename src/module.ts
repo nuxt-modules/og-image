@@ -49,7 +49,7 @@ import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build
 import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
 import { AssetTransformPlugin } from './build/vite-asset-transform'
 import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
-import { isOgImageComponentPath, resolveWatchedPath } from './build/watch-paths'
+import { isOgImageComponentPath, isSamePath, resolveWatchedPath } from './build/watch-paths'
 import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
 import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
 import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
@@ -1243,6 +1243,49 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
+    // In dev, component metadata (propNames, hash, credits) can change on file edit after Nitro is built.
+    // Rebuilding Nitro on every edit restarts the server and drops in-flight requests, so dev writes
+    // the latest list to a file the runtime reads on access instead (createDevComponentNamesProxy).
+    const devComponentNamesPath = join(nuxt.options.buildDir, 'cache', 'og-image', 'dev-component-names.json')
+    if (nuxt.options.dev)
+      fs.rmSync(devComponentNamesPath, { force: true })
+    let devComponentNamesWrite: Promise<void> | undefined
+    let devComponentNamesStale = false
+    async function writeDevComponentNames() {
+      if (!nuxt.options.dev)
+        return
+      if (devComponentNamesWrite) {
+        devComponentNamesStale = true
+        await devComponentNamesWrite
+        return
+      }
+      const writeOnce = async () => {
+        const payload = JSON.stringify(ogImageComponentCtx.components)
+        await mkdir(dirname(devComponentNamesPath), { recursive: true })
+        const tmpPath = `${devComponentNamesPath}.${process.pid}.tmp`
+        try {
+          await writeFile(tmpPath, payload)
+          await rename(tmpPath, devComponentNamesPath)
+        }
+        catch (error) {
+          fs.rmSync(tmpPath, { force: true })
+          logger.warn(`Could not refresh OG image component metadata: ${(error as Error).message}`)
+        }
+      }
+      devComponentNamesWrite = (async () => {
+        do {
+          devComponentNamesStale = false
+          await writeOnce()
+        } while (devComponentNamesStale)
+      })()
+      try {
+        await devComponentNamesWrite
+      }
+      finally {
+        devComponentNamesWrite = undefined
+      }
+    }
+
     // Pre-load the SFC compiler so extractPropNamesFromVue works synchronously
     // inside the components:extend hook (which is itself synchronous)
     await loadSfcCompiler()
@@ -1378,6 +1421,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       await nuxt.hooks.callHook('nuxt-og-image:components', ogImageComponentCtx)
+      await writeDevComponentNames()
     })
     addTemplate({
       filename: 'nuxt-og-image/components.mjs',
@@ -1408,8 +1452,11 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {}
     nuxt.options.nitro.virtual['#og-image-virtual/component-names.mjs'] = () => {
-      const components = nuxt.options.dev ? ogImageComponentCtx.components : getServerComponents(ogImageComponentCtx.components)
-      return `export const componentNames = ${JSON.stringify(components)}`
+      if (nuxt.options.dev) {
+        return `import { createDevComponentNamesProxy } from ${JSON.stringify(resolve('./runtime/server/og-image/dev-component-names'))}
+export const componentNames = createDevComponentNamesProxy(${JSON.stringify(devComponentNamesPath)}, ${JSON.stringify(ogImageComponentCtx.components)})`
+      }
+      return `export const componentNames = ${JSON.stringify(getServerComponents(ogImageComponentCtx.components))}`
     }
     // Nuxt validates island hashes; use its implementation to preserve the contract.
     nuxt.options.nitro.virtual['#og-image/island-hash'] = () => {
@@ -1920,18 +1967,49 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
           return
 
         const isOgImageComponent = isOgImageComponentPath(absolutePath, nuxt.options.srcDir, config.componentDirs)
+        const existingComponent = ogImageComponentCtx.components.find(c => c.path && isSamePath(c.path, absolutePath))
 
         // OG image component add/remove → updates component registry + Nitro rebuild
-        if (isOgImageComponent && (event === 'add' || event === 'unlink')) {
+        if ((isOgImageComponent || existingComponent) && (event === 'add' || event === 'unlink')) {
           logger.debug(`HMR: OG image component ${event === 'add' ? 'added' : 'removed'}`)
           await updateTemplates({ filter: t => t.filename.includes('nuxt-og-image') })
           const nitro = await useNitro
           await nitro.hooks.callHook('rollup:reload')
+          return
         }
 
-        // OG image component or nested component content changes are picked up by
-        // Nitro/Vite file watching automatically — no explicit rollup:reload needed
-        // since virtual templates (component-names.mjs) only change on add/remove.
+        // OG image component edited → refresh propNames, hash, and credits without rebuilding Nitro
+        if (event === 'change' && existingComponent) {
+          let content: string
+          try {
+            content = await readFile(absolutePath, 'utf-8')
+          }
+          catch {
+            return
+          }
+          await loadSfcCompiler()
+          const nextHash = fnv1a64Base36(content)
+          const nextPropNames = extractPropNamesFromVue(content)
+          const nextCredits = content.split('\n').find(line => line.startsWith(' * @credits'))?.replace('* @credits', '').trim()
+          const propNamesChanged = nextPropNames.length !== (existingComponent.propNames?.length ?? 0)
+            || nextPropNames.some((prop, idx) => prop !== existingComponent.propNames?.[idx])
+          const hashChanged = nextHash !== existingComponent.hash
+          const creditsChanged = nextCredits !== existingComponent.credits
+          if (!propNamesChanged && !hashChanged && !creditsChanged)
+            return
+
+          existingComponent.hash = nextHash
+          existingComponent.propNames = nextPropNames
+          existingComponent.credits = nextCredits
+
+          logger.debug(`HMR: OG image component metadata updated (${existingComponent.pascalName})`)
+          await writeDevComponentNames()
+          if (propNamesChanged || hashChanged) {
+            await updateTemplates({
+              filter: t => t.filename.includes('nuxt-og-image/components.mjs') || t.filename.includes('nuxt-og-image/component-hashes.mjs'),
+            })
+          }
+        }
       })
     }
     else if (isNuxtGenerate()) {

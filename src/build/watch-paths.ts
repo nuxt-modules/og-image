@@ -13,6 +13,14 @@ function normalizeForCompare(path: string, caseInsensitive: boolean): string {
   return caseInsensitive ? normalized.toLowerCase() : normalized
 }
 
+export function isSamePath(
+  a: string,
+  b: string,
+  caseInsensitive = process.platform === 'win32',
+): boolean {
+  return normalizeForCompare(a, caseInsensitive) === normalizeForCompare(b, caseInsensitive)
+}
+
 export function isPathWithinDir(
   filePath: string,
   dirPath: string,
