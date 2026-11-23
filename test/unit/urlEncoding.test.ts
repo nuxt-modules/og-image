@@ -289,6 +289,13 @@ describe('urlEncoding', () => {
   })
 
   describe('buildOgImageUrl', () => {
+    it('uses a prerender hash for a large string under a non-inline prop name', () => {
+      const options = { component: 'Article', props: { headline_text: 'x'.repeat(200 * 1024) } }
+      const { url } = buildOgImageUrl(options, 'png', true)
+
+      expect(parseOgImageUrl(url).hash).toBe(hashOgImageOptions(options))
+    })
+
     it.each([
       { 'props': 'Intro', 'label%27': 'Literal escape' },
       { 'label%27': 'Literal escape', 'props': 'Intro' },

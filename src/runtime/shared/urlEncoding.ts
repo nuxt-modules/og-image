@@ -16,6 +16,7 @@ import { digest } from 'ohash/crypto'
 
 // Maximum path segment length (filesystem limit is 255, leave room for prefix/extension)
 const MAX_PATH_LENGTH = 200
+const BASE64_CHUNK_SIZE = 8192
 
 // Module-scope regex constants
 const RE_BASE64_PADDING = /=/g
@@ -103,7 +104,10 @@ function b64Encode(str: string): string {
   let encoded: string
   if (typeof btoa === 'function') {
     const utf8 = new TextEncoder().encode(str)
-    const binary = String.fromCharCode(...utf8)
+    let binary = ''
+    for (let offset = 0; offset < utf8.length; offset += BASE64_CHUNK_SIZE) {
+      binary += String.fromCharCode(...utf8.subarray(offset, offset + BASE64_CHUNK_SIZE))
+    }
     encoded = btoa(binary)
   }
   else {
