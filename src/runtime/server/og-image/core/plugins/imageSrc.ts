@@ -21,7 +21,6 @@ const RE_URL_TRAILING = /['"]?\)$/
 const SUBREQUEST_HEADERS = { 'x-nuxt-og-image': '1' }
 
 async function resolveLocalFilePathImage(publicStoragePath: string, src: string) {
-  // try hydrating from storage — can't fetch public files via $fetch when prerendering
   // The storage key names a file, so normalize the path before lookup.
   const path = parseSameOriginPath(parseURL(src).pathname)
   if (path._tag === 'Err')
@@ -92,15 +91,18 @@ async function doResolveSrcToBuffer(
     if (!resolveSameOriginUrl(src, getOgImageOrigin(e)))
       return { blocked: true }
     let buffer: BufferSource | undefined
+    // Public files come from storage: Nitro does not serve them while prerendering.
     if (import.meta.prerender || import.meta.dev) {
       const srcWithoutBase = src.replace(runtimeConfig.app.baseURL, '/')
       buffer = await resolveLocalFilePathImage(publicStoragePath, srcWithoutBase)
     }
-    if (!buffer && !import.meta.prerender) {
+    // Server routes come from the in-process fetch, which also works while prerendering.
+    if (!buffer) {
       const ab = await timings.measure('image-fetch', () => fetchLocalAsset(e, src, {
         fetchTimeout,
         headers: SUBREQUEST_HEADERS,
-        includeExternalFallback: true,
+        // No server answers on the site origin while prerendering, and it may be the live site.
+        includeExternalFallback: !import.meta.prerender,
         onStepFailure: logFailure,
       }))
       if (ab)
