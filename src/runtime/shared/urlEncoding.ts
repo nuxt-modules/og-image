@@ -217,7 +217,8 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
       for (const [propKey, propValue] of Object.entries(value)) {
         if (propValue === undefined || propValue === null || propValue === '')
           continue
-        if (RE_INLINE_PROP_NAME.test(propKey) && (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean')) {
+        const canEncodeInline = propKey !== 'props' && RE_INLINE_PROP_NAME.test(propKey)
+        if (canEncodeInline && (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean')) {
           flattened[propKey] = propValue
         }
         else {

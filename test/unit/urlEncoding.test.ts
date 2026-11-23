@@ -289,6 +289,19 @@ describe('urlEncoding', () => {
   })
 
   describe('buildOgImageUrl', () => {
+    it.each([
+      { 'props': 'Intro', 'label%27': 'Literal escape' },
+      { 'label%27': 'Literal escape', 'props': 'Intro' },
+    ])('round-trips a prop named props beside an escaped name (%j)', (props) => {
+      const secret = 'test-signing-secret'
+      const options = { component: 'Article', props }
+      const { url } = buildOgImageUrl(options, 'png', false, undefined, secret)
+      const [, params, signature] = extractEncodedSegment(url, 'png').match(/^(.+),s_([\w-]+)$/)!
+
+      expect(parseOgImageUrl(url).options).toEqual(options)
+      expect(verifyOgImageSignature(params, signature, secret)).toBe(true)
+    })
+
     it.each([undefined, 'test-signing-secret'])('distinguishes a literal percent escape from an apostrophe in prop names (secret: %s)', (secret) => {
       const options = { component: 'Article', props: { 'label%27': 'Literal escape', 'label\'': 'Apostrophe' } }
       const { url } = buildOgImageUrl(options, 'png', false, undefined, secret)
