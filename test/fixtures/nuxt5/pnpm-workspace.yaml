@@ -35,6 +35,9 @@ minimumReleaseAgeExclude:
   - '@takumi-rs/core-win32-x64-msvc@2.15.0'
   - '@takumi-rs/core@2.15.0'
   - '@takumi-rs/helpers@2.15.0'
+  - '@unhead/bundler@3.5.0'
+  - '@unhead/vue@3.5.0'
+  - unhead@3.5.0
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 262800
 trustPolicyExclude:
@@ -77,7 +80,7 @@ trustPolicyExclude:
   - '@nuxtjs/tailwindcss@7.0.0-beta.1'
   - tinyexec@1.2.2
 overrides:
-  '@unhead/vue': ^3.4.2
+  '@unhead/vue': ^3.5.0
   cssnano: 9.6.0
   cssnano-preset-default: 9.6.0
   cssnano-utils: 9.0.0
@@ -108,7 +111,7 @@ overrides:
   postcss-svgo: 9.0.6
   postcss-unique-selectors: 9.0.6
   stylehacks: 9.0.8
-  unhead: ^3.4.2
+  unhead: ^3.5.0
   vitest-environment-nuxt: 2.0.0
   vue: ^3.5.44
   nuxtseo-shared: ^6.0.4

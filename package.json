@@ -85,7 +85,7 @@
     "@resvg/resvg-wasm": "^2.6.2",
     "@takumi-rs/core": "^2.19.0",
     "@takumi-rs/wasm": "^2.19.0",
-    "@unhead/vue": "^3.4.2",
+    "@unhead/vue": "^3.5.0",
     "@unocss/config": "catalog:",
     "@unocss/core": "catalog:",
     "chrome-launcher": "^1.2.2",
