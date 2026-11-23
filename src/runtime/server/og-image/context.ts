@@ -58,7 +58,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     if (!sigMatch) {
       return createError({
         statusCode: 403,
-        statusMessage: '[Nuxt OG Image] Missing URL signature. Set NUXT_APP_SECRET to sign URLs.',
+        statusMessage: '[Nuxt OG Image] Missing URL signature. Use the complete image URL.',
       })
     }
     const signature = sigMatch[1]!

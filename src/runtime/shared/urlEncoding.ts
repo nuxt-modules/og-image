@@ -16,6 +16,7 @@ import { digest } from 'ohash/crypto'
 
 // Maximum path segment length (filesystem limit is 255, leave room for prefix/extension)
 const MAX_PATH_LENGTH = 200
+const BASE64_CHUNK_SIZE = 8192
 
 // Module-scope regex constants
 const RE_BASE64_PADDING = /=/g
@@ -27,8 +28,10 @@ const RE_UNDERSCORE = /_/g
 const RE_DOUBLE_UNDERSCORE = /__/g
 const RE_PERCENT20 = /%20/g
 const RE_PLUS = /\+/g
+const RE_APOSTROPHE = /'/g
 const RE_ENCODED_COMMA = /%2c/gi
 const RE_ENCODED_PLUS = /%2b/gi
+const RE_ENCODED_APOSTROPHE = /%27/g
 const RE_SINGLE_UNDERSCORE = /(?<!_)_(?!_)/
 const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
 const RE_OG_ROUTE_PREFIX = /\/_og\/[ds]\//
@@ -36,6 +39,7 @@ const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
 const RE_FILE_EXTENSION = /\.\w+$/
 const RE_HASH_SEGMENT = /^o_([a-z0-9]+)$/i
 const RE_COMMA_PARAM_SEPARATOR = /,(?=\w+_)/
+const RE_INLINE_PROP_NAME = /^[a-z0-9]+$/i
 const RE_SIGNATURE_SUFFIX = /,s_[^,]+$/
 // eslint-disable-next-line no-control-regex
 const RE_NON_ASCII = /[^\u0000-\u007F]/
@@ -100,7 +104,10 @@ function b64Encode(str: string): string {
   let encoded: string
   if (typeof btoa === 'function') {
     const utf8 = new TextEncoder().encode(str)
-    const binary = String.fromCharCode(...utf8)
+    let binary = ''
+    for (let offset = 0; offset < utf8.length; offset += BASE64_CHUNK_SIZE) {
+      binary += String.fromCharCode(...utf8.subarray(offset, offset + BASE64_CHUNK_SIZE))
+    }
     encoded = btoa(binary)
   }
   else {
@@ -212,13 +219,14 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
     if (key === 'props' && typeof value === 'object') {
       // Flatten simple props to top level
       for (const [propKey, propValue] of Object.entries(value)) {
-        if (propValue === undefined || propValue === null)
+        if (propValue === undefined || propValue === null || propValue === '')
           continue
-        if (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean') {
+        const canEncodeInline = propKey !== 'props' && RE_INLINE_PROP_NAME.test(propKey)
+        if (canEncodeInline && (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean')) {
           flattened[propKey] = propValue
         }
         else {
-          // Complex prop value - keep in props for base64 encoding
+          // Base64 protects names and values that cannot be represented inline.
           flattened.props = flattened.props || {}
           flattened.props[propKey] = propValue
         }
@@ -372,7 +380,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
       }
     }
     else if (paramName === 'props') {
-      // Base64 encoded remaining complex props
+      // Base64 encoded remaining props
       try {
         const json = b64Decode(value)
         options.props = { ...options.props, ...JSON.parse(json) }
@@ -465,13 +473,13 @@ export function buildOgImageUrl(
   const signed = secret && !isStatic ? `${segment},s_${signEncodedParams(segment, secret)}` : segment
 
   return {
-    url: `${prefix}/${signed.replace(/,/g, '%2C').replace(RE_PLUS, '%2B')}.${extension}`,
+    url: `${prefix}/${signed.replace(/,/g, '%2C').replace(RE_PLUS, '%2B').replace(RE_APOSTROPHE, '%27')}.${extension}`,
   }
 }
 
 // Normalize only the transport escapes emitted above. Leave value escapes intact.
 function normalizeUrlSegment(segment: string): string {
-  return segment.replace(RE_ENCODED_COMMA, ',').replace(RE_ENCODED_PLUS, '+')
+  return segment.replace(RE_ENCODED_COMMA, ',').replace(RE_ENCODED_PLUS, '+').replace(RE_ENCODED_APOSTROPHE, '\'')
 }
 
 /**

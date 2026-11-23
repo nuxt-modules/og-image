@@ -38,6 +38,8 @@ await setup({
 
 interface OgUrlResponse {
   url: string
+  punctuated: string
+  escapedPropNames: string
   current: string
 }
 
@@ -66,6 +68,34 @@ describe('getOgImageUrl in a Nitro handler', () => {
     const tampered = decodeURIComponent(new URL(url).pathname).replace(/,s_[\w-]+\.png$/, ',s_AAAAAAAAAAAAAAAA.png')
     const res = await fetch(tampered)
     expect(res.status).toBe(403)
+  })
+
+  it('renders current and legacy signed URLs containing apostrophes', async () => {
+    const { punctuated } = await $fetch<OgUrlResponse>('/prefix/og-url')
+    const path = new URL(punctuated).pathname
+    expect(path).toContain('%27')
+    const legacyPath = path.replaceAll('%27', '\'')
+    for (const requestPath of [path, legacyPath]) {
+      const result = await fetch(requestPath)
+      expect(result.status).toBe(200)
+      expect(result.headers.get('content-type')).toContain('image/png')
+    }
+  }, 60000)
+
+  it('renders a signed URL with percent escapes and apostrophes in prop names', async () => {
+    const { escapedPropNames } = await $fetch<OgUrlResponse>('/prefix/og-url')
+    const image = await fetch(new URL(escapedPropNames).pathname)
+    expect(image.status).toBe(200)
+    expect(image.headers.get('content-type')).toContain('image/png')
+  }, 60000)
+
+  it('asks for the complete URL when the signature suffix is missing', async () => {
+    const { url } = await $fetch<OgUrlResponse>('/prefix/og-url')
+    const incompletePath = new URL(url).pathname.split('%2Cs_')[0]!
+    const response = await fetch(incompletePath, { headers: { accept: 'application/json' } })
+    expect(response.status).toBe(403)
+    const body = await response.json()
+    expect(body.statusMessage).toBe('[Nuxt OG Image] Missing URL signature. Use the complete image URL.')
   })
 
   it('signs SSR meta tags with the same derived secret without exposing it', async () => {

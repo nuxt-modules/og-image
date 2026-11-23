@@ -1,10 +1,13 @@
+import { Window } from 'happy-dom'
 import { describe, expect, it } from 'vitest'
 import {
   buildOgImageUrl,
   decodeOgImageParams,
   encodeOgImageParams,
+  extractEncodedSegment,
   hashOgImageOptions,
   parseOgImageUrl,
+  verifyOgImageSignature,
 } from '../../src/runtime/shared/urlEncoding'
 
 describe('urlEncoding', () => {
@@ -286,6 +289,54 @@ describe('urlEncoding', () => {
   })
 
   describe('buildOgImageUrl', () => {
+    it('uses a prerender hash for a large string under a non-inline prop name', () => {
+      const options = { component: 'Article', props: { headline_text: 'x'.repeat(200 * 1024) } }
+      const { url } = buildOgImageUrl(options, 'png', true)
+
+      expect(parseOgImageUrl(url).hash).toBe(hashOgImageOptions(options))
+    })
+
+    it.each([
+      { 'props': 'Intro', 'label%27': 'Literal escape' },
+      { 'label%27': 'Literal escape', 'props': 'Intro' },
+    ])('round-trips a prop named props beside an escaped name (%j)', (props) => {
+      const secret = 'test-signing-secret'
+      const options = { component: 'Article', props }
+      const { url } = buildOgImageUrl(options, 'png', false, undefined, secret)
+      const [, params, signature] = extractEncodedSegment(url, 'png').match(/^(.+),s_([\w-]+)$/)!
+
+      expect(parseOgImageUrl(url).options).toEqual(options)
+      expect(verifyOgImageSignature(params, signature, secret)).toBe(true)
+    })
+
+    it.each([undefined, 'test-signing-secret'])('distinguishes a literal percent escape from an apostrophe in prop names (secret: %s)', (secret) => {
+      const options = { component: 'Article', props: { 'label%27': 'Literal escape', 'label\'': 'Apostrophe' } }
+      const { url } = buildOgImageUrl(options, 'png', false, undefined, secret)
+
+      expect(parseOgImageUrl(url).options).toEqual(options)
+      if (secret) {
+        const [, params, signature] = extractEncodedSegment(url, 'png').match(/^(.+),s_([\w-]+)$/)!
+        expect(verifyOgImageSignature(params, signature, secret)).toBe(true)
+      }
+    })
+
+    it('keeps signed image URLs intact in single-quoted HTML and CSS', () => {
+      const options = {
+        component: 'Article',
+        props: { title: 'One+two, three', description: 'Confirm the user\'s account', label: '%27' },
+      }
+      const { url } = buildOgImageUrl(options, 'png', false, undefined, 'test-signing-secret')
+      const { document } = new Window()
+      document.head.innerHTML = `<meta property='og:image' content='${url}'>`
+      const content = document.querySelector('meta')!.content
+      expect(content).toBe(url)
+      expect(parseOgImageUrl(content).options).toEqual(options)
+
+      const image = document.createElement('div')
+      image.style.backgroundImage = `url('${url}')`
+      expect(image.style.backgroundImage).toContain(url)
+    })
+
     it('builds static URL', () => {
       const result = buildOgImageUrl({ width: 1200 }, 'png', true)
       expect(result.url).toBe('/_og/s/w_1200.png')
