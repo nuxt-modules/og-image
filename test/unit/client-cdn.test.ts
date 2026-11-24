@@ -85,3 +85,24 @@ describe('static client image CDN URLs', () => {
     expect(imageURL()).toBe('https://other.example.com/image.png')
   })
 })
+
+describe('client og:video', () => {
+  function metaProperties(): string[] {
+    const input = mocks.useHead.mock.calls.at(-1)![0] as unknown as { meta: { property?: string }[] }
+    return input.meta.map(tag => tag.property || '')
+  }
+
+  it('advertises no og:video through the runtime resolver', () => {
+    mocks.hasServerRuntime = true
+    clientProcessOgImageOptions({ component: 'PageScreenshot', video: true }, route, '/page')
+    expect(metaProperties()).toContain('og:image')
+    expect(metaProperties()).not.toContain('og:video')
+  })
+
+  it('advertises no og:video on a static site and keeps the prerendered image URL', () => {
+    clientProcessOgImageOptions({ component: 'PageScreenshot', video: true }, route, '/page')
+    expect(metaProperties()).not.toContain('og:video')
+    // The prerendered file name hashes `video`, so the client URL must hash it too.
+    expect(vi.mocked(buildOgImageUrl).mock.lastCall![0]).toMatchObject({ video: true })
+  })
+})

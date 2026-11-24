@@ -8,7 +8,7 @@ import { joinURL, withQuery } from 'ufo'
 import { isRef, toValue } from 'vue'
 import { componentNames } from '#build/nuxt-og-image/components.mjs'
 import { createSitePathResolver, withSiteUrl } from '#site-config/app'
-import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+import { buildOgImageUrl, generateMeta, separateProps, toVideoUrl, withoutVideo } from '../shared'
 
 /**
  * Recursively unwrap refs/computed/getters in a head input object.
@@ -149,6 +149,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
           : undefined
         const declaredProps: OgImageComponent['propNames'] = resolvedComponent?.propNames
+        // Only Takumi renders video. Another renderer keeps `video` in its URL, so every URL builder
+        // hashes the same options, but it gets no og:video tag and no MP4 prerender.
+        const renderVideo = !!opts.video && resolvedComponent?.renderer === 'takumi'
+        if (opts.video && !renderVideo && import.meta.dev)
+          console.warn(`[nuxt-og-image] The \`video\` option needs a Takumi component. "${resolvedComponentName}" renders with ${resolvedComponent?.renderer || 'an unknown renderer'}, so the page gets no og:video.`)
         // Inject title/description from head entries if not explicitly set AND the component declares them
         if (seo) {
           if (seo.title && typeof opts.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
@@ -162,6 +167,8 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
         // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
         // setups where pages are prerendered but OG images are served dynamically.
         const isStatic = import.meta.prerender && !(ogImageConfig.security?.secret && ogImageConfig.security?.strict)
+        // A runtime MP4 render needs a signed URL. Without signing, advertise only a video the build prerenders.
+        const videoAvailable = renderVideo && (isStatic || import.meta.dev || !!ogImageConfig.security?.secret)
         const urlOpts: Record<string, any> = { ...opts, _path: payloadBasePath }
         // Use a strict (non-aliased) lookup for hash — matches main behavior so URLs
         // stay stable for shorthand component names like `Default` or `NuxtSeo.satori`.
@@ -190,10 +197,13 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
           const prerenderPaths: Map<string, string> | undefined = ssrContext.event.context._ogImagePrerenderPaths
           if (prerenderPaths) {
             const ogKey = opts.key || 'og'
-            prerenderPaths.set(ogKey, (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C'))
+            const prerenderPath = (finalUrl.split('?')[0] || finalUrl).replace(/,/g, '%2C')
+            prerenderPaths.set(ogKey, prerenderPath)
+            if (videoAvailable)
+              prerenderPaths.set(`${ogKey}:video`, toVideoUrl(prerenderPath))
           }
         }
-        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), opts, { includeTwitter: ogImageConfig.includeTwitter })
+        const meta = generateMeta(toValue(resolveImageUrl(finalUrl)), videoAvailable ? opts : withoutVideo(opts), { includeTwitter: ogImageConfig.includeTwitter })
         hydrationMeta.value[opts.key || 'og'] = resolveUnrefHeadInput(meta)
         return meta
       })

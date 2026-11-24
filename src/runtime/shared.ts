@@ -7,6 +7,21 @@ export { extractSocialPreviewTags, toBase64Image } from './pure'
 export { buildOgImageUrl, decodeOgImageParams, encodeOgImageParams, extractEncodedSegment, hashOgImageOptions, parseOgImageUrl, signEncodedParams, verifyOgImageSignature } from './shared/urlEncoding'
 
 const RE_KEBAB_CASE = /-([a-z])/g
+const RE_IMAGE_EXTENSION = /\.(?:png|jpe?g|webp)(?=$|\?)/
+
+/** The MP4 rendition of an OG image lives at the same URL with an `.mp4` extension. */
+export function toVideoUrl(imageUrl: string) {
+  return imageUrl.replace(RE_IMAGE_EXTENSION, '.mp4')
+}
+
+/**
+ * The options without the `video` opt-in, for meta tags only. URL builders keep `video`, so every
+ * builder hashes the same options and points at the same file.
+ */
+export function withoutVideo<T extends object>(options: T): T {
+  const { video: _video, ...rest } = options as T & { video?: unknown }
+  return rest as T
+}
 
 export interface GenerateMetaOptions {
   /**
@@ -44,6 +59,18 @@ export function generateMeta(url: OgImagePrebuilt['url'] | string, resolvedOptio
     if (!isTwitterOnly)
       meta.push({ property: 'og:image:height', content: resolvedOptions.height })
   }
+  // A prebuilt image has no rendered MP4 next to it.
+  const isPrebuilt = 'url' in resolvedOptions && !!resolvedOptions.url
+  if ('video' in resolvedOptions && resolvedOptions.video && !isTwitterOnly && !isPrebuilt) {
+    const videoUrl = () => toVideoUrl(toValue(url) as string)
+    meta.push({ property: 'og:video', content: videoUrl })
+    meta.push({ property: 'og:video:secure_url', content: videoUrl })
+    meta.push({ property: 'og:video:type', content: 'video/mp4' })
+    if (resolvedOptions.width)
+      meta.push({ property: 'og:video:width', content: resolvedOptions.width })
+    if (resolvedOptions.height)
+      meta.push({ property: 'og:video:height', content: resolvedOptions.height })
+  }
   if (resolvedOptions.alt) {
     if (!isTwitterOnly)
       meta.push({ property: 'og:image:alt', content: resolvedOptions.alt })
@@ -79,6 +106,7 @@ function filterIsOgImageOption(key: string) {
     'sharp',
     'screenshot',
     'takumi',
+    'video',
     'cacheMaxAgeSeconds',
     'cacheKey',
     'key',

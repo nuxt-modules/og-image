@@ -40,7 +40,7 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   const path = resolvePathWithBase(parseURL(e.path).pathname)
 
   let extension = path.split('.').pop() as OgImageRenderEventContext['extension']
-  if (!extension || !path.includes('.') || extension.includes('/') || !['png', 'jpeg', 'jpg', 'webp', 'svg', 'html', 'json'].includes(extension)) {
+  if (!extension || !path.includes('.') || extension.includes('/') || !['png', 'jpeg', 'jpg', 'webp', 'svg', 'html', 'json', 'mp4'].includes(extension)) {
     extension = 'png'
   }
 
@@ -225,13 +225,14 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
   // where pages with identical options share one image), or the page with its
   // resolved options. Each kind has its own tag, so keys of different kinds
   // never match. The component hash changes the key when the template changes.
+  // The extension keeps the renditions of one image, such as its PNG and its MP4, apart.
   const identity = normalised.options.cacheKey
     ? ['cacheKey', String(normalised.options.cacheKey)]
     : hashMatch
       ? ['hash', hashMatch[1]]
       // Prerendered images skip the site URL: the build may not know the final host.
       : ['page', basePathWithQuery, import.meta.prerender ? '' : getSiteConfig(e, { resolveRefs: true }).url, normalised.options]
-  const key = digestCanonical([...identity, componentHash])
+  const key = digestCanonical([...identity, extension, componentHash])
 
   let renderer: ((typeof SatoriRenderer | typeof BrowserRenderer | typeof TakumiRenderer) & { __mock__?: true }) | undefined
   switch (rendererType) {

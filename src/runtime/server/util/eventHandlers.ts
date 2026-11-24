@@ -1,5 +1,5 @@
 import type { H3Event } from '#nuxtseo/h3'
-import { appendResponseHeader, createError, getRequestHost, H3Error, sendRedirect, setHeader } from '#nuxtseo/h3'
+import { appendResponseHeader, createError, getRequestHeader, getRequestHost, H3Error, sendRedirect, setHeader, setResponseStatus } from '#nuxtseo/h3'
 import { useStorage } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
@@ -10,6 +10,7 @@ import { resolveContext } from '../og-image/context'
 import { fetchPathHtmlAndExtractOptions } from '../og-image/devtools'
 import { html } from '../og-image/templates/html'
 import { useOgImageRuntimeConfig } from '../utils'
+import { parseByteRange } from './byteRange'
 import { useOgImageBufferCache } from './cache'
 import { warnPublishUnavailable } from './publishWarnings'
 import { parsePurgeRequest } from './purge'
@@ -156,6 +157,29 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       }
       setHeader(e, 'Content-Type', `image/${extension === 'jpg' ? 'jpeg' : extension}`)
       break
+    case 'mp4':
+      if (!renderer.supportedFormats.includes(extension)) {
+        return createError({
+          statusCode: 400,
+          statusMessage: `[Nuxt OG Image] Generating ${extension}'s with ${renderer.name} is not supported.`,
+        })
+      }
+      // A video costs one render per frame, so render one only for an image that asked for it.
+      if (!ctx.options.video) {
+        return createError({
+          statusCode: 400,
+          statusMessage: `[Nuxt OG Image] og:video is not enabled for this image. Set the \`video\` option in defineOgImage().`,
+        })
+      }
+      // Without URL signing, the request itself can add `video`, so only a signed URL may start a runtime render.
+      if (!import.meta.prerender && !import.meta.dev && !security?.secret) {
+        return createError({
+          statusCode: 403,
+          statusMessage: `[Nuxt OG Image] og:video renders at runtime only with URL signing. Enable URL signing, or prerender the page.`,
+        })
+      }
+      setHeader(e, 'Content-Type', 'video/mp4')
+      break
     default:
       return createError({
         statusCode: 400,
@@ -171,7 +195,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     return buildCachedImage
   }
 
-  let publication = publish && !import.meta.dev && !import.meta.prerender
+  let publication = publish && extension !== 'mp4' && !import.meta.dev && !import.meta.prerender
     ? (() => {
         const key = getPublishKey(new URL(e.path, getSiteConfig(e).url).href, config.defaults, publish.cacheVersion)
         return {
@@ -227,7 +251,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     let timer: ReturnType<typeof setTimeout> | undefined
     const endRender = timings.start('render-total')
     image = await Promise.race([
-      renderer.createImage(ctx),
+      renderShared(ctx, timeout),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout)
       }),
@@ -284,5 +308,83 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
       e.waitUntil(task)
     }
   }
+  if (extension === 'mp4')
+    return sendVideoRange(e, image)
   return image
+}
+
+type RenderContext = Exclude<Awaited<ReturnType<typeof resolveContext>>, H3Error>
+type VideoRender = ReturnType<RenderContext['renderer']['createImage']>
+
+interface VideoRenders {
+  renders: Map<string, VideoRender>
+  active: number
+  pending: (() => void)[]
+}
+
+// Keep CPU and memory available for page and still-image requests.
+const MAX_ACTIVE_VIDEO_RENDERS = 2
+const MAX_PENDING_VIDEO_RENDERS = 4
+
+/**
+ * A video costs one render per frame, and a player opens it with several range requests at once.
+ * Concurrent requests for one uncached video therefore share a single render.
+ */
+function renderShared(ctx: RenderContext, timeout: number) {
+  if (ctx.extension !== 'mp4')
+    return ctx.renderer.createImage(ctx)
+  const nitro = ctx._nitro as { _ogImageVideoRenders?: VideoRenders }
+  const state: VideoRenders = nitro._ogImageVideoRenders ||= { renders: new Map(), active: 0, pending: [] }
+  const shared = state.renders.get(ctx.key)
+  if (shared)
+    return shared
+  if (state.active >= MAX_ACTIVE_VIDEO_RENDERS && state.pending.length >= MAX_PENDING_VIDEO_RENDERS)
+    return Promise.resolve(createError({ statusCode: 503 }))
+
+  const render: VideoRender = new Promise<Awaited<VideoRender>>((resolve, reject) => {
+    let queueTimer: ReturnType<typeof setTimeout> | undefined
+    const start = () => {
+      clearTimeout(queueTimer)
+      state.active++
+      // Release capacity only when the renderer stops, even if its request times out first.
+      Promise.resolve().then(() => ctx.renderer.createImage(ctx)).finally(() => {
+        state.active--
+        state.pending.shift()?.()
+      }).then(resolve, reject)
+    }
+    if (state.active < MAX_ACTIVE_VIDEO_RENDERS) {
+      start()
+    }
+    else {
+      state.pending.push(start)
+      queueTimer = setTimeout(() => {
+        state.pending.splice(state.pending.indexOf(start), 1)
+        reject(new Error(`OG image render timed out after ${timeout}ms`))
+      }, timeout)
+    }
+  }).finally(() => state.renders.delete(ctx.key))
+  state.renders.set(ctx.key, render)
+  return render
+}
+
+/**
+ * Safari and other video players read an MP4 in byte ranges, so a cached video and a fresh render
+ * both answer a `Range` request with only the requested bytes.
+ */
+function sendVideoRange(e: H3Event, video: BufferSource | Buffer | Uint8Array) {
+  const bytes = ArrayBuffer.isView(video) ? new Uint8Array(video.buffer, video.byteOffset, video.byteLength) : new Uint8Array(video)
+  setHeader(e, 'Accept-Ranges', 'bytes')
+  const range = parseByteRange(getRequestHeader(e, 'range'), bytes.byteLength)
+  switch (range._tag) {
+    case 'Full':
+      return video
+    case 'Unsatisfiable':
+      setResponseStatus(e, 416)
+      setHeader(e, 'Content-Range', `bytes */${bytes.byteLength}`)
+      return ''
+    case 'Partial':
+      setResponseStatus(e, 206)
+      setHeader(e, 'Content-Range', `bytes ${range.start}-${range.end}/${bytes.byteLength}`)
+      return bytes.subarray(range.start, range.end + 1)
+  }
 }

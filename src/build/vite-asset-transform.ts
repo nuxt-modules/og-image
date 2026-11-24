@@ -244,7 +244,13 @@ function isIconClass(cls: string): boolean {
   return ICON_CLASS_RE.test(cls)
 }
 
-function isUnsupportedClass(cls: string): boolean {
+// Takumi samples CSS animations into og:video frames, so it keeps these.
+const TAKUMI_ANIMATION_CLASS_RE = /^animate(?:-|$)/
+const RE_TAKUMI_COMPONENT = /\.takumi\.vue$/
+
+function isUnsupportedClass(cls: string, id: string): boolean {
+  if (RE_TAKUMI_COMPONENT.test(id) && TAKUMI_ANIMATION_CLASS_RE.test(cls))
+    return false
   return UNSUPPORTED_CLASS_PATTERNS.some(p => p.test(cls))
 }
 
@@ -656,8 +662,8 @@ export const AssetTransformPlugin = createUnplugin<AssetTransformOptions, false>
             const result = await transformVueTemplate(fullCode, {
               resolveStyles: async (classes) => {
                 // Filter unsupported classes and icon classes (handled via SVG replacement)
-                const supported = classes.filter(cls => !isUnsupportedClass(cls) && !isIconClass(cls))
-                const unsupported = classes.filter(cls => isUnsupportedClass(cls))
+                const supported = classes.filter(cls => !isUnsupportedClass(cls, id) && !isIconClass(cls))
+                const unsupported = classes.filter(cls => isUnsupportedClass(cls, id))
 
                 if (unsupported.length > 0) {
                   const componentName = id.split('/').pop()

@@ -8,7 +8,7 @@ import { toValue } from 'vue'
 import { hasServerRuntime } from '#build/nuxt-og-image/client-config.mjs'
 import { componentHashes, defaultComponentName } from '#build/nuxt-og-image/component-hashes.mjs'
 import { createSitePathResolver } from '#site-config/app'
-import { buildOgImageUrl, generateMeta, separateProps } from '../shared'
+import { buildOgImageUrl, generateMeta, separateProps, withoutVideo } from '../shared'
 
 // Per-head-client map of active useHead entries, keyed by og key. Scoped to the
 // Nuxt app via its head instance (released automatically when the head GCs).
@@ -152,6 +152,8 @@ export function clientProcessOgImageOptions(
   const metaOptions = { includeTwitter: publicCfg.includeTwitter }
   const paths: string[] = []
 
+  // Link previews read og:video from the server HTML. The client cannot tell a component's renderer,
+  // and the resolver serves images only, so client meta carries og:image alone. URLs keep `video`.
   for (const rawInput of inputs) {
     const resolved = resolveReactiveOptions(rawInput)
     if (resolved === false)
@@ -174,7 +176,7 @@ export function clientProcessOgImageOptions(
     if ((validOptions as OgImagePrebuilt).url) {
       const url = (validOptions as OgImagePrebuilt).url as string
       const absoluteUrl = /^https?:\/\//.test(url) ? url : toValue(resolveImageUrl(url))
-      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, validOptions, metaOptions) })
+      registerClientOgHead(ogKey, { meta: generateMeta(absoluteUrl, withoutVideo(validOptions), metaOptions) })
       paths.push(url)
       continue
     }
@@ -182,7 +184,7 @@ export function clientProcessOgImageOptions(
     // SSR: route through the resolver for a guaranteed match with the server URL.
     if (hasServerRuntime) {
       const finalUrl = buildResolverUrl(baseURL, basePath, ogKey, route.query as Record<string, any> | undefined)
-      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), validOptions, metaOptions) })
+      registerClientOgHead(ogKey, { meta: generateMeta(toValue(resolveImageUrl(finalUrl)), withoutVideo(validOptions), metaOptions) })
       paths.push(finalUrl)
       continue
     }
@@ -203,7 +205,7 @@ export function clientProcessOgImageOptions(
     const imageUrl = rc.app.cdnURL
       ? withQuery(joinURL(rc.app.cdnURL, result.url), query)
       : toValue(resolveImageUrl(finalUrl))
-    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, opts, metaOptions) }, { processTemplateParams: true })
+    registerClientOgHead(ogKey, { meta: generateMeta(imageUrl, withoutVideo(opts), metaOptions) }, { processTemplateParams: true })
     paths.push(finalUrl)
   }
 

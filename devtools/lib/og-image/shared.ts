@@ -6,7 +6,7 @@ import { defu } from 'defu'
 export { encodeOgImageParams } from './shared/urlEncoding'
 
 const RE_KEBAB_CASE = /-([a-z])/g
-const OG_IMAGE_OPTION_KEYS: string[] = ['url', 'extension', 'width', 'height', 'alt', 'props', 'renderer', 'component', 'emojis', '_query', '_hash', 'fonts', 'satori', 'resvg', 'sharp', 'screenshot', 'takumi', 'cacheMaxAgeSeconds', 'cacheKey', 'key']
+const OG_IMAGE_OPTION_KEYS: string[] = ['url', 'extension', 'width', 'height', 'alt', 'props', 'renderer', 'component', 'emojis', '_query', '_hash', 'fonts', 'satori', 'resvg', 'sharp', 'screenshot', 'takumi', 'video', 'cacheMaxAgeSeconds', 'cacheKey', 'key']
 
 function filterIsOgImageOption(key: string): boolean {
   return OG_IMAGE_OPTION_KEYS.includes(key)

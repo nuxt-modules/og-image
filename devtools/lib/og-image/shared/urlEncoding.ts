@@ -50,6 +50,8 @@ const PARAM_ALIASES: Record<string, string> = {
   p: '_path', // page path - needs alias since _path starts with underscore
   q: '_query', // query params - needs alias since _query starts with underscore
   ch: '_componentHash', // component template hash for cache busting prerendered URLs
+  // `video_` was an inline component prop before the option existed, so the option uses its own key.
+  mp4: 'video',
 }
 
 // Reverse mapping (param name -> alias)
@@ -75,6 +77,7 @@ const KNOWN_PARAMS = new Set([
   'sharp',
   'screenshot',
   'takumi',
+  'video',
   'fonts',
   '_query',
   '_hash',
@@ -85,7 +88,7 @@ const KNOWN_PARAMS = new Set([
 ])
 
 // Params that need base64 encoding (complex objects, or values with slashes)
-const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'takumi', 'fonts', '_query', '_path'])
+const COMPLEX_PARAMS = new Set(['satori', 'resvg', 'sharp', 'screenshot', 'takumi', 'video', 'fonts', '_query', '_path'])
 
 // URL-safe base64 encode/decode helpers (works in both browser and Node, handles Unicode)
 // Uses ~ instead of / and - instead of + to avoid breaking URL path segments
@@ -168,7 +171,9 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
       for (const [propKey, propValue] of Object.entries(value)) {
         if (propValue === undefined || propValue === null)
           continue
-        if (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean') {
+        // A prop named like an option or alias would decode as that option, so it goes in the props blob.
+        const canEncodeInline = !KNOWN_PARAMS.has(propKey) && !(propKey in PARAM_ALIASES)
+        if (canEncodeInline && (typeof propValue === 'string' || typeof propValue === 'number' || typeof propValue === 'boolean')) {
           flattened[propKey] = propValue
         }
         else {
@@ -182,6 +187,11 @@ export function encodeOgImageParams(options: Record<string, any>, defaults?: Rec
       flattened[key] = value
     }
   }
+
+  // `video: {}` and settings that are all undefined opt in with the defaults. Encode them as `true`,
+  // because an object that serializes to `{}` is dropped below.
+  if (flattened.video && typeof flattened.video === 'object' && JSON.stringify(flattened.video) === '{}')
+    flattened.video = true
 
   for (const [key, value] of Object.entries(flattened)) {
     if (value === undefined || value === null || value === '') {
@@ -314,8 +324,10 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
 
     // Resolve alias to full param name
     const paramName = PARAM_ALIASES[alias] || alias
+    // An inline `video_` param is a component prop from a URL older than the `video` option.
+    const isOption = alias !== 'video'
 
-    if (COMPLEX_PARAMS.has(paramName)) {
+    if (isOption && COMPLEX_PARAMS.has(paramName)) {
       // Base64 decode complex objects
       try {
         const json = b64Decode(value)
@@ -335,7 +347,7 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
         // ignore
       }
     }
-    else if (KNOWN_PARAMS.has(paramName)) {
+    else if (isOption && KNOWN_PARAMS.has(paramName)) {
       // Known OgImageOptions param - decode value
       value = decodeSimpleValue(value)
       // Try to parse as number or boolean
