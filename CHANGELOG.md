@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.2.0
+
+[Compare changes](https://github.com/nuxt-modules/og-image/compare/v7.1.1...v7.2.0)
+
+### Changes
+
+- Set the new `video` option to render a Takumi template's CSS animations to an MP4. Pages get `og:video` tags, which Messages on iOS and macOS plays in link previews. Rendering needs `ffmpeg` on the server or at build time, so edge runtimes need prerendered pages. Runtime videos need URL signing, which is on by default. Prototype by [@onmax](https://github.com/onmax). [#802](https://github.com/nuxt-modules/og-image/pull/802)
+- Runtime cache keys now include the image extension, so each cached image renders once more after you upgrade. [#802](https://github.com/nuxt-modules/og-image/pull/802)
+- Keep template images served by Nitro server routes in prerendered OG images. [#803](https://github.com/nuxt-modules/og-image/pull/803)
+- In dev, refresh component props and hashes after you edit an OG component. Component changes in a Nuxt 4 `app/` directory and on Windows now trigger updates. Thanks [@sawa-ko](https://github.com/sawa-ko). [#801](https://github.com/nuxt-modules/og-image/pull/801)
+
 ## 7.1.1
 
 [Compare changes](https://github.com/nuxt-modules/og-image/compare/v7.1.0...v7.1.1)
