@@ -68,7 +68,7 @@ function nodeEvent() {
     path: '/og.png',
     waitUntil: vi.fn(),
     get handled() { return res.headersSent },
-  } as H3Event
+  } as unknown as H3Event & { path: string }
 }
 
 function webEvent(node?: object) {
@@ -409,8 +409,8 @@ describe('imageEventHandler og:video', () => {
 
   it('shares one render between concurrent requests for the same video', async () => {
     const { event, createImage } = videoRequest({ secret: 'test-secret' })
-    let finish!: (bytes: Buffer) => void
-    createImage.mockImplementation(() => new Promise<Buffer>((resolve) => {
+    let finish!: (bytes: typeof image) => void
+    createImage.mockImplementation(() => new Promise<typeof image>((resolve) => {
       finish = resolve
     }))
     const second = nodeEvent()
@@ -426,5 +426,119 @@ describe('imageEventHandler og:video', () => {
     const { event, createImage } = videoRequest({ secret: 'test-secret' })
     await imageEventHandler(event)
     expect(createImage).toHaveBeenCalledOnce()
+  })
+
+  it('bounds distinct video misses and rejects requests beyond the pending limit', async () => {
+    const { createImage } = videoRequest({ secret: 'test-secret' })
+    const context = await resolveContext()
+    resolveContext.mockImplementation(async (event: H3Event) => ({ ...context, key: event.path, timings: createTimings() }))
+    const finishes: (() => void)[] = []
+    let active = 0
+    let peak = 0
+    createImage.mockImplementation(async () => {
+      active++
+      peak = Math.max(peak, active)
+      await new Promise<void>(resolve => finishes.push(resolve))
+      active--
+      return image
+    })
+    const requests = Array.from({ length: 7 }, (_, index) => {
+      const event = nodeEvent()
+      event.path = `/signed-${index}.mp4`
+      return imageEventHandler(event)
+    })
+    try {
+      await vi.waitFor(() => expect(createImage).toHaveBeenCalled())
+      expect(active).toBe(2)
+      expect(await requests[6]).toMatchObject({ statusCode: 503 })
+      useOgImageBufferCache.mockResolvedValueOnce({ cachedItem: image })
+      expect(await imageEventHandler(nodeEvent())).toBe(image)
+      const stillRenderer = vi.fn(async () => image)
+      resolveContext.mockResolvedValueOnce({
+        ...context,
+        extension: 'png',
+        renderer: { supportedFormats: ['png'], createImage: stillRenderer },
+      })
+      expect(await imageEventHandler(nodeEvent())).toBe(image)
+      expect(stillRenderer).toHaveBeenCalledOnce()
+      const duplicate = nodeEvent()
+      duplicate.path = '/signed-0.mp4'
+      requests.push(imageEventHandler(duplicate))
+      for (let completed = 0; completed < 6; completed += 2) {
+        await vi.waitFor(() => expect(createImage).toHaveBeenCalledTimes(completed + 2))
+        finishes.splice(0).forEach(finish => finish())
+      }
+      expect(await Promise.all(requests.slice(0, 6))).toEqual(Array.from({ length: 6 }).fill(image))
+      expect(await requests[7]).toBe(image)
+      expect(peak).toBe(2)
+      const retry = nodeEvent()
+      retry.path = '/retry.mp4'
+      createImage.mockResolvedValue(image)
+      expect(await imageEventHandler(retry)).toBe(image)
+    }
+    finally {
+      createImage.mockResolvedValue(image)
+      finishes.splice(0).forEach(finish => finish())
+      await Promise.all(requests)
+    }
+  })
+
+  it('expires queued videos without starting them or releasing active render slots', async () => {
+    vi.useFakeTimers()
+    const { createImage } = videoRequest({ secret: 'test-secret' })
+    const context = await resolveContext()
+    resolveContext.mockImplementation(async (event: H3Event) => ({ ...context, key: event.path, timings: createTimings() }))
+    const finishes: (() => void)[] = []
+    createImage.mockImplementation(async () => {
+      await new Promise<void>(resolve => finishes.push(resolve))
+      return image
+    })
+    const request = (path: string) => {
+      const event = nodeEvent()
+      event.path = path
+      return imageEventHandler(event)
+    }
+    const requests = ['/one.mp4', '/two.mp4', '/queued.mp4'].map(request)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(createImage).toHaveBeenCalledTimes(2)
+    await vi.advanceTimersByTimeAsync(15000)
+    expect(await Promise.all(requests)).toEqual([
+      expect.objectContaining({ statusCode: 408 }),
+      expect.objectContaining({ statusCode: 408 }),
+      expect.objectContaining({ statusCode: 408 }),
+    ])
+    const retry = request('/retry.mp4')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(createImage).toHaveBeenCalledTimes(2)
+    createImage.mockResolvedValue(image)
+    finishes.forEach(finish => finish())
+    expect(await retry).toBe(image)
+    expect(createImage).toHaveBeenCalledTimes(3)
+  })
+
+  it('starts the next queued video when an encoder fails', async () => {
+    const { createImage } = videoRequest({ secret: 'test-secret' })
+    const context = await resolveContext()
+    resolveContext.mockImplementation(async (event: H3Event) => ({ ...context, key: event.path, timings: createTimings() }))
+    const failure = new Error('encoder failed')
+    let fail!: (error: Error) => void
+    let finish!: (bytes: typeof image) => void
+    createImage.mockImplementationOnce(() => new Promise<typeof image>((_, reject) => {
+      fail = reject
+    })).mockImplementationOnce(() => new Promise<typeof image>((resolve) => {
+      finish = resolve
+    }))
+    const requests = Array.from({ length: 3 }, (_, index) => {
+      const event = nodeEvent()
+      event.path = `/signed-${index}.mp4`
+      return imageEventHandler(event).catch(error => error)
+    })
+    await vi.waitFor(() => expect(createImage).toHaveBeenCalledTimes(2))
+    fail(failure)
+    expect(await requests[0]).toBe(failure)
+    expect(await requests[2]).toBe(image)
+    finish(image)
+    expect(await requests[1]).toBe(image)
+    expect(createImage).toHaveBeenCalledTimes(3)
   })
 })

@@ -251,7 +251,7 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
     let timer: ReturnType<typeof setTimeout> | undefined
     const endRender = timings.start('render-total')
     image = await Promise.race([
-      renderShared(ctx),
+      renderShared(ctx, timeout),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error(`OG image render timed out after ${timeout}ms`)), timeout)
       }),
@@ -314,21 +314,56 @@ async function renderOgImage(e: H3Event, ctx: Exclude<Awaited<ReturnType<typeof 
 }
 
 type RenderContext = Exclude<Awaited<ReturnType<typeof resolveContext>>, H3Error>
+type VideoRender = ReturnType<RenderContext['renderer']['createImage']>
+
+interface VideoRenders {
+  renders: Map<string, VideoRender>
+  active: number
+  pending: (() => void)[]
+}
+
+// Keep CPU and memory available for page and still-image requests.
+const MAX_ACTIVE_VIDEO_RENDERS = 2
+const MAX_PENDING_VIDEO_RENDERS = 4
 
 /**
  * A video costs one render per frame, and a player opens it with several range requests at once.
  * Concurrent requests for one uncached video therefore share a single render.
  */
-function renderShared(ctx: RenderContext) {
+function renderShared(ctx: RenderContext, timeout: number) {
   if (ctx.extension !== 'mp4')
     return ctx.renderer.createImage(ctx)
-  const nitro = ctx._nitro as { _ogImageVideoRenders?: Map<string, ReturnType<RenderContext['renderer']['createImage']>> }
-  const renders = nitro._ogImageVideoRenders ||= new Map()
-  let render = renders.get(ctx.key)
-  if (!render) {
-    render = ctx.renderer.createImage(ctx).finally(() => renders.delete(ctx.key))
-    renders.set(ctx.key, render)
-  }
+  const nitro = ctx._nitro as { _ogImageVideoRenders?: VideoRenders }
+  const state: VideoRenders = nitro._ogImageVideoRenders ||= { renders: new Map(), active: 0, pending: [] }
+  const shared = state.renders.get(ctx.key)
+  if (shared)
+    return shared
+  if (state.active >= MAX_ACTIVE_VIDEO_RENDERS && state.pending.length >= MAX_PENDING_VIDEO_RENDERS)
+    return Promise.resolve(createError({ statusCode: 503 }))
+
+  const render: VideoRender = new Promise<Awaited<VideoRender>>((resolve, reject) => {
+    let queueTimer: ReturnType<typeof setTimeout> | undefined
+    const start = () => {
+      clearTimeout(queueTimer)
+      state.active++
+      // Release capacity only when the renderer stops, even if its request times out first.
+      Promise.resolve().then(() => ctx.renderer.createImage(ctx)).finally(() => {
+        state.active--
+        state.pending.shift()?.()
+      }).then(resolve, reject)
+    }
+    if (state.active < MAX_ACTIVE_VIDEO_RENDERS) {
+      start()
+    }
+    else {
+      state.pending.push(start)
+      queueTimer = setTimeout(() => {
+        state.pending.splice(state.pending.indexOf(start), 1)
+        reject(new Error(`OG image render timed out after ${timeout}ms`))
+      }, timeout)
+    }
+  }).finally(() => state.renders.delete(ctx.key))
+  state.renders.set(ctx.key, render)
   return render
 }
 
