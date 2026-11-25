@@ -816,12 +816,12 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (config.zeroRuntime) {
       config.compatibility = defu(config.compatibility, {
-    runtime: {
-        browser: false, // should already be false
-        satori: false,
-        takumi: false,
-    },
-} as CompatibilityFlagEnvOverrides)
+        runtime: {
+          browser: false, // should already be false
+          satori: false,
+          takumi: false,
+        },
+      } as CompatibilityFlagEnvOverrides)
 
       if (!nuxt.options.dev)
         setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
@@ -862,8 +862,8 @@ export default defineNuxtModule<ModuleOptions>({
           if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
             config.compatibility = defu(config.compatibility, {
-    runtime: { sharp: false },
-} as CompatibilityFlagEnvOverrides)
+              runtime: { sharp: false },
+            } as CompatibilityFlagEnvOverrides)
           }
           else {
             await import('sharp')
@@ -885,10 +885,10 @@ export default defineNuxtModule<ModuleOptions>({
       }
       if (!attemptSharpUsage) {
         config.compatibility = defu(config.compatibility, {
-    runtime: { sharp: false },
-    dev: { sharp: false },
-    prerender: { sharp: false },
-} as CompatibilityFlagEnvOverrides)
+          runtime: { sharp: false },
+          dev: { sharp: false },
+          prerender: { sharp: false },
+        } as CompatibilityFlagEnvOverrides)
       }
     }
 
@@ -942,10 +942,10 @@ export default defineNuxtModule<ModuleOptions>({
           browserBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
       }
       config.compatibility = defu(config.compatibility, {
-    runtime: { browser: browserBinding.runtime },
-    dev: { browser: browserBinding.dev },
-    prerender: { browser: browserBinding.prerender },
-} as CompatibilityFlagEnvOverrides)
+        runtime: { browser: browserBinding.runtime },
+        dev: { browser: browserBinding.dev },
+        prerender: { browser: browserBinding.prerender },
+      } as CompatibilityFlagEnvOverrides)
     }
 
     nuxt.options.experimental.componentIslands ||= true
@@ -1204,13 +1204,13 @@ export default defineNuxtModule<ModuleOptions>({
           if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
             logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
             config.compatibility = defu(config.compatibility, {
-    dev: { resvg: 'wasm-fs' },
-    prerender: { resvg: 'wasm-fs' },
-} as CompatibilityFlagEnvOverrides)
+              dev: { resvg: 'wasm-fs' },
+              prerender: { resvg: 'wasm-fs' },
+            } as CompatibilityFlagEnvOverrides)
             if (targetCompatibility.resvg === 'node') {
               config.compatibility = defu(config.compatibility, {
-    runtime: { resvg: 'wasm' },
-} as CompatibilityFlagEnvOverrides)
+                runtime: { resvg: 'wasm' },
+              } as CompatibilityFlagEnvOverrides)
             }
           }
         }
@@ -1842,43 +1842,43 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         ?? (nuxt.options as { seo?: { automaticTwitterTags?: boolean } }).seo?.automaticTwitterTags
         ?? true
       const runtimeConfig = {
-    version,
-    // binding options
-    satoriOptions: config.satoriOptions || {},
-    resvgOptions: config.resvgOptions || {},
-    sharpOptions: config.sharpOptions === true ? {} : (config.sharpOptions || {}),
-    publicStoragePath: `root${publicDirAbs.replace(nuxt.options.rootDir, '').replaceAll('/', ':')}`,
-    defaults: config.defaults,
-    debug: config.debug,
-    includeTwitter,
-    // avoid adding credentials
-    baseCacheKey,
-    buildCacheDir,
-    publish: config.publish ? { ...config.publish, cacheVersion } : undefined,
-    hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
-    colorPreference,
-    cssFramework: cssFramework || 'none',
-    browserEnabled: !!config.browser,
-    // Browser renderer config for cloudflare binding access
-    browser: typeof config.browser === 'object'
-        ? {
-            provider: config.browser.provider,
-            binding: config.browser.binding,
-        }
-        : undefined,
-    security: {
-        strict: config.security?.strict ?? false,
-        maxDimension: config.security?.maxDimension ?? 2048,
-        maxDpr: config.security?.maxDpr ?? 2,
-        renderTimeout: config.security?.renderTimeout ?? 15000,
-        imageFetchTimeout: config.security?.imageFetchTimeout ?? 3000,
-        maxQueryParamSize: config.security?.maxQueryParamSize ?? (config.security?.strict ? 2048 : null),
-        restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
+        version,
+        // binding options
+        satoriOptions: config.satoriOptions || {},
+        resvgOptions: config.resvgOptions || {},
+        sharpOptions: config.sharpOptions === true ? {} : (config.sharpOptions || {}),
+        publicStoragePath: `root${publicDirAbs.replace(nuxt.options.rootDir, '').replaceAll('/', ':')}`,
+        defaults: config.defaults,
+        debug: config.debug,
+        includeTwitter,
+        // avoid adding credentials
+        baseCacheKey,
+        buildCacheDir,
+        publish: config.publish ? { ...config.publish, cacheVersion } : undefined,
+        hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
+        colorPreference,
+        cssFramework: cssFramework || 'none',
+        browserEnabled: !!config.browser,
+        // Browser renderer config for cloudflare binding access
+        browser: typeof config.browser === 'object'
+          ? {
+              provider: config.browser.provider,
+              binding: config.browser.binding,
+            }
+          : undefined,
+        security: {
+          strict: config.security?.strict ?? false,
+          maxDimension: config.security?.maxDimension ?? 2048,
+          maxDpr: config.security?.maxDpr ?? 2,
+          renderTimeout: config.security?.renderTimeout ?? 15000,
+          imageFetchTimeout: config.security?.imageFetchTimeout ?? 3000,
+          maxQueryParamSize: config.security?.maxQueryParamSize ?? (config.security?.strict ? 2048 : null),
+          restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
-        secret: config.security?.secret === false ? false : '',
-    },
-} as OgImageRuntimeConfig
+          secret: config.security?.secret === false ? false : '',
+        },
+      } as OgImageRuntimeConfig
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
         runtimeConfig.srcDir = nuxt.options.srcDir
