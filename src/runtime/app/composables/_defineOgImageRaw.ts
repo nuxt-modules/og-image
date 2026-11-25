@@ -1,5 +1,5 @@
 import type { ResolvableMeta, VueHeadClient } from '@unhead/vue'
-import type { DefineOgImageInput, OgImageOptions, OgImagePrebuilt } from '../../types'
+import type { DefineOgImageInput, OgImageOptions, OgImageOptionsInternal, OgImagePrebuilt } from '../../types'
 import { createError, injectHead, useError, useNuxtApp, useRequestEvent, useRoute, useState } from 'nuxt/app'
 import { toValue } from 'vue'
 import { clientProcessOgImageOptions } from '../client-utils'
@@ -118,7 +118,8 @@ function useProcessOgImageOptions(
     }
   }
 
-  if (route.query)
+  // A template renders from its props, so the page query cannot change its output.
+  if (route.query && (validOptions as OgImageOptionsInternal).component === 'PageScreenshot')
     validOptions._query = route.query
   // allow overriding using a prebuild config
   if (validOptions.url) {
