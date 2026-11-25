@@ -6,7 +6,7 @@
  */
 
 // Minimal subset (~100 common emojis), use Nuxt Icon for more
-import { EMOJI_CODEPOINT_TO_NAME } from './emoji-names-minimal'
+import { EMOJI_CODEPOINT_TO_NAME } from './emoji-names-minimal.ts'
 
 const RE_VARIATION_SELECTOR = /-fe0f$/i
 

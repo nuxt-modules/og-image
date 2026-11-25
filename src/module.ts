@@ -25,12 +25,12 @@ import { defu } from 'defu'
 import { fnv1a64Base36 } from 'fnv1a-64'
 import { findPackageJSON, setupNitroRuntimeCompatibility, setupRuntimeAliases } from 'nuxtseo-shared/kit'
 import { dirname, isAbsolute, join } from 'pathe'
-import { setupBuildHandler } from './build/build'
-import { extractCustomFontFamilies } from './build/css/css-utils'
-import { setupDevHandler } from './build/dev'
-import { setupDevToolsUI } from './build/devtools'
-import { fontFamiliesFromCssEntries, warnWhenFontsUnreported } from './build/font-compat'
-import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless'
+import { setupBuildHandler } from './build/build.ts'
+import { extractCustomFontFamilies } from './build/css/css-utils.ts'
+import { setupDevHandler } from './build/dev.ts'
+import { setupDevToolsUI } from './build/devtools.ts'
+import { fontFamiliesFromCssEntries, warnWhenFontsUnreported } from './build/font-compat.ts'
+import { prepareWoff2Fonts, resolveOgImageFonts } from './build/fontless.ts'
 import {
   buildFontFamilyCanonicalMap,
   cacheResolvedFontFiles,
@@ -39,26 +39,26 @@ import {
   getResolvedNuxtFonts,
   getStaticFontCacheDir,
   resolveFontFamilies,
-} from './build/fonts'
-import { setupGenerateHandler } from './build/generate'
-import { resolveOptionalModulePath } from './build/optional-module'
+} from './build/fonts.ts'
+import { setupGenerateHandler } from './build/generate.ts'
+import { resolveOptionalModulePath } from './build/optional-module.ts'
 import { readPackageManifest } from './build/package-manifest.ts'
-import { setupPrerenderHandler } from './build/prerender'
-import { extractPropNamesFromVue, loadSfcCompiler } from './build/props'
-import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache'
-import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check'
-import { AssetTransformPlugin } from './build/vite-asset-transform'
-import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite'
-import { isOgImageComponentPath, isSamePath, resolveWatchedPath } from './build/watch-paths'
-import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
-import { getNuxtModuleOptions, isNuxtGenerate } from './kit'
-import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings'
-import { onInstall, onUpgrade } from './onboarding'
-import { logger } from './runtime/logger'
-import { hasPublishMount, parsePublishConfig } from './runtime/shared/publish'
-import { registerTypeTemplates } from './templates'
-import { checkLocalChrome, getAppComponents, getComponentHashes, getRegisteredBaseNames, getRendererFromFilename, getServerComponents, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util'
-import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies'
+import { setupPrerenderHandler } from './build/prerender.ts'
+import { extractPropNamesFromVue, loadSfcCompiler } from './build/props.ts'
+import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache.ts'
+import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check.ts'
+import { AssetTransformPlugin } from './build/vite-asset-transform.ts'
+import { ComponentImportRewritePlugin } from './build/vite-component-import-rewrite.ts'
+import { isOgImageComponentPath, isSamePath, resolveWatchedPath } from './build/watch-paths.ts'
+import { ensureDependencies, getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility.ts'
+import { getNuxtModuleOptions, isNuxtGenerate } from './kit.ts'
+import { addComponentWarning, addConfigWarning, emitWarnings, hasWarnings, REMOVED_CONFIG } from './migrations/warnings.ts'
+import { onInstall, onUpgrade } from './onboarding.ts'
+import { logger } from './runtime/logger.ts'
+import { hasPublishMount, parsePublishConfig } from './runtime/shared/publish.ts'
+import { registerTypeTemplates } from './templates.ts'
+import { checkLocalChrome, getAppComponents, getComponentHashes, getRegisteredBaseNames, getRendererFromFilename, getServerComponents, hasResolvableDependency, isUndefinedOrTruthy, RE_LEGACY_SUFFIX } from './util.ts'
+import { canPromptInteractively, ensureProviderDependencies, getInstalledProviders, getMissingDependencies, getMissingDependencyInstallSpecs, getMissingRendererMessage, getRecommendedBinding, NO_RENDERER_MESSAGE, resolveAutoDetectedProvider, resolveMissingRendererAction } from './utils/dependencies.ts'
 
 export type {
   OgImageComponent,
@@ -505,7 +505,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // CSS framework detection - supports UnoCSS and Tailwind
-    const { detectCssProvider } = await import('./build/css/css-provider')
+    const { detectCssProvider } = await import('./build/css/css-provider.ts')
     const cssFramework = detectCssProvider(nuxt)
 
     // CSS provider for class resolution (UnoCSS or TW4)
@@ -517,7 +517,7 @@ export default defineNuxtModule<ModuleOptions>({
     // UnoCSS provider setup
     if (cssFramework === 'unocss') {
       logger.debug('UnoCSS detected, using UnoCSS provider for OG image styling')
-      const { setUnoConfig, setUnoRootDir, createUnoProvider } = await import('./build/css/providers/uno')
+      const { setUnoConfig, setUnoRootDir, createUnoProvider } = await import('./build/css/providers/uno.ts')
       const [unocssCorePath, unocssConfigPath] = await Promise.all([
         resolveOptionalModulePath('@unocss/core', nuxt.options.rootDir, ['@unocss/nuxt', 'unocss']),
         resolveOptionalModulePath('@unocss/config', nuxt.options.rootDir, ['@unocss/nuxt', 'unocss']),
@@ -656,7 +656,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     // Create TW4 provider when not using UnoCSS
     if (!cssProvider && cssFramework === 'tailwind') {
-      const { createTw4Provider } = await import('./build/css/providers/tw4')
+      const { createTw4Provider } = await import('./build/css/providers/tw4.ts')
       cssProvider = createTw4Provider({
         async resolveCssPath() {
           // Try alias first, but fall through to auto-detect if it's a virtual module (not a real file)
@@ -815,13 +815,13 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     if (config.zeroRuntime) {
-      config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+      config.compatibility = defu(config.compatibility, {
         runtime: {
           browser: false, // should already be false
           satori: false,
           takumi: false,
         },
-      })
+      } as CompatibilityFlagEnvOverrides)
 
       if (!nuxt.options.dev)
         setRuntimeAlias('#og-image-cache', resolve('./runtime/server/og-image/cache/mock'))
@@ -861,9 +861,9 @@ export default defineNuxtModule<ModuleOptions>({
         if (hasExplicitSharpDependency) {
           if (!targetCompatibility.sharp) {
             logger.warn(`Rendering JPEGs requires sharp which does not work with ${preset}. Images will be rendered as PNG at runtime.`)
-            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+            config.compatibility = defu(config.compatibility, {
               runtime: { sharp: false },
-            })
+            } as CompatibilityFlagEnvOverrides)
           }
           else {
             await import('sharp')
@@ -884,11 +884,11 @@ export default defineNuxtModule<ModuleOptions>({
         }
       }
       if (!attemptSharpUsage) {
-        config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+        config.compatibility = defu(config.compatibility, {
           runtime: { sharp: false },
           dev: { sharp: false },
           prerender: { sharp: false },
-        })
+        } as CompatibilityFlagEnvOverrides)
       }
     }
 
@@ -941,11 +941,11 @@ export default defineNuxtModule<ModuleOptions>({
         if (isUndefinedOrTruthy(browserCompatibilityFlags.runtime))
           browserBinding.runtime = hasPlaywrightDependency ? 'playwright' : null
       }
-      config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+      config.compatibility = defu(config.compatibility, {
         runtime: { browser: browserBinding.runtime },
         dev: { browser: browserBinding.dev },
         prerender: { browser: browserBinding.prerender },
-      })
+      } as CompatibilityFlagEnvOverrides)
     }
 
     nuxt.options.experimental.componentIslands ||= true
@@ -1203,14 +1203,14 @@ export default defineNuxtModule<ModuleOptions>({
           // Set resvg WASM fallback compatibility when satori resolved to wasm binding
           if (renderer === 'satori' && availableRenderers.has(renderer) && binding !== 'node') {
             logger.warn('ReSVG native binding not available. Falling back to WASM version, this may slow down PNG rendering.')
-            config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+            config.compatibility = defu(config.compatibility, {
               dev: { resvg: 'wasm-fs' },
               prerender: { resvg: 'wasm-fs' },
-            })
+            } as CompatibilityFlagEnvOverrides)
             if (targetCompatibility.resvg === 'node') {
-              config.compatibility = defu(config.compatibility, <CompatibilityFlagEnvOverrides>{
+              config.compatibility = defu(config.compatibility, {
                 runtime: { resvg: 'wasm' },
-              })
+              } as CompatibilityFlagEnvOverrides)
             }
           }
         }
@@ -1841,14 +1841,13 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       const includeTwitter = config.includeTwitter
         ?? (nuxt.options as { seo?: { automaticTwitterTags?: boolean } }).seo?.automaticTwitterTags
         ?? true
-      const runtimeConfig = <OgImageRuntimeConfig>{
+      const runtimeConfig = {
         version,
         // binding options
         satoriOptions: config.satoriOptions || {},
         resvgOptions: config.resvgOptions || {},
         sharpOptions: config.sharpOptions === true ? {} : (config.sharpOptions || {}),
         publicStoragePath: `root${publicDirAbs.replace(nuxt.options.rootDir, '').replaceAll('/', ':')}`,
-
         defaults: config.defaults,
         debug: config.debug,
         includeTwitter,
@@ -1858,7 +1857,6 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         publish: config.publish ? { ...config.publish, cacheVersion } : undefined,
         hasNuxtIcon: hasNuxtModule('nuxt-icon') || hasNuxtModule('@nuxt/icon'),
         colorPreference,
-
         cssFramework: cssFramework || 'none',
         browserEnabled: !!config.browser,
         // Browser renderer config for cloudflare binding access
@@ -1872,15 +1870,15 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
           strict: config.security?.strict ?? false,
           maxDimension: config.security?.maxDimension ?? 2048,
           maxDpr: config.security?.maxDpr ?? 2,
-          renderTimeout: config.security?.renderTimeout ?? 15_000,
-          imageFetchTimeout: config.security?.imageFetchTimeout ?? 3_000,
+          renderTimeout: config.security?.renderTimeout ?? 15000,
+          imageFetchTimeout: config.security?.imageFetchTimeout ?? 3000,
           maxQueryParamSize: config.security?.maxQueryParamSize ?? (config.security?.strict ? 2048 : null),
           restrictRuntimeImagesToOrigin: config.security?.restrictRuntimeImagesToOrigin === true || (config.security?.strict && config.security?.restrictRuntimeImagesToOrigin == null)
             ? []
             : (config.security?.restrictRuntimeImagesToOrigin || false),
           secret: config.security?.secret === false ? false : '',
         },
-      }
+      } as OgImageRuntimeConfig
       if (nuxt.options.dev) {
         runtimeConfig.componentDirs = config.componentDirs
         runtimeConfig.srcDir = nuxt.options.srcDir

@@ -1,5 +1,5 @@
 import { basename } from 'pathe'
-import { logger } from '../runtime/logger'
+import { logger } from '../runtime/logger.ts'
 
 export interface MigrationWarning {
   type: 'config' | 'component'

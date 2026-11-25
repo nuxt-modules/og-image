@@ -8,8 +8,8 @@ import { addDependency, detectPackageManager, removeDependency } from 'nypm'
 import { parseAndWalk } from 'oxc-walker'
 import { basename, dirname, join, relative, resolve } from 'pathe'
 import { ELEMENT_NODE, parse as parseHtml, walkSync } from 'ultrahtml'
-import { detectAppRenderers, detectInstalledRenderers, listEjectableNames, resolveEjectTemplate } from './eject'
-import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts'
+import { detectAppRenderers, detectInstalledRenderers, listEjectableNames, resolveEjectTemplate } from './eject.ts'
+import { migrateDefaultsComponent, migrateFontsConfig } from './migrations/fonts.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

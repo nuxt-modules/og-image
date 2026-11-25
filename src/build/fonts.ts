@@ -11,8 +11,8 @@ import { existsSync } from 'node:fs'
 import * as fs from 'node:fs'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join, relative } from 'pathe'
-import { extractCustomFontFamilies } from './css/css-utils'
-import { fontFacesFromResolved } from './css/font-face'
+import { extractCustomFontFamilies } from './css/css-utils.ts'
+import { fontFacesFromResolved } from './css/font-face.ts'
 
 const RE_FONT_FACE_BLOCK = /@font-face\s*\{[^}]+\}/g
 const RE_FONT_KEY = /^(.+)-(\d+)-(.+)$/
@@ -212,7 +212,7 @@ export async function parseAppCssFontFaces(nuxt: Nuxt): Promise<ParsedFont[]> {
   if (cssEntries.length === 0)
     return []
 
-  const { extractFontFacesSimple } = await import('./css/font-face')
+  const { extractFontFacesSimple } = await import('./css/font-face.ts')
   const results: ParsedFont[] = []
   const seen = new Set<string>()
 

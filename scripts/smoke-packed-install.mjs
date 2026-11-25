@@ -247,8 +247,8 @@ async function assertBrowserWithoutLauncherFails(pm, tarball) {
 }
 
 async function getSharedExports(appDir) {
-  const unoChunk = join(appDir, 'node_modules/nuxt-og-image/dist/chunks/uno.mjs')
-  const { resolveOptionalModulePath, importResolvedModule } = await import(pathToFileURL(unoChunk).href)
+  const optionalModuleChunk = join(appDir, 'node_modules/nuxt-og-image/dist/chunks/optional-module.mjs')
+  const { resolveOptionalModulePath, importResolvedModule } = await import(pathToFileURL(optionalModuleChunk).href)
   return { resolveOptionalModulePath, importResolvedModule }
 }
 

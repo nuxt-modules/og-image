@@ -1,9 +1,9 @@
 import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
-import { logger } from '../runtime/logger'
-import { RE_WHITESPACE } from '../util'
-import { evaluateCalc, walkTemplateAst } from './css/css-utils'
+import { logger } from '../runtime/logger.ts'
+import { RE_WHITESPACE } from '../util.ts'
+import { evaluateCalc, walkTemplateAst } from './css/css-utils.ts'
 
 export interface ClassToStyleOptions {
   /**

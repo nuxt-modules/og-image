@@ -57,7 +57,11 @@ jobs:
           mkdir -p "$BASE_DIR/bench/fixtures/edge-startup"
           cp -R bench/fixtures/edge-startup/. "$BASE_DIR/bench/fixtures/edge-startup/"
           pnpm --dir "$BASE_DIR" install --frozen-lockfile
-          pnpm --dir "$BASE_DIR" stub
+          if node -e 'process.exit(require(process.argv[1]).scripts?.stub ? 0 : 1)' "$BASE_DIR/package.json"; then
+            pnpm --dir "$BASE_DIR" run stub
+          else
+            pnpm --dir "$BASE_DIR" run build:module
+          fi
           pnpm --dir "$BASE_DIR" exec nuxt build bench/fixtures/edge-startup
 
       - name: Build pull request fixture
@@ -65,7 +69,7 @@ jobs:
           NUXT_OG_IMAGE_SKIP_ONBOARDING: '1'
         run: |
           pnpm install --frozen-lockfile
-          pnpm stub
+          pnpm run build:module
           pnpm exec nuxt build bench/fixtures/edge-startup
 
       - name: Measure cold imports

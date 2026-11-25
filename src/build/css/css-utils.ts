@@ -1,6 +1,6 @@
 import type { TemplateChildNode } from '@vue/compiler-core'
-import { logger } from '../../runtime/logger'
-import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css'
+import { logger } from '../../runtime/logger.ts'
+import { GRADIENT_COLOR_SPACE_RE, resolveColorMix } from '../../runtime/server/og-image/utils/css.ts'
 
 const _warnedVars = new Set<string>()
 

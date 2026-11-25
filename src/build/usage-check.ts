@@ -1,7 +1,7 @@
 import type { OgImageComponent, RendererType } from '../runtime/types'
 import { stripLiteral } from 'strip-literal'
 import { createUnplugin } from 'unplugin'
-import { matchesComponentName, parseComponentName } from '../util'
+import { matchesComponentName, parseComponentName } from '../util.ts'
 
 type UsageComponent = Pick<OgImageComponent, 'pascalName' | 'category' | 'renderer' | 'path'>
 

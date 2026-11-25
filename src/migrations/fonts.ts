@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { loadFile, writeFile } from 'magicast'
 import { addNuxtModule } from 'magicast/helpers'
 import { join } from 'pathe'
-import { logger } from '../runtime/logger'
+import { logger } from '../runtime/logger.ts'
 
 interface ParsedFont {
   name: string

@@ -2,14 +2,14 @@ import type { CssProvider } from '../css-provider'
 import type { ExtractedCssVars } from '../css-utils'
 import { readFile } from 'node:fs/promises'
 import { defu } from 'defu'
-import { logger } from '../../../runtime/logger'
-import { importOptionalPeer } from '../../optional-module'
-import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
-import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils'
+import { logger } from '../../../runtime/logger.ts'
+import { importOptionalPeer } from '../../optional-module.ts'
+import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider.ts'
+import { extractClassStyles, extractCssVars, extractPerClassVars, extractPropertyInitialValues, extractUniversalVars, extractVarsFromCss, postProcessStyles, resolveExtractedVars, simplifyCss } from '../css-utils.ts'
 
 // Re-exported so the packed-install smoke test can exercise the shipped
 // resolver against a real consumer app's node_modules.
-export { importResolvedModule, resolveOptionalModulePath } from '../../optional-module'
+export { importResolvedModule, resolveOptionalModulePath } from '../../optional-module.ts'
 
 type UserConfig = import('@unocss/core').UserConfig
 type UnoCoreModule = typeof import('@unocss/core')

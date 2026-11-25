@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { resolveModulePath } from 'exsolve'
 import { dirname, join } from 'pathe'
-import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider'
+import { extractVariantBaseClasses, resolveVariantPrefixes } from '../css-provider.ts'
 import {
   extractClassStyles,
   extractCssVars,
@@ -16,7 +16,7 @@ import {
   resolveExtractedVars,
   resolveVarsDeep,
   simplifyCss,
-} from '../css-utils'
+} from '../css-utils.ts'
 
 const RE_GRADIENT_STOP_PREFIX = /^(from|via|to)-/
 const RE_COLOR_SHADE = /^(.+)-(\d+)$/

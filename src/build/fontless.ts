@@ -16,9 +16,9 @@ import * as fs from 'node:fs'
 import { join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs-lite'
-import { RE_WHITESPACE } from '../util'
-import { extractCustomFontFamilies } from './css/css-utils'
-import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getResolvedNuxtFonts, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, STATIC_FONTS_PREFIX } from './fonts'
+import { RE_WHITESPACE } from '../util.ts'
+import { extractCustomFontFamilies } from './css/css-utils.ts'
+import { downloadFontFile, extractSubsetNames, fontKey, FONTS_URL_PREFIX, getResolvedNuxtFonts, getStaticFontCacheDir, getStaticInterFonts, matchesFontRequirements, parseAppCssFontFaces, parseConfiguredLocalFonts, STATIC_FONTS_PREFIX } from './fonts.ts'
 
 const RE_NON_ALPHANUMERIC = /[^a-z0-9]/gi
 
@@ -550,7 +550,7 @@ async function convertNuxtWoff2Sources(options: {
       continue
     }
 
-    decoder ||= await import('./woff2/decode')
+    decoder ||= await import('./woff2/decode.ts')
     const { woff2Decode } = decoder
     const decoded = await Promise.resolve().then(() => woff2Decode(asset.data)).catch((error: Error) => {
       options.logger.warn(`Failed to decode Nuxt Fonts asset ${fontSrc}: ${error.message}`)

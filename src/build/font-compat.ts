@@ -2,8 +2,8 @@ import type { Nuxt } from '@nuxt/schema'
 import type { ConsolaInstance } from 'consola'
 import type { FontProcessingState } from './fonts'
 import { readFileSync } from 'node:fs'
-import { extractCustomFontFamilies } from './css/css-utils'
-import { resolveAppCssPath } from './fonts'
+import { extractCustomFontFamilies } from './css/css-utils.ts'
+import { resolveAppCssPath } from './fonts.ts'
 
 const RE_FONT_FAMILY_DECLARATION = /font-family\s*:\s*([^;}]+)/g
 

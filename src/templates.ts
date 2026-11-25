@@ -5,7 +5,7 @@ import type { OgImageComponent } from './runtime/types'
 import { addTemplate, addTypeTemplate } from '@nuxt/kit'
 import { renderNitroTypeAugmentations } from 'nuxtseo-shared/kit'
 import { relative, resolve } from 'pathe'
-import { getRegisteredBaseNames } from './util'
+import { getRegisteredBaseNames } from './util.ts'
 
 interface TemplateContext {
   nuxt: Nuxt
