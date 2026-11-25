@@ -17,6 +17,7 @@ const selfBuildFixtures = new Set([
   'cloudflare-takumi',
   'hash-mode',
   'nuxt5',
+  'takumi-bundled-font',
   'vercel-edge-satori',
   'zero-runtime',
 ])
