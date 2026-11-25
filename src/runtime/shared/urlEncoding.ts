@@ -32,7 +32,8 @@ const RE_APOSTROPHE = /'/g
 const RE_ENCODED_COMMA = /%2c/gi
 const RE_ENCODED_PLUS = /%2b/gi
 const RE_ENCODED_APOSTROPHE = /%27/g
-const RE_SINGLE_UNDERSCORE = /(?<!_)_(?!_)/
+// Avoids a lookbehind assertion, which Safari < 16.4 cannot parse.
+const RE_SINGLE_UNDERSCORE = /(^|[^_])_(?!_)/
 const RE_OG_PATH_PREFIX = /^\/_og\/[ds]\//
 const RE_OG_ROUTE_PREFIX = /\/_og\/[ds]\//
 const RE_FILE_EXTENSION_WITH_CAPTURE = /\.(\w+)$/
@@ -368,7 +369,8 @@ export function decodeOgImageParams(encoded: string): Record<string, any> {
 
   for (const part of parts) {
     // Find first underscore that's not escaped (not preceded by another underscore)
-    const idx = part.search(RE_SINGLE_UNDERSCORE)
+    const single = RE_SINGLE_UNDERSCORE.exec(part)
+    const idx = single ? single.index + single[1]!.length : -1
     if (idx === -1)
       continue
 
