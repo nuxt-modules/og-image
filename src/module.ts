@@ -278,6 +278,7 @@ export interface ModuleOptions {
      * - The `html` option is disabled (prevents SSRF via inline HTML injection)
      * - `maxQueryParamSize` defaults to `2048`
      * - `restrictRuntimeImagesToOrigin` defaults to `true`
+     * - OG images are not prerendered: prerendered pages use signed `/_og/d/` URLs that render at runtime
      *
      * @default false
      */
