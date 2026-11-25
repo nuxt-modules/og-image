@@ -5,10 +5,10 @@ import { existsSync, readdirSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { isCI } from 'std-env'
-import { getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility'
-import { promptFontsMigration } from './migrations/fonts'
-import { logger } from './runtime/logger'
-import { getRendererFromFilename, hasResolvableDependency } from './util'
+import { getPresetNitroPresetCompatibility, resolveOgImagePreset } from './compatibility.ts'
+import { promptFontsMigration } from './migrations/fonts.ts'
+import { logger } from './runtime/logger.ts'
+import { getRendererFromFilename, hasResolvableDependency } from './util.ts'
 import {
   canPromptInteractively,
   ensureProviderDependencies,
@@ -18,7 +18,7 @@ import {
   getRecommendedBindingFromPreset,
   PROVIDER_DEPENDENCIES,
   validateProviderSetup,
-} from './utils/dependencies'
+} from './utils/dependencies.ts'
 
 const DEPRECATED_CONFIG = {
   playground: 'Removed - use Nuxt DevTools',

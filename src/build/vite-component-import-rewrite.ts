@@ -3,7 +3,7 @@ import type { ElementNode } from '@vue/compiler-core'
 import { parse as parseSfc } from '@vue/compiler-sfc'
 import MagicString from 'magic-string'
 import { createUnplugin } from 'unplugin'
-import { walkTemplateAst } from './css/css-utils'
+import { walkTemplateAst } from './css/css-utils.ts'
 
 // Standard HTML elements — anything not in this set is a potential component
 const HTML_ELEMENTS = new Set([

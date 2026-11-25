@@ -7,8 +7,8 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs
 import { useNuxt } from '@nuxt/kit'
 import { useSiteConfig } from 'nuxt-site-config/kit'
 import { join } from 'pathe'
-import { applyNitroPresetCompatibility } from '../compatibility'
-import { logger } from '../runtime/logger'
+import { applyNitroPresetCompatibility } from '../compatibility.ts'
+import { logger } from '../runtime/logger.ts'
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
 

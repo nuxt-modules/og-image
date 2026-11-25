@@ -3,7 +3,7 @@ import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { RendererType } from '../runtime/types'
 import { useNuxt } from '@nuxt/kit'
-import { applyNitroPresetCompatibility } from '../compatibility'
+import { applyNitroPresetCompatibility } from '../compatibility.ts'
 
 // we don't need any of the runtime dependencies when we use nuxt generate
 // same as dev but we inject the aliases into the prerender config and noop the regular nitro

@@ -3,8 +3,8 @@ import type { Nuxt } from '@nuxt/schema'
 import type { ModuleOptions } from '../module'
 import type { RendererType } from '../runtime/types'
 import { useNuxt } from '@nuxt/kit'
-import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
-import { getMissingDependencies, getRecommendedBinding } from '../utils/dependencies'
+import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility.ts'
+import { getMissingDependencies, getRecommendedBinding } from '../utils/dependencies.ts'
 
 // we need all of the runtime dependencies when using build
 export async function setupDevHandler(options: ModuleOptions, resolve: Resolver, getDetectedRenderers: () => Set<RendererType>, nuxt: Nuxt = useNuxt()) {

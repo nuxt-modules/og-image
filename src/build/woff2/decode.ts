@@ -15,7 +15,7 @@
 
 import type { ReadBuffer } from './read-buffer'
 import { brotliDecompressSync } from 'node:zlib'
-import { computeChecksum, pad4 } from './checksum'
+import { computeChecksum, pad4 } from './checksum.ts'
 import {
   KNOWN_TAGS,
   TAG_GLYF,
@@ -27,9 +27,9 @@ import {
   TTC_FLAVOR,
   WOFF2_FLAGS_TRANSFORM,
   WOFF2_SIGNATURE,
-} from './known-tags'
-import { createReadBuffer } from './read-buffer'
-import { read255UShort, readBase128 } from './variable-length'
+} from './known-tags.ts'
+import { createReadBuffer } from './read-buffer.ts'
+import { read255UShort, readBase128 } from './variable-length.ts'
 
 // SFNT constants
 const SFNT_HEADER_SIZE = 12

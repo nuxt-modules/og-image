@@ -9,9 +9,9 @@ import { resolvePath, useNuxt } from '@nuxt/kit'
 import MagicString from 'magic-string'
 import { parseAndWalk } from 'oxc-walker'
 import { dirname, join } from 'pathe'
-import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility'
-import { RE_LEGACY_SUFFIX } from '../util'
-import { externalizeSatoriHarfBuzz } from './harfbuzz'
+import { applyNitroPresetCompatibility, getPresetNitroPresetCompatibility, resolveOgImagePreset } from '../compatibility.ts'
+import { RE_LEGACY_SUFFIX } from '../util.ts'
+import { externalizeSatoriHarfBuzz } from './harfbuzz.ts'
 
 const RE_REFLECT_HAS_MINIFIED = /Reflect\.has\(([\w$]+),([\w$]+)\)\?Reflect\.get\(\1,\2,([\w$]+)\):Reflect\.get\(([\w$]+),\2,\3\)/g
 const RE_WASM_IMPORT = /import\("(\.\/wasm\/[^"]+\.wasm)"\)/g

@@ -8,11 +8,11 @@ import { addTemplate, getNuxtVersion, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { resolveModulePath } from 'exsolve'
 import { join } from 'pathe'
-import { prepareHarfBuzzCallbacks } from './build/harfbuzz'
+import { prepareHarfBuzzCallbacks } from './build/harfbuzz.ts'
 import { readPackageManifest } from './build/package-manifest.ts'
-import { resolveNitroPreset } from './kit'
-import { logger } from './runtime/logger'
-import { isSupportedSatoriVersion, MIN_SATORI_VERSION, RE_LEGACY_SUFFIX } from './util'
+import { resolveNitroPreset } from './kit.ts'
+import { logger } from './runtime/logger.ts'
+import { isSupportedSatoriVersion, MIN_SATORI_VERSION, RE_LEGACY_SUFFIX } from './util.ts'
 
 export const NodeRuntime: RuntimeCompatibilitySchema = {
   // node-server runtime

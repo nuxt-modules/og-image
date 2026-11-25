@@ -1,6 +1,6 @@
 import type { ElementNode } from '@vue/compiler-core'
-import { RE_WHITESPACE } from '../../util'
-import { extractCustomFontFamilies, walkTemplateAst } from './css-utils'
+import { RE_WHITESPACE } from '../../util.ts'
+import { extractCustomFontFamilies, walkTemplateAst } from './css-utils.ts'
 
 // Lazy-loaded to reduce startup memory
 let parseSfc: typeof import('@vue/compiler-sfc').parse | undefined

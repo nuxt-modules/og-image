@@ -8,7 +8,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { updateTemplates, useNuxt } from '@nuxt/kit'
 import { setupDevToolsUI as _setupDevToolsUI, setupDevToolsRpc } from 'nuxtseo-shared/devtools'
 import { isAbsolute, join, relative, resolve as resolvePath } from 'pathe'
-import { RE_RENDERER_SUFFIX } from '../util'
+import { RE_RENDERER_SUFFIX } from '../util.ts'
 
 const RE_TILDE_SLASH = /^~\//
 const RE_WORD_CHARS_ONLY = /^\w+$/

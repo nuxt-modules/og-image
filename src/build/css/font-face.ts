@@ -1,4 +1,4 @@
-import { loadLightningCss } from './css-utils'
+import { loadLightningCss } from './css-utils.ts'
 
 // ============================================================================
 // Types
