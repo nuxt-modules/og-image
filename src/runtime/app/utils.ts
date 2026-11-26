@@ -239,10 +239,9 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
               : undefined
             const declaredProps: OgImageComponent['propNames'] = component?.propNames
             payload.props = { ...payload.props }
-            // Use %s template param for title so unhead resolves it with titleTemplate
+            // Inject title and description from head entries for devtools/prerender cache
             if (seo?.title && typeof payload.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
-              payload.props.title = '%s'
-            // Inject description from head entries for devtools/prerender cache
+              payload.props.title = seo.title
             if (seo?.description && typeof payload.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
               payload.props.description = seo.description
             if (typeof payload.component === 'string') {

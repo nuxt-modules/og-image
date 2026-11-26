@@ -1,6 +1,9 @@
 import type { VueHeadClient } from '@unhead/vue'
 import type { NuxtSSRContext } from 'nuxt/app'
+import { useSeoMeta, useHead as vueUseHead } from '@unhead/vue'
+import { TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { createHead as createServerHead, renderSSRHead } from '@unhead/vue/server'
+import { parse } from 'devalue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { createOgImageMeta, getOgImagePath as getAppOgImagePath } from '../../src/runtime/app/utils'
@@ -70,6 +73,7 @@ function resolveOgImageMeta(options: Record<string, any>, prerenderPaths = new M
 
 beforeEach(() => {
   mocks.head = createServerHead()
+  mocks.head.use(TemplateParamsPlugin)
   mocks.rendered = []
   mocks.state.clear()
   mocks.derive.mockReset()
@@ -136,5 +140,51 @@ describe('prerender URL and signing mode', () => {
     const metaUrl = resolveOgImageMeta({ component: 'Card' }, prerenderPaths)
     expect(metaUrl).toMatch(/^https:\/\/example\.com\/_og\/d\/.+%2Cs_[\w-]+\.png$/)
     expect(prerenderPaths.size).toBe(0)
+  })
+})
+
+describe('prerender nuxt-og-image-options payload', () => {
+  function renderPayload(options: Record<string, any>) {
+    createOgImageMeta('/image.png', options, {} as NuxtSSRContext, '/article', mocks.head)
+    for (const callback of mocks.rendered)
+      callback()
+    const rendered = renderSSRHead(mocks.head)
+    const match = rendered.bodyTags.match(/<script[^>]*id="nuxt-og-image-options"[^>]*>([\s\S]*?)<\/script>/)
+    const parsed = match?.[1] ? parse(match[1]) as Array<Record<string, any>> : undefined
+    const ogImage = rendered.headTags.match(/<meta property="og:image" content="([^"]+)"/)?.[1]
+    return { options: parsed, ogImage }
+  }
+
+  it('serializes useSeoMeta title instead of useHead title', () => {
+    useSeoMeta({ title: 'SEO Title' }, { head: mocks.head })
+    vueUseHead({ title: 'Head Title' }, { head: mocks.head })
+
+    const { options, ogImage } = renderPayload({ component: 'Card', props: { subtitle: 'Sub' } })
+    expect(ogImage).toContain(options![0]!._hash)
+    expect(options?.[0]?.props?.title).toBe('SEO Title')
+  })
+
+  it('serializes useSeoMeta title instead of useHead title when props are empty', () => {
+    useSeoMeta({ title: 'SEO Title' }, { head: mocks.head })
+    vueUseHead({ title: 'Head Title' }, { head: mocks.head })
+
+    const { options, ogImage } = renderPayload({ component: 'Card' })
+    expect(ogImage).toContain(options![0]!._hash)
+    expect(options?.[0]?.props?.title).toBe('SEO Title')
+  })
+
+  it('does not leak useHead title when useSeoMeta title is absent', () => {
+    vueUseHead({ title: 'Head Title' }, { head: mocks.head })
+
+    const { options } = renderPayload({ component: 'Card', props: { subtitle: 'Sub' } })
+    expect(options?.[0]?.props?.title).toBeUndefined()
+  })
+
+  it('resolves template params inside useSeoMeta title', () => {
+    useSeoMeta({ title: 'Welcome to %siteName' }, { head: mocks.head })
+    vueUseHead({ title: 'Head Title', templateParams: { siteName: 'MySite' } }, { head: mocks.head })
+
+    const { options } = renderPayload({ component: 'Card', props: { subtitle: 'Sub' } })
+    expect(options?.[0]?.props?.title).toBe('Welcome to MySite')
   })
 })
