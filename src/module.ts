@@ -1801,7 +1801,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
 
     let hasUnboundedRuntimeCache = false
     const syncPrerenderDynamicUrls = (ignore: unknown, targets: unknown[]) => {
-      const prerenderDynamicUrls = !config.zeroRuntime && isStaticOgImagePrerenderIgnored(ignore)
+      const prerenderDynamicUrls = !config.zeroRuntime && isStaticOgImagePrerenderIgnored(ignore, nuxt.options.app.baseURL)
       for (const target of targets) {
         if (target && typeof target === 'object')
           (target as OgImageRuntimeConfig).prerenderDynamicUrls = prerenderDynamicUrls
@@ -1870,7 +1870,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         colorPreference,
         cssFramework: cssFramework || 'none',
         browserEnabled: !!config.browser,
-        prerenderDynamicUrls: !config.zeroRuntime && isStaticOgImagePrerenderIgnored(nuxt.options.nitro?.prerender?.ignore),
+        prerenderDynamicUrls: !config.zeroRuntime && isStaticOgImagePrerenderIgnored(nuxt.options.nitro?.prerender?.ignore, nuxt.options.app.baseURL),
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'
           ? {

@@ -41,6 +41,12 @@ describe('isStaticOgImagePrerenderIgnored', () => {
     expect(isStaticOgImagePrerenderIgnored(['/admin', /^\/api\//, '/_og/s/'])).toBe(true)
   })
 
+  it('matches static OG image paths prefixed with app.baseURL', () => {
+    expect(isStaticOgImagePrerenderIgnored(['/docs/_og/s/'], '/docs/')).toBe(true)
+    expect(isStaticOgImagePrerenderIgnored(['/_og/s/'], '/docs/')).toBe(true)
+    expect(isStaticOgImagePrerenderIgnored(['/docs/_og/d/'], '/docs/')).toBe(false)
+  })
+
   it.each([
     [undefined],
     [null],
