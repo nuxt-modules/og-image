@@ -35,8 +35,8 @@ vi.mock('../../src/runtime/server/og-image/instances', () => ({
   getTakumiRenderer: async () => undefined,
 }))
 
-function eventFor(_path: string): H3Event {
-  const segment = encodeOgImageParams({ component: 'PageScreenshot', _path } as any)
+function eventFor(_path: string, extra?: Record<string, unknown>): H3Event {
+  const segment = encodeOgImageParams({ component: 'PageScreenshot', _path, ...extra } as any)
   return { path: `/_og/d/${segment}.png`, context: {} } as unknown as H3Event
 }
 
@@ -158,6 +158,16 @@ describe('resolveContext key', () => {
     const pageKey = await keyFor({ _path: '/blog/post' })
     expect(await keyFor({ _path: '/other', cacheKey: pageKey })).not.toBe(pageKey)
   })
+
+  it('gives distinct keys for PageScreenshot with different _query params', async () => {
+    const baseKey = await keyFor({ _path: '/blog/post' })
+    const frKey = await keyFor({ _path: '/blog/post', _query: { lang: 'fr', tab: '2' } })
+    const enKey = await keyFor({ _path: '/blog/post', _query: { lang: 'en', tab: '2' } })
+    const urlLikeKey = await keyFor({ _path: '/blog/post', _query: { next: 'https://evil.example/' } })
+
+    expect(new Set([baseKey, frKey, enKey, urlLikeKey]).size).toBe(4)
+    expect(await keyFor({ _path: '/blog/post', _query: {} })).toBe(baseKey)
+  })
 })
 
 function fakePlaywright() {
@@ -179,6 +189,61 @@ describe('createScreenshot navigation', () => {
     const { browser, visited } = fakePlaywright()
 
     await createScreenshot(ctx as any, browser as any)
+
+    expect(visited).toEqual(['https://example.com/blog/post'])
+  })
+
+  it('forwards PageScreenshot _query params into the navigated URL', async () => {
+    const ctx = await resolveContext(eventFor('/blog/post', { _query: { lang: 'fr', tab: '2' } }))
+    const { browser, visited } = fakePlaywright()
+
+    await createScreenshot(ctx as any, browser as any)
+
+    expect(visited).toEqual(['https://example.com/blog/post?lang=fr&tab=2'])
+  })
+
+  it('leaves the navigated URL clean when _query is empty', async () => {
+    const ctx = await resolveContext(eventFor('/blog/post', { _query: {} })) as any
+    ctx.options._query = {}
+    const { browser, visited } = fakePlaywright()
+
+    await createScreenshot(ctx, browser as any)
+
+    expect(visited).toEqual(['https://example.com/blog/post'])
+  })
+
+  it('preserves _query params when props are also present', async () => {
+    const ctx = await resolveContext(eventFor('/blog/post', { _query: { lang: 'fr', tab: '2' }, props: { colorMode: 'dark' } }))
+    const { browser, visited } = fakePlaywright()
+
+    await createScreenshot(ctx as any, browser as any)
+
+    expect(visited).toEqual(['https://example.com/blog/post?lang=fr&tab=2&colorMode=dark'])
+  })
+
+  it('keeps URL-like _query values on the site origin', async () => {
+    const ctx = await resolveContext(eventFor('/blog/post', { _query: { next: 'https://evil.example/' } }))
+    const { browser, visited } = fakePlaywright()
+
+    await createScreenshot(ctx as any, browser as any)
+
+    expect(visited).toHaveLength(1)
+    const navigated = new URL(visited[0]!)
+    expect(navigated.origin).toBe('https://example.com')
+    expect(navigated.pathname).toBe('/blog/post')
+    expect(navigated.searchParams.get('next')).toBe('https://evil.example/')
+  })
+
+  it.each([
+    [['lang', 'fr']],
+    ['//evil.example'],
+    [null],
+  ])('ignores non-plain _query value %j', async (badQuery) => {
+    const ctx = await resolveContext(eventFor('/blog/post')) as any
+    ctx.options._query = badQuery
+    const { browser, visited } = fakePlaywright()
+
+    await createScreenshot(ctx, browser as any)
 
     expect(visited).toEqual(['https://example.com/blog/post'])
   })

@@ -46,16 +46,13 @@ describe('page query params in OG image URLs', () => {
     expect(url1).toBe(url2)
   }, 60000)
 
-  it('extra page query params are encoded in OG image URL via _query', async () => {
-    // The full page query string is encoded into the OG image URL,
-    // because the page may render differently with different query params
+  it('extra page query params do not change the OG image URL', async () => {
     const html1 = await $fetch('/satori/query-param?title=Same&ref=twitter') as string
     const html2 = await $fetch('/satori/query-param?title=Same&utm_source=og') as string
     const url1 = extractOgImageUrl(html1)
-    const url2 = extractOgImageUrl(html2)
-    expect(url1).not.toBe(url2)
     expect(url1).toContain('Same')
-    expect(url2).toContain('Same')
+    expect(url1).not.toContain('_query')
+    expect(extractOgImageUrl(html2)).toBe(url1)
   }, 60000)
 })
 

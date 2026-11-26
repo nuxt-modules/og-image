@@ -13,7 +13,7 @@ export default defineNuxtConfig({
       // URL assertions do not require a browser binary.
       // Allow image rendering to fail on runners without one.
       failOnError: false,
-      routes: ['/shot/alpha', '/shot/bravo', '/card/one', '/card/two', '/card/rule'],
+      routes: ['/shot/alpha', '/shot/bravo', '/card/one', '/card/two', '/card/rule', '/seo/inferred', '/seo/explicit', '/seo/head-title', '/seo/default'],
     },
   },
   devtools: { enabled: false },

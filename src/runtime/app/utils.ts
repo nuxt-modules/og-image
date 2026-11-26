@@ -239,10 +239,11 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
               ? componentNames?.find((c: any) => c.pascalName === resolvedComponentName || c.kebabName === resolvedComponentName)
               : undefined
             const declaredProps: OgImageComponent['propNames'] = component?.propNames
+            payload.props = { ...payload.props }
             // Inject title and description from head entries for devtools/prerender cache
-            if (seo?.title && payload.props && typeof payload.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
+            if (seo?.title && typeof payload.props.title === 'undefined' && (!declaredProps || declaredProps.includes('title')))
               payload.props.title = seo.title
-            if (seo?.description && payload.props && typeof payload.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
+            if (seo?.description && typeof payload.props.description === 'undefined' && (!declaredProps || declaredProps.includes('description')))
               payload.props.description = seo.description
             if (typeof payload.component === 'string') {
               payload.component = resolveComponentName(payload.component)
