@@ -43,7 +43,7 @@ import {
 import { setupGenerateHandler } from './build/generate.ts'
 import { resolveOptionalModulePath } from './build/optional-module.ts'
 import { readPackageManifest } from './build/package-manifest.ts'
-import { setupPrerenderHandler } from './build/prerender.ts'
+import { isStaticOgImagePrerenderIgnored, setupPrerenderHandler } from './build/prerender.ts'
 import { extractPropNamesFromVue, loadSfcCompiler } from './build/props.ts'
 import { configureRuntimeCacheStorage, resolveRuntimeCacheDriver } from './build/runtime-cache.ts'
 import { collectRouteRuleReferences, OgImageUsageCheckPlugin } from './build/usage-check.ts'
@@ -1800,10 +1800,21 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
       baseCacheKey = false
 
     let hasUnboundedRuntimeCache = false
+    const syncPrerenderDynamicUrls = (ignore: unknown, targets: unknown[]) => {
+      const prerenderDynamicUrls = !config.zeroRuntime && isStaticOgImagePrerenderIgnored(ignore)
+      for (const target of targets) {
+        if (target && typeof target === 'object')
+          (target as OgImageRuntimeConfig).prerenderDynamicUrls = prerenderDynamicUrls
+      }
+    }
     nuxt.hooks.hook('nitro:config', async (nitroConfig) => {
       const storage = configureRuntimeCacheStorage(config, nitroConfig, nitroCompatibility._tag === 'nitro-v3' ? 3 : 2)
       await resolveRuntimeCacheDriver(storage, nitroConfig, nuxt.options.rootDir)
       hasUnboundedRuntimeCache = storage?.driver === 'memory'
+      syncPrerenderDynamicUrls(nitroConfig.prerender?.ignore, [
+        nuxt.options.runtimeConfig['nuxt-og-image'],
+        nitroConfig.runtimeConfig?.['nuxt-og-image'],
+      ])
     })
     nuxt.hooks.hook('nitro:init', (nitro) => {
       const hasServerRuntime = !nitro.options.static && !(nuxt.options as any)._generate
@@ -1859,6 +1870,7 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
         colorPreference,
         cssFramework: cssFramework || 'none',
         browserEnabled: !!config.browser,
+        prerenderDynamicUrls: !config.zeroRuntime && isStaticOgImagePrerenderIgnored(nuxt.options.nitro?.prerender?.ignore),
         // Browser renderer config for cloudflare binding access
         browser: typeof config.browser === 'object'
           ? {
@@ -1916,6 +1928,11 @@ export const staticFontCacheDir = ${JSON.stringify(getStaticFontCacheDir(nuxt.op
     // from their preset definition rather than user config. Overwriting here
     // before nitro/client bundling catches those cases.
     nuxt.hook('nitro:init', (nitro) => {
+      syncPrerenderDynamicUrls(nitro.options.prerender?.ignore, [
+        nuxt.options.runtimeConfig['nuxt-og-image'],
+        nitro.options.runtimeConfig?.['nuxt-og-image'],
+        nitro.options._config?.runtimeConfig?.['nuxt-og-image'],
+      ])
       const pub = (nuxt.options.runtimeConfig.public['nuxt-og-image'] as { defaults?: any, includeTwitter?: boolean, hasServerRuntime?: boolean }) || {}
       nuxt.options.runtimeConfig.public = {
         ...nuxt.options.runtimeConfig.public,

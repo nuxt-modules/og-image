@@ -2,7 +2,7 @@ import type { Resolver } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import type { NitroConfig } from 'nitropack/config'
 import type { ModuleOptions } from '../module'
-import type { RendererType } from '../runtime/types'
+import type { OgImageRuntimeConfig, RendererType } from '../runtime/types'
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { useNuxt } from '@nuxt/kit'
 import { useSiteConfig } from 'nuxt-site-config/kit'
@@ -11,6 +11,34 @@ import { applyNitroPresetCompatibility } from '../compatibility.ts'
 import { logger } from '../runtime/logger.ts'
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const STATIC_OG_IMAGE_PROBE_PATH = '/_og/s/probe.png'
+
+/**
+ * Check whether Nitro's `prerender.ignore` excludes static `/_og/s/` OG images.
+ * Mirrors Nitro's `matchesIgnorePattern` semantics without mutating stateful RegExp instances.
+ */
+export function isStaticOgImagePrerenderIgnored(ignore: unknown): boolean {
+  if (!Array.isArray(ignore) || ignore.length === 0)
+    return false
+  for (const pattern of ignore) {
+    if (typeof pattern === 'string') {
+      if (pattern.length > 0 && STATIC_OG_IMAGE_PROBE_PATH.startsWith(pattern))
+        return true
+    }
+    else if (pattern instanceof RegExp) {
+      const re = pattern.global || pattern.sticky
+        ? new RegExp(pattern.source, pattern.flags.replace(/[gy]/g, ''))
+        : pattern
+      if (re.test(STATIC_OG_IMAGE_PROBE_PATH))
+        return true
+    }
+    else if (typeof pattern === 'function') {
+      if (pattern(STATIC_OG_IMAGE_PROBE_PATH) === true)
+        return true
+    }
+  }
+  return false
+}
 
 /**
  * Prerendered HTML is final: without a site URL its og:image stays relative,
@@ -42,6 +70,11 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
       // resolution triggers a cross-page HTML fetch that may race with the
       // prerender graph.
       nitroConfig.prerender = nitroConfig.prerender || {}
+      const prerenderDynamicUrls = !options.zeroRuntime
+        && isStaticOgImagePrerenderIgnored(nitroConfig.prerender.ignore ?? nitro.options.prerender?.ignore)
+      const ogRuntimeConfig = nitroConfig.runtimeConfig?.['nuxt-og-image'] as OgImageRuntimeConfig | undefined
+      if (ogRuntimeConfig)
+        ogRuntimeConfig.prerenderDynamicUrls = prerenderDynamicUrls
       nitroConfig.prerender.ignore = nitroConfig.prerender.ignore || []
       if (Array.isArray(nitroConfig.prerender.ignore)) {
         nitroConfig.prerender.ignore.push('/_og/d/')
@@ -86,7 +119,7 @@ export function setupPrerenderHandler(options: ModuleOptions, resolve: Resolver,
         logger.warn(
           `Skipped ${orphanedOgHashes.length} orphaned OG image hash URL${orphanedOgHashes.length > 1 ? 's' : ''} during prerender. `
           + `These URLs were crawled from HTML but their source page was not prerendered, so the hash cache entry was never written. `
-          + `If your pages are prerendered but OG images are generated at runtime, enable \`security.strict\` with \`NUXT_APP_SECRET\` to switch to signed dynamic URLs.`,
+          + `If your pages are prerendered but OG images are generated at runtime, add \`'/_og/s/'\` to \`nitro.prerender.ignore\` to emit signed dynamic URLs.`,
         )
         for (const route of orphanedOgHashes)
           logger.info(`  ${route}`)

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (failure === undefined)
     return
   reportSigningFailure(failure)
-  // Image endpoints fail closed. Strict prerendering fails the build.
+  // Image endpoints fail closed. Dynamic prerendering fails the build.
   if (import.meta.prerender || isOgImageEndpointPath(pathname, baseURL))
     throw createError({ status: 500, message: '[nuxt-og-image] URL signing needs NUXT_APP_SECRET with at least 32 characters.', cause: failure })
   // Pages render with unsigned image URLs, which the image endpoint refuses.

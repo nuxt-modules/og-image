@@ -16,8 +16,9 @@ let warnedLegacy = false
 /** Resolve once per request before synchronous app and server URL helpers run. */
 export async function initializeOgImageSigning(event: Pick<RequestEvent, 'context'>): Promise<void> {
   const config = useRuntimeConfig()
-  const security = (config['nuxt-og-image'] as unknown as OgImageRuntimeConfig).security
-  if (security.secret === false || (import.meta.prerender && !security.strict))
+  const ogImageConfig = config['nuxt-og-image'] as unknown as OgImageRuntimeConfig
+  const security = ogImageConfig.security
+  if (security.secret === false || (import.meta.prerender && !ogImageConfig.prerenderDynamicUrls))
     return
 
   const cloudflareEnv = getCloudflareEnv(event)
