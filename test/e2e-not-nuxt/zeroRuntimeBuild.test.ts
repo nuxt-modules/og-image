@@ -88,7 +88,7 @@ describe('zeroRuntime', () => {
       encoding: 'utf-8',
     })
     const ogImage = /<meta property="og:image" content="(.+?)">/.exec(indexHtml)
-    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/o_2f5504472ab46099.png"`)
+    expect(ogImage?.[1]).toMatchInlineSnapshot(`"https://nuxtseo.com/_og/s/o_95ec176616c9db8e.png"`)
 
     // A page that is not prerendered has no /_og/d/ handler to point at, so it gets no og:image.
     const runtimeHtml = await fetchFromBuiltServer('/runtime').then(r => r.text())

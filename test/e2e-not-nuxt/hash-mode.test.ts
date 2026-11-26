@@ -14,6 +14,12 @@ async function ogImageOf(page: string) {
   return /<meta property="og:image" content="(.+?)">/.exec(html)?.[1]
 }
 
+async function imageFileOf(page: string) {
+  const url = await ogImageOf(page)
+  expect(url).toMatch(/\/_og\/s\/o_[a-z0-9]+\.png$/)
+  return readFile(resolve(fixtureDir, `.output/public${new URL(url!).pathname}`))
+}
+
 describe('hash mode', () => {
   beforeAll(async () => {
     await ensureLocalModuleStub()
@@ -30,6 +36,16 @@ describe('hash mode', () => {
 
   it('gives a route rule page its own image', async () => {
     expect(await ogImageOf('card/rule')).not.toBe(await ogImageOf('card/one'))
+  })
+
+  it('renders the head title and description when props are empty', async () => {
+    expect(await ogImageOf('seo/inferred')).not.toBe(await ogImageOf('seo/explicit'))
+    expect((await imageFileOf('seo/inferred')).equals(await imageFileOf('seo/explicit'))).toBe(true)
+  })
+
+  it('keeps the component default title when only useHead sets a title', async () => {
+    expect(await ogImageOf('seo/head-title')).not.toBe(await ogImageOf('seo/default'))
+    expect((await imageFileOf('seo/head-title')).equals(await imageFileOf('seo/default'))).toBe(true)
   })
 
   it('gives each page screenshot its own image', async () => {
