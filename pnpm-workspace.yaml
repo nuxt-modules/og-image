@@ -199,7 +199,7 @@ catalog:
   magicast: ^0.5.5
   mocked-exports: ^0.1.1
   nitropack: ^2.13.5
-  nuxt: 4.6.2
+  nuxt: 4.6.4
   nuxt-site-config: ^5.0.4
   nuxtseo-layer-devtools: ^6.0.2
   nuxtseo-shared: ^6.0.4
