@@ -162,6 +162,11 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({ width: 1200, height: 630 })
     })
 
+    it('splits on the first single underscore, keeping escaped ones in the alias and value', () => {
+      expect(decodeOgImageParams('my__prop_a__b')).toEqual({ props: { my__prop: 'a_b' } })
+      expect(decodeOgImageParams('title_a___b')).toEqual({ props: { title: 'a__b' } })
+    })
+
     it('decodes unknown params as props', () => {
       const decoded = decodeOgImageParams('title_Hello+World')
       expect(decoded).toEqual({ props: { title: 'Hello World' } })
