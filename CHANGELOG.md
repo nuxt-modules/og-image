@@ -6,6 +6,7 @@
 
 ### Changes
 
+- Cache the route-rule matcher across requests, read H3 v2 response status codes cleanly, and skip automatic OG image work on error pages while keeping explicit `defineOgImage()` calls in `error.vue`. [#816](https://github.com/nuxt-modules/og-image/pull/816)
 - Remove the regex lookbehind in URL option decoding so Safari below 16.4 (iOS 15 and older iPadOS) no longer throws a `SyntaxError` during page hydration. Thanks [@aaziztemel](https://github.com/aaziztemel). [#807](https://github.com/nuxt-modules/og-image/pull/807)
 - Keep static `/_og/s/` OG image prerendering enabled when `security.strict` is `true` (including `zeroRuntime: true`), with no `NUXT_APP_SECRET` needed at build time. Add `'/_og/s/'` to `nitro.prerender.ignore` if you want prerendered pages to emit signed `/_og/d/` URLs instead. [#814](https://github.com/nuxt-modules/og-image/pull/814)
 - Leave page query parameters out of template OG image URLs so tracking params like `?utm_source=` stop splitting CDN caches and triggering redundant renders. Hash-mode `/_og/s/o_*.png` filenames change once on rebuild. `defineOgImageScreenshot()` still keeps page query parameters and now forwards them to the browser renderer. Thanks [@danielroe](https://github.com/danielroe). [#809](https://github.com/nuxt-modules/og-image/pull/809), [#812](https://github.com/nuxt-modules/og-image/pull/812)
