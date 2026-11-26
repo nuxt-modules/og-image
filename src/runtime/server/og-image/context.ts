@@ -8,7 +8,7 @@ import type BrowserRenderer from './browser/renderer'
 import type SatoriRenderer from './satori/renderer'
 import type TakumiRenderer from './takumi/renderer'
 import { defu } from 'defu'
-import { parseURL, withoutTrailingSlash, withQuery } from 'ufo'
+import { parseURL, withoutTrailingSlash } from 'ufo'
 import { createError } from '#nuxtseo/h3'
 import { useNitroApp } from '#nuxtseo/nitro'
 import { prerenderOptionsCache } from '#og-image-cache'
@@ -19,7 +19,7 @@ import { decodeOgImageParams, extractEncodedSegment, sanitizeProps, separateProp
 import { digestCanonical } from '../../shared/urlEncoding'
 import { createNitroRouteRuleMatcher } from '../util/kit'
 import { normaliseOptions } from '../util/options'
-import { getEventQuery } from '../util/query'
+import { getEventQuery, isQueryRecord, withPageQuery } from '../util/query'
 import { parseSameOriginPath } from '../util/ssrf'
 import { toStorageKey } from '../util/storageKey'
 import { createTimings, TIMING_CTX_KEY } from '../util/timings'
@@ -164,9 +164,12 @@ export async function resolveContext(e: H3Event): Promise<H3Error | OgImageRende
     delete urlOptions.html
   }
 
-  const basePathWithQuery = queryParams._query && typeof queryParams._query === 'object'
-    ? withQuery(basePath, queryParams._query)
-    : basePath
+  const pageQuery = isQueryRecord(queryParams._query)
+    ? queryParams._query
+    : isQueryRecord(urlOptions._query)
+      ? urlOptions._query
+      : undefined
+  const basePathWithQuery = withPageQuery(basePath, pageQuery)
   const isDebugJsonPayload = extension === 'json' && (import.meta.dev || runtimeConfig.debug)
 
   // Options come from: URL encoded params > query params > route rules > defaults
