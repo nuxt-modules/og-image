@@ -7,7 +7,8 @@ import { toValue } from 'vue'
 import { defineNuxtPlugin, useRequestEvent } from '#app'
 import { withSiteUrl } from '#site-config/app'
 import { createOgImageMeta, getOgImagePath } from '../../app/utils'
-import { isInternalRoute } from '../../shared'
+import { isErrorResponseEvent, isInternalRoute } from '../../shared'
+import { createCachedRouteRuleMatcher } from '../../shared/routeRules'
 
 const RE_COMMA = /,/g
 
@@ -15,11 +16,28 @@ interface OgImageRouteRules {
   ogImage?: false | OgImageOptions & Record<string, any>
 }
 
+const getCachedRouteRuleMatcher = createCachedRouteRuleMatcher(
+  runtimeConfig => createNitroRouteRuleMatcher<OgImageRouteRules>(runtimeConfig),
+)
+
+function isErrorPage(
+  nuxtApp: { payload?: { error?: unknown } },
+  ssrContext?: { error?: boolean, payload?: { error?: unknown } },
+  event?: Parameters<typeof isErrorResponseEvent>[0],
+): boolean {
+  return Boolean(ssrContext?.error || ssrContext?.payload?.error || nuxtApp.payload?.error) || isErrorResponseEvent(event)
+}
+
 export const ogImageCanonicalUrls = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
-    const e = useRequestEvent()
+    const e = ssrContext?.event || useRequestEvent()
+    if (isErrorPage(nuxtApp, ssrContext, e)) {
+      if (e?.context)
+        e.context._ogImageErrorPage = true
+      return
+    }
     const path = parseURL(e?.path || '').pathname
     if (isInternalRoute(path))
       return
@@ -76,12 +94,17 @@ export const routeRuleOgImage = defineNuxtPlugin((nuxtApp) => {
   // specifically we're checking if a route is missing a payload but has route rules, we can inject the meta needed
   nuxtApp.hooks.hook('app:rendered', async (ctx) => {
     const { ssrContext } = ctx
-    const e = useRequestEvent()
+    const e = ssrContext?.event || useRequestEvent()
+    if (isErrorPage(nuxtApp, ssrContext, e)) {
+      if (e?.context)
+        e.context._ogImageErrorPage = true
+      return
+    }
     const path = parseURL(e?.path || '').pathname
     if (isInternalRoute(path))
       return
 
-    const matchRouteRules = createNitroRouteRuleMatcher<OgImageRouteRules>(ssrContext?.runtimeConfig || {})
+    const matchRouteRules = getCachedRouteRuleMatcher(ssrContext?.runtimeConfig)
     let routeRules = matchRouteRules(path).ogImage
     if (typeof routeRules === 'undefined')
       return

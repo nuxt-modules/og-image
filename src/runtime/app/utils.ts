@@ -211,6 +211,9 @@ export function createOgImageMeta(src: string, input: OgImageOptions | OgImagePr
   // Nuxt serializes the payload before rendering the head. Resolve after component
   // setup so hydration receives the exact URLs, including head-derived props and signatures.
   useNuxtApp().hook('app:rendered', () => {
+    // Skip the discarded first render pass when a route errors before error.vue renders.
+    if (ssrContext.payload?.error && !ssrContext.error)
+      return
     headInput.meta()
   })
   ssrContext._ogImageInstance?.dispose()

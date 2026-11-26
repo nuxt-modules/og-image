@@ -87,6 +87,23 @@ export function isInternalRoute(path: string) {
   return path.startsWith('/_') || path.startsWith('@')
 }
 
+export interface ResponseStatusEventLike {
+  context?: { _ogImageErrorPage?: boolean }
+  node?: { res?: { statusCode?: number } }
+  res?: { status?: number, statusCode?: number }
+}
+
+export function getEventStatusCode(event: ResponseStatusEventLike | undefined): number | undefined {
+  return event?.node?.res?.statusCode ?? event?.res?.status
+}
+
+export function isErrorResponseEvent(event: ResponseStatusEventLike | undefined): boolean {
+  if (event?.context?._ogImageErrorPage)
+    return true
+  const statusCode = getEventStatusCode(event)
+  return typeof statusCode === 'number' && statusCode >= 400
+}
+
 function filterIsOgImageOption(key: string) {
   const keys: (keyof OgImageOptionsInternal)[] = [
     'url',

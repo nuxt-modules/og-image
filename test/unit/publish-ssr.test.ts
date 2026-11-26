@@ -45,7 +45,7 @@ async function setup() {
   const app = { hooks } as Parameters<typeof publishPlugin>[0]
   await publishPlugin(app)
   const html = { head: [`<meta property="og:image" content="${imageURL}">`, `<meta name="twitter:image" content="${imageURL}">`] }
-  const render = () => hooks.callHook('render:html', html, { event: { path: '/article' } })
+  const render = (event: Record<string, any> = { path: '/article' }) => hooks.callHook('render:html', html, { event })
   return { storage, html, render, app }
 }
 
@@ -128,5 +128,22 @@ describe('published SSR image URLs', () => {
     await render()
     expect(html.head).toEqual([`<meta property="og:image" content="${imageURL}">`])
     expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['H3 v1 404', { path: '/missing', node: { res: { statusCode: 404 } } }],
+    ['H3 v1 500', { path: '/crash', node: { res: { statusCode: 500 } } }],
+    ['H3 v2 404', { path: '/missing', res: { status: 404 } }],
+    ['inline error page flag', { path: '/missing', context: { _ogImageErrorPage: true } }],
+  ])('skips published URL rewriting on error pages: %s', async (_label, event) => {
+    const { html, render, app } = await setup()
+    const key = getPublishedImageCacheKey(config.publish, getPublishKey(imageURL, config.defaults, 'v1'), 'png')
+    getPublishedImageCache(app).remember(key, { _tag: 'Published', url: 'https://images.example/image.png', objectKey: 'image.png', expiresAt: Date.now() + 60000 }, Date.now())
+    useOgImageRuntimeConfig.mockClear()
+
+    await render(event)
+
+    expect(useOgImageRuntimeConfig).not.toHaveBeenCalled()
+    expect(html.head).toEqual([`<meta property="og:image" content="${imageURL}">`, `<meta name="twitter:image" content="${imageURL}">`])
   })
 })

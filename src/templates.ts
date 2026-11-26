@@ -276,7 +276,8 @@ _ogImageIconsData?: OgImageIconsData`,
   routeRules?: import('${nitroCompatibility.nitroTypesModule}').NitroRouteRules
 }
 _ogImageSigningSecret?: string
-_ogImagePrerenderPaths?: Map<string, string>`,
+_ogImagePrerenderPaths?: Map<string, string>
+_ogImageErrorPage?: boolean`,
       })
       return `/// <reference path="./og-image-virtual.d.ts" />
 /// <reference path="./og-image-bindings.d.ts" />
