@@ -167,7 +167,7 @@ export function clientProcessOgImageOptions(
         validOptions[key] = defaults[key]
     }
 
-    if (route.query)
+    if (route.query && (validOptions as OgImageOptionsInternal).component === 'PageScreenshot')
       (validOptions as OgImageOptionsInternal)._query = route.query
 
     const ogKey = (validOptions as OgImageOptions).key || 'og'

@@ -65,6 +65,13 @@ describe('static client image CDN URLs', () => {
     expect(new URL(imageURL()).searchParams.get('_query')).toBe(JSON.stringify(query))
   })
 
+  it('leaves page query parameters out of template image URLs', () => {
+    clientProcessOgImageOptions({ component: 'Card' }, route, '/page')
+    const plain = imageURL()
+    clientProcessOgImageOptions({ component: 'Card' }, { query: { utm_source: 'x' } } as unknown as RouteLocationNormalizedLoaded, '/page')
+    expect(imageURL()).toBe(plain)
+  })
+
   it('keeps runtime resolver URLs on the app origin', () => {
     mocks.hasServerRuntime = true
     clientProcessOgImageOptions({ component: 'PageScreenshot' }, route, '/page')
