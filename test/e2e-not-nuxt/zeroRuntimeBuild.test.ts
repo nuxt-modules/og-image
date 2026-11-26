@@ -136,4 +136,25 @@ describe('zeroRuntime', () => {
     const fontChunk = serverChunks.find(c => c.includes('OPTIEinstein'))
     expect(fontChunk).toBeUndefined()
   }, 120000)
+
+  it('prerenders static images with security.strict enabled and no secret', async () => {
+    await ensureLocalModuleStub()
+    originalConfig = await readFile(nuxtConfigPath, 'utf-8')
+    await writeFile(
+      nuxtConfigPath,
+      originalConfig.replace('zeroRuntime: true,', 'zeroRuntime: true,\n    security: { strict: true },'),
+    )
+
+    const env = { ...process.env }
+    delete env.NUXT_APP_SECRET
+    delete env.NUXT_OG_IMAGE_SECRET
+    await exec('nuxt', ['cleanup'], { nodeOptions: { cwd: fixtureDir, env } })
+    const result = await exec('nuxt', ['build'], { nodeOptions: { cwd: fixtureDir, env } })
+    expect(result.exitCode).toBe(0)
+
+    const indexHtml = await readFile(resolve(fixtureDir, '.output/public/index.html'), 'utf-8')
+    const ogImage = /<meta property="og:image" content="(.+?)">/.exec(indexHtml)?.[1]
+    expect(ogImage).toMatch(/\/_og\/s\/o_[a-z0-9]+\.png$/)
+    await expect(readFile(resolve(fixtureDir, `.output/public${new URL(ogImage!).pathname}`))).resolves.toBeTruthy()
+  }, 120000)
 })
