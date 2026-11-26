@@ -7,7 +7,7 @@ import { InferSeoMetaPlugin, TemplateParamsPlugin } from '@unhead/vue/plugins'
 import { createHead as createServerHead, renderSSRHead } from '@unhead/vue/server'
 import { parse, stringify } from 'devalue'
 import { Window } from 'happy-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRenderer, h, ref } from 'vue'
 import { defineOgImageRaw } from '../../src/runtime/app/composables/_defineOgImageRaw'
 import { createOgImageMeta, setHeadOgImagePrebuilt } from '../../src/runtime/app/utils'
@@ -211,5 +211,52 @@ describe('server og:video tags', () => {
     mocks.config['nuxt-og-image'].security = { secret: 'test-secret', strict: false }
     defineServerImage({ component: 'ClipTakumi', video: true })
     expect(videoTag()).toMatch(/\.mp4$/)
+  })
+})
+
+describe('server nuxt-og-image-options payload', () => {
+  beforeEach(() => {
+    vi.stubEnv('NUXT_PRERENDER', '1')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  function renderServerHead() {
+    for (const callback of mocks.rendered)
+      callback()
+    const rendered = renderSSRHead(mocks.head)
+    const match = rendered.bodyTags.match(/<script[^>]*id="nuxt-og-image-options"[^>]*>([\s\S]*?)<\/script>/)
+    const options = match?.[1] ? parse(match[1]) as Array<Record<string, any>> : undefined
+    const ogImage = rendered.headTags.match(/<meta property="og:image" content="([^"]+)"/)?.[1]
+    return { options, ogImage }
+  }
+
+  it('serializes useSeoMeta title instead of useHead title', () => {
+    defineServerImage({ component: 'Card', props: { subtitle: 'Sub' } })
+    useSeoMeta({ title: 'SEO Title' }, { head: mocks.head })
+    vueUseHead({ title: 'Head Title' }, { head: mocks.head })
+
+    const { options, ogImage } = renderServerHead()
+    expect(ogImage).toContain(options![0]!._hash)
+    expect(options?.[0]?.props?.title).toBe('SEO Title')
+  })
+
+  it('does not leak useHead title when useSeoMeta title is absent', () => {
+    defineServerImage({ component: 'Card', props: { subtitle: 'Sub' } })
+    vueUseHead({ title: 'Head Title' }, { head: mocks.head })
+
+    const { options } = renderServerHead()
+    expect(options?.[0]?.props?.title).toBeUndefined()
+  })
+
+  it('resolves template params inside useSeoMeta title', () => {
+    defineServerImage({ component: 'Card', props: { subtitle: 'Sub' } })
+    useSeoMeta({ title: 'Welcome to %siteName' }, { head: mocks.head })
+    vueUseHead({ title: 'Head Title', templateParams: { siteName: 'MySite' } }, { head: mocks.head })
+
+    const { options } = renderServerHead()
+    expect(options?.[0]?.props?.title).toBe('Welcome to MySite')
   })
 })

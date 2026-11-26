@@ -6,11 +6,21 @@ const runtimeAlias = {
   '#og-image/bindings/fetch': fileURLToPath(new URL('./src/runtime/server/og-image/bindings/fetch/node.ts', import.meta.url)),
 }
 
+// Nuxt defines import.meta.prerender at build time; unit tests opt in via env.
+const nuxtFlagsPlugin = {
+  name: 'nuxt-import-meta-flags',
+  transform(code: string, id: string) {
+    if (!id.includes('/node_modules/') && !id.includes('/test/') && code.includes('import.meta.prerender'))
+      return code.replaceAll('import.meta.prerender', 'Boolean(process.env.NUXT_PRERENDER)')
+  },
+}
+
 export default defineConfig({
   test: {
     projects: [
       defineProject({
         resolve: { alias: runtimeAlias },
+        plugins: [nuxtFlagsPlugin],
         test: {
           name: 'unit',
           environment: 'node',
