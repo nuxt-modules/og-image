@@ -243,6 +243,16 @@ describe('server nuxt-og-image-options payload', () => {
     expect(options?.[0]?.props?.title).toBe('SEO Title')
   })
 
+  it('serializes useSeoMeta title instead of useHead title when props are empty', () => {
+    defineServerImage({ component: 'Card' })
+    useSeoMeta({ title: 'SEO Title' }, { head: mocks.head })
+    vueUseHead({ title: 'Head Title' }, { head: mocks.head })
+
+    const { options, ogImage } = renderServerHead()
+    expect(ogImage).toContain(options![0]!._hash)
+    expect(options?.[0]?.props?.title).toBe('SEO Title')
+  })
+
   it('does not leak useHead title when useSeoMeta title is absent', () => {
     defineServerImage({ component: 'Card', props: { subtitle: 'Sub' } })
     vueUseHead({ title: 'Head Title' }, { head: mocks.head })
