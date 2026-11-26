@@ -13,12 +13,11 @@ export interface GetOgImagePathResult {
 // The event is required: runtime secrets (e.g. Cloudflare env bindings) only resolve with it.
 export function getOgImagePath(event: Pick<RequestEvent, 'context'>, _pagePath: string, _options?: Partial<OgImageOptionsInternal>): GetOgImagePathResult {
   const baseURL = useRuntimeConfig().app.baseURL
-  const { defaults, security } = useOgImageRuntimeConfig(event)
+  const { defaults, security, prerenderDynamicUrls } = useOgImageRuntimeConfig(event)
   const extension = _options?.extension || defaults.extension
-  // Force dynamic+signed URLs even during prerender when strict+secret are set.
-  // Otherwise /_og/s/ URLs baked into HTML are unsigned and 403 at runtime for
-  // setups where pages are prerendered but OG images are served dynamically.
-  const isStatic = import.meta.prerender && !(security?.secret && security?.strict)
+  // Emit dynamic URLs during prerender when static /_og/s/ prerendering is ignored by Nitro.
+  // Otherwise prerendered HTML uses static /_og/s/ files written to disk.
+  const isStatic = import.meta.prerender && !prerenderDynamicUrls
   const options: Record<string, any> = { ..._options, _path: _pagePath }
   // Include the component template hash so that template changes produce different URLs,
   // busting CDN/build caches (Vercel, social platform crawlers like Twitter/Facebook, etc.)

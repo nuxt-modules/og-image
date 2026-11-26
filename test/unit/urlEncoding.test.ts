@@ -162,6 +162,11 @@ describe('urlEncoding', () => {
       expect(decoded).toEqual({ width: 1200, height: 630 })
     })
 
+    it('splits on the first single underscore, keeping escaped ones in the alias and value', () => {
+      expect(decodeOgImageParams('my__prop_a__b')).toEqual({ props: { my__prop: 'a_b' } })
+      expect(decodeOgImageParams('title_a___b')).toEqual({ props: { title: 'a__b' } })
+    })
+
     it('decodes unknown params as props', () => {
       const decoded = decodeOgImageParams('title_Hello+World')
       expect(decoded).toEqual({ props: { title: 'Hello World' } })
@@ -399,11 +404,10 @@ describe('urlEncoding', () => {
       expect(result.url).toBe('/_og/s/c_NuxtSeo.satori.png')
     })
 
-    // These tests lock in the contract that callers rely on when strict+secret
-    // are enabled. In that mode, getOgImagePath() passes isStatic=false even
-    // during prerender so the URLs baked into HTML are signed and dynamic, and
-    // pass runtime signature verification when served by the /_og/d/** handler.
-    describe('strict+secret contract', () => {
+    // These tests lock in the contract callers rely on when prerendering dynamic
+    // URLs (isStatic=false with a signing secret) so baked HTML URLs pass runtime
+    // signature verification on the /_og/d/** handler.
+    describe('signed dynamic URL contract', () => {
       const SECRET = 'test-secret-key'
 
       it('isStatic=false + secret produces signed dynamic URL', () => {
@@ -421,9 +425,9 @@ describe('urlEncoding', () => {
       })
 
       it('long URLs + isStatic=false + secret use signed dynamic, NOT hash mode', () => {
-        // This is the core of Fix B: when strict+secret decouples isStatic from
-        // prerender, long URLs must stay in the signed dynamic path instead of
-        // hash mode (hash mode only works for URLs served from disk).
+        // When prerenderDynamicUrls forces isStatic=false during prerender, long
+        // URLs must stay in the signed dynamic path instead of hash mode (hash
+        // mode only works for URLs served from disk).
         const longTitle = 'A'.repeat(250)
         const result = buildOgImageUrl({ props: { title: longTitle } }, 'png', false, undefined, SECRET)
         expect(result.url).toMatch(/^\/_og\/d\//)

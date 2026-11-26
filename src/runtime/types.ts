@@ -50,6 +50,12 @@ export interface OgImageRuntimeConfig {
   colorPreference: 'light' | 'dark'
 
   zeroRuntime: boolean
+  /**
+   * Emit signed dynamic `/_og/d/` URLs during prerendering instead of static `/_og/s/` URLs.
+   * Enabled when Nitro's `prerender.ignore` excludes `/_og/s/` and `zeroRuntime` is false.
+   * @internal
+   */
+  prerenderDynamicUrls?: boolean
   cssFramework: 'tailwind' | 'unocss' | 'none'
 
   componentDirs?: string[]

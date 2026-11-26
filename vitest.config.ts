@@ -30,10 +30,27 @@ export default defineConfig({
           exclude: [
             './test/e2e/**/*.test.ts',
             './test/e2e-not-nuxt/**/*.test.ts',
+            './test/unit/prerender-mode.test.ts',
             './test/unit/resvg-worker-queue.test.ts',
             './test/unit/takumi-worker-queue.test.ts',
             '**/.claude/**',
             '**/node_modules/**',
+          ],
+        },
+      }),
+      defineProject({
+        resolve: { alias: runtimeAlias },
+        define: {
+          'import.meta.prerender': 'true',
+          'import.meta.server': 'true',
+          'import.meta.client': 'false',
+          'import.meta.dev': 'false',
+        },
+        test: {
+          name: 'unit-prerender',
+          environment: 'node',
+          include: [
+            './test/unit/prerender-mode.test.ts',
           ],
         },
       }),
