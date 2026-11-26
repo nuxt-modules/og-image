@@ -8,6 +8,7 @@ import { buildOgImageUrl } from '../../../shared'
 import { getFetchTimeout } from '../../util/fetchTimeout'
 import { logger } from '../../util/logger'
 import { getOgImageOrigin } from '../../util/origin'
+import { withPageQuery } from '../../util/query'
 import { resolveSameOriginUrl } from '../../util/ssrf'
 import { useOgImageRuntimeConfig } from '../../utils'
 
@@ -86,7 +87,9 @@ export async function createScreenshot({ basePath, e, options, extension, timing
   const runtimeConfig = useOgImageRuntimeConfig(e)
   const { colorPreference, defaults, security } = runtimeConfig
   // For browser renderer, we need to load the HTML template with options encoded in URL
-  const path = options.component === 'PageScreenshot' ? basePath : buildOgImageUrl(options, 'html', false, defaults, security?.secret || undefined).url
+  const path = options.component === 'PageScreenshot'
+    ? withPageQuery(basePath, options._query)
+    : buildOgImageUrl(options, 'html', false, defaults, security?.secret || undefined).url
 
   // Create page - Playwright and Puppeteer have different newPage signatures
   let page: Page
