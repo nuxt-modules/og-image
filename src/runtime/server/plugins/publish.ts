@@ -20,9 +20,11 @@ export default defineNitroPlugin((nitro) => {
     const publish = config.publish
     if (!publish)
       return
+    const urls = new Set(html.head.flatMap(entry => [...entry.matchAll(IMAGE_META)].map(match => match[0].match(CONTENT)?.[1]).filter((url): url is string => !!url)))
+    if (!urls.size)
+      return
     const siteURL = new URL(getSiteConfig(event).url)
     const replacements = new Map<string, string>()
-    const urls = new Set(html.head.flatMap(entry => [...entry.matchAll(IMAGE_META)].map(match => match[0].match(CONTENT)?.[1]).filter((url): url is string => !!url)))
     const cache = getPublishedImageCache(nitro)
     for (const source of urls) {
       try {
@@ -43,6 +45,8 @@ export default defineNitroPlugin((nitro) => {
         logger.debug('[Nuxt OG Image] Published URL lookup failed. Keeping the app image URL.', err)
       }
     }
+    if (!replacements.size)
+      return
     html.head = html.head.map(entry => entry.replace(IMAGE_META, tag => tag.replace(CONTENT, (content, source) => replacements.has(source) ? `content="${replacements.get(source)}"` : content)))
   })
 })

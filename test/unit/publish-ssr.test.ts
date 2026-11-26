@@ -6,14 +6,15 @@ import { getPublishKey, publishImage } from '../../src/runtime/server/og-image/c
 import { getPublishedImageCache, getPublishedImageCacheKey } from '../../src/runtime/server/og-image/cache/published'
 import publishPlugin from '../../src/runtime/server/plugins/publish'
 
-const { useStorage, useOgImageRuntimeConfig, warn } = vi.hoisted(() => ({
+const { getSiteConfig, useStorage, useOgImageRuntimeConfig, warn } = vi.hoisted(() => ({
+  getSiteConfig: vi.fn(),
   useStorage: vi.fn(),
   useOgImageRuntimeConfig: vi.fn(),
   warn: vi.fn(),
 }))
 
 vi.mock('#nuxtseo/nitro', () => ({ defineNitroPlugin: (plugin: unknown) => plugin, useStorage }))
-vi.mock('#site-config/server/composables/getSiteConfig', () => ({ getSiteConfig: () => ({ url: 'https://site.example' }) }))
+vi.mock('#site-config/server/composables/getSiteConfig', () => ({ getSiteConfig }))
 vi.mock('../../src/runtime/server/utils', () => ({ useOgImageRuntimeConfig }))
 vi.mock('../../src/runtime/logger', () => ({ logger: { warn, debug: vi.fn() } }))
 
@@ -27,6 +28,7 @@ const config = {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  getSiteConfig.mockReturnValue({ url: 'https://site.example' })
   useOgImageRuntimeConfig.mockReturnValue(config)
 })
 
@@ -45,7 +47,7 @@ async function setup() {
   const app = { hooks } as Parameters<typeof publishPlugin>[0]
   await publishPlugin(app)
   const html = { head: [`<meta property="og:image" content="${imageURL}">`, `<meta name="twitter:image" content="${imageURL}">`] }
-  const render = () => hooks.callHook('render:html', html, { event: { path: '/article' } })
+  const render = (event: Record<string, any> = { path: '/article' }) => hooks.callHook('render:html', html, { event })
   return { storage, html, render, app }
 }
 
@@ -128,5 +130,40 @@ describe('published SSR image URLs', () => {
     await render()
     expect(html.head).toEqual([`<meta property="og:image" content="${imageURL}">`])
     expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['H3 v1 404', { path: '/missing', node: { res: { statusCode: 404 } } }],
+    ['H3 v1 500', { path: '/crash', node: { res: { statusCode: 500 } } }],
+    ['H3 v2 404', { path: '/missing', res: { status: 404 } }],
+    ['inline error page flag', { path: '/missing', context: { _ogImageErrorPage: true } }],
+  ])('bails out on error pages without og:image tags before getSiteConfig: %s', async (_label, event) => {
+    const { html, render } = await setup()
+    const headBefore = ['<title>404 Not Found</title>']
+    html.head = headBefore
+    const mapSpy = vi.spyOn(headBefore, 'map')
+
+    await render(event)
+
+    expect(getSiteConfig).not.toHaveBeenCalled()
+    expect(mapSpy).not.toHaveBeenCalled()
+    expect(html.head).toBe(headBefore)
+  })
+
+  it.each([
+    ['H3 v1 404', { path: '/missing', node: { res: { statusCode: 404 } } }],
+    ['H3 v2 404', { path: '/missing', node: { res: { statusCode: 200 } }, res: { status: 404 } }],
+    ['inline error page flag', { path: '/missing', context: { _ogImageErrorPage: true } }],
+  ])('still rewrites published URLs when error.vue explicitly defines an OG image: %s', async (_label, event) => {
+    const { html, render, app } = await setup()
+    const key = getPublishedImageCacheKey(config.publish, getPublishKey(imageURL, config.defaults, 'v1'), 'png')
+    getPublishedImageCache(app).remember(key, { _tag: 'Published', url: 'https://images.example/error-og.png', objectKey: 'error-og.png', expiresAt: Date.now() + 60000 }, Date.now())
+
+    await render(event)
+
+    expect(html.head).toEqual([
+      '<meta property="og:image" content="https://images.example/error-og.png">',
+      '<meta name="twitter:image" content="https://images.example/error-og.png">',
+    ])
   })
 })

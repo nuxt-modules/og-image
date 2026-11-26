@@ -1,13 +1,14 @@
 import type { NuxtIslandResponse } from 'nuxt/app'
 import type { H3Event } from '#nuxtseo/h3'
-import type { OgImageOptions } from '../../types'
+import type { OgImageRouteRules } from '../../shared/routeRules'
 import { createNitroRouteRuleMatcher as createRouteRuleMatcher } from 'nuxtseo-shared/server'
 import { fetchWithEvent, useRuntimeConfig } from '#nuxtseo/nitro'
 import { getIslandHash } from '#og-image/island-hash'
+import { createCachedRouteRuleMatcher } from '../../shared/routeRules'
 
-interface OgImageRouteRules {
-  ogImage?: false | OgImageOptions & Record<string, any>
-}
+const getCachedRouteRuleMatcher = createCachedRouteRuleMatcher(
+  runtimeConfig => createRouteRuleMatcher<OgImageRouteRules>(runtimeConfig),
+)
 
 export function fetchIsland(e: H3Event, component: string, props: Record<string, any>, timeout?: number): Promise<NuxtIslandResponse> {
   // The server rejects hash mismatches with `400 Invalid island request hash`, so the
@@ -27,5 +28,5 @@ export function fetchIsland(e: H3Event, component: string, props: Record<string,
 }
 
 export function createNitroRouteRuleMatcher(): ((path: string) => OgImageRouteRules) {
-  return createRouteRuleMatcher<OgImageRouteRules>(useRuntimeConfig())
+  return getCachedRouteRuleMatcher(useRuntimeConfig())
 }
