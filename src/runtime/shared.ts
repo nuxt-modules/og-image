@@ -94,7 +94,7 @@ export interface ResponseStatusEventLike {
 }
 
 export function getEventStatusCode(event: ResponseStatusEventLike | undefined): number | undefined {
-  return event?.node?.res?.statusCode ?? event?.res?.status
+  return event?.res?.status ?? event?.node?.res?.statusCode
 }
 
 export function isErrorResponseEvent(event: ResponseStatusEventLike | undefined): boolean {

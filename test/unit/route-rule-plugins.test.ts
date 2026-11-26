@@ -2,6 +2,7 @@ import type { RouteRuleRuntimeConfig } from '../../src/runtime/shared/routeRules
 import { createHead as createServerHead, renderSSRHead } from '@unhead/vue/server'
 import { createHooks } from 'hookable'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { getEventStatusCode, isErrorResponseEvent } from '../../src/runtime/shared'
 import { createCachedRouteRuleMatcher } from '../../src/runtime/shared/routeRules'
 
 const { createNitroRouteRuleMatcher: realCreateNitroRouteRuleMatcher } = await vi.importActual<typeof import('nuxtseo-shared/server')>('nuxtseo-shared/server')
@@ -180,6 +181,7 @@ describe('routeRuleOgImage plugin', () => {
     ['nuxtApp.payload.error (useError 500)', { ssrError: false, nuxtPayloadError: { statusCode: 500 } }],
     ['H3 v1 statusCode 404', { event: { node: { res: { statusCode: 404 } } } }],
     ['H3 v2 status 500', { event: { res: { status: 500 } } }],
+    ['H3 v2 Node status 404 with node.res.statusCode 200', { event: { node: { res: { statusCode: 200 } }, res: { status: 404 } } }],
   ])('skips route-rule resolution on error pages: %s', async (_label, overrides) => {
     const { nuxtApp, ssrContext, event, hooks } = createMockNuxtApp({
       path: '/missing-page',
@@ -223,6 +225,7 @@ describe('ogImageCanonicalUrls plugin', () => {
     ['nuxtApp.payload.error (500)', { ssrError: false, nuxtPayloadError: { statusCode: 500 } }],
     ['H3 v1 statusCode 404', { event: { node: { res: { statusCode: 404 } } } }],
     ['H3 v2 status 500', { event: { res: { status: 500 } } }],
+    ['H3 v2 Node status 404 with node.res.statusCode 200', { event: { node: { res: { statusCode: 200 } }, res: { status: 404 } } }],
   ])('skips head plugin registration on error pages: %s', async (_label, overrides) => {
     const { nuxtApp, ssrContext, head, event, hooks } = createMockNuxtApp({
       path: '/missing',
@@ -240,5 +243,25 @@ describe('ogImageCanonicalUrls plugin', () => {
     expect(event.context._ogImageErrorPage).toBe(true)
     const { headTags } = renderSSRHead(head)
     expect(headTags).toContain('content="/custom.png"')
+  })
+})
+
+describe('getEventStatusCode / isErrorResponseEvent', () => {
+  it('prefers H3 v2 res.status over default Node node.res.statusCode 200', () => {
+    const event = { node: { res: { statusCode: 200 } }, res: { status: 404 } }
+    expect(getEventStatusCode(event)).toBe(404)
+    expect(isErrorResponseEvent(event)).toBe(true)
+  })
+
+  it('falls back to H3 v1 node.res.statusCode when res.status is undefined', () => {
+    const event = { node: { res: { statusCode: 404 } } }
+    expect(getEventStatusCode(event)).toBe(404)
+    expect(isErrorResponseEvent(event)).toBe(true)
+  })
+
+  it('returns false for normal 200 responses', () => {
+    const event = { node: { res: { statusCode: 200 } }, res: { status: 200 } }
+    expect(getEventStatusCode(event)).toBe(200)
+    expect(isErrorResponseEvent(event)).toBe(false)
   })
 })

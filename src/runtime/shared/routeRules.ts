@@ -61,7 +61,7 @@ export function createCachedRouteRuleMatcher(
       signature = JSON.stringify([baseURL, ogImageRules])
     }
     catch {
-      // Non-serializable rule values (e.g. functions or circular refs) cannot be keyed; build uncached.
+      // Non-serializable rule values (e.g. circular refs or BigInt) cannot be keyed; build uncached.
     }
 
     if (signature !== undefined) {

@@ -2,7 +2,7 @@ import { parseURL, withoutBase } from 'ufo'
 import { defineNitroPlugin } from '#nuxtseo/nitro'
 import { getSiteConfig } from '#site-config/server/composables/getSiteConfig'
 import { logger } from '../../logger'
-import { isErrorResponseEvent, isInternalRoute } from '../../shared'
+import { isInternalRoute } from '../../shared'
 import { getPublishKey } from '../og-image/cache/publish'
 import { getPublishedImageCache, getPublishedImageCacheKey } from '../og-image/cache/published'
 import { useOgImageRuntimeConfig } from '../utils'
@@ -14,7 +14,7 @@ export default defineNitroPlugin((nitro) => {
   if (import.meta.dev || import.meta.prerender)
     return
   nitro.hooks.hook('render:html', (html, { event }) => {
-    if (isErrorResponseEvent(event) || isInternalRoute(parseURL(event.path).pathname))
+    if (isInternalRoute(parseURL(event.path).pathname))
       return
     const config = useOgImageRuntimeConfig(event)
     const publish = config.publish
